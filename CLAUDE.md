@@ -4,27 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Repo Is
 
-A collection of Claude Code Skills (custom slash-command plugins). Each top-level directory is a self-contained Skill defined by a `SKILL.md` frontmatter file. Skills are invoked via `/skill-name` in Claude Code and extend the agent with specialized workflows.
+A collection of Claude Code Skills (custom slash-command plugins) under the **`arc:`** namespace. Each top-level directory is a self-contained Skill defined by a `SKILL.md` frontmatter file. Skills are invoked via `/arc:<name>` in Claude Code and extend the agent with specialized workflows.
 
 ## Skill Inventory
 
-| Directory | Skill Name | Purpose |
-|-----------|-----------|---------|
-| `ui-ux-simulation/` | ui-ux-simulation | E2E browser testing via `agent-browser` — simulates real users, produces structured reports with screenshots |
-| `ui-ux-defect-fix/` | ui-ux-defect-fix | Triages failures from ui-ux-simulation, locates root cause, applies fix, runs regression |
-| `tmux-ui-ux-retest-loop/` | tmux-ui-ux-retest-loop | Manages tmux sessions for service start/restart, then loops ui-ux-simulation until PASS or max iterations |
-| `question-refiner/` | question-refiner | Scans CLAUDE.md hierarchy to enrich vague user prompts with project context |
-| `tri-model-deliberation/` | tri-model-deliberation | Multi-model (Claude/Codex/Gemini) deliberation via file-based message bus and `codeagent-wrapper` CLI |
+| Directory | Skill Name | Invoke | Purpose |
+|-----------|-----------|--------|---------|
+| `simulate/` | arc:simulate | `/arc:simulate` | E2E browser testing via `agent-browser` — simulates real users, produces structured reports with screenshots |
+| `triage/` | arc:triage | `/arc:triage` | Triages failures from arc:simulate, locates root cause, applies fix, runs regression |
+| `loop/` | arc:loop | `/arc:loop` | Manages tmux sessions for service start/restart, then loops arc:simulate until PASS or max iterations |
+| `refine/` | arc:refine | `/arc:refine` | Scans CLAUDE.md hierarchy to enrich vague user prompts with project context |
+| `deliberate/` | arc:deliberate | `/arc:deliberate` | Multi-model (Claude/Codex/Gemini) deliberation via file-based message bus and `codeagent-wrapper` CLI |
 
 ## Skill Dependency Chain
 
 ```
-question-refiner
-  └─▶ tri-model-deliberation  (consumes enhanced-prompt.md)
+arc:refine
+  └─▶ arc:deliberate  (consumes enhanced-prompt.md)
 
-ui-ux-simulation
-  └─▶ ui-ux-defect-fix        (consumes run_dir reports/failures)
-        └─▶ tmux-ui-ux-retest-loop  (orchestrates fix→restart→retest cycle)
+arc:simulate
+  └─▶ arc:triage        (consumes run_dir reports/failures)
+        └─▶ arc:loop  (orchestrates fix→restart→retest cycle)
 ```
 
 ## Architecture
@@ -34,8 +34,8 @@ Each Skill follows the same structure:
 - **`SKILL.md`** — The skill definition (frontmatter `name`/`description`/`version` + full instructions). This is the authoritative specification; always read it before modifying a skill.
 - **`scripts/`** — Python helper scripts callable from the agent (use `--help` first).
 - **`references/`** — Decision trees, runbooks, templates consumed by the skill workflow.
-- **`templates/`** / **`examples/`** — Scaffold templates and sample data (ui-ux-simulation only).
-- **`assets/`** — Config examples (tmux-ui-ux-retest-loop only).
+- **`templates/`** / **`examples/`** — Scaffold templates and sample data (simulate only).
+- **`assets/`** — Config examples (loop only).
 
 There is no build step. Skills are pure Markdown + Python scripts.
 
@@ -43,7 +43,7 @@ There is no build step. Skills are pure Markdown + Python scripts.
 
 All scripts are Python 3 and accept `--help`. No virtual environment is required for core functionality.
 
-### ui-ux-simulation/scripts/
+### simulate/scripts/
 | Script | What it does |
 |--------|-------------|
 | `scaffold_run.py` | Creates `reports/<run_id>/` directory skeleton with report templates (`--pack e2e` or `--pack full-process`) |
@@ -53,12 +53,12 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 | `new_defect.py` | Generates `failures/failure-XXXX.md` from CLI args |
 | `accounts_to_personas.py` | Converts `accounts.jsonc` → personas JSON for replay |
 
-### ui-ux-defect-fix/scripts/
+### triage/scripts/
 | Script | What it does |
 |--------|-------------|
 | `triage_run.py` | Best-effort triage summary of a run_dir; outputs `triage.md` / `triage.json` |
 
-### tmux-ui-ux-retest-loop/scripts/
+### loop/scripts/
 | Script | What it does |
 |--------|-------------|
 | `uxloop_tmux.py` | Starts/restarts services in tmux panes from a JSON config; supports `--reset-window`, `--wait-ready` |
@@ -72,3 +72,4 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 - **`run_id` format**: `YYYY-MM-DD_HH-mm-ss_<short>`, optionally suffixed with `_iterNN` in retest loops.
 - **Screenshot naming**: `s<4-digit-step>_<slug>.png` (e.g., `s0007_after-submit.png`).
 - Skills that call external models use `codeagent-wrapper` CLI at `~/.claude/bin/codeagent-wrapper` with `--backend codex` or `--backend gemini`. Claude is invoked via Task subagent (not codeagent-wrapper).
+- **Working directory for arc:deliberate**: `.arc/deliberate/<task-name>/` (inside the target project).
