@@ -1,0 +1,26 @@
+{
+  "session_name": "uxloop",
+  "window_name": "svc",
+  "services": [
+    {
+      "name": "backend",
+      "cwd": "backend",
+      "command": "npm run dev",
+      "ready_check": {
+        "type": "http",
+        "url": "http://localhost:3000/health",
+        "expect_status": 200
+      }
+    },
+    {
+      "name": "frontend",
+      "cwd": "frontend",
+      "command": "npm run dev",
+      "ready_check": {
+        "type": "http",
+        "url": "http://localhost:5173/",
+        "expect_status": 200
+      }
+    }
+  ]
+}

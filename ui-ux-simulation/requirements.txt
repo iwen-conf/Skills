@@ -1,0 +1,5 @@
+mdformat
+tabulate
+py-markdown-table
+pandas
+

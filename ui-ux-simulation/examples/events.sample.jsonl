@@ -1,0 +1,11 @@
+{"run_id":"demo_run","step":1,"role":"buyer","kind":"exec","cmd":"agent-browser open \"http://localhost:5173/login\"","ts":"2026-02-01T14:30:00","result":"PASS"}
+{"run_id":"demo_run","step":1,"role":"buyer","kind":"verify","expected":"Login form visible","actual":"Login form visible","ts":"2026-02-01T14:30:01","result":"PASS"}
+{"run_id":"demo_run","step":1,"role":"buyer","kind":"screenshot","path":"screenshots/s0001_login-page.png","description":"登录页初始状态","expectation":"显示登录表单","url":"http://localhost:5173/login","ts":"2026-02-01T14:30:02","result":"PASS"}
+{"run_id":"demo_run","step":2,"role":"buyer","kind":"exec","cmd":"agent-browser type \"#username\" \"buyer_01\"","ts":"2026-02-01T14:30:05","result":"PASS"}
+{"run_id":"demo_run","step":2,"role":"buyer","kind":"exec","cmd":"agent-browser type \"#password\" \"secret123\"","ts":"2026-02-01T14:30:06","result":"PASS"}
+{"run_id":"demo_run","step":2,"role":"buyer","kind":"verify","expected":"Fields filled","actual":"Fields filled","ts":"2026-02-01T14:30:07","result":"PASS"}
+{"run_id":"demo_run","step":2,"role":"buyer","kind":"screenshot","path":"screenshots/s0002_filled-form.png","description":"已填充用户名/密码","expectation":"字段内容正确","url":"http://localhost:5173/login","ts":"2026-02-01T14:30:08","result":"PASS"}
+{"run_id":"demo_run","step":3,"role":"buyer","kind":"exec","cmd":"agent-browser click \"#btn-submit\"","ts":"2026-02-01T14:30:10","result":"PASS"}
+{"run_id":"demo_run","step":3,"role":"buyer","kind":"verify","expected":"Redirect to dashboard","actual":"Stays on login (toast: 权限不足)","ts":"2026-02-01T14:30:12","result":"FAIL"}
+{"run_id":"demo_run","step":3,"role":"buyer","kind":"screenshot","path":"screenshots/s0003_permission-denied.png","description":"点击登录后出现“权限不足”Toast，未跳转","expectation":"跳转 Dashboard","url":"http://localhost:5173/login","ts":"2026-02-01T14:30:13","result":"FAIL"}
+
