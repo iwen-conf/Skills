@@ -22,9 +22,9 @@ description: 当复杂问题需要 Claude、Codex、Gemini 三模型多视角分
 
 | 模型 | 调用方式 | 原因 |
 |------|---------|------|
-| **Claude** | **Task 工具（subagent）** | Claude Code 不能嵌套调用自身，`codeagent-wrapper --backend claude` 会报错 |
-| **Codex** | `codeagent-wrapper --backend codex` | 独立进程，CLI 调用 |
-| **Gemini** | `codeagent-wrapper --backend gemini` | 独立进程，CLI 调用 |
+| **Claude** | **Task 工具（subagent）** | Claude Code 不能嵌套调用自身 |
+| **Codex** | `codex exec -C "<workdir>" --full-auto` | 原生 CLI，非交互模式 |
+| **Gemini** | `gemini -p "<prompt>" --yolo` | 原生 CLI，headless + auto-approve |
 
 Claude subagent 调用模板：
 ```
@@ -140,36 +140,29 @@ Task({
 })
 ```
 
-**Codex 分析**（codeagent-wrapper）:
+**Codex 分析**:
 ```bash
-/Users/iluwen/.claude/bin/codeagent-wrapper --lite --backend codex - "$(pwd)" <<'EOF'
-ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/codex/architect.md
-<TASK>
-分析以下需求的歧义点。
+codex exec -C "<workdir>" --full-auto - <<'EOF'
+你是后端架构师。分析以下需求的歧义点。
 上下文信息（来自 MCP 搜索）：<MCP 搜索结果>
 
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 从后端架构、技术约束、性能要求等角度，列出可能存在歧义的地方。
 写入 <workdir>/.arc/deliberate/<task-name>/codex/ambiguity-round-N.md。
-</TASK>
-OUTPUT: 歧义分析报告
 EOF
 ```
 
-**Gemini 分析**（codeagent-wrapper）:
+**Gemini 分析**:
 ```bash
-/Users/iluwen/.claude/bin/codeagent-wrapper --lite --backend gemini - "$(pwd)" <<'EOF'
-ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/gemini/architect.md
-<TASK>
-分析以下需求的歧义点。
+gemini -p "$(cat <<'EOF'
+你是前端与用户体验分析师。分析以下需求的歧义点。
 上下文信息（来自 MCP 搜索）：<MCP 搜索结果>
 
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 从前端交互、用户体验、响应式设计等角度，列出可能存在歧义的地方。
 写入 <workdir>/.arc/deliberate/<task-name>/gemini/ambiguity-round-N.md。
-</TASK>
-OUTPUT: 歧义分析报告
 EOF
+)" --yolo
 ```
 
 ### Step 1.2: 互相反驳歧义分析
@@ -182,7 +175,7 @@ EOF
 3. 补充对方遗漏的歧义
 4. 将反驳内容追加到自己的 `ambiguity-round-N.md`
 
-调用方式同 Step 1.1（Claude 用 subagent，Codex/Gemini 用 codeagent-wrapper）。
+调用方式同 Step 1.1（Claude 用 subagent，Codex 用 `codex exec`，Gemini 用 `gemini -p`）。
 
 ### Step 1.3: 聚合歧义
 
@@ -256,35 +249,32 @@ Task({
 })
 ```
 
-**Codex 提案**（codeagent-wrapper）:
+**Codex 提案**:
 ```bash
-/Users/iluwen/.claude/bin/codeagent-wrapper --lite --backend codex - "$(pwd)" <<'EOF'
-ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/codex/architect.md
-<TASK>
-基于 Codex 视角（后端架构、性能优化、数据库、安全），给出完整的解决方案提案。
+codex exec -C "<workdir>" --full-auto - <<'EOF'
+你是后端架构师（后端架构、性能优化、数据库、安全）。
+基于 Codex 视角，给出完整的解决方案提案。
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 写入 <workdir>/.arc/deliberate/<task-name>/codex/proposal-round-N.md。
 仅限纯文本 Markdown 格式，禁止代码块。
-</TASK>
 EOF
 ```
 
-**Gemini 提案**（codeagent-wrapper）:
+**Gemini 提案**:
 ```bash
-/Users/iluwen/.claude/bin/codeagent-wrapper --lite --backend gemini - "$(pwd)" <<'EOF'
-ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/gemini/architect.md
-<TASK>
-基于 Gemini 视角（前端交互、UI/UX、响应式设计、组件架构），给出完整的解决方案提案。
+gemini -p "$(cat <<'EOF'
+你是前端与交互设计师（前端交互、UI/UX、响应式设计、组件架构）。
+基于 Gemini 视角，给出完整的解决方案提案。
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 写入 <workdir>/.arc/deliberate/<task-name>/gemini/proposal-round-N.md。
 仅限纯文本 Markdown 格式，禁止代码块。
-</TASK>
 EOF
+)" --yolo
 ```
 
 ### Step 2.3: 等待完成
 
-等待三个后台任务完成（subagent 用 TaskOutput，codeagent-wrapper 用 Bash 等待）。
+等待三个后台任务完成（subagent 用 TaskOutput，Codex/Gemini 用 Bash 等待）。
 
 ### Step 2.4: 交叉审阅 + 互相反驳
 
@@ -311,12 +301,12 @@ Task({
 })
 ```
 
-**Codex 审阅 Claude + Gemini**（codeagent-wrapper）:
+**Codex 审阅 Claude + Gemini**:
 - 读取 `claude/proposal-round-N.md` 和 `gemini/proposal-round-N.md`
 - 反驳 Claude 的全局视角选择、反驳 Gemini 的交互设计选择
 - 产出：`codex/critique-round-N.md`
 
-**Gemini 审阅 Claude + Codex**（codeagent-wrapper）:
+**Gemini 审阅 Claude + Codex**:
 - 读取 `claude/proposal-round-N.md` 和 `codex/proposal-round-N.md`
 - 反驳 Claude 的抽象设计、反驳 Codex 的后端实现
 - 产出：`gemini/critique-round-N.md`
@@ -471,12 +461,10 @@ Task({
 })
 ```
 
-**Codex 审查计划**（codeagent-wrapper）:
+**Codex 审查计划**:
 ```bash
-/Users/iluwen/.claude/bin/codeagent-wrapper --lite --backend codex - "$(pwd)" <<'EOF'
-ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/codex/architect.md
-<TASK>
-审查以下 OpenSpec 计划文件，从后端架构、性能、安全、可行性角度进行审查反驳。
+codex exec -C "<workdir>" --full-auto - <<'EOF'
+你是后端架构师。审查以下 OpenSpec 计划文件，从后端架构、性能、安全、可行性角度进行审查反驳。
 
 读取以下文件：
 - $CHANGE/proposal.md
@@ -491,17 +479,13 @@ ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/codex/architect.md
 4. 给出修改建议
 
 写入 <workdir>/.arc/deliberate/<task-name>/codex/plan-review.md。
-</TASK>
-OUTPUT: 计划审查报告
 EOF
 ```
 
-**Gemini 审查计划**（codeagent-wrapper）:
+**Gemini 审查计划**:
 ```bash
-/Users/iluwen/.claude/bin/codeagent-wrapper --lite --backend gemini - "$(pwd)" <<'EOF'
-ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/gemini/architect.md
-<TASK>
-审查以下 OpenSpec 计划文件，从前端交互、UI/UX、组件架构、用户体验角度进行审查反驳。
+gemini -p "$(cat <<'EOF'
+你是前端与交互设计师。审查以下 OpenSpec 计划文件，从前端交互、UI/UX、组件架构、用户体验角度进行审查反驳。
 
 读取以下文件：
 - $CHANGE/proposal.md
@@ -516,16 +500,15 @@ ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/gemini/architect.md
 4. 给出修改建议
 
 写入 <workdir>/.arc/deliberate/<task-name>/gemini/plan-review.md。
-</TASK>
-OUTPUT: 计划审查报告
 EOF
+)" --yolo
 ```
 
 ### Step 3.4: 三模型交叉反驳计划审查
 
 **CRITICAL**: 三个模型互相反驳对方的计划审查意见。每个模型读取另外两个的 `plan-review.md`，反驳不合理之处，补充遗漏。
 
-调用方式：Claude 用 subagent，Codex/Gemini 用 codeagent-wrapper，三者并发。
+调用方式：Claude 用 subagent，Codex 用 `codex exec`，Gemini 用 `gemini -p`，三者并发。
 
 各模型产出覆盖（更新）自己的 `plan-review.md`，追加反驳段落。
 
@@ -572,10 +555,10 @@ openspec archive <task-name>
 
 ### Step 4.1: Codex 执行计划
 
-根据定稿计划，使用 codeagent-wrapper 调用 Codex 按 `tasks.md` 逐步执行：
+根据定稿计划，使用 Codex 按 `tasks.md` 逐步执行：
 
 ```bash
-/Users/iluwen/.claude/bin/codeagent-wrapper --backend codex - "$(pwd)" <<'EOF'
+codex exec -C "<workdir>" --full-auto - <<'EOF'
 根据 .arc/deliberate/<task-name>/openspec/changes/<task-name>/tasks.md 中的任务列表，按顺序执行代码实现。
 同时参考：
 - .arc/deliberate/<task-name>/openspec/changes/<task-name>/design.md（架构设计）
@@ -659,6 +642,6 @@ Round 1/3:
 | 角色 | 调用方式 | 并发支持 |
 |------|---------|---------|
 | Claude | `Task({ subagent_type: "general-purpose", run_in_background: true })` | subagent 后台 |
-| Codex | `Bash({ command: "codeagent-wrapper --lite --backend codex ...", run_in_background: true })` | Bash 后台 |
-| Gemini | `Bash({ command: "codeagent-wrapper --lite --backend gemini ...", run_in_background: true })` | Bash 后台 |
+| Codex | `Bash({ command: "codex exec -C '<workdir>' --full-auto - <<'EOF'\n<prompt>\nEOF", run_in_background: true })` | Bash 后台 |
+| Gemini | `Bash({ command: "gemini -p \"$(cat <<'EOF'\n<prompt>\nEOF\n)\" --yolo", run_in_background: true })` | Bash 后台 |
 | Claude（聚合/定稿） | 主进程直接处理 | — |

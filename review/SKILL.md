@@ -47,7 +47,8 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 
 * **ace-tool (MCP)**: 必须。用于语义搜索项目代码结构、实现模式、CLAUDE.md 索引。
 * **Exa MCP**: 推荐。用于搜索项目依赖的行业标准、最佳实践、安全漏洞信息。
-* **codeagent-wrapper**: 必须。用于调用 Codex/Gemini 执行独立评估与反驳。
+* **codex CLI**: 必须。`codex exec` 非交互执行 Codex 模型。
+* **gemini CLI**: 必须。`gemini -p` headless 模式执行 Gemini 模型。
 
 ## 模型调用方式
 
@@ -56,8 +57,8 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 | 模型 | 调用方式 | 原因 |
 |------|---------|------|
 | **Claude** | **Task 工具（subagent）** | Claude Code 不能嵌套调用自身 |
-| **Codex** | `codeagent-wrapper --backend codex` | 独立进程，CLI 调用 |
-| **Gemini** | `codeagent-wrapper --backend gemini` | 独立进程，CLI 调用 |
+| **Codex** | `codex exec -C "<workdir>" --full-auto` | 原生 CLI，非交互模式 |
+| **Gemini** | `gemini -p "<prompt>" --yolo` | 原生 CLI，headless + auto-approve |
 
 ## Critical Rules（核心铁律）
 
@@ -204,11 +205,9 @@ Task({
 })
 ```
 
-**Codex 评估**（codeagent-wrapper）:
+**Codex 评估**:
 ```bash
-/Users/iluwen/.claude/bin/codeagent-wrapper --lite --backend codex - "<project_path>" <<'EOF'
-ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/codex/architect.md
-<TASK>
+codex exec -C "<workdir>" --full-auto - <<'EOF'
 你是企业级软件评审专家，侧重后端架构、代码质量和安全。
 
 读取 <output_dir>/context/project-snapshot.md 了解项目概况。
@@ -217,16 +216,12 @@ ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/codex/architect.md
 对全部 7 个维度逐一评估，每个维度产出一个独立文件 <output_dir>/codex/dim-N-<name>.md。
 格式同 Claude（评分 + 加分点 + 扣分点 + 关键发现 + 改进建议）。
 必须引用代码证据（file:line）。
-</TASK>
-OUTPUT: 7 份维度分析文件
 EOF
 ```
 
-**Gemini 评估**（codeagent-wrapper）:
+**Gemini 评估**:
 ```bash
-/Users/iluwen/.claude/bin/codeagent-wrapper --lite --backend gemini - "<project_path>" <<'EOF'
-ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/gemini/architect.md
-<TASK>
+gemini -p "$(cat <<'EOF'
 你是企业级软件评审专家，侧重前端交互、运维和用户体验。
 
 读取 <output_dir>/context/project-snapshot.md 了解项目概况。
@@ -235,14 +230,13 @@ ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/gemini/architect.md
 对全部 7 个维度逐一评估，每个维度产出一个独立文件 <output_dir>/gemini/dim-N-<name>.md。
 格式同 Claude（评分 + 加分点 + 扣分点 + 关键发现 + 改进建议）。
 必须引用代码证据（file:line）。
-</TASK>
-OUTPUT: 7 份维度分析文件
 EOF
+)" --yolo
 ```
 
 #### Step 2.2: 等待完成
 
-等待三个后台任务完成（subagent 用 TaskOutput，codeagent-wrapper 用 Bash 等待）。
+等待三个后台任务完成（subagent 用 TaskOutput，Codex/Gemini 用 Bash 等待）。
 
 ---
 
@@ -280,12 +274,12 @@ Task({
 })
 ```
 
-**Codex 反驳 Claude + Gemini**（codeagent-wrapper）:
+**Codex 反驳 Claude + Gemini**:
 - 读取 `claude/dim-*.md` 和 `gemini/dim-*.md`
 - 从后端/代码质量/安全角度反驳
 - 产出 `codex/critique.md`
 
-**Gemini 反驳 Claude + Codex**（codeagent-wrapper）:
+**Gemini 反驳 Claude + Codex**:
 - 读取 `claude/dim-*.md` 和 `codex/dim-*.md`
 - 从前端/运维/UX 角度反驳
 - 产出 `gemini/critique.md`
@@ -467,6 +461,6 @@ Task({
 | 角色 | 调用方式 | 并发支持 |
 |------|---------|---------|
 | Claude | `Task({ subagent_type: "general-purpose", run_in_background: true })` | subagent 后台 |
-| Codex | `Bash({ command: "codeagent-wrapper --lite --backend codex ...", run_in_background: true })` | Bash 后台 |
-| Gemini | `Bash({ command: "codeagent-wrapper --lite --backend gemini ...", run_in_background: true })` | Bash 后台 |
+| Codex | `Bash({ command: "codex exec -C '<workdir>' --full-auto - <<'EOF'\n<prompt>\nEOF", run_in_background: true })` | Bash 后台 |
+| Gemini | `Bash({ command: "gemini -p \"$(cat <<'EOF'\n<prompt>\nEOF\n)\" --yolo", run_in_background: true })` | Bash 后台 |
 | Claude（聚合/报告） | 主进程直接处理 | — |
