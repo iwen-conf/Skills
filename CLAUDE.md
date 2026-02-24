@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 变更记录 (Changelog)
+
+| 时间 | 操作 |
+|------|------|
+| 2026-02-24T16:30:00 | arc:init 三模型协作生成模块级 CLAUDE.md（simulate/triage/loop/review/deliberate/init/agent/refine） |
+| 2026-02-24 | 初始版本，定义 Skill 清单、依赖链、架构和约定 |
+
+---
+
 ## What This Repo Is
 
 A collection of Claude Code Skills (custom slash-command plugins) under the **`arc:`** namespace. Each top-level directory is a self-contained Skill defined by a `SKILL.md` frontmatter file. Skills are invoked via `/arc:<name>` in Claude Code and extend the agent with specialized workflows.
@@ -18,6 +27,21 @@ A collection of Claude Code Skills (custom slash-command plugins) under the **`a
 | `deliberate/` | arc:deliberate | `/arc:deliberate` | 三模型（Claude/Codex/Gemini）多视角审议，使用 OpenSpec 生成结构化计划 |
 | `review/` | arc:review | `/arc:review` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，三模型对抗式分析，���出诊断报告与改进路线图 |
 | `init/` | arc:init | `/arc:init` | 三模型协作生成项目层级式 CLAUDE.md 索引体系，深度扫描项目结构后输出根级+模块级 CLAUDE.md |
+
+## 模块文档索引
+
+每个 Skill 目录下都有模块级 CLAUDE.md 文件，提供详细的模块职责、入口与启动、对外接口等信息：
+
+| 模块 | 文档 | 核心内容 |
+|------|------|---------|
+| simulate/ | [CLAUDE.md](./simulate/CLAUDE.md) | E2E 测试执行、脚本接口、报告产物结构 |
+| triage/ | [CLAUDE.md](./triage/CLAUDE.md) | 缺陷分析流程、Fix Packet 结构、回归验证 |
+| loop/ | [CLAUDE.md](./loop/CLAUDE.md) | tmux 服务管理、配置模型、迭代回归流程 |
+| review/ | [CLAUDE.md](./review/CLAUDE.md) | 七维度评审框架、三模型对抗、改进路线图 |
+| deliberate/ | [CLAUDE.md](./deliberate/CLAUDE.md) | 四阶段审议流程、OpenSpec 集成、共识报告模型 |
+| init/ | [CLAUDE.md](./init/CLAUDE.md) | 五阶段生成流程、CLAUDE.md 结构规范、校验体系 |
+| agent/ | [CLAUDE.md](./agent/CLAUDE.md) | 调度决策树、执行预览、多模型任务分配 |
+| refine/ | [CLAUDE.md](./refine/CLAUDE.md) | CLAUDE.md 索引扫描、差距分析、Prompt 增强 |
 
 ## Skill Dependency Chain
 
