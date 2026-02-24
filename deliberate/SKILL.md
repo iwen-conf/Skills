@@ -13,7 +13,7 @@ description: 当复杂问题需要 Claude、Codex、Gemini 三模型多视角分
 
 1. **歧义检查阶段**：三模型分析需求 → 识别歧义 → 互相反驳 → 用户澄清 → 直到无歧义
 2. **审议阶段**：三模型独立提案 → 交叉审阅 → 互相反驳 → 迭代收敛 → 合成共识报告
-3. **计划生成阶段**：opsx 生成结构化计划 → 三模型审查反驳 → 定稿可执行计划
+3. **计划生成阶段**：OpenSpec 生成结构化计划 → 三模型审查反驳 → 定稿可执行计划
 4. **执行阶段**：使用 Codex 执行代码实现
 
 ## 模型调用方式
@@ -98,11 +98,17 @@ Task({
 │   └── plan-review.md
 ├── convergence/
 │   └── round-N-summary.md              # 收敛判定摘要
-└── plan/                                # 最终可执行计划（opsx 产出）
-    ├── proposal.md                      # opsx proposal
-    ├── specs.md                         # opsx specs
-    ├── design.md                        # opsx design
-    └── tasks.md                         # opsx tasks（有序可执行步骤）
+└── openspec/                            # OpenSpec 工作空间（Phase 3）
+    ├── changes/
+    │   ├── <task-name>/                 # openspec new change 创建
+    │   │   ├── .openspec.yaml
+    │   │   ├── proposal.md              # 方案提案
+    │   │   ├── specs/                   # 详细规范
+    │   │   │   └── <capability>/spec.md
+    │   │   ├── design.md                # 架构设计
+    │   │   └── tasks.md                 # 有序可执行任务
+    │   └── archive/
+    └── specs/
 ```
 
 ---
@@ -230,7 +236,7 @@ EOF
 
 ### Step 2.1: 目录脚手架
 
-确保 `claude/`、`codex/`、`gemini/`、`convergence/`、`plan/` 目录已创建。
+确保 `claude/`、`codex/`、`gemini/`、`convergence/` 目录已创建。
 
 ### Step 2.2: 并发派发提案 (每轮)
 
