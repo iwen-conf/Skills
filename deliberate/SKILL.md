@@ -415,11 +415,20 @@ Task({
 
 依次对 `specs`、`design`、`tasks` 重复上述流程。每个 artifact 必须在前置依赖完成后再生成（`openspec instructions` 会通过 `<warning>` 标签提示缺失依赖）。
 
+**生成 `tasks` artifact 时的额外要求**：Claude subagent 必须为每个 task 标注 AI 执行预估耗时 `[~Xmin]`，参考以下基准：
+
+| 复杂度 | 预估耗时 | 示例 |
+|--------|---------|------|
+| 简单（单文件修改、配置调整、CRUD） | ~1-2min | 修改一个配置项、添加一个字段 |
+| 中等（新增模块/接口、跨 2-3 文件） | ~3-5min | 新增 API endpoint、添加中间件 |
+| 高（架构变更、跨模块重构） | ~5-15min | 重构鉴权体系、迁移数据模型 |
+| 超大（新系统、大量文件联动） | ~15-30min | 新增微服务、全面重构 |
+
 **产出文件**（均位于 `openspec/changes/<task-name>/` 下）：
 - `proposal.md` — 方案提案（Why / What Changes / Capabilities / Impact）
 - `specs/<capability>/spec.md` — 详细规范（ADDED Requirements + Scenarios）
 - `design.md` — 架构设计（Context / Goals / Decisions / Risks）
-- `tasks.md` — 有序可执行任务（分组 checkbox 格式，可被 `openspec archive` 追踪）
+- `tasks.md` — 有序可执行任务（分组 checkbox 格式 + AI 耗时标注，可被 `openspec archive` 追踪）
 
 ### Step 3.2: OpenSpec 验证
 
@@ -528,19 +537,21 @@ EOF
 2. 根据三方审查修订 `openspec/changes/<task-name>/tasks.md`（确保任务有序、有依赖关系、可执行）
 3. 同步更新 `design.md` 和 `specs/` 下的 spec 文件（如有必要）
 
-**`tasks.md` 格式要求**（OpenSpec 标准 checkbox 格式，可被 `openspec archive` 追踪进度）：
+**`tasks.md` 格式要求**（OpenSpec 标准 checkbox 格式 + AI 耗时标注，可被 `openspec archive` 追踪进度）：
 
 ```markdown
 ## 1. <任务分组名>
 
-- [ ] 1.1 <任务描述>
-- [ ] 1.2 <任务描述>
+- [ ] 1.1 <任务描述> [~2min]
+- [ ] 1.2 <任务描述> [~5min]
 
 ## 2. <任务分组名>
 
-- [ ] 2.1 <任务描述>
-- [ ] 2.2 <任务描述>
+- [ ] 2.1 <任务描述> [~3min]
+- [ ] 2.2 <任务描述> [~10min]
 ```
+
+> 时间标注基于 AI agent 执行速度（非人工），参考 Step 3.1 中的耗时基准表。
 
 ### Step 3.6: 最终验证与归档
 
