@@ -10,11 +10,11 @@ A collection of Claude Code Skills (custom slash-command plugins) under the **`a
 
 | Directory | Skill Name | Invoke | Purpose |
 |-----------|-----------|--------|---------|
-| `simulate/` | arc:simulate | `/arc:simulate` | E2E browser testing via `agent-browser` — simulates real users, produces structured reports with screenshots |
-| `triage/` | arc:triage | `/arc:triage` | Triages failures from arc:simulate, locates root cause, applies fix, runs regression |
-| `loop/` | arc:loop | `/arc:loop` | Manages tmux sessions for service start/restart, then loops arc:simulate until PASS or max iterations |
-| `refine/` | arc:refine | `/arc:refine` | Scans CLAUDE.md hierarchy to enrich vague user prompts with project context |
-| `deliberate/` | arc:deliberate | `/arc:deliberate` | Multi-model (Claude/Codex/Gemini) deliberation via file-based message bus and `codeagent-wrapper` CLI |
+| `simulate/` | arc:simulate | `/arc:simulate` | 通过 `agent-browser` 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
+| `triage/` | arc:triage | `/arc:triage` | 分析 arc:simulate 的失败报告，定位根因、修复缺陷、执行回归验证 |
+| `loop/` | arc:loop | `/arc:loop` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
+| `refine/` | arc:refine | `/arc:refine` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
+| `deliberate/` | arc:deliberate | `/arc:deliberate` | 三模型（Claude/Codex/Gemini）多视角审议，通过文件总线与 `codeagent-wrapper` CLI 协作，使用 OpenSpec 生成结构化计划 |
 
 ## Skill Dependency Chain
 
@@ -73,3 +73,4 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 - **Screenshot naming**: `s<4-digit-step>_<slug>.png` (e.g., `s0007_after-submit.png`).
 - Skills that call external models use `codeagent-wrapper` CLI at `~/.claude/bin/codeagent-wrapper` with `--backend codex` or `--backend gemini`. Claude is invoked via Task subagent (not codeagent-wrapper).
 - **Working directory for arc:deliberate**: `.arc/deliberate/<task-name>/` (inside the target project).
+- **OpenSpec integration**: arc:deliberate 的 Phase 3 使用 [OpenSpec](https://github.com/Fission-AI/OpenSpec) CLI（`openspec`）生成结构化计划。OpenSpec 在 `.arc/deliberate/<task-name>/` 内初始化，artifact 写入 `openspec/changes/<task-name>/` 下。工作流：`openspec init` → `openspec new change` → `openspec instructions` → `openspec validate` → `openspec archive`。
