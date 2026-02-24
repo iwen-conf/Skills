@@ -358,43 +358,87 @@ Task({
 
 ## Phase 3: 计划生成阶段（Plan Generation）
 
-**CRITICAL**: 使用 opsx（OpenSpec）将共识报告转化为结构化可执行计划，再经三模型审查反驳定稿。
+**CRITICAL**: 使用 [OpenSpec](https://github.com/Fission-AI/OpenSpec)（CLI: `openspec`）将共识报告转化为结构化可执行计划，再经三模型审查反驳定稿。
 
-### Step 3.1: opsx 生成计划
+OpenSpec 采用 spec-driven 工作流，按 `proposal → specs → design → tasks` 顺序生成 artifact，每个 artifact 都有依赖关系和结构化模板。
 
-基于 `convergence/final-consensus.md` 的内容，使用 opsx 生成结构化计划：
+### Step 3.0: OpenSpec 初始化
+
+在审议工作空间内初始化 OpenSpec 并创建变更：
 
 ```bash
-# 1. 在 plan/ 目录初始化 opsx
-cd <workdir>/.arc/deliberate/<task-name>/plan
-openspec init
-
-# 2. 生成 proposal（基于共识报告内容）
-openspec instructions proposal --change <change-id>
-# 将共识报告的核心结论写入 proposal.md
-
-# 3. 生成 specs（规范约束）
-openspec instructions specs --change <change-id>
-# 基于 proposal 生成详细规范
-
-# 4. 生成 design（设计文档）
-openspec instructions design --change <change-id>
-# 基于 specs 生成架构设计
-
-# 5. 生成 tasks（有序可执行步骤）
-openspec instructions tasks --change <change-id>
-# 基于 design 生成编号任务列表
+cd <workdir>/.arc/deliberate/<task-name>
+openspec init --tools none
+openspec new change <task-name>
 ```
 
-**产出文件**：
-- `plan/proposal.md` — 方案提案
-- `plan/specs.md` — 详细规范
-- `plan/design.md` — 架构设计
-- `plan/tasks.md` — 有序可执行任务（按编号排列，含依赖关系）
+产出目录结构：
+```
+openspec/
+├── changes/
+│   ├── <task-name>/
+│   │   └── .openspec.yaml   # schema: spec-driven
+│   └── archive/
+└── specs/
+```
 
-### Step 3.2: 三模型并发审查计划
+### Step 3.1: 按序生成 4 个 artifact
 
-opsx 生成计划后，**三个模型并发独立审查**（同一消息，`run_in_background: true`）。
+对每个 artifact（proposal → specs → design → tasks），执行以下流程：
+
+1. **获取 OpenSpec 结构化指令**：
+```bash
+cd <workdir>/.arc/deliberate/<task-name>
+openspec instructions <artifact> --change <task-name>
+```
+`openspec instructions` 输出包含 `<instruction>`（写作指南）、`<template>`（结构模板）和 `<output>`（目标写入路径）。
+
+2. **Claude subagent 执行写入**：将 OpenSpec 指令 + `convergence/final-consensus.md` 的内容一起发给 Claude subagent，由其按模板填充并写入指定路径。
+
+**Claude 生成 proposal**（subagent，每个 artifact 单独调用）:
+```
+Task({
+  description: "OpenSpec proposal 生成",
+  subagent_type: "general-purpose",
+  run_in_background: true,
+  mode: "bypassPermissions",
+  prompt: "基于共识报告生成 OpenSpec proposal。
+读取以下文件：
+- <workdir>/.arc/deliberate/<task-name>/convergence/final-consensus.md
+
+按照以下 OpenSpec 指令填写 proposal：
+<此处粘贴 openspec instructions proposal 的完整输出>
+
+将结果写入 <output> 标签指定的路径。"
+})
+```
+
+依次对 `specs`、`design`、`tasks` 重复上述流程。每个 artifact 必须在前置依赖完成后再生成（`openspec instructions` 会通过 `<warning>` 标签提示缺失依赖）。
+
+**产出文件**（均位于 `openspec/changes/<task-name>/` 下）：
+- `proposal.md` — 方案提案（Why / What Changes / Capabilities / Impact）
+- `specs/<capability>/spec.md` — 详细规范（ADDED Requirements + Scenarios）
+- `design.md` — 架构设计（Context / Goals / Decisions / Risks）
+- `tasks.md` — 有序可执行任务（分组 checkbox 格式，可被 `openspec archive` 追踪）
+
+### Step 3.2: OpenSpec 验证
+
+生成完成后，校验 artifact 结构完整性和变更状态：
+
+```bash
+cd <workdir>/.arc/deliberate/<task-name>
+openspec validate --change <task-name>
+openspec status --change <task-name>
+```
+
+- `validate` 校验 artifact 结构是否符合 schema 要求
+- `status` 显示每个 artifact 的完成状态（missing / present）
+
+### Step 3.3: 三模型并发审查计划
+
+OpenSpec 生成计划后，**三个模型并发独立审查**（同一消息，`run_in_background: true`）。
+
+> 以下路径简写 `$CHANGE` 代表 `<workdir>/.arc/deliberate/<task-name>/openspec/changes/<task-name>`。
 
 **Claude 审查计划**（subagent）:
 ```
@@ -403,12 +447,12 @@ Task({
   subagent_type: "general-purpose",
   run_in_background: true,
   mode: "bypassPermissions",
-  prompt: "审查以下计划文件，从全局架构、整体一致性、任务排序合理性角度进行审查反驳。
+  prompt: "审查以下 OpenSpec 计划文件，从全局架构、整体一致性、任务排序合理性角度进行审查反驳。
 读取以下文件：
-- <workdir>/.arc/deliberate/<task-name>/plan/proposal.md
-- <workdir>/.arc/deliberate/<task-name>/plan/specs.md
-- <workdir>/.arc/deliberate/<task-name>/plan/design.md
-- <workdir>/.arc/deliberate/<task-name>/plan/tasks.md
+- $CHANGE/proposal.md
+- $CHANGE/specs/ 下所有 spec.md
+- $CHANGE/design.md
+- $CHANGE/tasks.md
 审查要求：
 1. 指出计划中的逻辑问题和风险
 2. 反驳不合理的任务排序或依赖关系
@@ -423,13 +467,13 @@ Task({
 /Users/iluwen/.claude/bin/codeagent-wrapper --lite --backend codex - "$(pwd)" <<'EOF'
 ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/codex/architect.md
 <TASK>
-审查以下计划文件，从后端架构、性能、安全、可行性角度进行审查反驳。
+审查以下 OpenSpec 计划文件，从后端架构、性能、安全、可行性角度进行审查反驳。
 
 读取以下文件：
-- <workdir>/.arc/deliberate/<task-name>/plan/proposal.md
-- <workdir>/.arc/deliberate/<task-name>/plan/specs.md
-- <workdir>/.arc/deliberate/<task-name>/plan/design.md
-- <workdir>/.arc/deliberate/<task-name>/plan/tasks.md
+- $CHANGE/proposal.md
+- $CHANGE/specs/ 下所有 spec.md
+- $CHANGE/design.md
+- $CHANGE/tasks.md
 
 审查要求：
 1. 指出计划中的技术问题和风险
@@ -448,13 +492,13 @@ EOF
 /Users/iluwen/.claude/bin/codeagent-wrapper --lite --backend gemini - "$(pwd)" <<'EOF'
 ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/gemini/architect.md
 <TASK>
-审查以下计划文件，从前端交互、UI/UX、组件架构、用户体验角度进行审查反驳。
+审查以下 OpenSpec 计划文件，从前端交互、UI/UX、组件架构、用户体验角度进行审查反驳。
 
 读取以下文件：
-- <workdir>/.arc/deliberate/<task-name>/plan/proposal.md
-- <workdir>/.arc/deliberate/<task-name>/plan/specs.md
-- <workdir>/.arc/deliberate/<task-name>/plan/design.md
-- <workdir>/.arc/deliberate/<task-name>/plan/tasks.md
+- $CHANGE/proposal.md
+- $CHANGE/specs/ 下所有 spec.md
+- $CHANGE/design.md
+- $CHANGE/tasks.md
 
 审查要求：
 1. 指出计划中的前端/交互问题
@@ -468,7 +512,7 @@ OUTPUT: 计划审查报告
 EOF
 ```
 
-### Step 3.3: 三模型交叉反驳计划审查
+### Step 3.4: 三模型交叉反驳计划审查
 
 **CRITICAL**: 三个模型互相反驳对方的计划审查意见。每个模型读取另外两个的 `plan-review.md`，反驳不合理之处，补充遗漏。
 
@@ -476,35 +520,37 @@ EOF
 
 各模型产出覆盖（更新）自己的 `plan-review.md`，追加反驳段落。
 
-### Step 3.4: 定稿计划
+### Step 3.5: 定稿计划
 
-中央大脑 Claude（主进程直接处理）综合三份审查报告，修订 `plan/` 目录下的文件：
+中央大脑 Claude（主进程直接处理）综合三份审查报告，修订 OpenSpec artifact 文件：
 
 1. 读取 `claude/plan-review.md`、`codex/plan-review.md`、`gemini/plan-review.md`
-2. 根据三方审查修订 `plan/tasks.md`（确保任务有序、有依赖关系、可执行）
-3. 同步更新 `plan/design.md` 和 `plan/specs.md`（如有必要）
+2. 根据三方审查修订 `openspec/changes/<task-name>/tasks.md`（确保任务有序、有依赖关系、可执行）
+3. 同步更新 `design.md` 和 `specs/` 下的 spec 文件（如有必要）
 
-**`plan/tasks.md` 格式要求**：
+**`tasks.md` 格式要求**（OpenSpec 标准 checkbox 格式，可被 `openspec archive` 追踪进度）：
 
 ```markdown
-# 执行计划: <任务名>
+## 1. <任务分组名>
 
-## 任务列表
+- [ ] 1.1 <任务描述>
+- [ ] 1.2 <任务描述>
 
-### Task 1: <任务标题>
-- 描述: <具体内容>
-- 依赖: 无
-- 产出: <预期产出>
+## 2. <任务分组名>
 
-### Task 2: <任务标题>
-- 描述: <具体内容>
-- 依赖: Task 1
-- 产出: <预期产出>
+- [ ] 2.1 <任务描述>
+- [ ] 2.2 <任务描述>
+```
 
-### Task N: <任务标题>
-- 描述: <具体内容>
-- 依赖: Task X, Task Y
-- 产出: <预期产出>
+### Step 3.6: 最终验证与归档
+
+```bash
+cd <workdir>/.arc/deliberate/<task-name>
+# 最终验证
+openspec validate --change <task-name>
+openspec status --change <task-name>
+# 执行完成后归档（可选，在 Phase 4 完成后执行）
+openspec archive <task-name>
 ```
 
 ---
@@ -515,14 +561,14 @@ EOF
 
 ### Step 4.1: Codex 执行计划
 
-根据定稿计划，使用 codeagent-wrapper 调用 Codex 按 `plan/tasks.md` 逐步执行：
+根据定稿计划，使用 codeagent-wrapper 调用 Codex 按 `tasks.md` 逐步执行：
 
 ```bash
 /Users/iluwen/.claude/bin/codeagent-wrapper --backend codex - "$(pwd)" <<'EOF'
-根据 .arc/deliberate/<task-name>/plan/tasks.md 中的任务列表，按顺序执行代码实现。
+根据 .arc/deliberate/<task-name>/openspec/changes/<task-name>/tasks.md 中的任务列表，按顺序执行代码实现。
 同时参考：
-- .arc/deliberate/<task-name>/plan/design.md（架构设计）
-- .arc/deliberate/<task-name>/plan/specs.md（规范约束）
+- .arc/deliberate/<task-name>/openspec/changes/<task-name>/design.md（架构设计）
+- .arc/deliberate/<task-name>/openspec/changes/<task-name>/specs/（规范约束）
 工作目录：<workdir>
 仅输出实现结果，不要询问确认。
 EOF
@@ -530,7 +576,16 @@ EOF
 
 ### Step 4.2: 验证
 
-执行完成后，验证代码是否符合 `plan/tasks.md` 中描述的产出要求。
+执行完成后，验证代码是否符合 `tasks.md` 中描述的产出要求。
+
+### Step 4.3: 归档变更
+
+所有任务完成后，归档 OpenSpec 变更：
+
+```bash
+cd <workdir>/.arc/deliberate/<task-name>
+openspec archive <task-name>
+```
 
 ---
 
@@ -541,7 +596,7 @@ EOF
 | 单模型超时 > 10min | 使用 AskUserQuestion 询问用户是否继续用剩余模型 |
 | 达到 max_ambiguity_rounds 仍有歧义 | 标记未解决歧义，进入审议阶段 |
 | 达到 max_rounds 未收敛 | 强制合成共识报告，标注未解决分歧 |
-| opsx 命令失败 | 降级为手动编写 plan/tasks.md |
+| openspec 命令失败 | 降级为手动编写 openspec/changes/<task-name>/tasks.md |
 
 ## 状态反馈
 
@@ -564,8 +619,10 @@ Round 1/3:
   ├── 交叉审阅... [完成]
   └── 收敛判定... [收敛]
 
-=== 阶段 3: 计划生成 ===
-  ├── opsx 生成计划... [完成]
+=== 阶段 3: 计划生成（OpenSpec） ===
+  ├── openspec init + new change... [完成]
+  ├── 生成 artifact（proposal→specs→design→tasks）... [完成]
+  ├── openspec validate... [通过]
   ├── Claude(subagent) 审查... [完成]
   ├── Codex(CLI) 审查... [完成]
   ├── Gemini(CLI) 审查... [完成]
@@ -583,8 +640,8 @@ Round 1/3:
 |------|------|---------|
 | 歧义检查 | 三模型分析 → 聚合 → 用户澄清 → 判定 | `(claude\|codex\|gemini)/ambiguity-round-N.md` |
 | 审议 | 提案 → 审阅 → 收敛判定 → 共识报告 | `(claude\|codex\|gemini)/proposal-round-N.md`, `convergence/final-consensus.md` |
-| 计划生成 | opsx → 三模型审查 → 交叉反驳 → 定稿 | `plan/(proposal\|specs\|design\|tasks).md` |
-| 执行 | Codex 按 tasks.md 实现代码 | 项目代码 |
+| 计划生成 | OpenSpec init → 生成 artifact → 验证 → 三模型审查 → 交叉反驳 → 定稿 | `openspec/changes/<task-name>/(proposal\|design\|tasks).md`, `openspec/changes/<task-name>/specs/` |
+| 执行 | Codex 按 tasks.md 实现代码 → 归档 | 项目代码 + `openspec archive` |
 
 ## 调用方式速查
 
