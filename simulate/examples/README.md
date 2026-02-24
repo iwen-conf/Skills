@@ -1,6 +1,6 @@
 # Examples
 
-> 这些示例用于展示 `ui-ux-simulation/scripts/` 的典型用法与产物结构。
+> 这些示例用于展示 `simulate/scripts/` 的典型用法与产物结构。
 
 ## 1) 生成 Run 目录（含“测试公司级”全流程模版）
 

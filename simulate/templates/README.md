@@ -4,7 +4,7 @@
 
 ## Packs
 
-- `e2e`：ui-ux-simulation Skill 的“最小必需”运行包（Phase 4 所需目录结构 + report/action-log/manifest）
+- `e2e`：arc:simulate Skill 的”最小必需”运行包（Phase 4 所需目录结构 + report/action-log/manifest）
 - `full-process`：覆盖专业软件测试公司常见的全流程交付物（策略、计划、用例、缺陷、日报、总结、UX/A11y/兼容性/视觉回归/性能预算等）
 
 ## Placeholder 约定

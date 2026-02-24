@@ -22,7 +22,7 @@
 ## 3) Minimal Reproduction
 
 - **Entry URL**: <...>
-- **Persona / Role**: <...> (user/pass/token must be recorded as-is per ui-ux-simulation rules)
+- **Persona / Role**: <...> (user/pass/token must be recorded as-is per arc:simulate rules)
 - **Steps**:
   1. ...
   2. ...
@@ -64,7 +64,7 @@
 
 ## 6) Verification
 
-- **Regression command(s)**: <如何跑 ui-ux-simulation / 如何触发最小复现>
+- **Regression command(s)**: <如何跑 arc:simulate / 如何触发最小复现>
 - **Artifacts validated**: `check_artifacts.py --strict` 通过（或解释为何不可用）
 - **Result**: PASS
 
