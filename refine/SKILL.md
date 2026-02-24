@@ -78,7 +78,7 @@ find . -name "CLAUDE.md" -type f
 将增强后的完整 prompt 写入共享目录：
 
 ```
-<workdir>/.tri-model-deliberation/<task-name>/context/enhanced-prompt.md
+<workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md
 ```
 
 ## Quick Reference
@@ -100,11 +100,11 @@ find . -name "CLAUDE.md" -type f
 
 ## Integration
 
-此 Skill 完成后，建议继续调用 `tri-model-deliberation` Skill 进行三模型审议。
+此 Skill 完成后，建议继续调用 `arc:deliberate` Skill 进行三模型审议。
 
 ```
 问题细化完成。增强 prompt 已写入：
-.tri-model-deliberation/<task-name>/context/enhanced-prompt.md
+.arc/deliberate/<task-name>/context/enhanced-prompt.md
 
-可继续调用 /tri-model-deliberation 进行三模型审议。
+可继续调用 /arc:deliberate 进行三模型审议。
 ```

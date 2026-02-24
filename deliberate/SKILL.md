@@ -66,7 +66,7 @@ Task({
 |------|------|------|------|
 | `task_name` | string | 是 | 任务名称，用于目录命名 |
 | `workdir` | string | 是 | 工作目录绝对路径 |
-| `enhanced_prompt_path` | string | 否 | 增强 prompt 路径，默认读取 `.tri-model-deliberation/<task-name>/context/enhanced-prompt.md` |
+| `enhanced_prompt_path` | string | 否 | 增强 prompt 路径，默认读取 `.arc/deliberate/<task-name>/context/enhanced-prompt.md` |
 | `max_rounds` | number | 否 | 最大审议迭代轮次，默认 3 |
 | `max_ambiguity_rounds` | number | 否 | 最大歧义检查轮次，默认 3 |
 
@@ -75,9 +75,9 @@ Task({
 **按模型分目录**，每个模型的所有阶段产出集中在自己的目录下：
 
 ```
-<workdir>/.tri-model-deliberation/<task-name>/
+<workdir>/.arc/deliberate/<task-name>/
 ├── context/
-│   └── enhanced-prompt.md              # question-refiner 产出
+│   └── enhanced-prompt.md              # arc:refine 产出
 ├── claude/                              # Claude 所有阶段产出
 │   ├── ambiguity-round-1.md            # 歧义分析（Phase 1）
 │   ├── ambiguity-round-N.md
@@ -128,9 +128,9 @@ Task({
   mode: "bypassPermissions",
   prompt: "你是架构师角色。分析以下需求的歧义点。
 上下文信息：<MCP 搜索结果>
-读取 <workdir>/.tri-model-deliberation/<task-name>/context/enhanced-prompt.md。
+读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 列出所有可能存在歧义的地方，包括：边界条件未定义、约束不明确、术语理解可能不同、假设未说明等。
-将分析结果写入 <workdir>/.tri-model-deliberation/<task-name>/claude/ambiguity-round-N.md。"
+将分析结果写入 <workdir>/.arc/deliberate/<task-name>/claude/ambiguity-round-N.md。"
 })
 ```
 
@@ -142,9 +142,9 @@ ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/codex/architect.md
 分析以下需求的歧义点。
 上下文信息（来自 MCP 搜索）：<MCP 搜索结果>
 
-读取 <workdir>/.tri-model-deliberation/<task-name>/context/enhanced-prompt.md。
+读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 从后端架构、技术约束、性能要求等角度，列出可能存在歧义的地方。
-写入 <workdir>/.tri-model-deliberation/<task-name>/codex/ambiguity-round-N.md。
+写入 <workdir>/.arc/deliberate/<task-name>/codex/ambiguity-round-N.md。
 </TASK>
 OUTPUT: 歧义分析报告
 EOF
@@ -158,9 +158,9 @@ ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/gemini/architect.md
 分析以下需求的歧义点。
 上下文信息（来自 MCP 搜索）：<MCP 搜索结果>
 
-读取 <workdir>/.tri-model-deliberation/<task-name>/context/enhanced-prompt.md。
+读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 从前端交互、用户体验、响应式设计等角度，列出可能存在歧义的地方。
-写入 <workdir>/.tri-model-deliberation/<task-name>/gemini/ambiguity-round-N.md。
+写入 <workdir>/.arc/deliberate/<task-name>/gemini/ambiguity-round-N.md。
 </TASK>
 OUTPUT: 歧义分析报告
 EOF
@@ -244,9 +244,9 @@ Task({
   run_in_background: true,
   mode: "bypassPermissions",
   prompt: "你是架构师角色（中央大脑、全局优化、用户体验）。
-读取 <workdir>/.tri-model-deliberation/<task-name>/context/enhanced-prompt.md。
+读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 给出完整的解决方案提案，仅限纯文本 Markdown 格式，禁止代码块。
-将提案写入 <workdir>/.tri-model-deliberation/<task-name>/claude/proposal-round-N.md。"
+将提案写入 <workdir>/.arc/deliberate/<task-name>/claude/proposal-round-N.md。"
 })
 ```
 
@@ -256,8 +256,8 @@ Task({
 ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/codex/architect.md
 <TASK>
 基于 Codex 视角（后端架构、性能优化、数据库、安全），给出完整的解决方案提案。
-读取 <workdir>/.tri-model-deliberation/<task-name>/context/enhanced-prompt.md。
-写入 <workdir>/.tri-model-deliberation/<task-name>/codex/proposal-round-N.md。
+读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
+写入 <workdir>/.arc/deliberate/<task-name>/codex/proposal-round-N.md。
 仅限纯文本 Markdown 格式，禁止代码块。
 </TASK>
 EOF
@@ -269,8 +269,8 @@ EOF
 ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/gemini/architect.md
 <TASK>
 基于 Gemini 视角（前端交互、UI/UX、响应式设计、组件架构），给出完整的解决方案提案。
-读取 <workdir>/.tri-model-deliberation/<task-name>/context/enhanced-prompt.md。
-写入 <workdir>/.tri-model-deliberation/<task-name>/gemini/proposal-round-N.md。
+读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
+写入 <workdir>/.arc/deliberate/<task-name>/gemini/proposal-round-N.md。
 仅限纯文本 Markdown 格式，禁止代码块。
 </TASK>
 EOF
@@ -298,10 +298,10 @@ Task({
   run_in_background: true,
   mode: "bypassPermissions",
   prompt: "读取以下两份提案：
-- <workdir>/.tri-model-deliberation/<task-name>/codex/proposal-round-N.md
-- <workdir>/.tri-model-deliberation/<task-name>/gemini/proposal-round-N.md
+- <workdir>/.arc/deliberate/<task-name>/codex/proposal-round-N.md
+- <workdir>/.arc/deliberate/<task-name>/gemini/proposal-round-N.md
 从全局视角反驳 Codex 的后端架构选择和 Gemini 的前端设计选择。找出问题和漏洞，用论据反驳。
-将审阅结果写入 <workdir>/.tri-model-deliberation/<task-name>/claude/critique-round-N.md。"
+将审阅结果写入 <workdir>/.arc/deliberate/<task-name>/claude/critique-round-N.md。"
 })
 ```
 
@@ -360,7 +360,7 @@ Task({
 
 ```bash
 # 1. 在 plan/ 目录初始化 opsx
-cd <workdir>/.tri-model-deliberation/<task-name>/plan
+cd <workdir>/.arc/deliberate/<task-name>/plan
 openspec init
 
 # 2. 生成 proposal（基于共识报告内容）
@@ -399,16 +399,16 @@ Task({
   mode: "bypassPermissions",
   prompt: "审查以下计划文件，从全局架构、整体一致性、任务排序合理性角度进行审查反驳。
 读取以下文件：
-- <workdir>/.tri-model-deliberation/<task-name>/plan/proposal.md
-- <workdir>/.tri-model-deliberation/<task-name>/plan/specs.md
-- <workdir>/.tri-model-deliberation/<task-name>/plan/design.md
-- <workdir>/.tri-model-deliberation/<task-name>/plan/tasks.md
+- <workdir>/.arc/deliberate/<task-name>/plan/proposal.md
+- <workdir>/.arc/deliberate/<task-name>/plan/specs.md
+- <workdir>/.arc/deliberate/<task-name>/plan/design.md
+- <workdir>/.arc/deliberate/<task-name>/plan/tasks.md
 审查要求：
 1. 指出计划中的逻辑问题和风险
 2. 反驳不合理的任务排序或依赖关系
 3. 检查计划与共识报告的一致性
 4. 给出修改建议
-将审查结果写入 <workdir>/.tri-model-deliberation/<task-name>/claude/plan-review.md。"
+将审查结果写入 <workdir>/.arc/deliberate/<task-name>/claude/plan-review.md。"
 })
 ```
 
@@ -420,10 +420,10 @@ ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/codex/architect.md
 审查以下计划文件，从后端架构、性能、安全、可行性角度进行审查反驳。
 
 读取以下文件：
-- <workdir>/.tri-model-deliberation/<task-name>/plan/proposal.md
-- <workdir>/.tri-model-deliberation/<task-name>/plan/specs.md
-- <workdir>/.tri-model-deliberation/<task-name>/plan/design.md
-- <workdir>/.tri-model-deliberation/<task-name>/plan/tasks.md
+- <workdir>/.arc/deliberate/<task-name>/plan/proposal.md
+- <workdir>/.arc/deliberate/<task-name>/plan/specs.md
+- <workdir>/.arc/deliberate/<task-name>/plan/design.md
+- <workdir>/.arc/deliberate/<task-name>/plan/tasks.md
 
 审查要求：
 1. 指出计划中的技术问题和风险
@@ -431,7 +431,7 @@ ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/codex/architect.md
 3. 补充遗漏的后端相关任务
 4. 给出修改建议
 
-写入 <workdir>/.tri-model-deliberation/<task-name>/codex/plan-review.md。
+写入 <workdir>/.arc/deliberate/<task-name>/codex/plan-review.md。
 </TASK>
 OUTPUT: 计划审查报告
 EOF
@@ -445,10 +445,10 @@ ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/gemini/architect.md
 审查以下计划文件，从前端交互、UI/UX、组件架构、用户体验角度进行审查反驳。
 
 读取以下文件：
-- <workdir>/.tri-model-deliberation/<task-name>/plan/proposal.md
-- <workdir>/.tri-model-deliberation/<task-name>/plan/specs.md
-- <workdir>/.tri-model-deliberation/<task-name>/plan/design.md
-- <workdir>/.tri-model-deliberation/<task-name>/plan/tasks.md
+- <workdir>/.arc/deliberate/<task-name>/plan/proposal.md
+- <workdir>/.arc/deliberate/<task-name>/plan/specs.md
+- <workdir>/.arc/deliberate/<task-name>/plan/design.md
+- <workdir>/.arc/deliberate/<task-name>/plan/tasks.md
 
 审查要求：
 1. 指出计划中的前端/交互问题
@@ -456,7 +456,7 @@ ROLE_FILE: /Users/iluwen/.claude/.ccg/prompts/gemini/architect.md
 3. 补充遗漏的前端相关任务
 4. 给出修改建议
 
-写入 <workdir>/.tri-model-deliberation/<task-name>/gemini/plan-review.md。
+写入 <workdir>/.arc/deliberate/<task-name>/gemini/plan-review.md。
 </TASK>
 OUTPUT: 计划审查报告
 EOF
@@ -513,10 +513,10 @@ EOF
 
 ```bash
 /Users/iluwen/.claude/bin/codeagent-wrapper --backend codex - "$(pwd)" <<'EOF'
-根据 .tri-model-deliberation/<task-name>/plan/tasks.md 中的任务列表，按顺序执行代码实现。
+根据 .arc/deliberate/<task-name>/plan/tasks.md 中的任务列表，按顺序执行代码实现。
 同时参考：
-- .tri-model-deliberation/<task-name>/plan/design.md（架构设计）
-- .tri-model-deliberation/<task-name>/plan/specs.md（规范约束）
+- .arc/deliberate/<task-name>/plan/design.md（架构设计）
+- .arc/deliberate/<task-name>/plan/specs.md（规范约束）
 工作目录：<workdir>
 仅输出实现结果，不要询问确认。
 EOF
