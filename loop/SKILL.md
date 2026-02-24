@@ -1,9 +1,9 @@
 ---
-name: tmux-ui-ux-retest-loop
-description: 使用 tmux 启动/重启本地或测试环境服务（多服务多 pane、可 pipe-pane 落日志），并循环运行 ui-ux-simulation 做回归验证（失败→修复→重启→再测），直到 PASS 或达到迭代上限；每轮输出 run_id、git 版本、tmux 会话信息与报告/日志路径。
+name: "arc:loop"
+description: 使用 tmux 启动/重启本地或测试环境服务（多服务多 pane、可 pipe-pane 落日志），并循环运行 arc:simulate 做回归验证（失败→修复→重启→再测），直到 PASS 或达到迭代上限；每轮输出 run_id、git 版本、tmux 会话信息与报告/日志路径。
 ---
 
-# tmux 启动 + ui-ux-simulation 回归闭环（工业化）
+# tmux 启动 + arc:simulate 回归闭环（工业化）
 
 ## Overview
 
@@ -19,7 +19,7 @@ description: 使用 tmux 启动/重启本地或测试环境服务（多服务多
 每轮迭代在 stdout 明确输出（便于粘贴进 ticket/PR/日报）：
 
 - `iter`: 01..N
-- `run_id` / `run_dir`（ui-ux-simulation 工件目录）
+- `run_id` / `run_dir`（arc:simulate 工件目录）
 - `result`: `PASS|FAIL` + 一句话失败类型（selector/timing/auth/backend/env/data/unknown）
 - `git`: `HEAD` + 是否 dirty（`git status --porcelain` 是否为空）
 - `tmux`: `session_name` / `window_name` / 每个服务对应的 pane
@@ -27,7 +27,7 @@ description: 使用 tmux 启动/重启本地或测试环境服务（多服务多
 
 并且：
 
-- FAIL → 必须交给 `ui-ux-defect-fix` 输出根因与修复证据（禁止“感觉修了”）
+- FAIL → 必须交给 `arc:triage` 输出根因与修复证据（禁止“感觉修了”）
 - PASS → 必须给出通过 run 的 `run_id` + `report.md` 路径
 
 ## Artifacts & Paths（文档/文件放哪）
@@ -35,15 +35,15 @@ description: 使用 tmux 启动/重启本地或测试环境服务（多服务多
 推荐**每轮迭代使用同一个 `run_id`** 贯穿“服务日志 + 测试报告”，这样证据可直接对齐：
 
 - **服务日志（本 Skill / tmux）**：默认 `logs/uxloop/<run_id>/<service>.log`（可用 `uxloop_tmux.py --logs-dir ...` 覆盖）。
-- **测试报告（ui-ux-simulation）**：默认 `reports/<run_id>/`（可用 `scaffold_run.py --report-output-dir ...` 覆盖）。
-- **账号管理（ui-ux-simulation）**：`reports/<run_id>/accounts.jsonc`（明文账号/密码/Token；不得提交入库）。
+- **测试报告（arc:simulate）**：默认 `reports/<run_id>/`（可用 `scaffold_run.py --report-output-dir ...` 覆盖）。
+- **账号管理（arc:simulate）**：`reports/<run_id>/accounts.jsonc`（明文账号/密码/Token；不得提交入库）。
 
 示例（同一个 `run_id` 打通 logs+reports）：
 
 ```bash
 run_id="2026-02-01_14-00-00_abcd_iter01"
-python tmux-ui-ux-retest-loop/scripts/uxloop_tmux.py --config uxloop.config.json --run-id "$run_id" --reset-window --wait-ready
-# 然后用同一个 run_id 跑 ui-ux-simulation，产出 reports/$run_id/
+python loop/scripts/uxloop_tmux.py --config uxloop.config.json --run-id "$run_id" --reset-window --wait-ready
+# 然后用同一个 run_id 跑 arc:simulate，产出 reports/$run_id/
 ```
 
 ## Inputs（调用方需要提供）
@@ -63,7 +63,7 @@ python tmux-ui-ux-retest-loop/scripts/uxloop_tmux.py --config uxloop.config.json
     - `env`（可选，键值均为 string）
     - `ready_check`（可选）：`http|tcp|cmd`
 
-### B) ui-ux-simulation 参数
+### B) arc:simulate 参数
 
 - `target_url`
 - `test_objective`
@@ -81,7 +81,7 @@ python tmux-ui-ux-retest-loop/scripts/uxloop_tmux.py --config uxloop.config.json
 2) 启动/重启服务 + 落日志（每次修复后都重复执行一次，确保服务与前端 bundle 都是最新的）：
 
 ```bash
-python tmux-ui-ux-retest-loop/scripts/uxloop_tmux.py \
+python loop/scripts/uxloop_tmux.py \
   --config uxloop.config.json \
   --reset-window \
   --wait-ready
@@ -99,7 +99,7 @@ python tmux-ui-ux-retest-loop/scripts/uxloop_tmux.py \
 - **分隔行格式**: 每列必须是 `---`、`:---`、`---:` 或 `:---:`，不能为空或缺失。
 - **特殊字符转义**: 单元格内含 `|` 必须转义为 `\|`；含换行用 `<br>` 替代。
 - **校验方法**:
-  1. `python ui-ux-simulation/scripts/check_artifacts.py --run-dir <run_dir> --strict`（推荐）
+  1. `python simulate/scripts/check_artifacts.py --run-dir <run_dir> --strict`（推荐）
   2. `mdformat --check <file.md>`（需安装 mdformat）
   3. 手动逐表格数列数
 - **校验失败必须修复后再继续**，不得跳过。
@@ -128,23 +128,23 @@ python tmux-ui-ux-retest-loop/scripts/uxloop_tmux.py \
 
 优先使用脚本（可重复、可落盘、可复用）：
 
-- `python tmux-ui-ux-retest-loop/scripts/uxloop_tmux.py --config <cfg> --reset-window --wait-ready`
+- `python loop/scripts/uxloop_tmux.py --config <cfg> --reset-window --wait-ready`
 
 等待服务就绪（ready_check/健康检查/打开首页/端口连通），把关键观测写成 `DEBUG:` 日志。
 
-### 2) 执行一轮 ui-ux-simulation
+### 2) 执行一轮 arc:simulate
 
 - 生成新的 `run_id`（建议带上迭代号：`..._iter01`）
-- 运行 ui-ux-simulation，并确保产出/编译报告：
-  - `python ui-ux-simulation/scripts/scaffold_run.py ...`
-  - `python ui-ux-simulation/scripts/check_artifacts.py --run-dir <run_dir> --strict`
-  - `python ui-ux-simulation/scripts/compile_report.py --run-dir <run_dir> --in-place`（可选：若已在 venv 中安装 `mdformat` 再加 `--beautify-md`）
+- 运行 arc:simulate，并确保产出/编译报告：
+  - `python simulate/scripts/scaffold_run.py ...`
+  - `python simulate/scripts/check_artifacts.py --run-dir <run_dir> --strict`
+  - `python simulate/scripts/compile_report.py --run-dir <run_dir> --in-place`（可选：若已在 venv 中安装 `mdformat` 再加 `--beautify-md`）
 
 ### 3) 判断结果
 
 - PASS：停止循环，输出最终 run_id 与报告路径
 - FAIL：进入修复
-  - 把当前 `run_dir` 作为输入，按 `ui-ux-defect-fix` 的流程定位与修复
+  - 把当前 `run_dir` 作为输入，按 `arc:triage` 的流程定位与修复
   - 修复后回到步骤 1（重启服务再测；否则很容易“修了但没生效”）
 
 ### 4) 兜底退出条件
@@ -158,5 +158,5 @@ python tmux-ui-ux-retest-loop/scripts/uxloop_tmux.py \
 - 结束后及时关闭 tmux 与服务（避免后台进程长期占用 CPU/内存/端口）：
 
 ```bash
-python tmux-ui-ux-retest-loop/scripts/uxloop_cleanup.py --session uxloop --window svc --kill-session
+python loop/scripts/uxloop_cleanup.py --session uxloop --window svc --kill-session
 ```

@@ -1,5 +1,5 @@
 ---
-name: tri-model-deliberation
+name: "arc:deliberate"
 description: 当复杂问题需要 Claude、Codex、Gemini 三模型多视角分析并通过迭代讨论达成共识时使用
 ---
 

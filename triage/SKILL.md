@@ -1,13 +1,13 @@
 ---
-name: ui-ux-defect-fix
-description: 读取 ui-ux-simulation 的失败报告并定位/排查/修复缺陷（E2E/UI 自动化测试失败、回归失败、复现不稳定等），可用 triage_run.py 快速汇总 run_dir；强制输出大量 DEBUG 日志，禁止通过改代码跳过/短路权限(鉴权/授权)验证来让业务流“通过”，并在修复后给出可交付的 Fix Packet 与验证证据。
+name: “arc:triage”
+description: 读取 arc:simulate 的失败报告并定位/排查/修复缺陷（E2E/UI 自动化测试失败、回归失败、复现不稳定等），可用 triage_run.py 快速汇总 run_dir；强制输出大量 DEBUG 日志，禁止通过改代码跳过/短路权限(鉴权/授权)验证来让业务流”通过”，并在修复后给出可交付的 Fix Packet 与验证证据。
 ---
 
-# UI/UX 缺陷排查与修复（基于 ui-ux-simulation，工业化）
+# UI/UX 缺陷排查与修复（基于 arc:simulate，工业化）
 
 ## Overview
 
-将 ui-ux-simulation 产出的失败工件（reports/run_id 下的 report、events、screenshots 等）转化为：最小复现 → 根因定位 → 代码修复 → 回归通过证据。
+将 arc:simulate 产出的失败工件（reports/run_id 下的 report、events、screenshots 等）转化为：最小复现 → 根因定位 → 代码修复 → 回归通过证据。
 
 ## Context Budget（必须拆分，避免上下文过长）
 
@@ -31,21 +31,21 @@ description: 读取 ui-ux-simulation 的失败报告并定位/排查/修复缺�
 优先从失败工件开始工作：
 
 - `run_dir`：例如 `reports/2026-02-01_14-00-00_abcd/`
-- 若没有 `run_dir`，则需要 ui-ux-simulation 的核心参数：`test_objective`、`personas`、`target_url`（以及可选 `validation_container`）
+- 若没有 `run_dir`，则需要 arc:simulate 的核心参数：`test_objective`、`personas`、`target_url`（以及可选 `validation_container`）
 
 ## Quick Triage（推荐先跑）
 
 先用脚本做一次 best-effort 汇总（不替代人工分析，但能加速定位）：
 
 ```bash
-python ui-ux-defect-fix/scripts/triage_run.py <run_dir>
+python triage/scripts/triage_run.py <run_dir>
 ```
 
 分流决策树（用于快速判断“产品缺陷 vs 测试误报 vs 环境/数据/flake”）：见 `references/triage-decision-tree.md`。
 
 ## Artifacts & Paths（文档/文件放哪）
 
-所有证据以 ui-ux-simulation 的 `run_dir` 为根目录：
+所有证据以 arc:simulate 的 `run_dir` 为根目录：
 
 - **Failing run**：`reports/<fail_run_id>/`
 - **Passing run**：`reports/<pass_run_id>/`
@@ -66,7 +66,7 @@ python ui-ux-defect-fix/scripts/triage_run.py <run_dir>
 
 ```bash
 mkdir -p <run_dir>/analysis
-python ui-ux-defect-fix/scripts/triage_run.py <run_dir> \
+python triage/scripts/triage_run.py <run_dir> \
   --md-out <run_dir>/analysis/triage.md \
   --json-out <run_dir>/analysis/triage.json
 ```
@@ -79,7 +79,7 @@ python ui-ux-defect-fix/scripts/triage_run.py <run_dir> \
    - **分隔行格式**: 每列必须是 `---`、`:---`、`---:` 或 `:---:`，不能为空或缺失。
    - **特殊字符转义**: 单元格内含 `|` 必须转义为 `\|`；含换行用 `<br>` 替代。
    - **校验方法**:
-     1. `python ui-ux-simulation/scripts/check_artifacts.py --run-dir <run_dir> --strict`（推荐）
+     1. `python simulate/scripts/check_artifacts.py --run-dir <run_dir> --strict`（推荐）
      2. `mdformat --check <file.md>`（需安装 mdformat）
      3. 手动逐表格数列数
    - **校验失败必须修复后再继续**，不得跳过。
@@ -96,8 +96,8 @@ python ui-ux-defect-fix/scripts/triage_run.py <run_dir> \
 3. **以证据驱动**
    - 不允许“感觉修了”：每次修复都要给出证据（至少一次复现失败 run + 一次回归通过 run 的 run_id/报告路径）。
 
-4. **遵守 ui-ux-simulation 的日志与工件规范**
-   - 如需生成/更新报告，优先使用 `ui-ux-simulation/scripts/` 下的脚本，不要自创格式。
+4. **遵守 arc:simulate 的日志与工件规范**
+   - 如需生成/更新报告，优先使用 `simulate/scripts/` 下的脚本，不要自创格式。
 
 5. **DB Migration / DDL / DML 变更控制**
    - 任何数据库迁移/DDL/DML（包括但不限于 migrate、ALTER、INSERT/UPDATE/DELETE、回填数据）都必须先获得用户明确同意。
@@ -115,12 +115,12 @@ python ui-ux-defect-fix/scripts/triage_run.py <run_dir> \
 
 ## Workflow（推荐按顺序执行）
 
-### 0) 若缺少 run_dir：先跑一轮 ui-ux-simulation 产出失败工件
+### 0) 若缺少 run_dir：先跑一轮 arc:simulate 产出失败工件
 
 - 用脚手架创建目录骨架（建议 `--pack full-process`，至少隐式包含 `e2e`）：
-  - `python ui-ux-simulation/scripts/scaffold_run.py --help`
-  - `python ui-ux-simulation/scripts/scaffold_run.py --pack full-process --objective "<objective>" --target-url "<url>" --personas "<json-or-path>"`
-- 按 `ui-ux-simulation/SKILL.md` 执行测试，确保落盘：
+  - `python simulate/scripts/scaffold_run.py --help`
+  - `python simulate/scripts/scaffold_run.py --pack full-process --objective "<objective>" --target-url "<url>" --personas "<json-or-path>"`
+- 按 `simulate/SKILL.md` 执行测试，确保落盘：
   - `report.md`、`action-log.md`、`screenshot-manifest.md`、`screenshots/`
   -（可选）`events.jsonl`
 - 失败后，把产出的 `run_dir` 作为本 Skill 的输入继续后续步骤。
@@ -128,8 +128,8 @@ python ui-ux-defect-fix/scripts/triage_run.py <run_dir> \
 ### 1) 获取失败证据并编译报告
 
 - 若已存在 `run_dir`：先校验与编译
-  - `python ui-ux-simulation/scripts/check_artifacts.py --run-dir <run_dir> --strict`
-  - `python ui-ux-simulation/scripts/compile_report.py --run-dir <run_dir> --in-place`（可选：若已在 venv 中安装 `mdformat` 再加 `--beautify-md`）
+  - `python simulate/scripts/check_artifacts.py --run-dir <run_dir> --strict`
+  - `python simulate/scripts/compile_report.py --run-dir <run_dir> --in-place`（可选：若已在 venv 中安装 `mdformat` 再加 `--beautify-md`）
 - 从以下文件提取“最小可复现信息”：
   - `report.md`（失败步骤表）
   - `failures/*.md`（缺陷描述）
@@ -153,7 +153,7 @@ python ui-ux-defect-fix/scripts/triage_run.py <run_dir> \
 - **后端异常**：500/超时/数据不一致
 - **环境问题**：服务未启动、端口冲突、数据库不可达
 
-若判断为测试脚本/选择器误报：先修正 ui-ux-simulation 的步骤与选择器，再回归一次，确认真实缺陷是否仍存在。
+若判断为测试脚本/选择器误报：先修正 arc:simulate 的步骤与选择器，再回归一次，确认真实缺陷是否仍存在。
 
 ### 4) 加强可观测性（在代码里加 DEBUG）
 
@@ -177,9 +177,9 @@ python ui-ux-defect-fix/scripts/triage_run.py <run_dir> \
 
 ### 6) 回归验证并产出可交付修复方案
 
-- 重新执行 ui-ux-simulation，生成新的 `run_dir`，并同样：
-  - `python ui-ux-simulation/scripts/check_artifacts.py --run-dir <run_dir> --strict`
-  - `python ui-ux-simulation/scripts/compile_report.py --run-dir <run_dir> --in-place`（可选：若已在 venv 中安装 `mdformat` 再加 `--beautify-md`）
+- 重新执行 arc:simulate，生成新的 `run_dir`，并同样：
+  - `python simulate/scripts/check_artifacts.py --run-dir <run_dir> --strict`
+  - `python simulate/scripts/compile_report.py --run-dir <run_dir> --in-place`（可选：若已在 venv 中安装 `mdformat` 再加 `--beautify-md`）
 - 在最终输出中给出：
   - **Root Cause（根因）**
   - **Fix（修复点）**：涉及文件/模块/关键逻辑
@@ -193,7 +193,7 @@ python ui-ux-defect-fix/scripts/triage_run.py <run_dir> \
 当定位到明确失败步骤时，生成缺陷文件，便于跟踪：
 
 ```bash
-python ui-ux-simulation/scripts/new_defect.py \
+python simulate/scripts/new_defect.py \
   --run-dir <run_dir> \
   --step 0007 \
   --title "点击提交后出现 500" \
@@ -205,4 +205,4 @@ python ui-ux-simulation/scripts/new_defect.py \
   --severity S1
 ```
 
-注意：ui-ux-simulation 允许明文记录账号/密码；因此 `reports/` 不要提交到仓库。
+注意：arc:simulate 允许明文记录账号/密码；因此 `reports/` 不要提交到仓库。

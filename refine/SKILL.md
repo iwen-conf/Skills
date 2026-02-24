@@ -1,5 +1,5 @@
 ---
-name: question-refiner
+name: "arc:refine"
 description: 当用户提出模糊问题、缺少上下文或需求不清晰时使用，通过项目级探索进行澄清和补充
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: ui-ux-simulation 
+name: "arc:simulate"
 description: 模拟真实用户操作无头浏览器，执行端到端(E2E)业务流测试。支持跨账号切换、UI交互验证及Docker数据校验。 
 version: 1.1.0
 ---
