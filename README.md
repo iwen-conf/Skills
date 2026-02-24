@@ -26,14 +26,20 @@ graph TD
         triage["arc:triage<br/>缺陷定位与修复"]
         loop["arc:loop<br/>tmux 回归闭环"]
     end
+    subgraph "模型层"
+        claude["Claude<br/>Task subagent"]
+        codex["Codex<br/>Bash: codex exec --full-auto"]
+        gemini["Gemini<br/>Bash: gemini -p --yolo"]
+    end
 
     agent -.->|"路由"| init
     agent -.->|"路由"| refine
     agent -.->|"路由"| deliberate
     agent -.->|"路由"| review
     agent -.->|"路由"| simulate
-    agent -.->|"直接调度"| codex["Codex CLI"]
-    agent -.->|"直接调度"| gemini["Gemini CLI"]
+    agent -->|"Task subagent"| claude
+    agent -->|"Bash 调度"| codex
+    agent -->|"Bash 调度"| gemini
 
     init -.->|"CLAUDE.md"| refine
     refine -->|"enhanced-prompt.md"| deliberate
@@ -63,8 +69,9 @@ graph LR
     agent -.->|"路由"| refine
     agent -.->|"路由"| deliberate
     agent -.->|"路由"| review
-    agent -.->|"直接调度"| codex["Codex"]
-    agent -.->|"直接调度"| gemini["Gemini"]
+    agent -->|"Task subagent"| claude["Claude"]
+    agent -->|"Bash"| codex["Codex"]
+    agent -->|"Bash"| gemini["Gemini"]
 
     init -.->|"CLAUDE.md"| refine
     refine --> deliberate
@@ -82,7 +89,7 @@ graph LR
 ```bash
 # 在 Claude Code 中调用
 /arc:agent       # 智能调度（推荐入口）
-/arc:init        # 项目初始化���三模型协作生成 CLAUDE.md）
+/arc:init        # 项目初始化（三模型协作生成 CLAUDE.md）
 /arc:simulate    # E2E 测试
 /arc:triage      # 缺陷修复
 /arc:loop        # 回归闭环
