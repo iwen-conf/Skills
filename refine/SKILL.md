@@ -100,11 +100,11 @@ find . -name "CLAUDE.md" -type f
 
 ## Integration
 
-此 Skill 完成后，建议继续调用 `arc:deliberate` Skill 进行三模型审议。
+此 Skill 完成后，建议继续调用 `arc:deliberate` Skill 进行多Agent审议。
 
 ```
 问题细化完成。增强 prompt 已写入：
 .arc/deliberate/<task-name>/context/enhanced-prompt.md
 
-可继续调用 /arc:deliberate 进行三模型审议。
+可继续调用 /arc:deliberate 进行多Agent审议。
 ```

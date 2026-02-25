@@ -82,16 +82,20 @@ arc:deliberate 通过共享文件系统协调 oracle、deep、momus 三个专业
 │   └── enhanced-prompt.md              # arc:refine 产出
 ├── agents/
 │   ├── oracle/
-│   ├── ambiguity-round-N.md            # 歧义分析
-│   ├── proposal-round-N.md             # 提案
-│   ├── critique-round-N.md             # 审阅反驳
-│   └── plan-review.md                  # 计划审查
+│   │   ├── ambiguity-round-N.md        # 歧义分析
+│   │   ├── proposal-round-N.md         # 提案
+│   │   ├── critique-round-N.md         # 审阅反驳
+│   │   └── plan-review.md              # 计划审查
 │   ├── deep/
-├── codex/
-│   └── ...                             # 同 claude 结构
+│   │   ├── ambiguity-round-N.md
+│   │   ├── proposal-round-N.md
+│   │   ├── critique-round-N.md
+│   │   └── plan-review.md
 │   └── momus/
-│   └── momus/
-│   └── ...                             # 同 claude 结构
+│       ├── ambiguity-round-N.md
+│       ├── proposal-round-N.md
+│       ├── critique-round-N.md
+│       └── plan-review.md
 ├── convergence/
 │   └── round-N-summary.md              # 收敛判定摘要
 │   └── final-consensus.md              # 最终共识
@@ -110,7 +114,6 @@ arc:deliberate 通过共享文件系统协调 oracle、deep、momus 三个专业
 | ace-tool MCP | 必须 | 搜索项目代码结构 |
 | Exa MCP | 推荐 | 搜索最佳实践和技术文档 |
 | oh-my-opencode Task API | 必须 | Agent 调度（category/subagent 路由） |
-| gemini CLI | 已移除 | 不再需要 |
 | openspec CLI | 必须 | 结构化计划生成 |
 
 ## 数据模型

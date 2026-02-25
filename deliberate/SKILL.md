@@ -235,7 +235,7 @@ Task(
 
 ### Step 2.1: 目录脚手架
 
-确保 `claude/`、`codex/`、`gemini/`、`convergence/` 目录已创建。
+确保 `agents/oracle/`、`agents/deep/`、`agents/momus/`、`convergence/` 目录已创建。
 
 ### Step 2.2: 并发派发提案 (每轮)
 
@@ -384,9 +384,9 @@ openspec instructions <artifact> --change <task-name>
 ```
 `openspec instructions` 输出包含 `<instruction>`（写作指南）、`<template>`（结构模板）和 `<output>`（目标写入路径）。
 
-2. **Claude subagent 执行写入**：将 OpenSpec 指令 + `convergence/final-consensus.md` 的内容一起发给 Claude subagent，由其按模板填充并写入指定路径。
+2. **执行子Agent写入**：将 OpenSpec 指令 + `convergence/final-consensus.md` 的内容一起发给执行子Agent（`subagent_type: "general-purpose"`），由其按模板填充并写入指定路径。
 
-**Claude 生成 proposal**（subagent，每个 artifact 单独调用）:
+**执行子Agent生成 proposal**（subagent，每个 artifact 单独调用）:
 ```
 Task({
   description: "OpenSpec proposal 生成",
@@ -406,7 +406,7 @@ Task({
 
 依次对 `specs`、`design`、`tasks` 重复上述流程。每个 artifact 必须在前置依赖完成后再生成（`openspec instructions` 会通过 `<warning>` 标签提示缺失依赖）。
 
-**生成 `tasks` artifact 时的额外要求**：Claude subagent 必须为每个 task 标注 AI 执行预估耗时 `[~Xmin]`，参考以下基准：
+**生成 `tasks` artifact 时的额外要求**：执行子Agent必须为每个 task 标注 AI 执行预估耗时 `[~Xmin]`，参考以下基准：
 
 | 复杂度 | 预估耗时 | 示例 |
 |--------|---------|------|

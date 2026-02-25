@@ -31,7 +31,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | 时间 | 操作 |
 |------|------|
-| 2026-02-24T10:00:00 | arc:init 三模型协作生成 |
+| 2026-02-24T10:00:00 | arc:init 多Agent协作生成 |
 ```
 
 #### 3. 项目愿景
@@ -249,6 +249,6 @@ utils-pkg (v0.2.1+)
 
 时间戳使用 ISO 8601 格式：`YYYY-MM-DDTHH:mm:ss`。操作列简要描述本次变更内容，如：
 
-- `arc:init 三模型协作生成`
+- `arc:init 多Agent协作生成`
 - `增量更新：补充 <模块> 详细信息`
 - `修正 <模块> 职责描述，更新覆盖率`

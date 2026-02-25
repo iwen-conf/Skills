@@ -6,7 +6,7 @@
 
 | 时间 | 操作 |
 |------|------|
-| 2026-02-24T16:30:00 | arc:init 三模型协作生成模块级 CLAUDE.md |
+| 2026-02-24T16:30:00 | arc:init 多Agent协作生成模块级 CLAUDE.md |
 
 ## 模块职责
 
@@ -57,15 +57,15 @@ arc:review 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软
 
 ```
 .arc/review/<project-name>/
-├── claude/
-│   ├── review.md           # Claude 评审报告
-│   └── critique.md         # 对 Codex/Gemini 的反驳
-├── codex/
-│   ├── review.md           # Codex 评审报告
-│   └── critique.md         # 对 Claude/Gemini 的反驳
-├── gemini/
-│   ├── review.md           # Gemini 评审报告
-│   └── critique.md         # 对 Claude/Codex 的反驳
+├── oracle/
+│   ├── review.md           # Oracle 评审报告
+│   └── critique.md         # 对 deep/momus 的反驳
+├── deep/
+│   ├── review.md           # Deep 评审报告
+│   └── critique.md         # 对 oracle/momus 的反驳
+├── momus/
+│   ├── review.md           # Momus 评审报告
+│   └── critique.md         # 对 oracle/deep 的反驳
 ├── consensus.md            # 共识报告
 ├── roadmap.md              # 改进路线图
 └── summary.md              # 执行摘要
@@ -123,10 +123,10 @@ graph TD
         ACE["ace-tool MCP<br/>语义搜索"]
     end
 
-    subgraph 三模型评审
-        CL["Claude<br/>架构/综合"]
-        CX["Codex<br/>后端/性能"]
-        GM["Gemini<br/>前端/DX"]
+    subgraph 多Agent评审
+        OR["oracle<br/>架构/创新"]
+        DP["deep<br/>工程/性能"]
+        MM["momus<br/>质量/流程"]
     end
 
     subgraph 对抗
@@ -140,12 +140,12 @@ graph TD
 
     PROJ --> ACE
     FOCUS --> ACE
-    ACE --> CL
-    ACE --> CX
-    ACE --> GM
-    CL --> CRIT
-    CX --> CRIT
-    GM --> CRIT
+    ACE --> OR
+    ACE --> DP
+    ACE --> MM
+    OR --> CRIT
+    DP --> CRIT
+    MM --> CRIT
     CRIT --> CONS
     CONS --> ROAD
 ```
@@ -156,7 +156,7 @@ graph TD
 
 1. **只读原则**：严禁修改被评审项目的源代码
 2. **证据驱动**：每个结论必须有 `file:line` 证据
-3. **反驳必答**：三模型必须回应对方的反驳
+3. **反驳必答**：多Agent必须回应对方的反驳
 
 ### 评审深度
 
@@ -169,7 +169,7 @@ graph TD
 ### 覆盖率
 
 - 无自动化单元测试
-- 质量保障依赖三模型对抗机制
+- 质量保障依赖多Agent对抗机制
 
 ## 关联文件清单
 
@@ -188,10 +188,10 @@ graph TD
    - 每个评审结论必须有 `file:line` 证据
    - 不得基于猜测或推断下结论
 
-3. **模型协作**：
-   - Claude 负责架构、综合分析
-   - Codex 负责后端、性能、安全
-   - Gemini 负责前端、DX、文档
+3. **Agent协作**：
+   - oracle 负责架构、综合分析
+   - deep 负责后端、性能、安全
+   - momus 负责质量、流程、文档一致性
 
 4. **输出规范**：
    - consensus.md 必须标注分歧点

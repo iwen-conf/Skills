@@ -92,15 +92,16 @@ arc:init 整合替代内置 `init` 和 `project-multilevel-index`，通过 oracl
 ├── context/
 │   ├── project-snapshot.md         # 项目快照
 │   └── generation-plan.md          # 生成计划
-├── claude/
-│   ├── analysis.md                 # 架构分析
-│   └── critique.md                 # 交叉审阅
-├── codex/
-│   ├── analysis.md                 # 工程分析
-│   └── critique.md                 # 交叉审阅
-├── gemini/
-│   ├── analysis.md                 # DX 分析
-│   └── critique.md                 # 交叉审阅
+├── agents/
+│   ├── oracle/
+│   │   ├── analysis.md             # 架构分析
+│   │   └── critique.md             # 交叉审阅
+│   ├── deep/
+│   │   ├── analysis.md             # 工程分析
+│   │   └── critique.md             # 交叉审阅
+│   └── momus/
+│       ├── analysis.md             # DX 分析
+│       └── critique.md             # 交叉审阅
 └── summary.md                      # 生成汇总
 ```
 
@@ -120,8 +121,7 @@ arc:init 整合替代内置 `init` 和 `project-multilevel-index`，通过 oracl
 |------|------|------|
 | ace-tool MCP | 必须 | 语义搜索项目代码结构 |
 | Exa MCP | 推荐 | 搜索技术栈最佳实践 |
-#TX|| codex CLI | 已移除 | 不再需要 |
-#QZ|| gemini CLI | 已移除 | 不再需要 |
+| oh-my-opencode Task API | 必须 | 调度 oracle/deep/momus 多Agent协作 |
 
 ## 数据模型
 
