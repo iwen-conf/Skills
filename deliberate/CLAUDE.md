@@ -1,20 +1,20 @@
 [根目录](../CLAUDE.md) > **deliberate**
 
-# deliberate -- 三模型审议与计划生成
+# deliberate -- 多Agent审议与计划生成
 
 ## 变更记录 (Changelog)
 
 | 时间 | 操作 |
 |------|------|
-| 2026-02-24T16:30:00 | arc:init 三模型协作生成模块级 CLAUDE.md |
+arc:init 多Agent协作生成模块级 CLAUDE.md
 
 ## 模块职责
 
-arc:deliberate 通过共享文件系统协调 Claude、Codex、Gemini 三个模型进行迭代式协作审议，使用 OpenSpec 生成结构化可执行计划。适用于复杂技术决策、架构设计、方案对比等需要多视角验证的场景。
+arc:deliberate 通过共享文件系统协调 oracle、deep、momus 三个专业 Agent 进行迭代式协作审议，使用 OpenSpec 生成结构化可执行计划。适用于复杂技术决策、架构设计、方案对比等需要多视角验证的场景。
 
 核心能力：
-- **歧义检查**：三模型分析需求 → 识别歧义 → 用户澄清 → 直到无歧义
-- **迭代审议**：三模型独立提案 → 交叉审阅 → 互相反驳 → 迭代收敛
+- **歧义检查**：多Agent分析需求 → 识别歧义 → 用户澄清 → 直到无歧义
+- **迭代审议**：多Agent独立提案 → 交叉审阅 → 互相反驳 → 迭代收敛
 - **OpenSpec 集成**：生成 proposal → specs → design → tasks 结构化计划
 - **证据驱动**：使用 ace-tool MCP 和 Exa MCP 搜索项目上下文和最佳实践
 
@@ -40,13 +40,13 @@ arc:deliberate 通过共享文件系统协调 Claude、Codex、Gemini 三个模�
 ### 工作流程
 
 **Phase 1: 歧义检查**
-1. 三模型并发分析需求，识别歧义
+1. 多Agent并发分析需求，识别歧义
 2. 互相反驳歧义分析
 3. 聚合歧义，用户澄清
 4. 重复直到无歧义或达到上限
 
 **Phase 2: 审议阶段**
-1. 三模型并发提案
+1. 多Agent并发提案
 2. 交叉审阅 + 互相反驳
 3. 收敛判定 → 共识报告
 
@@ -54,11 +54,11 @@ arc:deliberate 通过共享文件系统协调 Claude、Codex、Gemini 三个模�
 1. `openspec init --tools none`
 2. `openspec new change <task-name>`
 3. 按序生成 proposal → specs → design → tasks
-4. 三模型审查反驳
+4. 多Agent审查反驳
 5. 定稿计划
 
 **Phase 4: 执行阶段**
-1. Codex 按 tasks.md 执行代码实现
+1. Agent 按 tasks.md 执行代码实现
 2. 验证产出
 3. `openspec archive`
 
@@ -80,14 +80,17 @@ arc:deliberate 通过共享文件系统协调 Claude、Codex、Gemini 三个模�
 <workdir>/.arc/deliberate/<task-name>/
 ├── context/
 │   └── enhanced-prompt.md              # arc:refine 产出
-├── claude/
+├── agents/
+│   ├── oracle/
 │   ├── ambiguity-round-N.md            # 歧义分析
 │   ├── proposal-round-N.md             # 提案
 │   ├── critique-round-N.md             # 审阅反驳
 │   └── plan-review.md                  # 计划审查
+│   ├── deep/
 ├── codex/
 │   └── ...                             # 同 claude 结构
-├── gemini/
+│   └── momus/
+│   └── momus/
 │   └── ...                             # 同 claude 结构
 ├── convergence/
 │   └── round-N-summary.md              # 收敛判定摘要
@@ -106,8 +109,8 @@ arc:deliberate 通过共享文件系统协调 Claude、Codex、Gemini 三个模�
 |------|------|------|
 | ace-tool MCP | 必须 | 搜索项目代码结构 |
 | Exa MCP | 推荐 | 搜索最佳实践和技术文档 |
-| codex CLI | 必须 | Codex 模型执行 |
-| gemini CLI | 必须 | Gemini 模型执行 |
+| oh-my-opencode Task API | 必须 | Agent 调度（category/subagent 路由） |
+| gemini CLI | 已移除 | 不再需要 |
 | openspec CLI | 必须 | 结构化计划生成 |
 
 ## 数据模型
@@ -163,13 +166,13 @@ arc:deliberate 通过共享文件系统协调 Claude、Codex、Gemini 三个模�
 ```mermaid
 graph TD
     subgraph Phase1[Phase 1: 歧义检查]
-        AMB1["三模型分析"]
+        AMB1["多Agent分析"]
         AMB2["互相反驳"]
         AMB3["用户澄清"]
     end
 
     subgraph Phase2[Phase 2: 审议]
-        PROP["三模型提案"]
+        PROP["多Agent提案"]
         CRIT["交叉反驳"]
         CONV["收敛判定"]
     end
@@ -177,12 +180,12 @@ graph TD
     subgraph Phase3[Phase 3: 计划生成]
         OS["OpenSpec init"]
         GEN["生成 artifact"]
-        REV["三模型审查"]
+        REV["多Agent审查"]
         FIN["定稿计划"]
     end
 
     subgraph Phase4[Phase 4: 执行]
-        EXEC["Codex 执行"]
+        EXEC["Agent 执行"]
         VAL["验证"]
         ARC["archive"]
     end
@@ -203,7 +206,7 @@ graph TD
 
 ### 质量约束
 
-1. **必须互相反驳**：三模型必须挑战对方观点
+1. **必须互相反驳**：各Agent必须挑战对方观点
 2. **MCP 优先**：分析前必须先使用 MCP 搜索信息
 3. **OpenSpec 验证**：生成后必须运行 `openspec validate`
 
@@ -211,7 +214,7 @@ graph TD
 
 | 情况 | 处理 |
 |------|------|
-| 单模型超时 > 10min | 询问用户是否继续用剩余模型 |
+| Agent 超时 > 10min | 询问用户是否继续用剩余 Agent |
 | 达到 max_ambiguity_rounds | 标记未解决歧义，进入审议 |
 | 达到 max_rounds 未收敛 | 强制合成共识，标注分歧 |
 | openspec 命令失败 | 手动编写 tasks.md |
@@ -219,7 +222,7 @@ graph TD
 ### 覆盖率
 
 - 无自动化单元测试
-- 质量保障依赖三模型对抗机制
+- 质量保障依赖多Agent对抗机制
 
 ## 关联文件清单
 
@@ -229,13 +232,14 @@ graph TD
 
 ## 注意事项
 
-1. **模型调用方式**：
-   - Claude: `Task({ subagent_type: "general-purpose", run_in_background: true })`
-   - Codex: `codex exec -C "<workdir>" --full-auto`
-   - Gemini: `gemini -p "<prompt>" --yolo`
+1. **Agent 调用方式**：
+   - oracle: `Task(subagent_type="oracle", load_skills=["arc:deliberate"], run_in_background=true)`
+   - deep: `Task(category="deep", load_skills=["arc:deliberate"], run_in_background=true)`
+   - momus: `Task(subagent_type="momus", load_skills=["arc:deliberate"], run_in_background=true)`
+   - visual: `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], run_in_background=true)`
 
 2. **并发执行**：
-   - 三模型必须在同一消息中并发发起
+   - 各Agent必须在同一消息中并发发起
    - 使用 `run_in_background: true`
 
 3. **OpenSpec 工作流**：

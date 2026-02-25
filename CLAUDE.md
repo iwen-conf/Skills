@@ -19,14 +19,14 @@ A collection of Claude Code Skills (custom slash-command plugins) under the **`a
 
 | Directory | Skill Name | Invoke | Purpose |
 |-----------|-----------|--------|---------|
-| `agent/` | arc:agent | `/arc:agent` | 智能调度 agent，分析用户需求后选择合适的 arc: skill，协调 Claude/Codex/Gemini 三模型执行任务 |
+| `agent/` | arc:agent | `/arc:agent` | 智能调度 agent，分析用户需求后选择合适的 arc: skill，通过 oh-my-opencode Agent 系统调度执行任务 |
 | `simulate/` | arc:simulate | `/arc:simulate` | 通过 `agent-browser` 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
 | `triage/` | arc:triage | `/arc:triage` | 分析 arc:simulate 的失败报告，定位根因、修复缺陷、执行回归验证 |
 | `loop/` | arc:loop | `/arc:loop` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
 | `refine/` | arc:refine | `/arc:refine` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
-| `deliberate/` | arc:deliberate | `/arc:deliberate` | 三模型（Claude/Codex/Gemini）多视角审议，使用 OpenSpec 生成结构化计划 |
-| `review/` | arc:review | `/arc:review` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，三模型对抗式分析，���出诊断报告与改进路线图 |
-| `init/` | arc:init | `/arc:init` | 三模型协作生成项目层级式 CLAUDE.md 索引体系，深度扫描项目结构后输出根级+模块级 CLAUDE.md |
+| `deliberate/` | arc:deliberate | `/arc:deliberate` | 多 Agent 多视角审议，使用 OpenSpec 生成结构化计划 |
+| `review/` | arc:review | `/arc:review` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图 |
+| `init/` | arc:init | `/arc:init` | 多 Agent 协作生成项目层级式 CLAUDE.md 索引体系，深度扫描项目结构后输出根级+模块级 CLAUDE.md |
 
 ## 模块文档索引
 
@@ -37,10 +37,10 @@ A collection of Claude Code Skills (custom slash-command plugins) under the **`a
 | simulate/ | [CLAUDE.md](./simulate/CLAUDE.md) | E2E 测试执行、脚本接口、报告产物结构 |
 | triage/ | [CLAUDE.md](./triage/CLAUDE.md) | 缺陷分析流程、Fix Packet 结构、回归验证 |
 | loop/ | [CLAUDE.md](./loop/CLAUDE.md) | tmux 服务管理、配置模型、迭代回归流程 |
-| review/ | [CLAUDE.md](./review/CLAUDE.md) | 七维度评审框架、三模型对抗、改进路线图 |
+| review/ | [CLAUDE.md](./review/CLAUDE.md) | 七维度评审框架、多Agent对抗、改进路线图 |
 | deliberate/ | [CLAUDE.md](./deliberate/CLAUDE.md) | 四阶段审议流程、OpenSpec 集成、共识报告模型 |
 | init/ | [CLAUDE.md](./init/CLAUDE.md) | 五阶段生成流程、CLAUDE.md 结构规范、校验体系 |
-| agent/ | [CLAUDE.md](./agent/CLAUDE.md) | 调度决策树、执行预览、多模型任务分配 |
+| agent/ | [CLAUDE.md](./agent/CLAUDE.md) | 调度决策树、执行预览、多Agent任务分配 |
 | refine/ | [CLAUDE.md](./refine/CLAUDE.md) | CLAUDE.md 索引扫描、差距分析、Prompt 增强 |
 
 ## Skill Dependency Chain
@@ -53,7 +53,7 @@ arc:agent ────┬─▶ arc:init         (项目初始化)
               ├─▶ arc:simulate     (E2E 测试)
               │     └─▶ arc:triage
               │           └─▶ arc:loop
-              └─▶ direct dispatch  (Codex/Gemini/Claude)
+              └─▶ Task API dispatch (category/subagent routing)
 
 arc:init  (独立运行；输出的 CLAUDE.md 被 arc:refine 消费)
 arc:review  (独立运行，不依赖其他 Skill)
@@ -98,15 +98,20 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 
 ## Conventions
 
-- **SKILL.md is the source of truth** for each skill's behavior, inputs, outputs, and constraints. Do not contradict it.
+- **搜索约定**：
+  - 禁止使用 Grep/Bash grep/ripgrep 等低效方式搜索代码
+  - 项目外部搜索：使用 `Exa` MCP 服务（搜索文档、OSS、GitHub 等）
+  - 项目内部搜索：使用 `Ace-tool_search_context` MCP 服务（语义搜索代码库）
 - **Markdown table alignment** is enforced: header, separator, and data rows must have identical column counts. Always validate with `check_artifacts.py --strict` after generating/editing Markdown reports.
 - **Reports directory (`reports/`)** contains plaintext secrets (by design, for developer reproducibility). It is gitignored and must never be committed.
 - **`run_id` format**: `YYYY-MM-DD_HH-mm-ss_<short>`, optionally suffixed with `_iterNN` in retest loops.
 - **Screenshot naming**: `s<4-digit-step>_<slug>.png` (e.g., `s0007_after-submit.png`).
-- **模型调用约定**：
-  - **Claude**: `Task({ subagent_type: "general-purpose", run_in_background: true, mode: "bypassPermissions" })`
-  - **Codex**: `codex exec -C "<workdir>" --full-auto "<prompt>"` (原生 CLI，非交互模式)
-  - **Gemini**: `gemini -p "<prompt>" --yolo` (原生 CLI，headless + auto-approve)
+- **Agent 调用约定**：
+  - **Task API**: `Task(category="<domain>", load_skills=[...], description="...", prompt="...", run_in_background=true/false)`
+  - **Subagent API**: `Task(subagent_type="<agent>", load_skills=[...], description="...", prompt="...", run_in_background=true/false)`
+  - **可用 Category**: `visual-engineering` | `ultrabrain` | `deep` | `artistry` | `quick` | `unspecified-low` | `unspecified-high` | `writing`
+  - **可用 Subagent**: `explore`(代码搜索) | `librarian`(文档搜索) | `oracle`(架构咨询) | `metis`(预分析) | `momus`(质量审查)
+  - **Session 延续**: 每次 Task() 返回 session_id，用 `session_id="<id>"` 延续多轮对话
 - **Working directory for arc:agent**: `.arc/agent/` (调度记录在此目录)。
 - **Working directory for arc:deliberate**: `.arc/deliberate/<task-name>/` (inside the target project).
 - **Working directory for arc:review**: `.arc/review/<project-name>/` (inside the target project). 严禁修改被评审项目的源代码，只在此目录下产出评审文件。

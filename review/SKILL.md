@@ -1,22 +1,22 @@
 ---
 name: "arc:review"
-description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，三模型对抗式分析，输出诊断报告与改进路线图"
+description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图"
 ---
 
-# 企业级项目评审（三模型对抗式）
+# 企业级项目评审（多 Agent 对抗式）
 
 ## Overview
 
-赋予 Agent "企业级软件评审专家"的能力。通过 Claude、Codex、Gemini 三模型各自独立按七维度评估项目，再互相反驳对方的评分和发现，最终收敛出一份可交付的诊断报告与改进路线图。
+赋予 Agent “企业级软件评审专家”的能力。通过 oracle、deep、momus 三个专业 Agent 各自独立按七维度评估项目，再互相反驳对方的评分和发现，最终收敛出一份可交付的诊断报告与改进路线图。
 
 七维度评估框架参考 ISO/IEC 25010 软件质量模型、TOGAF 企业架构框架及现代软件工程最佳实践（详见 `references/dimensions.md`）。
 
 流程分为四个阶段：
 
 1. **项目侦察**：扫描代码结构、依赖、技术栈 → 生成项目快照
-2. **独立评估**：三模型并发按七维度独立评估 → 各出 7 份维度分析
-3. **交叉反驳**：三模型互相反驳评分和发现 → 各出反驳报告
-4. **收敛报告**：Claude 主进程聚合 → 最终诊断报告 + 评分卡 + 改进建议
+2. **独立评估**：多 Agent 并发按七维度独立评估 → 各出 7 份维度分析
+3. **交叉反驳**：各 Agent 互相反驳评分和发现 → 各出反驳报告
+4. **收敛报告**：主进程聚合 → 最终诊断报告 + 评分卡 + 改进建议
 
 ## Context Budget（避免 Request too large）
 
@@ -47,18 +47,17 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 
 * **ace-tool (MCP)**: 必须。用于语义搜索项目代码结构、实现模式、CLAUDE.md 索引。
 * **Exa MCP**: 推荐。用于搜索项目依赖的行业标准、最佳实践、安全漏洞信息。
-* **codex CLI**: 必须。`codex exec` 非交互执行 Codex 模型。
-* **gemini CLI**: 必须。`gemini -p` headless 模式执行 Gemini 模型。
+* **oh-my-opencode Task API**: 必须。通过 Task() 调度 oracle/deep/momus Agent。
 
-## 模型调用方式
+## Agent 调用方式
 
-同 arc:deliberate：
-
-| 模型 | 调用方式 | 原因 |
+| Agent 角色 | 调用方式 | 用途 |
 |------|---------|------|
-| **Claude** | **Task 工具（subagent）** | Claude Code 不能嵌套调用自身 |
-| **Codex** | `codex exec -C "<workdir>" --full-auto` | 原生 CLI，非交互模式 |
-| **Gemini** | `gemini -p "<prompt>" --yolo` | 原生 CLI，headless + auto-approve |
+| **oracle** | `Task(subagent_type="oracle", load_skills=["arc:review"], run_in_background=true, ...)` | 架构、安全、技术债务维度（架构专家） |
+| **deep** | `Task(category="deep", load_skills=["arc:review"], run_in_background=true, ...)` | 代码质量、DevOps 维度（工程专家） |
+| **momus** | `Task(subagent_type="momus", load_skills=["arc:review"], run_in_background=true, ...)` | 业务、团队维度（质量/流程专家） |
+| **explore** | `Task(subagent_type="explore", run_in_background=true, ...)` | 代码库模式搜索（廉价） |
+| **librarian** | `Task(subagent_type="librarian", run_in_background=true, ...)` | 最佳实践/安全漏洞搜索（廉价） |
 
 ## Critical Rules（核心铁律）
 
@@ -87,7 +86,7 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 
 5. **评分必须有依据**
    - 每个维度的 0-10 分评分必须列出扣分点和加分点。
-   - 三模型反驳阶段可以挑战对方的评分并给出修正。
+   - 多Agent反驳阶段可以挑战对方的评分并给出修正。
 
 6. **Resource Control & Cleanup**
    - 所有 MCP 搜索和文件读取必须有上限，禁止无限递归扫描。
@@ -164,30 +163,30 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 
 ---
 
-### Phase 2: 三模型独立评估（Independent Assessment）
+### Phase 2: 多 Agent 独立评估（Independent Assessment）
 
-**目标**：三模型并发，各自按七维度独立评估项目。
+**目标**：多 Agent 并发，各自按七维度独立评估项目。
 
-#### Step 2.1: 三模型并发评估
+#### Step 2.1: 多 Agent 并发评估
 
-**CRITICAL**: 三个模型必须在同一消息中并发发起（`run_in_background: true`）。
+**CRITICAL**: 各 Agent 必须在同一消息中并发发起（`run_in_background: true`）。
 
-每个模型读取 `context/project-snapshot.md` 后，对全部 7 个维度各自独立评估。
+每个 Agent 读取 `context/project-snapshot.md` 后，对全部 7 个维度各自独立评估。
 
-**Claude 评估**（subagent）:
+**oracle 评估**（架构视角，侧重 architecture/security/tech-debt）:
 ```
-Task({
-  description: "Claude 七维度评估",
-  subagent_type: "general-purpose",
+Task(
+  subagent_type: "oracle",
+  load_skills: ["arc:review"],
   run_in_background: true,
-  mode: "bypassPermissions",
+  description: "oracle 七维度评估",
   prompt: "你是企业级软件评审专家。
 
 读取 <output_dir>/context/project-snapshot.md 了解项目概况。
 使用 ace-tool MCP 搜索项目代码，按七维度逐一评估。
 评估框架参考 <skills_dir>/review/references/dimensions.md。
 
-对每个维度，产出一个独立文件 <output_dir>/claude/dim-N-<name>.md，格式：
+对每个维度，产出一个独立文件 <output_dir>/oracle/dim-N-<name>.md，格式：
 
 # 维度 N: <维度名>
 ## 评分: X/10
@@ -202,98 +201,93 @@ Task({
 
 项目路径: <project_path>
 评估深度: <depth_level>"
-})
+)
 ```
 
-**Codex 评估**:
-```bash
-codex exec -C "<workdir>" --full-auto - <<'EOF'
-你是企业级软件评审专家，侧重后端架构、代码质量和安全。
+**deep 评估**（工程视角，侧重 code-quality/devops）:
+```
+Task(
+  category: "deep",
+  load_skills: ["arc:review"],
+  run_in_background: true,
+  description: "deep 七维度评估",
+  prompt: "你是企业级软件评审专家，侧重后端架构、代码质量和安全。
 
 读取 <output_dir>/context/project-snapshot.md 了解项目概况。
 评估框架参考 <skills_dir>/review/references/dimensions.md。
 
-对全部 7 个维度逐一评估，每个维度产出一个独立文件 <output_dir>/codex/dim-N-<name>.md。
-格式同 Claude（评分 + 加分点 + 扣分点 + 关键发现 + 改进建议）。
-必须引用代码证据（file:line）。
-EOF
+对全部 7 个维度逐一评估，每个维度产出一个独立文件 <output_dir>/deep/dim-N-<name>.md。
+格式同 oracle（评分 + 加分点 + 扣分点 + 关键发现 + 改进建议）。
+必须引用代码证据（file:line）。"
+)
 ```
 
-**Gemini 评估**:
-```bash
-gemini -p "$(cat <<'EOF'
-你是企业级软件评审专家，侧重前端交互、运维和用户体验。
+**momus 评估**（质量/流程视角，侧重 business/team）:
+```
+Task(
+  subagent_type: "momus",
+  load_skills: ["arc:review"],
+  run_in_background: true,
+  description: "momus 七维度评估",
+  prompt: "你是企业级软件评审专家，侧重前端交互、运维和用户体验。
 
 读取 <output_dir>/context/project-snapshot.md 了解项目概况。
 评估框架参考 <skills_dir>/review/references/dimensions.md。
 
-对全部 7 个维度逐一评估，每个维度产出一个独立文件 <output_dir>/gemini/dim-N-<name>.md。
-格式同 Claude（评分 + 加分点 + 扣分点 + 关键发现 + 改进建议）。
-必须引用代码证据（file:line）。
-EOF
-)" --yolo
+对全部 7 个维度逐一评估，每个维度产出一个独立文件 <output_dir>/momus/dim-N-<name>.md。
+格式同 oracle（评分 + 加分点 + 扣分点 + 关键发现 + 改进建议）。
+必须引用代码证据（file:line）。"
+)
 ```
 
 #### Step 2.2: 等待完成
 
-等待三个后台任务完成（subagent 用 TaskOutput，Codex/Gemini 用 Bash 等待）。
+等待各 Agent 后台任务完成（使用 `background_output(task_id="...")` 收集结果）。
 
 ---
 
 ### Phase 3: 交叉审阅与反驳（Cross-Review & Rebuttal）
 
-**目标**：三模型互相反驳对方的评分和发现，消除盲点，校准评分。
+**目标**：各 Agent 互相反驳对方的评分和发现，消除盲点，校准评分。
 
-#### Step 3.1: 三模型并发反驳
+#### Step 3.1: 多 Agent 并发反驳
 
-**CRITICAL**: 每个模型必须**反驳另外两个模型**的全部 7 维度评估。
+**CRITICAL**: 每个 Agent 必须**反驳另外两个 Agent** 的全部 7 维度评估。
 
-每个模型必须：
-1. 读取其他两个模型的全部 7 份维度分析
+每个 Agent 必须：
+1. 读取其他两个 Agent 的全部 7 份维度分析
 2. **反驳过于乐观或悲观的评分**（必须给出理由和代码证据）
 3. **指出遗漏的问题或被忽略的优势**
 4. **给出修正后的评分建议**
 
-**Claude 反驳 Codex + Gemini**（subagent）:
-```
-Task({
-  description: "Claude 交叉反驳",
-  subagent_type: "general-purpose",
-  run_in_background: true,
-  mode: "bypassPermissions",
-  prompt: "读取 Codex 和 Gemini 的全部 7 维度评估：
-- <output_dir>/codex/dim-*.md
-- <output_dir>/gemini/dim-*.md
+**oracle 反驳 deep + momus**（用 `Task(subagent_type="oracle", session_id="<复用>", ...)`）:
+- 读取 `deep/dim-*.md` 和 `momus/dim-*.md`
+- 从架构视角反驳
+- 产出 `oracle/critique.md`
 
-逐维度反驳：
-1. 指出评分过高或过低的地方（附代码证据）
-2. 指出遗漏的重要问题或被忽略的优势
-3. 给出你认为更合理的评分及理由
+**deep 反驳 oracle + momus**（用 `Task(category="deep", session_id="<复用>", ...)`）:
+- 读取 `oracle/dim-*.md` 和 `momus/dim-*.md`
+- 从工程/代码质量/安全角度反驳
+- 产出 `deep/critique.md`
 
-产出 <output_dir>/claude/critique.md。"
-})
-```
-
-**Codex 反驳 Claude + Gemini**:
-- 读取 `claude/dim-*.md` 和 `gemini/dim-*.md`
-- 从后端/代码质量/安全角度反驳
-- 产出 `codex/critique.md`
-
-**Gemini 反驳 Claude + Codex**:
-- 读取 `claude/dim-*.md` 和 `codex/dim-*.md`
-- 从前端/运维/UX 角度反驳
-- 产出 `gemini/critique.md`
+**momus 反驳 oracle + deep**（用 `Task(subagent_type="momus", session_id="<复用>", ...)`）:
+- 读取 `oracle/dim-*.md` 和 `deep/dim-*.md`
+- 从质量/UX/运维角度反驳
+- 产出 `momus/critique.md`
 
 ---
 
 ### Phase 4: 收敛与报告生成（Convergence & Report）
 
-**目标**：Claude 主进程聚合三方分析与反驳，生成最终交付物。
+**目标**：主进程聚合各方分析与反驳，生成最终交付物。
 
 #### Step 4.1: 聚合评分
 
-读取三方的维度分析 + 反驳报告，对每个维度：
-1. 取三方评分的加权平均（Claude 40%、Codex 30%、Gemini 30%）
+读取各方的维度分析 + 反驳报告，对每个维度：
+1. 取各方评分的**专业加权平均**：
+   - architecture/security/tech-debt: oracle 50%, deep 25%, momus 25%
+   - code-quality/devops: deep 50%, oracle 25%, momus 25%
+   - business/team: momus 50%, oracle 25%, deep 25%
 2. 根据反驳报告调整（如某方的评分被另外两方有力反驳，降低其权重）
 3. 生成最终评分及依据
 
@@ -330,10 +324,10 @@ Task({
 （结构同维度 1）
 
 ## 分歧记录
-<三模型未达成共识的观点及各方理由>
+<各Agent未达成共识的观点及各方理由>
 
 ## 方法论说明
-<七维度框架来源、评分标准、三模型对抗机制>
+<七维度框架来源、评分标准、多Agent对抗机制>
 ```
 
 #### Step 4.3: 生成评分卡
@@ -345,8 +339,8 @@ Task({
 
 ## 七维度评分
 
-| 维度 | Claude | Codex | Gemini | 最终 | 评级 |
-|------|--------|-------|--------|------|------|
+| 维度 | oracle | deep | momus | 最终 | 评级 |
+|------|--------|------|-------|------|------|
 | 架构设计 | 7 | 8 | 7 | 7.3 | 良好 |
 | 安全合规 | 6 | 5 | 6 | 5.6 | 合格 |
 | ... | ... | ... | ... | ... | ... |
@@ -389,7 +383,7 @@ Task({
 <workdir>/.arc/review/<project-name>/
 ├── context/
 │   └── project-snapshot.md         # 项目基本信息快照
-├── claude/
+├── oracle/
 │   ├── dim-1-architecture.md       # 维度 1 分析
 │   ├── dim-2-security.md
 │   ├── dim-3-code-quality.md
@@ -398,13 +392,13 @@ Task({
 │   ├── dim-6-team.md
 │   ├── dim-7-tech-debt.md
 │   └── critique.md                 # 交叉反驳
-├── codex/
+├── deep/
 │   ├── dim-1-architecture.md
-│   ├── ...（同 claude）
+│   ├── ...（同 oracle）
 │   └── critique.md
-├── gemini/
+├── momus/
 │   ├── dim-1-architecture.md
-│   ├── ...（同 claude）
+│   ├── ...（同 oracle）
 │   └── critique.md
 ├── diagnostic-report.md            # 最终诊断报告
 ├── scorecard.md                    # 评分卡
@@ -415,8 +409,8 @@ Task({
 
 | 情况 | 处理 |
 |------|------|
-| 单模型超时 > 10min | 使用 AskUserQuestion 询问用户是否继续用剩余模型 |
-| 某模型维度分析缺失 | 用另外两个模型的分析填补，标注"单源评估" |
+| Agent 超时 > 10min | 使用 AskUserQuestion 询问用户是否继续用剩余 Agent |
+| 某Agent维度分析缺失 | 用另外两个Agent的分析填补，标注"单源评估" |
 | ace-tool MCP 不可用 | 降级为 Grep + Read 手动扫描关键文件 |
 | depth_level="quick" | 每维度限制 5 个关键文件，跳过 Phase 3 反驳 |
 
@@ -431,14 +425,14 @@ Task({
   └── 生成项目快照... [完成]
 
 === 阶段 2: 独立评估 ===
-  ├── Claude(subagent) 7 维度... [完成]
-  ├── Codex(CLI) 7 维度... [完成]
-  └── Gemini(CLI) 7 维度... [完成]
+  ├── oracle(subagent) 7 维度... [完成]
+  ├── deep(category) 7 维度... [完成]
+  └── momus(subagent) 7 维度... [完成]
 
 === 阶段 3: 交叉反驳 ===
-  ├── Claude 反驳 Codex+Gemini... [完成]
-  ├── Codex 反驳 Claude+Gemini... [完成]
-  └── Gemini 反驳 Claude+Codex... [完成]
+  ├── oracle 反驳 deep+momus... [完成]
+  ├── deep 反驳 oracle+momus... [完成]
+  └── momus 反驳 oracle+deep... [完成]
 
 === 阶段 4: 收敛报告 ===
   ├── 聚合评分... [完成]
@@ -452,15 +446,14 @@ Task({
 | 阶段 | 步骤 | 输出路径 |
 |------|------|---------|
 | 项目侦察 | MCP 扫描 → 快照 | `context/project-snapshot.md` |
-| 独立评估 | 三模型×7 维度 | `(claude\|codex\|gemini)/dim-N-<name>.md` |
-| 交叉反驳 | 三模型互相反驳 | `(claude\|codex\|gemini)/critique.md` |
-| 收敛报告 | 聚合 → 诊断 + 评分 + 建议 | `diagnostic-report.md`, `scorecard.md`, `recommendations.md` |
+| 独立评估 | 多Agent×7 维度 | `(oracle|deep|momus)/dim-N-<name>.md` |
+| 交叉反驳 | 各Agent互相反驳 | `(oracle|deep|momus)/critique.md` |
 
 ## 调用方式速查
 
 | 角色 | 调用方式 | 并发支持 |
 |------|---------|---------|
-| Claude | `Task({ subagent_type: "general-purpose", run_in_background: true })` | subagent 后台 |
-| Codex | `Bash({ command: "codex exec -C '<workdir>' --full-auto - <<'EOF'\n<prompt>\nEOF", run_in_background: true })` | Bash 后台 |
-| Gemini | `Bash({ command: "gemini -p \"$(cat <<'EOF'\n<prompt>\nEOF\n)\" --yolo", run_in_background: true })` | Bash 后台 |
-| Claude（聚合/报告） | 主进程直接处理 | — |
+| oracle | `Task(subagent_type="oracle", load_skills=["arc:review"], run_in_background=true, ...)` | 后台异步 |
+| deep | `Task(category="deep", load_skills=["arc:review"], run_in_background=true, ...)` | 后台异步 |
+| momus | `Task(subagent_type="momus", load_skills=["arc:review"], run_in_background=true, ...)` | 后台异步 |
+| 主进程（聚合/报告） | 直接处理 | — |

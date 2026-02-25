@@ -1,40 +1,43 @@
 ---
 name: "arc:deliberate"
-description: 当复杂问题需要 Claude、Codex、Gemini 三模型多视角分析并通过迭代讨论达成共识时使用
+description: 当复杂问题需要多 Agent 多视角分析并通过迭代讨论达成共识时使用
 ---
 
-# Tri-Model Deliberation
+# Multi-Agent Deliberation
 
 ## Overview
 
-通过共享文件系统作为通信总线，协调 Claude、Codex、Gemini 三个模型进行迭代式协作审议。**每个阶段三模型都必须互相反驳、审阅对方的观点**。
+通过共享文件系统作为通信总线，协调多个专业 Agent（oracle/deep/momus）进行迭代式协作审议。**每个阶段各 Agent 都必须互相反驳、审阅对方的观点**。
 
 流程分为四个阶段：
 
-1. **歧义检查阶段**：三模型分析需求 → 识别歧义 → 互相反驳 → 用户澄清 → 直到无歧义
-2. **审议阶段**：三模型独立提案 → 交叉审阅 → 互相反驳 → 迭代收敛 → 合成共识报告
-3. **计划生成阶段**：OpenSpec 生成结构化计划 → 三模型审查反驳 → 定稿可执行计划
-4. **执行阶段**：使用 Codex 执行代码实现
+1. **歧义检查阶段**：多 Agent 分析需求 → 识别歧义 → 互相反驳 → 用户澄清 → 直到无歧义
+2. **审议阶段**：多 Agent 独立提案 → 交叉审阅 → 互相反驳 → 迭代收敛 → 合成共识报告
+3. **计划生成阶段**：OpenSpec 生成结构化计划 → 多 Agent 审查反驳 → 定稿可执行计划
+4. **执行阶段**：使用 Task(category="deep") 执行代码实现
 
-## 模型调用方式
+## Agent 调用方式
 
-**CRITICAL**: 三个模型的调用方式不同：
+**CRITICAL**: 所有任务通过 oh-my-opencode 的 Task() API 调度：
 
-| 模型 | 调用方式 | 原因 |
+| Agent 角色 | 调用方式 | 用途 |
 |------|---------|------|
-| **Claude** | **Task 工具（subagent）** | Claude Code 不能嵌套调用自身 |
-| **Codex** | `codex exec -C "<workdir>" --full-auto` | 原生 CLI，非交互模式 |
-| **Gemini** | `gemini -p "<prompt>" --yolo` | 原生 CLI，headless + auto-approve |
+| **oracle** | `Task(subagent_type="oracle", ...)` | 架构分析、设计评审（只读高质量推理） |
+| **deep** | `Task(category="deep", load_skills=[...], ...)` | 深度工程分析、方案提案、代码执行 |
+| **momus** | `Task(subagent_type="momus", ...)` | 质量审查、完整性验证、计划评估 |
+| **metis** | `Task(subagent_type="metis", ...)` | 需求预分析、歧义检测 |
+| **explore** | `Task(subagent_type="explore", run_in_background=true, ...)` | 代码库搜索（廉价、后台） |
+| **librarian** | `Task(subagent_type="librarian", run_in_background=true, ...)` | 外部文档搜索（廉价、后台） |
 
-Claude subagent 调用模板：
+通用 Task 调用模板：
 ```
-Task({
+Task(
+  category: "<category>",              // 或 subagent_type: "<agent>"
+  load_skills: ["arc:deliberate", ...], // 装备相关 skill
   description: "<简短描述>",
-  subagent_type: "general-purpose",
   prompt: "<具体任务指令，包含读写文件路径>",
-  run_in_background: true,
-  mode: "bypassPermissions"
-})
+  run_in_background: true               // 并发执行
+)
 ```
 
 ## MCP 工具使用
@@ -56,7 +59,7 @@ Task({
 - 复杂技术决策需要多视角验证（架构、性能、安全、兼容性）
 - 单个模型的方案可能有盲点，需要交叉审阅
 - 用户需要可解释的决策而非黑盒结论
-- 问题涉及多个技术栈，需要后端(Codex) + 前端(Gemini) + 中央(Claude) 协作
+- 问题涉及多个技术领域，需要 oracle（架构）+ deep（工程）+ momus（质量）协作
 
 ## Core Pattern
 
@@ -72,30 +75,28 @@ Task({
 
 ### 目录结构
 
-**按模型分目录**，每个模型的所有阶段产出集中在自己的目录下：
+**按 Agent 角色分目录**，每个 Agent 的所有阶段产出集中在自己的目录下：
 
 ```
 <workdir>/.arc/deliberate/<task-name>/
 ├── context/
 │   └── enhanced-prompt.md              # arc:refine 产出
-├── claude/                              # Claude 所有阶段产出
-│   ├── ambiguity-round-1.md            # 歧义分析（Phase 1）
-│   ├── ambiguity-round-N.md
-│   ├── proposal-round-1.md             # 提案（Phase 2）
-│   ├── proposal-round-N.md
-│   ├── critique-round-1.md             # 审阅反驳（Phase 2）
-│   ├── critique-round-N.md
-│   └── plan-review.md                  # 计划审查（Phase 3）
-├── codex/                               # Codex 所有阶段产出
-│   ├── ambiguity-round-1.md
-│   ├── proposal-round-1.md
-│   ├── critique-round-1.md
-│   └── plan-review.md
-├── gemini/                              # Gemini 所有阶段产出
-│   ├── ambiguity-round-1.md
-│   ├── proposal-round-1.md
-│   ├── critique-round-1.md
-│   └── plan-review.md
+├── agents/
+│   ├── oracle/                          # oracle Agent 所有阶段产出（架构视角）
+│   │   ├── ambiguity-round-1.md            # 歧义分析（Phase 1）
+│   │   ├── proposal-round-1.md             # 提案（Phase 2）
+│   │   ├── critique-round-1.md             # 审阅反驳（Phase 2）
+│   │   └── plan-review.md                  # 计划审查（Phase 3）
+│   ├── deep/                            # deep Agent 所有阶段产出（工程视角）
+│   │   ├── ambiguity-round-1.md
+│   │   ├── proposal-round-1.md
+│   │   ├── critique-round-1.md
+│   │   └── plan-review.md
+│   └── momus/                           # momus Agent 所有阶段产出（质量视角）
+│       ├── ambiguity-round-1.md
+│       ├── proposal-round-1.md
+│       ├── critique-round-1.md
+│       └── plan-review.md
 ├── convergence/
 │   └── round-N-summary.md              # 收敛判定摘要
 └── openspec/                            # OpenSpec 工作空间（Phase 3）
@@ -115,71 +116,76 @@ Task({
 
 ## Phase 1: 歧义检查（Ambiguity Check）
 
-### Step 1.1: 三模型分析 + 搜索
+### Step 1.1: 多 Agent 分析 + 搜索
 
 **CRITICAL**: 必须先使用 MCP 工具搜索信息，再进行分析。
 
 1. **搜索项目信息**：使用 `ace-tool` MCP 的 `search_context` 搜索项目代码
 2. **搜索外部信息**：使用 `Exa MCP` 的 `web_search_exa` 或 `company_research_exa` 搜索互联网
-3. **分析**：并发调用三个模型，分析增强后的 prompt，识别潜在歧义
+3. **分析**：并发调用多个 Agent，分析增强后的 prompt，识别潜在歧义
 
-**三模型并发调用**（在同一消息中发起，`run_in_background: true`）：
+**多 Agent 并发调用**（在同一消息中发起，`run_in_background: true`）：
 
-**Claude 分析**（subagent）:
+**oracle 分析**（架构视角）:
 ```
-Task({
-  description: "Claude 歧义分析",
-  subagent_type: "general-purpose",
+Task(
+  subagent_type: "oracle",
+  load_skills: ["arc:deliberate"],
   run_in_background: true,
-  mode: "bypassPermissions",
+  description: "oracle 歧义分析",
   prompt: "你是架构师角色。分析以下需求的歧义点。
 上下文信息：<MCP 搜索结果>
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 列出所有可能存在歧义的地方，包括：边界条件未定义、约束不明确、术语理解可能不同、假设未说明等。
-将分析结果写入 <workdir>/.arc/deliberate/<task-name>/claude/ambiguity-round-N.md。"
-})
+将分析结果写入 <workdir>/.arc/deliberate/<task-name>/agents/oracle/ambiguity-round-N.md。"
+)
 ```
 
-**Codex 分析**:
-```bash
-codex exec -C "<workdir>" --full-auto - <<'EOF'
-你是后端架构师。分析以下需求的歧义点。
+**deep 分析**（工程视角）:
+```
+Task(
+  category: "deep",
+  load_skills: ["arc:deliberate"],
+  run_in_background: true,
+  description: "deep 歧义分析",
+  prompt: "你是后端架构师。分析以下需求的歧义点。
 上下文信息（来自 MCP 搜索）：<MCP 搜索结果>
-
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 从后端架构、技术约束、性能要求等角度，列出可能存在歧义的地方。
-写入 <workdir>/.arc/deliberate/<task-name>/codex/ambiguity-round-N.md。
-EOF
+写入 <workdir>/.arc/deliberate/<task-name>/agents/deep/ambiguity-round-N.md。"
+)
 ```
 
-**Gemini 分析**:
-```bash
-gemini -p "$(cat <<'EOF'
-你是前端与用户体验分析师。分析以下需求的歧义点。
+**momus 分析**（质量视角）:
+```
+Task(
+  subagent_type: "momus",
+  load_skills: ["arc:deliberate"],
+  run_in_background: true,
+  description: "momus 歧义分析",
+  prompt: "你是质量与用户体验分析师。分析以下需求的歧义点。
 上下文信息（来自 MCP 搜索）：<MCP 搜索结果>
-
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
-从前端交互、用户体验、响应式设计等角度，列出可能存在歧义的地方。
-写入 <workdir>/.arc/deliberate/<task-name>/gemini/ambiguity-round-N.md。
-EOF
-)" --yolo
+从用户体验、完整性、可维护性等角度，列出可能存在歧义的地方。
+写入 <workdir>/.arc/deliberate/<task-name>/agents/momus/ambiguity-round-N.md。"
+)
 ```
 
 ### Step 1.2: 互相反驳歧义分析
 
-**CRITICAL**: 三个模型必须**互相反驳对方识别出的歧义**。
+**CRITICAL**: 各 Agent 必须**互相反驳对方识别出的歧义**。
 
 每个模型必须：
-1. 读取其他两个模型的歧义分析（如 Claude 读取 `codex/ambiguity-round-N.md` 和 `gemini/ambiguity-round-N.md`）
+1. 读取其他 Agent 的歧义分析（如 oracle 读取 `agents/deep/ambiguity-round-N.md` 和 `agents/momus/ambiguity-round-N.md`）
 2. 反驳对方认为的"歧义"（可能不是歧义）
 3. 补充对方遗漏的歧义
 4. 将反驳内容追加到自己的 `ambiguity-round-N.md`
 
-调用方式同 Step 1.1（Claude 用 subagent，Codex 用 `codex exec`，Gemini 用 `gemini -p`）。
+调用方式同 Step 1.1（oracle 用 `Task(subagent_type="oracle")`，deep 用 `Task(category="deep")`，momus 用 `Task(subagent_type="momus")`）。
 
 ### Step 1.3: 聚合歧义
 
-读取三份分析报告，中央大脑 Claude（主进程直接处理，不需 subagent）聚合所有歧义点：
+读取各份分析报告，主进程直接处理（不需 subagent）聚合所有歧义点：
 
 ```markdown
 # 歧义汇总 (Round N)
@@ -233,87 +239,82 @@ EOF
 
 ### Step 2.2: 并发派发提案 (每轮)
 
-**CRITICAL**: 三个模型必须在同一消息中并发发起（`run_in_background: true`）。
+**CRITICAL**: 各 Agent 必须在同一消息中并发发起（`run_in_background: true`）。
 
-**Claude 提案**（subagent）:
+**oracle 提案**（架构视角）:
 ```
-Task({
-  description: "Claude 提案 Round N",
-  subagent_type: "general-purpose",
+Task(
+  subagent_type: "oracle",
+  load_skills: ["arc:deliberate"],
   run_in_background: true,
-  mode: "bypassPermissions",
-  prompt: "你是架构师角色（中央大脑、全局优化、用户体验）。
+  description: "oracle 提案 Round N",
+  prompt: "你是架构师角色（全局视角、架构设计、技术选型）。
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 给出完整的解决方案提案，仅限纯文本 Markdown 格式，禁止代码块。
-将提案写入 <workdir>/.arc/deliberate/<task-name>/claude/proposal-round-N.md。"
-})
+将提案写入 <workdir>/.arc/deliberate/<task-name>/agents/oracle/proposal-round-N.md。"
+)
 ```
 
-**Codex 提案**:
-```bash
-codex exec -C "<workdir>" --full-auto - <<'EOF'
-你是后端架构师（后端架构、性能优化、数据库、安全）。
-基于 Codex 视角，给出完整的解决方案提案。
+**deep 提案**（工程视角）:
+```
+Task(
+  category: "deep",
+  load_skills: ["arc:deliberate"],
+  run_in_background: true,
+  description: "deep 提案 Round N",
+  prompt: "你是后端架构师（后端架构、性能优化、数据库、安全）。
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
-写入 <workdir>/.arc/deliberate/<task-name>/codex/proposal-round-N.md。
-仅限纯文本 Markdown 格式，禁止代码块。
-EOF
+给出完整的解决方案提案，仅限纯文本 Markdown 格式，禁止代码块。
+写入 <workdir>/.arc/deliberate/<task-name>/agents/deep/proposal-round-N.md。"
+)
 ```
 
-**Gemini 提案**:
-```bash
-gemini -p "$(cat <<'EOF'
-你是前端与交互设计师（前端交互、UI/UX、响应式设计、组件架构）。
-基于 Gemini 视角，给出完整的解决方案提案。
+**momus 提案**（质量视角）:
+```
+Task(
+  subagent_type: "momus",
+  load_skills: ["arc:deliberate"],
+  run_in_background: true,
+  description: "momus 提案 Round N",
+  prompt: "你是质量与用户体验分析师（UI/UX、用户体验、响应式设计、可维护性）。
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
-写入 <workdir>/.arc/deliberate/<task-name>/gemini/proposal-round-N.md。
-仅限纯文本 Markdown 格式，禁止代码块。
-EOF
-)" --yolo
+给出完整的解决方案提案，仅限纯文本 Markdown 格式，禁止代码块。
+写入 <workdir>/.arc/deliberate/<task-name>/agents/momus/proposal-round-N.md。"
+)
 ```
 
 ### Step 2.3: 等待完成
 
-等待三个后台任务完成（subagent 用 TaskOutput，Codex/Gemini 用 Bash 等待）。
+等待各 Agent 后台任务完成（使用 `background_output(task_id="...")` 收集结果）。
 
 ### Step 2.4: 交叉审阅 + 互相反驳
 
-**CRITICAL**: 三个模型必须**互相反驳对方的观点**，不能只是简单审阅。
+**CRITICAL**: 各 Agent 必须**互相反驳对方的观点**，不能只是简单审阅。
 
-每个模型必须：
-1. 读取其他两个模型的提案
+每个 Agent 必须：
+1. 读取其他两个 Agent 的提案
 2. **找出对方观点的问题和漏洞**
 3. **用论据反驳对方的技术选择**
 4. 提出自己的替代方案
 
-**Claude 审阅 Codex + Gemini**（subagent）:
-```
-Task({
-  description: "Claude 审阅反驳 Round N",
-  subagent_type: "general-purpose",
-  run_in_background: true,
-  mode: "bypassPermissions",
-  prompt: "读取以下两份提案：
-- <workdir>/.arc/deliberate/<task-name>/codex/proposal-round-N.md
-- <workdir>/.arc/deliberate/<task-name>/gemini/proposal-round-N.md
-从全局视角反驳 Codex 的后端架构选择和 Gemini 的前端设计选择。找出问题和漏洞，用论据反驳。
-将审阅结果写入 <workdir>/.arc/deliberate/<task-name>/claude/critique-round-N.md。"
-})
-```
+**oracle 审阅 deep + momus**（用 `Task(subagent_type="oracle", session_id="<复用上轮 session>", ...)`）:
+- 读取 `agents/deep/proposal-round-N.md` 和 `agents/momus/proposal-round-N.md`
+- 从架构视角反驳 deep 的工程选择、momus 的质量要求
+- 产出：`agents/oracle/critique-round-N.md`
 
-**Codex 审阅 Claude + Gemini**:
-- 读取 `claude/proposal-round-N.md` 和 `gemini/proposal-round-N.md`
-- 反驳 Claude 的全局视角选择、反驳 Gemini 的交互设计选择
-- 产出：`codex/critique-round-N.md`
+**deep 审阅 oracle + momus**（用 `Task(category="deep", session_id="<复用上轮 session>", ...)`）:
+- 读取 `agents/oracle/proposal-round-N.md` 和 `agents/momus/proposal-round-N.md`
+- 从工程视角反驳 oracle 的架构设计、momus 的体验要求
+- 产出：`agents/deep/critique-round-N.md`
 
-**Gemini 审阅 Claude + Codex**:
-- 读取 `claude/proposal-round-N.md` 和 `codex/proposal-round-N.md`
-- 反驳 Claude 的抽象设计、反驳 Codex 的后端实现
-- 产出：`gemini/critique-round-N.md`
+**momus 审阅 oracle + deep**（用 `Task(subagent_type="momus", session_id="<复用上轮 session>", ...)`）:
+- 读取 `agents/oracle/proposal-round-N.md` 和 `agents/deep/proposal-round-N.md`
+- 从质量视角反驳 oracle 的抽象设计、deep 的工程实现
+- 产出：`agents/momus/critique-round-N.md`
 
 ### Step 2.5: 收敛判定
 
-中央大脑 Claude（主进程直接处理）读取三份 critique：
+主进程直接读取各 Agent 的 critique：
 - **无分歧**：收敛，合成共识报告，写入 `convergence/final-consensus.md`
 - **有分歧**：生成 `convergence/round-N-summary.md`，进入下一轮
 
@@ -348,7 +349,7 @@ Task({
 
 ## Phase 3: 计划生成阶段（Plan Generation）
 
-**CRITICAL**: 使用 [OpenSpec](https://github.com/Fission-AI/OpenSpec)（CLI: `openspec`）将共识报告转化为结构化可执行计划，再经三模型审查反驳定稿。
+**CRITICAL**: 使用 [OpenSpec](https://github.com/Fission-AI/OpenSpec)（CLI: `openspec`）将共识报告转化为结构化可执行计划，再经多 Agent 审查反驳定稿。
 
 OpenSpec 采用 spec-driven 工作流，按 `proposal → specs → design → tasks` 顺序生成 artifact，每个 artifact 都有依赖关系和结构化模板。
 
@@ -433,20 +434,20 @@ openspec status --change <task-name>
 - `validate` 校验 artifact 结构是否符合 schema 要求
 - `status` 显示每个 artifact 的完成状态（missing / present）
 
-### Step 3.3: 三模型并发审查计划
+### Step 3.3: 多 Agent 并发审查计划
 
-OpenSpec 生成计划后，**三个模型并发独立审查**（同一消息，`run_in_background: true`）。
+OpenSpec 生成计划后，**多 Agent 并发独立审查**（同一消息，`run_in_background: true`）。
 
 > 以下路径简写 `$CHANGE` 代表 `<workdir>/.arc/deliberate/<task-name>/openspec/changes/<task-name>`。
 
-**Claude 审查计划**（subagent）:
+**oracle 审查计划**（架构视角）:
 ```
-Task({
-  description: "Claude 审查计划",
-  subagent_type: "general-purpose",
+Task(
+  subagent_type: "oracle",
+  load_skills: ["arc:deliberate"],
   run_in_background: true,
-  mode: "bypassPermissions",
-  prompt: "审查以下 OpenSpec 计划文件，从全局架构、整体一致性、任务排序合理性角度进行审查反驳。
+  description: "oracle 审查计划",
+  prompt: "你是架构师角色。审查以下 OpenSpec 计划文件，从全局架构、整体一致性、任务排序合理性角度进行审查反驳。
 读取以下文件：
 - $CHANGE/proposal.md
 - $CHANGE/specs/ 下所有 spec.md
@@ -457,67 +458,68 @@ Task({
 2. 反驳不合理的任务排序或依赖关系
 3. 检查计划与共识报告的一致性
 4. 给出修改建议
-将审查结果写入 <workdir>/.arc/deliberate/<task-name>/claude/plan-review.md。"
-})
+将审查结果写入 <workdir>/.arc/deliberate/<task-name>/agents/oracle/plan-review.md。"
+)
 ```
 
-**Codex 审查计划**:
-```bash
-codex exec -C "<workdir>" --full-auto - <<'EOF'
-你是后端架构师。审查以下 OpenSpec 计划文件，从后端架构、性能、安全、可行性角度进行审查反驳。
-
+**deep 审查计划**（工程视角）:
+```
+Task(
+  category: "deep",
+  load_skills: ["arc:deliberate"],
+  run_in_background: true,
+  description: "deep 审查计划",
+  prompt: "你是后端架构师。审查以下 OpenSpec 计划文件，从后端架构、性能、安全、可行性角度进行审查反驳。
 读取以下文件：
 - $CHANGE/proposal.md
 - $CHANGE/specs/ 下所有 spec.md
 - $CHANGE/design.md
 - $CHANGE/tasks.md
-
 审查要求：
 1. 指出计划中的技术问题和风险
 2. 反驳不合理的任务排序或依赖关系
 3. 补充遗漏的后端相关任务
 4. 给出修改建议
-
-写入 <workdir>/.arc/deliberate/<task-name>/codex/plan-review.md。
-EOF
+写入 <workdir>/.arc/deliberate/<task-name>/agents/deep/plan-review.md。"
+)
 ```
 
-**Gemini 审查计划**:
-```bash
-gemini -p "$(cat <<'EOF'
-你是前端与交互设计师。审查以下 OpenSpec 计划文件，从前端交互、UI/UX、组件架构、用户体验角度进行审查反驳。
-
+**momus 审查计划**（质量视角）:
+```
+Task(
+  subagent_type: "momus",
+  load_skills: ["arc:deliberate"],
+  run_in_background: true,
+  description: "momus 审查计划",
+  prompt: "你是前端与交互设计师。审查以下 OpenSpec 计划文件，从前端交互、UI/UX、组件架构、用户体验角度进行审查反驳。
 读取以下文件：
 - $CHANGE/proposal.md
 - $CHANGE/specs/ 下所有 spec.md
 - $CHANGE/design.md
 - $CHANGE/tasks.md
-
 审查要求：
 1. 指出计划中的前端/交互问题
 2. 反驳不合理的设计选择
 3. 补充遗漏的前端相关任务
 4. 给出修改建议
-
-写入 <workdir>/.arc/deliberate/<task-name>/gemini/plan-review.md。
-EOF
-)" --yolo
+写入 <workdir>/.arc/deliberate/<task-name>/agents/momus/plan-review.md。"
+)
 ```
 
-### Step 3.4: 三模型交叉反驳计划审查
+### Step 3.4: 多 Agent 交叉反驳计划审查
 
-**CRITICAL**: 三个模型互相反驳对方的计划审查意见。每个模型读取另外两个的 `plan-review.md`，反驳不合理之处，补充遗漏。
+**CRITICAL**: 各 Agent 互相反驳对方的计划审查意见。每个 Agent 读取另外两个的 `plan-review.md`，反驳不合理之处，补充遗漏。
 
-调用方式：Claude 用 subagent，Codex 用 `codex exec`，Gemini 用 `gemini -p`，三者并发。
+调用方式：oracle 用 `Task(subagent_type="oracle", session_id="<复用>")`，deep 用 `Task(category="deep", session_id="<复用>")`，momus 用 `Task(subagent_type="momus", session_id="<复用>")`，三者并发。
 
-各模型产出覆盖（更新）自己的 `plan-review.md`，追加反驳段落。
+各 Agent 产出覆盖（更新）自己的 `plan-review.md`，追加反驳段落。
 
 ### Step 3.5: 定稿计划
 
-中央大脑 Claude（主进程直接处理）综合三份审查报告，修订 OpenSpec artifact 文件：
+主进程直接处理，综合各份审查报告，修订 OpenSpec artifact 文件：
 
-1. 读取 `claude/plan-review.md`、`codex/plan-review.md`、`gemini/plan-review.md`
-2. 根据三方审查修订 `openspec/changes/<task-name>/tasks.md`（确保任务有序、有依赖关系、可执行）
+1. 读取 `agents/oracle/plan-review.md`、`agents/deep/plan-review.md`、`agents/momus/plan-review.md`
+2. 根据各方审查修订 `openspec/changes/<task-name>/tasks.md`（确保任务有序、有依赖关系、可执行）
 3. 同步更新 `design.md` 和 `specs/` 下的 spec 文件（如有必要）
 
 **`tasks.md` 格式要求**（OpenSpec 标准 checkbox 格式 + AI 耗时标注，可被 `openspec archive` 追踪进度）：
@@ -551,15 +553,18 @@ openspec archive <task-name>
 
 ## Phase 4: 执行阶段（Execution）
 
-**CRITICAL**: 计划定稿后，**执行代码必须使用 Codex**。
+**CRITICAL**: 计划定稿后，使用 `Task(category="deep")` 执行代码实现。
 
-### Step 4.1: Codex 执行计划
+### Step 4.1: Agent 执行计划
 
-根据定稿计划，使用 Codex 按 `tasks.md` 逐步执行：
+根据定稿计划，使用 deep Agent 按 `tasks.md` 逐步执行：
 
-```bash
-codex exec -C "<workdir>" --full-auto - <<'EOF'
-根据 .arc/deliberate/<task-name>/openspec/changes/<task-name>/tasks.md 中的任务列表，按顺序执行代码实现。
+```
+Task(
+  category: "deep",
+  load_skills: ["arc:deliberate"],
+  description: "执行审议计划",
+  prompt: "根据 .arc/deliberate/<task-name>/openspec/changes/<task-name>/tasks.md 中的任务列表，按顺序执行代码实现。
 同时参考：
 - .arc/deliberate/<task-name>/openspec/changes/<task-name>/design.md（架构设计）
 - .arc/deliberate/<task-name>/openspec/changes/<task-name>/specs/（规范约束）
@@ -587,7 +592,7 @@ openspec archive <task-name>
 
 | 情况 | 处理 |
 |------|------|
-| 单模型超时 > 10min | 使用 AskUserQuestion 询问用户是否继续用剩余模型 |
+| Agent 超时 > 10min | 使用 AskUserQuestion 询问用户是否继续等待或切换其他 Agent |
 | 达到 max_ambiguity_rounds 仍有歧义 | 标记未解决歧义，进入审议阶段 |
 | 达到 max_rounds 未收敛 | 强制合成共识报告，标注未解决分歧 |
 | openspec 命令失败 | 降级为手动编写 openspec/changes/<task-name>/tasks.md |
@@ -595,21 +600,21 @@ openspec archive <task-name>
 ## 状态反馈
 
 ```
-[Tri-Model Deliberation] 任务: <task-name>
+[Multi-Agent Deliberation] 任务: <task-name>
 
 === 阶段 1: 歧义检查 ===
 Round 1/3:
-  ├── Claude(subagent) 分析... [完成]
-  ├── Codex(CLI) 分析... [完成]
-  ├── Gemini(CLI) 分析... [完成]
+  ├── oracle(subagent) 分析... [完成]
+  ├── deep(category) 分析... [完成]
+  ├── momus(subagent) 分析... [完成]
   ├── 聚合歧义... [N 个歧义]
   └── 用户澄清... [进行中]
 
 === 阶段 2: 审议 ===
 Round 1/3:
-  ├── Claude(subagent) 提案... [完成]
-  ├── Codex(CLI) 提案... [完成]
-  ├── Gemini(CLI) 提案... [完成]
+  ├── oracle 提案... [完成]
+  ├── deep 提案... [完成]
+  ├── momus 提案... [完成]
   ├── 交叉审阅... [完成]
   └── 收敛判定... [收敛]
 
@@ -617,14 +622,14 @@ Round 1/3:
   ├── openspec init + new change... [完成]
   ├── 生成 artifact（proposal→specs→design→tasks）... [完成]
   ├── openspec validate... [通过]
-  ├── Claude(subagent) 审查... [完成]
-  ├── Codex(CLI) 审查... [完成]
-  ├── Gemini(CLI) 审查... [完成]
-  ├── 三模型交叉反驳... [完成]
+  ├── oracle 审查... [完成]
+  ├── deep 审查... [完成]
+  ├── momus 审查... [完成]
+  ├── 多Agent交叉反驳... [完成]
   └── 计划定稿... [完成]
 
 === 阶段 4: 执行 ===
-  ├── Codex 执行... [进行中]
+  ├── deep Agent 执行... [进行中]
   └── 验证... [待定]
 ```
 
@@ -632,16 +637,16 @@ Round 1/3:
 
 | 阶段 | 步骤 | 输出路径 |
 |------|------|---------|
-| 歧义检查 | 三模型分析 → 聚合 → 用户澄清 → 判定 | `(claude\|codex\|gemini)/ambiguity-round-N.md` |
-| 审议 | 提案 → 审阅 → 收敛判定 → 共识报告 | `(claude\|codex\|gemini)/proposal-round-N.md`, `convergence/final-consensus.md` |
-| 计划生成 | OpenSpec init → 生成 artifact → 验证 → 三模型审查 → 交叉反驳 → 定稿 | `openspec/changes/<task-name>/(proposal\|design\|tasks).md`, `openspec/changes/<task-name>/specs/` |
-| 执行 | Codex 按 tasks.md 实现代码 → 归档 | 项目代码 + `openspec archive` |
+| 歧义检查 | 多Agent分析 → 聚合 → 用户澄清 → 判定 | `agents/(oracle\|deep\|momus)/ambiguity-round-N.md` |
+| 审议 | 提案 → 审阅 → 收敛判定 → 共识报告 | `agents/(oracle\|deep\|momus)/proposal-round-N.md`, `convergence/final-consensus.md` |
+| 计划生成 | OpenSpec init → 生成 artifact → 验证 → 多Agent审查 → 交叉反驳 → 定稿 | `openspec/changes/<task-name>/(proposal\|design\|tasks).md`, `openspec/changes/<task-name>/specs/` |
+| 执行 | deep Agent 按 tasks.md 实现代码 → 归档 | 项目代码 + `openspec archive` |
 
 ## 调用方式速查
 
 | 角色 | 调用方式 | 并发支持 |
 |------|---------|---------|
-| Claude | `Task({ subagent_type: "general-purpose", run_in_background: true })` | subagent 后台 |
-| Codex | `Bash({ command: "codex exec -C '<workdir>' --full-auto - <<'EOF'\n<prompt>\nEOF", run_in_background: true })` | Bash 后台 |
-| Gemini | `Bash({ command: "gemini -p \"$(cat <<'EOF'\n<prompt>\nEOF\n)\" --yolo", run_in_background: true })` | Bash 后台 |
-| Claude（聚合/定稿） | 主进程直接处理 | — |
+| oracle | `Task(subagent_type="oracle", load_skills=["arc:deliberate"], run_in_background=true, ...)` | 后台异步 |
+| deep | `Task(category="deep", load_skills=["arc:deliberate"], run_in_background=true, ...)` | 后台异步 |
+| momus | `Task(subagent_type="momus", load_skills=["arc:deliberate"], run_in_background=true, ...)` | 后台异步 |
+| 聚合/定稿 | 主进程直接处理 | — |

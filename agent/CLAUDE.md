@@ -10,13 +10,13 @@
 
 ## 模块职责
 
-arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的统一入口和智能调度层。它不直接完成具体任务，而是分析用户需求、选择最合适的 Skill、协调多模型执行、整合结果呈现。
+arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的统一入口和智能调度层。它不直接完成具体任务，而是分析用户需求、选择最合适的 Skill、通过 oh-my-opencode Agent 系统调度执行、整合结果呈现。
 
 核心能力：
 - **需求理解**：分析用户自然语言描述，结合项目上下文理解真实意图
 - **Skill 路由**：匹配最适合的 `arc:` 技能（或技能组合）
-- **多模型调度**：将具体工作分配给 Claude / Codex / Gemini 执行
-- **结果整合**：收集各模型产出，解决冲突，呈现最终结果
+- **Agent 调度**：将具体工作分配给合适的 category/subagent 执行
+- **结果整合**：收集各 Agent 产出，解决冲突，呈现最终结果
 
 ## 入口与启动
 
@@ -56,9 +56,9 @@ arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的
 3. 用户确认（如 confirm=true）
 4. dry-run 退出（如 dry_run=true）
 
-**Phase 3: 多模型任务调度**
-1. 任务拆分（后端→Codex，前端→Gemini）
-2. 并发调度
+**Phase 3: Agent 任务调度**
+1. 任务拆分（按 category/subagent_type 分派）
+2. 并发调度（run_in_background=true）
 3. 等待完成
 
 **Phase 4: 结果整合**
@@ -106,14 +106,16 @@ arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的
 │   └── arc:loop
 │
 ├── 纯后端开发任务（API、数据库、算法、CLI）
-│   └── 直接调度 Codex
+│   └── Task(category="deep", load_skills=[...])
 │
 ├── 纯前端开发任务（UI、组件、样式、交互）
-│   └── 直接调度 Gemini
+│   └── Task(category="visual-engineering", load_skills=["frontend-ui-ux", "playwright"])
+│
+├── 复杂难题 / 高难度逻辑
+│   └── Task(category="ultrabrain", load_skills=[...])
 │
 └── 全栈 / 混合 / 不确定
-    └── Claude 分析后按领域拆分，分派 Codex + Gemini
-```
+    └── 拆分为多个 Task() 按 category 并行调度
 
 ### 路由判定要素
 
@@ -126,7 +128,7 @@ arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的
 | 用户提到「修复」「triage」「bug」「失败」 | arc:triage |
 | 用户提到「回归」「loop」「重测」 | arc:loop |
 | 用户描述模糊，缺少细节 | arc:refine |
-| 用户直接给出明确的开发任务 | 按领域分派模型 |
+| 用户直接给出明确的开发任务 | 按领域 category 分派 Agent |
 
 ### 输出产物
 
@@ -148,8 +150,8 @@ arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的
 |------|------|------|
 | ace-tool MCP | 必须 | 语义搜索项目代码结构 |
 | Exa MCP | 推荐 | 搜索外部技术信息 |
-| codex CLI | 必须 | 后端/工程任务执行 |
-| gemini CLI | 必须 | 前端/DX 任务执行 |
+| oh-my-opencode Task API | 必须 | Agent 调度（category/subagent 路由）|
+| session_id 机制 | 内置 | 多轮对话上下文延续 |
 | 所有 arc: 技能 | Skill | 路由目标 |
 
 ## 数据模型
@@ -167,7 +169,7 @@ arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的
 ## 路由决策
 - **匹配 Skill**: <skill_name> 或 "直接调度"
 - **匹配理由**: <reasoning>
-- **分派模型**: <claude/codex/gemini/组合>
+- **分派方式**: <category/subagent_type>
 ```
 
 ### 执行预览模型
@@ -177,7 +179,7 @@ arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的
 
 ## 调度决策
 - **匹配 Skill**: <skill_name> 或 "直接调度"
-- **分派模型**: <model_list>
+- **分派方式**: <category/subagent_type>
 
 ## 计划操作
 | 序号 | 操作 | 目标 | 影响 |
@@ -216,10 +218,10 @@ graph TD
         CONFIRM["用户确认"]
     end
 
-    subgraph Phase3[Phase 3: 执行]
-        CODEX["Codex<br/>后端任务"]
-        GEMINI["Gemini<br/>前端任务"]
-        CLAUDE["Claude subagent<br/>架构任务"]
+    subgraph Phase3[Phase 3: Agent 调度]
+        DEEP["Task(category=deep)<br/>后端/工程任务"]
+        VIS["Task(category=visual-engineering)<br/>前端任务"]
+        ORACLE["Task(subagent_type=oracle)<br/>架构咨询"]
     end
 
     subgraph Phase4[Phase 4: 整合]
@@ -237,12 +239,12 @@ graph TD
     LOG --> PREVIEW
     PREVIEW --> SNAP
     SNAP --> CONFIRM
-    CONFIRM --> CODEX
-    CONFIRM --> GEMINI
-    CONFIRM --> CLAUDE
-    CODEX --> COLLECT
-    GEMINI --> COLLECT
-    CLAUDE --> COLLECT
+    CONFIRM --> DEEP
+    CONFIRM --> VIS
+    CONFIRM --> ORACLE
+    DEEP --> COLLECT
+    VIS --> COLLECT
+    ORACLE --> COLLECT
     COLLECT --> CONFLICT
     CONFLICT --> PRESENT
 ```
@@ -254,7 +256,7 @@ graph TD
 1. **理解先于行动**：调度前必须先分析需求
 2. **需求模糊时主动澄清**：禁止在理解不充分的情况下调度
 3. **尊重 Skill 边界**：路由后严格按该 skill 的 SKILL.md 执行
-4. **模型选择有据**：后端→Codex，前端→Gemini，架构→Claude
+4. **Agent 选择有据**：后端→category:deep，前端→category:visual-engineering，架构→subagent:oracle
 5. **记录调度决策**：写入 `.arc/agent/dispatch-log.md`
 6. **安全执行原则**：高影响操作需用户确认
 
@@ -262,10 +264,9 @@ graph TD
 
 | 情况 | 处理 |
 |------|------|
-| Codex 超时 > 10min | 询问是否继续等待或切换 Claude subagent |
-| Gemini 超时 > 10min | 询问是否继续等待或切换 Claude subagent |
-| 需求无法匹配任何 skill | 作为通用开发任务处理 |
-| 多模型产出冲突 | Claude 主进程裁决 |
+| Agent 超时 > 10min | 询问是否继续等待或切换其他 category |
+| 需求无法匹配任何 skill | 作为通用开发任务，使用 Task(category="unspecified-high") |
+| 多 Agent 产出冲突 | 使用 Task(subagent_type="momus") 裁决 |
 | dry-run 模式 | 输出预览后直接退出 |
 | 执行失败（snapshot 模式） | 自动回滚到快照状态 |
 
@@ -286,15 +287,15 @@ graph TD
    - 调度前必须使用 ace-tool MCP 搜索项目上下文
    - 禁止在理解不充分的情况下调度 skill
 
-2. **模型调用方式**：
-   - Claude: `Task({ subagent_type: "general-purpose", run_in_background: true })`
-   - Codex: `codex exec -C "<workdir>" --full-auto`
-   - Gemini: `gemini -p "<prompt>" --yolo`
+2. **Agent 调用方式**：
+   - 按领域: `Task(category="<domain>", load_skills=[...], description="...", prompt="...", run_in_background=true)`
+   - 专业咨询: `Task(subagent_type="oracle/metis/momus", load_skills=[...], ...)`
+   - 代码搜索: `Task(subagent_type="explore", run_in_background=true, ...)`
+   - 文档搜索: `Task(subagent_type="librarian", run_in_background=true, ...)`
 
-3. **并发调度**：
-   - 三模型并发时，在同一消息中发起
-   - 使用 `run_in_background: true`
-
+   3. **并发调度**：
+   - 多 Agent 并发时，在同一消息中发起
+   - 使用 `run_in_background=true`
 4. **安全执行**：
    - 高影响操作（删除、数据库变更、部署）需用户确认
    - dry-run 模式下禁止实际执行

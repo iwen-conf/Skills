@@ -1,9 +1,9 @@
 ---
 name: "arc:agent"
-description: "智能调度 agent，分析用户需求后选择合适的 arc: skill，协调 Claude/Codex/Gemini 三模型执行任务"
+description: "智能调度 agent，分析用户需求后选择合适的 arc: skill，通过 oh-my-opencode Agent 系统执行任务"
 ---
 
-# 智能调度 Agent（需求分析 + Skill 路由 + 多模型调度）
+# 智能调度 Agent（需求分析 + Skill 路由 + 多 Agent 调度）
 
 ## Overview
 
@@ -11,8 +11,8 @@ description: "智能调度 agent，分析用户需求后选择合适的 arc: ski
 
 1. **需求理解**：分析用户自然语言描述，结合项目上下文理解真实意图
 2. **Skill 路由**：匹配最适合的 `arc:` 技能（或技能组合）
-3. **多模型调度**：将具体工作分配给 Claude / Codex / Gemini 执行
-4. **结果整合**：收集各模型产出，解决冲突，呈现最终结果
+3. **多 Agent 调度**：将具体工作分配给 oh-my-opencode Agent 系统中合适的 category/subagent 执行
+4. **结果整合**：收集各 Agent 产出，解决冲突，呈现最终结果
 
 适用于用户不确定该用哪个 skill、需要组合多个 skill、或直接下达开发任务的场景。
 
@@ -20,7 +20,7 @@ description: "智能调度 agent，分析用户需求后选择合适的 arc: ski
 
 - 用户不确定该调用哪个 `arc:` 技能
 - 需求涉及多个技能的组合（如先 `arc:refine` 再 `arc:deliberate`）
-- 用户直接下达开发任务（如「帮我实现登录功能」），需要智能分派到合适模型
+- 用户直接下达开发任务（如「帮我实现登录功能」），需要智能分派到合适 Agent
 - 用户描述模糊，需要先理解需求再选择执行路径
 
 ## Input Arguments
@@ -38,54 +38,63 @@ description: "智能调度 agent，分析用户需求后选择合适的 arc: ski
 
 * **ace-tool (MCP)**: 必须。语义搜索项目代码结构，理解项目上下文。
 * **Exa MCP**: 推荐。搜索外部技术信息辅助需求理解。
-* **codex CLI**: 必须。`codex exec` 非交互执行后端/工程任务。
-* **gemini CLI**: 必须。`gemini -p` headless 模式执行前端/DX 任务。
+* **oh-my-opencode Task API**: 必须。通过 `Task()` 调用 category/subagent 执行所有任务。
 * **所有 arc: 技能**: 路由目标，需按各自 SKILL.md 执行。
 
-## 模型调用方式
+## Task() API 参考
 
-| 模型 | 调用方式 | 说明 |
-|------|---------|------|
-| **Claude** | **Task 工具（subagent）** | Claude Code subagent，用于架构分析、综合判断、文档生成 |
-| **Codex** | `codex exec -C "<workdir>" --full-auto "<prompt>"` | 原生 CLI 非交互模式，用于后端开发、代码实现、工程任务 |
-| **Gemini** | `gemini -p "<prompt>" --yolo` | 原生 CLI headless + auto-approve，用于前端开发、UI/UX、DX 任务 |
+oh-my-opencode 的 Agent 调度接口，所有任务分派均通过此 API 完成：
 
-### 调用模板
-
-**Claude subagent**:
 ```
-Task({
-  description: "<简短描述>",
-  subagent_type: "general-purpose",
-  run_in_background: true,
-  mode: "bypassPermissions",
-  prompt: "<具体任务指令>"
-})
-```
-
-**Codex 执行**:
-```bash
-codex exec -C "<workdir>" --full-auto - <<'EOF'
-<具体任务指令>
-EOF
+Task(
+  category="<category>",        // 领域优化的模型选择
+  load_skills=["skill1", ...],  // 为 Agent 装备的技能
+  description="<short desc>",   // 任务简短描述
+  prompt="<detailed prompt>",   // 详细任务指令
+  run_in_background=true/false  // 异步或同步执行
+)
+// 或使用专用 subagent
+Task(
+  subagent_type="<agent>",      // 专用 Agent 类型
+  load_skills=["skill1", ...],
+  description="<short desc>",
+  prompt="<detailed prompt>",
+  run_in_background=true/false
+)
 ```
 
-> 如果不在 git 仓库中，加 `--skip-git-repo-check`。
+每次 `Task()` 调用返回 `session_id`，可通过 `session_id="<id>"` 继续多轮对话。
 
-**Gemini 执行**:
-```bash
-gemini -p "$(cat <<'EOF'
-<具体任务指令>
-EOF
-)" --yolo
-```
+### 可用 Category（领域路由）
 
-### 并发调度
+| Category | 适用场景 |
+|----------|---------|
+| `visual-engineering` | 前端、UI/UX、设计、样式、动画 |
+| `ultrabrain` | 高难度逻辑密集型任务 |
+| `deep` | 目标导向的自主问题解决、深度研究 |
+| `artistry` | 超越标准模式的创意问题解决 |
+| `quick` | 简单任务、单文件变更 |
+| `unspecified-low` | 低工作量杂项任务 |
+| `unspecified-high` | 高工作量杂项任务 |
+| `writing` | 文档、技术写作、说明文字 |
 
-三模型并发时，在同一消息中发起：
-- Claude: `Task({ run_in_background: true })`
-- Codex: `Bash({ command: "codex exec ...", run_in_background: true })`
-- Gemini: `Bash({ command: "gemini -p '...' --yolo", run_in_background: true })`
+### 可用 Subagent Type（专用 Agent）
+
+| Subagent | 特性 | 适用场景 |
+|----------|------|---------|
+| `explore` | 廉价、后台 | 代码库上下文搜索、grep 分析 |
+| `librarian` | 廉价、后台 | 外部文档/OSS 搜索 |
+| `oracle` | 昂贵、只读 | 高 IQ 架构咨询 |
+| `metis` | 昂贵 | 预规划分析、歧义检测 |
+| `momus` | 昂贵 | 计划审查、质量保障 |
+
+### 可用 Skills（load_skills 参数）
+
+- `playwright` — 浏览器自动化
+- `frontend-ui-ux` — UI/UX 设计专业知识
+- `git-master` — Git 操作
+- `dev-browser` — 持久状态浏览器自动化
+- 所有 `arc:*` 用户技能
 
 ## Skill 路由决策树
 
@@ -114,19 +123,42 @@ EOF
 │   └── arc:loop
 │
 ├── 纯后端开发任务（API、数据库、算法、CLI）
-│   └── 直接调度 Codex
+│   └── Task(category="deep", ...)
 │
 ├── 纯前端开发任务（UI、组件、样式、交互）
-│   └── 直接调度 Gemini
+│   └── Task(category="visual-engineering", load_skills=["frontend-ui-ux", "playwright"], ...)
+│
+├── 架构设计 / 技术决策咨询
+│   └── Task(subagent_type="oracle", ...)
+│
+├── 需求模糊需要澄清
+│   └── Task(subagent_type="metis", ...)
+│
+├── 计划需要审查
+│   └── Task(subagent_type="momus", ...)
+│
+├── 代码探索 / 搜索
+│   └── Task(subagent_type="explore", run_in_background=true, ...)
+│
+├── 文档 / 外部库查询
+│   └── Task(subagent_type="librarian", run_in_background=true, ...)
+│
+├── 简单修复 / 单文件变更
+│   └── Task(category="quick", ...)
+│
+├── 复杂难题 / 高难度逻辑
+│   └── Task(category="ultrabrain", ...)
 │
 └── 全栈 / 混合 / 不确定
-    └── Claude 分析后按领域拆分，分派 Codex + Gemini
+    └── 拆分为多个 Task() 并行：
+        ├── Task(category="deep", ...)          // 后端部分
+        └── Task(category="visual-engineering", ...)  // 前端部分
 ```
 
 ### 路由判定要素
 
-| 信号 | 匹配 Skill |
-|------|-----------|
+| 信号 | 匹配 Skill / Agent |
+|------|-------------------|
 | 用户提到「初始化」「生成文档」「CLAUDE.md」 | arc:init |
 | 用户提到「评审」「review」「诊断」「质量」 | arc:review |
 | 用户提到「讨论」「deliberate」「方案」「架构决策」 | arc:deliberate |
@@ -134,7 +166,7 @@ EOF
 | 用户提到「修复」「triage」「bug」「失败」 | arc:triage |
 | 用户提到「回归」「loop」「重测」 | arc:loop |
 | 用户描述模糊，缺少细节 | arc:refine |
-| 用户直接给出明确的开发任务 | 按领域分派模型 |
+| 用户直接给出明确的开发任务 | 按领域分派 Task() |
 
 ## Critical Rules（核心铁律）
 
@@ -150,19 +182,21 @@ EOF
    - 路由到某个 arc: skill 后，必须严格按该 skill 的 SKILL.md 执行。
    - 不得跨 skill 混合流程。
 
-4. **模型选择有据**
-   - 后端任务（Go, Rust, Python, 数据库, API, 算法）→ Codex
-   - 前端任务（React, Vue, SolidJS, CSS, 组件, 交互）→ Gemini
-   - 架构设计、综合分析、文档生成 → Claude (subagent)
-   - 全栈任务 → 拆分后并发分派
+4. **Agent 选择有据**
+   - 后端任务（Go, Rust, Python, 数据库, API, 算法）→ `Task(category="deep", ...)`
+   - 前端任务（React, Vue, SolidJS, CSS, 组件, 交互）→ `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], ...)`
+   - 架构设计、综合分析 → `Task(subagent_type="oracle", ...)`
+   - 需求歧义分析 → `Task(subagent_type="metis", ...)`
+   - 计划质量审查 → `Task(subagent_type="momus", ...)`
+   - 全栈任务 → 拆分后并发分派多个 Task()
 
 5. **记录调度决策**
    - 每次调度将决策过程写入 `.arc/agent/dispatch-log.md`。
-   - 包含：用户原始需求、匹配的 skill/模型、匹配理由。
+   - 包含：用户原始需求、匹配的 skill/agent、匹配理由。
 
 6. **安全执行原则（Safety First）**
    - **高影响操作必须用户确认**：涉及删除、数据库变更、部署、生产环境的操作。
-   - **dry-run 模式下禁止实际执行**：仅输出操作预览，不调用模型或写入文件。
+   - **dry-run 模式下禁止实际执行**：仅输出操作预览，不调用 Agent 或写入文件。
    - **snapshot 模式下必须创建快照**：执行前保存可回滚状态。
    - **失败自动回滚**：如果 `snapshot=true` 且执行失败，自动恢复到快照状态。
    - **批量变更确认**：预计修改文件数 > 10 时，使用 `AskUserQuestion` 确认。
@@ -188,7 +222,7 @@ EOF
 分析用户的 `task_description`，提取：
 - **任务类型**：初始化 / 评审 / 审议 / 测试 / 修复 / 开发 / 混合
 - **技术领域**：后端 / 前端 / 全栈 / DevOps / 文档
-- **复杂度**：简单（单模型可完成）/ 中等（需要 skill）/ 复杂（需要 skill 组合）
+- **复杂度**：简单（quick/单 Agent）/ 中等（需要 skill）/ 复杂（需要 skill 组合或多 Agent 并行）
 - **紧急度**：用户是否需要快速响应
 
 #### Step 1.3: 澄清（如需要）
@@ -209,7 +243,7 @@ EOF
 - **用户指定了 `preferred_skill`** → 跳过匹配，直接使用指定 skill
 - **匹配到单个 skill** → 按该 skill 的 SKILL.md 执行
 - **匹配到 skill 组合** → 按依赖顺序串联执行（如 refine → deliberate）
-- **无匹配 skill（纯开发任务）** → 进入 Phase 3 多模型调度
+- **无匹配 skill（纯开发任务）** → 进入 Phase 3 多 Agent 调度
 
 #### Step 2.2: 记录决策
 
@@ -226,7 +260,7 @@ EOF
 ## 路由决策
 - **匹配 Skill**: <skill_name> 或 "直接调度"
 - **匹配理由**: <reasoning>
-- **分派模型**: <claude/codex/gemini/组合>
+- **分派 Agent**: <category/subagent 及 load_skills>
 ```
 
 ### Phase 2.5: 执行预览（Execution Preview）
@@ -244,7 +278,7 @@ EOF
 
 ## 调度决策
 - **匹配 Skill**: <skill_name> 或 "直接调度"
-- **分派模型**: <model_list>
+- **分派 Agent**: <category/subagent 列表>
 
 ## 计划操作
 | 序号 | 操作 | 目标 | 影响 |
@@ -305,13 +339,13 @@ EOF
 如果 `dry_run=true`：
 
 1. 输出完整的执行预览
-2. 不调用任何模型
+2. 不调用任何 Agent
 3. 不修改任何文件
 4. 返回状态：`[DRY-RUN] 预览完成，未执行任何操作`
 
-### Phase 3: 多模型任务调度
+### Phase 3: 多 Agent 任务调度
 
-**目标**：将开发任务分配给合适的模型执行。
+**目标**：将开发任务分配给合适的 oh-my-opencode Agent 执行。
 
 > 仅当 Phase 2 未匹配到 arc: skill 时进入此阶段。
 
@@ -319,21 +353,29 @@ EOF
 
 对于全栈/混合任务，拆分为独立子任务：
 
-| 子任务类型 | 分配模型 | 说明 |
-|-----------|---------|------|
-| 后端逻辑（API、数据库、中间件） | Codex | `codex exec -C "<workdir>" --full-auto` |
-| 前端界面（组件、页面、样式） | Gemini | `gemini -p "<prompt>" --yolo` |
-| 架构设计、技术方案 | Claude | `Task({ subagent_type: "general-purpose" })` |
-| 配置文件、文档 | Claude | 主进程或 subagent |
+| 子任务类型 | 分配 Agent | Task() 参数 |
+|-----------|-----------|------------|
+| 后端逻辑（API、数据库、中间件） | deep | `category="deep"` |
+| 前端界面（组件、页面、样式） | visual-engineering | `category="visual-engineering", load_skills=["frontend-ui-ux"]` |
+| 架构设计、技术方案 | oracle | `subagent_type="oracle"` |
+| 需求歧义分析 | metis | `subagent_type="metis"` |
+| 计划质量审查 | momus | `subagent_type="momus"` |
+| 代码库探索 | explore | `subagent_type="explore", run_in_background=true` |
+| 外部文档查询 | librarian | `subagent_type="librarian", run_in_background=true` |
+| 简单修复 | quick | `category="quick"` |
+| 高难度逻辑 | ultrabrain | `category="ultrabrain"` |
 
 #### Step 3.2: 并发调度
 
-在同一消息中并发发起所有独立子任务（`run_in_background: true`）。
+在同一消息中并发发起所有独立子任务（`run_in_background=true`）。
 
-**Codex 调度示例**:
-```bash
-codex exec -C "<workdir>" --full-auto - <<'EOF'
-你是后端工程师。
+**后端任务调度示例**:
+```
+Task(
+  category="deep",
+  description="实现后端 API 端点",
+  run_in_background=true,
+  prompt="你是后端工程师。
 
 任务：<后端子任务描述>
 
@@ -344,14 +386,18 @@ codex exec -C "<workdir>" --full-auto - <<'EOF'
 要求：
 1. 按照项目现有代码风格编写
 2. 包含必要的错误处理
-3. 如有测试框架，补充单元测试
-EOF
+3. 如有测试框架，补充单元测试"
+)
 ```
 
-**Gemini 调度示例**:
-```bash
-gemini -p "$(cat <<'EOF'
-你是前端工程师。
+**前端任务调度示例**:
+```
+Task(
+  category="visual-engineering",
+  load_skills=["frontend-ui-ux", "playwright"],
+  description="实现前端 UI 组件",
+  run_in_background=true,
+  prompt="你是前端工程师。
 
 任务：<前端子任务描述>
 
@@ -362,19 +408,17 @@ gemini -p "$(cat <<'EOF'
 要求：
 1. 按照项目现有组件风格编写
 2. 响应式设计
-3. 保持与现有 UI 一致性
-EOF
-)" --yolo
+3. 保持与现有 UI 一致性"
+)
 ```
 
-**Claude subagent 调度示例**:
+**架构咨询调度示例**:
 ```
-Task({
-  description: "<简短描述>",
-  subagent_type: "general-purpose",
-  run_in_background: true,
-  mode: "bypassPermissions",
-  prompt: "你是架构师。
+Task(
+  subagent_type="oracle",
+  description="架构方案评估",
+  run_in_background=true,
+  prompt="你是架构师。
 
 任务：<架构/设计子任务描述>
 
@@ -386,35 +430,46 @@ Task({
 1. 考虑可扩展性和可维护性
 2. 与现有架构保持一致
 3. 输出设计方案到 <output_path>"
-})
+)
+```
+
+**代码探索调度示例**:
+```
+Task(
+  subagent_type="explore",
+  description="搜索相关代码上下文",
+  run_in_background=true,
+  prompt="搜索项目中与 <topic> 相关的代码，找出：
+1. 相关文件路径
+2. 关键函数/类定义
+3. 现有实现模式"
+)
 ```
 
 #### Step 3.3: 等待完成
 
-等待所有后台任务完成：
-- Claude subagent: `TaskOutput`
-- Codex/Gemini: Bash 等待后台任务
+等待所有后台任务完成，通过 `session_id` 收集各 Agent 的输出结果。
 
 ### Phase 4: 结果整合
 
-**目标**：收集各模型产出，呈现最终结果。
+**目标**：收集各 Agent 产出，呈现最终结果。
 
 #### Step 4.1: 收集产出
 
-读取所有模型的输出文件或命令输出。
+通过各 Task() 返回的 `session_id` 读取所有 Agent 的输出文件或执行结果。
 
 #### Step 4.2: 冲突检测
 
-检查多模型产出间是否有冲突（如同一文件的不同修改）。
+检查多 Agent 产出间是否有冲突（如同一文件的不同修改）。
 
 - **无冲突** → 直接合并
-- **有冲突** → Claude 主进程裁决，选择更合理的方案
+- **有冲突** → 主进程裁决，选择更合理的方案；必要时调用 `Task(subagent_type="momus", ...)` 进行质量审查
 
 #### Step 4.3: 结果呈现
 
 向用户展示：
 - 执行了哪些操作
-- 各模型的贡献
+- 各 Agent 的贡献
 - 最终产出文件/变更清单
 
 ## Artifacts & Paths
@@ -437,10 +492,9 @@ Task({
 
 | 情况 | 处理 |
 |------|------|
-| Codex 超时 > 10min | AskUserQuestion 询问是否继续等待或切换到 Claude subagent |
-| Gemini 超时 > 10min | AskUserQuestion 询问是否继续等待或切换到 Claude subagent |
-| 需求无法匹配任何 skill | 作为通用开发任务处理，按模型能力分派 |
-| 多模型产出冲突 | Claude 主进程裁决 |
+| Agent 任务超时 > 10min | AskUserQuestion 询问是否继续等待或拆分为更小任务 |
+| 需求无法匹配任何 skill | 作为通用开发任务处理，按领域分派 Task() |
+| 多 Agent 产出冲突 | 主进程裁决，或调用 `Task(subagent_type="momus", ...)` 审查 |
 | dry-run 模式 | 输出预览后直接退出，不执行任何操作 |
 | 用户取消确认 | 输出取消信息，清理已创建快照 |
 | 执行失败（snapshot 模式） | 自动回滚到快照状态，记录回滚日志 |
@@ -457,7 +511,7 @@ Task({
   └── 任务类型: <type>
 
 === 阶段 2: Skill 路由 ===
-  └── 匹配: <skill_name> / 直接调度 <model>
+  └── 匹配: <skill_name> / 直接调度 Task(<category/subagent>)
 
 === 阶段 2.5: 执行预览 ===
   ├── 生成操作清单... [完成]
@@ -466,9 +520,9 @@ Task({
   └── dry-run 模式... [否/是-退出]
 
 === 阶段 3: 执行 ===
-  ├── Codex 执行后端任务... [完成]
-  ├── Gemini 执行前端任务... [完成]
-  └── Claude 执行架构任务... [完成]
+  ├── Task(category="deep") 后端任务... [完成]
+  ├── Task(category="visual-engineering") 前端任务... [完成]
+  └── Task(subagent_type="oracle") 架构任务... [完成]
 
 === 阶段 4: 结果整合 ===
   └── 产出: <summary>
@@ -481,14 +535,20 @@ Task({
 | 需求理解 | MCP 搜索 → 需求分析 → 澄清 | — |
 | Skill 路由 | 决策树匹配 → 记录 | `.arc/agent/dispatch-log.md` |
 | **执行预览** | 操作清单 → 快照 → 确认 → (dry-run 退出) | `.arc/agent/snapshots/` |
-| 多模型调度 | 任务拆分 → 并发分派 → 等待 | 各模型产出 |
+| 多 Agent 调度 | 任务拆分 → 并发分派 → 等待 | 各 Agent 产出 |
 | 结果整合 | 收集 → 冲突检测 → 呈现 | 最终产出 |
 
 ## 调用方式速查
 
-| 角色 | 调用方式 | 并发支持 |
-|------|---------|---------|
-| Claude | `Task({ subagent_type: "general-purpose", run_in_background: true })` | subagent 后台 |
-| Codex | `Bash({ command: "codex exec -C '<workdir>' --full-auto - <<'EOF'\n<prompt>\nEOF", run_in_background: true })` | Bash 后台 |
-| Gemini | `Bash({ command: "gemini -p \"$(cat <<'EOF'\n<prompt>\nEOF\n)\" --yolo", run_in_background: true })` | Bash 后台 |
-| Claude（整合/裁决） | 主进程直接处理 | — |
+| 场景 | Task() 调用方式 | 并发支持 |
+|------|---------------|---------|
+| 后端开发 | `Task(category="deep", run_in_background=true, ...)` | 后台并发 |
+| 前端开发 | `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], run_in_background=true, ...)` | 后台并发 |
+| 架构咨询 | `Task(subagent_type="oracle", run_in_background=true, ...)` | 后台并发 |
+| 需求澄清 | `Task(subagent_type="metis", ...)` | 同步 |
+| 计划审查 | `Task(subagent_type="momus", ...)` | 同步 |
+| 代码探索 | `Task(subagent_type="explore", run_in_background=true, ...)` | 后台并发 |
+| 文档查询 | `Task(subagent_type="librarian", run_in_background=true, ...)` | 后台并发 |
+| 简单修复 | `Task(category="quick", run_in_background=true, ...)` | 后台并发 |
+| 复杂难题 | `Task(category="ultrabrain", run_in_background=true, ...)` | 后台并发 |
+| 结果整合/裁决 | 主进程直接处理 | — |
