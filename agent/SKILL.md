@@ -139,6 +139,12 @@ Task({
 ├── 项目评审 / 质量诊断 / 技术尽调
 │   └── arc:review
 │
+├── 知识产权可行性评估 / 专利软著审查报告
+│   └── arc:ip-audit
+│
+├── 知识产权申请文档写作 / 交底书与说明书草稿
+│   └── arc:ip-docs
+│
 ├── E2E 浏览器测试 / 用户流程验证
 │   └── arc:simulate
 │
@@ -187,6 +193,8 @@ Task({
 |------|-------------------|
 | 用户提到「初始化」「生成文档」「CLAUDE.md」 | arc:init |
 | 用户提到「评审」「review」「诊断」「质量」 | arc:review |
+| 用户提到「知识产权评估」「专利可行性」「软著可行性」「IP审查」 | arc:ip-audit |
+| 用户提到「技术交底书」「权利要求」「软著说明书」「申请文档写作」 | arc:ip-docs |
 | 用户提到「讨论」「deliberate」「方案」「架构决策」 | arc:deliberate |
 | 用户提到「测试」「E2E」「simulate」「浏览器」 | arc:simulate |
 | 用户提到「修复」「triage」「bug」「失败」 | arc:triage |

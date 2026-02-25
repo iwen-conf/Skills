@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | 时间 | 操作 |
 |------|------|
+| 2026-02-25 | 新增 arc:ip-audit 与 arc:ip-docs，拆分知识产权审查与文档写作能力 |
 | 2026-02-24T16:30:00 | arc:init 三模型协作生成模块级 CLAUDE.md（simulate/triage/loop/review/deliberate/init/agent/refine） |
 | 2026-02-24 | 初始版本，定义 Skill 清单、依赖链、架构和约定 |
 
@@ -27,6 +28,8 @@ A collection of Claude Code Skills (custom slash-command plugins) under the **`a
 | `deliberate/` | arc:deliberate | `/arc:deliberate` | 多 Agent 多视角审议，使用 OpenSpec 生成结构化计划 |
 | `review/` | arc:review | `/arc:review` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图 |
 | `init/` | arc:init | `/arc:init` | 多 Agent 协作生成项目层级式 CLAUDE.md 索引体系，深度扫描项目结构后输出根级+模块级 CLAUDE.md |
+| `ip-audit/` | arc:ip-audit | `/arc:ip-audit` | 软件专利/软著可行性审查，输出评估报告、准备度清单与交接 JSON |
+| `ip-docs/` | arc:ip-docs | `/arc:ip-docs` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
 
 ## 模块文档索引
 
@@ -42,6 +45,8 @@ A collection of Claude Code Skills (custom slash-command plugins) under the **`a
 | init/ | [CLAUDE.md](./init/CLAUDE.md) | 五阶段生成流程、CLAUDE.md 结构规范、校验体系 |
 | agent/ | [CLAUDE.md](./agent/CLAUDE.md) | 调度决策树、执行预览、多Agent任务分配 |
 | refine/ | [CLAUDE.md](./refine/CLAUDE.md) | CLAUDE.md 索引扫描、差距分析、Prompt 增强 |
+| ip-audit/ | [CLAUDE.md](./ip-audit/CLAUDE.md) | 知识产权可行性审查、风险矩阵、交接产物定义 |
+| ip-docs/ | [CLAUDE.md](./ip-docs/CLAUDE.md) | 软著/专利文档草稿写作、模板与交接消费 |
 
 ## Skill Dependency Chain
 
@@ -50,6 +55,8 @@ arc:agent ────┬─▶ arc:init         (项目初始化)
               ├─▶ arc:refine       (问题细化)
               │     └─▶ arc:deliberate
               ├─▶ arc:review       (项目评审)
+              ├─▶ arc:ip-audit     (知识产权可行性审查)
+              │     └─▶ arc:ip-docs
               ├─▶ arc:simulate     (E2E 测试)
               │     └─▶ arc:triage
               │           └─▶ arc:loop
@@ -57,6 +64,7 @@ arc:agent ────┬─▶ arc:init         (项目初始化)
 
 arc:init  (独立运行；输出的 CLAUDE.md 被 arc:refine 消费)
 arc:review  (独立运行，不依赖其他 Skill)
+arc:ip-audit  (优先读取 arc:init/arc:review 产物；输出交接 JSON 给 arc:ip-docs)
 ```
 
 ## Architecture
@@ -96,6 +104,18 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 | `uxloop_tmux.py` | Starts/restarts services in tmux panes from a JSON config; supports `--reset-window`, `--wait-ready` |
 | `uxloop_cleanup.py` | Kills tmux sessions/windows after testing is done |
 
+### ip-audit/scripts/
+| Script | What it does |
+|--------|-------------|
+| `scaffold_audit_case.py` | Creates `.arc/ip-audit/<project>/` scaffold with context, analysis, reports, and handoff dirs |
+| `render_audit_report.py` | Renders feasibility report/checklist and outputs `handoff/ip-drafting-input.json` |
+
+### ip-docs/scripts/
+| Script | What it does |
+|--------|-------------|
+| `scaffold_drafting_case.py` | Creates `.arc/ip-docs/<project>/` scaffold with context/copyright/patent/report dirs |
+| `render_ip_documents.py` | Renders copyright/patent draft documents from handoff JSON and templates |
+
 ## Conventions
 
 - **搜索约定**：
@@ -110,12 +130,14 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
   - **Task API**: `Task(category="<domain>", load_skills=[...], description="...", prompt="...", run_in_background=true/false)`
   - **Subagent API**: `Task(subagent_type="<agent>", load_skills=[...], description="...", prompt="...", run_in_background=true/false)`
   - **可用 Category**: `visual-engineering` | `ultrabrain` | `deep` | `artistry` | `quick` | `unspecified-low` | `unspecified-high` | `writing`
-  - **可用 Subagent**: `explore`(代码搜索) | `librarian`(文档搜索) | `oracle`(架构咨询) | `prometheus`(宏观规划) | `metis`(策略审计) | `momus`(代码审查)
+  - **可用 Subagent**: `explore`(代码搜索) | `librarian`(文档搜索) | `oracle`(架构咨询) | `prometheus`(宏观规划) | `metis`(策略审计) | `momus`(代码审查) | `hephaestus`(核心编程) | `atlas`(大规模重构) | `multimodal-looker`(视觉UI)
   - **Session 延续**: 每次 Task() 返回 session_id，用 `session_id="<id>"` 延续多轮对话
 - **Working directory for arc:agent**: `.arc/agent/` (调度记录在此目录)。
 - **Working directory for arc:deliberate**: `.arc/deliberate/<task-name>/` (inside the target project).
 - **Working directory for arc:review**: `.arc/review/<project-name>/` (inside the target project). 严禁修改被评审项目的源代码，只在此目录下产出评审文件。
 - **Working directory for arc:init**: `.arc/init/` (inside the target project). 工作文件在此目录下，最终 CLAUDE.md 输出到项目目录树中。只写 CLAUDE.md，不改源码。
+- **Working directory for arc:ip-audit**: `.arc/ip-audit/<project-name>/` (inside the target project). 只做审查与交接，不写申请正式文档。
+- **Working directory for arc:ip-docs**: `.arc/ip-docs/<project-name>/` (inside the target project). 仅生成可编辑文档草稿，不修改业务源码。
 - **OpenSpec integration**: arc:deliberate 的 Phase 3 使用 [OpenSpec](https://github.com/Fission-AI/OpenSpec) CLI（`openspec`）生成结构化计划。OpenSpec 在 `.arc/deliberate/<task-name>/` 内初始化，artifact 写入 `openspec/changes/<task-name>/` 下。工作流：`openspec init` → `openspec new change` → `openspec instructions` → `openspec validate` → `openspec archive`。
 
 ## 上下文优先级协议 (Context Priority Protocol)
@@ -184,12 +206,15 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 | Agent 代号 | 角色定位 | 适用场景 | 底层模型 | 关键技能 |
 |-----------|---------|---------|---------|---------|
 | **Sisyphus** | 主控调度员/项目经理 | 所有会话的默认入口，负责需求拆解、任务规划与路由 | anthropic/claude-opus-4-6 | ace-tool 项目检索、Exa 外网搜索 |
+| **Hephaestus** | 核心程序员/构造者 | 端到端的功能硬核实现、智能合约安全审计、底层算法库彻底重写 | openai/gpt-5.3-codex (xhigh) | 深层 AST 操作、文件读写、编译器错误诊断 |
 | **Prometheus** | 宏观规划师/破冰者 | 复杂需求拆解、依赖关系图谱生成、并行执行策略蓝图绘制 | anthropic/claude-opus-4-6 (max) | 交互式需求澄清、甘特图与依赖树构建 |
 | **Metis** | 策略专家/算法优化师 | 执行前的策略审计，寻找 Prometheus 计划中的算法漏洞和逻辑盲区 | MiniMax/MiniMax-M2.5 | 计划突变、算法复杂度分析 |
 | **Momus** | 严苛的 QA/代码审查员 | 执行极度严苛的代码审查、主动排查隐蔽的安全漏洞、验证代码风格与测试标准 | openai/gpt-5.2 | 诊断输出解析、故障注入模拟 |
 | **Oracle** | 架构师/决策顾问 | 复杂系统架构推演、并发竞争条件根因分析、多系统交互权衡策略制定 | openai/gpt-5.1-codex-max (high) | 全代码库只读扫描、诊断日志深度解析 |
+| **Atlas** | 基础重构者/重体力劳动者 | 全局级依赖替换、跨微服务批量重构、超大规模代码库格式化整改与目录迁移 | Kimi/kimi-2.5 | 巨型主循环管理、批量文件操作 |
 | **Librarian** | 知识管理与检索 | 查阅外部长篇官方文档、研读最新 API 迁移手册、检索开源社区最佳实践 | GLM/glm-5 | Exa 全网搜索、Context7 文档摄取、GitHub 仓库爬取 |
 | **Explore** | 代码库侦察兵 | 极速踩点遍历深层文件树、执行基于上下文的模糊 grep 搜索、快速映射变量定义与系统依赖拓扑图 | anthropic/claude-haiku-4-5 | ast_grep_search、lsp_workspace_symbols |
+| **Multimodal-looker** | 视觉前端工程师 | 解析 PDF 设计图、将图片直接转化为 React/Vue 响应式组件、分析浏览器截图并定位 CSS 布局漂移 | Google/gemini-3-flash-preview | 图像张量解析、视觉边界框映射、UI 样式表动态生成 |
 
 ### 关键使用边界（CRITICAL）
 

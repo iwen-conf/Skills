@@ -21,6 +21,10 @@ graph TD
     subgraph "项目评审"
         review["arc:review<br/>企业级七维度评审"]
     end
+    subgraph "知识产权"
+        ip_audit["arc:ip-audit<br/>专利/软著可行性审查"]
+        ip_docs["arc:ip-docs<br/>申请文档草稿写作"]
+    end
     subgraph "E2E 测试闭环"
         simulate["arc:simulate<br/>E2E 浏览器测试"]
         triage["arc:triage<br/>缺陷定位与修复"]
@@ -36,6 +40,8 @@ graph TD
     agent -.->|"路由"| refine
     agent -.->|"路由"| deliberate
     agent -.->|"路由"| review
+    agent -.->|"路由"| ip_audit
+    agent -.->|"路由"| ip_docs
     agent -.->|"路由"| simulate
     agent -->|"Task subagent"| claude
     agent -->|"Bash 调度"| codex
@@ -43,6 +49,8 @@ graph TD
 
     init -.->|"CLAUDE.md"| refine
     refine -->|"enhanced-prompt.md"| deliberate
+    review -.->|"技术评审结果"| ip_audit
+    ip_audit -->|"handoff JSON"| ip_docs
     simulate -->|"run_dir 报告"| triage
     triage -->|"修复→重启"| loop
     loop -->|"重测"| simulate
@@ -60,6 +68,8 @@ graph TD
 | `/arc:deliberate` | `deliberate/` | 三模型（Claude/Codex/Gemini）多视角审议，使用 OpenSpec 生成结构化计划 |
 | `/arc:review` | `review/` | 按企业级七维度框架深度评审软件项目，三模型对抗式分析，输出诊断报告 |
 | `/arc:init` | `init/` | 三模型协作生成项目层级式 CLAUDE.md 索引体系，深度扫描后输出根级+模块级 CLAUDE.md |
+| `/arc:ip-audit` | `ip-audit/` | 软件专利/软著可行性审查，输出评估报告、风险矩阵与文档交接 JSON |
+| `/arc:ip-docs` | `ip-docs/` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
 
 ## 依赖链
 
@@ -69,12 +79,17 @@ graph LR
     agent -.->|"路由"| refine
     agent -.->|"路由"| deliberate
     agent -.->|"路由"| review
+    ip_audit["arc:ip-audit"]
+    ip_docs["arc:ip-docs"]
+    agent -.->|"路由"| ip_audit
+    agent -.->|"路由"| ip_docs
     agent -->|"Task subagent"| claude["Claude"]
     agent -->|"Bash"| codex["Codex"]
     agent -->|"Bash"| gemini["Gemini"]
 
     init -.->|"CLAUDE.md"| refine
     refine --> deliberate
+    review -.-> ip_audit --> ip_docs
     simulate --> triage --> loop --> simulate
 ```
 
@@ -83,6 +98,8 @@ graph LR
 - `arc:refine` → `arc:deliberate`：问题细化后进入三模型审议
 - `arc:simulate` → `arc:triage` → `arc:loop` → `arc:simulate`：E2E 测试→缺陷修复→回归闭环
 - `arc:review`：独立运行，不依赖其他 Skill
+- `arc:ip-audit`：优先读取 `arc:init`/`arc:review` 产物，输出审查报告与 `handoff` 结构化交接
+- `arc:ip-docs`：消费 `arc:ip-audit` 交接信息，生成专利/软著申请文档草稿
 
 ## 快速开始
 
@@ -96,6 +113,8 @@ graph LR
 /arc:refine      # 问题细化
 /arc:deliberate  # 三模型审议
 /arc:review      # 项目评审
+/arc:ip-audit    # 知识产权可行性审查
+/arc:ip-docs     # 知识产权申请文档写作
 ```
 
 ## 技术栈
