@@ -136,6 +136,9 @@ Task({
 ├── 复杂技术决策 / 多方案对比 / 架构设计
 │   └── arc:deliberate
 │
+├── 方案落地实现 / 编码开发 / 重构实施
+│   └── arc:implement
+│
 ├── 项目评审 / 质量诊断 / 技术尽调
 │   └── arc:review
 │
@@ -196,6 +199,7 @@ Task({
 | 用户提到「知识产权评估」「专利可行性」「软著可行性」「IP审查」 | arc:ip-audit |
 | 用户提到「技术交底书」「权利要求」「软著说明书」「申请文档写作」 | arc:ip-docs |
 | 用户提到「讨论」「deliberate」「方案」「架构决策」 | arc:deliberate |
+| 用户提到「实现」「编码」「开发」「重构」「落地」 | arc:implement |
 | 用户提到「测试」「E2E」「simulate」「浏览器」 | arc:simulate |
 | 用户提到「修复」「triage」「bug」「失败」 | arc:triage |
 | 用户提到「回归」「loop」「重测」 | arc:loop |
