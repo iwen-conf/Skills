@@ -24,7 +24,7 @@ description: 当复杂问题需要多 Agent 多视角分析并通过迭代讨论
 |------|---------|------|
 | **oracle** | `Task(subagent_type="oracle", load_skills=["arc:deliberate"], ...)` | 架构分析、设计评审（只读高质量推理） |
 | **deep** | `Task(category="deep", load_skills=[...], ...)` | 深度工程分析、方案提案、代码执行 |
-| **momus** | `Task(subagent_type="momus", load_skills=["arc:deliberate"], ...)` | 质量审查、完整性验证、计划评估 |
+|| **momus** | `Task(subagent_type="momus", load_skills=["arc:deliberate"], ...)` | 代码审查、安全审计、质量保障 |
 | **metis** | `Task(subagent_type="metis", load_skills=["arc:refine"], ...)` | 需求预分析、歧义检测 |
 | **explore** | `Task(subagent_type="explore", load_skills=[], run_in_background=true, ...)` | 代码库搜索（廉价、后台） |
 | **librarian** | `Task(subagent_type="librarian", load_skills=[], run_in_background=true, ...)` | 外部文档搜索（廉价、后台） |

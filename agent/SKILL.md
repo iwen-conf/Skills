@@ -68,18 +68,18 @@ Task(
 **`load_skills` 是必需参数**，用于为 Agent 装备相关技能的上下文和能力：
 
 ```typescript
-// ✅ 正确：包含 load_skills
+// ✅ 正确：使用 prometheus 进行需求规划
 Task({
-  subagent_type: "momus",
-  load_skills: ["arc:init"],  // 装备 arc:init skill
-  prompt: "分析项目的 DX 问题..."
+  subagent_type: "prometheus",
+  load_skills: ["arc:deliberate"],
+  prompt: "分析需求并生成执行计划..."
 })
 
-// ❌ 错误：缺少 load_skills
+// ❌ 错误：使用 momus 进行计划审查（应该用 metis）
 Task({
   subagent_type: "momus",
-  prompt: "分析项目的 DX 问题..."
-})  // → Tool execution aborted
+  prompt: "审查这个执行计划..."
+})  // → 应该用 metis 或 prometheus
 ```
 
 **load_skills 选择规则**：
@@ -112,7 +112,7 @@ Task({
 | `librarian` | 廉价、后台 | 外部文档/OSS 搜索 |
 | `oracle` | 昂贵、只读 | 高 IQ 架构咨询 |
 | `metis` | 昂贵 | 预规划分析、歧义检测 |
-| `momus` | 昂贵 | 计划审查、质量保障 |
+| `momus` | 昂贵 | 代码审查、安全审计、质量保障 |
 
 ### 可用 Skills（load_skills 参数）
 
@@ -213,7 +213,7 @@ Task({
    - 前端任务（React, Vue, SolidJS, CSS, 组件, 交互）→ `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], ...)`
    - 架构设计、综合分析 → `Task(subagent_type="oracle", load_skills=["arc:deliberate"], ...)`
    - 需求歧义分析 → `Task(subagent_type="metis", load_skills=["arc:refine"], ...)`
-   - 计划质量审查 → `Task(subagent_type="momus", load_skills=["arc:deliberate"], ...)`
+   - 计划质量审查 → `Task(subagent_type="prometheus", load_skills=["arc:deliberate"], ...)` 或 `Task(subagent_type="metis", load_skills=["arc:deliberate"], ...)`
    - 全栈任务 → 拆分后并发分派多个 Task()
 
 5. **记录调度决策**
@@ -385,7 +385,7 @@ Task({
 | 前端界面（组件、页面、样式） | visual-engineering | `category="visual-engineering", load_skills=["frontend-ui-ux"]` |
 | 架构设计、技术方案 | oracle | `subagent_type="oracle"` |
 | 需求歧义分析 | metis | `subagent_type="metis"` |
-| 计划质量审查 | momus | `subagent_type="momus"` |
+|| 计划生成与审查 | prometheus/metis | `subagent_type="prometheus"` 或 `subagent_type="metis"` |
 | 代码库探索 | explore | `subagent_type="explore", run_in_background=true` |
 | 外部文档查询 | librarian | `subagent_type="librarian", run_in_background=true` |
 | 简单修复 | quick | `category="quick"` |
@@ -571,8 +571,8 @@ Task(
 | 后端开发 | `Task(category="deep", run_in_background=true, ...)` | 后台并发 |
 | 前端开发 | `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], run_in_background=true, ...)` | 后台并发 |
 | 架构咨询 | `Task(subagent_type="oracle", run_in_background=true, ...)` | 后台并发 |
-| 需求澄清 | `Task(subagent_type="metis", ...)` | 同步 |
-| 计划审查 | `Task(subagent_type="momus", ...)` | 同步 |
+|| 需求澄清 | prometheus | `Task(subagent_type="prometheus", ...)` | 同步 |
+|| 计划审查 | metis | `Task(subagent_type="metis", ...)` | 同步 |
 | 代码探索 | `Task(subagent_type="explore", run_in_background=true, ...)` | 后台并发 |
 | 文档查询 | `Task(subagent_type="librarian", run_in_background=true, ...)` | 后台并发 |
 | 简单修复 | `Task(category="quick", run_in_background=true, ...)` | 后台并发 |

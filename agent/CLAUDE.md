@@ -266,7 +266,7 @@ graph TD
 |------|------|
 | Agent 超时 > 10min | 询问是否继续等待或切换其他 category |
 | 需求无法匹配任何 skill | 作为通用开发任务，使用 Task(category="unspecified-high") |
-| 多 Agent 产出冲突 | 使用 Task(subagent_type="momus") 裁决 |
+|| 多 Agent 产出冲突 | 使用 Task(subagent_type="oracle") 进行架构决策 |
 | dry-run 模式 | 输出预览后直接退出 |
 | 执行失败（snapshot 模式） | 自动回滚到快照状态 |
 
@@ -289,7 +289,7 @@ graph TD
 
 2. **Agent 调用方式**：
    - 按领域: `Task(category="<domain>", load_skills=[...], description="...", prompt="...", run_in_background=true)`
-   - 专业咨询: `Task(subagent_type="oracle/metis/momus", load_skills=[...], ...)`
+   - 专业咨询: `Task(subagent_type="oracle/prometheus/metis", load_skills=[...], ...)`
    - 代码搜索: `Task(subagent_type="explore", run_in_background=true, ...)`
    - 文档搜索: `Task(subagent_type="librarian", run_in_background=true, ...)`
 
