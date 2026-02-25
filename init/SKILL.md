@@ -62,8 +62,8 @@ CLAUDE.md 分为三级：
 | **oracle** | `Task(subagent_type="oracle", load_skills=["arc:init"], run_in_background=true, ...)` | 架构分析（依赖、模式、设计决策） |
 | **deep** | `Task(category="deep", load_skills=["arc:init"], run_in_background=true, ...)` | 工程分析（构建、测试、CI/CD、代码规范） |
 | **momus** | `Task(subagent_type="momus", load_skills=["arc:init"], run_in_background=true, ...)` | DX/质量分析（文档缺口、开发体验） |
-| **explore** | `Task(subagent_type="explore", run_in_background=true, ...)` | 代码库扫描（廉价） |
-| **librarian** | `Task(subagent_type="librarian", run_in_background=true, ...)` | 框架最佳实践搜索（廉价） |
+| **explore** | `Task(subagent_type="explore", load_skills=[], run_in_background=true, ...)` | 代码库扫描（廉价） |
+| **librarian** | `Task(subagent_type="librarian", load_skills=[], run_in_background=true, ...)` | 框架最佳实践搜索（廉价） |
 
 ## Critical Rules（核心铁律）
 

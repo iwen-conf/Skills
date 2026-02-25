@@ -56,8 +56,8 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 | **oracle** | `Task(subagent_type="oracle", load_skills=["arc:review"], run_in_background=true, ...)` | 架构、安全、技术债务维度（架构专家） |
 | **deep** | `Task(category="deep", load_skills=["arc:review"], run_in_background=true, ...)` | 代码质量、DevOps 维度（工程专家） |
 | **momus** | `Task(subagent_type="momus", load_skills=["arc:review"], run_in_background=true, ...)` | 业务、团队维度（质量/流程专家） |
-| **explore** | `Task(subagent_type="explore", run_in_background=true, ...)` | 代码库模式搜索（廉价） |
-| **librarian** | `Task(subagent_type="librarian", run_in_background=true, ...)` | 最佳实践/安全漏洞搜索（廉价） |
+| **explore** | `Task(subagent_type="explore", load_skills=[], run_in_background=true, ...)` | 代码库模式搜索（廉价） |
+| **librarian** | `Task(subagent_type="librarian", load_skills=[], run_in_background=true, ...)` | 最佳实践/安全漏洞搜索（廉价） |
 
 ## Critical Rules（核心铁律）
 
