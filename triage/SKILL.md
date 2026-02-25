@@ -1,5 +1,5 @@
 ---
-name: “arc:triage”
+name: arc:triage
 description: 读取 arc:simulate 的失败报告并定位/排查/修复缺陷（E2E/UI 自动化测试失败、回归失败、复现不稳定等），可用 triage_run.py 快速汇总 run_dir；强制输出大量 DEBUG 日志，禁止通过改代码跳过/短路权限(鉴权/授权)验证来让业务流”通过”，并在修复后给出可交付的 Fix Packet 与验证证据。
 ---
 
