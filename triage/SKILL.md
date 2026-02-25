@@ -143,6 +143,35 @@ python triage/scripts/triage_run.py <run_dir> \
   - 复现入口 URL、账号角色、步骤号 step_id、页面 URL
   - 关键 DOM/接口请求的观测结果（例如 toast 文案、HTTP 状态码、关键字段）
 
+
+**在开始诊断前，按以下优先级获取上下文：**
+
+**优先级 1: 检查 `.arc/review/` 架构分析**
+1. 查找评审产物：检查 `.arc/review/<project-name>/` 是否存在架构分析文档
+2. 验证新鲜度：检查 `project-snapshot.md` 或 `diagnosis-report.md` 的生成时间 < 7天
+3. 提取关键信息：模块依赖关系、常见缺陷模式、修复策略建议
+4. 如评审产物不存在或过期：提示用户运行 `/arc:review` 生成项目评审后再继续
+
+**优先级 2: 检查 `.arc/triage/known-patterns.md`**
+1. 查找历史缺陷模式：读取 `.arc/triage/known-patterns.md`（如存在）
+2. 匹配当前失败：对比当前失败症状与已知模式
+3. 复用修复策略：如匹配成功，直接应用已验证的修复方案
+
+**优先级 3: 使用 ace-tool 搜索源码**
+当缓存信息不足时，使用 ace-tool 搜索项目源码定位问题根因。
+
+**优先级 4: 缓存验证与错误报告**
+在诊断过程中，如发现 `.arc/review/` 或 CLAUDE.md 中的信息不准确：
+1. 标记缓存错误：记录预期内容 vs 实际情况
+2. 回退到源码搜索：使用 ace-tool 获取正确信息
+3. 生成错误报告：在 `<run_dir>/analysis/context-errors/` 生成缓存验证失败报告
+4. 提示用户：建议运行 `/arc:review` 或 `/arc:init` 更新项目索引
+
+**优先级 5: 更新已知缺陷模式库**
+在成功修复缺陷后，将新发现的缺陷模式追加到 `.arc/triage/known-patterns.md`。
+
+---
+
 ### 3) 分流诊断（优先排除“测试误报”）
 
 按优先级快速判断：

@@ -107,6 +107,21 @@ CLAUDE.md 分为三级：
 
 ## Instructions（执行流程）
 
+#### Step 1.0: 检查增量更新条件
+
+**在开始深度扫描前，检查是否可以进行增量更新：**
+
+1. **检查 `.arc/init/context/project-snapshot.md` 是否存在**
+2. **验证快照新鲜度**：检查生成时间 < 7天
+3. **如快照存在且新鲜**：
+   - 读取快照中的：拓扑类型、显著性评分结果、已识别的技术栈
+   - 使用 `git diff --name-only` 或文件时间戳识别变更的目录
+   - 仅对变更的目录重新扫描（跳过 Step 1.1-1.3）
+   - 生成增量更新的 `generation-plan.md`
+4. **如快照不存在或过期**：执行完整的深度扫描（Step 1.1-1.4）
+
+---
+
 ### Phase 1: 深度扫描（Deep Scan）
 
 **目标**：构建项目全景快照，确定哪些目录获得独立 CLAUDE.md，制定生成计划。
@@ -161,6 +176,15 @@ CLAUDE.md 分为三级：
 
 ## 已有 CLAUDE.md
 <list of existing CLAUDE.md files>
+```
+
+**元数据字段（用于增量更新）**：
+```markdown
+## 快照元数据
+- **生成时间**：<ISO 8601 timestamp>
+- **项目路径**：<absolute path>
+- **文件哈希**：<SHA-256 of key files>
+- **扫描范围**：<list of scanned directories>
 ```
 
 **`context/generation-plan.md`**：

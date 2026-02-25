@@ -108,6 +108,24 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 
 ## Instructions（执行流程）
 
+#### Step 1.0: 检查快照缓存
+
+**在开始项目扫描前，检查是否可以复用已有快照：**
+
+1. **检查 `.arc/review/<project-name>/context/project-snapshot.md` 是否存在**
+2. **验证快照新鲜度**：检查快照元数据中的生成时间 < 24小时
+3. **验证快照完整性**：检查快照是否包含所有必需字段（基本信息、目录结构、技术栈、代码规模、CI/CD、测试结构）
+4. **如快照存在且新鲜**：
+   - 对比文件哈希（如快照包含哈希）：
+     - 哈希相同：更新时间戳，直接使用快照，跳过 Step 1.1-1.3
+     - 哈希不同：重新生成快照
+   - 如快照不包含哈希：使用 `git diff --name-only` 或文件时间戳检查项目是否有变更
+     - 无变更：直接使用快照
+     - 有变更：重新生成快照
+5. **如快照不存在或过期（≥ 24小时）**：执行完整的项目扫描（Step 1.1-1.3）
+
+---
+
 ### Phase 1: 项目侦察（Reconnaissance）
 
 **目标**：收集被评审项目的基础信息，构建项目全景快照。
@@ -160,6 +178,11 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 ## 测试结构
 <test directory layout, coverage config>
 ```
+## 快照元数据（用于缓存验证）
+- **生成时间**：<ISO 8601 timestamp>
+- **项目路径**：<absolute path>
+- **文件哈希**：<SHA-256 of key files: go.mod, package.json, etc.>
+- **扫描范围**：<list of scanned directories>
 
 ---
 

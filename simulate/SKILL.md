@@ -117,11 +117,83 @@ version: 1.1.0
 
 ### **Phase 0: Context Acquisition (Requirement Analysis)**
 
-**在开始任何测试之前，如果对页面结构、元素选择器(Selector)或具体业务流转逻辑不清晰，必须执行此步骤：**
+**在开始任何测试之前，如果对页面结构、元素选择器(Selector)或具体业务流转逻辑不清晰，必须按以下优先级获取上下文：**
 
-1. **Call ace-tool**: 读取项目代码库（特别是前端路由、组件定义）和需求分析文档。  
-2. **Identify Elements**: 确认关键交互元素（按钮、输入框）的 ID、Class 或文本标识，避免盲目猜测选择器。  
-3. **Understand Logic**: 理解业务的前后置条件（例如：订单状态流转规则），确保测试路径符合真实业务逻辑。
+**优先级 1: 读取项目 CLAUDE.md 层级索引**
+
+1. **扫描 CLAUDE.md**：使用 `find . -name "CLAUDE.md" -type f` 扫描项目的层级索引。
+2. **提取关键信息**：
+   * **根级 CLAUDE.md**：项目技术栈、运行命令、前端入口路径
+   * **模块级 CLAUDE.md**（如 `frontend/CLAUDE.md`）：
+     - "入口与启动" 章节：前端启动命令、开发服务器端口
+     - "对外接口" 章节：页面路由、组件选择器模式、常用 data-testid 规范
+     - "编码规范" 章节：选择器命名约定（如 `button[data-testid="{action}-{component}"]`）
+     - "架构图" 章节：页面结构和组件层级
+3. **验证索引新鲜度**：检查 CLAUDE.md 的 "变更记录" 章节，确认生成时间 < 7天。
+4. **如索引缺失或过期**：提示用户运行 `/arc:init` 生成项目索引后再继续。
+
+**优先级 2: 使用 ace-tool 补充细节**
+
+当 CLAUDE.md 提供的信息不足时（如缺少具体选择器、页面逻辑不明确）：
+
+1. **Call ace-tool**：读取项目代码库（特别是前端路由、组件定义）和需求分析文档。
+2. **Identify Elements**：确认关键交互元素（按钮、输入框）的 ID、Class 或文本标识，避免盲目猜测选择器。
+3. **Understand Logic**：理解业务的前后置条件（例如：订单状态流转规则），确保测试路径符合真实业务逻辑。
+
+**优先级 3: 缓存验证与错误报告**
+
+在测试执行过程中，如发现 CLAUDE.md 中的信息不准确（如选择器不存在、页面结构变更）：
+
+1. **立即标记错误**：记录预期内容 vs 实际情况。
+2. **回退到 ace-tool**：使用源码扫描获取正确信息，继续测试。
+3. **生成错误报告**：在 `<run_dir>/context-errors/` 目录下生成缓存验证失败报告（见下方模板）。
+4. **提示用户**：建议运行 `/arc:init` 更新项目索引。
+
+**缓存错误报告模板** (`<run_dir>/context-errors/cache-error-YYYYMMDD-HHMMSS.md`)：
+
+```markdown
+# 缓存验证失败报告
+
+**生成时间**: <ISO 8601 timestamp>
+**Run ID**: <run_id>
+**测试步骤**: Step <step_number>
+
+## 错误详情
+
+- **缓存来源**: `<path-to-CLAUDE.md>`
+- **章节**: <章节名称>
+- **预期内容**:
+  ```
+  <从 CLAUDE.md 提取的选择器或信息>
+  ```
+- **实际情况**:
+  - 选择器在页面中不存在 / 页面结构已变更
+  - 实际选择器: `<actual-selector>`
+  - 页面 URL: <current-url>
+  - 发现时间: <ISO 8601 timestamp>
+
+## 影响范围
+
+- 当前测试：已回退到 ace-tool 扫描，测试继续执行
+- 其他测试：可能影响所有依赖此选择器的测试用例
+
+## 建议修复
+
+1. **立即修复**（推荐）：
+   ```bash
+   /arc:init --project-path <project-path>
+   ```
+
+2. **手动修复**：
+   编辑 `<path-to-CLAUDE.md>`，更新相关章节
+
+## 临时补丁
+
+已使用 ace-tool 获取正确信息：
+```
+<ace-tool 搜索结果摘要>
+```
+```
 
 ### **Phase 1: Strategy & Planning**
 
