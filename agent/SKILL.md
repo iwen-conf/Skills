@@ -63,6 +63,32 @@ Task(
 )
 ```
 
+### load_skills 参数说明（重要）
+
+**`load_skills` 是必需参数**，用于为 Agent 装备相关技能的上下文和能力：
+
+```typescript
+// ✅ 正确：包含 load_skills
+Task({
+  subagent_type: "momus",
+  load_skills: ["arc:init"],  // 装备 arc:init skill
+  prompt: "分析项目的 DX 问题..."
+})
+
+// ❌ 错误：缺少 load_skills
+Task({
+  subagent_type: "momus",
+  prompt: "分析项目的 DX 问题..."
+})  // → Tool execution aborted
+```
+
+**load_skills 选择规则**：
+- 调用 arc: skills 内部的 Agent 时，必须装备对应的 skill：`load_skills=["arc:init"]`
+- 前端任务使用：`load_skills=["frontend-ui-ux"]` 或 `load_skills=["playwright"]`
+- 通用任务（explore/librarian）使用：`load_skills=[]`
+- 可以装备多个 skills：`load_skills=["arc:deliberate", "frontend-ui-ux"]`
+
+
 每次 `Task()` 调用返回 `session_id`，可通过 `session_id="<id>"` 继续多轮对话。
 
 ### 可用 Category（领域路由）
@@ -123,36 +149,36 @@ Task(
 │   └── arc:loop
 │
 ├── 纯后端开发任务（API、数据库、算法、CLI）
-│   └── Task(category="deep", ...)
+│   └── Task(category="deep", load_skills=[], ...)
 │
 ├── 纯前端开发任务（UI、组件、样式、交互）
 │   └── Task(category="visual-engineering", load_skills=["frontend-ui-ux", "playwright"], ...)
 │
 ├── 架构设计 / 技术决策咨询
-│   └── Task(subagent_type="oracle", ...)
+│   └── Task(subagent_type="oracle", load_skills=["arc:deliberate"], ...)
 │
 ├── 需求模糊需要澄清
-│   └── Task(subagent_type="metis", ...)
+│   └── Task(subagent_type="metis", load_skills=["arc:refine"], ...)
 │
 ├── 计划需要审查
-│   └── Task(subagent_type="momus", ...)
+│   └── Task(subagent_type="momus", load_skills=["arc:deliberate"], ...)
 │
 ├── 代码探索 / 搜索
-│   └── Task(subagent_type="explore", run_in_background=true, ...)
+│   └── Task(subagent_type="explore", load_skills=[], run_in_background=true, ...)
 │
 ├── 文档 / 外部库查询
-│   └── Task(subagent_type="librarian", run_in_background=true, ...)
+│   └── Task(subagent_type="librarian", load_skills=[], run_in_background=true, ...)
 │
 ├── 简单修复 / 单文件变更
-│   └── Task(category="quick", ...)
+│   └── Task(category="quick", load_skills=[], ...)
 │
 ├── 复杂难题 / 高难度逻辑
-│   └── Task(category="ultrabrain", ...)
+│   └── Task(category="ultrabrain", load_skills=[], ...)
 │
 └── 全栈 / 混合 / 不确定
     └── 拆分为多个 Task() 并行：
-        ├── Task(category="deep", ...)          // 后端部分
-        └── Task(category="visual-engineering", ...)  // 前端部分
+        ├── Task(category="deep", load_skills=[], ...)          // 后端部分
+        └── Task(category="visual-engineering", load_skills=["frontend-ui-ux"], ...)  // 前端部分
 ```
 
 ### 路由判定要素
@@ -183,11 +209,11 @@ Task(
    - 不得跨 skill 混合流程。
 
 4. **Agent 选择有据**
-   - 后端任务（Go, Rust, Python, 数据库, API, 算法）→ `Task(category="deep", ...)`
+   - 后端任务（Go, Rust, Python, 数据库, API, 算法）→ `Task(category="deep", load_skills=[], ...)`
    - 前端任务（React, Vue, SolidJS, CSS, 组件, 交互）→ `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], ...)`
-   - 架构设计、综合分析 → `Task(subagent_type="oracle", ...)`
-   - 需求歧义分析 → `Task(subagent_type="metis", ...)`
-   - 计划质量审查 → `Task(subagent_type="momus", ...)`
+   - 架构设计、综合分析 → `Task(subagent_type="oracle", load_skills=["arc:deliberate"], ...)`
+   - 需求歧义分析 → `Task(subagent_type="metis", load_skills=["arc:refine"], ...)`
+   - 计划质量审查 → `Task(subagent_type="momus", load_skills=["arc:deliberate"], ...)`
    - 全栈任务 → 拆分后并发分派多个 Task()
 
 5. **记录调度决策**
