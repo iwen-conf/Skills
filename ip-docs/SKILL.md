@@ -121,6 +121,7 @@ description: "面向软件项目的知识产权申请文档写作助手。采用
    - 优先级建议
    - 风险提示
    - 关键技术点与证据路径
+   - 新字段: `format_compliance`、`program_product_recommended`、`fee_reduction`、`app_e_copyright`
 
 **Step 1.2: 生成文档上下文**
 使用 `ace-tool` 二次核对关键技术描述,生成 `context/doc-context.md`:
@@ -128,6 +129,7 @@ description: "面向软件项目的知识产权申请文档写作助手。采用
 - 关键算法实现(代码片段+注释)
 - 技术效果量化数据(性能指标、测试结果)
 - 用户功能描述(UI截图、操作流程)
+- 格式/命名基线: 软件全称/简称/版本、页眉页脚示例、截图命名要求、代码样本页数与行数要求
 
 **Step 1.3: 脚手架生成**
 ```bash
@@ -157,6 +159,9 @@ Task(
   3. 系统流程与数据流(流程图+文字描述)
   4. 技术创新点描述(对比现有技术)
   5. 每个描述必须引用代码证据(file:line)
+  6. 技术三要素表(技术问题/技术手段/技术效果)
+  7. 程序产品权利要求骨架(方法+系统/装置+计算机程序产品+存储介质)
+  8. OA 可能性清单(客体/创造性拼凑/超范围)
 
 [REQUIRED TOOLS]: ace-tool(代码搜索), Read(读取context/), Write(写入agents/oracle/)
 
@@ -167,6 +172,7 @@ Task(
 - 架构图必须使用Mermaid格式
 - 每个技术创新点必须对比现有技术(引用handoff中的外部参考)
 - 技术描述必须面向专利审查员(清晰、完整、可实施)
+- 标注程序产品可行性与权利要求组合建议
 
 [MUST NOT DO]:
 - 不得编造技术细节
@@ -194,6 +200,8 @@ Task(
   3. 性能优化措施(具体实现+效果对比)
   4. 技术效果量化(性能指标、测试数据、对比表格)
   5. 软著代码材料说明(建议提交的代码区段)
+  6. 可提交代码样本清单(文件+起止行、预计页数、脱敏要求)
+  7. 性能/对比数据表模板,缺失则输出“需补测指标”列表
 
 [REQUIRED TOOLS]: ace-tool(代码搜索), Read(读取context/), Write(写入agents/deep/)
 
@@ -204,6 +212,8 @@ Task(
 - 技术效果必须量化(具体数值+对比基准)
 - 代码片段必须脱敏(移除敏感信息)
 - 每个实现细节必须引用具体文件路径
+- 生成提交代码页数估算与样本首尾行标注
+- 若性能/对比数据缺失,列出需补测的指标与基准
 
 [MUST NOT DO]:
 - 不得编造性能数据
@@ -231,6 +241,9 @@ Task(
   3. 软著申请摘要(300-500字,面向版权局审查员)
   4. 专利权利要求草案(独立权利要求+从属权利要求)
   5. 用户界面描述(UI截图+操作流程)
+  6. 页眉/页脚/命名一致性检查提示(引用 format 基线)
+  7. 签章页、非职务开发保证书、开源声明占位提示
+  8. 权利要求四件套(方法+系统/装置+计算机程序产品+存储介质)句式占位
 
 [REQUIRED TOOLS]: ace-tool(搜索文档), Read(读取context/), Write(写入agents/momus/)
 
@@ -241,6 +254,9 @@ Task(
 - 操作说明必须完整(覆盖安装到使用全流程)
 - 软著摘要必须符合版权局格式要求
 - 权利要求必须符合专利法格式(一句话、层次清晰)
+- 校验软件名称与版本一致性并在文档中标注
+- 插入截图占位说明(需与软件名称一致)
+- 标记签章页/保证书/开源声明待补充项
 
 [MUST NOT DO]:
 - 不得使用技术黑话(面向用户)
@@ -276,6 +292,8 @@ Task(
   3. 术语冲突列表(同一对象的不同称谓)
   4. 技术描述错误列表(与代码不符的描述)
   5. 修正建议(具体修改方案)
+  6. 程序产品权利要求完整性与技术三要素对应关系检查
+  7. 格式合规(行数/页眉页脚)与命名统一性提示
 
 [MUST DO]:
 - 读取 agents/deep/implementation-details.md 和 agents/momus/user-documentation.md
@@ -283,6 +301,7 @@ Task(
 - 建立术语对照表(统一称谓)
 - 指出技术描述与代码不符之处
 - 提出具体修正建议(不是简单指出问题)
+- 审阅格式/命名合规与程序产品权利要求覆盖性
 
 [MUST NOT DO]:
 - 不得简单同意对方观点
@@ -322,6 +341,7 @@ python ip-docs/scripts/render_ip_documents.py \
 - `copyright/software-summary.md` (软著申请摘要,整合Momus起草+Oracle/Deep审阅)
 - `copyright/manual-outline.md` (操作说明书提纲,整合Momus起草+术语统一)
 - `copyright/source-code-package-notes.md` (代码材料说明,整合Deep起草+Oracle审阅)
+  - 需显式记录软件全称/简称/版本,在写作日志标记名称一致性已核对
 
 **Step 4.3: 生成专利文档**(如 `target_docs` 包含 `patent`)
 
@@ -335,6 +355,7 @@ python ip-docs/scripts/render_ip_documents.py \
 生成文件:
 - `patent/disclosure-draft.md` (技术交底书,整合Oracle技术方案+Deep实现细节+术语统一)
 - `patent/claims-draft.md` (权利要求草案,整合Momus起草+Oracle/Deep审阅)
+  - 默认包含: 1条独立方法 + 1条系统/装置 + 1条计算机程序产品 + 1条存储介质; 从属权利要求引用性能/数据流/模块参数差异点
 - `patent/drawings-description.md` (附图说明,整合Oracle架构图+Deep数据流图+Momus UI截图)
 
 **Step 4.4: 生成写作日志**
@@ -344,6 +365,7 @@ python ip-docs/scripts/render_ip_documents.py \
 - 假设与推断(未在代码中找到但合理推断的内容)
 - 待人工补充项(需要申请人提供的信息)
 - Agent协作记录(各Agent起草内容、审阅意见、术语统一决策)
+- 费减材料清单、电子版权选项、格式合规检查结果、缺失性能数据/截图列表
 
 ## Scripts
 

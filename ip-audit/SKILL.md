@@ -134,12 +134,14 @@ description: "面向软件项目的知识产权可行性审查与风险评估。
 - 可作为软著提交样本的代码区段
 - 技术方案描述(架构图、流程图、数据流)
 - 现有技术对比(若项目文档中有)
+- 格式/命名一致性基线: 软件全称/简称/版本、页眉页脚示例、截图命名一致性检查入口(供 momus 使用)
 
 **Step 1.3: 外部参考搜索**
 使用 `Exa` 搜索并生成 `context/external-references.md`:
 - 同类产品专利检索(关键词:项目核心技术+领域)
 - 软著申请政策与审查标准
 - 专利申请门槛与常见驳回理由
+- 政策锚点(标注日期/来源): 无纸化实名规则、代码/说明格式要求、App 电子版权流程、2024 "计算机程序产品" 条款、2025 费减门槛与比例
 
 **Step 1.4: 脚手架生成**
 ```bash
@@ -169,6 +171,9 @@ Task(
   3. 现有技术差异度分析(引用context/external-references.md)
   4. 专利申请可行性评分(高/中/低)
   5. 每个评分必须附文件路径证据
+  6. 技术三要素映射表(技术问题/技术手段/技术效果)
+  7. 程序产品可专利化判断(是/否+依据)
+  8. 权利要求组合建议(方法+系统/装置+计算机程序产品+存储介质)
 
 [REQUIRED TOOLS]: ace-tool(代码搜索), Read(读取context/), Write(写入agents/oracle/)
 
@@ -178,6 +183,7 @@ Task(
 - 对比现有技术,明确技术差异点
 - 每个创新点必须引用具体文件路径(file:line)
 - 评分必须给出量化依据
+- 标注潜在 OA 风险(客体/创造性/超范围),引用政策锚点
 
 [MUST NOT DO]:
 - 不得修改项目源码
@@ -205,6 +211,8 @@ Task(
   3. 技术效果可量化性评分(1-10分)
   4. 软著申请可行性评分(高/中/低)
   5. 每个评分必须附代码证据
+  6. 软著可提交代码样本清单(文件+起止行,估算满足≥50行/页的页数,脱敏/删注释建议)
+  7. 技术效果量化数据表(含基准/对比,缺失则标记需补测指标)
 
 [REQUIRED TOOLS]: ace-tool(代码搜索), Read(读取context/), Write(写入agents/deep/)
 
@@ -215,6 +223,8 @@ Task(
 - 检查技术效果是否可量化(性能指标、测试覆盖率)
 - 识别可作为软著提交的代码区段(建议3000-5000行)
 - 每个结论必须引用具体文件路径
+- 记录首尾样本页所在文件/行号,提示是否需脱敏/删注释
+- 如缺乏性能/对比数据,输出“补测指标”列表
 
 [MUST NOT DO]:
 - 不得修改项目源码
@@ -242,6 +252,10 @@ Task(
   3. 申请流程风险评估(高/中/低)
   4. 知识产权合规性检查(开源协议冲突、第三方依赖)
   5. 每个评分必须附证据
+  6. 命名/实名一致性、页眉页脚格式检查结果
+  7. 签章页、非职务开发保证书、开源声明的准备状态
+  8. App 电子版权通道可行性(若目标为应用市场上架)
+  9. 费减资格预判与所需证明文件清单
 
 [REQUIRED TOOLS]: ace-tool(搜索文档), Read(读取context/), Write(写入agents/momus/)
 
@@ -252,6 +266,7 @@ Task(
 - 评估申请材料缺口(用户手册、技术文档、测试报告)
 - 识别申请流程风险(命名冲突、相似软件、审查周期)
 - 每个风险必须给出缓解建议
+- 依据政策锚点检查无纸化实名、格式合规、费减条件、电子版权可替代性
 
 [MUST NOT DO]:
 - 不得修改项目源码
@@ -291,6 +306,7 @@ Task(
 - 挑战过低的评分(指出被低估的创新点)
 - 使用 ace-tool 验证争议点
 - 提出修正建议
+- 反驳论据需包含技术三要素/程序产品视角,并可引用政策锚点
 
 [MUST NOT DO]:
 - 不得简单同意对方观点
@@ -339,7 +355,23 @@ python ip-audit/scripts/render_audit_report.py \
 - `reports/filing-readiness-checklist.md` (准备度清单)
 - `handoff/ip-drafting-input.json` (交接给arc:ip-docs)
 
-**Step 4.4: 给出申请建议**
+`ip-feasibility-report.md` 需新增版块:
+- 软著材料合规度(页格式≥50行/页、命名一致性、代码样本覆盖度、说明文档截图一致性、签章页/保证书状态)
+- 专利客体合规度(技术三要素完整性、程序产品可行性、附图/伪代码充分性)
+- 费减资格与经济性(资格判断+原始/费减费用对比)
+- App 电子版权可替代性(是否推荐、所需材料)
+
+`filing-readiness-checklist.md` 增加: 格式核对、命名一致性、费减备案材料、签章页/非职务保证书、电子版权选项。
+
+**Step 4.4: handoff JSON 扩展字段**
+
+`handoff/ip-drafting-input.json` 新增/扩展字段(保持向后兼容,缺失时标记待补充):
+- `format_compliance`: {`code_pages_ok`, `doc_lines_ok`, `name_consistency`, `signature_page_ready`}
+- `program_product_recommended`: boolean
+- `fee_reduction`: {`eligible`: boolean, `basis`: string, `required_proofs`: []}
+- `app_e_copyright`: {`recommended`: boolean, `materials`: []}
+
+**Step 4.5: 给出申请建议**
 
 在报告末尾明确建议:
 - **软著先行**: 代码完整、文档齐全、专利门槛不足
@@ -360,6 +392,17 @@ python ip-audit/scripts/scaffold_audit_case.py \
 python ip-audit/scripts/render_audit_report.py \
   --case-dir <output_dir> \
   --project-name <name>
+
+# 费减资格检查(输出到 analysis/fee-reduction-assessment.md)
+python ip-audit/scripts/fee_reduction_check.py \
+  --applicant-type <individual|enterprise|institution> \
+  --annual-income <number> \
+  --output <path-to-analysis/fee-reduction-assessment.md>
+
+# 格式合规检查(输出到 convergence/format-compliance.md)
+python ip-audit/scripts/format_compliance_checker.py \
+  --project-path <project_path> \
+  --output <path-to-convergence/format-compliance.md>
 ```
 
 ## Artifacts
@@ -376,7 +419,10 @@ python ip-audit/scripts/render_audit_report.py \
 - `agents/momus/critique.md` (Momus反驳)
 - `convergence/round-1-summary.md` (首轮综合)
 - `convergence/final-consensus.md` (最终共识)
+- `convergence/format-compliance.md` (格式/命名合规评估)
+- `convergence/tech-elements-map.md` (技术三要素/程序产品映射)
 - `analysis/ip-assets.md` (资产清单)
+- `analysis/fee-reduction-assessment.md` (费减资格评估)
 - `reports/ip-feasibility-report.md` (可行性总报告)
 - `reports/filing-readiness-checklist.md` (准备度清单)
 - `handoff/ip-drafting-input.json` (交接给arc:ip-docs)
