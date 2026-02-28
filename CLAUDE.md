@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | 时间 | 操作 |
 |------|------|
-| 2026-02-25 | 新增 arc:implement，补齐方案到代码的落地实现阶段 |
+MN|| 2026-02-28 | 新增 arc:init:full 与 arc:init:update，拆分全量初始化与增量更新能力；arc:init 改为智能调度器 |
 | 2026-02-25 | 新增 arc:ip-audit 与 arc:ip-docs，拆分知识产权审查与文档写作能力 |
 | 2026-02-24T16:30:00 | arc:init 多Agent协作生成模块级 CLAUDE.md（simulate/triage/loop/review/deliberate/init/agent/refine） |
 | 2026-02-24 | 初始版本，定义 Skill 清单、依赖链、架构和约定 |
@@ -29,8 +29,9 @@ A collection of Claude Code Skills (custom slash-command plugins) under the **`a
 | `deliberate/` | arc:deliberate | `/arc:deliberate` | 多 Agent 多视角审议，使用 OpenSpec 生成结构化计划 |
 | `implement/` | arc:implement | `/arc:implement` | 将方案落地为工程实现，输出实现计划、执行日志与交接摘要 |
 | `review/` | arc:review | `/arc:review` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图 |
-| `init/` | arc:init | `/arc:init` | 多 Agent 协作生成项目层级式 CLAUDE.md 索引体系，深度扫描项目结构后输出根级+模块级 CLAUDE.md |
-| `ip-audit/` | arc:ip-audit | `/arc:ip-audit` | 软件专利/软著可行性审查，输出评估报告、准备度清单与交接 JSON |
+KZ|| `init/` | arc:init | `/arc:init` | 智能调度器，自动判断全量(full)或增量(update)模式 |
+QB|| `init-full/` | arc:init:full | `/arc:init:full` | 全量生成项目层级式 CLAUDE.md 索引体系，深度扫描+多Agent分析 |
+QB|| `init-update/` | arc:init:update | `/arc:init:update` | 增量更新 CLAUDE.md，基于指纹检测变更，仅更新受影响模块 |
 | `ip-docs/` | arc:ip-docs | `/arc:ip-docs` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
 
 ## 模块文档索引
@@ -46,6 +47,8 @@ A collection of Claude Code Skills (custom slash-command plugins) under the **`a
 | deliberate/ | [CLAUDE.md](./deliberate/CLAUDE.md) | 四阶段审议流程、OpenSpec 集成、共识报告模型 |
 | implement/ | [CLAUDE.md](./implement/CLAUDE.md) | 方案落地、变更实施、验证与交接产物 |
 | init/ | [CLAUDE.md](./init/CLAUDE.md) | 五阶段生成流程、CLAUDE.md 结构规范、校验体系 |
+| init-full/ | [CLAUDE.md](./init-full/CLAUDE.md) | 全量初始化流程、深度扫描策略、多Agent协作生成 |
+| init-update/ | [CLAUDE.md](./init-update/CLAUDE.md) | 增量更新机制、变更指纹检测、模块级差异更新 |
 | agent/ | [CLAUDE.md](./agent/CLAUDE.md) | 调度决策树、执行预览、多Agent任务分配 |
 | refine/ | [CLAUDE.md](./refine/CLAUDE.md) | CLAUDE.md 索引扫描、差距分析、Prompt 增强 |
 | ip-audit/ | [CLAUDE.md](./ip-audit/CLAUDE.md) | 知识产权可行性审查、风险矩阵、交接产物定义 |
@@ -54,7 +57,7 @@ A collection of Claude Code Skills (custom slash-command plugins) under the **`a
 ## Skill Dependency Chain
 
 ```
-arc:agent ────┬─▶ arc:init         (项目初始化)
+PQ|arc:agent ────┬─▶ arc:init         (智能调度 → full/update)
               ├─▶ arc:refine       (问题细化)
               │     └─▶ arc:deliberate
               ├─▶ arc:implement    (方案落地实现)
