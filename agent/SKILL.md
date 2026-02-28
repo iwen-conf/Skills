@@ -112,11 +112,12 @@ Task({
 | `librarian` | 廉价、后台 | 外部文档/OSS 搜索 |
 | `oracle` | 昂贵、只读 | 高 IQ 架构咨询、系统推演、权衡策略 |
 | `prometheus` | 昂贵 | 宏观规划、需求拆解、需求澄清、依赖图谱 |
-| `metis` | 昂贵 | 计划审计、算法漏洞检测、策略分析 |
-| `momus` | 昂贵 | 代码审查、安全审计、质量保障 |
-| `hephaestus` | 昂贵 | 核心编程、端到端功能实现、底层算法重写 |
-| `atlas` | 昂贵 | 全局级依赖替换、跨微服务批量重构、大规模迁移 |
-| `multimodal-looker` | 昂贵 | 解析设计图、图片转组件、CSS 布局分析 |
+| `metis` | 昂贵 | 预规划分析、算法漏洞检测、歧义检测 |
+| `momus` | 昂贵 | 计划审查（审查 Prometheus 的计划，返回 OKAY/NEEDS_REVISION） |
+| `sisyphus-junior` | 廉价 | 轻量级任务执行、简单单文件修改 |
+| `multimodal-looker` | 廉价 | 解析设计图、图片转组件、CSS 布局分析 |
+
+> **注意**：Hephaestus 和 Atlas 是 **primary 模式** Agent，不通过 `subagent_type` 调用，而是通过 `category` 路由（如 `category="ultrabrain"` 对应 Hephaestus 的能力）。
 
 ### 可用 Skills（load_skills 参数）
 

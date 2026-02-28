@@ -256,7 +256,7 @@ graph TD
 1. **理解先于行动**：调度前必须先分析需求
 2. **需求模糊时主动澄清**：禁止在理解不充分的情况下调度
 3. **尊重 Skill 边界**：路由后严格按该 skill 的 SKILL.md 执行
-4. **Agent 选择有据**：后端→category:deep，前端→category:visual-engineering，架构→subagent:oracle
+4. **Agent 选择有据**：后端→category:deep，前端→category:visual-engineering，架构→subagent:oracle，计划审查→subagent:momus
 5. **记录调度决策**：写入 `.arc/agent/dispatch-log.md`
 6. **安全执行原则**：高影响操作需用户确认
 
