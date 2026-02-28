@@ -110,9 +110,13 @@ Task({
 |----------|------|---------|
 | `explore` | 廉价、后台 | 代码库上下文搜索、grep 分析 |
 | `librarian` | 廉价、后台 | 外部文档/OSS 搜索 |
-| `oracle` | 昂贵、只读 | 高 IQ 架构咨询 |
-| `metis` | 昂贵 | 预规划分析、歧义检测 |
+| `oracle` | 昂贵、只读 | 高 IQ 架构咨询、系统推演、权衡策略 |
+| `prometheus` | 昂贵 | 宏观规划、需求拆解、需求澄清、依赖图谱 |
+| `metis` | 昂贵 | 计划审计、算法漏洞检测、策略分析 |
 | `momus` | 昂贵 | 代码审查、安全审计、质量保障 |
+| `hephaestus` | 昂贵 | 核心编程、端到端功能实现、底层算法重写 |
+| `atlas` | 昂贵 | 全局级依赖替换、跨微服务批量重构、大规模迁移 |
+| `multimodal-looker` | 昂贵 | 解析设计图、图片转组件、CSS 布局分析 |
 
 ### 可用 Skills（load_skills 参数）
 
@@ -167,7 +171,7 @@ Task({
 │   └── Task(subagent_type="oracle", load_skills=["arc:deliberate"], ...)
 │
 ├── 需求模糊需要澄清
-│   └── Task(subagent_type="metis", load_skills=["arc:refine"], ...)
+│   └── Task(subagent_type="prometheus", load_skills=["arc:refine"], ...)
 │
 ├── 计划需要审查
 │   └── Task(subagent_type="metis", load_skills=["arc:deliberate"], ...)
@@ -224,8 +228,8 @@ Task({
    - 后端任务（Go, Rust, Python, 数据库, API, 算法）→ `Task(category="deep", load_skills=[], ...)`
    - 前端任务（React, Vue, SolidJS, CSS, 组件, 交互）→ `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], ...)`
    - 架构设计、综合分析 → `Task(subagent_type="oracle", load_skills=["arc:deliberate"], ...)`
-   - 需求歧义分析 → `Task(subagent_type="metis", load_skills=["arc:refine"], ...)`
-   - 计划质量审查 → `Task(subagent_type="prometheus", load_skills=["arc:deliberate"], ...)` 或 `Task(subagent_type="metis", load_skills=["arc:deliberate"], ...)`
+   - 需求歧义分析 → `Task(subagent_type="prometheus", load_skills=["arc:refine"], ...)`
+   - 计划质量审查 → `Task(subagent_type="metis", load_skills=["arc:deliberate"], ...)`
    - 全栈任务 → 拆分后并发分派多个 Task()
 
 5. **记录调度决策**
@@ -396,8 +400,8 @@ Task({
 | 后端逻辑（API、数据库、中间件） | deep | `category="deep"` |
 | 前端界面（组件、页面、样式） | visual-engineering | `category="visual-engineering", load_skills=["frontend-ui-ux"]` |
 | 架构设计、技术方案 | oracle | `subagent_type="oracle"` |
-| 需求歧义分析 | metis | `subagent_type="metis"` |
-|| 计划生成与审查 | prometheus/metis | `subagent_type="prometheus"` 或 `subagent_type="metis"` |
+| 需求歧义分析 | prometheus | `subagent_type="prometheus"` |
+| 计划生成与审查 | prometheus/metis | `subagent_type="prometheus"` 或 `subagent_type="metis"` |
 | 代码库探索 | explore | `subagent_type="explore", run_in_background=true` |
 | 外部文档查询 | librarian | `subagent_type="librarian", run_in_background=true` |
 | 简单修复 | quick | `category="quick"` |
@@ -583,8 +587,8 @@ Task(
 | 后端开发 | `Task(category="deep", run_in_background=true, ...)` | 后台并发 |
 | 前端开发 | `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], run_in_background=true, ...)` | 后台并发 |
 | 架构咨询 | `Task(subagent_type="oracle", run_in_background=true, ...)` | 后台并发 |
-|| 需求澄清 | prometheus | `Task(subagent_type="prometheus", ...)` | 同步 |
-|| 计划审查 | metis | `Task(subagent_type="metis", ...)` | 同步 |
+| 需求澄清 | `Task(subagent_type="prometheus", ...)` | 同步 |
+| 计划审查 | `Task(subagent_type="metis", ...)` | 同步 |
 | 代码探索 | `Task(subagent_type="explore", run_in_background=true, ...)` | 后台并发 |
 | 文档查询 | `Task(subagent_type="librarian", run_in_background=true, ...)` | 后台并发 |
 | 简单修复 | `Task(category="quick", run_in_background=true, ...)` | 后台并发 |
