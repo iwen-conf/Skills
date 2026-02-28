@@ -19,7 +19,7 @@
 |-------|---------|------------|---------|
 | **oracle** (subagent) | 技术方案描述专家 | 架构设计、技术方案、系统流程、专利技术交底书 | `agents/oracle/technical-description.md` |
 | **deep** (category) | 实现细节专家 | 代码实现、算法细节、性能优化、软著技术交底 | `agents/deep/implementation-details.md` |
-| **momus** (subagent) | 用户文档专家 | 用户手册、操作说明、软著摘要、权利要求书 | `agents/momus/user-documentation.md` |
+| **writing** (category) | 用户文档写作专家 | 用户手册、操作说明、软著摘要、权利要求书 | `agents/writing/user-documentation.md` |
 
 ### 协作流程
 
@@ -29,7 +29,7 @@
 
 | 文档类型 | 主起草Agent | 审阅Agent | 输出路径 |
 |---------|-----------|----------|---------|
-| 软著摘要 | momus | oracle, deep | `copyright/software-summary.md` |
+| 软著摘要 | writing | oracle, deep | `copyright/software-summary.md` |
 | 操作说明书 | momus | oracle, deep | `copyright/manual-outline.md` |
 | 代码材料说明 | deep | oracle | `copyright/source-code-package-notes.md` |
 | 技术交底书 | oracle | deep, momus | `patent/disclosure-draft.md` |
@@ -65,10 +65,10 @@ Task(
   prompt="..."
 )
 Task(
-  subagent_type="momus",
+  category="writing",
   load_skills=["arc:ip-docs"],
   run_in_background=true,
-  description="Momus起草用户文档",
+  description="Writing起草用户文档",
   prompt="..."
 )
 
