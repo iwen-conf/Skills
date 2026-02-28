@@ -170,7 +170,7 @@ Task({
 │   └── Task(subagent_type="metis", load_skills=["arc:refine"], ...)
 │
 ├── 计划需要审查
-│   └── Task(subagent_type="momus", load_skills=["arc:deliberate"], ...)
+│   └── Task(subagent_type="metis", load_skills=["arc:deliberate"], ...)
 │
 ├── 代码探索 / 搜索
 │   └── Task(subagent_type="explore", load_skills=[], run_in_background=true, ...)
@@ -501,7 +501,7 @@ Task(
 检查多 Agent 产出间是否有冲突（如同一文件的不同修改）。
 
 - **无冲突** → 直接合并
-- **有冲突** → 主进程裁决，选择更合理的方案；必要时调用 `Task(subagent_type="momus", ...)` 进行质量审查
+- **有冲突** → 主进程裁决，选择更合理的方案；必要时调用 `Task(subagent_type="momus", ...)` 进行代码冲突审查
 
 #### Step 4.3: 结果呈现
 
@@ -532,7 +532,7 @@ Task(
 |------|------|
 | Agent 任务超时 > 10min | AskUserQuestion 询问是否继续等待或拆分为更小任务 |
 | 需求无法匹配任何 skill | 作为通用开发任务处理，按领域分派 Task() |
-| 多 Agent 产出冲突 | 主进程裁决，或调用 `Task(subagent_type="momus", ...)` 审查 |
+| 多 Agent 产出冲突 | 主进程裁决，或调用 `Task(subagent_type="momus", ...)` 进行代码冲突审查 |
 | dry-run 模式 | 输出预览后直接退出，不执行任何操作 |
 | 用户取消确认 | 输出取消信息，清理已创建快照 |
 | 执行失败（snapshot 模式） | 自动回滚到快照状态，记录回滚日志 |

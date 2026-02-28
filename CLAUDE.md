@@ -252,8 +252,8 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 | 架构推演 | Oracle | `Task(subagent_type="oracle", prompt="分析这个并发竞争条件的根因...")` | Oracle 只读咨询，不亲自改代码 |
 | 代码库侦察 | Explore | `Task(subagent_type="explore", run_in_background=true, prompt="找到所有认证相关的中间件...")` | Explore 极速前哨，总是后台运行 |
 | 外部文档检索 | Librarian | `Task(subagent_type="librarian", run_in_background=true, prompt="查找 React 18 的最新 API 文档...")` | Librarian 打破知识截止日期限制 |
-| 知识产权审查 | Oracle/Deep/Momus | `Task(subagent_type="oracle", load_skills=["arc:ip-audit"], run_in_background=true, ...)` + `Task(category="deep", load_skills=["arc:ip-audit"], run_in_background=true, ...)` + `Task(subagent_type="momus", load_skills=["arc:ip-audit"], run_in_background=true, ...)` | 三Agent并发评估后交叉反驳 |
-| 知识产权文档写作 | Oracle/Deep/Momus | `Task(subagent_type="oracle", load_skills=["arc:ip-docs"], run_in_background=true, ...)` + `Task(category="deep", load_skills=["arc:ip-docs"], run_in_background=true, ...)` + `Task(subagent_type="momus", load_skills=["arc:ip-docs"], run_in_background=true, ...)` | 三Agent并发起草后交叉审阅 |
+| 知识产权审查 | Oracle/Deep/Writing | `Task(subagent_type="oracle", load_skills=["arc:ip-audit"], run_in_background=true, ...)` + `Task(category="deep", load_skills=["arc:ip-audit"], run_in_background=true, ...)` + `Task(category="writing", load_skills=["arc:ip-audit"], run_in_background=true, ...)` | 三Agent并发评估后交叉反驳 |
+| 知识产权文档写作 | Oracle/Deep/Writing | `Task(subagent_type="oracle", load_skills=["arc:ip-docs"], run_in_background=true, ...)` + `Task(category="deep", load_skills=["arc:ip-docs"], run_in_background=true, ...)` + `Task(category="writing", load_skills=["arc:ip-docs"], run_in_background=true, ...)` | 三Agent并发起草后交叉审阅 |
 
 ### 典型工作流拓扑
 
@@ -274,7 +274,7 @@ Sisyphus (主控)
       ├─▶ 绘制依赖图谱
       └─▶ Metis (策略审计)
           └─▶ 审查算法漏洞
-              └─▶ Momus (质量审查)
+              └─▶ Momus (代码审查)
                   └─▶ 验证标准
                       └─▶ Atlas (重体力劳动) - 执行大规模重构
 ```
@@ -285,7 +285,7 @@ Sisyphus (主控)
   └─▶ arc:ip-audit / arc:ip-docs
       ├─▶ Oracle (后台) - 技术创新性/方案描述
       ├─▶ Deep (后台) - 代码完整性/实现细节
-      └─▶ Momus (后台) - 文档合规性/用户文档
+      └─▶ Writing (后台) - 文档合规性/用户文档
           └─▶ 收集三Agent结果
               └─▶ 交叉反驳/审阅 (复用session_id)
                   └─▶ 生成综合报告/定稿文档
