@@ -7,7 +7,7 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 
 ## Overview
 
-赋予 Agent “企业级软件评审专家”的能力。通过 oracle、deep、momus 三个专业 Agent 各自独立按七维度评估项目，再互相反驳对方的评分和发现，最终收敛出一份可交付的诊断报告与改进路线图。
+赋予 Agent “企业级软件评审专家”的能力。通过 oracle、deep、deep(工程)、deep(业务) 三个专业 Agent 各自独立按七维度评估项目，再互相反驳对方的评分和发现，最终收敛出一份可交付的诊断报告与改进路线图。
 
 七维度评估框架参考 ISO/IEC 25010 软件质量模型、TOGAF 企业架构框架及现代软件工程最佳实践（详见 `references/dimensions.md`）。
 
@@ -47,7 +47,7 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 
 * **ace-tool (MCP)**: 必须。用于语义搜索项目代码结构、实现模式、CLAUDE.md 索引。
 * **Exa MCP**: 推荐。用于搜索项目依赖的行业标准、最佳实践、安全漏洞信息。
-* **oh-my-opencode Task API**: 必须。通过 Task() 调度 oracle/deep/momus Agent。
+* **oh-my-opencode Task API**: 必须。通过 Task() 调度 oracle/deep Agent。
 
 ## Agent 调用方式
 
@@ -55,7 +55,7 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 |------|---------|------|
 | **oracle** | `Task(subagent_type="oracle", load_skills=["arc:review"], run_in_background=true, ...)` | 架构、安全、技术债务维度（架构专家） |
 | **deep** | `Task(category="deep", load_skills=["arc:review"], run_in_background=true, ...)` | 代码质量、DevOps 维度（工程专家） |
-| **momus** | `Task(subagent_type="momus", load_skills=["arc:review"], run_in_background=true, ...)` | 业务、团队维度（质量/流程专家） |
+| **deep(业务)** | `Task(category="deep", load_skills=["arc:review"], run_in_background=true, ...)` | 业务、团队维度(业务与流程分析专家) |
 | **explore** | `Task(subagent_type="explore", load_skills=[], run_in_background=true, ...)` | 代码库模式搜索（廉价） |
 | **librarian** | `Task(subagent_type="librarian", load_skills=[], run_in_background=true, ...)` | 最佳实践/安全漏洞搜索（廉价） |
 
@@ -245,19 +245,19 @@ Task(
 )
 ```
 
-**momus 评估**（质量/流程视角，侧重 business/team）:
+**deep 评估**(业务与流程视角,侧重 business/team):
 ```
 Task(
-  subagent_type: "momus",
+  category: "deep",
   load_skills: ["arc:review"],
   run_in_background: true,
-  description: "momus 七维度评估",
-  prompt: "你是企业级软件评审专家，侧重前端交互、运维和用户体验。
+  description: "deep 业务与流程七维度评估",
+  prompt: "你是企业级软件评审专家,侧重业务价值、团队协作和流程规范。
 
 读取 <output_dir>/context/project-snapshot.md 了解项目概况。
 评估框架参考 <skills_dir>/review/references/dimensions.md。
 
-对全部 7 个维度逐一评估，每个维度产出一个独立文件 <output_dir>/momus/dim-N-<name>.md。
+对全部 7 个维度逐一评估,每个维度产出一个独立文件 <output_dir>/deep-business/dim-N-<name>.md。
 格式同 oracle（评分 + 加分点 + 扣分点 + 关键发现 + 改进建议）。
 必须引用代码证据（file:line）。"
 )
@@ -283,20 +283,20 @@ Task(
 3. **指出遗漏的问题或被忽略的优势**
 4. **给出修正后的评分建议**
 
-**oracle 反驳 deep + momus**（用 `Task(subagent_type="oracle", session_id="<复用>", ...)`）:
-- 读取 `deep/dim-*.md` 和 `momus/dim-*.md`
+**oracle 反驳 deep + deep(业务)**(用 `Task(subagent_type="oracle", session_id="<复用>", ...)`)：
+- 读取 `deep/dim-*.md` 和 `deep-business/dim-*.md`
 - 从架构视角反驳
 - 产出 `oracle/critique.md`
 
-**deep 反驳 oracle + momus**（用 `Task(category="deep", session_id="<复用>", ...)`）:
-- 读取 `oracle/dim-*.md` 和 `momus/dim-*.md`
+**deep 反驳 oracle + deep(业务)**(用 `Task(category="deep", session_id="<复用>", ...)`)：
+- 读取 `oracle/dim-*.md` 和 `deep-business/dim-*.md`
 - 从工程/代码质量/安全角度反驳
 - 产出 `deep/critique.md`
 
-**momus 反驳 oracle + deep**（用 `Task(subagent_type="momus", session_id="<复用>", ...)`）:
+**deep(业务) 反驳 oracle + deep**(用 `Task(category="deep", session_id="<复用>", ...)`)：
 - 读取 `oracle/dim-*.md` 和 `deep/dim-*.md`
 - 从质量/UX/运维角度反驳
-- 产出 `momus/critique.md`
+- 产出 `deep-business/critique.md`
 
 ---
 
@@ -308,9 +308,9 @@ Task(
 
 读取各方的维度分析 + 反驳报告，对每个维度：
 1. 取各方评分的**专业加权平均**：
-   - architecture/security/tech-debt: oracle 50%, deep 25%, momus 25%
-   - code-quality/devops: deep 50%, oracle 25%, momus 25%
-   - business/team: momus 50%, oracle 25%, deep 25%
+   - architecture/security/tech-debt: oracle 50%, deep 25%, deep(业务) 25%
+   - code-quality/devops: deep 50%, oracle 25%, deep(业务) 25%
+   - business/team: deep(业务) 50%, oracle 25%, deep 25%
 2. 根据反驳报告调整（如某方的评分被另外两方有力反驳，降低其权重）
 3. 生成最终评分及依据
 
@@ -362,7 +362,7 @@ Task(
 
 ## 七维度评分
 
-| 维度 | oracle | deep | momus | 最终 | 评级 |
+| 维度 | oracle | deep | deep(业务) | 最终 | 评级 |
 |------|--------|------|-------|------|------|
 | 架构设计 | 7 | 8 | 7 | 7.3 | 良好 |
 | 安全合规 | 6 | 5 | 6 | 5.6 | 合格 |
@@ -419,7 +419,7 @@ Task(
 │   ├── dim-1-architecture.md
 │   ├── ...（同 oracle）
 │   └── critique.md
-├── momus/
+├── deep-business/
 │   ├── dim-1-architecture.md
 │   ├── ...（同 oracle）
 │   └── critique.md
@@ -450,12 +450,12 @@ Task(
 === 阶段 2: 独立评估 ===
   ├── oracle(subagent) 7 维度... [完成]
   ├── deep(category) 7 维度... [完成]
-  └── momus(subagent) 7 维度... [完成]
+  └── deep(业务) 7 维度... [完成]
 
 === 阶段 3: 交叉反驳 ===
-  ├── oracle 反驳 deep+momus... [完成]
-  ├── deep 反驳 oracle+momus... [完成]
-  └── momus 反驳 oracle+deep... [完成]
+  ├── oracle 反驳 deep+deep(业务)... [完成]
+  ├── deep 反驳 oracle+deep(业务)... [完成]
+  └── deep(业务) 反驳 oracle+deep... [完成]
 
 === 阶段 4: 收敛报告 ===
   ├── 聚合评分... [完成]
@@ -469,8 +469,8 @@ Task(
 | 阶段 | 步骤 | 输出路径 |
 |------|------|---------|
 | 项目侦察 | MCP 扫描 → 快照 | `context/project-snapshot.md` |
-| 独立评估 | 多Agent×7 维度 | `(oracle|deep|momus)/dim-N-<name>.md` |
-| 交叉反驳 | 各Agent互相反驳 | `(oracle|deep|momus)/critique.md` |
+| 独立评估 | 多Agent×7 维度 | `(oracle|deep|deep-business)/dim-N-<name>.md` |
+| 交叉反驳 | 各Agent互相反驳 | `(oracle|deep|deep-business)/critique.md` |
 
 ## 调用方式速查
 
@@ -478,5 +478,5 @@ Task(
 |------|---------|---------|
 | oracle | `Task(subagent_type="oracle", load_skills=["arc:review"], run_in_background=true, ...)` | 后台异步 |
 | deep | `Task(category="deep", load_skills=["arc:review"], run_in_background=true, ...)` | 后台异步 |
-| momus | `Task(subagent_type="momus", load_skills=["arc:review"], run_in_background=true, ...)` | 后台异步 |
+| deep(业务) | `Task(category="deep", load_skills=["arc:review"], run_in_background=true, ...)` | 后台异步 |
 | 主进程（聚合/报告） | 直接处理 | — |
