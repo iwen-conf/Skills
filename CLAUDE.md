@@ -218,18 +218,22 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 
 ### 核心 Agent 矩阵
 
-| Agent 代号 | 角色定位 | 适用场景 | 底层模型 | 关键技能 |
-|-----------|---------|---------|---------|---------|
-| **Sisyphus** | 主控调度员/项目经理 | 所有会话的默认入口，负责需求拆解、任务规划与路由 | anthropic/claude-opus-4-6 | ace-tool 项目检索、Exa 外网搜索 |
-| **Hephaestus** | 核心程序员/构造者 | 端到端的功能硬核实现、智能合约安全审计、底层算法库彻底重写 | openai/gpt-5.3-codex (xhigh) | 深层 AST 操作、文件读写、编译器错误诊断 |
-| **Prometheus** | 宏观规划师/破冰者 | 复杂需求拆解、依赖关系图谱生成、并行执行策略蓝图绘制 | anthropic/claude-opus-4-6 (max) | 交互式需求澄清、甘特图与依赖树构建 |
-| **Metis** | 策略专家/算法优化师 | 执行前的策略审计，寻找 Prometheus 计划中的算法漏洞和逻辑盲区 | MiniMax/MiniMax-M2.5 | 计划突变、算法复杂度分析 |
-| **Momus** | 严苛的 QA/代码审查员 | 执行极度严苛的代码审查、主动排查隐蔽的安全漏洞、验证代码风格与测试标准 | openai/gpt-5.2 | 诊断输出解析、故障注入模拟 |
-| **Oracle** | 架构师/决策顾问 | 复杂系统架构推演、并发竞争条件根因分析、多系统交互权衡策略制定 | openai/gpt-5.1-codex-max (high) | 全代码库只读扫描、诊断日志深度解析 |
-| **Atlas** | 基础重构者/重体力劳动者 | 全局级依赖替换、跨微服务批量重构、超大规模代码库格式化整改与目录迁移 | Kimi/kimi-2.5 | 巨型主循环管理、批量文件操作 |
-| **Librarian** | 知识管理与检索 | 查阅外部长篇官方文档、研读最新 API 迁移手册、检索开源社区最佳实践 | GLM/glm-5 | Exa 全网搜索、Context7 文档摄取、GitHub 仓库爬取 |
-| **Explore** | 代码库侦察兵 | 极速踩点遍历深层文件树、执行基于上下文的模糊 grep 搜索、快速映射变量定义与系统依赖拓扑图 | anthropic/claude-haiku-4-5 | ast_grep_search、lsp_workspace_symbols |
-| **Multimodal-looker** | 视觉前端工程师 | 解析 PDF 设计图、将图片直接转化为 React/Vue 响应式组件、分析浏览器截图并定位 CSS 布局漂移 | Google/gemini-3-flash-preview | 图像张量解析、视觉边界框映射、UI 样式表动态生成 |
+> **Sisyphus = 主进程**：Sisyphus 即 Claude Code 会话的主进程本身（执行 Skill 的调度层），不通过 Task() 调用，而是直接在当前会话中运行。其余 Agent 均通过 Task() API 调度。
+
+| Agent 代号 | 角色定位 | 调用方式 | 适用场景 | 底层模型 | 关键技能 |
+|-----------|---------|---------|---------|---------|---------|
+| **Sisyphus** | 主控调度员/项目经理 | 主进程（不通过 Task 调用） | 所有会话的默认入口，负责需求拆解、任务规划与路由 | anthropic/claude-opus-4-6 | ace-tool 项目检索、Exa 外网搜索 |
+| **Hephaestus** | 核心程序员/构造者 | `subagent_type="hephaestus"` | 端到端的功能硬核实现、智能合约安全审计、底层算法库彻底重写 | openai/gpt-5.3-codex (xhigh) | 深层 AST 操作、文件读写、编译器错误诊断 |
+| **Prometheus** | 宏观规划师/破冰者 | `subagent_type="prometheus"` | 复杂需求拆解、需求澄清、依赖关系图谱生成、并行执行策略蓝图绘制 | anthropic/claude-opus-4-6 (max) | 交互式需求澄清、甘特图与依赖树构建 |
+| **Metis** | 策略专家/算法优化师 | `subagent_type="metis"` | 执行前的策略审计，寻找 Prometheus 计划中的算法漏洞和逻辑盲区 | MiniMax/MiniMax-M2.5 | 计划突变、算法复杂度分析 |
+| **Momus** | 严苛的 QA/代码审查员 | `subagent_type="momus"` | 执行极度严苛的代码审查、主动排查隐蔽的安全漏洞、验证代码风格与测试标准 | openai/gpt-5.2 | 诊断输出解析、故障注入模拟 |
+| **Oracle** | 架构师/决策顾问 | `subagent_type="oracle"` | 复杂系统架构推演、并发竞争条件根因分析、多系统交互权衡策略制定 | openai/gpt-5.1-codex-max (high) | 全代码库只读扫描、诊断日志深度解析 |
+| **Atlas** | 基础重构者/重体力劳动者 | `subagent_type="atlas"` | 全局级依赖替换、跨微服务批量重构、超大规模代码库格式化整改与目录迁移 | Kimi/kimi-2.5 | 巨型主循环管理、批量文件操作 |
+| **Librarian** | 知识管理与检索 | `subagent_type="librarian"` | 查阅外部长篇官方文档、研读最新 API 迁移手册、检索开源社区最佳实践 | GLM/glm-5 | Exa 全网搜索、Context7 文档摄取、GitHub 仓库爬取 |
+| **Explore** | 代码库侦察兵 | `subagent_type="explore"` | 极速踩点遍历深层文件树、执行基于上下文的模糊 grep 搜索、快速映射变量定义与系统依赖拓扑图 | anthropic/claude-haiku-4-5 | ast_grep_search、lsp_workspace_symbols |
+| **Multimodal-looker** | 视觉前端工程师 | `subagent_type="multimodal-looker"` | 解析 PDF 设计图、将图片直接转化为 React/Vue 响应式组件、分析浏览器截图并定位 CSS 布局漂移 | Google/gemini-3-flash-preview | 图像张量解析、视觉边界框映射、UI 样式表动态生成 |
+
+> **注意**：`category` 路由（如 `deep`、`visual-engineering`、`quick`）是按领域自动选择最优模型，不绑定特定 Agent 代号。`subagent_type` 路由则指定具体的 Agent 角色。两者可在 `Task()` 中二选一使用。
 
 ### 关键使用边界（CRITICAL）
 
