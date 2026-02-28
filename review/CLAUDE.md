@@ -14,7 +14,7 @@ arc:review 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软
 
 核心能力：
 - **七维度框架**：功能适用性、性能效率、兼容性、易用性、可靠性、安全性、可维护性
-- **多Agent对抗**：oracle/deep/momus 独立评审后互相反驳，消除盲点
+- **多Agent对抗**：oracle/deep/deep(业务) 独立评审后互相反驳，消除盲点
 - **证据驱动**：每个结论必须有代码路径、配置文件或日志证据支撑
 - **改进路线图**：输出优先级排序的问题清单和修复建议
 
@@ -39,7 +39,7 @@ arc:review 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软
 ### 工作流程
 
 1. **Phase 1: 项目扫描** — 使用 ace-tool MCP 扫描项目结构
-2. **Phase 2: 多Agent独立评审** — oracle/deep/momus 各自从专业视角评审
+2. **Phase 2: 多Agent独立评审** — oracle/deep/deep(业务) 各自从专业视角评审
 3. **Phase 3: 交叉反驳** — 多Agent互相挑战对方结论
 4. **Phase 4: 报告合成** — 汇总共识，标注分歧，输出最终报告
 
@@ -59,12 +59,12 @@ arc:review 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软
 .arc/review/<project-name>/
 ├── oracle/
 │   ├── review.md           # Oracle 评审报告
-│   └── critique.md         # 对 deep/momus 的反驳
+│   └── critique.md         # 对 deep/deep(业务) 的反驳
 ├── deep/
 │   ├── review.md           # Deep 评审报告
-│   └── critique.md         # 对 oracle/momus 的反驳
-├── momus/
-│   ├── review.md           # Momus 评审报告
+│   └── critique.md         # 对 oracle/deep(业务) 的反驳
+├── deep-business/
+│   ├── review.md           # Deep(业务) 评审报告
 │   └── critique.md         # 对 oracle/deep 的反驳
 ├── consensus.md            # 共识报告
 ├── roadmap.md              # 改进路线图
@@ -77,8 +77,7 @@ arc:review 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软
 |------|------|------|
 | ace-tool MCP | 必须 | 语义搜索项目代码结构 |
 | Exa MCP | 推荐 | 搜索最佳实践和漏洞信息 |
-| codex CLI | 已移除 | 不再需要 |
-| gemini CLI | 已移除 | 不再需要 |
+| oh-my-opencode Task API | 必须 | Agent 调度（category/subagent 路由） |
 
 ## 数据模型
 
@@ -126,7 +125,7 @@ graph TD
     subgraph 多Agent评审
         OR["oracle<br/>架构/创新"]
         DP["deep<br/>工程/性能"]
-        MM["momus<br/>质量/流程"]
+        MM["deep(业务)<br/>业务/流程"]
     end
 
     subgraph 对抗
@@ -191,7 +190,7 @@ graph TD
 3. **Agent协作**：
    - oracle 负责架构、综合分析
    - deep 负责后端、性能、安全
-   - momus 负责质量、流程、文档一致性
+   - deep(业务) 负责业务价值、团队协作、流程规范
 
 4. **输出规范**：
    - consensus.md 必须标注分歧点
