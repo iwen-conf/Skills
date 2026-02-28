@@ -50,7 +50,7 @@ description: "增量更新项目 CLAUDE.md 索引体系。基于指纹对比和 
 ## Dependencies
 
 * **ace-tool (MCP)**: 必须。语义搜索项目代码结构。
-* **oh-my-opencode Task API**: 必须。调度 oracle/deep/momus Agent。
+* **oh-my-opencode Task API**: 必须。调度 oracle/deep/visual-engineering Agent。
 * **Git**: 必须。变更检测依赖 git 命令。
 
 ## Critical Rules
@@ -70,7 +70,7 @@ description: "增量更新项目 CLAUDE.md 索引体系。基于指纹对比和 
 
 4. **Agent 缩减**
  - ADDED 模块：完整 3 Agent 分析
- - MODIFIED（key_files 变化）：2 Agent（deep + momus）
+ - MODIFIED（key_files 变化）：2 Agent（deep + visual-engineering）
  - MODIFIED（仅 source 变化）：1 Agent（deep）
  - DELETED/RENAMED：0 Agent
 
@@ -152,8 +152,8 @@ git diff --name-status --diff-filter=D <baseline_git_ref>..HEAD
 
 | 模块 | 变更类型 | Agent 分析 | CLAUDE.md 操作 |
 |------|----------|------------|----------------|
-| src/new-feature/ | ADDED | oracle+deep+momus | 新建 |
-| src/auth/ | MODIFIED_KEY | deep+momus | 合并更新 |
+| src/new-feature/ | ADDED | oracle+deep+visual-engineering | 新建 |
+| src/auth/ | MODIFIED_KEY | deep+visual-engineering | 合并更新 |
 | src/utils/ | MODIFIED_SOURCE | deep | 合并更新 |
 | src/legacy/ | DELETED | — | 删除 |
 | src/ | STALE_PARENT | — | 索引更新 |
@@ -182,7 +182,7 @@ git diff --name-status --diff-filter=D <baseline_git_ref>..HEAD
  - 所有 ADDED 模块
 
 需要部分分析（2 Agent）:
- - 所有 MODIFIED_KEY 模块（deep + momus，跳过 oracle）
+ - 所有 MODIFIED_KEY 模块（deep + visual-engineering，跳过 oracle）
 
 需要最小分析（1 Agent）:
  - 所有 MODIFIED_SOURCE 模块（仅 deep）
@@ -218,12 +218,12 @@ Task(
  prompt: `...`
 )
 
-// momus 分析
+// visual-engineering 分析
 Task(
- subagent_type: "momus",
- load_skills: ["arc:init:update"],
+ category: "visual-engineering",
+ load_skills: ["arc:init:update", "frontend-ui-ux"],
  run_in_background: true,
- description: "momus DX 分析",
+ description: "visual-engineering DX 分析",
  prompt: `...`
 )
 ```
@@ -231,9 +231,9 @@ Task(
 **MODIFIED_KEY 模块分析**（2 Agent）：
 
 ```typescript
-// 仅 deep + momus，跳过 oracle
+// 仅 deep + visual-engineering，跳过 oracle
 Task(category: "deep", ...),
-Task(subagent_type: "momus", ...)
+Task(category: "visual-engineering", ...)
 ```
 
 **MODIFIED_SOURCE 模块分析**（1 Agent）：
@@ -427,7 +427,7 @@ IF skip_agents=true:
 │ │ └── analysis-update.md # 新增：本次分析
 │ ├── deep/
 │ │ └── analysis-update.md
-│ └── momus/
+│ └── visual-engineering/
 │ └── analysis-update.md
 └── summary.md # 更新
 ```
@@ -438,10 +438,10 @@ IF skip_agents=true:
 
 | 变更类型 | Agent 分析 | CLAUDE.md 操作 | 祖先更新 |
 |----------|------------|----------------|----------|
-| `ADDED` | oracle + deep + momus | 新建完整文件 | 索引 + mermaid |
+| `ADDED` | oracle + deep + visual-engineering | 新建完整文件 | 索引 + mermaid |
 | `DELETED` | — | 删除文件 | 索引 + mermaid |
 | `RENAMED` | — | 移动 + 路径更新 | 索引 + mermaid |
-| `MODIFIED_KEY` | deep + momus | 合并更新 | 可能需要 |
+| `MODIFIED_KEY` | deep + visual-engineering | 合并更新 | 可能需要 |
 | `MODIFIED_SOURCE` | deep (shallow) | 合并更新 | 通常不需要 |
 | `MODIFIED_CLAUDE_MD` | — | 跳过 | 不需要 |
 | `STALE_PARENT` | — | 索引 + mermaid 更新 | — |

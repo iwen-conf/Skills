@@ -257,7 +257,7 @@ graph TD
 4. **模型调用方式**：
    #QN|   - oracle: `Task({ subagent_type: "general-purpose", run_in_background: true })`
    #VK|   - deep: `Task(category="deep", prompt="<prompt>", run_in_background: true)`
-   #MX|   - momus: `Task(subagent_type="momus", prompt="<prompt>", run_in_background: true)`
+   #MX|   - visual-engineering: `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], run_in_background: true)`
 
 5. **Context Budget**：
    - Phase 1 只��取摘要，不粘贴完整文件

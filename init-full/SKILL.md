@@ -37,7 +37,7 @@ description: "全量生成项目层级式 CLAUDE.md 索引体系。深度扫描�
 
 * **ace-tool (MCP)**: 必须。语义搜索项目代码结构、架构模式、入口文件。
 * **Exa MCP**: 推荐。搜索框架最佳实践、技术栈文档。
-* **oh-my-opencode Task API**: 必须。通过 Task() 调度 oracle/deep/momus Agent。
+* **oh-my-opencode Task API**: 必须。通过 Task() 调度 oracle/deep/visual-engineering Agent。
 
 ## Critical Rules（核心铁律）
 
@@ -242,13 +242,13 @@ Task(
 )
 ```
 
-**momus 分析**（DX/体验视角）:
+**visual-engineering 分析**（DX/体验视角）:
 ```
 Task(
- subagent_type: "momus",
- load_skills: ["arc:init:full"],
+ category: "visual-engineering",
+ load_skills: ["arc:init:full", "frontend-ui-ux"],
  run_in_background: true,
- description: "momus DX 分析",
+ description: "visual-engineering DX 分析",
  prompt: "你是前端与开发者体验分析师。
 读取 <output_dir>/context/project-snapshot.md 和 <output_dir>/context/generation-plan.md。
 
@@ -260,7 +260,7 @@ Task(
 5. 数据模型与关系
 6. 项目成熟度判断
 
-写入 <output_dir>/agents/momus/analysis.md。"
+写入 <output_dir>/agents/visual-engineering/analysis.md。"
 )
 ```
 
@@ -287,19 +287,19 @@ Task(
 4. **挑战成熟度判断**（附文件路径证据）
 5. **提出修正建议**
 
-**oracle 反驳 deep + momus**（用 `Task(subagent_type="oracle", session_id="<复用>", ...)`）:
-- 读取 `agents/deep/analysis.md` 和 `agents/momus/analysis.md`
+**oracle 反驳 deep + visual-engineering**（用 `Task(subagent_type="oracle", session_id="<复用>", ...)`）:
+- 读取 `agents/deep/analysis.md` 和 `agents/visual-engineering/analysis.md`
 - 产出 `agents/oracle/critique.md`
 
-**deep 反驳 oracle + momus**（用 `Task(category="deep", session_id="<复用>", ...)`）:
-- 读取 `agents/oracle/analysis.md` 和 `agents/momus/analysis.md`
+**deep 反驳 oracle + visual-engineering**（用 `Task(category="deep", session_id="<复用>", ...)`）:
+- 读取 `agents/oracle/analysis.md` 和 `agents/visual-engineering/analysis.md`
 - 从工程/构建/测试角度反驳
 - 产出 `agents/deep/critique.md`
 
-**momus 反驳 oracle + deep**（用 `Task(subagent_type="momus", session_id="<复用>", ...)`）:
+**visual-engineering 反驳 oracle + deep**（用 `Task(category="visual-engineering", session_id="<复用>", ...)`）:
 - 读取 `agents/oracle/analysis.md` 和 `agents/deep/analysis.md`
 - 从前端/DX/文档角度反驳
-- 产出 `agents/momus/critique.md`
+- 产出 `agents/visual-engineering/critique.md`
 
 ---
 
@@ -309,9 +309,9 @@ Task(
 
 #### Step 4.1: 综合分析
 
-读取全部 Agent 产出（agents/oracle/、agents/deep/、agents/momus/ 下的 analysis.md + critique.md），对每个待生成目录：
+读取全部 Agent 产出（agents/oracle/、agents/deep/、agents/visual-engineering/ 下的 analysis.md + critique.md），对每个待生成目录：
 1. 解决各方分歧（如版本号冲突，以 manifest 文件为准）
-2. 合并各方贡献（架构来自 oracle、工程来自 deep、成熟度来自 momus）
+2. 合并各方贡献（架构来自 oracle、工程来自 deep、成熟度来自 visual-engineering）
 3. 确定每个 CLAUDE.md 的各章节内容
 
 #### Step 4.2: 叶子优先生成
@@ -403,7 +403,7 @@ Task(
 │ ├── deep/
 │ │ ├── analysis.md # Phase 2: 工程分析
 │ │ └── critique.md # Phase 3: 交叉审阅
-│ └── momus/
+│ └── visual-engineering/
 │ ├── analysis.md # Phase 2: DX 分析
 │ └── critique.md # Phase 3: 交叉审阅
 └── summary.md # Phase 4: 生成汇总

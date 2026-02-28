@@ -7,7 +7,7 @@ description: 当复杂问题需要多 Agent 多视角分析并通过迭代讨论
 
 ## Overview
 
-通过共享文件系统作为通信总线，协调多个专业 Agent（oracle/deep/momus）进行迭代式协作审议。**每个阶段各 Agent 都必须互相反驳、审阅对方的观点**。
+通过共享文件系统作为通信总线,协调多个专业 Agent(oracle/deep/visual-engineering)进行迭代式协作审议。**每个阶段各 Agent 都必须互相反驳、审阅对方的观点**。
 
 流程分为四个阶段：
 
@@ -24,7 +24,7 @@ description: 当复杂问题需要多 Agent 多视角分析并通过迭代讨论
 |------|---------|------|
 | **oracle** | `Task(subagent_type="oracle", load_skills=["arc:deliberate"], ...)` | 架构分析、设计评审（只读高质量推理） |
 | **deep** | `Task(category="deep", load_skills=[...], ...)` | 深度工程分析、方案提案、代码执行 |
-|| **momus** | `Task(subagent_type="momus", load_skills=["arc:deliberate"], ...)` | 代码审查、安全审计、质量保障 |
+| **visual-engineering** | `Task(category="visual-engineering", load_skills=["arc:deliberate", "frontend-ui-ux"], ...)` | 前端与DX视角、UI/UX设计、交互体验 |
 | **metis** | `Task(subagent_type="metis", load_skills=["arc:refine"], ...)` | 需求预分析、歧义检测 |
 | **explore** | `Task(subagent_type="explore", load_skills=[], run_in_background=true, ...)` | 代码库搜索（廉价、后台） |
 | **librarian** | `Task(subagent_type="librarian", load_skills=[], run_in_background=true, ...)` | 外部文档搜索（廉价、后台） |
@@ -59,7 +59,7 @@ Task(
 - 复杂技术决策需要多视角验证（架构、性能、安全、兼容性）
 - 单个模型的方案可能有盲点，需要交叉审阅
 - 用户需要可解释的决策而非黑盒结论
-- 问题涉及多个技术领域，需要 oracle（架构）+ deep（工程）+ momus（质量）协作
+- 问题涉及多个技术领域,需要 oracle(架构)+ deep(工程)+ visual-engineering(前端与DX)协作
 
 ## Core Pattern
 
@@ -92,7 +92,7 @@ Task(
 │   │   ├── proposal-round-1.md
 │   │   ├── critique-round-1.md
 │   │   └── plan-review.md
-│   └── momus/                           # momus Agent 所有阶段产出（质量视角）
+│   └── visual-engineering/              # visual-engineering 所有阶段产出(前端与DX视角)
 │       ├── ambiguity-round-1.md
 │       ├── proposal-round-1.md
 │       ├── critique-round-1.md
@@ -156,18 +156,18 @@ Task(
 )
 ```
 
-**momus 分析**（质量视角）:
+**visual-engineering 分析**(前端与DX视角):
 ```
 Task(
-  subagent_type: "momus",
-  load_skills: ["arc:deliberate"],
+  category: "visual-engineering",
+  load_skills: ["arc:deliberate", "frontend-ui-ux"],
   run_in_background: true,
-  description: "momus 歧义分析",
-  prompt: "你是质量与用户体验分析师。分析以下需求的歧义点。
+  description: "visual-engineering 歧义分析",
+  prompt: "你是前端与DX工程师。分析以下需求的歧义点。
 上下文信息（来自 MCP 搜索）：<MCP 搜索结果>
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 从用户体验、完整性、可维护性等角度，列出可能存在歧义的地方。
-写入 <workdir>/.arc/deliberate/<task-name>/agents/momus/ambiguity-round-N.md。"
+写入 <workdir>/.arc/deliberate/<task-name>/agents/visual-engineering/ambiguity-round-N.md。"
 )
 ```
 
@@ -176,12 +176,12 @@ Task(
 **CRITICAL**: 各 Agent 必须**互相反驳对方识别出的歧义**。
 
 每个模型必须：
-1. 读取其他 Agent 的歧义分析（如 oracle 读取 `agents/deep/ambiguity-round-N.md` 和 `agents/momus/ambiguity-round-N.md`）
+1. 读取其他 Agent 的歧义分析(如 oracle 读取 `agents/deep/ambiguity-round-N.md` 和 `agents/visual-engineering/ambiguity-round-N.md`)
 2. 反驳对方认为的"歧义"（可能不是歧义）
 3. 补充对方遗漏的歧义
 4. 将反驳内容追加到自己的 `ambiguity-round-N.md`
 
-调用方式同 Step 1.1（oracle 用 `Task(subagent_type="oracle")`，deep 用 `Task(category="deep")`，momus 用 `Task(subagent_type="momus")`）。
+调用方式同 Step 1.1(oracle 用 `Task(subagent_type="oracle")`,deep 用 `Task(category="deep")`,visual-engineering 用 `Task(category="visual-engineering")`)。
 
 ### Step 1.3: 聚合歧义
 
@@ -235,7 +235,7 @@ Task(
 
 ### Step 2.1: 目录脚手架
 
-确保 `agents/oracle/`、`agents/deep/`、`agents/momus/`、`convergence/` 目录已创建。
+确保 `agents/oracle/`、`agents/deep/`、`agents/visual-engineering/`、`convergence/` 目录已创建。
 
 ### Step 2.2: 并发派发提案 (每轮)
 
@@ -269,17 +269,17 @@ Task(
 )
 ```
 
-**momus 提案**（质量视角）:
+**visual-engineering 提案**(前端与DX视角):
 ```
 Task(
-  subagent_type: "momus",
-  load_skills: ["arc:deliberate"],
+  category: "visual-engineering",
+  load_skills: ["arc:deliberate", "frontend-ui-ux"],
   run_in_background: true,
-  description: "momus 提案 Round N",
-  prompt: "你是质量与用户体验分析师（UI/UX、用户体验、响应式设计、可维护性）。
+  description: "visual-engineering 提案 Round N",
+  prompt: "你是前端与DX工程师(UI/UX、用户体验、响应式设计、可维护性)。
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 给出完整的解决方案提案，仅限纯文本 Markdown 格式，禁止代码块。
-写入 <workdir>/.arc/deliberate/<task-name>/agents/momus/proposal-round-N.md。"
+写入 <workdir>/.arc/deliberate/<task-name>/agents/visual-engineering/proposal-round-N.md。"
 )
 ```
 
@@ -297,20 +297,20 @@ Task(
 3. **用论据反驳对方的技术选择**
 4. 提出自己的替代方案
 
-**oracle 审阅 deep + momus**（用 `Task(subagent_type="oracle", session_id="<复用上轮 session>", ...)`）:
-- 读取 `agents/deep/proposal-round-N.md` 和 `agents/momus/proposal-round-N.md`
-- 从架构视角反驳 deep 的工程选择、momus 的质量要求
+**oracle 审阅 deep + visual-engineering**(用 `Task(subagent_type="oracle", session_id="<复用上轮 session>", ...)`):
+- 读取 `agents/deep/proposal-round-N.md` 和 `agents/visual-engineering/proposal-round-N.md`
+- 从架构视角反驳 deep 的工程选择、visual-engineering 的前端设计
 - 产出：`agents/oracle/critique-round-N.md`
 
-**deep 审阅 oracle + momus**（用 `Task(category="deep", session_id="<复用上轮 session>", ...)`）:
-- 读取 `agents/oracle/proposal-round-N.md` 和 `agents/momus/proposal-round-N.md`
-- 从工程视角反驳 oracle 的架构设计、momus 的体验要求
+**deep 审阅 oracle + visual-engineering**(用 `Task(category="deep", session_id="<复用上轮 session>", ...)`):
+- 读取 `agents/oracle/proposal-round-N.md` 和 `agents/visual-engineering/proposal-round-N.md`
+- 从工程视角反驳 oracle 的架构设计、visual-engineering 的体验要求
 - 产出：`agents/deep/critique-round-N.md`
 
-**momus 审阅 oracle + deep**（用 `Task(subagent_type="momus", session_id="<复用上轮 session>", ...)`）:
+**visual-engineering 审阅 oracle + deep**(用 `Task(category="visual-engineering", session_id="<复用上轮 session>", ...)`):
 - 读取 `agents/oracle/proposal-round-N.md` 和 `agents/deep/proposal-round-N.md`
 - 从质量视角反驳 oracle 的抽象设计、deep 的工程实现
-- 产出：`agents/momus/critique-round-N.md`
+- 产出:`agents/visual-engineering/critique-round-N.md`
 
 ### Step 2.5: 收敛判定
 
@@ -484,13 +484,13 @@ Task(
 )
 ```
 
-**momus 审查计划**（质量视角）:
+**visual-engineering 审查计划**(前端与DX视角):
 ```
 Task(
-  subagent_type: "momus",
-  load_skills: ["arc:deliberate"],
+  category: "visual-engineering",
+  load_skills: ["arc:deliberate", "frontend-ui-ux"],
   run_in_background: true,
-  description: "momus 审查计划",
+  description: "visual-engineering 审查计划",
   prompt: "你是前端与交互设计师。审查以下 OpenSpec 计划文件，从前端交互、UI/UX、组件架构、用户体验角度进行审查反驳。
 读取以下文件：
 - $CHANGE/proposal.md
@@ -502,7 +502,7 @@ Task(
 2. 反驳不合理的设计选择
 3. 补充遗漏的前端相关任务
 4. 给出修改建议
-写入 <workdir>/.arc/deliberate/<task-name>/agents/momus/plan-review.md。"
+写入 <workdir>/.arc/deliberate/<task-name>/agents/visual-engineering/plan-review.md。"
 )
 ```
 
@@ -510,7 +510,7 @@ Task(
 
 **CRITICAL**: 各 Agent 互相反驳对方的计划审查意见。每个 Agent 读取另外两个的 `plan-review.md`，反驳不合理之处，补充遗漏。
 
-调用方式：oracle 用 `Task(subagent_type="oracle", session_id="<复用>")`，deep 用 `Task(category="deep", session_id="<复用>")`，momus 用 `Task(subagent_type="momus", session_id="<复用>")`，三者并发。
+调用方式:oracle 用 `Task(subagent_type="oracle", session_id="<复用>")`,deep 用 `Task(category="deep", session_id="<复用>")`,visual-engineering 用 `Task(category="visual-engineering", session_id="<复用>")`,三者并发。
 
 各 Agent 产出覆盖（更新）自己的 `plan-review.md`，追加反驳段落。
 
@@ -518,7 +518,7 @@ Task(
 
 主进程直接处理，综合各份审查报告，修订 OpenSpec artifact 文件：
 
-1. 读取 `agents/oracle/plan-review.md`、`agents/deep/plan-review.md`、`agents/momus/plan-review.md`
+1. 读取 `agents/oracle/plan-review.md`、`agents/deep/plan-review.md`、`agents/visual-engineering/plan-review.md`
 2. 根据各方审查修订 `openspec/changes/<task-name>/tasks.md`（确保任务有序、有依赖关系、可执行）
 3. 同步更新 `design.md` 和 `specs/` 下的 spec 文件（如有必要）
 
@@ -606,7 +606,7 @@ openspec archive <task-name>
 Round 1/3:
   ├── oracle(subagent) 分析... [完成]
   ├── deep(category) 分析... [完成]
-  ├── momus(subagent) 分析... [完成]
+  ├── visual-engineering(category) 分析... [完成]
   ├── 聚合歧义... [N 个歧义]
   └── 用户澄清... [进行中]
 
@@ -614,7 +614,7 @@ Round 1/3:
 Round 1/3:
   ├── oracle 提案... [完成]
   ├── deep 提案... [完成]
-  ├── momus 提案... [完成]
+  ├── visual-engineering 提案... [完成]
   ├── 交叉审阅... [完成]
   └── 收敛判定... [收敛]
 
@@ -624,7 +624,7 @@ Round 1/3:
   ├── openspec validate... [通过]
   ├── oracle 审查... [完成]
   ├── deep 审查... [完成]
-  ├── momus 审查... [完成]
+  ├── visual-engineering 审查... [完成]
   ├── 多Agent交叉反驳... [完成]
   └── 计划定稿... [完成]
 
@@ -637,8 +637,8 @@ Round 1/3:
 
 | 阶段 | 步骤 | 输出路径 |
 |------|------|---------|
-| 歧义检查 | 多Agent分析 → 聚合 → 用户澄清 → 判定 | `agents/(oracle\|deep\|momus)/ambiguity-round-N.md` |
-| 审议 | 提案 → 审阅 → 收敛判定 → 共识报告 | `agents/(oracle\|deep\|momus)/proposal-round-N.md`, `convergence/final-consensus.md` |
+| 歧义检查 | 多Agent分析 → 聚合 → 用户澄清 → 判定 | `agents/(oracle\|deep\|visual-engineering)/ambiguity-round-N.md` |
+| 审议 | 提案 → 审阅 → 收敛判定 → 共识报告 | `agents/(oracle\|deep\|visual-engineering)/proposal-round-N.md`, `convergence/final-consensus.md` |
 | 计划生成 | OpenSpec init → 生成 artifact → 验证 → 多Agent审查 → 交叉反驳 → 定稿 | `openspec/changes/<task-name>/(proposal\|design\|tasks).md`, `openspec/changes/<task-name>/specs/` |
 | 执行 | deep Agent 按 tasks.md 实现代码 → 归档 | 项目代码 + `openspec archive` |
 
@@ -648,5 +648,5 @@ Round 1/3:
 |------|---------|---------|
 | oracle | `Task(subagent_type="oracle", load_skills=["arc:deliberate"], run_in_background=true, ...)` | 后台异步 |
 | deep | `Task(category="deep", load_skills=["arc:deliberate"], run_in_background=true, ...)` | 后台异步 |
-| momus | `Task(subagent_type="momus", load_skills=["arc:deliberate"], run_in_background=true, ...)` | 后台异步 |
+| visual-engineering | `Task(category="visual-engineering", load_skills=["arc:deliberate", "frontend-ui-ux"], run_in_background=true, ...)` | 后台异步 |
 | 聚合/定稿 | 主进程直接处理 | — |
