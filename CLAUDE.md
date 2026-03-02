@@ -6,10 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | 时间 | 操作 |
 |------|------|
-MN|| 2026-02-28 | 新增 arc:init:full 与 arc:init:update，拆分全量初始化与增量更新能力；arc:init 改为智能调度器 |
-| 2026-02-25 | 新增 arc:ip-audit 与 arc:ip-docs，拆分知识产权审查与文档写作能力 |
-| 2026-02-24T16:30:00 | arc:init 多Agent协作生成模块级 CLAUDE.md（simulate/triage/loop/review/deliberate/init/agent/refine） |
-| 2026-02-24 | 初始版本，定义 Skill 清单、依赖链、架构和约定 |
+| 2026-03-03 | 新增 arc:score 与 arc:gate，引入量化评分与 CI 门禁能力；增强 arc:review 和 arc:deliberate |
+| 2026-02-28 | 新增 arc:init:full 与 arc:init:update，拆分全量初始化与增量更新能力；arc:init 改为智能调度器 |
 
 ---
 
@@ -33,6 +31,8 @@ KZ|| `init/` | arc:init | `/arc:init` | 智能调度器，自动判断全量(ful
 QB|| `init-full/` | arc:init:full | `/arc:init:full` | 全量生成项目层级式 CLAUDE.md 索引体系，深度扫描+多Agent分析 |
 QB|| `init-update/` | arc:init:update | `/arc:init:update` | 增量更新 CLAUDE.md，基于指纹检测变更，仅更新受影响模块 |
 | `ip-docs/` | arc:ip-docs | `/arc:ip-docs` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
+| `score/` | arc:score | `/arc:score` | 量化评分与 Code Smell 检测，为评审提供量化数据支撑 |
+| `gate/` | arc:gate | `/arc:gate` | CI 质量门禁，基于评分数据执行可配置的阻断判定 |
 
 ## 模块文档索引
 
@@ -53,14 +53,18 @@ QB|| `init-update/` | arc:init:update | `/arc:init:update` | 增量更新 CLAUDE
 | refine/ | [CLAUDE.md](./refine/CLAUDE.md) | CLAUDE.md 索引扫描、差距分析、Prompt 增强 |
 | ip-audit/ | [CLAUDE.md](./ip-audit/CLAUDE.md) | 知识产权可行性审查、风险矩阵、交接产物定义 |
 | ip-docs/ | [CLAUDE.md](./ip-docs/CLAUDE.md) | 软著/专利文档草稿写作、模板与交接消费 |
+| score/ | [CLAUDE.md](./score/CLAUDE.md) | 量化评分、Code Smell 检测、评分聚合 |
+| gate/ | [CLAUDE.md](./gate/CLAUDE.md) | CI 门禁、阈值配置、豁免清单 |
 
 ## Skill Dependency Chain
 
 ```
-PQ|arc:agent ────┬─▶ arc:init         (智能调度 → full/update)
+arc:agent ────┬─▶ arc:init         (智能调度 → full/update)
               ├─▶ arc:refine       (问题细化)
               │     └─▶ arc:deliberate
               ├─▶ arc:implement    (方案落地实现)
+              ├─▶ arc:score        (量化评分) ──▶ arc:review
+              │                              └─▶ arc:gate (CI 门禁)
               ├─▶ arc:review       (项目评审)
               ├─▶ arc:ip-audit     (知识产权可行性审查)
               │     └─▶ arc:ip-docs
@@ -70,8 +74,10 @@ PQ|arc:agent ────┬─▶ arc:init         (智能调度 → full/updat
               └─▶ Task API dispatch (category/subagent routing)
 
 arc:init  (独立运行；输出的 CLAUDE.md 被 arc:refine 消费)
+arc:score  (消费 arc:init 产物；输出量化数据给 arc:review 和 arc:gate)
 arc:implement  (消费 deliberation/refine 结果；输出实现交接供 review/simulate 使用)
-arc:review  (独立运行，不依赖其他 Skill)
+arc:review  (消费 arc:score 量化数据；输出评审报告)
+arc:gate  (消费 arc:score 数据；执行 CI 门禁判定)
 arc:ip-audit  (优先读取 arc:init/arc:review 产物；输出交接 JSON 给 arc:ip-docs)
 ```
 
@@ -129,6 +135,29 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 |--------|-------------|
 | `scaffold_implement_case.py` | Creates `.arc/implement/<task>/` scaffold with context, plan, execution, reports and handoff dirs |
 | `render_implementation_report.py` | Renders implementation delivery report and handoff summary |
+
+### score/scripts/
+| Script | What it does |
+|--------|-------------|
+| `scaffold_score_case.py` | Creates `.arc/score/<project>/` scaffold with context, analysis, score and handoff dirs |
+| `detect_smell.py` | Code Smell 检测，支持 19 项规则 |
+| `grade_bugfix.py` | Bugfix 分级 (A/B/C) + 自动打标 |
+| `aggregate_score.py` | 评分聚合，输出综合评分和维度评分 |
+
+### gate/scripts/
+| Script | What it does |
+|--------|-------------|
+| `check_gate.py` | CI 门禁检查，支持 warn/strict/strict_dangerous 模式 |
+
+### review/scripts/
+| Script | What it does |
+|--------|-------------|
+| `integrate_score.py` | 将 arc:score 量化数据集成到 arc:review |
+
+### deliberate/scripts/
+| Script | What it does |
+|--------|-------------|
+| `generate_bdd_seed.py` | 从共识报告生成 BDD 场景种子 |
 
 ## Conventions
 

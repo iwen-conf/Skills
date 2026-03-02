@@ -1,0 +1,48 @@
+# 评分卡模板
+
+## 综合评分
+
+| 指标 | 值 |
+|------|-----|
+| **分数** | {{ score }} / 100 |
+| **评级** | {{ grade_icon }} {{ grade }} |
+| **违规数** | {{ violation_count }} |
+| **扣分** | {{ total_penalty }} |
+
+## 严重程度分布
+
+| 严重程度 | 数量 |
+|----------|------|
+{% for severity, count in by_severity.items() %}
+| {{ severity_icons[severity] }} {{ severity }} | {{ count }} |
+{% endfor %}
+
+## 维度评分
+
+| 维度 | 分数 |
+|------|------|
+{% for dimension, score in dimension_scores.items() %}
+| {{ dimension }} | {{ score | round(1) }} |
+{% endfor %}
+
+## 类别分布
+
+| 类别 | 扣分 |
+|------|------|
+{% for category, penalty in by_category.items() %}
+| {{ category }} | {{ penalty }} |
+{% endfor %}
+
+## 评分说明
+
+| 评级 | 分数范围 | 含义 |
+|------|---------|------|
+| 🟢 A | 90-100 | 优秀：代码质量高，无明显问题 |
+| 🔵 B | 80-89 | 良好：符合企业级标准 |
+| 🟡 C | 70-79 | 合格：有明显短板需改进 |
+| 🟠 D | 60-69 | 需改进：存在较多问题 |
+| 🔴 F | 0-59 | 不合格：系统性缺陷 |
+
+---
+
+*评分时间: {{ calculated_at }}*

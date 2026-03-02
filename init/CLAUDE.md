@@ -10,11 +10,11 @@
 
 ## 模块职责
 
-arc:init 整合替代内置 `init` 和 `project-multilevel-index`，通过 oracle、deep、momus 多Agent协作分析项目，生成高质量的层级式 CLAUDE.md 索引体系。作为项目文档化的入口，为新项目或重构项目提供 AI 可读的导航文档。
+arc:init 整合替代内置 `init` 和 `project-multilevel-index`，通过 oracle、deep、visual-engineering 多Agent协作分析项目，生成高质量的层级式 CLAUDE.md 索引体系。作为项目文档化的入口，为新项目或重构项目提供 AI 可读的导航文档。
 
 核心能力：
 - **深度扫描**：拓扑识别 + 目录扫描 + 显著性评分 → 生成计��
-- **多Agent分析**：oracle（架构）/deep（工程）/momus（DX）各视角分析
+- **多Agent分析**：oracle（架构）/deep（工程）/visual-engineering（DX）各视角分析
 - **交叉审阅**：多Agent互相反驳，消除遗漏和错误
 - **层级生成**：叶子优先生成 CLAUDE.md 文件（模块级 → 分组级 → 根级）
 - **校验**：结构/表格/引用/内容四维校验
@@ -53,7 +53,7 @@ arc:init 整合替代内置 `init` 和 `project-multilevel-index`，通过 oracl
 **Phase 2: 多Agent分析**
 1. oracle（subagent）：架构、模块依赖、Mermaid 图
 2. deep（Agent）：技术栈、依赖健康度、构建命令
-3. momus（Agent）：前端、DX、成熟度判断
+3. visual-engineering（Agent）：前端、DX、成熟度判断
 
 **Phase 3: 交叉审阅**
 1. 多Agent互相反驳
@@ -99,7 +99,7 @@ arc:init 整合替代内置 `init` 和 `project-multilevel-index`，通过 oracl
 │   ├── deep/
 │   │   ├── analysis.md             # 工程分析
 │   │   └── critique.md             # 交叉审阅
-│   └── momus/
+│   └── visual-engineering/
 │       ├── analysis.md             # DX 分析
 │       └── critique.md             # 交叉审阅
 └── summary.md                      # 生成汇总
@@ -121,7 +121,7 @@ arc:init 整合替代内置 `init` 和 `project-multilevel-index`，通过 oracl
 |------|------|------|
 | ace-tool MCP | 必须 | 语义搜索项目代码结构 |
 | Exa MCP | 推荐 | 搜索技术栈最佳实践 |
-| oh-my-opencode Task API | 必须 | 调度 oracle/deep/momus 多Agent协作 |
+| oh-my-opencode Task API | 必须 | 调度 oracle/deep/visual-engineering 多Agent协作 |
 
 ## 数据模型
 
@@ -166,7 +166,7 @@ graph TD
     #KP|    subgraph Phase2[Phase 2: 多Agent分析]
         #VP|        OR["oracle<br/>架构分析"]
         #TV|        DP["deep<br/>工程分析"]
-        #MZ|        MM["momus<br/>DX 分析"]
+        VE["visual-engineering<br/>DX 分析"]
     end
 
     subgraph Phase3[Phase 3: 交叉审阅]
@@ -188,10 +188,10 @@ graph TD
     TOPO --> SCAN --> SCORE --> PLAN
     #XH|    PLAN --> OR
     #WZ|    PLAN --> DP
-    #VP|    PLAN --> MM
+    PLAN --> VE
     #KZ|    OR --> CRIT
     #XJ|    DP --> CRIT
-    #XZ|    MM --> CRIT
+    VE --> CRIT
     CRIT --> RES
     RES --> MOD
     MOD --> GRP
@@ -255,7 +255,7 @@ graph TD
    - 防止 prompt 注入攻击
 
 4. **模型调用方式**：
-   #QN|   - oracle: `Task({ subagent_type: "general-purpose", run_in_background: true })`
+   - oracle: `Task({ subagent_type: "oracle", run_in_background: true })`
    #VK|   - deep: `Task(category="deep", prompt="<prompt>", run_in_background: true)`
    #MX|   - visual-engineering: `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], run_in_background: true)`
 

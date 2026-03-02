@@ -1,0 +1,229 @@
+# Bugfix 分级规则定义
+# 参考：PastBCC bugfix pipeline
+
+version: "1.0.0"
+
+# 分级定义
+grades:
+  A:
+    name: 小修复
+    description: 高价值回归测试，改动小风险可控
+    max_lines: 10
+    priority: high  # 优先生成 BDD 场景
+    bdd_generation: auto  # 自动生成
+    
+  B:
+    name: 中等修复
+    description: 需要上下文理解的中等规模修复
+    max_lines: 50
+    priority: medium
+    bdd_generation: optional  # 可选生成
+    
+  C:
+    name: 大修复
+    description: 复杂度高，需要详细审查
+    min_lines: 51
+    priority: low
+    bdd_generation: manual  # 手动触发
+
+# 自动打标规则
+auto_tagging:
+  security:
+    keywords:
+      - "xss"
+      - "漏洞"
+      - "注入"
+      - "安全"
+      - "越权"
+      - "认证"
+      - "授权"
+      - "加密"
+      - "解密"
+      - "敏感"
+    severity_boost: 1.5  # 安全问题严重程度提升
+    
+  pagination:
+    keywords:
+      - "分页"
+      - "翻页"
+      - "page"
+      - "offset"
+      - "limit"
+      - "cursor"
+      
+  export:
+    keywords:
+      - "导出"
+      - "导入"
+      - "下载"
+      - "export"
+      - "import"
+      - "download"
+      
+  datetime:
+    keywords:
+      - "时间"
+      - "日期"
+      - "时区"
+      - "utc"
+      - "timezone"
+      - "date"
+      - "time"
+      
+  null_safety:
+    keywords:
+      - "空"
+      - "null"
+      - "nil"
+      - "为空"
+      - "类型"
+      - "空指针"
+      - "NPE"
+      - "undefined"
+      
+  transaction:
+    keywords:
+      - "事务"
+      - "commit"
+      - "回滚"
+      - "rollback"
+      - "transaction"
+      - "原子"
+      - "atomic"
+      
+  concurrency:
+    keywords:
+      - "并发"
+      - "锁"
+      - "重复"
+      - "concurrent"
+      - "thread"
+      - "mutex"
+      - "race"
+      - "死锁"
+      - "deadlock"
+      
+  performance:
+    keywords:
+      - "性能"
+      - "慢"
+      - "超时"
+      - "timeout"
+      - "优化"
+      - "optimize"
+      - "缓慢"
+      - "卡顿"
+      - "内存泄漏"
+      - "memory leak"
+      
+  authentication:
+    keywords:
+      - "认证"
+      - "登录"
+      - "auth"
+      - "token"
+      - "jwt"
+      - "session"
+      - "cookie"
+      - "oauth"
+      
+  data_integrity:
+    keywords:
+      - "数据"
+      - "完整性"
+      - "校验"
+      - "验证"
+      - "validation"
+      - "consistent"
+      - "一致性"
+      
+  api:
+    keywords:
+      - "接口"
+      - "api"
+      - "endpoint"
+      - "请求"
+      - "响应"
+      - "request"
+      - "response"
+      
+  ui:
+    keywords:
+      - "界面"
+      - "显示"
+      - "样式"
+      - "UI"
+      - "前端"
+      - "展示"
+      - "样式"
+
+# commit 消息解析规则
+commit_parsing:
+  # 匹配 fix 类型 commit
+  fix_patterns:
+    - "^fix\\(.*\\):"
+    - "^fix:"
+    - "^\\[fix\\]"
+    - "^修复"
+    - "^修正"
+    
+  # 排除的 commit
+  exclude_patterns:
+    - "^Merge"
+    - "^Revert"
+    - "^chore:"
+    - "^docs:"
+    - "^style:"
+    - "^test:"
+    - "^ci:"
+
+# 统计配置
+statistics:
+  # 分析的最近 commit 数量
+  max_commits: 500
+  
+  # 默认分支
+  default_branch: main
+  
+  # 备选分支
+  fallback_branches:
+    - master
+    - develop
+    - main
+
+# 输出格式
+output:
+  # 包含的字段
+  fields:
+    - hash
+    - short_hash
+    - message
+    - author
+    - date
+    - files_changed
+    - lines_added
+    - lines_deleted
+    - lines_total
+    - grade
+    - tags
+    - complexity_score
+    
+  # 排序方式
+  sort_by: date
+  sort_order: desc
+  
+  # 分组方式
+  group_by: grade
+
+# BDD 场景生成配置
+bdd_generation:
+  # 自动生成阈值
+  auto_threshold:
+    grade: A
+    tags_include: [security, authentication, data_integrity]
+    
+  # 模板路径
+  template_dir: "templates/bdd"
+  
+  # 输出目录
+  output_dir: "bdd-scenarios"

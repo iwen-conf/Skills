@@ -1,0 +1,134 @@
+# 评分权重配置
+# 用于 arc:review 综合量化评分与 Agent 定性评分
+
+version: "1.0.0"
+
+# 量化评分与定性评分的权重比例
+# quantitative = arc:score 量化数据
+# qualitative = Agent 定性评审
+dimension_weights:
+  architecture:
+    quantitative: 0.3
+    qualitative: 0.7
+    description: 架构设计维度，Agent 评审权重较高（需要架构经验）
+    
+  security:
+    quantitative: 0.5
+    qualitative: 0.5
+    description: 安全维度，量化检测与专家评审同等重要
+    
+  code-quality:
+    quantitative: 0.6
+    qualitative: 0.4
+    description: 代码质量维度，量化检测权重较高（可自动化检测）
+    
+  business:
+    quantitative: 0.1
+    qualitative: 0.9
+    description: 业务维度，量化数据参考价值低，主要靠专家评审
+    
+  devops:
+    quantitative: 0.3
+    qualitative: 0.7
+    description: 运维维度，需要专家评估流程和实践
+    
+  team:
+    quantitative: 0.1
+    qualitative: 0.9
+    description: 团队维度，量化数据参考价值低
+    
+  tech-debt:
+    quantitative: 0.5
+    qualitative: 0.5
+    description: 技术债务维度，量化与定性同等重要
+
+# 七维度综合评分权重
+overall_weights:
+  architecture: 0.2
+  security: 0.2
+  code-quality: 0.2
+  business: 0.15
+  devops: 0.1
+  team: 0.05
+  tech-debt: 0.1
+
+# 多 Agent 评分聚合权重
+# 各维度由 oracle / deep / deep(业务) 三方评审
+agent_weights:
+  architecture:
+    oracle: 0.5
+    deep: 0.25
+    deep_business: 0.25
+    
+  security:
+    oracle: 0.5
+    deep: 0.25
+    deep_business: 0.25
+    
+  code-quality:
+    oracle: 0.25
+    deep: 0.5
+    deep_business: 0.25
+    
+  devops:
+    oracle: 0.25
+    deep: 0.5
+    deep_business: 0.25
+    
+  business:
+    oracle: 0.25
+    deep: 0.25
+    deep_business: 0.5
+    
+  team:
+    oracle: 0.25
+    deep: 0.25
+    deep_business: 0.5
+    
+  tech-debt:
+    oracle: 0.5
+    deep: 0.25
+    deep_business: 0.25
+
+# 评级标准
+grade_thresholds:
+  excellent:
+    min: 9
+    max: 10
+    label: "卓越"
+    description: "行业标杆，无明显短板"
+    
+  good:
+    min: 7
+    max: 8.9
+    label: "良好"
+    description: "符合企业级标准"
+    
+  acceptable:
+    min: 5
+    max: 6.9
+    label: "合格"
+    description: "基本可用，有明显短板"
+    
+  warning:
+    min: 3
+    max: 4.9
+    label: "警告"
+    description: "存在较严重问题"
+    
+  critical:
+    min: 0
+    max: 2.9
+    label: "危险"
+    description: "系统性缺陷"
+
+# 评分调整规则
+adjustments:
+  # 反驳修正：当某 Agent 评分被另外两方有力反驳时
+  rebuttal_penalty: 0.5  # 降低该 Agent 权重至 50%
+  
+  # 一致性奖励：当三方评分差异 < 1 分时
+  consistency_bonus: 0.1  # 额外加 0.1 分
+  
+  # 严重问题惩罚：存在 critical 级别问题时
+  critical_penalty: 2  # 扣 2 分

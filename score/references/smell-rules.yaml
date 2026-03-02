@@ -1,0 +1,286 @@
+# Code Smell 检测规则定义
+# 参考：PastBCC bcc analyze smell
+
+version: "1.0.0"
+
+# 严重程度扣分权重
+severity_penalty:
+  critical: 20
+  high: 10
+  medium: 5
+  low: 2
+
+# 检测规则定义
+categories:
+  duplication:
+    name: 重复代码
+    description: 代码重复和冗余问题
+    rules:
+      - id: structural_duplication
+        name: 结构重复
+        description: 多个函数结构相同，仅变量名/字面量不同
+        severity: medium
+        threshold: 0.8  # AST 相似度阈值
+        suggestion: 提取公共函数或使用模板方法模式
+        languages: [python, typescript, javascript, go, java]
+        
+      - id: boilerplate_skeleton
+        name: 骨架重复
+        description: 函数 AST 骨架相似度超阈值
+        severity: medium
+        threshold: 0.7
+        suggestion: 重构以消除重复逻辑
+        languages: [python, typescript, javascript, go, java]
+
+  noise:
+    name: 噪音代码
+    description: 影响可读性的代码垃圾
+    rules:
+      - id: empty_function_body
+        name: 空函数体
+        description: 函数体为空或仅含占位符 (pass/TODO/throw new NotImplementedError)
+        severity: low
+        patterns:
+          - "def .*:\s*pass"
+          - "function .*{\s*}"
+          - "throw new NotImplementedError"
+        suggestion: 实现函数逻辑或标记为抽象方法
+        languages: [python, typescript, javascript, go, java]
+        
+      - id: commented_out_code
+        name: 注释掉的代码
+        description: 连续 5+ 行注释可被解析为合法代码
+        severity: low
+        min_lines: 5
+        suggestion: 删除无用代码，使用版本控制追踪历史
+        languages: [python, typescript, javascript, go, java]
+        
+      - id: dead_branch
+        name: 死分支
+        description: if false/if False/if (false) 条件永远为假
+        severity: high
+        patterns:
+          - "if False:"
+          - "if (false)"
+          - "if (False)"
+        suggestion: 移除死代码分支
+        languages: [python, typescript, javascript, go, java]
+        
+      - id: unreachable_code
+        name: 不可达代码
+        description: return/raise/throw 后的同级语句
+        severity: medium
+        suggestion: 移除不可达代码
+        languages: [python, typescript, javascript, go, java]
+        
+      - id: trivial_comment
+        name: 废话注释
+        description: 注释内容与紧邻代码高度重复，无附加信息
+        severity: low
+        similarity_threshold: 0.9
+        suggestion: 删除或补充有价值的注释
+        languages: [python, typescript, javascript, go, java]
+        
+      - id: excessive_comments
+        name: 过度注释
+        description: 函数内注释行占比超过 60%
+        severity: low
+        threshold: 0.6
+        suggestion: 简化代码逻辑，减少注释依赖
+        languages: [python, typescript, javascript, go, java]
+        
+      - id: unused_import
+        name: 未使用导入
+        description: import 声明在文件中无引用
+        severity: low
+        suggestion: 移除未使用的导入
+        languages: [python, typescript, javascript, go, java]
+
+  defensive:
+    name: 过度防御
+    description: 多余的防御性代码和遗留标记
+    rules:
+      - id: leftover_boilerplate
+        name: 残留样板
+        description: TODO/FIXME/HACK/XXX 注释未清理
+        severity: low
+        patterns:
+          - "TODO"
+          - "FIXME"
+          - "HACK"
+          - "XXX"
+        suggestion: 清理遗留标记或创建 Issue 追踪
+        languages: [python, typescript, javascript, go, java]
+        
+      - id: redundant_type_check
+        name: 冗余类型检查
+        description: 已有类型标注还手动做 type check
+        severity: medium
+        patterns:
+          - "isinstance"
+          - "typeof"
+          - "instanceof"
+        suggestion: 依赖类型系统，移除冗余检查
+        languages: [python, typescript, javascript]
+        
+      - id: unnecessary_default
+        name: 不必要默认值
+        description: schema 定义 required 的字段还写 .get(key, default) 兜底
+        severity: low
+        suggestion: 移除不必要的默认值，信任 schema 定义
+        languages: [python, typescript, javascript]
+
+  error_handling:
+    name: 错误处理
+    description: 异常处理相关问题
+    rules:
+      - id: swallowed_error
+        name: 吞没异常
+        description: rescue _ -> :ok / except: pass / catch (e) {} 静默吞掉错误
+        severity: high
+        patterns:
+          - "except.*:\\s*pass"
+          - "catch.*\\{\\s*\\}"
+          - "rescue _ -> :ok"
+        suggestion: 至少记录日志或抛出包装异常
+        languages: [python, typescript, javascript, java]
+        
+      - id: broad_catch
+        name: 过宽捕获
+        description: rescue _ / except Exception / catch (e) 通配捕获所有异常
+        severity: medium
+        patterns:
+          - "except Exception"
+          - "except:"
+          - "catch \\(.*\\)"
+        suggestion: 捕获具体异常类型
+        languages: [python, typescript, javascript, java]
+
+  security:
+    name: 安全模式
+    description: 安全隐患检测
+    rules:
+      - id: hardcoded_credential
+        name: 硬编码凭证
+        description: 源码中直接写死 key/secret/token/password/api_key
+        severity: critical
+        patterns:
+          - "password\\s*="
+          - "api_key\\s*="
+          - "secret\\s*="
+          - "token\\s*="
+          - "API_KEY\\s*="
+        exclude_patterns:
+          - "password\\s*=\\s*os\\.environ"
+          - "password\\s*=\\s*process\\.env"
+        suggestion: 使用环境变量或密钥管理服务
+        languages: [python, typescript, javascript, go, java]
+        
+      - id: injection_risk
+        name: 注入风险
+        description: SQL 拼接、eval() 调用、命令注入
+        severity: critical
+        patterns:
+          - "eval\\("
+          - "exec\\("
+          - "execute\\(.*\\+"
+          - "query\\(.*\\+"
+          - "f\".*SELECT.*{"
+        suggestion: 使用参数化查询，避免动态执行
+        languages: [python, typescript, javascript, go, java]
+        
+      - id: unsafe_deserialization
+        name: 不安全反序列化
+        description: pickle.load / yaml.load / ObjectInputStream 等不安全反序列化
+        severity: high
+        patterns:
+          - "pickle\\.load"
+          - "pickle\\.loads"
+          - "yaml\\.load\\("
+          - "ObjectInputStream"
+        suggestion: 使用安全的序列化格式 (JSON) 或配置安全加载器
+        languages: [python, java]
+        
+      - id: weak_crypto
+        name: 弱加密算法
+        description: MD5/SHA1/DES/RC4 等弱加密算法
+        severity: high
+        patterns:
+          - "hashlib\\.md5"
+          - "hashlib\\.sha1"
+          - "DES\\("
+          - "RC4\\("
+        exclude_patterns:
+          - "md5.*checksum"  # 用于校验和场景可接受
+        suggestion: 使用 SHA-256+ / AES / ChaCha20
+        languages: [python, typescript, javascript, go, java]
+        
+      - id: sensitive_data_log
+        name: 敏感数据泄露
+        description: 日志中打印 password/token/secret/key 等字段
+        severity: critical
+        patterns:
+          - "logger\\..*password"
+          - "console\\.log.*password"
+          - "print.*password"
+          - "logger\\..*token"
+        suggestion: 脱敏或禁止记录敏感字段
+        languages: [python, typescript, javascript, go, java]
+
+# 语言特定配置
+language_config:
+  python:
+    file_patterns:
+      - "**/*.py"
+    ast_parser: tree-sitter-python
+    
+  typescript:
+    file_patterns:
+      - "**/*.ts"
+      - "**/*.tsx"
+    ast_parser: tree-sitter-typescript
+    
+  javascript:
+    file_patterns:
+      - "**/*.js"
+      - "**/*.jsx"
+    ast_parser: tree-sitter-javascript
+    
+  go:
+    file_patterns:
+      - "**/*.go"
+    ast_parser: tree-sitter-go
+    
+  java:
+    file_patterns:
+      - "**/*.java"
+    ast_parser: tree-sitter-java
+    
+  rust:
+    file_patterns:
+      - "**/*.rs"
+    ast_parser: tree-sitter-rust
+
+# 检测配置
+detection_config:
+  # 最大文件大小 (bytes)
+  max_file_size: 1048576  # 1MB
+  
+  # 并行处理数
+  parallel_workers: 4
+  
+  # 增量扫描缓存
+  cache_enabled: true
+  cache_dir: ".arc/score/.cache"
+  
+  # 排除路径
+  exclude_paths:
+    - "node_modules/**"
+    - "vendor/**"
+    - "**/test/**"
+    - "**/tests/**"
+    - "**/__tests__/**"
+    - "**/*.test.*"
+    - "**/*.spec.*"
+    - "**/migrations/**"
+    - "**/.git/**"

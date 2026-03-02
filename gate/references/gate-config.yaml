@@ -1,0 +1,110 @@
+# CI 门禁配置示例
+# 参考：PastBCC arch validate
+
+version: "1.0.0"
+
+# 门禁模式
+# - warn: 只告警不阻断
+# - strict: 发现未豁免 BREAKING 时失败
+# - strict_dangerous: 额外拦截危险级别
+mode: strict
+
+# 阈值配置
+thresholds:
+  # 总分阈值
+  overall_score:
+    warn: 70   # <70 分告警
+    fail: 60   # <60 分阻断
+    
+  # 严重问题阈值
+  critical_issues:
+    warn: 0    # 有 critical 即告警
+    fail: 1    # ≥1 个 critical 阻断
+    
+  # 高危问题阈值
+  high_issues:
+    warn: 5
+    fail: 10
+    
+  # 安全问题阈值
+  security_issues:
+    warn: 0    # 有安全告警即告警
+    fail: 1    # ≥1 个安全阻断
+    
+  # Code Smell 阈值
+  smell_score:
+    warn: 70
+    fail: 50
+
+# 豁免清单
+# 用于临时豁免特定问题（需要有明确的过期时间）
+whitelist:
+  # 示例：历史遗留的硬编码凭证
+  - id: "legacy-auth-bypass"
+    rule: "hardcoded_credential"
+    file: "src/auth/config.py"
+    line: 42
+    reason: "历史遗留，计划 Q2 重构"
+    approved_by: "tech-lead"
+    created_at: "2026-01-15T00:00:00Z"
+    expires_at: "2026-06-30T00:00:00Z"
+    
+  # 示例：暂时豁免的 TODO
+  - id: "api-refactor-todo"
+    rule: "leftover_boilerplate"
+    file: "src/api/handlers.py"
+    reason: "API 重构进行中，TODO 将在完成后清理"
+    approved_by: "architect"
+    created_at: "2026-02-01T00:00:00Z"
+    expires_at: "2026-04-01T00:00:00Z"
+
+# 维度权重（用于综合评分）
+dimension_weights:
+  architecture: 0.2
+  security: 0.25
+  code-quality: 0.25
+  business: 0.1
+  devops: 0.1
+  team: 0.05
+  tech-debt: 0.05
+
+# CI 集成配置
+ci:
+  # 是否在失败时输出详细报告
+  verbose: true
+  
+  # 报告输出格式: json | markdown | both
+  output_format: both
+  
+  # 报告输出目录
+  output_dir: ".arc/gate-reports"
+  
+  # 是否生成 GitHub/GitLab 摘要
+  summary: true
+  
+  # 失败时的重试次数（用于网络问题）
+  retry: 0
+
+# 环境变量覆盖
+# 可以通过环境变量覆盖配置
+env_overrides:
+  GATE_MODE: mode
+  GATE_FAIL_ON_DANGEROUS: fail_on_dangerous
+  GATE_WARN_THRESHOLD: thresholds.overall_score.warn
+  GATE_FAIL_THRESHOLD: thresholds.overall_score.fail
+
+# 通知配置（可选）
+notifications:
+  # 门禁失败时通知
+  on_failure:
+    # Slack webhook
+    slack_webhook: null
+    # 邮件列表
+    email: []
+    
+  # 豁免即将过期通知
+  on_whitelist_expiring:
+    # 提前天数
+    days_before: 7
+    # 通知渠道
+    channels: []
