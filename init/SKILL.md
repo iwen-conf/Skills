@@ -112,7 +112,7 @@ else:
 ```typescript
 // 调度 arc:init:full
 Task(
-  category: "unspecified-high",
+  subagent_type: "fixer",
   load_skills: ["arc:init:full"],
   prompt: `执行全量初始化...
 
@@ -125,7 +125,7 @@ Task(
 
 // 或调度 arc:init:update
 Task(
-  category: "unspecified-high",
+  subagent_type: "fixer",
   load_skills: ["arc:init:update"],
   prompt: `执行增量更新...
 
@@ -154,7 +154,7 @@ Task(
 
 **执行内容**：
 - 深度扫描项目结构
-- 多 Agent 协作分析（oracle + deep + momus）
+- 多 Agent 协作分析（oracle + fixer + designer）
 - 交叉审阅
 - 全量生成 CLAUDE.md
 - 生成指纹基线

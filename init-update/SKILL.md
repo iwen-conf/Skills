@@ -50,7 +50,7 @@ description: "增量更新项目 CLAUDE.md 索引体系。基于指纹对比和 
 ## Dependencies
 
 * **ace-tool (MCP)**: 必须。语义搜索项目代码结构。
-* **oh-my-opencode Task API**: 必须。调度 oracle/deep/visual-engineering Agent。
+* **oh-my-opencode-slim Task API**: 必须。调度 oracle/fixer/designer Agent。
 * **Git**: 必须。变更检测依赖 git 命令。
 
 ## Critical Rules
@@ -70,8 +70,8 @@ description: "增量更新项目 CLAUDE.md 索引体系。基于指纹对比和 
 
 4. **Agent 缩减**
  - ADDED 模块：完整 3 Agent 分析
- - MODIFIED（key_files 变化）：2 Agent（deep + visual-engineering）
- - MODIFIED（仅 source 变化）：1 Agent（deep）
+ - MODIFIED（key_files 变化）：2 Agent（fixer + designer）
+  - MODIFIED（仅 source 变化）：1 Agent（fixer）
  - DELETED/RENAMED：0 Agent
 
 ## Instructions（执行流程）
@@ -152,9 +152,9 @@ git diff --name-status --diff-filter=D <baseline_git_ref>..HEAD
 
 | 模块 | 变更类型 | Agent 分析 | CLAUDE.md 操作 |
 |------|----------|------------|----------------|
-| src/new-feature/ | ADDED | oracle+deep+visual-engineering | 新建 |
-| src/auth/ | MODIFIED_KEY | deep+visual-engineering | 合并更新 |
-| src/utils/ | MODIFIED_SOURCE | deep | 合并更新 |
+| src/new-feature/ | ADDED | oracle+fixer+designer | 新建 |
+| src/auth/ | MODIFIED_KEY | fixer+designer | 合并更新 |
+| src/utils/ | MODIFIED_SOURCE | fixer | 合并更新 |
 | src/legacy/ | DELETED | — | 删除 |
 | src/ | STALE_PARENT | — | 索引更新 |
 
@@ -182,10 +182,10 @@ git diff --name-status --diff-filter=D <baseline_git_ref>..HEAD
  - 所有 ADDED 模块
 
 需要部分分析（2 Agent）:
- - 所有 MODIFIED_KEY 模块（deep + visual-engineering，跳过 oracle）
+ - 所有 MODIFIED_KEY 模块（fixer + designer，跳过 oracle）
 
 需要最小分析（1 Agent）:
- - 所有 MODIFIED_SOURCE 模块（仅 deep）
+ - 所有 MODIFIED_SOURCE 模块（仅 fixer）
 
 无需分析:
  - DELETED / RENAMED / STALE_PARENT / MODIFIED_CLAUDE_MD
@@ -209,21 +209,21 @@ Task(
  输出到: <output_dir>/agents/oracle/analysis-update.md`
 )
 
-// deep 分析
+// fixer 分析
 Task(
- category: "deep",
+ subagent_type: "fixer",
  load_skills: ["arc:init:update"],
  run_in_background: true,
- description: "deep 工程分析",
+ description: "fixer 工程分析",
  prompt: `...`
 )
 
-// visual-engineering 分析
+// designer 分析
 Task(
- category: "visual-engineering",
+ subagent_type: "designer",
  load_skills: ["arc:init:update", "frontend-ui-ux"],
  run_in_background: true,
- description: "visual-engineering DX 分析",
+ description: "designer DX 分析",
  prompt: `...`
 )
 ```
@@ -231,20 +231,20 @@ Task(
 **MODIFIED_KEY 模块分析**（2 Agent）：
 
 ```typescript
-// 仅 deep + visual-engineering，跳过 oracle
-Task(category: "deep", ...),
-Task(category: "visual-engineering", ...)
+// 仅 fixer + designer，跳过 oracle
+Task(subagent_type: "fixer", ...),
+Task(subagent_type: "designer", ...)
 ```
 
 **MODIFIED_SOURCE 模块分析**（1 Agent）：
 
 ```typescript
-// 仅 deep，shallow depth
+// 仅 fixer，shallow depth
 Task(
- category: "deep",
+ subagent_type: "fixer",
  load_skills: ["arc:init:update"],
  run_in_background: true,
- description: "deep 浅层分析 - 源码变更",
+ description: "fixer 浅层分析 - 源码变更",
  prompt: `以下模块仅源码变更，进行浅层分析...
 
  模块列表: <modified_source_modules>
@@ -425,9 +425,9 @@ IF skip_agents=true:
 ├── agents/
 │ ├── oracle/
 │ │ └── analysis-update.md # 新增：本次分析
-│ ├── deep/
+│ ├── fixer/
 │ │ └── analysis-update.md
-│ └── visual-engineering/
+│ └── designer/
 │ └── analysis-update.md
 └── summary.md # 更新
 ```
@@ -438,11 +438,11 @@ IF skip_agents=true:
 
 | 变更类型 | Agent 分析 | CLAUDE.md 操作 | 祖先更新 |
 |----------|------------|----------------|----------|
-| `ADDED` | oracle + deep + visual-engineering | 新建完整文件 | 索引 + mermaid |
+| `ADDED` | oracle + fixer + designer | 新建完整文件 | 索引 + mermaid |
 | `DELETED` | — | 删除文件 | 索引 + mermaid |
 | `RENAMED` | — | 移动 + 路径更新 | 索引 + mermaid |
-| `MODIFIED_KEY` | deep + visual-engineering | 合并更新 | 可能需要 |
-| `MODIFIED_SOURCE` | deep (shallow) | 合并更新 | 通常不需要 |
+| `MODIFIED_KEY` | fixer + designer | 合并更新 | 可能需要 |
+| `MODIFIED_SOURCE` | fixer (shallow) | 合并更新 | 通常不需要 |
 | `MODIFIED_CLAUDE_MD` | — | 跳过 | 不需要 |
 | `STALE_PARENT` | — | 索引 + mermaid 更新 | — |
 | `UNCHANGED` | — | 跳过 | 不需要 |
