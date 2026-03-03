@@ -69,7 +69,7 @@
 **生成说明**:
 - 本摘要由 arc:ip-docs 基于项目代码与 arc:ip-audit 审查结论自动生成
 - 请人工核对基本信息(日期、申请人、开发者)
-- 功能概述已整合 oracle/fixer/librarian 三Agent分析,术语已统一
+- 功能概述已整合 oracle/deep/momus 三Agent分析,术语已统一
 ```
 
 ---
@@ -209,7 +209,7 @@ A: [解决方案]
 ---
 
 **生成说明**:
-- 本说明书由 arc:ip-docs 的 librarian Agent 起草,经 oracle/fixer 审阅
+- 本说明书由 arc:ip-docs 的 momus Agent 起草,经 oracle/deep 审阅
 - 操作步骤已验证可执行性(基于项目README与代码)
 - 术语已统一(参见 convergence/terminology-alignment.md)
 ```
@@ -304,7 +304,7 @@ A: [解决方案]
 ---
 
 **生成说明**:
-- 本说明由 arc:ip-docs 的 fixer Agent 起草,经 oracle 审阅
+- 本说明由 arc:ip-docs 的 deep Agent 起草,经 oracle 审阅
 - 代码区段已验证完整性与可编译性
 - 第三方依赖已通过许可证兼容性检查
 ```
@@ -432,7 +432,7 @@ A: [解决方案]
 
 **代码示例** (关键片段):
 ```python
-[关键代码片段 - 由fixer Agent提供]
+[关键代码片段 - 由deep Agent提供]
 ```
 
 ### 4.2 实施例2 (可选)
@@ -474,7 +474,7 @@ A: [解决方案]
 ---
 
 **生成说明**:
-- 本交底书由 arc:ip-docs 的 oracle Agent 起草技术方案,fixer Agent 补充实现细节
+- 本交底书由 arc:ip-docs 的 oracle Agent 起草技术方案,deep Agent 补充实现细节
 - 所有技术描述已回溯到项目代码(参见 context/doc-context.md)
 - 术语已统一(参见 convergence/terminology-alignment.md)
 - 本文档为草稿,需专利代理人进一步加工为正式申请文件
@@ -572,7 +572,7 @@ S4: [步骤4描述]。
 ---
 
 **生成说明**:
-- 本权利要求书由 arc:ip-docs 的 librarian Agent 起草,经 oracle/fixer 审阅
+- 本权利要求书由 arc:ip-docs 的 momus Agent 起草,经 oracle/deep 审阅
 - 权利要求层次已优化(独立权利要求宽,从属权利要求逐步限定)
 - 技术特征已与技术交底书对应
 - 本文档为草稿,需专利代理人审查并符合《专利法》格式要求
@@ -684,14 +684,14 @@ S4: [步骤4描述]。
 
 **图1-3**: 由 arc:ip-docs 的 oracle Agent 生成(Mermaid格式),需转换为专利局要求的CAD/矢量图格式
 
-**图4**: 由 librarian Agent 提供UI截图,需脱敏处理并转换为黑白线条图
+**图4**: 由 momus Agent 提供UI截图,需脱敏处理并转换为黑白线条图
 
 **图纸规格**: 符合《专利法实施细则》第18条要求(A4纸,黑白线条图,标号清晰)
 
 ---
 
 **生成说明**:
-- 本附图说明由 arc:ip-docs 的 oracle/librarian Agent 协作生成
+- 本附图说明由 arc:ip-docs 的 oracle/momus Agent 协作生成
 - 所有标号已与技术交底书对应
 - 图纸需由专利代理人转换为符合专利局要求的格式
 ```
@@ -727,12 +727,12 @@ S4: [步骤4描述]。
 
 | 文档类型 | 主起草Agent | 审阅Agent | 输出文件 |
 |---------|-----------|----------|---------|
-| 软著摘要 | librarian | oracle, fixer | software-summary.md |
-| 操作说明书 | librarian | oracle, fixer | manual-outline.md |
-| 代码材料说明 | fixer | oracle | source-code-package-notes.md |
-| 技术交底书 | oracle | fixer, librarian | disclosure-draft.md |
-| 权利要求书 | librarian | oracle, fixer | claims-draft.md |
-| 附图说明 | oracle, librarian | fixer | drawings-description.md |
+| 软著摘要 | momus | oracle, deep | software-summary.md |
+| 操作说明书 | momus | oracle, deep | manual-outline.md |
+| 代码材料说明 | deep | oracle | source-code-package-notes.md |
+| 技术交底书 | oracle | deep, momus | disclosure-draft.md |
+| 权利要求书 | momus | oracle, deep | claims-draft.md |
+| 附图说明 | oracle, momus | deep | drawings-description.md |
 
 ---
 

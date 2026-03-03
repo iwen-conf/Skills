@@ -1,6 +1,6 @@
 ---
 name: "arc:ip-docs"
-description: "面向软件项目的知识产权申请文档写作助手。采用多Agent协作模式(oracle/fixer/librarian)基于项目上下文与审查结论,辅助撰写软件著作权与发明专利申请文档草稿,包括说明书、技术交底书、权利要求草案与附图文字说明。"
+description: "面向软件项目的知识产权申请文档写作助手。采用多Agent协作模式(oracle/deep/writing)基于项目上下文与审查结论,辅助撰写软件著作权与发明专利申请文档草稿,包括说明书、技术交底书、权利要求草案与附图文字说明。"
 ---
 
 # arc:ip-docs — 专利/软著文档写作
@@ -10,7 +10,7 @@ description: "面向软件项目的知识产权申请文档写作助手。采用
 `arc:ip-docs` 采用**多Agent协作模式**专注于文档写作,不做可行性裁决。它消费 `arc:ip-audit` 的审查结果,并结合项目代码上下文输出可编辑申请文档草稿。
 
 **核心能力**:
-- 三Agent并发独立起草(oracle技术方案/fixer实现细节/librarian用户文档)
+- 三Agent并发独立起草(oracle技术方案/deep实现细节/writing用户文档)
 - 交叉审阅机制确保术语一致性与技术准确性
 - 证据驱动的文档写作(每个技术描述可回溯到代码)
 - 结构化草稿输出(软著/专利分轨产出)
@@ -45,7 +45,7 @@ description: "面向软件项目的知识产权申请文档写作助手。采用
 - **arc:ip-audit**(强推荐):作为主输入。
 - **ace-tool MCP**(必须):校正文档中的技术细节与代码证据。
 - **arc:init**(推荐):复用模块索引,减少重复扫描。
-- **Task API**(必须):调度 `oracle` / `fixer` / `librarian` 三Agent协作。
+- **Task API**(必须):调度 `oracle` / `deep` / `writing` 三Agent协作。
 
 ## Context Priority(强制)
 
@@ -61,7 +61,7 @@ description: "面向软件项目的知识产权申请文档写作助手。采用
 3. **结构完整**:交底书、权利要求、说明文档必须按模板章节完整输出。
 4. **草稿定位**:输出为"可编辑申请草稿",不得声称最终法律文本。
 5. **双轨拆分**:软著材料与专利材料分目录产出,不混写。
-6. **多Agent协作**:必须使用oracle/fixer/librarian三Agent并发起草+交叉审阅。
+6. **多Agent协作**:必须使用oracle/deep/writing三Agent并发起草+交叉审阅。
 
 ## Multi-Agent Architecture
 
@@ -70,8 +70,8 @@ description: "面向软件项目的知识产权申请文档写作助手。采用
 | Agent | 角色定位 | 起草内容 | 输出文件 |
 |-------|---------|---------|---------|
 | **oracle** (subagent) | 技术方案描述专家 | 架构设计、技术方案、系统流程、专利技术交底书核心部分 | `agents/oracle/technical-description.md` |
-| **fixer** (subagent) | 实现细节专家 | 代码实现、算法细节、性能优化、技术效果量化、软著技术交底 | `agents/fixer/implementation-details.md` |
-| **librarian** (subagent) | 用户文档写作专家 | 用户手册、操作说明、功能描述、软著申请摘要、权利要求书 | `agents/librarian/user-documentation.md` |
+| **deep** (category) | 实现细节专家 | 代码实现、算法细节、性能优化、技术效果量化、软著技术交底 | `agents/deep/implementation-details.md` |
+| **writing** (category) | 用户文档写作专家 | 用户手册、操作说明、功能描述、软著申请摘要、权利要求书 | `agents/writing/user-documentation.md` |
 
 ### 协作流程
 
@@ -88,10 +88,10 @@ description: "面向软件项目的知识产权申请文档写作助手。采用
 │   ├── oracle/
 │   │   ├── technical-description.md (独立起草)
 │   │   └── review.md (审阅其他Agent)
-│   ├── fixer/
+│   ├── deep/
 │   │   ├── implementation-details.md
 │   │   └── review.md
-│   └── librarian/
+│   └── writing/
 │       ├── user-documentation.md
 │       └── review.md
 ├── convergence/
@@ -184,17 +184,17 @@ Task(
 `
 )
 
-// Fixer: 实现细节与技术效果
+// Deep: 实现细节与技术效果
 Task(
-  subagent_type="fixer",
+  category="deep",
   load_skills=["arc:ip-docs"],
   run_in_background=true,
-  description="Fixer起草实现细节与技术效果",
+  description="Deep起草实现细节与技术效果",
   prompt=`
 [TASK]: 起草代码实现细节、算法描述与技术效果量化
 
 [EXPECTED OUTCOME]:
-- 生成 agents/fixer/implementation-details.md,包含:
+- 生成 agents/deep/implementation-details.md,包含:
   1. 核心算法实现(伪代码+关键代码片段)
   2. 数据结构设计(类图+字段说明)
   3. 性能优化措施(具体实现+效果对比)
@@ -203,7 +203,7 @@ Task(
   6. 可提交代码样本清单(文件+起止行、预计页数、脱敏要求)
   7. 性能/对比数据表模板,缺失则输出“需补测指标”列表
 
-[REQUIRED TOOLS]: ace-tool(代码搜索), Read(读取context/), Write(写入agents/fixer/)
+[REQUIRED TOOLS]: ace-tool(代码搜索), Read(读取context/), Write(写入agents/deep/)
 
 [MUST DO]:
 - 读取 context/doc-context.md 和 context/handoff-input.json
@@ -225,17 +225,17 @@ Task(
 `
 )
 
-// Librarian: 用户文档与功能描述
+// Writing: 用户文档与功能描述
 Task(
-  subagent_type="librarian",
+  category="writing",
   load_skills=["arc:ip-docs"],
   run_in_background=true,
-  description="Librarian起草用户文档与功能描述",
+  description="Writing起草用户文档与功能描述",
   prompt=`
 [TASK]: 起草用户手册、操作说明与软著申请摘要
 
 [EXPECTED OUTCOME]:
-- 生成 agents/librarian/user-documentation.md,包含:
+- 生成 agents/writing/user-documentation.md,包含:
   1. 软件功能总览(面向用户的功能列表)
   2. 操作说明书提纲(安装、配置、使用、故障排除)
   3. 软著申请摘要(300-500字,面向版权局审查员)
@@ -245,7 +245,7 @@ Task(
   7. 签章页、非职务开发保证书、开源声明占位提示
   8. 权利要求四件套(方法+系统/装置+计算机程序产品+存储介质)句式占位
 
-[REQUIRED TOOLS]: ace-tool(搜索文档), Read(读取context/), Write(写入agents/librarian/)
+[REQUIRED TOOLS]: ace-tool(搜索文档), Read(读取context/), Write(写入agents/writing/)
 
 [MUST DO]:
 - 读取 context/doc-context.md 和 context/handoff-input.json
@@ -276,19 +276,19 @@ Task(
 **强制审阅机制**(每个Agent必须审阅其他两个Agent):
 
 ```typescript
-// Oracle审阅Fixer和Librarian
+// Oracle审阅Deep和Writing
 Task(
   session_id="<oracle_session_id>", // 复用Phase 2的session
   load_skills=["arc:ip-docs"],
   run_in_background=false,
-  description="Oracle交叉审阅Fixer和Librarian",
+  description="Oracle交叉审阅Deep和Writing",
   prompt=`
-[TASK]: 审阅Fixer和Librarian的文档,确保技术准确性与术语一致性
+[TASK]: 审阅Deep和Writing的文档,确保技术准确性与术语一致性
 
 [EXPECTED OUTCOME]:
 - 生成 agents/oracle/review.md,包含:
-  1. 对Fixer实现细节的审阅(技术准确性、架构一致性)
-  2. 对Librarian用户文档的审阅(功能描述准确性、术语一致性)
+  1. 对Deep实现细节的审阅(技术准确性、架构一致性)
+  2. 对Writing用户文档的审阅(功能描述准确性、术语一致性)
   3. 术语冲突列表(同一对象的不同称谓)
   4. 技术描述错误列表(与代码不符的描述)
   5. 修正建议(具体修改方案)
@@ -296,7 +296,7 @@ Task(
   7. 格式合规(行数/页眉页脚)与命名统一性提示
 
 [MUST DO]:
-- 读取 agents/fixer/implementation-details.md 和 agents/librarian/user-documentation.md
+- 读取 agents/deep/implementation-details.md 和 agents/writing/user-documentation.md
 - 使用 ace-tool 验证争议技术描述
 - 建立术语对照表(统一称谓)
 - 指出技术描述与代码不符之处
@@ -311,8 +311,8 @@ Task(
 `
 )
 
-// Fixer审阅Oracle和Librarian (同理)
-// Librarian审阅Oracle和Fixer (同理)
+// Deep审阅Oracle和Writing (同理)
+// Writing审阅Oracle和Deep (同理)
 ```
 
 **收集审阅结果**,生成 `convergence/terminology-alignment.md` 和 `convergence/final-review.md`。
@@ -323,7 +323,7 @@ Task(
 
 根据审阅报告,生成 `convergence/terminology-alignment.md`:
 
-| 对象 | Oracle称谓 | Fixer称谓 | Librarian称谓 | 统一术语 |
+| 对象 | Oracle称谓 | Deep称谓 | Writing称谓 | 统一术语 |
 |------|-----------|---------|----------|---------|
 | 核心算法 | 智能调度算法 | 任务分配算法 | 自动调度功能 | 智能任务调度算法 |
 
@@ -338,9 +338,9 @@ python ip-docs/scripts/render_ip_documents.py \
 ```
 
 生成文件:
-- `copyright/software-summary.md` (软著申请摘要,整合Librarian起草+Oracle/Fixer审阅)
-- `copyright/manual-outline.md` (操作说明书提纲,整合Librarian起草+术语统一)
-- `copyright/source-code-package-notes.md` (代码材料说明,整合Fixer起草+Oracle审阅)
+- `copyright/software-summary.md` (软著申请摘要,整合Writing起草+Oracle/Deep审阅)
+- `copyright/manual-outline.md` (操作说明书提纲,整合Writing起草+术语统一)
+- `copyright/source-code-package-notes.md` (代码材料说明,整合Deep起草+Oracle审阅)
   - 需显式记录软件全称/简称/版本,在写作日志标记名称一致性已核对
 
 **Step 4.3: 生成专利文档**(如 `target_docs` 包含 `patent`)
@@ -353,10 +353,10 @@ python ip-docs/scripts/render_ip_documents.py \
 ```
 
 生成文件:
-- `patent/disclosure-draft.md` (技术交底书,整合Oracle技术方案+Fixer实现细节+术语统一)
-- `patent/claims-draft.md` (权利要求草案,整合Librarian起草+Oracle/Fixer审阅)
+- `patent/disclosure-draft.md` (技术交底书,整合Oracle技术方案+Deep实现细节+术语统一)
+- `patent/claims-draft.md` (权利要求草案,整合Writing起草+Oracle/Deep审阅)
   - 默认包含: 1条独立方法 + 1条系统/装置 + 1条计算机程序产品 + 1条存储介质; 从属权利要求引用性能/数据流/模块参数差异点
-- `patent/drawings-description.md` (附图说明,整合Oracle架构图+Fixer数据流图+Librarian UI截图)
+- `patent/drawings-description.md` (附图说明,整合Oracle架构图+Deep数据流图+Writing UI截图)
 
 **Step 4.4: 生成写作日志**
 
@@ -392,10 +392,10 @@ python ip-docs/scripts/render_ip_documents.py \
 - `context/handoff-input.json` (arc:ip-audit交接)
 - `agents/oracle/technical-description.md` (Oracle独立起草)
 - `agents/oracle/review.md` (Oracle审阅)
-- `agents/fixer/implementation-details.md` (Fixer独立起草)
-- `agents/fixer/review.md` (Fixer审阅)
-- `agents/librarian/user-documentation.md` (Librarian独立起草)
-- `agents/librarian/review.md` (Librarian审阅)
+- `agents/deep/implementation-details.md` (Deep独立起草)
+- `agents/deep/review.md` (Deep审阅)
+- `agents/writing/user-documentation.md` (Writing独立起草)
+- `agents/writing/review.md` (Writing审阅)
 - `convergence/terminology-alignment.md` (术语统一)
 - `convergence/final-review.md` (最终审阅)
 - `copyright/software-summary.md` (软著摘要)

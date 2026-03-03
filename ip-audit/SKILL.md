@@ -1,6 +1,6 @@
 ---
 name: "arc:ip-audit"
-description: "面向软件项目的知识产权可行性审查与风险评估。采用多Agent协作模式(oracle/fixer/librarian)深度分析项目,输出专利/软件著作权申请可行性报告、优先级矩阵与申请准备度清单。用于申请前评估、融资前尽调、立项前合规审查。"
+description: "面向软件项目的知识产权可行性审查与风险评估。采用多Agent协作模式(oracle/deep/writing)深度分析项目,输出专利/软件著作权申请可行性报告、优先级矩阵与申请准备度清单。用于申请前评估、融资前尽调、立项前合规审查。"
 ---
 
 # arc:ip-audit — 项目专利/软著审查报告
@@ -49,7 +49,7 @@ description: "面向软件项目的知识产权可行性审查与风险评估。
 
 - **ace-tool MCP**(必须):搜索项目代码与实现证据。
 - **Exa MCP**(推荐):补充现有技术/政策依据。
-- **Task API**(必须):调度 `oracle` / `fixer` / `librarian` 三Agent协作。
+- **Task API**(必须):调度 `oracle` / `deep` / `writing` 三Agent协作。
 - **arc:init**(强推荐):读取 `CLAUDE.md` 层级索引。
 - **arc:review**(可选):复用现有评审报告。
 
@@ -73,7 +73,7 @@ description: "面向软件项目的知识产权可行性审查与风险评估。
 4. **风险显式化**:必须列出可驳回风险、补正风险、时间风险和材料缺口。
 5. **交接标准化**:必须生成 `handoff/ip-drafting-input.json` 给 `arc:ip-docs`。
 6. **法律边界**:输出为工程与流程建议,不替代执业律师/专利代理人法律意见。
-7. **多Agent协作**:必须使用oracle/fixer/librarian三Agent并发分析+交叉反驳。
+7. **多Agent协作**:必须使用oracle/deep/writing三Agent并发分析+交叉反驳。
 
 ## Multi-Agent Architecture
 
@@ -82,8 +82,8 @@ description: "面向软件项目的知识产权可行性审查与风险评估。
 | Agent | 角色定位 | 评估维度 | 输出文件 |
 |-------|---------|---------|---------|
 | **oracle** (subagent) | 架构与创新性专家 | 技术方案独创性、架构设计新颖性、现有技术差异度、专利申请可行性 | `agents/oracle/innovation-analysis.md` |
-| **fixer** (subagent) | 工程实现专家 | 代码完整性、实现充分性、技术效果可量化性、软著申请可行性 | `agents/fixer/implementation-analysis.md` |
-| **librarian** (subagent) | 文档与合规分析专家 | 文档完备性、材料准备度、申请流程风险、知识产权合规性 | `agents/librarian/compliance-analysis.md` |
+| **deep** (category) | 工程实现专家 | 代码完整性、实现充分性、技术效果可量化性、软著申请可行性 | `agents/deep/implementation-analysis.md` |
+| **writing** (category) | 文档与合规分析专家 | 文档完备性、材料准备度、申请流程风险、知识产权合规性 | `agents/writing/compliance-analysis.md` |
 
 ### 协作流程
 
@@ -100,10 +100,10 @@ description: "面向软件项目的知识产权可行性审查与风险评估。
 │   ├── oracle/
 │   │   ├── innovation-analysis.md (独立评估)
 │   │   └── critique.md (反驳其他Agent)
-│   ├── fixer/
+│   ├── deep/
 │   │   ├── implementation-analysis.md
 │   │   └── critique.md
-│   └── librarian/
+│   └── writing/
 │       ├── compliance-analysis.md
 │       └── critique.md
 ├── convergence/
@@ -134,7 +134,7 @@ description: "面向软件项目的知识产权可行性审查与风险评估。
 - 可作为软著提交样本的代码区段
 - 技术方案描述(架构图、流程图、数据流)
 - 现有技术对比(若项目文档中有)
-- 格式/命名一致性基线: 软件全称/简称/版本、页眉页脚示例、截图命名一致性检查入口(供 librarian 使用)
+- 格式/命名一致性基线: 软件全称/简称/版本、页眉页脚示例、截图命名一致性检查入口(供 writing 使用)
 
 **Step 1.3: 外部参考搜索**
 使用 `Exa` 搜索并生成 `context/external-references.md`:
@@ -195,17 +195,17 @@ Task(
 `
 )
 
-// Fixer: 工程实现评估
+// Deep: 工程实现评估
 Task(
-  subagent_type="fixer",
+  category="deep",
   load_skills=["arc:ip-audit"],
   run_in_background=true,
-  description="Fixer评估代码完整性与软著可行性",
+  description="Deep评估代码完整性与软著可行性",
   prompt=`
 [TASK]: 评估项目的代码完整性与软著申请可行性
 
 [EXPECTED OUTCOME]:
-- 生成 agents/fixer/implementation-analysis.md,包含:
+- 生成 agents/deep/implementation-analysis.md,包含:
   1. 代码完整性评分(1-10分)
   2. 实现充分性评分(1-10分)
   3. 技术效果可量化性评分(1-10分)
@@ -214,7 +214,7 @@ Task(
   6. 软著可提交代码样本清单(文件+起止行,估算满足≥50行/页的页数,脱敏/删注释建议)
   7. 技术效果量化数据表(含基准/对比,缺失则标记需补测指标)
 
-[REQUIRED TOOLS]: ace-tool(代码搜索), Read(读取context/), Write(写入agents/fixer/)
+[REQUIRED TOOLS]: ace-tool(代码搜索), Read(读取context/), Write(写入agents/deep/)
 
 [MUST DO]:
 - 读取 context/project-ip-snapshot.md
@@ -236,17 +236,17 @@ Task(
 `
 )
 
-// Librarian: 文档与合规分析
+// Writing: 文档与合规分析
 Task(
-  subagent_type="librarian",
+  category="writing",
   load_skills=["arc:ip-audit"],
   run_in_background=true,
-  description="Librarian评估文档完备性与申请准备度",
+  description="Writing评估文档完备性与申请准备度",
   prompt=`
 [TASK]: 评估项目的文档完备性与知识产权申请准备度
 
 [EXPECTED OUTCOME]:
-- 生成 agents/librarian/compliance-analysis.md,包含:
+- 生成 agents/writing/compliance-analysis.md,包含:
   1. 文档完备性评分(1-10分)
   2. 材料准备度评分(1-10分)
   3. 申请流程风险评估(高/中/低)
@@ -257,7 +257,7 @@ Task(
   8. App 电子版权通道可行性(若目标为应用市场上架)
   9. 费减资格预判与所需证明文件清单
 
-[REQUIRED TOOLS]: ace-tool(搜索文档), Read(读取context/), Write(写入agents/librarian/)
+[REQUIRED TOOLS]: ace-tool(搜索文档), Read(读取context/), Write(写入agents/writing/)
 
 [MUST DO]:
 - 读取 context/project-ip-snapshot.md
@@ -301,7 +301,7 @@ Task(
   3. 每个反驳必须附论据(文件路径/代码片段/外部参考)
 
 [MUST DO]:
-- 读取 agents/fixer/implementation-analysis.md 和 agents/librarian/compliance-analysis.md
+- 读取 agents/deep/implementation-analysis.md 和 agents/writing/compliance-analysis.md
 - 挑战过高的评分(指出被忽略的风险)
 - 挑战过低的评分(指出被低估的创新点)
 - 使用 ace-tool 验证争议点
@@ -316,8 +316,8 @@ Task(
 `
 )
 
-// Fixer反驳Oracle和Writing (同理)
-// Librarian反驳Oracle和Deep (同理)
+// Deep反驳Oracle和Writing (同理)
+// Writing反驳Oracle和Deep (同理)
 ```
 
 **收集反驳结果**,生成 `convergence/round-1-summary.md`。
@@ -327,8 +327,8 @@ Task(
 **Step 4.1: 加权综合评分**
 
 根据反驳报告动态调整权重:
-- **专利可行性**: oracle 60% + fixer 30% + librarian 10%
-- **软著可行性**: fixer 60% + librarian 30% + oracle 10%
+- **专利可行性**: oracle 60% + deep 30% + writing 10%
+- **软著可行性**: deep 60% + writing 30% + oracle 10%
 
 若某Agent被强力反驳(2+条有力论据),降低其权重10%。
 
@@ -413,10 +413,10 @@ python ip-audit/scripts/format_compliance_checker.py \
 - `context/external-references.md` (外部参考)
 - `agents/oracle/innovation-analysis.md` (Oracle独立评估)
 - `agents/oracle/critique.md` (Oracle反驳)
-- `agents/fixer/implementation-analysis.md` (Fixer独立评估)
-- `agents/fixer/critique.md` (Fixer反驳)
-- `agents/librarian/compliance-analysis.md` (Librarian独立评估)
-- `agents/librarian/critique.md` (Librarian反驳)
+- `agents/deep/implementation-analysis.md` (Deep独立评估)
+- `agents/deep/critique.md` (Deep反驳)
+- `agents/writing/compliance-analysis.md` (Writing独立评估)
+- `agents/writing/critique.md` (Writing反驳)
 - `convergence/round-1-summary.md` (首轮综合)
 - `convergence/final-consensus.md` (最终共识)
 - `convergence/format-compliance.md` (格式/命名合规评估)

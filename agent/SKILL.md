@@ -1,6 +1,6 @@
 ---
 name: "arc:agent"
-description: "智能调度 agent，分析用户需求后选择合适的 arc: skill，通过 oh-my-opencode-slim Agent 系统执行任务"
+description: "智能调度 agent，分析用户需求后选择合适的 arc: skill，通过 oh-my-opencode Agent 系统执行任务"
 ---
 
 # 智能调度 Agent（需求分析 + Skill 路由 + 多 Agent 调度）
@@ -11,7 +11,7 @@ description: "智能调度 agent，分析用户需求后选择合适的 arc: ski
 
 1. **需求理解**：分析用户自然语言描述，结合项目上下文理解真实意图
 2. **Skill 路由**：匹配最适合的 `arc:` 技能（或技能组合）
-3. **多 Agent 调度**：将具体工作分配给 oh-my-opencode-slim Agent 系统中合适的 subagent 执行
+3. **多 Agent 调度**：将具体工作分配给 oh-my-opencode Agent 系统中合适的 category/subagent 执行
 4. **结果整合**：收集各 Agent 产出，解决冲突，呈现最终结果
 
 适用于用户不确定该用哪个 skill、需要组合多个 skill、或直接下达开发任务的场景。
@@ -38,14 +38,22 @@ description: "智能调度 agent，分析用户需求后选择合适的 arc: ski
 
 * **ace-tool (MCP)**: 必须。语义搜索项目代码结构，理解项目上下文。
 * **Exa MCP**: 推荐。搜索外部技术信息辅助需求理解。
-* **oh-my-opencode-slim Task API**: 必须。通过 `Task()` 调用 `subagent_type` 执行所有任务。
+* **oh-my-opencode Task API**: 必须。通过 `Task()` 调用 category/subagent 执行所有任务。
 * **所有 arc: 技能**: 路由目标，需按各自 SKILL.md 执行。
 
 ## Task() API 参考
 
-oh-my-opencode-slim 的 Agent 调度接口，所有任务分派均通过此 API 完成：
+oh-my-opencode 的 Agent 调度接口，所有任务分派均通过此 API 完成：
 
 ```
+Task(
+  category="<category>",        // 领域优化的模型选择
+  load_skills=["skill1", ...],  // 为 Agent 装备的技能
+  description="<short desc>",   // 任务简短描述
+  prompt="<detailed prompt>",   // 详细任务指令
+  run_in_background=true/false  // 异步或同步执行
+)
+// 或使用专用 subagent
 Task(
   subagent_type="<agent>",      // 专用 Agent 类型
   load_skills=["skill1", ...],
@@ -60,42 +68,56 @@ Task(
 **`load_skills` 是必需参数**，用于为 Agent 装备相关技能的上下文和能力：
 
 ```typescript
-// ✅ 正确：使用 oracle 进行需求分析/策略判断
+// ✅ 正确：使用 prometheus 进行需求规划
 Task({
-  subagent_type: "oracle",
+  subagent_type: "prometheus",
   load_skills: ["arc:deliberate"],
   prompt: "分析需求并生成执行计划..."
 })
 
-// ✅ 正确：使用 explorer 进行代码侦察
+// ❌ 错误：使用 momus 进行计划审查（应该用 metis）
 Task({
-  subagent_type: "explorer",
-  load_skills: [],
-  run_in_background: true,
-  prompt: "搜索认证相关代码并输出关键文件..."
-})
+  subagent_type: "momus",
+  prompt: "审查这个执行计划..."
+})  // → 应该用 metis 或 prometheus
 ```
 
 **load_skills 选择规则**：
 - 调用 arc: skills 内部的 Agent 时，必须装备对应的 skill：`load_skills=["arc:init"]`
 - 前端任务使用：`load_skills=["frontend-ui-ux"]` 或 `load_skills=["playwright"]`
-- 通用任务（explorer/librarian）使用：`load_skills=[]`
+- 通用任务（explore/librarian）使用：`load_skills=[]`
 - 可以装备多个 skills：`load_skills=["arc:deliberate", "frontend-ui-ux"]`
 
 
 每次 `Task()` 调用返回 `session_id`，可通过 `session_id="<id>"` 继续多轮对话。
 
+### 可用 Category（领域路由）
+
+| Category | 适用场景 |
+|----------|---------|
+| `visual-engineering` | 前端、UI/UX、设计、样式、动画 |
+| `ultrabrain` | 高难度逻辑密集型任务 |
+| `deep` | 目标导向的自主问题解决、深度研究 |
+| `artistry` | 超越标准模式的创意问题解决 |
+| `quick` | 简单任务、单文件变更 |
+| `unspecified-low` | 低工作量杂项任务 |
+| `unspecified-high` | 高工作量杂项任务 |
+| `writing` | 文档、技术写作、说明文字 |
+
 ### 可用 Subagent Type（专用 Agent）
 
 | Subagent | 特性 | 适用场景 |
 |----------|------|---------|
-| `explorer` | 廉价、后台 | 代码库上下文搜索、grep 分析 |
+| `explore` | 廉价、后台 | 代码库上下文搜索、grep 分析 |
 | `librarian` | 廉价、后台 | 外部文档/OSS 搜索 |
 | `oracle` | 昂贵、只读 | 高 IQ 架构咨询、系统推演、权衡策略 |
-| `designer` | 中等成本 | 前端、UI/UX、交互体验优化 |
-| `fixer` | 中等成本 | 通用实现、缺陷修复、重构落地 |
+| `prometheus` | 昂贵 | 宏观规划、需求拆解、需求澄清、依赖图谱 |
+| `metis` | 昂贵 | 预规划分析、算法漏洞检测、歧义检测 |
+| `momus` | 昂贵 | 计划审查（审查 Prometheus 的计划，返回 OKAY/NEEDS_REVISION） |
+| `sisyphus-junior` | 廉价 | 轻量级任务执行、简单单文件修改 |
+| `multimodal-looker` | 廉价 | 解析设计图、图片转组件、CSS 布局分析 |
 
-> **注意**：slim 模式下以 `subagent_type` 为主，不再依赖旧版 category 路由。
+> **注意**：Hephaestus 和 Atlas 是 **primary 模式** Agent，不通过 `subagent_type` 调用，而是通过 `category` 路由（如 `category="ultrabrain"` 对应 Hephaestus 的能力）。
 
 ### 可用 Skills（load_skills 参数）
 
@@ -141,36 +163,36 @@ Task({
 │   └── arc:loop
 │
 ├── 纯后端开发任务（API、数据库、算法、CLI）
-│   └── Task(subagent_type="fixer", load_skills=[], ...)
+│   └── Task(category="deep", load_skills=[], ...)
 │
 ├── 纯前端开发任务（UI、组件、样式、交互）
-│   └── Task(subagent_type="designer", load_skills=["frontend-ui-ux", "playwright"], ...)
+│   └── Task(category="visual-engineering", load_skills=["frontend-ui-ux", "playwright"], ...)
 │
 ├── 架构设计 / 技术决策咨询
 │   └── Task(subagent_type="oracle", load_skills=["arc:deliberate"], ...)
 │
 ├── 需求模糊需要澄清
-│   └── Task(subagent_type="oracle", load_skills=["arc:refine"], ...)
+│   └── Task(subagent_type="prometheus", load_skills=["arc:refine"], ...)
 │
 ├── 计划需要审查
-│   └── Task(subagent_type="oracle", load_skills=["arc:deliberate"], ...)
+│   └── Task(subagent_type="metis", load_skills=["arc:deliberate"], ...)
 │
 ├── 代码探索 / 搜索
-│   └── Task(subagent_type="explorer", load_skills=[], run_in_background=true, ...)
+│   └── Task(subagent_type="explore", load_skills=[], run_in_background=true, ...)
 │
 ├── 文档 / 外部库查询
 │   └── Task(subagent_type="librarian", load_skills=[], run_in_background=true, ...)
 │
 ├── 简单修复 / 单文件变更
-│   └── Task(subagent_type="fixer", load_skills=[], ...)
+│   └── Task(category="quick", load_skills=[], ...)
 │
 ├── 复杂难题 / 高难度逻辑
-│   └── Task(subagent_type="fixer", load_skills=[], ...)
+│   └── Task(category="ultrabrain", load_skills=[], ...)
 │
 └── 全栈 / 混合 / 不确定
     └── 拆分为多个 Task() 并行：
-        ├── Task(subagent_type="fixer", load_skills=[], ...)          // 后端部分
-        └── Task(subagent_type="designer", load_skills=["frontend-ui-ux"], ...)  // 前端部分
+        ├── Task(category="deep", load_skills=[], ...)          // 后端部分
+        └── Task(category="visual-engineering", load_skills=["frontend-ui-ux"], ...)  // 前端部分
 ```
 
 ### 路由判定要素
@@ -204,11 +226,11 @@ Task({
    - 不得跨 skill 混合流程。
 
 4. **Agent 选择有据**
-   - 后端任务（Go, Rust, Python, 数据库, API, 算法）→ `Task(subagent_type="fixer", load_skills=[], ...)`
-   - 前端任务（React, Vue, SolidJS, CSS, 组件, 交互）→ `Task(subagent_type="designer", load_skills=["frontend-ui-ux"], ...)`
+   - 后端任务（Go, Rust, Python, 数据库, API, 算法）→ `Task(category="deep", load_skills=[], ...)`
+   - 前端任务（React, Vue, SolidJS, CSS, 组件, 交互）→ `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], ...)`
    - 架构设计、综合分析 → `Task(subagent_type="oracle", load_skills=["arc:deliberate"], ...)`
-   - 需求歧义分析 → `Task(subagent_type="oracle", load_skills=["arc:refine"], ...)`
-   - 计划质量审查 → `Task(subagent_type="oracle", load_skills=["arc:deliberate"], ...)`
+   - 需求歧义分析 → `Task(subagent_type="prometheus", load_skills=["arc:refine"], ...)`
+   - 计划质量审查 → `Task(subagent_type="metis", load_skills=["arc:deliberate"], ...)`
    - 全栈任务 → 拆分后并发分派多个 Task()
 
 5. **记录调度决策**
@@ -281,7 +303,7 @@ Task({
 ## 路由决策
 - **匹配 Skill**: <skill_name> 或 "直接调度"
 - **匹配理由**: <reasoning>
-- **分派 Agent**: <subagent_type 及 load_skills>
+- **分派 Agent**: <category/subagent 及 load_skills>
 ```
 
 ### Phase 2.5: 执行预览（Execution Preview）
@@ -299,7 +321,7 @@ Task({
 
 ## 调度决策
 - **匹配 Skill**: <skill_name> 或 "直接调度"
-- **分派 Agent**: <subagent_type 列表>
+- **分派 Agent**: <category/subagent 列表>
 
 ## 计划操作
 | 序号 | 操作 | 目标 | 影响 |
@@ -366,7 +388,7 @@ Task({
 
 ### Phase 3: 多 Agent 任务调度
 
-**目标**：将开发任务分配给合适的 oh-my-opencode-slim Agent 执行。
+**目标**：将开发任务分配给合适的 oh-my-opencode Agent 执行。
 
 > 仅当 Phase 2 未匹配到 arc: skill 时进入此阶段。
 
@@ -376,15 +398,15 @@ Task({
 
 | 子任务类型 | 分配 Agent | Task() 参数 |
 |-----------|-----------|------------|
-| 后端逻辑（API、数据库、中间件） | fixer | `subagent_type="fixer"` |
-| 前端界面（组件、页面、样式） | designer | `subagent_type="designer", load_skills=["frontend-ui-ux"]` |
+| 后端逻辑（API、数据库、中间件） | deep | `category="deep"` |
+| 前端界面（组件、页面、样式） | visual-engineering | `category="visual-engineering", load_skills=["frontend-ui-ux"]` |
 | 架构设计、技术方案 | oracle | `subagent_type="oracle"` |
-| 需求歧义分析 | oracle | `subagent_type="oracle"` |
-| 计划生成与审查 | oracle | `subagent_type="oracle"` |
-| 代码库探索 | explorer | `subagent_type="explorer", run_in_background=true` |
+| 需求歧义分析 | prometheus | `subagent_type="prometheus"` |
+| 计划生成与审查 | prometheus/metis | `subagent_type="prometheus"` 或 `subagent_type="metis"` |
+| 代码库探索 | explore | `subagent_type="explore", run_in_background=true` |
 | 外部文档查询 | librarian | `subagent_type="librarian", run_in_background=true` |
-| 简单修复 | fixer | `subagent_type="fixer"` |
-| 高难度逻辑 | fixer | `subagent_type="fixer"` |
+| 简单修复 | quick | `category="quick"` |
+| 高难度逻辑 | ultrabrain | `category="ultrabrain"` |
 
 #### Step 3.2: 并发调度
 
@@ -393,7 +415,7 @@ Task({
 **后端任务调度示例**:
 ```
 Task(
-  subagent_type="fixer",
+  category="deep",
   description="实现后端 API 端点",
   run_in_background=true,
   prompt="你是后端工程师。
@@ -414,7 +436,7 @@ Task(
 **前端任务调度示例**:
 ```
 Task(
-  subagent_type="designer",
+  category="visual-engineering",
   load_skills=["frontend-ui-ux", "playwright"],
   description="实现前端 UI 组件",
   run_in_background=true,
@@ -457,7 +479,7 @@ Task(
 **代码探索调度示例**:
 ```
 Task(
-  subagent_type="explorer",
+  subagent_type="explore",
   description="搜索相关代码上下文",
   run_in_background=true,
   prompt="搜索项目中与 <topic> 相关的代码，找出：
@@ -484,7 +506,7 @@ Task(
 检查多 Agent 产出间是否有冲突（如同一文件的不同修改）。
 
 - **无冲突** → 直接合并
-- **有冲突** → 主进程裁决，选择更合理的方案；必要时调用 `Task(subagent_type="oracle", ...)` 进行代码冲突审查
+- **有冲突** → 主进程裁决，选择更合理的方案；必要时调用 `Task(subagent_type="momus", ...)` 进行代码冲突审查
 
 #### Step 4.3: 结果呈现
 
@@ -515,7 +537,7 @@ Task(
 |------|------|
 | Agent 任务超时 > 10min | AskUserQuestion 询问是否继续等待或拆分为更小任务 |
 | 需求无法匹配任何 skill | 作为通用开发任务处理，按领域分派 Task() |
-| 多 Agent 产出冲突 | 主进程裁决，或调用 `Task(subagent_type="oracle", ...)` 进行代码冲突审查 |
+| 多 Agent 产出冲突 | 主进程裁决，或调用 `Task(subagent_type="momus", ...)` 进行代码冲突审查 |
 | dry-run 模式 | 输出预览后直接退出，不执行任何操作 |
 | 用户取消确认 | 输出取消信息，清理已创建快照 |
 | 执行失败（snapshot 模式） | 自动回滚到快照状态，记录回滚日志 |
@@ -532,7 +554,7 @@ Task(
   └── 任务类型: <type>
 
 === 阶段 2: Skill 路由 ===
-  └── 匹配: <skill_name> / 直接调度 Task(<subagent_type>)
+  └── 匹配: <skill_name> / 直接调度 Task(<category/subagent>)
 
 === 阶段 2.5: 执行预览 ===
   ├── 生成操作清单... [完成]
@@ -541,8 +563,8 @@ Task(
   └── dry-run 模式... [否/是-退出]
 
 === 阶段 3: 执行 ===
-  ├── Task(subagent_type="fixer") 后端任务... [完成]
-  ├── Task(subagent_type="designer") 前端任务... [完成]
+  ├── Task(category="deep") 后端任务... [完成]
+  ├── Task(category="visual-engineering") 前端任务... [完成]
   └── Task(subagent_type="oracle") 架构任务... [完成]
 
 === 阶段 4: 结果整合 ===
@@ -563,13 +585,13 @@ Task(
 
 | 场景 | Task() 调用方式 | 并发支持 |
 |------|---------------|---------|
-| 后端开发 | `Task(subagent_type="fixer", run_in_background=true, ...)` | 后台并发 |
-| 前端开发 | `Task(subagent_type="designer", load_skills=["frontend-ui-ux"], run_in_background=true, ...)` | 后台并发 |
+| 后端开发 | `Task(category="deep", run_in_background=true, ...)` | 后台并发 |
+| 前端开发 | `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], run_in_background=true, ...)` | 后台并发 |
 | 架构咨询 | `Task(subagent_type="oracle", run_in_background=true, ...)` | 后台并发 |
-| 需求澄清 | `Task(subagent_type="oracle", ...)` | 同步 |
-| 计划审查 | `Task(subagent_type="oracle", ...)` | 同步 |
-| 代码探索 | `Task(subagent_type="explorer", run_in_background=true, ...)` | 后台并发 |
+| 需求澄清 | `Task(subagent_type="prometheus", ...)` | 同步 |
+| 计划审查 | `Task(subagent_type="metis", ...)` | 同步 |
+| 代码探索 | `Task(subagent_type="explore", run_in_background=true, ...)` | 后台并发 |
 | 文档查询 | `Task(subagent_type="librarian", run_in_background=true, ...)` | 后台并发 |
-| 简单修复 | `Task(subagent_type="fixer", run_in_background=true, ...)` | 后台并发 |
-| 复杂难题 | `Task(subagent_type="fixer", run_in_background=true, ...)` | 后台并发 |
+| 简单修复 | `Task(category="quick", run_in_background=true, ...)` | 后台并发 |
+| 复杂难题 | `Task(category="ultrabrain", run_in_background=true, ...)` | 后台并发 |
 | 结果整合/裁决 | 主进程直接处理 | — |

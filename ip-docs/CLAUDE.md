@@ -2,7 +2,7 @@
 
 ## 模块定位
 
-`ip-docs/` 提供 `arc:ip-docs`，采用**多Agent协作模式**(oracle/fixer/librarian)专注于软著/专利申请文档草稿写作，不做可行性裁决。
+`ip-docs/` 提供 `arc:ip-docs`，采用**多Agent协作模式**(oracle/deep/momus)专注于软著/专利申请文档草稿写作，不做可行性裁决。
 
 ## 核心产物
 
@@ -18,8 +18,8 @@
 | Agent | 角色定位 | 起草文档类型 | 输出文件 |
 |-------|---------|------------|---------|
 | **oracle** (subagent) | 技术方案描述专家 | 架构设计、技术方案、系统流程、专利技术交底书 | `agents/oracle/technical-description.md` |
-| **fixer** (subagent) | 实现细节专家 | 代码实现、算法细节、性能优化、软著技术交底 | `agents/fixer/implementation-details.md` |
-| **librarian** (subagent) | 用户文档写作专家 | 用户手册、操作说明、软著摘要、权利要求书 | `agents/librarian/user-documentation.md` |
+| **deep** (category) | 实现细节专家 | 代码实现、算法细节、性能优化、软著技术交底 | `agents/deep/implementation-details.md` |
+| **writing** (category) | 用户文档写作专家 | 用户手册、操作说明、软著摘要、权利要求书 | `agents/writing/user-documentation.md` |
 
 ### 协作流程
 
@@ -29,12 +29,12 @@
 
 | 文档类型 | 主起草Agent | 审阅Agent | 输出路径 |
 |---------|-----------|----------|---------|
-| 软著摘要 | librarian | oracle, fixer | `copyright/software-summary.md` |
-| 操作说明书 | librarian | oracle, fixer | `copyright/manual-outline.md` |
-| 代码材料说明 | fixer | oracle | `copyright/source-code-package-notes.md` |
-| 技术交底书 | oracle | fixer, librarian | `patent/disclosure-draft.md` |
-| 权利要求书 | librarian | oracle, fixer | `patent/claims-draft.md` |
-| 附图说明 | oracle, librarian | fixer | `patent/drawings-description.md` |
+| 软著摘要 | writing | oracle, deep | `copyright/software-summary.md` |
+| 操作说明书 | momus | oracle, deep | `copyright/manual-outline.md` |
+| 代码材料说明 | deep | oracle | `copyright/source-code-package-notes.md` |
+| 技术交底书 | oracle | deep, momus | `patent/disclosure-draft.md` |
+| 权利要求书 | momus | oracle, deep | `patent/claims-draft.md` |
+| 附图说明 | oracle, momus | deep | `patent/drawings-description.md` |
 
 ## 脚本入口
 
@@ -58,17 +58,17 @@ Task(
   prompt="..."
 )
 Task(
-  subagent_type="fixer",
+  category="deep",
   load_skills=["arc:ip-docs"],
   run_in_background=true,
-  description="Fixer起草实现细节",
+  description="Deep起草实现细节",
   prompt="..."
 )
 Task(
-  subagent_type="librarian",
+  category="writing",
   load_skills=["arc:ip-docs"],
   run_in_background=true,
-  description="Librarian起草用户文档",
+  description="Writing起草用户文档",
   prompt="..."
 )
 
@@ -77,7 +77,7 @@ Task(
   session_id="<oracle_session_id>",
   load_skills=["arc:ip-docs"],
   run_in_background=false,
-  description="Oracle审阅Fixer和Librarian草稿",
+  description="Oracle审阅Deep和Momus草稿",
   prompt="..."
 )
 ```

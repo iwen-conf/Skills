@@ -7,14 +7,14 @@ description: 当复杂问题需要多 Agent 多视角分析并通过迭代讨论
 
 ## Overview
 
-通过共享文件系统作为通信总线,协调多个专业 Agent(oracle/fixer/designer)进行迭代式协作审议。**每个阶段各 Agent 都必须互相反驳、审阅对方的观点**。
+通过共享文件系统作为通信总线,协调多个专业 Agent(oracle/deep/visual-engineering)进行迭代式协作审议。**每个阶段各 Agent 都必须互相反驳、审阅对方的观点**。
 
 流程分为四个阶段：
 
 1. **歧义检查阶段**：多 Agent 分析需求 → 识别歧义 → 互相反驳 → 用户澄清 → 直到无歧义
 2. **审议阶段**：多 Agent 独立提案 → 交叉审阅 → 互相反驳 → 迭代收敛 → 合成共识报告
 3. **计划生成阶段**：OpenSpec 生成结构化计划 → 多 Agent 审查反驳 → 定稿可执行计划
-4. **执行阶段**：使用 Task(subagent_type="fixer") 执行代码实现
+4. **执行阶段**：使用 Task(category="deep") 执行代码实现
 
 ## Agent 调用方式
 
@@ -23,16 +23,16 @@ description: 当复杂问题需要多 Agent 多视角分析并通过迭代讨论
 | Agent 角色 | 调用方式 | 用途 |
 |------|---------|------|
 | **oracle** | `Task(subagent_type="oracle", load_skills=["arc:deliberate"], ...)` | 架构分析、设计评审（只读高质量推理） |
-| **fixer** | `Task(subagent_type="fixer", load_skills=[...], ...)` | 深度工程分析、方案提案、代码执行 |
-| **designer** | `Task(subagent_type="designer", load_skills=["arc:deliberate", "frontend-ui-ux"], ...)` | 前端与DX视角、UI/UX设计、交互体验 |
-| **oracle** | `Task(subagent_type="oracle", load_skills=["arc:refine"], ...)` | 需求预分析、歧义检测 |
-| **explorer** | `Task(subagent_type="explorer", load_skills=[], run_in_background=true, ...)` | 代码库搜索（廉价、后台） |
+| **deep** | `Task(category="deep", load_skills=[...], ...)` | 深度工程分析、方案提案、代码执行 |
+| **visual-engineering** | `Task(category="visual-engineering", load_skills=["arc:deliberate", "frontend-ui-ux"], ...)` | 前端与DX视角、UI/UX设计、交互体验 |
+| **metis** | `Task(subagent_type="metis", load_skills=["arc:refine"], ...)` | 需求预分析、歧义检测 |
+| **explore** | `Task(subagent_type="explore", load_skills=[], run_in_background=true, ...)` | 代码库搜索（廉价、后台） |
 | **librarian** | `Task(subagent_type="librarian", load_skills=[], run_in_background=true, ...)` | 外部文档搜索（廉价、后台） |
 
 通用 Task 调用模板：
 ```
 Task(
-  subagent_type: "<agent>",          // slim 推荐显式 agent
+  category: "<category>",              // 或 subagent_type: "<agent>"
   load_skills: ["arc:deliberate", ...], // 装备相关 skill
   description: "<简短描述>",
   prompt: "<具体任务指令，包含读写文件路径>",
@@ -59,7 +59,7 @@ Task(
 - 复杂技术决策需要多视角验证（架构、性能、安全、兼容性）
 - 单个模型的方案可能有盲点，需要交叉审阅
 - 用户需要可解释的决策而非黑盒结论
-- 问题涉及多个技术领域,需要 oracle(架构)+ fixer(工程)+ designer(前端与DX)协作
+- 问题涉及多个技术领域,需要 oracle(架构)+ deep(工程)+ visual-engineering(前端与DX)协作
 
 ## Core Pattern
 
@@ -87,12 +87,12 @@ Task(
 │   │   ├── proposal-round-1.md             # 提案（Phase 2）
 │   │   ├── critique-round-1.md             # 审阅反驳（Phase 2）
 │   │   └── plan-review.md                  # 计划审查（Phase 3）
-│   ├── fixer/                           # fixer Agent 所有阶段产出（工程视角）
+│   ├── deep/                            # deep Agent 所有阶段产出（工程视角）
 │   │   ├── ambiguity-round-1.md
 │   │   ├── proposal-round-1.md
 │   │   ├── critique-round-1.md
 │   │   └── plan-review.md
-│   └── designer/              # designer 所有阶段产出(前端与DX视角)
+│   └── visual-engineering/              # visual-engineering 所有阶段产出(前端与DX视角)
 │       ├── ambiguity-round-1.md
 │       ├── proposal-round-1.md
 │       ├── critique-round-1.md
@@ -141,33 +141,33 @@ Task(
 )
 ```
 
-**fixer 分析**（工程视角）:
+**deep 分析**（工程视角）:
 ```
 Task(
-  subagent_type: "fixer",
+  category: "deep",
   load_skills: ["arc:deliberate"],
   run_in_background: true,
-  description: "fixer 歧义分析",
+  description: "deep 歧义分析",
   prompt: "你是后端架构师。分析以下需求的歧义点。
 上下文信息（来自 MCP 搜索）：<MCP 搜索结果>
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 从后端架构、技术约束、性能要求等角度，列出可能存在歧义的地方。
-写入 <workdir>/.arc/deliberate/<task-name>/agents/fixer/ambiguity-round-N.md。"
+写入 <workdir>/.arc/deliberate/<task-name>/agents/deep/ambiguity-round-N.md。"
 )
 ```
 
-**designer 分析**(前端与DX视角):
+**visual-engineering 分析**(前端与DX视角):
 ```
 Task(
-  subagent_type: "designer",
+  category: "visual-engineering",
   load_skills: ["arc:deliberate", "frontend-ui-ux"],
   run_in_background: true,
-  description: "designer 歧义分析",
+  description: "visual-engineering 歧义分析",
   prompt: "你是前端与DX工程师。分析以下需求的歧义点。
 上下文信息（来自 MCP 搜索）：<MCP 搜索结果>
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 从用户体验、完整性、可维护性等角度，列出可能存在歧义的地方。
-写入 <workdir>/.arc/deliberate/<task-name>/agents/designer/ambiguity-round-N.md。"
+写入 <workdir>/.arc/deliberate/<task-name>/agents/visual-engineering/ambiguity-round-N.md。"
 )
 ```
 
@@ -176,12 +176,12 @@ Task(
 **CRITICAL**: 各 Agent 必须**互相反驳对方识别出的歧义**。
 
 每个模型必须：
-1. 读取其他 Agent 的歧义分析(如 oracle 读取 `agents/fixer/ambiguity-round-N.md` 和 `agents/designer/ambiguity-round-N.md`)
+1. 读取其他 Agent 的歧义分析(如 oracle 读取 `agents/deep/ambiguity-round-N.md` 和 `agents/visual-engineering/ambiguity-round-N.md`)
 2. 反驳对方认为的"歧义"（可能不是歧义）
 3. 补充对方遗漏的歧义
 4. 将反驳内容追加到自己的 `ambiguity-round-N.md`
 
-调用方式同 Step 1.1(oracle 用 `Task(subagent_type="oracle")`,fixer 用 `Task(subagent_type="fixer")`,designer 用 `Task(subagent_type="designer")`)。
+调用方式同 Step 1.1(oracle 用 `Task(subagent_type="oracle")`,deep 用 `Task(category="deep")`,visual-engineering 用 `Task(category="visual-engineering")`)。
 
 ### Step 1.3: 聚合歧义
 
@@ -235,7 +235,7 @@ Task(
 
 ### Step 2.1: 目录脚手架
 
-确保 `agents/oracle/`、`agents/fixer/`、`agents/designer/`、`convergence/` 目录已创建。
+确保 `agents/oracle/`、`agents/deep/`、`agents/visual-engineering/`、`convergence/` 目录已创建。
 
 ### Step 2.2: 并发派发提案 (每轮)
 
@@ -255,31 +255,31 @@ Task(
 )
 ```
 
-**fixer 提案**（工程视角）:
+**deep 提案**（工程视角）:
 ```
 Task(
-  subagent_type: "fixer",
+  category: "deep",
   load_skills: ["arc:deliberate"],
   run_in_background: true,
-  description: "fixer 提案 Round N",
+  description: "deep 提案 Round N",
   prompt: "你是后端架构师（后端架构、性能优化、数据库、安全）。
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 给出完整的解决方案提案，仅限纯文本 Markdown 格式，禁止代码块。
-写入 <workdir>/.arc/deliberate/<task-name>/agents/fixer/proposal-round-N.md。"
+写入 <workdir>/.arc/deliberate/<task-name>/agents/deep/proposal-round-N.md。"
 )
 ```
 
-**designer 提案**(前端与DX视角):
+**visual-engineering 提案**(前端与DX视角):
 ```
 Task(
-  subagent_type: "designer",
+  category: "visual-engineering",
   load_skills: ["arc:deliberate", "frontend-ui-ux"],
   run_in_background: true,
-  description: "designer 提案 Round N",
+  description: "visual-engineering 提案 Round N",
   prompt: "你是前端与DX工程师(UI/UX、用户体验、响应式设计、可维护性)。
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
 给出完整的解决方案提案，仅限纯文本 Markdown 格式，禁止代码块。
-写入 <workdir>/.arc/deliberate/<task-name>/agents/designer/proposal-round-N.md。"
+写入 <workdir>/.arc/deliberate/<task-name>/agents/visual-engineering/proposal-round-N.md。"
 )
 ```
 
@@ -297,20 +297,20 @@ Task(
 3. **用论据反驳对方的技术选择**
 4. 提出自己的替代方案
 
-**oracle 审阅 fixer + designer**(用 `Task(subagent_type="oracle", session_id="<复用上轮 session>", ...)`):
-- 读取 `agents/fixer/proposal-round-N.md` 和 `agents/designer/proposal-round-N.md`
-- 从架构视角反驳 fixer 的工程选择、designer 的前端设计
+**oracle 审阅 deep + visual-engineering**(用 `Task(subagent_type="oracle", session_id="<复用上轮 session>", ...)`):
+- 读取 `agents/deep/proposal-round-N.md` 和 `agents/visual-engineering/proposal-round-N.md`
+- 从架构视角反驳 deep 的工程选择、visual-engineering 的前端设计
 - 产出：`agents/oracle/critique-round-N.md`
 
-**fixer 审阅 oracle + designer**(用 `Task(subagent_type="fixer", session_id="<复用上轮 session>", ...)`):
-- 读取 `agents/oracle/proposal-round-N.md` 和 `agents/designer/proposal-round-N.md`
-- 从工程视角反驳 oracle 的架构设计、designer 的体验要求
-- 产出：`agents/fixer/critique-round-N.md`
+**deep 审阅 oracle + visual-engineering**(用 `Task(category="deep", session_id="<复用上轮 session>", ...)`):
+- 读取 `agents/oracle/proposal-round-N.md` 和 `agents/visual-engineering/proposal-round-N.md`
+- 从工程视角反驳 oracle 的架构设计、visual-engineering 的体验要求
+- 产出：`agents/deep/critique-round-N.md`
 
-**designer 审阅 oracle + fixer**(用 `Task(subagent_type="designer", session_id="<复用上轮 session>", ...)`):
-- 读取 `agents/oracle/proposal-round-N.md` 和 `agents/fixer/proposal-round-N.md`
-- 从质量视角反驳 oracle 的抽象设计、fixer 的工程实现
-- 产出:`agents/designer/critique-round-N.md`
+**visual-engineering 审阅 oracle + deep**(用 `Task(category="visual-engineering", session_id="<复用上轮 session>", ...)`):
+- 读取 `agents/oracle/proposal-round-N.md` 和 `agents/deep/proposal-round-N.md`
+- 从质量视角反驳 oracle 的抽象设计、deep 的工程实现
+- 产出:`agents/visual-engineering/critique-round-N.md`
 
 ### Step 2.5: 收敛判定
 
@@ -462,13 +462,13 @@ Task(
 )
 ```
 
-**fixer 审查计划**（工程视角）:
+**deep 审查计划**（工程视角）:
 ```
 Task(
-  subagent_type: "fixer",
+  category: "deep",
   load_skills: ["arc:deliberate"],
   run_in_background: true,
-  description: "fixer 审查计划",
+  description: "deep 审查计划",
   prompt: "你是后端架构师。审查以下 OpenSpec 计划文件，从后端架构、性能、安全、可行性角度进行审查反驳。
 读取以下文件：
 - $CHANGE/proposal.md
@@ -480,17 +480,17 @@ Task(
 2. 反驳不合理的任务排序或依赖关系
 3. 补充遗漏的后端相关任务
 4. 给出修改建议
-写入 <workdir>/.arc/deliberate/<task-name>/agents/fixer/plan-review.md。"
+写入 <workdir>/.arc/deliberate/<task-name>/agents/deep/plan-review.md。"
 )
 ```
 
-**designer 审查计划**(前端与DX视角):
+**visual-engineering 审查计划**(前端与DX视角):
 ```
 Task(
-  subagent_type: "designer",
+  category: "visual-engineering",
   load_skills: ["arc:deliberate", "frontend-ui-ux"],
   run_in_background: true,
-  description: "designer 审查计划",
+  description: "visual-engineering 审查计划",
   prompt: "你是前端与交互设计师。审查以下 OpenSpec 计划文件，从前端交互、UI/UX、组件架构、用户体验角度进行审查反驳。
 读取以下文件：
 - $CHANGE/proposal.md
@@ -502,7 +502,7 @@ Task(
 2. 反驳不合理的设计选择
 3. 补充遗漏的前端相关任务
 4. 给出修改建议
-写入 <workdir>/.arc/deliberate/<task-name>/agents/designer/plan-review.md。"
+写入 <workdir>/.arc/deliberate/<task-name>/agents/visual-engineering/plan-review.md。"
 )
 ```
 
@@ -510,7 +510,7 @@ Task(
 
 **CRITICAL**: 各 Agent 互相反驳对方的计划审查意见。每个 Agent 读取另外两个的 `plan-review.md`，反驳不合理之处，补充遗漏。
 
-调用方式:oracle 用 `Task(subagent_type="oracle", session_id="<复用>")`,fixer 用 `Task(subagent_type="fixer", session_id="<复用>")`,designer 用 `Task(subagent_type="designer", session_id="<复用>")`,三者并发。
+调用方式:oracle 用 `Task(subagent_type="oracle", session_id="<复用>")`,deep 用 `Task(category="deep", session_id="<复用>")`,visual-engineering 用 `Task(category="visual-engineering", session_id="<复用>")`,三者并发。
 
 各 Agent 产出覆盖（更新）自己的 `plan-review.md`，追加反驳段落。
 
@@ -518,7 +518,7 @@ Task(
 
 主进程直接处理，综合各份审查报告，修订 OpenSpec artifact 文件：
 
-1. 读取 `agents/oracle/plan-review.md`、`agents/fixer/plan-review.md`、`agents/designer/plan-review.md`
+1. 读取 `agents/oracle/plan-review.md`、`agents/deep/plan-review.md`、`agents/visual-engineering/plan-review.md`
 2. 根据各方审查修订 `openspec/changes/<task-name>/tasks.md`（确保任务有序、有依赖关系、可执行）
 3. 同步更新 `design.md` 和 `specs/` 下的 spec 文件（如有必要）
 
@@ -553,15 +553,15 @@ openspec archive <task-name>
 
 ## Phase 4: 执行阶段（Execution）
 
-**CRITICAL**: 计划定稿后，使用 `Task(subagent_type="fixer")` 执行代码实现。
+**CRITICAL**: 计划定稿后，使用 `Task(category="deep")` 执行代码实现。
 
 ### Step 4.1: Agent 执行计划
 
-根据定稿计划，使用 fixer Agent 按 `tasks.md` 逐步执行：
+根据定稿计划，使用 deep Agent 按 `tasks.md` 逐步执行：
 
 ```
 Task(
-  subagent_type: "fixer",
+  category: "deep",
   load_skills: ["arc:deliberate"],
   description: "执行审议计划",
   prompt: "根据 .arc/deliberate/<task-name>/openspec/changes/<task-name>/tasks.md 中的任务列表，按顺序执行代码实现。
@@ -605,16 +605,16 @@ openspec archive <task-name>
 === 阶段 1: 歧义检查 ===
 Round 1/3:
   ├── oracle(subagent) 分析... [完成]
-  ├── fixer(subagent) 分析... [完成]
-  ├── designer(category) 分析... [完成]
+  ├── deep(category) 分析... [完成]
+  ├── visual-engineering(category) 分析... [完成]
   ├── 聚合歧义... [N 个歧义]
   └── 用户澄清... [进行中]
 
 === 阶段 2: 审议 ===
 Round 1/3:
   ├── oracle 提案... [完成]
-  ├── fixer 提案... [完成]
-  ├── designer 提案... [完成]
+  ├── deep 提案... [完成]
+  ├── visual-engineering 提案... [完成]
   ├── 交叉审阅... [完成]
   └── 收敛判定... [收敛]
 
@@ -623,13 +623,13 @@ Round 1/3:
   ├── 生成 artifact（proposal→specs→design→tasks）... [完成]
   ├── openspec validate... [通过]
   ├── oracle 审查... [完成]
-  ├── fixer 审查... [完成]
-  ├── designer 审查... [完成]
+  ├── deep 审查... [完成]
+  ├── visual-engineering 审查... [完成]
   ├── 多Agent交叉反驳... [完成]
   └── 计划定稿... [完成]
 
 === 阶段 4: 执行 ===
-  ├── fixer Agent 执行... [进行中]
+  ├── deep Agent 执行... [进行中]
   └── 验证... [待定]
 ```
 
@@ -637,16 +637,16 @@ Round 1/3:
 
 | 阶段 | 步骤 | 输出路径 |
 |------|------|---------|
-| 歧义检查 | 多Agent分析 → 聚合 → 用户澄清 → 判定 | `agents/(oracle\|fixer\|designer)/ambiguity-round-N.md` |
-| 审议 | 提案 → 审阅 → 收敛判定 → 共识报告 | `agents/(oracle\|fixer\|designer)/proposal-round-N.md`, `convergence/final-consensus.md` |
+| 歧义检查 | 多Agent分析 → 聚合 → 用户澄清 → 判定 | `agents/(oracle\|deep\|visual-engineering)/ambiguity-round-N.md` |
+| 审议 | 提案 → 审阅 → 收敛判定 → 共识报告 | `agents/(oracle\|deep\|visual-engineering)/proposal-round-N.md`, `convergence/final-consensus.md` |
 | 计划生成 | OpenSpec init → 生成 artifact → 验证 → 多Agent审查 → 交叉反驳 → 定稿 | `openspec/changes/<task-name>/(proposal\|design\|tasks).md`, `openspec/changes/<task-name>/specs/` |
-| 执行 | fixer Agent 按 tasks.md 实现代码 → 归档 | 项目代码 + `openspec archive` |
+| 执行 | deep Agent 按 tasks.md 实现代码 → 归档 | 项目代码 + `openspec archive` |
 
 ## 调用方式速查
 
 | 角色 | 调用方式 | 并发支持 |
 |------|---------|---------|
 | oracle | `Task(subagent_type="oracle", load_skills=["arc:deliberate"], run_in_background=true, ...)` | 后台异步 |
-| fixer | `Task(subagent_type="fixer", load_skills=["arc:deliberate"], run_in_background=true, ...)` | 后台异步 |
-| designer | `Task(subagent_type="designer", load_skills=["arc:deliberate", "frontend-ui-ux"], run_in_background=true, ...)` | 后台异步 |
+| deep | `Task(category="deep", load_skills=["arc:deliberate"], run_in_background=true, ...)` | 后台异步 |
+| visual-engineering | `Task(category="visual-engineering", load_skills=["arc:deliberate", "frontend-ui-ux"], run_in_background=true, ...)` | 后台异步 |
 | 聚合/定稿 | 主进程直接处理 | — |

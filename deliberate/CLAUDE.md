@@ -10,7 +10,7 @@ arc:init 多Agent协作生成模块级 CLAUDE.md
 
 ## 模块职责
 
-arc:deliberate 通过共享文件系统协调 oracle、deep、designer 三个专业 Agent 进行迭代式协作审议，使用 OpenSpec 生成结构化可执行计划。适用于复杂技术决策、架构设计、方案对比等需要多视角验证的场景。
+arc:deliberate 通过共享文件系统协调 oracle、deep、visual-engineering 三个专业 Agent 进行迭代式协作审议，使用 OpenSpec 生成结构化可执行计划。适用于复杂技术决策、架构设计、方案对比等需要多视角验证的场景。
 
 核心能力：
 - **歧义检查**：多Agent分析需求 → 识别歧义 → 用户澄清 → 直到无歧义
@@ -91,7 +91,7 @@ arc:deliberate 通过共享文件系统协调 oracle、deep、designer 三个专
 │   │   ├── proposal-round-N.md
 │   │   ├── critique-round-N.md
 │   │   └── plan-review.md
-│   └── designer/
+│   └── visual-engineering/
 │       ├── ambiguity-round-N.md
 │       ├── proposal-round-N.md
 │       ├── critique-round-N.md
@@ -113,7 +113,7 @@ arc:deliberate 通过共享文件系统协调 oracle、deep、designer 三个专
 |------|------|------|
 | ace-tool MCP | 必须 | 搜索项目代码结构 |
 | Exa MCP | 推荐 | 搜索最佳实践和技术文档 |
-| oh-my-opencode-slim Task API | 必须 | Agent 调度（subagent_type 路由） |
+| oh-my-opencode Task API | 必须 | Agent 调度（category/subagent 路由） |
 | openspec CLI | 必须 | 结构化计划生成 |
 
 ## 数据模型
@@ -237,9 +237,9 @@ graph TD
 
 1. **Agent 调用方式**：
    - oracle: `Task(subagent_type="oracle", load_skills=["arc:deliberate"], run_in_background=true)`
-   - deep: `Task(subagent_type="fixer", load_skills=["arc:deliberate"], run_in_background=true)`
-   - designer: `Task(subagent_type="designer", load_skills=["arc:deliberate", "frontend-ui-ux"], run_in_background=true)`
-   - visual: `Task(subagent_type="designer", load_skills=["frontend-ui-ux"], run_in_background=true)`
+   - deep: `Task(category="deep", load_skills=["arc:deliberate"], run_in_background=true)`
+   - visual-engineering: `Task(category="visual-engineering", load_skills=["arc:deliberate", "frontend-ui-ux"], run_in_background=true)`
+   - visual: `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], run_in_background=true)`
 
 2. **并发执行**：
    - 各Agent必须在同一消息中并发发起
