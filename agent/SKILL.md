@@ -125,6 +125,7 @@ Task({
 - `frontend-ui-ux` — UI/UX 设计专业知识
 - `git-master` — Git 操作
 - `dev-browser` — 持久状态浏览器自动化
+- `cartography` — 仓库理解与分层 codemap 生成
 - 所有 `arc:*` 用户技能
 
 ## Skill 路由决策树
@@ -134,6 +135,9 @@ Task({
 │
 ├── 涉及项目初始化 / 生成 CLAUDE.md 文档
 │   └── arc:init
+│
+├── 需要仓库结构摸底 / 生成代码地图（codemap）
+│   └── cartography
 │
 ├── 问题描述模糊 / 缺少项目上下文
 │   └── arc:refine → (可选) arc:deliberate
@@ -200,6 +204,7 @@ Task({
 | 信号 | 匹配 Skill / Agent |
 |------|-------------------|
 | 用户提到「初始化」「生成文档」「CLAUDE.md」 | arc:init |
+| 用户提到「代码地图」「codemap」「仓库结构」「目录职责」 | cartography |
 | 用户提到「评审」「review」「诊断」「质量」 | arc:review |
 | 用户提到「知识产权评估」「专利可行性」「软著可行性」「IP审查」 | arc:ip-audit |
 | 用户提到「技术交底书」「权利要求」「软著说明书」「申请文档写作」 | arc:ip-docs |

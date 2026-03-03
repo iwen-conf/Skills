@@ -87,6 +87,9 @@ arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的
 ├── 涉及项目初始化 / 生成 CLAUDE.md 文档
 │   └── arc:init
 │
+├── 需要仓库结构摸底 / 生成代码地图（codemap）
+│   └── cartography
+│
 ├── 问题描述模糊 / 缺少项目上下文
 │   └── arc:refine → (可选) arc:deliberate
 │
@@ -122,6 +125,7 @@ arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的
 | 信号 | 匹配 Skill |
 |------|-----------|
 | 用户提到「初始化」「生成文档」「CLAUDE.md」 | arc:init |
+| 用户提到「代码地图」「codemap」「仓库结构」「目录职责」 | cartography |
 | 用户提到「评审」「review」「诊断」「质量」 | arc:review |
 | 用户提到「讨论」「deliberate」「方案」「架构决策」 | arc:deliberate |
 | 用户提到「测试」「E2E」「simulate」「浏览器」 | arc:simulate |

@@ -13,13 +13,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Repo Is
 
-A collection of Claude Code Skills (custom slash-command plugins) under the **`arc:`** namespace. Each top-level directory is a self-contained Skill defined by a `SKILL.md` frontmatter file. Skills are invoked via `/arc:<name>` in Claude Code and extend the agent with specialized workflows.
+A collection of Claude Code Skills (custom slash-command plugins), primarily under the **`arc:`** namespace, plus a standalone `cartography` skill for repository codemap generation. Each top-level directory is a self-contained Skill defined by a `SKILL.md` frontmatter file. Arc skills are invoked via `/arc:<name>`, while cartography is invoked via `/cartography`.
 
 ## Skill Inventory
 
 | Directory | Skill Name | Invoke | Purpose |
 |-----------|-----------|--------|---------|
 | `agent/` | arc:agent | `/arc:agent` | 智能调度 agent，分析用户需求后选择合适的 arc: skill，通过 oh-my-opencode Agent 系统调度执行任务 |
+| `cartography/` | cartography | `/cartography` | 仓库理解与分层代码地图（codemap）生成，输出目录级与根级映射文档 |
 | `simulate/` | arc:simulate | `/arc:simulate` | 通过 `agent-browser` 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
 | `triage/` | arc:triage | `/arc:triage` | 分析 arc:simulate 的失败报告，定位根因、修复缺陷、执行回归验证 |
 | `loop/` | arc:loop | `/arc:loop` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
@@ -50,6 +51,7 @@ QB|| `init-update/` | arc:init:update | `/arc:init:update` | 增量更新 CLAUDE
 | init-full/ | [CLAUDE.md](./init-full/CLAUDE.md) | 全量初始化流程、深度扫描策略、多Agent协作生成 |
 | init-update/ | [CLAUDE.md](./init-update/CLAUDE.md) | 增量更新机制、变更指纹检测、模块级差异更新 |
 | agent/ | [CLAUDE.md](./agent/CLAUDE.md) | 调度决策树、执行预览、多Agent任务分配 |
+| cartography/ | [CLAUDE.md](./cartography/CLAUDE.md) | 仓库结构扫描、分层 codemap 生成与增量更新 |
 | refine/ | [CLAUDE.md](./refine/CLAUDE.md) | CLAUDE.md 索引扫描、差距分析、Prompt 增强 |
 | ip-audit/ | [CLAUDE.md](./ip-audit/CLAUDE.md) | 知识产权可行性审查、风险矩阵、交接产物定义 |
 | ip-docs/ | [CLAUDE.md](./ip-docs/CLAUDE.md) | 软著/专利文档草稿写作、模板与交接消费 |
@@ -60,6 +62,7 @@ QB|| `init-update/` | arc:init:update | `/arc:init:update` | 增量更新 CLAUDE
 
 ```
 arc:agent ────┬─▶ arc:init         (智能调度 → full/update)
+              ├─▶ cartography     (仓库地图/codemap 生成)
               ├─▶ arc:refine       (问题细化)
               │     └─▶ arc:deliberate
               ├─▶ arc:implement    (方案落地实现)
@@ -74,6 +77,7 @@ arc:agent ────┬─▶ arc:init         (智能调度 → full/update)
               └─▶ Task API dispatch (category/subagent routing)
 
 arc:init  (独立运行；输出的 CLAUDE.md 被 arc:refine 消费)
+cartography  (独立运行；输出 codemap.md 可被 arc:refine/arc:implement/arc:review 作为上下文参考)
 arc:score  (消费 arc:init 产物；输出量化数据给 arc:review 和 arc:gate)
 arc:implement  (消费 deliberation/refine 结果；输出实现交接供 review/simulate 使用)
 arc:review  (消费 arc:score 量化数据；输出评审报告)
