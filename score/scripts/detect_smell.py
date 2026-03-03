@@ -30,6 +30,10 @@ class SmellViolation:
     suggestion: str
 
 
+SCHEMA_VERSION = "1.0.0"
+PRODUCER_SKILL = "arc:score"
+
+
 # 内置检测规则 (简化版，无需 AST)
 BUILTIN_RULES = {
     # Security
@@ -197,7 +201,7 @@ def detect_smell(
     Returns:
         检测结果
     """
-    project_path = Path(project_path)
+    project_root = Path(project_path)
 
     if languages is None:
         languages = ["python", "typescript", "javascript", "go", "java"]
@@ -223,11 +227,11 @@ def detect_smell(
     files = []
     for lang in languages:
         for ext in extensions.get(lang, []):
-            files.extend(project_path.rglob(f"*{ext}"))
+            files.extend(project_root.rglob(f"*{ext}"))
 
     # 过滤排除的文件
     def should_exclude(file_path: Path) -> bool:
-        rel_path = str(file_path.relative_to(project_path))
+        rel_path = str(file_path.relative_to(project_root))
         for pattern in exclude_patterns:
             if pattern.endswith("/**"):
                 if rel_path.startswith(pattern[:-3]):
@@ -275,7 +279,7 @@ def detect_smell(
                                         category=rule["category"],
                                         name=rule["name"],
                                         severity=rule["severity"],
-                                        file=str(file_path.relative_to(project_path)),
+                                        file=str(file_path.relative_to(project_root)),
                                         line=i,
                                         message=f"{rule['message']}: {line.strip()[:50]}",
                                         suggestion=rule["suggestion"],
@@ -301,10 +305,12 @@ def detect_smell(
         )
 
     return {
+        "schema_version": SCHEMA_VERSION,
+        "producer_skill": PRODUCER_SKILL,
         "summary": summary,
         "violations": [asdict(v) for v in violations],
         "scan_timestamp": datetime.now().isoformat(),
-        "project_path": str(project_path),
+        "project_path": str(project_root),
     }
 
 

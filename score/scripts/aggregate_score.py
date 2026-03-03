@@ -16,6 +16,9 @@ from pathlib import Path
 # 严重程度扣分权重
 SEVERITY_PENALTY = {"critical": 20, "high": 10, "medium": 5, "low": 2}
 
+SCHEMA_VERSION = "1.0.0"
+PRODUCER_SKILL = "arc:score"
+
 # 维度映射 (Code Smell 类别 -> 评审维度)
 CATEGORY_TO_DIMENSION = {
     "duplication": "code_quality",
@@ -79,6 +82,27 @@ def load_bugfix_report(path: str) -> dict:
     return data
 
 
+def adjust_dimension_scores_for_bugfix(
+    dimension_scores: dict[str, float], bugfix_data: dict | None
+) -> dict[str, float]:
+    if not bugfix_data:
+        return dimension_scores
+
+    by_grade = bugfix_data.get("summary", {}).get("by_grade", {})
+    c_raw = by_grade.get("C", 0)
+    try:
+        c_count = int(c_raw)
+    except (TypeError, ValueError):
+        c_count = 0
+
+    if c_count <= 10:
+        return dimension_scores
+
+    adjusted = dict(dimension_scores)
+    adjusted["tech_debt"] = min(adjusted.get("tech_debt", 75), 60)
+    return adjusted
+
+
 def aggregate_score(
     smell_violations: list[Violation],
     bugfix_data: dict | None = None,
@@ -139,6 +163,8 @@ def aggregate_score(
             # 其他维度：默认基准分
             dimension_scores[dim] = 75  # 默认值，需 Agent 评审修正
 
+    dimension_scores = adjust_dimension_scores_for_bugfix(dimension_scores, bugfix_data)
+
     # 综合评分（加权平均）
     weighted_score = sum(
         dimension_scores.get(dim, 75) * weight
@@ -146,6 +172,8 @@ def aggregate_score(
     )
 
     return {
+        "schema_version": SCHEMA_VERSION,
+        "producer_skill": PRODUCER_SKILL,
         "score": round(final_score, 1),
         "weighted_score": round(weighted_score, 1),
         "grade": score_to_grade(final_score),
@@ -155,6 +183,7 @@ def aggregate_score(
         "by_dimension": by_dimension,
         "dimension_scores": dimension_scores,
         "violation_count": sum(v.count for v in smell_violations),
+        "bugfix_summary": bugfix_data.get("summary") if bugfix_data else None,
         "calculated_at": datetime.now().isoformat(),
     }
 
@@ -229,6 +258,7 @@ def main():
     parser.add_argument("--bugfix-report", help="Bugfix 分级报告路径 (可选)")
     parser.add_argument("--output", required=True, help="输出路径")
     parser.add_argument("--scorecard", help="评分卡输出路径 (可选)")
+    parser.add_argument("--dimension-scores", help="维度分数输出路径 (可选)")
 
     args = parser.parse_args()
 
@@ -258,6 +288,23 @@ def main():
         scorecard_path = Path(args.scorecard)
         scorecard_path.write_text(scorecard, encoding="utf-8")
         print(f"✓ 评分卡已保存: {scorecard_path}")
+
+    if args.dimension_scores:
+        dim_path = Path(args.dimension_scores)
+        dim_path.parent.mkdir(parents=True, exist_ok=True)
+        dim_payload = {
+            "schema_version": SCHEMA_VERSION,
+            "producer_skill": PRODUCER_SKILL,
+            "generated_at": datetime.now().isoformat(),
+            "dimension_scores": result.get("dimension_scores", {}),
+            "dimension_weights": DIMENSION_WEIGHTS,
+            "weighted_score": result.get("weighted_score"),
+            "grade": result.get("grade"),
+        }
+        dim_path.write_text(
+            json.dumps(dim_payload, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+        print(f"✓ 维度分数已保存: {dim_path}")
 
 
 if __name__ == "__main__":

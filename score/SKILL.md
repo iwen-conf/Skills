@@ -186,7 +186,9 @@ python scripts/grade_bugfix.py \
 python scripts/aggregate_score.py \
   --smell-report <output_dir>/analysis/smell-report.json \
   --bugfix-report <output_dir>/analysis/bugfix-grades.json \
-  --output <output_dir>/score/overall-score.json
+  --output <output_dir>/score/overall-score.json \
+  --scorecard <output_dir>/score/scorecard.md \
+  --dimension-scores <output_dir>/score/dimension-scores.json
 ```
 
 ### Step 4.2: 评分算法
@@ -219,33 +221,43 @@ final_score = max(0, 100 - total_penalty)
 
 ### Step 5.1: 评分卡
 
-```bash
-python scripts/render_scorecard.py \
-  --score <output_dir>/score/overall-score.json \
-  --template templates/scorecard.md.jinja \
-  --output <output_dir>/score/scorecard.md
-```
+评分卡由 `scripts/aggregate_score.py` 在聚合阶段通过 `--scorecard` 输出。
 
 ### Step 5.2: 交接产物
 
 生成 `handoff/review-input.json` 供 arc:review 消费：
 
+```bash
+python scripts/generate_review_handoff.py \
+  --score-dir <output_dir> \
+  --output <output_dir>/handoff/review-input.json
+```
+
 ```json
 {
+  "schema_version": "1.0.0",
+  "producer_skill": "arc:score",
+  "generated_at": "2026-03-03T00:00:00Z",
   "project_path": "/path/to/project",
-  "scan_timestamp": "2026-03-03T00:00:00Z",
-  "overall_score": 75,
-  "grade": "C",
-  "key_findings": [
-    {
-      "dimension": "security",
-      "score": 60,
-      "issues": ["hardcoded_credential", "weak_crypto"]
-    }
-  ],
+  "artifacts": {
+    "overall_score": {"path": "score/overall-score.json", "sha256": "..."},
+    "smell_report": {"path": "analysis/smell-report.json", "sha256": "..."},
+    "bugfix_grades": {"path": "analysis/bugfix-grades.json", "sha256": "..."}
+  },
+  "overall": {"score": 75, "weighted_score": 72.5, "grade": "C", "dimension_scores": {...}},
   "smell_summary": {...},
-  "bugfix_summary": {...}
+  "bugfix_summary": {...},
+  "top_violations": [...]
 }
+```
+
+可选：校验 score 产物契约（CI 友好，非 0 退出码表示失败）：
+
+```bash
+python scripts/validate_score_artifacts.py \
+  --score-dir <output_dir> \
+  --require-bugfix \
+  --require-review-handoff
 ```
 
 ### Step 5.3: 发布共享上下文元数据（强制）

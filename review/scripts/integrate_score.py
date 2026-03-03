@@ -4,12 +4,105 @@ integrate_score.py - 将 arc:score 量化数据集成到 arc:review
 
 用法:
     python integrate_score.py --score-dir .arc/score/<project> --review-dir .arc/review/<project>
+
+或（未传 --score-dir 时尝试从 context-hub 自动发现）:
+    python integrate_score.py --project-path <project_root> --review-dir .arc/review/<project>
 """
 
 import argparse
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+
+
+def _parse_iso_datetime(value: str) -> datetime | None:
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+def _artifact_is_expired(artifact: dict) -> bool:
+    expires_at = artifact.get("expires_at")
+    if not expires_at:
+        return False
+
+    dt = _parse_iso_datetime(str(expires_at))
+    if not dt:
+        return False
+
+    return datetime.now(timezone.utc) > dt
+
+
+def _infer_project_root_from_review_dir(review_dir: Path) -> Path | None:
+    try:
+        if (
+            review_dir.parent.name == "review"
+            and review_dir.parent.parent.name == ".arc"
+        ):
+            return review_dir.parent.parent.parent
+    except Exception:
+        return None
+    return None
+
+
+def find_score_dir_from_context_hub(project_root: Path) -> Path | None:
+    index_path = project_root / ".arc" / "context-hub" / "index.json"
+    if not index_path.exists():
+        return None
+
+    try:
+        index = json.loads(index_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+    artifacts = index.get("artifacts")
+    if not isinstance(artifacts, list):
+        return None
+
+    score_artifacts: list[dict] = [
+        a
+        for a in artifacts
+        if isinstance(a, dict) and a.get("producer_skill") == "arc:score"
+    ]
+    if not score_artifacts:
+        return None
+
+    def preference(a: dict) -> int:
+        path_str = str(a.get("path", ""))
+        if path_str.endswith("handoff/review-input.json"):
+            return 0
+        if path_str.endswith("score/overall-score.json"):
+            return 1
+        if path_str.endswith("analysis/smell-report.json"):
+            return 2
+        if path_str.endswith("analysis/bugfix-grades.json"):
+            return 3
+        return 10
+
+    for a in sorted(score_artifacts, key=preference):
+        if _artifact_is_expired(a):
+            continue
+
+        p_raw = a.get("path")
+        if not p_raw:
+            continue
+
+        artifact_path = Path(str(p_raw))
+        if not artifact_path.is_absolute():
+            artifact_path = (project_root / artifact_path).resolve()
+
+        candidate = artifact_path.parent.parent
+        expected = [
+            candidate / "handoff" / "review-input.json",
+            candidate / "score" / "overall-score.json",
+            candidate / "analysis" / "smell-report.json",
+            candidate / "analysis" / "bugfix-grades.json",
+        ]
+        if any(p.exists() for p in expected):
+            return candidate
+
+    return None
 
 
 def load_score_data(score_dir: str) -> dict:
@@ -201,22 +294,56 @@ def generate_quantitative_section(review_input: dict) -> str:
 
 def main():
     parser = argparse.ArgumentParser(description="集成 arc:score 数据到 arc:review")
-    parser.add_argument("--score-dir", required=True, help="arc:score 输出目录")
+    parser.add_argument(
+        "--score-dir", help="arc:score 输出目录（可选，未提供时尝试自动发现）"
+    )
     parser.add_argument("--review-dir", required=True, help="arc:review 工作目录")
-    parser.add_argument("--project-path", help="项目路径（可选，用于元数据）")
+    parser.add_argument(
+        "--project-path",
+        help="项目根目录（可选：用于元数据；且在未传 --score-dir 时用于 context-hub 自动发现）",
+    )
 
     args = parser.parse_args()
 
+    review_dir = Path(args.review_dir).resolve()
+    review_dir.mkdir(parents=True, exist_ok=True)
+
+    project_root: Path | None = None
+    if args.project_path:
+        project_root = Path(args.project_path).resolve()
+    else:
+        project_root = _infer_project_root_from_review_dir(review_dir)
+
+    score_dir: Path | None = None
+    if args.score_dir:
+        score_dir = Path(args.score_dir).resolve()
+    elif project_root is not None:
+        score_dir = find_score_dir_from_context_hub(project_root)
+        if score_dir is None:
+            score_dir = project_root / ".arc" / "score" / project_root.name
+
+    if score_dir is None:
+        raise SystemExit(
+            "未提供 --score-dir，且无法推断项目根目录（请传 --project-path 或 --score-dir）"
+        )
+
     # 加载评分数据
-    score_data = load_score_data(args.score_dir)
+    score_data = load_score_data(str(score_dir))
 
     # 生成评审输入
-    project_path = args.project_path or args.score_dir
+    project_path = args.project_path
+    if not project_path:
+        project_path = (
+            (score_data.get("overall_score") or {}).get("project_path")
+            or (score_data.get("smell_report") or {}).get("project_path")
+            or (score_data.get("bugfix_report") or {}).get("project_path")
+        )
+    if not project_path:
+        project_path = str(project_root or score_dir)
     review_input = generate_review_input(score_data, project_path)
 
     # 输出到 review 目录
-    review_path = Path(args.review_dir)
-    review_path.mkdir(parents=True, exist_ok=True)
+    review_path = review_dir
 
     # 写入 JSON
     output_path = review_path / "quantitative-input.json"

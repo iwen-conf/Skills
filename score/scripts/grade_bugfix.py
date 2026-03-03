@@ -34,6 +34,10 @@ class BugfixCommit:
     complexity_score: float
 
 
+SCHEMA_VERSION = "1.0.0"
+PRODUCER_SKILL = "arc:score"
+
+
 # 分级阈值
 GRADE_THRESHOLDS = {
     "A": {"max_lines": 10},
@@ -212,12 +216,12 @@ def grade_bugfix(project_path: str, branch: str = "main", limit: int = 100) -> d
     Returns:
         分级结果
     """
-    project_path = Path(project_path)
+    project_root = Path(project_path)
 
     # 获取 commit 列表
     log_format = "%H|%h|%s|%an|%ad"
     log_output = run_git_command(
-        str(project_path),
+        str(project_root),
         ["log", branch, f"--format={log_format}", f"-{limit}", "--date=short"],
     )
 
@@ -225,7 +229,7 @@ def grade_bugfix(project_path: str, branch: str = "main", limit: int = 100) -> d
         # 尝试其他分支
         for fallback in ["master", "develop"]:
             log_output = run_git_command(
-                str(project_path),
+                str(project_root),
                 [
                     "log",
                     fallback,
@@ -259,7 +263,7 @@ def grade_bugfix(project_path: str, branch: str = "main", limit: int = 100) -> d
 
         # 获取改动统计
         stat_output = run_git_command(
-            str(project_path), ["show", "--stat", "--format=", full_hash]
+            str(project_root), ["show", "--stat", "--format=", full_hash]
         )
 
         lines_added = 0
@@ -315,10 +319,12 @@ def grade_bugfix(project_path: str, branch: str = "main", limit: int = 100) -> d
             summary["by_tag"][tag] = summary["by_tag"].get(tag, 0) + 1
 
     return {
+        "schema_version": SCHEMA_VERSION,
+        "producer_skill": PRODUCER_SKILL,
         "summary": summary,
         "commits": [asdict(c) for c in commits],
         "analysis_timestamp": datetime.now().isoformat(),
-        "project_path": str(project_path),
+        "project_path": str(project_root),
         "branch": branch,
     }
 

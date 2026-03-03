@@ -1,4 +1,4 @@
-reated by https://www.toptal.com/developers/gitignore/api/macos
+Created by https://www.toptal.com/developers/gitignore/api/macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos
 
 ### macOS ###
@@ -38,3 +38,7 @@ Temporary Items
 .ace-tool/
 
 .arc/
+
+# Python
+__pycache__/
+*.py[cod]
