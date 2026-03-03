@@ -194,6 +194,11 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 
 ### 优先级顺序
 
+0. **优先级 0: 共享上下文索引 `.arc/context-hub/index.json`**
+   - 优先发现可复用产物（`CLAUDE.md`、`codemap.md`、`handoff`、`review/score` 报告）
+   - 校验 `expires_at` 与 `content_hash`
+   - 如索引或产物失效，触发对应生产者 skill 更新后再降级
+
 1. **优先级 1: `.arc/<skill>/` 缓存上下文**
    - 检查 Skill 特定的缓存文件（如 `project-snapshot.md`）
    - 验证时间戳和文件完整性
@@ -224,9 +229,9 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 
 **自我修复流程**：
 1. 检测到缓存错误 → 判断错误类型
-2. 结构性错误 → 触发 `arc:init` 重新生成
+2. 结构性错误 → 触发对应生产者 Skill 重新生成（如 `arc:init:update` / `cartography` / `arc:score`）
 3. 局部错误 → 标记错误位置 → 回退到源码扫描 → 生成补丁到 `.arc/<skill>/patches/`
-4. 提示用户：建议运行 `arc:init` 更新
+4. 回写共享索引：更新过期标记、刷新时间与产物哈希
 
 **错误报告位置**：
 - arc:simulate: `<run_dir>/context-errors/cache-error-YYYYMMDD-HHMMSS.md`
@@ -237,6 +242,7 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 
 | 上下文类型 | 新鲜期 | 过期后行为 |
 |-----------|--------|-----------|
+| `.arc/context-hub/index.json` | 4h | 重新聚合索引（不直接重扫源码） |
 | `.arc/<skill>/context/` 缓存 | 24h | 重新生成 |
 | 项目 CLAUDE.md | 7天 | 提示用户运行 arc:init |
 | `.arc/review/` 快照 | 24h | 对比哈希决定是否重新生成 |

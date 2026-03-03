@@ -79,6 +79,16 @@ Once all specific directories are mapped, the Orchestrator must create or update
 2.  **Aggregate Sub-Maps**: Create a "Repository Directory Map" section. For every folder that has a `codemap.md`, extract its **Responsibility** summary and include it in a table or list in the root map.
 3.  **Cross-Reference**: Ensure that the root map contains the absolute or relative paths to the sub-maps so agents can jump directly to the relevant details.
 
+### Step 5: Publish Shared Context Metadata
+
+After generating/updating codemaps, publish artifact metadata into `.arc/context-hub/index.json` for downstream skills:
+
+1.  Register `codemap.md` (root atlas) and every updated folder-level `*/codemap.md`.
+2.  For each artifact, write `path`, `content_hash`, `generated_at`, `ttl_seconds`, `expires_at`.
+3.  Set `producer_skill: "cartography"` and `refresh_skill: "cartography"`.
+4.  Mark suggested consumers as `arc:refine`, `arc:implement`, `arc:review`, `arc:simulate`, `arc:triage`.
+5.  If index file does not exist, create a minimal valid index before registration.
+
 
 ## Codemap Content
 

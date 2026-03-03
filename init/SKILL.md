@@ -142,6 +142,8 @@ Task(
 1. 收集子 Skill 执行结果
 2. 汇总变更统计
 3. 输出最终报告
+4. 发布 `CLAUDE.md` 产物元数据到 `.arc/context-hub/index.json`（路径、哈希、过期时间、刷新入口）
+5. 若共享索引不存在，则先初始化最小索引结构再写入本次产物
 
 ## Sub-Skills
 
@@ -215,8 +217,15 @@ arc:init (本 Skill - 智能调度)
  ├── arc:init:full (全量初始化)
  └── arc:init:update (增量更新)
 
+下游消费者:
+arc:refine / arc:deliberate / arc:implement / arc:simulate / arc:review
+  ↑ 通过 `.arc/context-hub/index.json` 读取 CLAUDE 索引产物
+
 依赖关系:
 arc:init:update 需要 arc:init:full 生成的指纹基线
+
+发布关系:
+arc:init 必须将本次生成/更新的 CLAUDE.md 元数据发布到共享索引
 ```
 
 ## 故障排除

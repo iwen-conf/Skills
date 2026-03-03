@@ -50,11 +50,18 @@ description: "面向软件需求的工程实现技能。消费 arc:refine/arc:de
 
 ## Context Priority（强制）
 
+0. `.arc/context-hub/index.json`（共享上下文索引，优先复用）
 1. `.arc/implement/<task>/context/implementation-brief.md`（24h）
 2. `.arc/deliberate/<task>/` 下方案产物（若存在）
-3. 项目 `CLAUDE.md` 层级索引（7天）
-4. `ace-tool` 语义扫描
-5. `Exa` 外部文档
+3. `codemap.md`（cartography）与 `CLAUDE.md` 层级索引（7天）
+4. `arc:score` / `arc:review` / 上次 `arc:implement` handoff（若索引可用）
+5. `ace-tool` 语义扫描
+6. `Exa` 外部文档
+
+失效回流规则：
+- CLAUDE 索引失效：触发 `arc:init:update`
+- codemap 失效：触发 `cartography` 更新
+- score/review 产物失效：触发 `arc:score` / `arc:review` 更新
 
 ## Critical Rules
 

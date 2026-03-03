@@ -146,11 +146,17 @@ python triage/scripts/triage_run.py <run_dir> \
 
 **在开始诊断前，按以下优先级获取上下文：**
 
+**优先级 0: 读取共享上下文索引（`.arc/context-hub/index.json`）**
+1. 检索可复用产物：`codemap.md`、`arc:review` 快照、`arc:score` 结果、`arc:implement` handoff
+2. 校验 `expires_at`、`content_hash`、文件存在性
+3. 可用则直接加载并缩小排查范围
+4. 失效则按 `refresh_skill` 回流触发更新（`arc:init:update` / `cartography` / `arc:review` / `arc:score`）
+
 **优先级 1: 检查 `.arc/review/` 架构分析**
 1. 查找评审产物：检查 `.arc/review/<project-name>/` 是否存在架构分析文档
 2. 验证新鲜度：检查 `project-snapshot.md` 或 `diagnosis-report.md` 的生成时间 < 7天
 3. 提取关键信息：模块依赖关系、常见缺陷模式、修复策略建议
-4. 如评审产物不存在或过期：提示用户运行 `/arc:review` 生成项目评审后再继续
+4. 如评审产物不存在或过期：先触发 `arc:review` 更新后再继续
 
 **优先级 2: 检查 `.arc/triage/known-patterns.md`**
 1. 查找历史缺陷模式：读取 `.arc/triage/known-patterns.md`（如存在）
@@ -165,7 +171,10 @@ python triage/scripts/triage_run.py <run_dir> \
 1. 标记缓存错误：记录预期内容 vs 实际情况
 2. 回退到源码搜索：使用 ace-tool 获取正确信息
 3. 生成错误报告：在 `<run_dir>/analysis/context-errors/` 生成缓存验证失败报告
-4. 提示用户：建议运行 `/arc:review` 或 `/arc:init` 更新项目索引
+4. 回流更新：
+   - 评审数据问题 → `arc:review`
+   - CLAUDE 索引问题 → `arc:init:update`
+   - 代码地图问题 → `cartography`
 
 **优先级 5: 更新已知缺陷模式库**
 在成功修复缺陷后，将新发现的缺陷模式追加到 `.arc/triage/known-patterns.md`。

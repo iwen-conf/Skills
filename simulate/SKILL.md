@@ -119,6 +119,17 @@ version: 1.1.0
 
 **在开始任何测试之前，如果对页面结构、元素选择器(Selector)或具体业务流转逻辑不清晰，必须按以下优先级获取上下文：**
 
+**优先级 0: 读取共享上下文索引（`.arc/context-hub/index.json`）**
+
+1. 优先检索以下产物：
+   * `codemap.md`（目录职责与关键路径）
+   * `arc:review` 快照/诊断报告（已知风险点）
+   * `arc:score` 输出（高风险维度）
+   * `arc:implement` handoff（本轮改动范围）
+2. 验证产物新鲜度：`expires_at` + `content_hash`。
+3. 产物可用则直接加载，不重复做全量扫描。
+4. 产物失效则按 `refresh_skill` 回流更新（`arc:init:update` / `cartography` / `arc:score` / `arc:review`）。
+
 **优先级 1: 读取项目 CLAUDE.md 层级索引**
 
 1. **扫描 CLAUDE.md**：使用 `find . -name "CLAUDE.md" -type f` 扫描项目的层级索引。
@@ -130,7 +141,7 @@ version: 1.1.0
      - "编码规范" 章节：选择器命名约定（如 `button[data-testid="{action}-{component}"]`）
      - "架构图" 章节：页面结构和组件层级
 3. **验证索引新鲜度**：检查 CLAUDE.md 的 "变更记录" 章节，确认生成时间 < 7天。
-4. **如索引缺失或过期**：提示用户运行 `/arc:init` 生成项目索引后再继续。
+4. **如索引缺失或过期**：触发 `arc:init:update`（必要时 `arc:init:full`）后再继续。
 
 **优先级 2: 使用 ace-tool 补充细节**
 
@@ -147,7 +158,10 @@ version: 1.1.0
 1. **立即标记错误**：记录预期内容 vs 实际情况。
 2. **回退到 ace-tool**：使用源码扫描获取正确信息，继续测试。
 3. **生成错误报告**：在 `<run_dir>/context-errors/` 目录下生成缓存验证失败报告（见下方模板）。
-4. **提示用户**：建议运行 `/arc:init` 更新项目索引。
+4. **回流更新建议**：
+   - CLAUDE 索引问题 → `arc:init:update`
+   - codemap 问题 → `cartography` 更新
+   - 评分/评审产物问题 → `arc:score` / `arc:review` 更新
 
 **缓存错误报告模板** (`<run_dir>/context-errors/cache-error-YYYYMMDD-HHMMSS.md`)：
 

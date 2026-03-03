@@ -124,6 +124,21 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
      - 有变更：重新生成快照
 5. **如快照不存在或过期（≥ 24小时）**：执行完整的项目扫描（Step 1.1-1.3）
 
+#### Step 1.0A: 共享索引与上游交接预检（强制）
+
+在进入 Step 1.1 前，必须先尝试复用上游产物：
+
+1. 读取 `.arc/context-hub/index.json`，检索以下产物：
+   - `.arc/score/<project>/handoff/review-input.json`
+   - `.arc/implement/<task>/handoff/change-summary.md`（如存在）
+   - 最新 `codemap.md` / `CLAUDE.md` 元数据
+2. 验证产物有效性：`expires_at`、`content_hash`、路径存在性。
+3. 有效则直接加载到评审上下文，减少重复扫描范围。
+4. 无效则触发回流更新：
+   - score 失效 → `arc:score`
+   - CLAUDE/codemap 失效 → `arc:init:update` / `cartography`
+5. 将本次复用的产物路径写入 `context/project-snapshot.md` 元数据。
+
 ---
 
 ### Phase 1: 项目侦察（Reconnaissance）
