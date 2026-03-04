@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arc-skills.dev/schemas/codemap.schema.json",
+  "title": "Arc Codemap Tier Specification",
+  "description": "Schema for three-tier progressive retrieval codemap artifacts",
+  "type": "object",
+  "required": ["version", "tier", "generated_at", "entries"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "tier": {
+      "type": "integer",
+      "enum": [1, 2, 3],
+      "description": "Detail tier: 1=index, 2=context, 3=full"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer_skill": {
+      "type": "string",
+      "const": "arc:cartography"
+    },
+    "path": {
+      "type": "string",
+      "description": "Directory path this codemap describes"
+    },
+    "total_tokens_estimate": {
+      "type": "integer",
+      "description": "Estimated token count for this tier"
+    },
+    "entries": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/entry"}
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "required": ["name", "type", "path"],
+      "properties": {
+        "name": {"type": "string"},
+        "type": {
+          "type": "string",
+          "enum": ["file", "directory", "symbol", "module", "class", "function", "variable"]
+        },
+        "path": {"type": "string"},
+        "line_start": {"type": "integer"},
+        "line_end": {"type": "integer"},
+        "language": {"type": "string"},
+        "signature": {"type": "string"},
+        "docstring": {"type": "string"},
+        "summary": {"type": "string"},
+        "dependencies": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "callers": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "code": {"type": "string"},
+        "children": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/entry"}
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"tier": {"const": 1}}},
+      "then": {
+        "description": "Tier 1: Index (~50-100 tokens/entry). Minimal metadata for fast scanning.",
+        "properties": {
+          "entries": {
+            "items": {
+              "properties": {
+                "name": true,
+                "type": true,
+                "path": true,
+                "line_start": true,
+                "signature": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"tier": {"const": 2}}},
+      "then": {
+        "description": "Tier 2: Context (~200-300 tokens/entry). Adds dependencies and summary.",
+        "properties": {
+          "entries": {
+            "items": {
+              "properties": {
+                "name": true,
+                "type": true,
+                "path": true,
+                "line_start": true,
+                "line_end": true,
+                "signature": true,
+                "summary": true,
+                "dependencies": true,
+                "callers": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"tier": {"const": 3}}},
+      "then": {
+        "description": "Tier 3: Full (~500-1000 tokens/entry). Complete code and documentation.",
+        "properties": {
+          "entries": {
+            "items": {
+              "properties": {
+                "name": true,
+                "type": true,
+                "path": true,
+                "line_start": true,
+                "line_end": true,
+                "signature": true,
+                "docstring": true,
+                "code": true,
+                "children": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

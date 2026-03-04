@@ -642,6 +642,28 @@ Round 1/3:
 | 计划生成 | OpenSpec init → 生成 artifact → 验证 → 多Agent审查 → 交叉反驳 → 定稿 | `openspec/changes/<task-name>/(proposal\|design\|tasks).md`, `openspec/changes/<task-name>/specs/` |
 | 执行 | deep Agent 按 tasks.md 实现代码 → 归档 | 项目代码 + `openspec archive` |
 
+## Anti-Patterns
+
+**CRITICAL: The following behaviors are FORBIDDEN in arc:deliberate execution:**
+
+### Consensus Anti-Patterns
+
+- **Premature Consensus**: Declaring consensus before all agents report — must collect all perspectives
+- **Agent Skip**: Not launching counter-arguments — multi-perspective analysis is mandatory
+- **Echo Chamber**: All agents agreeing without debate — indicates insufficient diversity
+
+### Planning Anti-Patterns
+
+- **Vague Deliverables**: "Improve the system" without specific outcomes — must define measurable goals
+- **Missing Alternatives**: Only considering one approach — must document at least 2 alternatives
+- **Risk Ignorance**: Not documenting failure modes and mitigations — incomplete plan
+
+### OpenSpec Anti-Patterns
+
+- **Validation Skip**: Not running `openspec validate` before archive — broken plans pass through
+- **Archive Without Instructions**: Skipping `openspec instructions` phase — implementation guidance missing
+- **Session Break**: Starting fresh OpenSpec session instead of continuing — loses context
+
 ## 调用方式速查
 
 | 角色 | 调用方式 | 并发支持 |

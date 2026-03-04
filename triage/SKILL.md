@@ -150,7 +150,7 @@ python triage/scripts/triage_run.py <run_dir> \
 1. 检索可复用产物：`codemap.md`、`arc:review` 快照、`arc:score` 结果、`arc:implement` handoff
 2. 校验 `expires_at`、`content_hash`、文件存在性
 3. 可用则直接加载并缩小排查范围
-4. 失效则按 `refresh_skill` 回流触发更新（`arc:init:update` / `cartography` / `arc:review` / `arc:score`）
+4. 失效则按 `refresh_skill` 回流触发更新（`arc:init:update` / `arc:cartography` / `arc:review` / `arc:score`）
 
 **优先级 1: 检查 `.arc/review/` 架构分析**
 1. 查找评审产物：检查 `.arc/review/<project-name>/` 是否存在架构分析文档
@@ -174,7 +174,7 @@ python triage/scripts/triage_run.py <run_dir> \
 4. 回流更新：
    - 评审数据问题 → `arc:review`
    - CLAUDE 索引问题 → `arc:init:update`
-   - 代码地图问题 → `cartography`
+   - 代码地图问题 → `arc:cartography`
 
 **优先级 5: 更新已知缺陷模式库**
 在成功修复缺陷后，将新发现的缺陷模式追加到 `.arc/triage/known-patterns.md`。
@@ -244,3 +244,27 @@ python simulate/scripts/new_defect.py \
 ```
 
 注意：arc:simulate 允许明文记录账号/密码；因此 `reports/` 不要提交到仓库。
+## Anti-Patterns
+
+**CRITICAL: The following behaviors are FORBIDDEN in arc:triage execution:**
+
+### Diagnosis Anti-Patterns
+
+- **Shotgun Debugging**: Randomly changing code hoping something works — fix root causes, not symptoms
+- **Symptom Treatment**: Patching error messages without understanding underlying cause — guarantees regression
+- **Cache Blame**: Assuming cache is wrong without verification — check timestamps and hashes first
+- **Log Ignorance**: Not reading full error context before diagnosing — missing critical clues
+
+### Fix Anti-Patterns
+
+- **Refactor-While-Fix**: Refactoring unrelated code while fixing a bug — scope creep causes new bugs
+- **Type Suppression**: Using `as any`, `@ts-ignore`, `@ts-expect-error` to silence errors — forbidden
+- **Test Deletion**: Deleting failing tests to make suite pass — never acceptable
+- **Skip Shortcuts**: Commenting out code or adding `if(false)` to skip logic — proper fix required
+
+### Verification Anti-Patterns
+
+- **Premature PASS**: Declaring fix complete before re-running failed test — must verify
+- **Partial Verification**: Only testing the fixed path, not related paths — regression risk
+- **Context Skip**: Not reading `.arc/simulate/` failure report before triage — missing context
+- **Session Waste**: Starting fresh instead of continuing with `session_id` — loses diagnosis progress

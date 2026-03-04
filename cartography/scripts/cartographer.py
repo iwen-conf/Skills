@@ -412,6 +412,194 @@ def cmd_update(args: argparse.Namespace) -> int:
     return 0
 
 
+def extract_file_info(filepath: Path, root: Path, tier: int = 1) -> dict:
+    """Extract file information based on tier level.
+    
+    Tier 1 (Index): ~50-100 tokens - name, type, path, line_start, signature
+    Tier 2 (Context): ~200-300 tokens - adds summary, dependencies
+    Tier 3 (Full): ~500-1000 tokens - adds docstring, code
+    """
+    rel_path = str(filepath.relative_to(root))
+    
+    entry = {
+        "name": filepath.name,
+        "type": "file",
+        "path": rel_path,
+        "line_start": 1,
+    }
+    
+    try:
+        content = filepath.read_text(encoding="utf-8")
+        lines = content.split("\n")
+        entry["line_end"] = len(lines)
+        
+        suffix = filepath.suffix.lower()
+        lang_map = {
+            ".py": "python", ".js": "javascript", ".ts": "typescript",
+            ".tsx": "tsx", ".jsx": "jsx", ".java": "java", ".go": "go",
+            ".rs": "rust", ".rb": "ruby", ".php": "php", ".c": "c",
+            ".cpp": "cpp", ".h": "c", ".hpp": "cpp", ".cs": "csharp",
+            ".swift": "swift", ".kt": "kotlin", ".scala": "scala",
+            ".md": "markdown", ".json": "json", ".yaml": "yaml", ".yml": "yaml",
+            ".sh": "shell", ".bash": "shell", ".zsh": "shell",
+        }
+        entry["language"] = lang_map.get(suffix, "unknown")
+        
+        if tier >= 1 and suffix in [".py", ".js", ".ts", ".tsx", ".java", ".go", ".rs", ".rb"]:
+            sig = _extract_signature(content, entry["language"])
+            if sig:
+                entry["signature"] = sig
+        
+        if tier >= 2:
+            deps = _extract_dependencies(content, entry["language"])
+            if deps:
+                entry["dependencies"] = deps[:20]
+            summary = _extract_summary(content, lines[:20])
+            if summary:
+                entry["summary"] = summary[:200]
+        
+        if tier >= 3:
+            doc = _extract_docstring(content, entry["language"])
+            if doc:
+                entry["docstring"] = doc[:500]
+            if len(content) <= 10000:
+                entry["code"] = content
+            else:
+                entry["code"] = content[:10000] + "\n... (truncated)"
+    except Exception:
+        pass
+    
+    return entry
+
+
+def _extract_signature(content: str, language: str) -> Optional[str]:
+    """Extract main function/class signature."""
+    lines = content.split("\n")[:50]
+    
+    patterns = {
+        "python": ["def ", "class ", "async def "],
+        "javascript": ["function ", "const ", "export ", "class "],
+        "typescript": ["function ", "const ", "export ", "class ", "interface "],
+        "go": ["func ", "type "],
+        "rust": ["fn ", "pub fn ", "struct ", "enum "],
+        "java": ["public ", "class ", "interface "],
+        "ruby": ["def ", "class ", "module "],
+    }
+    
+    for line in lines:
+        stripped = line.strip()
+        for pattern in patterns.get(language, []):
+            if stripped.startswith(pattern):
+                return stripped[:100]
+    
+    return None
+
+
+def _extract_dependencies(content: str, language: str) -> List[str]:
+    """Extract import/dependency statements."""
+    deps = []
+    lines = content.split("\n")[:100]
+    
+    import_patterns = {
+        "python": ["import ", "from "],
+        "javascript": ["import ", "require("],
+        "typescript": ["import ", "require("],
+        "go": ["import "],
+        "rust": ["use "],
+        "java": ["import "],
+        "ruby": ["require ", "include "],
+    }
+    
+    for line in lines:
+        stripped = line.strip()
+        for pattern in import_patterns.get(language, []):
+            if stripped.startswith(pattern):
+                deps.append(stripped[:100])
+    
+    return deps[:20]
+
+
+def _extract_summary(content: str, first_lines: List[str]) -> Optional[str]:
+    """Extract brief summary from file beginning."""
+    for line in first_lines:
+        stripped = line.strip()
+        if stripped.startswith('# ') and len(stripped) > 3:
+            return stripped[2:200]
+        if stripped.startswith('// ') and len(stripped) > 4:
+            return stripped[3:200]
+    return None
+
+
+def _extract_docstring(content: str, language: str) -> Optional[str]:
+    """Extract main docstring from code."""
+    if language == "python":
+        if content.startswith('"""'):
+            end = content.find('"""', 3)
+            if end > 0:
+                return content[3:end][:500]
+        if content.startswith("'''"):
+            end = content.find("'''", 3)
+            if end > 0:
+                return content[3:end][:500]
+    
+    if content.startswith("/*"):
+        end = content.find("*/", 2)
+        if end > 0:
+            return content[2:end][:500]
+    
+    return None
+
+
+def cmd_export(args: argparse.Namespace) -> int:
+    """Export codemap in tiered JSON format."""
+    root = Path(args.root).resolve()
+    tier = args.tier
+    
+    state = load_state(root)
+    if not state:
+        print("No cartography state found. Run 'init' first.", file=sys.stderr)
+        return 1
+    
+    metadata = state.get("metadata", {})
+    include_patterns = metadata.get("include_patterns", ["**/*"])
+    exclude_patterns = metadata.get("exclude_patterns", [])
+    exceptions = metadata.get("exceptions", [])
+    
+    gitignore = load_gitignore(root)
+    
+    selected_files = select_files(
+        root, include_patterns, exclude_patterns, exceptions, gitignore
+    )
+    
+    entries = []
+    for f in selected_files:
+        entry = extract_file_info(f, root, tier)
+        entries.append(entry)
+    
+    # Calculate total tokens estimate (rough: 4 chars = 1 token)
+    total_chars = sum(len(str(e)) for e in entries)
+    total_tokens = total_chars // 4
+    
+    output = {
+        "version": "1.0.0",
+        "tier": tier,
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "producer_skill": "arc:cartography",
+        "path": str(root),
+        "total_tokens_estimate": total_tokens,
+        "entries": entries,
+    }
+    
+    output_path = args.output
+    if output_path == "-":
+        print(json.dumps(output, indent=2))
+    else:
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(output, f, indent=2)
+        print(f"Exported {len(entries)} entries to {output_path} (tier {tier})")
+    
+    return 0
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Cartographer - Repository mapping and change detection"
@@ -439,6 +627,14 @@ def main() -> int:
     update_parser = subparsers.add_parser("update", help="Update hashes")
     update_parser.add_argument("--root", required=True, help="Repository root path")
     
+    # Export command
+    export_parser = subparsers.add_parser("export", help="Export codemap in tiered JSON format")
+    export_parser.add_argument("--root", required=True, help="Repository root path")
+    export_parser.add_argument("--tier", type=int, choices=[1, 2, 3], default=1,
+                               help="Detail tier: 1=index (50-100 tok), 2=context (200-300 tok), 3=full (500-1000 tok)")
+    export_parser.add_argument("--output", "-o", default="-",
+                               help="Output file path (default: stdout)")
+    
     args = parser.parse_args()
     
     if args.command == "init":
@@ -447,10 +643,14 @@ def main() -> int:
         return cmd_changes(args)
     elif args.command == "update":
         return cmd_update(args)
+    elif args.command == "export":
+        return cmd_export(args)
+    else:
+        parser.print_help()
+        return 1
     else:
         parser.print_help()
         return 1
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+sys.exit(main())

@@ -13,14 +13,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Repo Is
 
-A collection of Claude Code Skills (custom slash-command plugins), primarily under the **`arc:`** namespace, plus a standalone `cartography` skill for repository codemap generation. Each top-level directory is a self-contained Skill defined by a `SKILL.md` frontmatter file. Arc skills are invoked via `/arc:<name>`, while cartography is invoked via `/cartography`.
+A collection of Claude Code Skills (custom slash-command plugins), primarily under the **`arc:`** namespace, plus a standalone `arc:cartography` skill for repository codemap generation. Each top-level directory is a self-contained Skill defined by a `SKILL.md` frontmatter file. Arc skills are invoked via `/arc:<name>`, while arc:cartography is invoked via `/arc:cartography`.
 
 ## Skill Inventory
 
 | Directory | Skill Name | Invoke | Purpose |
 |-----------|-----------|--------|---------|
 | `agent/` | arc:agent | `/arc:agent` | 智能调度 agent，分析用户需求后选择合适的 arc: skill，通过 oh-my-opencode Agent 系统调度执行任务 |
-| `cartography/` | cartography | `/cartography` | 仓库理解与分层代码地图（codemap）生成，输出目录级与根级映射文档 |
+| `cartography/` | arc:cartography | `/arc:cartography` | 仓库理解与分层代码地图（codemap）生成，输出目录级与根级映射文档 |
 | `simulate/` | arc:simulate | `/arc:simulate` | 通过 `agent-browser` 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
 | `triage/` | arc:triage | `/arc:triage` | 分析 arc:simulate 的失败报告，定位根因、修复缺陷、执行回归验证 |
 | `loop/` | arc:loop | `/arc:loop` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
@@ -62,7 +62,7 @@ QB|| `init-update/` | arc:init:update | `/arc:init:update` | 增量更新 CLAUDE
 
 ```
 arc:agent ────┬─▶ arc:init         (智能调度 → full/update)
-              ├─▶ cartography     (仓库地图/codemap 生成)
+              ├─▶ arc:cartography  (仓库地图/codemap 生成)
               ├─▶ arc:refine       (问题细化)
               │     └─▶ arc:deliberate
               ├─▶ arc:implement    (方案落地实现)
@@ -77,7 +77,7 @@ arc:agent ────┬─▶ arc:init         (智能调度 → full/update)
               └─▶ Task API dispatch (category/subagent routing)
 
 arc:init  (独立运行；输出的 CLAUDE.md 被 arc:refine 消费)
-cartography  (独立运行；输出 codemap.md 可被 arc:refine/arc:implement/arc:review 作为上下文参考)
+arc:cartography  (独立运行；输出 codemap.md 可被 arc:refine/arc:implement/arc:review 作为上下文参考)
 arc:score  (消费 arc:init 产物；输出量化数据给 arc:review 和 arc:gate)
 arc:implement  (消费 deliberation/refine 结果；输出实现交接供 review/simulate 使用)
 arc:review  (消费 arc:score 量化数据；输出评审报告)
@@ -229,7 +229,7 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 
 **自我修复流程**：
 1. 检测到缓存错误 → 判断错误类型
-2. 结构性错误 → 触发对应生产者 Skill 重新生成（如 `arc:init:update` / `cartography` / `arc:score`）
+2. 结构性错误 → 触发对应生产者 Skill 重新生成（如 `arc:init:update` / `arc:cartography` / `arc:score`）
 3. 局部错误 → 标记错误位置 → 回退到源码扫描 → 生成补丁到 `.arc/<skill>/patches/`
 4. 回写共享索引：更新过期标记、刷新时间与产物哈希
 

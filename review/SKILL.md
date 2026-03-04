@@ -136,7 +136,7 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 3. 有效则直接加载到评审上下文，减少重复扫描范围。
 4. 无效则触发回流更新：
    - score 失效 → `arc:score`
-   - CLAUDE/codemap 失效 → `arc:init:update` / `cartography`
+   - score 失效 → `arc:score`
 5. 将本次复用的产物路径写入 `context/project-snapshot.md` 元数据。
 
 ---
@@ -478,9 +478,29 @@ Task(
   ├── 评分卡... [完成]
   └── 改进建议... [完成]
 ```
+## Anti-Patterns
+
+**CRITICAL: The following behaviors are FORBIDDEN in arc:review execution:**
+
+### Review Process Anti-Patterns
+
+- **Source Modification**: Editing project source code during review — only write to `.arc/review/`
+- **Single-Perspective Review**: Only evaluating one dimension — must cover all 7 ISO/IEC 25010 dimensions
+- **Rubber Stamp**: Marking PASS without thorough analysis — each finding requires evidence
+- **Score Skipping**: Not running arc:score first — quantitative data required before qualitative review
+
+### Finding Anti-Patterns
+
+- **Vague Recommendations**: "Improve performance" without specific metrics — actionable items only
+- **Priority Inflation**: Marking everything High priority — dilutes critical issues
+- **Evidence Omission**: Findings without code references or metrics — not actionable
+
+### Handoff Anti-Patterns
+
+- **Missing Roadmap**: Not generating improvement roadmap — breaks downstream planning
+- **Orphaned Artifacts**: Not registering findings in context-hub — consumers can't discover
 
 ## Quick Reference
-
 | 阶段 | 步骤 | 输出路径 |
 |------|------|---------|
 | 项目侦察 | MCP 扫描 → 快照 | `context/project-snapshot.md` |

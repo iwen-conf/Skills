@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arc-skills.dev/schemas/evals.schema.json",
+  "title": "Arc Skills Evaluation Specification",
+  "description": "Schema for defining automated evaluations for arc: skills",
+  "type": "object",
+  "required": ["version", "skill", "evals"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version"
+    },
+    "skill": {
+      "type": "string",
+      "pattern": "^arc:[a-z-]+$",
+      "description": "Target skill name (e.g., arc:simulate)"
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 300,
+          "description": "Default timeout in seconds"
+        },
+        "working_dir": {
+          "type": "string",
+          "description": "Default working directory"
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": {"type": "string"},
+          "description": "Default environment variables"
+        }
+      }
+    },
+    "evals": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/eval"},
+      "minItems": 1
+    }
+  },
+  "$defs": {
+    "eval": {
+      "type": "object",
+      "required": ["id", "assertions"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this evaluation"
+        },
+        "title": {
+          "type": "string",
+          "description": "Human-readable title"
+        },
+        "description": {
+          "type": "string",
+          "description": "What this evaluation tests"
+        },
+        "tags": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Tags for filtering (e.g., ci, unit, integration)"
+        },
+        "inputs": {"$ref": "#/$defs/inputs"},
+        "workflow": {"$ref": "#/$defs/workflow"},
+        "assertions": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/assertion"},
+          "minItems": 1
+        }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "properties": {
+        "fixtures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["src"],
+            "properties": {
+              "src": {
+                "type": "string",
+                "description": "Source path relative to skills root"
+              },
+              "dest": {
+                "type": "string",
+                "description": "Destination path in work directory"
+              }
+            }
+          }
+        }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "properties": {
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["run"],
+            "properties": {
+              "name": {"type": "string"},
+              "run": {
+                "type": "string",
+                "description": "Shell command to execute"
+              },
+              "expect_exit_code": {
+                "type": "integer",
+                "default": 0,
+                "description": "Expected exit code"
+              }
+            }
+          }
+        }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "file_exists",
+            "file_not_exists",
+            "glob_count",
+            "file_contains",
+            "file_not_contains",
+            "json_parse",
+            "jsonl_parse",
+            "json_schema",
+            "markdown_tables_valid",
+            "backticked_paths_exist",
+            "run_validator"
+          ]
+        },
+        "path": {"type": "string"},
+        "pattern": {"type": "string"},
+        "glob": {"type": "string"},
+        "min": {"type": "integer"},
+        "max": {"type": "integer"},
+        "file": {"type": "string"},
+        "schema": {"type": "object"},
+        "command": {"type": "string"},
+        "expect_exit_code": {"type": "integer"},
+        "description": {"type": "string"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"type": {"const": "file_exists"}}},
+          "then": {"required": ["path"]}
+        },
+        {
+          "if": {"properties": {"type": {"const": "file_not_exists"}}},
+          "then": {"required": ["path"]}
+        },
+        {
+          "if": {"properties": {"type": {"const": "glob_count"}}},
+          "then": {"required": ["glob"]}
+        },
+        {
+          "if": {"properties": {"type": {"const": "file_contains"}}},
+          "then": {"required": ["path", "pattern"]}
+        },
+        {
+          "if": {"properties": {"type": {"const": "file_not_contains"}}},
+          "then": {"required": ["path", "pattern"]}
+        },
+        {
+          "if": {"properties": {"type": {"const": "json_parse"}}},
+          "then": {"required": ["path"]}
+        },
+        {
+          "if": {"properties": {"type": {"const": "jsonl_parse"}}},
+          "then": {"required": ["path"]}
+        },
+        {
+          "if": {"properties": {"type": {"const": "json_schema"}}},
+          "then": {"required": ["path", "schema"]}
+        },
+        {
+          "if": {"properties": {"type": {"const": "markdown_tables_valid"}}},
+          "then": {"required": ["file"]}
+        },
+        {
+          "if": {"properties": {"type": {"const": "backticked_paths_exist"}}},
+          "then": {"required": ["file"]}
+        },
+        {
+          "if": {"properties": {"type": {"const": "run_validator"}}},
+          "then": {"required": ["command"]}
+        }
+      ]
+    }
+  }
+}

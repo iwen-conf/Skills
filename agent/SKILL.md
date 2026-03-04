@@ -125,7 +125,7 @@ Task({
 - `frontend-ui-ux` — UI/UX 设计专业知识
 - `git-master` — Git 操作
 - `dev-browser` — 持久状态浏览器自动化
-- `cartography` — 仓库理解与分层 codemap 生成
+- `arc:cartography` — 仓库理解与分层 codemap 生成
 - 所有 `arc:*` 用户技能
 
 ## Skill 路由决策树
@@ -137,7 +137,7 @@ Task({
 │   └── arc:init
 │
 ├── 需要仓库结构摸底 / 生成代码地图（codemap）
-│   └── cartography
+│   └── arc:cartography
 │
 ├── 问题描述模糊 / 缺少项目上下文
 │   └── arc:refine → (可选) arc:deliberate
@@ -204,7 +204,7 @@ Task({
 | 信号 | 匹配 Skill / Agent |
 |------|-------------------|
 | 用户提到「初始化」「生成文档」「CLAUDE.md」 | arc:init |
-| 用户提到「代码地图」「codemap」「仓库结构」「目录职责」 | cartography |
+| 用户提到「代码地图」「codemap」「仓库结构」「目录职责」 | arc:cartography |
 | 用户提到「评审」「review」「诊断」「质量」 | arc:review |
 | 用户提到「知识产权评估」「专利可行性」「软著可行性」「IP审查」 | arc:ip-audit |
 | 用户提到「技术交底书」「权利要求」「软著说明书」「申请文档写作」 | arc:ip-docs |
@@ -268,7 +268,7 @@ Task({
 
 1. 读取 `.arc/context-hub/index.json`，检索与当前任务匹配的产物（`CLAUDE.md`、`codemap.md`、`handoff/*.json`、评审/评分报告）。
 2. 构建 `context_pack`：记录 `path`、`generated_at`、`expires_at`、`content_hash`。
-3. 若产物过期或不一致，按索引中的 `refresh_skill` 触发回流更新（例如 `arc:init:update`、`cartography`、`arc:score`）。
+3. 若产物过期或不一致，按索引中的 `refresh_skill` 触发回流更新（例如 `arc:init:update`、`arc:cartography`、`arc:score`）。
 4. 在后续 Task 调度中注入 `context_pack`，要求下游 skill 优先消费这些产物。
 
 #### Step 1.1: 项目上下文搜索
@@ -612,3 +612,39 @@ Task(
 | 简单修复 | `Task(category="quick", run_in_background=true, ...)` | 后台并发 |
 | 复杂难题 | `Task(category="ultrabrain", run_in_background=true, ...)` | 后台并发 |
 | 结果整合/裁决 | 主进程直接处理 | — |
+## Anti-Patterns
+
+**CRITICAL: The following behaviors are FORBIDDEN in arc:agent execution:**
+
+### Dispatcher Anti-Patterns
+
+- **Shotgun Dispatch**: Spawning 5+ agents without clear task boundaries — causes context thrashing and duplicated work
+- **Blocking on Explore**: Using `run_in_background=false` with explore/librarian agents — always use background mode
+- **Sequential Spawning**: Launching agents one-by-one when tasks are independent — parallelize aggressively
+- **Orphaned Sessions**: Failing to continue with `session_id` after delegation — wastes prior context
+
+### Routing Anti-Patterns
+
+- **Category Mismatch**: Sending UI work to `deep` instead of `visual-engineering` — wrong model for the task
+- **Skill Ommission**: Using `load_skills=[]` when relevant skills exist — always check available skills first
+- **Oracle Skip**: Delivering final answer before collecting Oracle result when Oracle was launched — MUST collect first
+
+### Context Anti-Patterns
+
+- **Blind Delegation**: Dispatching without reading relevant CLAUDE.md files first — causes pattern violations
+- **Cache Blindness**: Ignoring `.arc/context-hub/index.json` when valid cache exists — wastes tokens
+- **Stale Context**: Using expired cache (24h+) without verification — causes incorrect decisions
+
+## Context
+
+### 上下文优先级协议
+
+调度前必须遵循以下上下文获取优先级：
+
+1. **优先级 0**: `.arc/context-hub/index.json` — 优先复用已有 skill 产物
+2. **优先级 1**: `.arc/<skill>/` 缓存上下文 — 检查 Skill 特定的缓存文件
+3. **优先级 2**: 项目 CLAUDE.md 层级索引 — 扫描根级 + 模块级 CLAUDE.md
+4. **优先级 3**: 项目源码扫描 (ace-tool MCP) — 生成临时快照
+5. **优先级 4**: 外部参考搜索 (Exa MCP) — 搜索官方文档和最佳实践
+
+详见 [CLAUDE.md](../CLAUDE.md) 中的「上下文优先级协议」章节。

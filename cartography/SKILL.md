@@ -1,9 +1,9 @@
 ---
-name: cartography
+name: arc:cartography
 description: 仓库理解与分层代码地图（codemap）生成
 ---
 
-# Cartography Skill
+# arc:cartography Skill
 
 You help users understand and map repositories by creating hierarchical codemaps.
 
@@ -71,6 +71,34 @@ python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py update \
   --root ./
 ```
 
+### Step 4: Export Tiered Codemap (Optional)
+
+For progressive retrieval optimization, export codemap in JSON format with different detail tiers:
+
+```bash
+# Tier 1: Index (~50-100 tokens/entry) - minimal metadata for fast scanning
+python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py export \
+  --root ./ --tier 1 --output codemap/index.json
+
+# Tier 2: Context (~200-300 tokens/entry) - adds dependencies and summary
+python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py export \
+  --root ./ --tier 2 --output codemap/context.json
+
+# Tier 3: Full (~500-1000 tokens/entry) - complete code and documentation
+python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py export \
+  --root ./ --tier 3 --output codemap/full.json
+```
+
+**Tier Usage Guidelines:**
+- **Tier 1**: Use for initial codebase scanning, finding relevant files
+- **Tier 2**: Use for understanding module relationships and dependencies
+- **Tier 3**: Use when you need full code context for implementation
+
+**Consumer Skills:**
+- `arc:refine` uses Tier 1-2 for context gathering
+- `arc:implement` uses Tier 3 for code-level details
+- `arc:review` uses Tier 2 for architecture analysis
+
 ### Step 4: Finalize Repository Atlas (Root Codemap)
 
 Once all specific directories are mapped, the Orchestrator must create or update the root `codemap.md`. This file serves as the **Master Entry Point** for any agent or human entering the repository.
@@ -85,7 +113,7 @@ After generating/updating codemaps, publish artifact metadata into `.arc/context
 
 1.  Register `codemap.md` (root atlas) and every updated folder-level `*/codemap.md`.
 2.  For each artifact, write `path`, `content_hash`, `generated_at`, `ttl_seconds`, `expires_at`.
-3.  Set `producer_skill: "cartography"` and `refresh_skill: "cartography"`.
+3.  Set `producer_skill: "arc:cartography"` and `refresh_skill: "arc:cartography"`.
 4.  Mark suggested consumers as `arc:refine`, `arc:implement`, `arc:review`, `arc:simulate`, `arc:triage`.
 5.  If index file does not exist, create a minimal valid index before registration.
 

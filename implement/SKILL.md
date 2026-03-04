@@ -53,14 +53,14 @@ description: "面向软件需求的工程实现技能。消费 arc:refine/arc:de
 0. `.arc/context-hub/index.json`（共享上下文索引，优先复用）
 1. `.arc/implement/<task>/context/implementation-brief.md`（24h）
 2. `.arc/deliberate/<task>/` 下方案产物（若存在）
-3. `codemap.md`（cartography）与 `CLAUDE.md` 层级索引（7天）
+3. `codemap.md`（arc:cartography）与 `CLAUDE.md` 层级索引（7天）
 4. `arc:score` / `arc:review` / 上次 `arc:implement` handoff（若索引可用）
 5. `ace-tool` 语义扫描
 6. `Exa` 外部文档
 
 失效回流规则：
 - CLAUDE 索引失效：触发 `arc:init:update`
-- codemap 失效：触发 `cartography` 更新
+- codemap 失效：触发 `arc:cartography` 更新
 - score/review 产物失效：触发 `arc:score` / `arc:review` 更新
 
 ## Critical Rules
@@ -145,3 +145,27 @@ python implement/scripts/render_implementation_report.py --case-dir <output_dir>
 | `execution-log.md` | 执行过程追踪 |
 | `execution-report.md` | 实现结果与验证结论 |
 | `change-summary.md` | 对下游技能/评审的交接摘要 |
+
+## Anti-Patterns
+
+**CRITICAL: The following behaviors are FORBIDDEN in arc:implement execution:**
+
+### Planning Anti-Patterns
+
+- **Speculation Implementation**: Writing code without reading arc:deliberate or arc:refine output first — must have approved plan
+- **Scope Creep**: Adding features not in the approved plan — strict scope adherence required
+- **Pattern Ignorance**: Not reading existing code patterns before implementing — causes inconsistency
+
+### Implementation Anti-Patterns
+
+- **Type Safety Violation**: Using `as any`, `@ts-ignore`, `@ts-expect-error` — forbidden without explicit exception approval
+- **Empty Catch Blocks**: `catch(e) {}` — must handle or re-throw errors
+- **Magic Values**: Hardcoding configuration values — use constants/config files
+- **Commented Code**: Leaving commented-out code blocks — delete or implement
+
+### Process Anti-Patterns
+
+- **Skip Verification**: Not running LSP diagnostics after edits — must verify clean before commit
+- **Batch Completion**: Marking multiple todos complete at once — one at a time, verify each
+- **Cache Stale Usage**: Using expired codemap.md (7d+) without refresh — triggers arc:cartography
+- **Handoff Skip**: Not generating `handoff/` artifacts — breaks downstream skills

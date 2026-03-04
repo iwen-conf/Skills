@@ -128,7 +128,7 @@ version: 1.1.0
    * `arc:implement` handoff（本轮改动范围）
 2. 验证产物新鲜度：`expires_at` + `content_hash`。
 3. 产物可用则直接加载，不重复做全量扫描。
-4. 产物失效则按 `refresh_skill` 回流更新（`arc:init:update` / `cartography` / `arc:score` / `arc:review`）。
+4. 产物失效则按 `refresh_skill` 回流更新（`arc:init:update` / `arc:cartography` / `arc:score` / `arc:review`）。
 
 **优先级 1: 读取项目 CLAUDE.md 层级索引**
 
@@ -160,7 +160,7 @@ version: 1.1.0
 3. **生成错误报告**：在 `<run_dir>/context-errors/` 目录下生成缓存验证失败报告（见下方模板）。
 4. **回流更新建议**：
    - CLAUDE 索引问题 → `arc:init:update`
-   - codemap 问题 → `cartography` 更新
+   - codemap 问题 → `arc:cartography` 更新
    - 评分/评审产物问题 → `arc:score` / `arc:review` 更新
 
 **缓存错误报告模板** (`<run_dir>/context-errors/cache-error-YYYYMMDD-HHMMSS.md`)：
@@ -425,3 +425,25 @@ version: 1.1.0
 {"run_id":"<run_id>","step":1,"role":"buyer","kind":"exec","cmd":"agent-browser open \"<target_url>/login\"","ts":"YYYY-MM-DDTHH:MM:SS","result":"PASS"}
 {"run_id":"<run_id>","step":1,"role":"buyer","kind":"screenshot","path":"screenshots/s0001_login-page.png","description":"登录页初始状态","ts":"YYYY-MM-DDTHH:MM:SS"}
 ```
+## Anti-Patterns
+
+**CRITICAL: The following behaviors are FORBIDDEN in arc:simulate execution:**
+
+### Test Execution Anti-Patterns
+
+- **Screenshot Skipping**: Failing to capture screenshots at each step — reports are incomplete without visual evidence
+- **Selector Guessing**: Using guessed selectors without verification — causes flaky tests
+- **Happy Path Only**: Testing only success scenarios — must include error cases and edge conditions
+- **State Blindness**: Ignoring page state before actions — causes cascade failures
+
+### Evidence Anti-Patterns
+
+- **Missing Manifest**: Not updating `screenshot-manifest.compiled.md` — breaks report traceability
+- **Broken References**: Screenshot filenames not matching manifest entries — orphaned evidence
+- **JSONL Corruption**: Malformed `events.jsonl` entries — breaks compilation
+
+### Report Anti-Patterns
+
+- **Preliminary Conclusion**: Marking test PASS before `check_artifacts.py --strict` validation — premature success declaration
+- **Failure Suppression**: Skipping failed steps instead of recording them — hides real issues
+- **Context Ignorance**: Not reading CLAUDE.md for expected behavior — tests wrong things

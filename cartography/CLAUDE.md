@@ -1,6 +1,6 @@
-[根目录](../CLAUDE.md) > **cartography**
+[根目录](../CLAUDE.md) > **arc:cartography**
 
-# cartography -- 仓库分层代码地图生成
+# arc:cartography -- 仓库分层代码地图生成
 
 ## 变更记录 (Changelog)
 
@@ -10,7 +10,7 @@
 
 ## 模块职责
 
-cartography 提供仓库理解与分层 codemap 生成能力，帮助在陌生项目中快速建立目录级与根级代码地图。
+arc:cartography 提供仓库理解与分层 codemap 生成能力，帮助在陌生项目中快速建立目录级与根级代码地图。
 
 核心能力：
 - 初始化扫描目标文件并建立 `.slim/cartography.json` 状态
@@ -39,7 +39,7 @@ python3 cartography/scripts/cartographer.py update --root .
 
 ### Skill 调用接口
 
-通过 Claude Code 调用：`/cartography`
+通过 Claude Code 调用：`/arc:cartography`
 
 ### CLI 接口
 

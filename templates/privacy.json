@@ -1,0 +1,35 @@
+{
+  "enabled": true,
+  "mode": "mask",
+  "tags": [
+    {
+      "name": "private",
+      "pattern": "<private(?:\\s+reason=\"[^\"]*\")?>(.*?)</private>",
+      "description": "Default private tag for sensitive content"
+    }
+  ],
+  "placeholder": "[PRIVATE: {reason}]",
+  "skills": {
+    "arc:simulate": {
+      "enabled": false,
+      "comment": "Reports intentionally contain test data for reproducibility"
+    },
+    "arc:refine": {
+      "enabled": true,
+      "mode": "mask"
+    },
+    "arc:deliberate": {
+      "enabled": true,
+      "mode": "mask"
+    },
+    "arc:implement": {
+      "enabled": true,
+      "mode": "mask"
+    }
+  },
+  "exclude_paths": [
+    "reports/**",
+    "*.log",
+    "*.jsonl"
+  ]
+}

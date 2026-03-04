@@ -1,6 +1,6 @@
 # Arc Skills
 
-Claude Code 技能（Skill）集合，主要使用 **`arc:`** 命名空间，并提供独立的 `cartography` 代码地图技能。每个技能是一个自包含的 Skill 插件：arc 系列通过 `/arc:<name>` 调用，cartography 通过 `/cartography` 调用。
+Claude Code 技能（Skill）集合，主要使用 **`arc:`** 命名空间，并提供独立的 `arc:cartography` 代码地图技能。每个技能是一个自包含的 Skill 插件：arc 系列通过 `/arc:<name>` 调用，arc:cartography 通过 `/arc:cartography` 调用。
 
 ## 架构总览
 
@@ -13,7 +13,7 @@ graph TD
         init["arc:init<br/>多Agent协作 CLAUDE.md 生成"]
     end
     subgraph "代码地图"
-        cartography["cartography<br/>仓库分层 codemap 生成"]
+        cartography["arc:cartography<br/>仓库分层 codemap 生成"]
     end
     subgraph "需求理解"
         refine["arc:refine<br/>问题细化"]
@@ -72,7 +72,7 @@ graph TD
 | 调用方式 | 目录 | 用途 |
 |---------|------|------|
 | `/arc:agent` | `agent/` | 智能调度 agent，分析用户需求后选择合适的 arc: skill，协调多Agent执行任务 |
-| `/cartography` | `cartography/` | 仓库理解与分层代码地图（codemap）生成，支持增量更新 |
+| `/arc:cartography` | `cartography/` | 仓库理解与分层代码地图（codemap）生成，支持增量更新 |
 | `/arc:simulate` | `simulate/` | 通过 agent-browser 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
 | `/arc:triage` | `triage/` | 分析 arc:simulate 的失败报告，定位根因、修复缺陷、执行回归验证 |
 | `/arc:loop` | `loop/` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
@@ -89,7 +89,7 @@ graph TD
 ```mermaid
 graph LR
     agent["arc:agent"] -.->|"路由"| init
-    cartography["cartography"]
+    cartography["arc:cartography"]
     agent -.->|"路由"| cartography
     agent -.->|"路由"| refine
     agent -.->|"路由"| deliberate
@@ -112,7 +112,7 @@ graph LR
 ```
 
 - `arc:agent`：统一入口，智能路由到合适的 skill 或直接调度模型
-- `cartography`：独立技能，生成仓库分层 codemap，供 `arc:refine` 等阶段快速建立上下文
+- `arc:cartography`：独立技能，生成仓库分层 codemap，供 `arc:refine` 等阶段快速建立上下文
 - `arc:init`：独立运行，输出的 CLAUDE.md 层级索引被 `arc:refine` 消费
 - `arc:refine` → `arc:deliberate`：问题细化后进入多Agent审议
 - `arc:deliberate` → `arc:implement`：方案进入工程实现阶段
@@ -127,7 +127,7 @@ graph LR
 ```bash
 # 在 Claude Code 中调用
 /arc:agent       # 智能调度（推荐入口）
-/cartography     # 仓库分层代码地图生成
+/arc:cartography  # 仓库分层代码地图生成
 /arc:init        # 项目初始化（多Agent协作生成 CLAUDE.md）
 /arc:simulate    # E2E 测试
 /arc:triage      # 缺陷修复
