@@ -77,7 +77,7 @@ NO SCORE WITHOUT EVIDENCE, NO RECOMMENDATION WITHOUT TRADEOFF
 
 - **首选触发**：需要对项目或关键 PR 做证据化、可追溯评审。
 - **典型场景**：技术尽调、里程碑复盘、架构升级前健康评估、合并前高风险 PR 评审、发布前测试策略/性能回归/安全基线评估。
-- **边界提示**：仅需量化扫描先用 `arc:score`，仅需阻断判定用 `arc:gate`。
+- **边界提示**：仅需门禁阻断先用 `arc:gate`；需要落地改造方案用 `arc:implement`。
 
 ## Input Arguments
 
@@ -183,8 +183,8 @@ NO SCORE WITHOUT EVIDENCE, NO RECOMMENDATION WITHOUT TRADEOFF
 2. 验证产物有效性：`expires_at`、`content_hash`、路径存在性。
 3. 有效则直接加载到评审上下文，减少重复扫描范围。
 4. 无效则触发回流更新：
-   - score 失效 → `arc:score`
-   - score 失效 → `arc:score`
+   - score 失效 → `arc:gate`（刷新评分产物）
+   - codemap/CLAUDE 元数据失效 → `arc:init:update` / `arc:cartography`
 5. 将本次复用的产物路径写入 `context/project-snapshot.md` 元数据。
 
 ---
@@ -535,7 +535,7 @@ dispatch_job(
 - **Source Modification**: Editing project source code during review — only write to `.arc/review/`
 - **Single-Perspective Review**: Only evaluating one dimension — must cover all 7 ISO/IEC 25010 dimensions
 - **Rubber Stamp**: Marking PASS without thorough analysis — each finding requires evidence
-- **Score Skipping**: Not running arc:score first — quantitative data required before qualitative review
+- **Score Skipping**: Not running arc:gate first — quantitative data required before qualitative review
 
 ### Finding Anti-Patterns
 

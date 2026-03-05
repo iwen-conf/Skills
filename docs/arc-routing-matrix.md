@@ -9,10 +9,9 @@
 | `arc:refine` | 需求不清、上下文缺失 | 方案已清晰可直接执行 | `arc:deliberate` / `arc:estimate` / `arc:implement` |
 | `arc:deliberate` | 高风险决策需多视角论证 | 仅需单路径快速执行 | `arc:implement` / `arc:review` |
 | `arc:estimate` | 需要工时区间与波次排期 | 问题仍未定 scope | `arc:implement` / 项目管理流程 |
-| `arc:implement` | 方案已定，开始代码落地 | 需求与边界尚未澄清 | `arc:review` / `arc:simulate` / `arc:score` |
-| `arc:review` | 企业级多维诊断与路线图 | 仅需阻断判定或快速扫描 | `arc:score` / `arc:gate` / `arc:implement` |
-| `arc:score` | 需要量化质量数据与 smell 清单 | 仅需策略决策与豁免裁决 | `arc:gate` / `arc:review` |
-| `arc:gate` | CI/CD 质量门禁阻断 | 尚未生成可用评分产物 | `arc:score`（回流） |
+| `arc:implement` | 方案已定，开始代码落地 | 需求与边界尚未澄清 | `arc:review` / `arc:simulate` |
+| `arc:review` | 企业级多维诊断与路线图 | 仅需门禁阻断判定 | `arc:gate` / `arc:implement` |
+| `arc:gate` | CI/CD 质量门禁阻断 | 尚未生成可用评分产物 | `score 产物刷新（gate 内部）` |
 | `arc:simulate` | 真实用户路径 E2E 验证 | 没有测试入口或账号上下文 | `arc:triage` / `arc:loop` |
 | `arc:triage` | 基于 FAIL 工件做定位修复 | 尚无可复现失败证据 | `arc:simulate`（先产证据） |
 | `arc:loop` | 需重启服务的多轮回归闭环 | 一次性单轮排查即可完成 | `arc:simulate` / `arc:triage` |
@@ -36,7 +35,6 @@ flowchart TD
     D -- "否" --> E{"是否进入代码落地?"}
     E -- "是" --> IM["arc:implement"]
     E -- "否" --> F{"是质量治理链路?"}
-    F -- "量化扫描" --> SC["arc:score"]
     F -- "门禁阻断" --> GT["arc:gate"]
     F -- "企业级诊断" --> RV["arc:review"]
     F -- "否" --> G{"是 E2E 验证链路?"}
@@ -61,7 +59,7 @@ flowchart TD
 | 决策（Decide） | 处理高风险方案分歧 | `arc:deliberate` | `arc:estimate` | `consensus plan` → 实施 |
 | 落地（Build） | 产出可提交代码变更 | `arc:implement` | `arc:init*` / `arc:cartography` | `change handoff` → 验证 |
 | 验证（Validate） | 验证行为、定位失败、闭环修复 | `arc:simulate` / `arc:triage` / `arc:loop` | `arc:implement` | `pass/fail evidence` → 治理 |
-| 治理（Govern） | 量化评估、门禁阻断、改进路线 | `arc:score` / `arc:gate` / `arc:review` | `arc:implement` | `score/gate/review outputs` |
+| 治理（Govern） | 门禁阻断、改进路线与治理闭环 | `arc:gate` / `arc:review` | `arc:implement` | `gate/review outputs` |
 | 知识产权（IP） | 先审查可行性，再起草材料 | `arc:ip-audit` / `arc:ip-docs` | `arc:review` | `ip-drafting-input` → 申请材料草稿 |
 
 ## Fast Routing Rules
@@ -70,5 +68,5 @@ flowchart TD
 - 先判定“是否已明确需求边界”：未明确优先 `arc:refine`。
 - 先判定“是否争议高风险”：高风险优先 `arc:deliberate`。
 - 先判定“是否进入落地阶段”：已明确直接 `arc:implement`。
-- 质量链路默认：`arc:score` → `arc:gate`，必要时并联 `arc:review`。
+- 质量链路默认：`arc:gate`，必要时并联 `arc:review`。
 - E2E 修复链路默认：`arc:simulate` → `arc:triage`（循环则 `arc:loop`）。

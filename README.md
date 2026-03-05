@@ -1,7 +1,7 @@
 # Arc Skills
 
 跨运行时、可解耦的技能（Skill）仓库。  
-本仓库统一采用 `arc:xxx` 命名空间，当前保留 17 个核心编排技能。
+本仓库统一采用 `arc:xxx` 命名空间，当前保留 16 个核心编排技能。
 
 ## 当前状态
 
@@ -10,7 +10,7 @@
 - 路由文档已形成三层：矩阵、决策树、阶段视图 + 单页速查。
 - 所有 `SKILL.md` 的 frontmatter `description` 已统一为中文。
 
-## Arc 技能清单（17）
+## Arc 技能清单（16）
 
 | Skill | 目录 | 作用 |
 |---|---|---|
@@ -20,7 +20,6 @@
 | `arc:estimate` | `estimate/` | round 模型估算、风险校准与并行波次规划 |
 | `arc:implement` | `implement/` | 方案落地为代码变更，附验证与交接产物 |
 | `arc:review` | `review/` | 企业级多维诊断与改进路线图 |
-| `arc:score` | `score/` | 量化评分与 smell 检测，输出机器可读结果 |
 | `arc:gate` | `gate/` | CI/CD 质量门禁判定（阈值 + 豁免） |
 | `arc:simulate` | `simulate/` | 用户路径 E2E 验证与 UI 证据沉淀 |
 | `arc:triage` | `triage/` | 基于失败工件做根因定位、修复与复验 |
@@ -35,6 +34,7 @@
 ## 收敛结果
 
 - 已取消独立“能力子技能”，全部能力并入核心流程，避免重复入口与职责分散。
+- `arc:score` 已并入 `arc:gate`（统一处理量化扫描与门禁判定）。
 - `arc:agent`：统一承接仓库摸底与任务拆解路由。
 - `arc:implement`：统一承接契约先行、迁移、重构与文档同步交付。
 - `arc:review`：统一承接测试策略、性能回归、安全基线与 PR 评审结论。
@@ -51,7 +51,7 @@
 ## 编排与融合文档
 
 - 编排契约：`docs/orchestration-contract.md`
-- 融合指南：`docs/superpowers-fusion-guide.md`
+- 融合指南：`docs/fusion-guide.md`
 - 执行模式说明：`docs/conductor-pattern.md`
 
 ## 质量校验
@@ -86,7 +86,6 @@ arc deliberate
 arc implement
 
 # 质量链路
-arc score
 arc gate
 arc review
 

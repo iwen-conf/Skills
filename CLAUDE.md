@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | 时间 | 操作 |
 |------|------|
-| 2026-03-03 | 新增 arc:score 与 arc:gate，引入量化评分与 CI 门禁能力；增强 arc:review 和 arc:deliberate |
+| 2026-03-03 | 新增评分子模块（后并入 arc:gate）与 arc:gate，引入量化评分与 CI 门禁能力；增强 arc:review 和 arc:deliberate |
 | 2026-02-28 | 新增 arc:init:full 与 arc:init:update，拆分全量初始化与增量更新能力；arc:init 改为智能调度器 |
 
 ---
@@ -26,13 +26,15 @@ A collection of Claude Code Skills (custom slash-command plugins), primarily und
 | `loop/` | arc:loop | `arc loop` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
 | `refine/` | arc:refine | `arc refine` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
 | `deliberate/` | arc:deliberate | `arc deliberate` | 多 Agent 多视角审议，使用 OpenSpec 生成结构化计划 |
+| `estimate/` | arc:estimate | `arc estimate` | 给出工时区间、风险分级与并行波次建议，辅助排期与资源决策 |
 | `implement/` | arc:implement | `arc implement` | 将方案落地为工程实现，输出实现计划、执行日志与交接摘要 |
 | `review/` | arc:review | `arc review` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图 |
 | `init/` | arc:init | `arc init` | 智能调度器，自动判断全量(full)或增量(update)模式 |
 | `init-full/` | arc:init:full | `arc init full` | 全量生成项目层级式 CLAUDE.md 索引体系，深度扫描+多Agent分析 |
 | `init-update/` | arc:init:update | `arc init update` | 增量更新 CLAUDE.md，基于指纹检测变更，仅更新受影响模块 |
+| `ip-audit/` | arc:ip-audit | `arc ip-audit` | 申请前做软著/专利可行性审查，输出风险与交接输入 |
 | `ip-docs/` | arc:ip-docs | `arc ip-docs` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
-| `score/` | arc:score | `arc score` | 量化评分与 Code Smell 检测，为评审提供量化数据支撑 |
+| `score/` | internal-score-module | 由 `arc gate` 内部调用 | 量化评分与 Code Smell 检测，为评审提供量化数据支撑 |
 | `gate/` | arc:gate | `arc gate` | CI 质量门禁，基于评分数据执行可配置的阻断判定 |
 
 ## 模块文档索引
@@ -66,8 +68,8 @@ arc:agent ────┬─▶ arc:init         (智能调度 → full/update)
               ├─▶ arc:refine       (问题细化)
               │     └─▶ arc:deliberate
               ├─▶ arc:implement    (方案落地实现)
-              ├─▶ arc:score        (量化评分) ──▶ arc:review
-              │                              └─▶ arc:gate (CI 门禁)
+              ├─▶ score-module(由 arc:gate 触发) ──▶ arc:review
+              │                                   └─▶ arc:gate (CI 门禁)
               ├─▶ arc:review       (项目评审)
               ├─▶ arc:ip-audit     (知识产权可行性审查)
               │     └─▶ arc:ip-docs
@@ -78,10 +80,10 @@ arc:agent ────┬─▶ arc:init         (智能调度 → full/update)
 
 arc:init  (独立运行；输出的 CLAUDE.md 被 arc:refine 消费)
 arc:cartography  (独立运行；输出 codemap.md 可被 arc:refine、arc:implement、arc:review 作为上下文参考)
-arc:score  (消费 arc:init 产物；输出量化数据给 arc:review 和 arc:gate)
+score-module  (由 arc:gate 内置评分阶段触发；输出量化数据给 arc:review 与 arc:gate)
 arc:implement  (消费 deliberation/refine 结果；输出实现交接供 review/simulate 使用)
-arc:review  (消费 arc:score 量化数据；输出评审报告)
-arc:gate  (消费 arc:score 数据；执行 CI 门禁判定)
+arc:review  (消费 score 量化数据；输出评审报告)
+arc:gate  (消费 score 数据与策略配置；执行 CI 门禁判定)
 arc:ip-audit  (优先读取 arc:init、arc:review 产物；输出交接 JSON 给 arc:ip-docs)
 ```
 
@@ -156,7 +158,7 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 ### review/scripts/
 | Script | What it does |
 |--------|-------------|
-| `integrate_score.py` | 将 arc:score 量化数据集成到 arc:review |
+| `integrate_score.py` | 将 score 量化数据集成到 arc:review |
 
 ### deliberate/scripts/
 | Script | What it does |
@@ -229,7 +231,7 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 
 **自我修复流程**：
 1. 检测到缓存错误 → 判断错误类型
-2. 结构性错误 → 触发对应生产者 Skill 重新生成（如 `arc:init:update` / `arc:cartography` / `arc:score`）
+2. 结构性错误 → 触发对应生产者 Skill 重新生成（如 `arc:init:update` / `arc:cartography` / `arc:gate`（含评分刷新））
 3. 局部错误 → 标记错误位置 → 回退到源码扫描 → 生成补丁到 `.arc/<skill>/patches/`
 4. 回写共享索引：更新过期标记、刷新时间与产物哈希
 

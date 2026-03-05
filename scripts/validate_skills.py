@@ -72,7 +72,6 @@ ARC_ROUTED_SKILLS = {
     "arc:loop",
     "arc:refine",
     "arc:review",
-    "arc:score",
     "arc:simulate",
     "arc:triage",
 }
@@ -174,9 +173,6 @@ def main():
     root = Path(__file__).resolve().parents[1]
     skill_files = []
     for path in root.rglob("SKILL.md"):
-        text_path = str(path)
-        if "/superpowers/" in text_path:
-            continue
         skill_files.append(path)
     all_errors = []
     all_warnings = []

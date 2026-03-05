@@ -7,7 +7,7 @@ description: "当合并或上线前需要统一做质量门禁、发布准备度
 
 ## Overview
 
-arc:gate 是统一门禁模块，基于 arc:score 的量化数据执行可配置质量判定，并补齐上线前发布准备度检查（回滚、监控、值班与公告）。支持 warn/strict/strict_dangerous 三种模式，提供阈值配置、豁免清单和 CI 集成能力。
+arc:gate 是统一门禁模块，基于内置评分阶段产出的 score 数据执行可配置质量判定，并补齐上线前发布准备度检查（回滚、监控、值班与公告）。支持 warn/strict/strict_dangerous 三种模式，提供阈值配置、豁免清单和 CI 集成能力。
 
 核心能力：
 - **门禁模式**：warn（仅告警）/ strict（阻断）/ strict_dangerous（额外拦截危险级别）
@@ -68,13 +68,13 @@ NO GREEN BUILD WITHOUT EXPLICIT GATE DECISION
 ## When to Use
 
 - **首选触发**：合并或上线前需要自动化 pass/fail 与 Go/No-Go 判定。
-- **典型场景**：基于 `arc:score` 阈值与豁免执行阻断；发布窗口前统一检查回滚/监控/值班/公告。
-- **边界提示**：要找问题根因先用 `arc:score` / `arc:review`，`arc:gate` 负责判定与放行建议。
+- **典型场景**：基于 score 阈值与豁免执行阻断；发布窗口前统一检查回滚/监控/值班/公告。
+- **边界提示**：要做根因定位与系统性改进先用 `arc:review`，`arc:gate` 聚焦阻断判定与放行建议。
 
 ## Dependencies
 
 - **编排契约**：推荐。遵循 `docs/orchestration-contract.md` 进行跨运行时调用适配。
-- **arc:score 产物**：必须。依赖 `overall-score.json` 与 `smell-report.json`。
+- **score 产物**：必须。依赖 `overall-score.json` 与 `smell-report.json`。
 - **Git（可选）**：用于在 CI 中补充变更上下文。
 
 ## Core Pattern
@@ -92,7 +92,7 @@ NO GREEN BUILD WITHOUT EXPLICIT GATE DECISION
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `project_path` | string | 是 | 项目根目录 |
-| `score_dir` | string | 否 | arc:score 输出目录，默认 `.arc/score/<project>` |
+| `score_dir` | string | 否 | score 产物目录，默认 `.arc/score/<project>` |
 | `config` | string | 否 | 门禁配置文件路径 |
 | `mode` | string | 否 | 门禁模式：warn/strict/strict_dangerous，默认 strict |
 
@@ -112,10 +112,10 @@ NO GREEN BUILD WITHOUT EXPLICIT GATE DECISION
 
 在加载配置和评分前，先读取 `.arc/context-hub/index.json`：
 
-1. 检索 `arc:score` 产物（`overall-score.json`、`smell-report.json`）
+1. 检索 score 产物（`overall-score.json`、`smell-report.json`）
 2. 验证 `expires_at`、文件路径存在性（若提供 `content_hash` 且为 sha256，则校验哈希一致性）
 3. 通过校验则直接复用索引中的 score 产物路径
-4. 若缺失/过期/哈希不一致，先回流触发 `arc:score` 更新，再执行门禁
+4. 若缺失/过期/哈希不一致，先回流触发评分阶段刷新（由 `arc:gate` 内置执行），再执行门禁
 
 ### Step 1.1: 加载门禁配置
 
@@ -126,11 +126,11 @@ NO GREEN BUILD WITHOUT EXPLICIT GATE DECISION
 
 ### Step 1.2: 加载评分数据
 
-从 arc:score 输出目录加载：
+从 score 产物目录加载：
 - `overall-score.json`：综合评分
 - `smell-report.json`：Code Smell 检测结果
 
-如果以上文件无法加载或已过期，不直接失败，先触发 `arc:score` 重新产出后重试一次。
+如果以上文件无法加载或已过期，不直接失败，先触发评分阶段重新产出后重试一次。
 
 ---
 
@@ -224,7 +224,7 @@ whitelist:
 
 ### 上游
 
-- `arc:score`: 提供量化评分数据
+- `score 内置阶段`：提供量化评分数据
 - `arc:review`: 提供定性评审数据（可选）
 
 ### 下游
@@ -234,7 +234,7 @@ whitelist:
 ### 共享索引约束
 
 - `arc:gate` 必须优先通过 `.arc/context-hub/index.json` 发现 score 产物
-- 若发现 score 数据过期，必须回流触发 `arc:score`，而非直接使用旧数据判定
+- 若发现 score 数据过期，必须回流触发评分阶段刷新，而非直接使用旧数据判定
 
 ### 调用示例
 
@@ -318,14 +318,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup ARC Runtime
+      - name: Setup ARC Adapter
         run: |
-          # 安装你使用的运行时适配器（示例）
-          npm install -g @your-org/arc-runtime
-          
-      - name: Run arc:score
-        run: |
-          arc score --project . --output .arc/score
+          # 安装你使用的运行时适配层（示例占位）
+          echo "install your arc adapter here"
           
       - name: Run arc:gate
         env:
@@ -350,7 +346,6 @@ jobs:
 quality_gate:
   stage: test
   script:
-    - arc score --project . --output .arc/score
     - arc gate --project . --mode strict --exit-code
   artifacts:
     when: always
@@ -366,7 +361,7 @@ quality_gate:
 
 | 情况 | 处理 |
 |------|------|
-| arc:score 数据不存在 | 运行 arc:score 或报错 |
+| score 产物不存在 | 先生成 score 产物后再运行 arc:gate |
 | 配置文件解析失败 | 使用默认配置并警告 |
 | 豁免清单过期 | 忽略过期豁免 |
 

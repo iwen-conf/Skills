@@ -155,9 +155,9 @@ refine → deliberate → implement → review → test
 Multiple independent workers execute in parallel:
 
 ```
-          ┌─→ arc:score ─┐
+          ┌─→ arc:gate ─┐
 refine ──┼─→ arc:review ─┼─→ aggregate
-          └─→ arc:test  ─┘
+          └─→ arc:simulate ─┘
 ```
 
 **Use case**: Comprehensive project assessment

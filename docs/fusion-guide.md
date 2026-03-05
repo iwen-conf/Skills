@@ -1,11 +1,11 @@
-# Superpowers 融合指南（已应用到本仓库）
+# Skill 融合指南（已应用到本仓库）
 
-本指南提炼自 `superpowers/` 的高价值模式，并映射到 ARC 核心 Skills。
+本指南提炼外部优秀 Skill 体系中的高价值模式，并映射到 ARC 核心 Skills。
 
 ## 融合目标
 
 - 保留 ARC 的领域能力
-- 吸收 Superpowers 的流程纪律
+- 吸收成熟 Skill 体系的流程纪律
 - 保持运行时无关（不绑定单一 CLI/平台）
 
 ## 迁移的核心模式

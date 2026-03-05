@@ -13,7 +13,7 @@
 ## 2) 常用链路
 
 - 需求到落地：`arc:refine` → `arc:deliberate`（可选）→ `arc:implement`
-- 质量治理：`arc:score` → `arc:gate`（并联 `arc:review`）
+- 质量治理：`arc:gate`（并联 `arc:review`）
 - E2E 修复：`arc:simulate` → `arc:triage`（多轮用 `arc:loop`）
 - 索引维护：`arc:init`（自动）/ `arc:init:full` / `arc:init:update`
 - 结构地图：`arc:cartography`

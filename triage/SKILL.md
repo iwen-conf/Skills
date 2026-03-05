@@ -203,10 +203,10 @@ python triage/scripts/triage_run.py <run_dir> \
 **在开始诊断前，按以下优先级获取上下文：**
 
 **优先级 0: 读取共享上下文索引（`.arc/context-hub/index.json`）**
-1. 检索可复用产物：`codemap.md`、`arc:review` 快照、`arc:score` 结果、`arc:implement` handoff
+1. 检索可复用产物：`codemap.md`、`arc:review` 快照、score 结果（由 `arc:gate` 维护）、`arc:implement` handoff
 2. 校验 `expires_at`、`content_hash`、文件存在性
 3. 可用则直接加载并缩小排查范围
-4. 失效则按 `refresh_skill` 回流触发更新（`arc:init:update` / `arc:cartography` / `arc:review` / `arc:score`）
+4. 失效则按 `refresh_skill` 回流触发更新（`arc:init:update` / `arc:cartography` / `arc:review` / `arc:gate`（评分刷新））
 
 **优先级 1: 检查 `.arc/review/` 架构分析**
 1. 查找评审产物：检查 `.arc/review/<project-name>/` 是否存在架构分析文档
