@@ -388,6 +388,33 @@ def _is_business_related_issue(issue: dict) -> bool:
     return any(keyword in text for keyword in business_keywords)
 
 
+def _judge_tab_status(
+    score: float, critical_count: int, high_count: int
+) -> tuple[str, str, str, str]:
+    if critical_count > 0 or score < 60:
+        return "Fail", "No-Go", "高", "P0（24h）"
+    if high_count >= 3 or score < 75:
+        return "Concern", "Conditional Go", "中", "P1（72h）"
+    return "Pass", "Go", "低", "P2（2周）"
+
+
+def _top_evidence(issues: list[dict], limit: int = 3) -> str:
+    if not issues:
+        return "无"
+    ranked = sorted(
+        issues,
+        key=lambda issue: _severity_rank(str(issue.get("severity", ""))),
+        reverse=True,
+    )[:limit]
+    evidence = []
+    for issue in ranked:
+        issue_id = str(issue.get("id", "-"))
+        file_path = str(issue.get("file", "-"))
+        line = str(issue.get("line", "-"))
+        evidence.append(f"{issue_id}@{file_path}:{line}")
+    return "；".join(evidence)
+
+
 def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str:
     """生成 HTML 可视化看板（图表 + 多维度 Tab 切换）"""
     dimension_order = [
@@ -471,7 +498,13 @@ def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str
                 '<tr><td colspan="2" class="empty-cell">该维度暂无热点文件</td></tr>'
             )
 
+        critical_count = severity_count["critical"]
+        high_count = severity_count["high"]
         critical_and_high = severity_count["critical"] + severity_count["high"]
+        verdict, gate_decision, risk_level, sla = _judge_tab_status(
+            score, critical_count, high_count
+        )
+        evidence_summary = _top_evidence(normalized_issues, limit=3)
 
         dimension_panels.append(
             {
@@ -484,6 +517,19 @@ def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str
   <div class="kpi-box"><span>问题数</span><strong>{issue_count}</strong></div>
   <div class="kpi-box"><span>高风险问题(C+H)</span><strong>{critical_and_high}</strong></div>
 </div>
+<h3>专家评审卡</h3>
+<table class="issues-table">
+  <thead>
+    <tr><th>项</th><th>结论</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>审核结论</td><td>{verdict}</td></tr>
+    <tr><td>Gate 建议</td><td>{gate_decision}</td></tr>
+    <tr><td>风险等级</td><td>{risk_level}</td></tr>
+    <tr><td>整改时限</td><td>{sla}</td></tr>
+    <tr><td>关键证据</td><td>{escape(evidence_summary)}</td></tr>
+  </tbody>
+</table>
 <h3>严重级别分布</h3>
 <table class="issues-table">
   <thead>
@@ -586,13 +632,34 @@ def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str
             '<tr><td colspan="2" class="empty-cell">暂无修复等级分布</td></tr>'
         )
 
+    overall_score_value = float(review_input.get("quantitative_score", 0))
+    overall_verdict, overall_gate, overall_risk, overall_sla = _judge_tab_status(
+        overall_score_value,
+        critical_issue_count,
+        high_issue_count,
+    )
+    overall_evidence = _top_evidence(all_issues, limit=5)
+
     overview_panel_html = f"""
 <div class="panel-kpi">
-  <div class="kpi-box"><span>综合分</span><strong>{float(review_input.get('quantitative_score', 0)):.0f}/100</strong></div>
+  <div class="kpi-box"><span>综合分</span><strong>{overall_score_value:.0f}/100</strong></div>
   <div class="kpi-box"><span>总问题数</span><strong>{total_issue_count}</strong></div>
   <div class="kpi-box"><span>Critical</span><strong>{critical_issue_count}</strong></div>
   <div class="kpi-box"><span>High</span><strong>{high_issue_count}</strong></div>
 </div>
+<h3>专家总评卡</h3>
+<table class="issues-table">
+  <thead>
+    <tr><th>项</th><th>结论</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>总评结论</td><td>{overall_verdict}</td></tr>
+    <tr><td>最终 Gate 建议</td><td>{overall_gate}</td></tr>
+    <tr><td>整体风险等级</td><td>{overall_risk}</td></tr>
+    <tr><td>全局整改时限</td><td>{overall_sla}</td></tr>
+    <tr><td>关键证据</td><td>{escape(overall_evidence)}</td></tr>
+  </tbody>
+</table>
 <h3>七维摘要</h3>
 <table class="issues-table">
   <thead>
@@ -791,6 +858,13 @@ def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str
             "</tr>"
         )
 
+    business_verdict, business_gate, business_risk, business_sla = _judge_tab_status(
+        float(flow_score),
+        business_critical_count,
+        business_high_count,
+    )
+    business_evidence = _top_evidence(cross_dimension_business_issues, limit=5)
+
     business_panel_html = f"""
 <div class="panel-kpi">
   <div class="kpi-box"><span>业务完成度</span><strong>{business_maturity:.1f}/10 ({business_completion_level})</strong></div>
@@ -798,6 +872,19 @@ def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str
   <div class="kpi-box"><span>明显业务 Bug 信号</span><strong>{business_bug_signal_count}</strong></div>
   <div class="kpi-box"><span>业务逻辑不通顺信号</span><strong>{business_logic_signal_count}</strong></div>
 </div>
+<h3>业务专家评审卡</h3>
+<table class="issues-table">
+  <thead>
+    <tr><th>项</th><th>结论</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>业务结论</td><td>{business_verdict}</td></tr>
+    <tr><td>业务 Gate 建议</td><td>{business_gate}</td></tr>
+    <tr><td>业务风险等级</td><td>{business_risk}</td></tr>
+    <tr><td>业务整改时限</td><td>{business_sla}</td></tr>
+    <tr><td>关键证据</td><td>{escape(business_evidence)}</td></tr>
+  </tbody>
+</table>
 <h3>业务链路分段评估</h3>
 <table class="issues-table">
   <thead>

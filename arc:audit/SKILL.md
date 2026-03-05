@@ -471,6 +471,7 @@ python3 <skills_root>/arc:audit/scripts/integrate_score.py \
 
 At least the following products should exist after execution:
 - `quantitative-dashboard.html` (single output; 9 Tabs = 总览 + 七维详细分析 + 业务完成度；theme selected by `time now()` at generation time)
+- Each tab must include expert review fields: `结论 / Gate 建议 / 风险等级 / 整改时限 / 关键证据` and avoid duplicated findings across tabs.
 
 If the `.arc/score/<project-name>/` quantification input is missing, you must first trigger `arc:gate` to refresh the score product, and then retry this step.
 
