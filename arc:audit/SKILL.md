@@ -470,9 +470,7 @@ python3 <skills_root>/arc:audit/scripts/integrate_score.py \
 ```
 
 At least the following products should exist after execution:
-- `quantitative-dashboard.html` (automatic theme: by user local time)
-- `quantitative-dashboard.light.html` (light fixed version)
-- `quantitative-dashboard.dark.html` (dark fixed version)
+- `quantitative-dashboard.html` (single output; 9 Tabs = 总览 + 七维详细分析 + 业务完成度；theme selected by `time now()` at generation time)
 
 If the `.arc/score/<project-name>/` quantification input is missing, you must first trigger `arc:gate` to refresh the score product, and then retry this step.
 
@@ -503,9 +501,7 @@ If the `.arc/score/<project-name>/` quantification input is missing, you must fi
 │   └── critique.md
 ├── diagnostic-report.md # Final diagnostic report
 ├── scorecard.md # scorecard
-├── quantitative-dashboard.html # Quantitative evaluation HTML (automatic theme: according to user local time)
-├── quantitative-dashboard.light.html # Quantitative evaluation HTML (light fixed version)
-├── quantitative-dashboard.dark.html # Quantitative evaluation HTML (dark fixed version)
+├── quantitative-dashboard.html # Quantitative evaluation HTML (single output; 9 tabs, no-dup sections, theme from time now())
 ├── business-maturity.md # Business maturity special score
 ├── dependency-health.md # Dependency health special score
 └── recommendations.md # Improvement recommendations (by priority)

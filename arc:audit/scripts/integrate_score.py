@@ -297,7 +297,98 @@ def _score_level(score: float) -> str:
     return "危险"
 
 
-def generate_html_dashboard(review_input: dict, forced_theme: str | None = None) -> str:
+def _theme_from_now() -> str:
+    """按当前本地时间选择主题：07:00-18:59 浅色，其余深色。"""
+    hour = datetime.now().hour
+    return "light" if 7 <= hour < 19 else "dark"
+
+
+def _severity_rank(severity: str) -> int:
+    level = str(severity or "").lower()
+    return {
+        "critical": 4,
+        "high": 3,
+        "medium": 2,
+        "low": 1,
+    }.get(level, 0)
+
+
+def _issue_rows_html(
+    issues: list[dict], include_dimension: bool, empty_text: str, max_rows: int = 30
+) -> str:
+    if not issues:
+        colspan = 6 if include_dimension else 5
+        return f'<tr><td colspan="{colspan}" class="empty-cell">{escape(empty_text)}</td></tr>'
+
+    rows: list[str] = []
+    for issue in issues[:max_rows]:
+        issue_id = escape(str(issue.get("id", "-")))
+        severity = escape(str(issue.get("severity", "-")))
+        file_path = escape(str(issue.get("file", "-")))
+        line_number = escape(str(issue.get("line", "-")))
+        message = escape(str(issue.get("message", "-")))
+        if include_dimension:
+            dimension = escape(_dimension_label(str(issue.get("dimension", "-"))))
+            rows.append(
+                "<tr>"
+                f"<td>{dimension}</td>"
+                f"<td>{issue_id}</td>"
+                f"<td>{severity}</td>"
+                f"<td>{file_path}</td>"
+                f"<td>{line_number}</td>"
+                f"<td>{message}</td>"
+                "</tr>"
+            )
+        else:
+            rows.append(
+                "<tr>"
+                f"<td>{issue_id}</td>"
+                f"<td>{severity}</td>"
+                f"<td>{file_path}</td>"
+                f"<td>{line_number}</td>"
+                f"<td>{message}</td>"
+                "</tr>"
+            )
+    return "".join(rows)
+
+
+def _is_business_related_issue(issue: dict) -> bool:
+    text = " ".join(
+        [
+            str(issue.get("id", "")),
+            str(issue.get("file", "")),
+            str(issue.get("message", "")),
+            str(issue.get("dimension", "")),
+        ]
+    ).lower()
+    business_keywords = [
+        "业务",
+        "流程",
+        "链路",
+        "规则",
+        "状态",
+        "订单",
+        "支付",
+        "结算",
+        "库存",
+        "客户",
+        "用户",
+        "domain",
+        "business",
+        "workflow",
+        "process",
+        "rule",
+        "state",
+        "order",
+        "payment",
+        "checkout",
+        "billing",
+        "invoice",
+    ]
+    return any(keyword in text for keyword in business_keywords)
+
+
+def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str:
     """生成 HTML 可视化看板（图表 + 多维度 Tab 切换）"""
     dimension_order = [
         "architecture",
@@ -314,68 +405,114 @@ def generate_html_dashboard(review_input: dict, forced_theme: str | None = None)
     by_severity = smell_summary.get("by_severity", {})
     gradient_style, severity_legend = _severity_style(by_severity)
 
-    available_dimensions = [key for key in dimension_order if key in dimension_scores]
-    if not available_dimensions:
-        available_dimensions = list(dimension_scores.keys())
-
+    available_dimensions = list(dimension_order)
     tab_buttons: list[str] = []
     tab_panels: list[str] = []
     bar_rows: list[str] = []
+    dimension_issue_counts: dict[str, int] = {}
+    all_issues: list[dict] = []
+    dimension_panels: list[dict] = []
 
-    for index, dimension_key in enumerate(available_dimensions):
+    for dimension_key in available_dimensions:
         label = _dimension_label(dimension_key)
         score = float(dimension_scores.get(dimension_key, 0))
         level = _score_level(score)
-        issues = dimension_issues.get(dimension_key, [])
-        issue_count = len(issues)
+        raw_issues = dimension_issues.get(dimension_key, [])
+        normalized_issues = []
+        for issue in raw_issues:
+            if isinstance(issue, dict):
+                normalized_issues.append({**issue, "dimension": dimension_key})
 
-        tab_active_class = "active" if index == 0 else ""
-        panel_display = "block" if index == 0 else "none"
-        tab_buttons.append(
-            f'<button class="tab-btn {tab_active_class}" data-tab="{escape(dimension_key)}">'
-            f"{escape(label)} ({score:.0f})</button>"
+        issue_count = len(normalized_issues)
+        dimension_issue_counts[dimension_key] = issue_count
+        all_issues.extend(normalized_issues)
+
+        issue_rows_html = _issue_rows_html(
+            normalized_issues,
+            include_dimension=False,
+            empty_text="该维度暂无量化问题",
         )
 
-        issue_rows: list[str] = []
-        if issues:
-            for issue in issues[:30]:
-                issue_id = escape(str(issue.get("id", "-")))
-                severity = escape(str(issue.get("severity", "-")))
-                file_path = escape(str(issue.get("file", "-")))
-                line_number = escape(str(issue.get("line", "-")))
-                message = escape(str(issue.get("message", "-")))
-                issue_rows.append(
-                    "<tr>"
-                    f"<td>{issue_id}</td>"
-                    f"<td>{severity}</td>"
-                    f"<td>{file_path}</td>"
-                    f"<td>{line_number}</td>"
-                    f"<td>{message}</td>"
-                    "</tr>"
-                )
-        else:
-            issue_rows.append(
-                '<tr><td colspan="5" class="empty-cell">该维度暂无量化问题</td></tr>'
+        severity_count = {"critical": 0, "high": 0, "medium": 0, "low": 0, "other": 0}
+        file_hotspots: dict[str, int] = {}
+        for issue in normalized_issues:
+            severity = str(issue.get("severity", "")).lower()
+            if severity in severity_count:
+                severity_count[severity] += 1
+            else:
+                severity_count["other"] += 1
+            file_key = str(issue.get("file", "-")) or "-"
+            file_hotspots[file_key] = file_hotspots.get(file_key, 0) + 1
+
+        severity_rows = []
+        for severity_key in ["critical", "high", "medium", "low", "other"]:
+            severity_rows.append(
+                "<tr>"
+                f"<td>{escape(severity_key)}</td>"
+                f"<td>{severity_count.get(severity_key, 0)}</td>"
+                "</tr>"
             )
 
-        tab_panels.append(
-            f"""
-<section class="tab-panel" id="panel-{escape(dimension_key)}" style="display: {panel_display};">
-  <div class="panel-kpi">
-    <div class="kpi-box"><span>评分</span><strong>{score:.0f}/100</strong></div>
-    <div class="kpi-box"><span>评级</span><strong>{escape(level)}</strong></div>
-    <div class="kpi-box"><span>问题数</span><strong>{issue_count}</strong></div>
-  </div>
-  <table class="issues-table">
-    <thead>
-      <tr><th>ID</th><th>严重级别</th><th>文件</th><th>行</th><th>描述</th></tr>
-    </thead>
-    <tbody>
-      {''.join(issue_rows)}
-    </tbody>
-  </table>
-</section>
-"""
+        hotspot_rows = []
+        sorted_hotspots = sorted(
+            file_hotspots.items(),
+            key=lambda item: item[1],
+            reverse=True,
+        )[:10]
+        for file_path, count in sorted_hotspots:
+            hotspot_rows.append(
+                "<tr>"
+                f"<td>{escape(file_path)}</td>"
+                f"<td>{count}</td>"
+                "</tr>"
+            )
+        if not hotspot_rows:
+            hotspot_rows.append(
+                '<tr><td colspan="2" class="empty-cell">该维度暂无热点文件</td></tr>'
+            )
+
+        critical_and_high = severity_count["critical"] + severity_count["high"]
+
+        dimension_panels.append(
+            {
+                "label": label,
+                "score": score,
+                "panel_html": f"""
+<div class="panel-kpi">
+  <div class="kpi-box"><span>评分</span><strong>{score:.0f}/100</strong></div>
+  <div class="kpi-box"><span>评级</span><strong>{escape(level)}</strong></div>
+  <div class="kpi-box"><span>问题数</span><strong>{issue_count}</strong></div>
+  <div class="kpi-box"><span>高风险问题(C+H)</span><strong>{critical_and_high}</strong></div>
+</div>
+<h3>严重级别分布</h3>
+<table class="issues-table">
+  <thead>
+    <tr><th>严重级别</th><th>数量</th></tr>
+  </thead>
+  <tbody>
+    {''.join(severity_rows)}
+  </tbody>
+</table>
+<h3>热点文件 Top 10</h3>
+<table class="issues-table">
+  <thead>
+    <tr><th>文件</th><th>问题数</th></tr>
+  </thead>
+  <tbody>
+    {''.join(hotspot_rows)}
+  </tbody>
+</table>
+<h3>问题明细</h3>
+<table class="issues-table">
+  <thead>
+    <tr><th>ID</th><th>严重级别</th><th>文件</th><th>行</th><th>描述</th></tr>
+  </thead>
+  <tbody>
+    {issue_rows_html}
+  </tbody>
+</table>
+""",
+            }
         )
 
         bar_rows.append(
@@ -388,15 +525,321 @@ def generate_html_dashboard(review_input: dict, forced_theme: str | None = None)
 """
         )
 
+    total_issue_count = len(all_issues)
+    critical_issue_count = sum(
+        1 for issue in all_issues if str(issue.get("severity", "")).lower() == "critical"
+    )
+    high_issue_count = sum(
+        1 for issue in all_issues if str(issue.get("severity", "")).lower() == "high"
+    )
+
+    dimension_summary_rows = []
+    for dimension_key in available_dimensions:
+        dimension_summary_rows.append(
+            "<tr>"
+            f"<td>{escape(_dimension_label(dimension_key))}</td>"
+            f"<td>{float(dimension_scores.get(dimension_key, 0)):.0f}/100</td>"
+            f"<td>{dimension_issue_counts.get(dimension_key, 0)}</td>"
+            "</tr>"
+        )
+
+    severity_summary_rows = []
+    for severity_key in ["critical", "high", "medium", "low"]:
+        severity_summary_rows.append(
+            "<tr>"
+            f"<td>{escape(severity_key)}</td>"
+            f"<td>{int(by_severity.get(severity_key, 0))}</td>"
+            "</tr>"
+        )
+
+    category_summary_rows = []
+    for category_key, count in sorted(
+        smell_summary.get("by_category", {}).items(),
+        key=lambda item: str(item[0]),
+    ):
+        category_summary_rows.append(
+            "<tr>"
+            f"<td>{escape(str(category_key))}</td>"
+            f"<td>{int(count)}</td>"
+            "</tr>"
+        )
+    if not category_summary_rows:
+        category_summary_rows.append(
+            '<tr><td colspan="2" class="empty-cell">暂无类别统计数据</td></tr>'
+        )
+
+    bugfix_grade_rows = []
+    bugfix_summary = review_input.get("bugfix_summary") or {}
+    bugfix_by_grade = bugfix_summary.get("by_grade", {})
+    for grade_key, count in sorted(
+        bugfix_by_grade.items(),
+        key=lambda item: str(item[0]),
+    ):
+        bugfix_grade_rows.append(
+            "<tr>"
+            f"<td>{escape(str(grade_key))}</td>"
+            f"<td>{int(count)}</td>"
+            "</tr>"
+        )
+    if not bugfix_grade_rows:
+        bugfix_grade_rows.append(
+            '<tr><td colspan="2" class="empty-cell">暂无修复等级分布</td></tr>'
+        )
+
+    overview_panel_html = f"""
+<div class="panel-kpi">
+  <div class="kpi-box"><span>综合分</span><strong>{float(review_input.get('quantitative_score', 0)):.0f}/100</strong></div>
+  <div class="kpi-box"><span>总问题数</span><strong>{total_issue_count}</strong></div>
+  <div class="kpi-box"><span>Critical</span><strong>{critical_issue_count}</strong></div>
+  <div class="kpi-box"><span>High</span><strong>{high_issue_count}</strong></div>
+</div>
+<h3>七维摘要</h3>
+<table class="issues-table">
+  <thead>
+    <tr><th>维度</th><th>评分</th><th>问题数</th></tr>
+  </thead>
+  <tbody>
+    {''.join(dimension_summary_rows)}
+  </tbody>
+</table>
+<h3>严重级别分布</h3>
+<table class="issues-table">
+  <thead>
+    <tr><th>严重级别</th><th>数量</th></tr>
+  </thead>
+  <tbody>
+    {''.join(severity_summary_rows)}
+  </tbody>
+</table>
+<h3>问题类别分布</h3>
+<table class="issues-table">
+  <thead>
+    <tr><th>类别</th><th>数量</th></tr>
+  </thead>
+  <tbody>
+    {''.join(category_summary_rows)}
+  </tbody>
+</table>
+<h3>修复历史等级分布</h3>
+<table class="issues-table">
+  <thead>
+    <tr><th>等级</th><th>数量</th></tr>
+  </thead>
+  <tbody>
+    {''.join(bugfix_grade_rows)}
+  </tbody>
+</table>
+"""
+
+    business_related_issues = []
+    seen_business_issue_keys = set()
+    for issue in all_issues:
+        is_related = str(issue.get("dimension", "")) == "business" or _is_business_related_issue(issue)
+        if not is_related:
+            continue
+        dedup_key = (
+            str(issue.get("id", "")),
+            str(issue.get("severity", "")),
+            str(issue.get("file", "")),
+            str(issue.get("line", "")),
+            str(issue.get("message", "")),
+            str(issue.get("dimension", "")),
+        )
+        if dedup_key in seen_business_issue_keys:
+            continue
+        seen_business_issue_keys.add(dedup_key)
+        business_related_issues.append(issue)
+
+    business_keywords_bug = ["bug", "错误", "异常", "失败", "缺陷", "fault", "defect"]
+    business_keywords_logic = [
+        "逻辑",
+        "流程",
+        "链路",
+        "状态",
+        "规则",
+        "不一致",
+        "workflow",
+        "state",
+        "rule",
+        "condition",
+    ]
+
+    business_bug_signal_count = 0
+    business_logic_signal_count = 0
+    business_critical_count = 0
+    business_high_count = 0
+    for issue in business_related_issues:
+        severity = str(issue.get("severity", "")).lower()
+        issue_text = " ".join(
+            [
+                str(issue.get("id", "")),
+                str(issue.get("file", "")),
+                str(issue.get("message", "")),
+            ]
+        ).lower()
+        if severity == "critical":
+            business_critical_count += 1
+        if severity == "high":
+            business_high_count += 1
+        if any(keyword in issue_text for keyword in business_keywords_bug):
+            business_bug_signal_count += 1
+        if any(keyword in issue_text for keyword in business_keywords_logic):
+            business_logic_signal_count += 1
+
+    business_score = float(dimension_scores.get("business", 0))
+    flow_score = int(
+        max(
+            0,
+            min(
+                100,
+                round(
+                    business_score
+                    - business_critical_count * 12
+                    - business_high_count * 6
+                    - business_bug_signal_count * 3
+                    - business_logic_signal_count * 2
+                ),
+            ),
+        )
+    )
+    if flow_score >= 85:
+        flow_status = "通畅"
+    elif flow_score >= 65:
+        flow_status = "基本通畅"
+    elif flow_score >= 45:
+        flow_status = "存在断点"
+    else:
+        flow_status = "阻塞明显"
+
+    cross_dimension_business_issues = [
+        issue
+        for issue in business_related_issues
+        if str(issue.get("dimension", "")) != "business"
+    ]
+
+    business_related_rows_html = _issue_rows_html(
+        sorted(
+            cross_dimension_business_issues,
+            key=lambda issue: _severity_rank(str(issue.get("severity", ""))),
+            reverse=True,
+        ),
+        include_dimension=True,
+        empty_text="未发现跨维度业务链路问题",
+        max_rows=30,
+    )
+
     special_scores = review_input.get("special_scores", {})
     business_maturity = float(special_scores.get("business_maturity", 0))
     dependency_health = float(special_scores.get("dependency_health", 0))
-    theme_mode = forced_theme if forced_theme in {"light", "dark"} else "auto"
-    theme_mode_label = {
-        "auto": "自动（按用户本地时间）",
-        "light": "浅色固定版",
-        "dark": "深色固定版",
-    }.get(theme_mode, "自动（按用户本地时间）")
+    selected_theme = theme if theme in {"light", "dark"} else _theme_from_now()
+    theme_mode_label = (
+        "浅色（基于 time now()）"
+        if selected_theme == "light"
+        else "深色（基于 time now()）"
+    )
+
+    if business_maturity >= 8.5:
+        business_completion_level = "高"
+    elif business_maturity >= 6.5:
+        business_completion_level = "中"
+    else:
+        business_completion_level = "低"
+
+    chain_signals = [
+        ("需求到规则一致性", business_logic_signal_count + business_bug_signal_count),
+        (
+            "服务编排链路",
+            sum(
+                1
+                for issue in cross_dimension_business_issues
+                if str(issue.get("dimension", "")) in {"architecture", "devops", "team"}
+            ),
+        ),
+        (
+            "数据状态一致性",
+            sum(
+                1
+                for issue in cross_dimension_business_issues
+                if any(
+                    token in " ".join(
+                        [
+                            str(issue.get("id", "")),
+                            str(issue.get("file", "")),
+                            str(issue.get("message", "")),
+                        ]
+                    ).lower()
+                    for token in ["state", "status", "db", "database", "transaction", "状态", "一致", "数据"]
+                )
+            ),
+        ),
+        ("异常与回滚闭环", business_critical_count + business_high_count),
+    ]
+
+    chain_rows = []
+    for chain_name, signal_count in chain_signals:
+        if signal_count <= 0:
+            chain_status = "通畅"
+        elif signal_count <= 2:
+            chain_status = "需关注"
+        else:
+            chain_status = "存在断点"
+        chain_rows.append(
+            "<tr>"
+            f"<td>{escape(chain_name)}</td>"
+            f"<td>{signal_count}</td>"
+            f"<td>{chain_status}</td>"
+            "</tr>"
+        )
+
+    business_panel_html = f"""
+<div class="panel-kpi">
+  <div class="kpi-box"><span>业务完成度</span><strong>{business_maturity:.1f}/10 ({business_completion_level})</strong></div>
+  <div class="kpi-box"><span>业务链路通畅度</span><strong>{flow_score}/100 ({flow_status})</strong></div>
+  <div class="kpi-box"><span>明显业务 Bug 信号</span><strong>{business_bug_signal_count}</strong></div>
+  <div class="kpi-box"><span>业务逻辑不通顺信号</span><strong>{business_logic_signal_count}</strong></div>
+</div>
+<h3>业务链路分段评估</h3>
+<table class="issues-table">
+  <thead>
+    <tr><th>链路段</th><th>信号数</th><th>状态</th></tr>
+  </thead>
+  <tbody>
+    {''.join(chain_rows)}
+  </tbody>
+</table>
+<h3>跨维度业务链路问题（与业务维度 Tab 去重）</h3>
+<table class="issues-table">
+  <thead>
+    <tr><th>来源维度</th><th>ID</th><th>严重级别</th><th>文件</th><th>行</th><th>描述</th></tr>
+  </thead>
+  <tbody>
+    {business_related_rows_html}
+  </tbody>
+</table>
+"""
+
+    def append_tab(title: str, content_html: str) -> None:
+        index = len(tab_buttons)
+        tab_id = f"tab-{index}"
+        panel_id = f"panel-{index}"
+        tab_active_class = "active" if index == 0 else ""
+        tab_selected = "true" if index == 0 else "false"
+        panel_active_class = "active" if index == 0 else ""
+        panel_hidden = "" if index == 0 else "hidden"
+        tab_buttons.append(
+            f'<button type="button" class="tab-btn {tab_active_class}" '
+            f'role="tab" id="{tab_id}" aria-selected="{tab_selected}" '
+            f'aria-controls="{panel_id}" data-tab="{index}">{escape(title)}</button>'
+        )
+        tab_panels.append(
+            f'<section class="tab-panel {panel_active_class}" role="tabpanel" id="{panel_id}" '
+            f'aria-labelledby="{tab_id}" {panel_hidden}>{content_html}</section>'
+        )
+
+    append_tab("总览", overview_panel_html)
+    for item in dimension_panels:
+        append_tab(f"{item['label']} ({item['score']:.0f})", item["panel_html"])
+    append_tab("业务完成度", business_panel_html)
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -456,6 +899,11 @@ def generate_html_dashboard(review_input: dict, forced_theme: str | None = None)
     }}
     h1, h2 {{
       margin: 0 0 10px 0;
+      font-weight: 700;
+    }}
+    h3 {{
+      margin: 14px 0 8px 0;
+      font-size: 15px;
       font-weight: 700;
     }}
     .header-top {{
@@ -586,6 +1034,12 @@ def generate_html_dashboard(review_input: dict, forced_theme: str | None = None)
       color: var(--chip-active-text);
       font-weight: 600;
     }}
+    .tab-panel {{
+      display: none;
+    }}
+    .tab-panel.active {{
+      display: block;
+    }}
     .panel-kpi {{
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -649,13 +1103,12 @@ def generate_html_dashboard(review_input: dict, forced_theme: str | None = None)
     }}
   </style>
 </head>
-<body data-theme="light">
+<body data-theme="{selected_theme}">
   <div class="container">
     <section class="header">
       <div class="header-top">
         <h1>评估可视化看板（HTML）</h1>
         <div class="toolbar">
-          <button id="theme-toggle" class="tool-btn">切换深色</button>
           <button id="export-png" class="tool-btn">导出 PNG</button>
           <button id="export-pdf" class="tool-btn">导出 PDF</button>
         </div>
@@ -688,7 +1141,7 @@ def generate_html_dashboard(review_input: dict, forced_theme: str | None = None)
     </section>
 
     <section class="panel">
-      <h2>多维度评估（Tab 切换）</h2>
+      <h2>多维度评估（9 Tab：总览 + 7维 + 业务完成度）</h2>
       <div class="tabs">
         {''.join(tab_buttons)}
       </div>
@@ -698,33 +1151,9 @@ def generate_html_dashboard(review_input: dict, forced_theme: str | None = None)
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
-    const forcedTheme = "{theme_mode}";
     const body = document.body;
-    const themeToggleBtn = document.getElementById('theme-toggle');
     const exportPngBtn = document.getElementById('export-png');
     const exportPdfBtn = document.getElementById('export-pdf');
-
-    function inferThemeFromLocalTime() {{
-      const hour = new Date().getHours();
-      return (hour >= 7 && hour < 19) ? 'light' : 'dark';
-    }}
-
-    function setTheme(theme) {{
-      body.setAttribute('data-theme', theme);
-      themeToggleBtn.textContent = theme === 'dark' ? '切换浅色' : '切换深色';
-    }}
-
-    if (forcedTheme === 'light' || forcedTheme === 'dark') {{
-      setTheme(forcedTheme);
-      themeToggleBtn.style.display = 'none';
-    }} else {{
-      setTheme(inferThemeFromLocalTime());
-    }}
-
-    themeToggleBtn.addEventListener('click', () => {{
-      const currentTheme = body.getAttribute('data-theme');
-      setTheme(currentTheme === 'dark' ? 'light' : 'dark');
-    }});
 
     exportPdfBtn.addEventListener('click', () => {{
       window.print();
@@ -767,12 +1196,20 @@ def generate_html_dashboard(review_input: dict, forced_theme: str | None = None)
     tabButtons.forEach((button) => {{
       button.addEventListener('click', () => {{
         const target = button.getAttribute('data-tab');
-        tabButtons.forEach((item) => item.classList.remove('active'));
-        tabPanels.forEach((panel) => panel.style.display = 'none');
+        tabButtons.forEach((item) => {{
+          item.classList.remove('active');
+          item.setAttribute('aria-selected', 'false');
+        }});
+        tabPanels.forEach((panel) => {{
+          panel.classList.remove('active');
+          panel.setAttribute('hidden', '');
+        }});
         button.classList.add('active');
+        button.setAttribute('aria-selected', 'true');
         const targetPanel = document.getElementById(`panel-${{target}}`);
         if (targetPanel) {{
-          targetPanel.style.display = 'block';
+          targetPanel.classList.add('active');
+          targetPanel.removeAttribute('hidden');
         }}
       }});
     }});
@@ -903,28 +1340,16 @@ def main():
     md_content = generate_quantitative_section(review_input)
     md_path.write_text(md_content, encoding="utf-8")
 
-    # 写入 HTML 可视化看板（图表 + 维度 Tab）
-    # 1) 自动版：按用户所在地区本地时间自动切换主题
+    # 写入 HTML 可视化看板（图表 + 多维度 Tab）
+    # 仅输出一份：按执行时 time now() 自动选择浅/深主题
     html_auto_path = review_path / "quantitative-dashboard.html"
-    html_auto_content = generate_html_dashboard(review_input, forced_theme=None)
+    html_auto_content = generate_html_dashboard(review_input)
     html_auto_path.write_text(html_auto_content, encoding="utf-8")
-
-    # 2) 固定浅色版
-    html_light_path = review_path / "quantitative-dashboard.light.html"
-    html_light_content = generate_html_dashboard(review_input, forced_theme="light")
-    html_light_path.write_text(html_light_content, encoding="utf-8")
-
-    # 3) 固定深色版
-    html_dark_path = review_path / "quantitative-dashboard.dark.html"
-    html_dark_content = generate_html_dashboard(review_input, forced_theme="dark")
-    html_dark_path.write_text(html_dark_content, encoding="utf-8")
 
     print(f"✓ 量化数据已集成")
     print(f"  JSON: {output_path}")
     print(f"  Markdown: {md_path}")
-    print(f"  HTML Dashboard (auto): {html_auto_path}")
-    print(f"  HTML Dashboard (light): {html_light_path}")
-    print(f"  HTML Dashboard (dark): {html_dark_path}")
+    print(f"  HTML Dashboard: {html_auto_path}")
 
     # 打印摘要
     print(f"\n评分摘要:")
