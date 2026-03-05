@@ -11,7 +11,7 @@
 | `arc:estimate` | 需要工时区间与波次排期 | 问题仍未定 scope | `arc:implement` / 项目管理流程 |
 | `arc:implement` | 方案已定，开始代码落地 | 需求与边界尚未澄清 | `arc:review` / `arc:simulate` |
 | `arc:review` | 企业级多维诊断与路线图 | 仅需门禁阻断判定 | `arc:gate` / `arc:implement` |
-| `arc:gate` | CI/CD 质量门禁阻断 | 尚未生成可用评分产物 | `score 产物刷新（gate 内部）` |
+| `arc:gate` | CI/CD 质量门禁阻断 | 尚未生成可用评分产物 | `score 产物刷新（由 gate 编排）` |
 | `arc:simulate` | 真实用户路径 E2E 验证 | 没有测试入口或账号上下文 | `arc:triage` / `arc:loop` |
 | `arc:triage` | 基于 FAIL 工件做定位修复 | 尚无可复现失败证据 | `arc:simulate`（先产证据） |
 | `arc:loop` | 需重启服务的多轮回归闭环 | 一次性单轮排查即可完成 | `arc:simulate` / `arc:triage` |
@@ -68,5 +68,5 @@ flowchart TD
 - 先判定“是否已明确需求边界”：未明确优先 `arc:refine`。
 - 先判定“是否争议高风险”：高风险优先 `arc:deliberate`。
 - 先判定“是否进入落地阶段”：已明确直接 `arc:implement`。
-- 质量链路默认：`arc:gate`，必要时并联 `arc:review`。
+- 质量链路默认：`arc:gate`（先触发 `score/`），必要时并联 `arc:review`。
 - E2E 修复链路默认：`arc:simulate` → `arc:triage`（循环则 `arc:loop`）。

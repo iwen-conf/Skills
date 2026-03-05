@@ -86,6 +86,7 @@ arc deliberate
 arc implement
 
 # 质量链路
+# `arc gate` 会编排触发 `score/` 评分模块
 arc gate
 arc review
 
