@@ -7,7 +7,7 @@ description: "当合并或上线前需要统一做质量门禁、发布准备度
 
 ## Overview
 
-arc:gate 是统一门禁模块，基于内置评分阶段产出的 score 数据执行可配置质量判定，并补齐上线前发布准备度检查（回滚、监控、值班与公告）。支持 warn/strict/strict_dangerous 三种模式，提供阈值配置、豁免清单和 CI 集成能力。
+arc:gate 是统一门禁模块，消费 `score/` 模块产出的量化数据执行可配置质量判定，并补齐上线前发布准备度检查（回滚、监控、值班与公告）。支持 warn/strict/strict_dangerous 三种模式，提供阈值配置、豁免清单和 CI 集成能力。
 
 核心能力：
 - **门禁模式**：warn（仅告警）/ strict（阻断）/ strict_dangerous（额外拦截危险级别）
@@ -115,7 +115,7 @@ NO GREEN BUILD WITHOUT EXPLICIT GATE DECISION
 1. 检索 score 产物（`overall-score.json`、`smell-report.json`）
 2. 验证 `expires_at`、文件路径存在性（若提供 `content_hash` 且为 sha256，则校验哈希一致性）
 3. 通过校验则直接复用索引中的 score 产物路径
-4. 若缺失/过期/哈希不一致，先回流触发评分阶段刷新（由 `arc:gate` 内置执行），再执行门禁
+4. 若缺失/过期/哈希不一致，先回流触发 `score/` 模块刷新（由 `arc:gate` 编排触发），再执行门禁
 
 ### Step 1.1: 加载门禁配置
 

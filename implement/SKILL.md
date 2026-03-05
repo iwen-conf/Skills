@@ -103,14 +103,14 @@ NO CODE CHANGE WITHOUT PLAN, EVIDENCE, AND ROLLBACK
 1. `.arc/implement/<task>/context/implementation-brief.md`（24h）
 2. `.arc/deliberate/<task>/` 下方案产物（若存在）
 3. `codemap.md`（arc:cartography）与 `CLAUDE.md` 层级索引（7天）
-4. score 产物（由 `arc:gate` 维护）/ `arc:review` / 上次 `arc:implement` handoff（若索引可用）
+4. score 产物（由 `score/` 模块生成）/ `arc:review` / 上次 `arc:implement` handoff（若索引可用）
 5. `ace-tool` 语义扫描
 6. `Exa` 外部文档
 
 失效回流规则：
 - CLAUDE 索引失效：触发 `arc:init:update`
 - codemap 失效：触发 `arc:cartography` 更新
-- score/review 产物失效：触发 `arc:gate`（评分刷新）/ `arc:review` 更新
+- score/review 产物失效：触发 `score` 模块刷新（由 `arc:gate` 编排触发）/ `arc:review` 更新
 
 ## Critical Rules
 

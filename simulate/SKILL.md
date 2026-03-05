@@ -180,11 +180,11 @@ NO E2E PASS CLAIM WITHOUT UI EVIDENCE AND ARTIFACT INTEGRITY
 1. 优先检索以下产物：
    * `codemap.md`（目录职责与关键路径）
    * `arc:review` 快照/诊断报告（已知风险点）
-   * score 输出（由 `arc:gate` 维护，高风险维度）
+   * score 输出（由 `score/` 模块生成，高风险维度）
    * `arc:implement` handoff（本轮改动范围）
 2. 验证产物新鲜度：`expires_at` + `content_hash`。
 3. 产物可用则直接加载，不重复做全量扫描。
-4. 产物失效则按 `refresh_skill` 回流更新（`arc:init:update` / `arc:cartography` / `arc:gate`（评分刷新）/ `arc:review`）。
+4. 产物失效则按 `refresh_skill` 回流更新（`arc:init:update` / `arc:cartography` / `score` 模块刷新（由 `arc:gate` 编排触发）/ `arc:review`）。
 
 **优先级 1: 读取项目 CLAUDE.md 层级索引**
 
@@ -217,7 +217,7 @@ NO E2E PASS CLAIM WITHOUT UI EVIDENCE AND ARTIFACT INTEGRITY
 4. **回流更新建议**：
    - CLAUDE 索引问题 → `arc:init:update`
    - codemap 问题 → `arc:cartography` 更新
-   - 评分/评审产物问题 → `arc:gate`（评分刷新）/ `arc:review` 更新
+   - 评分/评审产物问题 → `score` 模块刷新（由 `arc:gate` 编排触发）/ `arc:review` 更新
 
 **缓存错误报告模板** (`<run_dir>/context-errors/cache-error-YYYYMMDD-HHMMSS.md`)：
 

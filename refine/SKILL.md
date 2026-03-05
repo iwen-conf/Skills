@@ -183,7 +183,7 @@ find . -name "CLAUDE.md" -type f
 如果在细化过程中发现共享产物失效：
 - CLAUDE 索引失效 → 触发 `arc:init:update`（必要时 `arc:init:full`）
 - codemap 失效 → 触发 `arc:cartography` 更新
-- score/review 数据失效 → 触发 `arc:gate`（评分刷新）/ `arc:review` 更新
+- score/review 数据失效 → 触发 `score` 模块刷新（由 `arc:gate` 编排触发）/ `arc:review` 更新
 
 ```
 问题细化完成。增强 prompt 已写入：

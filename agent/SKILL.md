@@ -317,7 +317,7 @@ dispatch_job({
 
 1. 读取 `.arc/context-hub/index.json`，检索与当前任务匹配的产物（`CLAUDE.md`、`codemap.md`、`handoff/*.json`、评审/评分报告）。
 2. 构建 `context_pack`：记录 `path`、`generated_at`、`expires_at`、`content_hash`。
-3. 若产物过期或不一致，按索引中的 `refresh_skill` 触发回流更新（例如 `arc:init:update`、`arc:cartography`、`arc:gate`（评分刷新））。
+3. 若产物过期或不一致，按索引中的 `refresh_skill` 触发回流更新（例如 `arc:init:update`、`arc:cartography`、`score` 模块刷新（由 `arc:gate` 编排触发））。
 4. 在后续 Task 调度中注入 `context_pack`，要求下游 skill 优先消费这些产物。
 
 #### Step 1.1: 项目上下文搜索

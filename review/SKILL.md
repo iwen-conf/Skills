@@ -183,7 +183,7 @@ NO SCORE WITHOUT EVIDENCE, NO RECOMMENDATION WITHOUT TRADEOFF
 2. 验证产物有效性：`expires_at`、`content_hash`、路径存在性。
 3. 有效则直接加载到评审上下文，减少重复扫描范围。
 4. 无效则触发回流更新：
-   - score 失效 → `arc:gate`（刷新评分产物）
+   - score 失效 → `score` 模块刷新（由 `arc:gate` 编排触发）
    - codemap/CLAUDE 元数据失效 → `arc:init:update` / `arc:cartography`
 5. 将本次复用的产物路径写入 `context/project-snapshot.md` 元数据。
 
@@ -535,7 +535,7 @@ dispatch_job(
 - **Source Modification**: Editing project source code during review — only write to `.arc/review/`
 - **Single-Perspective Review**: Only evaluating one dimension — must cover all 7 ISO/IEC 25010 dimensions
 - **Rubber Stamp**: Marking PASS without thorough analysis — each finding requires evidence
-- **Score Skipping**: Not running arc:gate first — quantitative data required before qualitative review
+- **Score Skipping**: Not preparing score artifacts first (typically via arc:gate) — quantitative data required before qualitative review
 
 ### Finding Anti-Patterns
 
