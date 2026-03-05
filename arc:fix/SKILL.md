@@ -54,6 +54,21 @@ Without the evidence chain of "failure→repair→pass", it is not allowed to cl
 - Remediation instructions must include impact surfaces and regression commands.
 - DEBUG clues and artifact paths need to be retained throughout the process.
 
+## Expert Standards
+
+- 故障处置需按 `SEV 分级` 执行（SEV0-3），先止血再根治并记录时序。
+- 根因分析需结合 `5 Whys + Fault Tree`，避免停留在表象原因。
+- 修复验证必须量化 `MTTA/MTTR` 与恢复后稳定窗口（如 24h/72h）。
+- 上线修复建议优先采用 `canary/feature flag`，并绑定回滚阈值。
+- 结案必须产出 `Blameless Postmortem` 与 CAPA（纠正/预防措施）项。
+
+## Scripts & Commands
+
+- triage 摘要：`python3 arc:fix/scripts/triage_run.py <run_dir> --json-out <triage.json> --md-out <triage.md>`
+- 运行时主命令：`arc fix`
+- 多轮回归模式：`arc fix --mode retest-loop`
+- 推荐链路：`arc e2e`（产证据）→ `arc fix`（修复闭环）
+
 ## Red Flags
 
 - Only a "repaired" description is given, with no evidence of recurrence.

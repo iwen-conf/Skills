@@ -58,6 +58,21 @@ No build/release is green without explicit gate evidence.
 - Missing/expired score artifacts must be refreshed before judging.
 - Output must include pass/fail decision plus violation details.
 
+## Expert Standards
+
+- 门禁规则建议 `Policy-as-Code` 化（可映射 OPA/Rego 等规则引擎语义）。
+- 安全门禁需覆盖 `OWASP` 高风险项与已知漏洞阈值，不得被总分掩盖。
+- 供应链门禁需校验 `SBOM + 来源可追溯`，避免未知依赖进入发布链路。
+- 例外项必须满足 `审批 + 到期 + 复盘` 三要素，超期自动失效。
+- 结论应同时支持 `人审` 与 `机审`：结构化结果、证据链接、退出码一致。
+
+## Scripts & Commands
+
+- 脚本门禁（严格）：`python3 arc:gate/scripts/check_gate.py --project <project_path> --mode strict --exit-code`
+- 脚本门禁（危险拦截）：`python3 arc:gate/scripts/check_gate.py --project <project_path> --mode strict_dangerous --exit-code`
+- 自定义配置：`python3 arc:gate/scripts/check_gate.py --project <project_path> --config <gate-config.yaml> --output-dir <output_dir>`
+- 运行时主命令：`arc gate`
+
 ## Red Flags
 
 - Only checking total score while ignoring security-critical signals.

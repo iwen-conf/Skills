@@ -56,6 +56,21 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 - The semantics and notation of UML diagrams must conform to standards (relationship types, visibility, and life cycle semantics cannot be mixed).
 - If you want to output an E-R diagram, you must use Chen's drawing method (entity rectangle, contact rhombus, attribute ellipse, multi-valued double ellipse, weak entity double rectangle).
 
+## Expert Standards
+
+- UML 输出需对齐 `UML 2.5.1 / ISO 19505` 语义，关系与可见性禁止混用。
+- 行为类图（时序/活动/状态）必须与静态类图实体命名一致并可互证。
+- 架构类图（组件/部署/包）需对齐运行环境证据（配置、拓扑、接口边界）。
+- 若输出 E-R，必须严格使用 `Chen` 记法（实体/联系/属性语义完整表达）。
+- 每张图附 `建模假设 + 证据定位 + 适用边界`，避免图漂亮但不可落地。
+
+## Scripts & Commands
+
+- 生成 UML 骨架（按图型）：`python3 arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types class,sequence,deployment`
+- 生成全量 UML 骨架：`python3 arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all`
+- 同时生成陈氏 E-R 骨架：`python3 arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all --include-er-chen`
+- 运行时主命令：`arc uml`
+
 ## Red Flags
 
 - Just apply the template and draw the picture without looking at the project evidence.

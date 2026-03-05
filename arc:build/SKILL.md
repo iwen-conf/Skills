@@ -57,6 +57,20 @@ Code changes must not be implemented without clear plans, verification evidence,
 - The handover summary must cover impact modules and regression concerns.
 - Failure scenarios must be reversible and irreversible operations are not allowed.
 
+## Expert Standards
+
+- 采用 `DoD` 交付基线：构建通过、关键测试通过、文档更新、回滚路径齐全后才可交付。
+- 对接口与数据契约执行 `SemVer + Contract Test`，禁止未声明的破坏性变更。
+- 关键链路改动必须提供 `RTO/RPO` 影响评估与回滚演练记录。
+- 交付包必须包含 `SBOM` 与构建来源信息（对齐供应链可追溯实践）。
+- handoff 必须量化变更风险：影响面、回归范围、上线窗口、观察指标。
+
+## Scripts & Commands
+
+- 工作区脚手架：`python3 arc:build/scripts/scaffold_implement_case.py --project-path <project_path> --task-name <task_name>`
+- 交付报告渲染：`python3 arc:build/scripts/render_implementation_report.py --case-dir <project_path>/.arc/arc:build/<task_name> --task-name <task_name> --result pass`
+- 运行时主命令：`arc build`
+
 ## Red Flags
 
 - Skip planning and go directly to large-scale code changes.

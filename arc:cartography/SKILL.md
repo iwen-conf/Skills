@@ -124,6 +124,22 @@ Write the root-level and directory-level `codemap` products into `.arc/context-h
 - `.arc/context-hub/index.json` Metadata must be refreshed synchronously.
 - The tier derived product must be consistent with the actual structure and consumable.
 
+## Expert Standards
+
+- 地图分层需对齐 `C4` 视角（Context/Container/Component/Code）并可互相映射。
+- 结构视图需满足 `ISO/IEC 42010` 的关注点可追溯：角色、视角、证据来源明确。
+- 变更检测采用 `churn × dependency` 热点法，输出高风险目录与关键依赖节点。
+- 每次更新必须输出 `增量差异清单`（新增/删除/移动/重命名）供下游直接消费。
+- 索引产物必须具备 `可复现签名`：输入快照、哈希、生成时间、版本号。
+
+## Scripts & Commands
+
+- 初始化 codemap：`python3 arc:cartography/scripts/cartographer.py init --root <project_path>`
+- 检测变更：`python3 arc:cartography/scripts/cartographer.py changes --root <project_path>`
+- 增量更新：`python3 arc:cartography/scripts/cartographer.py update --root <project_path>`
+- 导出分层 JSON：`python3 arc:cartography/scripts/cartographer.py export --root <project_path> --tier 2 --output codemap.tier2.json`
+- 运行时主命令：`arc cartography`
+
 ## Red Flags
 
 - Skip change detection and directly rewrite all codemaps in full

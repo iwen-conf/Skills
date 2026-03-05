@@ -60,6 +60,21 @@ Index writing must not be started until mode decision and baseline verification 
 - Products must contain up-to-date metadata and timestamps.
 - An executable fallback path must be given on failure.
 
+## Expert Standards
+
+- 模式选择必须基于 `指纹差异` 与 `schema 版本`，并保留判定证据。
+- 索引写入采用 `原子更新`（临时文件 + replace）避免中断态产物。
+- 增量刷新需输出 `命中/未命中清单`，证明最小影响原则已执行。
+- 元数据需包含 `schema_version`、生成器版本、哈希算法，保障兼容演进。
+- 故障恢复必须支持 `上一个稳定索引回滚` 与一致性自检重建。
+
+## Scripts & Commands
+
+- 自动模式入口：`arc init`
+- 强制全量模式：`arc init --mode full`
+- 显式增量模式：`arc init --mode update`
+- 说明：`arc:init` 当前无独立 `scripts/`，通过运行时命令统一编排 full/update。
+
 ## Red Flags
 
 - Forcing incremental updates without checking fingerprints.

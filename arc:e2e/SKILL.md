@@ -50,6 +50,23 @@ Without UI evidence and artifact integrity verification, it shall not be declare
 - Account and session switching must comply with session isolation rules.
 - All Markdown products must pass format verification.
 
+## Expert Standards
+
+- 场景设计对齐 `ISTQB` 术语与测试层次，覆盖主路径、异常路径、边界路径。
+- 关键业务流必须定义 `E2E 断言金线`（状态、事件、UI、日志四类一致）。
+- 认证与权限流需对齐 `OWASP ASVS` 关键控制点进行验证。
+- 可访问性相关页面需至少检查 `WCAG 2.2 AA` 基础项（焦点、对比、语义）。
+- 报告必须给出 `flaky 率` 与稳定性判断，区分产品缺陷与测试噪声。
+
+## Scripts & Commands
+
+- 运行目录脚手架：`python3 arc:e2e/scripts/scaffold_run.py --run-id <run_id> --target-url <url>`
+- 账号转 personas：`python3 arc:e2e/scripts/accounts_to_personas.py --accounts-file <accounts.jsonc> --out <personas.json>`
+- 工件校验：`python3 arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`
+- 报告编译：`python3 arc:e2e/scripts/compile_report.py --run-dir <run_dir> --in-place --beautify-md`
+- 缺陷登记：`python3 arc:e2e/scripts/new_defect.py --run-dir <run_dir> --title \"<defect_title>\"`
+- 运行时主命令：`arc e2e`
+
 ## Red Flags
 
 - Bypassing UI action links via API/scripting.

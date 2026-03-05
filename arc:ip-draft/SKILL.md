@@ -57,6 +57,22 @@ High-confidence technical document drafts should not be output without review ha
 - The glossary must be consistent throughout the text.
 - The draft must be marked with an "editable draft" position to avoid being misled into the final legal text.
 
+## Expert Standards
+
+- 专利草稿需遵循 `摘要-背景-发明内容-附图说明-具体实施方式-权利要求` 结构。
+- 权利要求需采用 `宽-中-窄` 梯度布局，并检查前后引用基础一致性。
+- 软著材料需覆盖功能说明、架构说明、关键源码证据与版本信息一致性。
+- 全文执行 `术语控制`：同一对象单一命名，避免 claim scope 漂移。
+- 交付必须附 `待法务复核清单`，明确需律师确认的高风险表述。
+
+## Scripts & Commands
+
+- 起草工作区脚手架：`python3 arc:ip-draft/scripts/scaffold_drafting_case.py --project-path <project_path>`
+- 文档渲染（双轨）：`python3 arc:ip-draft/scripts/render_ip_documents.py --case-dir <case_dir> --target-docs both`
+- 文档渲染（仅专利）：`python3 arc:ip-draft/scripts/render_ip_documents.py --case-dir <case_dir> --target-docs patent`
+- 文档渲染（仅软著）：`python3 arc:ip-draft/scripts/render_ip_documents.py --case-dir <case_dir> --target-docs copyright`
+- 运行时主命令：`arc ip-draft`
+
 ## Red Flags
 
 - Skip the handover documents and go straight to speculating on the technical details.

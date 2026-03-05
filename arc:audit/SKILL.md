@@ -66,6 +66,21 @@ No ratings can be given without evidence, and no suggestions can be given withou
 - Recommendations must include benefit, cost and risk trade-offs.
 - The report needs to distinguish between “observed facts” and “improvement suggestions”.
 
+## Expert Standards
+
+- 七维评审必须给出 `评分依据 + 证据 + 置信度`，并保留跨评审组校准记录。
+- 业务成熟度必须量化 `链路通畅率 / 断链率 / 关键场景通过率 / 业务异常信号`。
+- 依赖健康度必须覆盖 `EOL 状态 / CVE 暴露 / 升级阻塞 / 维护活跃度` 四类指标。
+- 报告必须输出 `治理路线图`（P0/P1/P2）并标注 owner、时限、验收口径。
+- HTML 报告必须提供 `9 Tab`，每个 Tab 内置专家评审卡（结论/Gate/风险/SLA/证据）。
+
+## Scripts & Commands
+
+- 运行时主命令：`arc audit`
+- 量化集成（自动选主题 + 9 Tab）：`python3 arc:audit/scripts/integrate_score.py --project-path <project_path> --review-dir <project_path>/.arc/arc:audit/<project_name>`
+- 指定 score 目录：`python3 arc:audit/scripts/integrate_score.py --score-dir <score_dir> --review-dir <project_path>/.arc/arc:audit/<project_name>`
+- 若缺少 score 输入，先执行：`arc gate`
+
 ## Red Flags
 
 - Only subjective judgments are given, and no evidence path is given.

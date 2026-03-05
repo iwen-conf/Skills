@@ -59,6 +59,21 @@ Before all actions are performed, routing decisions must be completed and `capab
 - Multi-Agent conflicts must have resolution strategies and records.
 - The summary results must include next steps and responsibilities.
 
+## Expert Standards
+
+- 编排输出需包含 `RACI` 责任模型：谁决策、谁执行、谁审阅、谁知会。
+- 任务调度需标注 `关键路径(CPM)` 与并行波次，避免伪并发造成阻塞。
+- 路由结论必须给出 `置信区间` 与兜底策略（降级到 clarify/单技能模式）。
+- 聚合阶段需执行 `冲突仲裁规则`：证据优先级、时效优先级、风险优先级。
+- 最终输出应具备 `指挥看板` 视角：状态、风险、下一动作、负责人、截止时间。
+
+## Scripts & Commands
+
+- 统一入口：`arc exec`
+- 一句话拉团队：`arc exec "拉一个团队做这个任务"`
+- 编排链路示例：`arc exec` → `arc clarify` → `arc decide` → `arc build`
+- 说明：`arc:exec` 当前无独立 `scripts/`，由运行时调度层负责执行。
+
 ## Red Flags
 
 - Go directly to implementation without routing.

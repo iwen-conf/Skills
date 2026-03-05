@@ -59,6 +59,22 @@ Without code evidence and risk matrix, no "applicable" conclusion should be give
 - Conclusions must cite specific module/documentary evidence.
 - The handover file fields must be complete and can be consumed by `arc:ip-draft`.
 
+## Expert Standards
+
+- 专利审查需分开评估 `新颖性/创造性/实用性`，并给出证据强弱等级。
+- 增加 `FTO`（实施自由）风险视角，标注潜在侵权与规避策略。
+- 软著评估需关注 `独创性表达` 与可证明的作者/版本链条。
+- 先证据后结论：每个创新主张必须绑定代码、流程、文档或实验记录。
+- 输出应区分技术评估与法律结论边界，禁止给出确定性法律承诺。
+
+## Scripts & Commands
+
+- 审查工作区脚手架：`python3 arc:ip-check/scripts/scaffold_audit_case.py --project-path <project_path>`
+- 报告渲染：`python3 arc:ip-check/scripts/render_audit_report.py --case-dir <case_dir> --project-name <project_name>`
+- 格式合规检查：`python3 arc:ip-check/scripts/format_compliance_checker.py --project-path <project_path> --output <checklist.md>`
+- 费减资格检查：`python3 arc:ip-check/scripts/fee_reduction_check.py --applicant-type enterprise --annual-income <amount>`
+- 运行时主命令：`arc ip-check`
+
 ## Red Flags
 
 - Write the review opinions into legal conclusions or guarantee commitments.

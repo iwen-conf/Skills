@@ -51,6 +51,21 @@ The execution phase must not be entered before the context, constraints and acce
 - Clarification questions should be minimal and of high value to avoid noisy questioning.
 - Clearly label contextual sources and freshness.
 
+## Expert Standards
+
+- 需求质量对齐 `IEEE 29148`：完整性、一致性、可验证性、可追踪性必须显式检查。
+- 用户故事需满足 `INVEST`，并拆解为可独立交付的最小可验收单元。
+- 验收标准统一采用 `Given-When-Then`，禁止模糊语句（如“尽量”“适当”）。
+- 非功能约束必须分栏输出：性能、安全、可用性、合规、可观测性。
+- 产物需包含 `假设-风险-待澄清` 三联表，作为后续决策输入基线。
+
+## Scripts & Commands
+
+- 运行时主命令：`arc clarify`
+- 与估算联动：`arc clarify` → `arc decide --mode estimate`
+- 与实施联动：`arc clarify` → `arc decide` → `arc build`
+- 说明：`arc:clarify` 当前无独立 `scripts/`，以交互式澄清命令为准。
+
 ## Red Flags
 
 - Rewrite requirements directly without context scanning.

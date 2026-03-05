@@ -26,6 +26,8 @@ ARC_FUSION_REQUIRED_HEADINGS = [
     "## The Iron Law",
     "## Workflow",
     "## Quality Gates",
+    "## Expert Standards",
+    "## Scripts & Commands",
     "## Red Flags",
 ]
 
@@ -45,6 +47,22 @@ ARC_ROUTING_MATRIX_LINK = "../docs/arc-routing-matrix.md"
 ARC_DECISION_TREE_LINK = "../docs/arc-routing-matrix.md#signal-to-skill-decision-tree"
 ARC_PHASE_VIEW_LINK = "../docs/arc-routing-matrix.md#phase-routing-view"
 ARC_CHEATSHEET_LINK = "../docs/arc-routing-cheatsheet.md"
+
+ARC_EXPERT_KEYWORDS = {
+    "arc:build": ["DoD", "SemVer", "Contract Test", "RTO/RPO", "SBOM"],
+    "arc:cartography": ["C4", "ISO/IEC 42010", "churn", "增量差异清单"],
+    "arc:clarify": ["IEEE 29148", "INVEST", "Given-When-Then"],
+    "arc:decide": ["ADR", "Pre-Mortem", "Fitness Function"],
+    "arc:e2e": ["ISTQB", "OWASP ASVS", "WCAG 2.2 AA"],
+    "arc:exec": ["RACI", "关键路径(CPM)", "冲突仲裁规则"],
+    "arc:fix": ["SEV", "5 Whys", "Fault Tree", "Blameless Postmortem"],
+    "arc:gate": ["Policy-as-Code", "OWASP", "SBOM", "OPA/Rego"],
+    "arc:init": ["schema_version", "原子更新", "上一个稳定索引回滚"],
+    "arc:ip-check": ["新颖性", "创造性", "实用性", "FTO"],
+    "arc:ip-draft": ["宽-中-窄", "权利要求", "待法务复核清单"],
+    "arc:uml": ["UML 2.5.1 / ISO 19505", "Chen", "建模假设"],
+    "arc:audit": ["业务成熟度", "依赖健康度", "9 Tab", "专家评审卡"],
+}
 
 LEGACY_TOKEN_PARTS = [
     ("Ta", "sk("),
@@ -109,6 +127,15 @@ def contains_cjk(text: str):
     return re.search(r"[\u4e00-\u9fff]", text) is not None
 
 
+def extract_section(text: str, heading: str):
+    escaped = re.escape(heading)
+    pattern = rf"^{escaped}\n(.*?)(?=^## |\Z)"
+    match = re.search(pattern, text, re.MULTILINE | re.DOTALL)
+    if not match:
+        return None
+    return match.group(1)
+
+
 def validate_file(path: Path):
     errors = []
     warnings = []
@@ -167,6 +194,18 @@ def validate_file(path: Path):
             errors.append(f"{path}: missing phase view link {ARC_PHASE_VIEW_LINK}")
         if ARC_CHEATSHEET_LINK not in text:
             errors.append(f"{path}: missing cheatsheet link {ARC_CHEATSHEET_LINK}")
+        expert_section = extract_section(text, "## Expert Standards")
+        if expert_section is None:
+            errors.append(f"{path}: missing expert standards section body")
+        else:
+            required_keywords = ARC_EXPERT_KEYWORDS.get(skill_name, [])
+            missing_keywords = [
+                kw for kw in required_keywords if kw not in expert_section
+            ]
+            if missing_keywords:
+                errors.append(
+                    f"{path}: expert standards missing skill-specific keywords: {', '.join(missing_keywords)}"
+                )
     for token in BANNED_TOKENS:
         if token in text:
             errors.append(f"{path}: contains banned token '{token}'")

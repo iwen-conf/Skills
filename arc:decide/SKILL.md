@@ -61,6 +61,20 @@ There should be no claim that "consensus has been reached" without cross-rebutta
 - There must be an executable plan and risk list before entering execution.
 - Citations of external information must indicate the source and timeliness.
 
+## Expert Standards
+
+- 决策文档必须采用 `ADR` 结构：Context / Decision / Consequences / Alternatives。
+- 方案评估需包含 `加权评分 + 敏感性分析`，避免单一主观偏好主导。
+- 风险收敛需执行 `Pre-Mortem`，输出失败路径与触发阈值。
+- 对高风险技术选型必须给出 `Fitness Function`（可自动验证的架构指标）。
+- 输出 `决策失效条件` 与回退策略，保证未来可撤销与可演进。
+
+## Scripts & Commands
+
+- 运行时主命令：`arc decide`
+- 估算模式：`arc decide --mode estimate`
+- 生成 BDD 种子：`python3 arc:decide/scripts/generate_bdd_seed.py --consensus-report <consensus_report.md> --output <bdd-seed.yaml>`
+
 ## Red Flags
 
 - The "final solution" is synthesized directly without any refutation process.

@@ -648,9 +648,6 @@ def main() -> int:
     else:
         parser.print_help()
         return 1
-    else:
-        parser.print_help()
-        return 1
 
 
 sys.exit(main())
