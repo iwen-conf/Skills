@@ -49,7 +49,7 @@ score/
 | `scripts/aggregate_score.py` | 聚合总分与维度分 |
 | `scripts/generate_review_handoff.py` | 生成 review 可消费交接 |
 | `scripts/validate_score_artifacts.py` | 校验 score 产物契约 |
-| `scripts/smoke_test_integration.py` | 最小集成冒烟（score→review/gate） |
+| `scripts/smoke_test_integration.py` | 最小集成冒烟（score→arc:audit/gate） |
 
 ## 运行关系
 

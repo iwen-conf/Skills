@@ -62,7 +62,7 @@ flowchart TD
 | 落地（Build） | 产出可提交代码变更 | `arc:build` | `arc:init*` / `arc:cartography` | `change handoff` → 验证 |
 | 建模（Modeling） | 输出结构/行为/部署 UML 图谱 | `arc:model` | `arc:cartography` / `arc:audit` | `uml pack` → 评审/交接 |
 | 验证（Validate） | 验证行为、定位失败、闭环修复 | `arc:e2e` / `arc:fix` / `arc:retest` | `arc:build` | `pass/fail evidence` → 治理 |
-| 治理（Govern） | 门禁阻断、改进路线与治理闭环 | `arc:release` / `arc:audit` | `arc:build` | `gate/review outputs` |
+| 治理（Govern） | 门禁阻断、改进路线与治理闭环 | `arc:release` / `arc:audit` | `arc:build` | `arc:release/review outputs` |
 | 知识产权（IP） | 先审查可行性，再起草材料 | `arc:ip-check` / `arc:ip-draft` | `arc:audit` | `ip-drafting-input` → 申请材料草稿 |
 
 ## Fast Routing Rules

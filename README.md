@@ -14,23 +14,23 @@
 
 | Skill | 目录 | 作用 |
 |---|---|---|
-| `arc:exec` | `agent/` | 统一入口，做需求理解、Skill 路由与多 Agent 调度 |
-| `arc:clarify` | `refine/` | 需求澄清与上下文补齐，输出可执行提示 |
-| `arc:decide` | `deliberate/` | 多视角审议与反驳收敛，用于高风险决策 |
-| `arc:estimate` | `estimate/` | round 模型估算、风险校准与并行波次规划 |
-| `arc:build` | `implement/` | 方案落地为代码变更，附验证与交接产物 |
-| `arc:audit` | `review/` | 企业级多维诊断与改进路线图 |
-| `arc:release` | `gate/` | CI/CD 质量门禁判定（阈值 + 豁免） |
-| `arc:e2e` | `simulate/` | 用户路径 E2E 验证与 UI 证据沉淀 |
-| `arc:fix` | `triage/` | 基于失败工件做根因定位、修复与复验 |
-| `arc:retest` | `loop/` | 重启服务 + 多轮 fail-fix-retest 闭环 |
-| `arc:cartography` | `cartography/` | 分层 codemap 生成与增量刷新 |
-| `arc:model` | `uml/` | 基于项目证据生成 14 类 UML 图谱（需 E-R 时按陈氏画法） |
-| `arc:init` | `init/` | CLAUDE 索引维护自动路由（full/update） |
-| `arc:init:full` | `init-full/` | CLAUDE 索引全量重建 |
-| `arc:init:update` | `init-update/` | CLAUDE 索引增量更新 |
-| `arc:ip-check` | `ip-audit/` | 软著/专利可行性审查与风险评估 |
-| `arc:ip-draft` | `ip-docs/` | 基于审查交接起草 IP 申请材料 |
+| `arc:exec` | `arc:exec/` | 统一入口，做需求理解、Skill 路由与多 Agent 调度 |
+| `arc:clarify` | `arc:clarify/` | 需求澄清与上下文补齐，输出可执行提示 |
+| `arc:decide` | `arc:decide/` | 多视角审议与反驳收敛，用于高风险决策 |
+| `arc:estimate` | `arc:estimate/` | round 模型估算、风险校准与并行波次规划 |
+| `arc:build` | `arc:build/` | 方案落地为代码变更，附验证与交接产物 |
+| `arc:audit` | `arc:audit/` | 企业级多维诊断与改进路线图 |
+| `arc:release` | `arc:release/` | CI/CD 质量门禁判定（阈值 + 豁免） |
+| `arc:e2e` | `arc:e2e/` | 用户路径 E2E 验证与 UI 证据沉淀 |
+| `arc:fix` | `arc:fix/` | 基于失败工件做根因定位、修复与复验 |
+| `arc:retest` | `arc:retest/` | 重启服务 + 多轮 fail-fix-retest 闭环 |
+| `arc:cartography` | `arc:cartography/` | 分层 codemap 生成与增量刷新 |
+| `arc:model` | `arc:model/` | 基于项目证据生成 14 类 UML 图谱（需 E-R 时按陈氏画法） |
+| `arc:init` | `arc:init/` | CLAUDE 索引维护自动路由（full/update） |
+| `arc:init:full` | `arc:init:full/` | CLAUDE 索引全量重建 |
+| `arc:init:update` | `arc:init:update/` | CLAUDE 索引增量更新 |
+| `arc:ip-check` | `arc:ip-check/` | 软著/专利可行性审查与风险评估 |
+| `arc:ip-draft` | `arc:ip-draft/` | 基于审查交接起草 IP 申请材料 |
 
 ## 我该用哪个 Skill？
 

@@ -19,24 +19,24 @@ A collection of Claude Code Skills (custom slash-command plugins), primarily und
 
 | Directory | Skill Name | Invoke | Purpose |
 |-----------|-----------|--------|---------|
-| `agent/` | arc:exec | `arc exec` | 智能执行编排入口，分析用户需求后选择合适的 arc: skill，并通过 运行时无关编排层 Agent 系统调度执行任务 |
-| `cartography/` | arc:cartography | `arc cartography` | 仓库理解与分层代码地图（codemap）生成，输出目录级与根级映射文档 |
-| `uml/` | arc:model | `arc model` | 基于项目实际代码与配置生成 14 类 UML 图谱（结构/行为/部署） |
-| `simulate/` | arc:e2e | `arc e2e` | 通过 `agent-browser` 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
-| `triage/` | arc:fix | `arc fix` | 分析 arc:e2e 的失败报告，定位根因、修复缺陷、执行回归验证 |
-| `loop/` | arc:retest | `arc retest` | 管理 tmux 会话启动/重启服务，循环执行 arc:e2e 直到 PASS 或达到迭代上限 |
-| `refine/` | arc:clarify | `arc clarify` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
-| `deliberate/` | arc:decide | `arc decide` | 多 Agent 多视角审议，使用 OpenSpec 生成结构化计划 |
-| `estimate/` | arc:estimate | `arc estimate` | 给出工时区间、风险分级与并行波次建议，辅助排期与资源决策 |
-| `implement/` | arc:build | `arc build` | 将方案落地为工程实现，输出实现计划、执行日志与交接摘要 |
-| `review/` | arc:audit | `arc audit` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图 |
-| `init/` | arc:init | `arc init` | 智能调度器，自动判断全量(full)或增量(update)模式 |
-| `init-full/` | arc:init:full | `arc init full` | 全量生成项目层级式 CLAUDE.md 索引体系，深度扫描+多Agent分析 |
-| `init-update/` | arc:init:update | `arc init update` | 增量更新 CLAUDE.md，基于指纹检测变更，仅更新受影响模块 |
-| `ip-audit/` | arc:ip-check | `arc ip-check` | 申请前做软著/专利可行性审查，输出风险与交接输入 |
-| `ip-docs/` | arc:ip-draft | `arc ip-draft` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
+| `arc:exec/` | arc:exec | `arc exec` | 智能执行编排入口，分析用户需求后选择合适的 arc: skill，并通过 运行时无关编排层 Agent 系统调度执行任务 |
+| `arc:cartography/` | arc:cartography | `arc cartography` | 仓库理解与分层代码地图（codemap）生成，输出目录级与根级映射文档 |
+| `arc:model/` | arc:model | `arc model` | 基于项目实际代码与配置生成 14 类 UML 图谱（结构/行为/部署） |
+| `arc:e2e/` | arc:e2e | `arc e2e` | 通过 `agent-browser` 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
+| `arc:fix/` | arc:fix | `arc fix` | 分析 arc:e2e 的失败报告，定位根因、修复缺陷、执行回归验证 |
+| `arc:retest/` | arc:retest | `arc retest` | 管理 tmux 会话启动/重启服务，循环执行 arc:e2e 直到 PASS 或达到迭代上限 |
+| `arc:clarify/` | arc:clarify | `arc clarify` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
+| `arc:decide/` | arc:decide | `arc decide` | 多 Agent 多视角审议，使用 OpenSpec 生成结构化计划 |
+| `arc:estimate/` | arc:estimate | `arc estimate` | 给出工时区间、风险分级与并行波次建议，辅助排期与资源决策 |
+| `arc:build/` | arc:build | `arc build` | 将方案落地为工程实现，输出实现计划、执行日志与交接摘要 |
+| `arc:audit/` | arc:audit | `arc audit` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图 |
+| `arc:init/` | arc:init | `arc init` | 智能调度器，自动判断全量(full)或增量(update)模式 |
+| `arc:init:full/` | arc:init:full | `arc init full` | 全量生成项目层级式 CLAUDE.md 索引体系，深度扫描+多Agent分析 |
+| `arc:init:update/` | arc:init:update | `arc init update` | 增量更新 CLAUDE.md，基于指纹检测变更，仅更新受影响模块 |
+| `arc:ip-check/` | arc:ip-check | `arc ip-check` | 申请前做软著/专利可行性审查，输出风险与交接输入 |
+| `arc:ip-draft/` | arc:ip-draft | `arc ip-draft` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
 | `score/` | internal-score-module | 由 `arc release` 编排调用 | 量化评分与 Code Smell 检测，为评审提供量化数据支撑 |
-| `gate/` | arc:release | `arc release` | CI 质量门禁，基于评分数据执行可配置的阻断判定 |
+| `arc:release/` | arc:release | `arc release` | CI 质量门禁，基于评分数据执行可配置的阻断判定 |
 
 ## 模块文档索引
 
@@ -44,23 +44,23 @@ A collection of Claude Code Skills (custom slash-command plugins), primarily und
 
 | 模块 | 文档 | 核心内容 |
 |------|------|---------|
-| simulate/ | [CLAUDE.md](./simulate/CLAUDE.md) | E2E 测试执行、脚本接口、报告产物结构 |
-| triage/ | [CLAUDE.md](./triage/CLAUDE.md) | 缺陷分析流程、Fix Packet 结构、回归验证 |
-| loop/ | [CLAUDE.md](./loop/CLAUDE.md) | tmux 服务管理、配置模型、迭代回归流程 |
-| review/ | [CLAUDE.md](./review/CLAUDE.md) | 七维度评审框架、多Agent对抗、改进路线图 |
-| deliberate/ | [CLAUDE.md](./deliberate/CLAUDE.md) | 四阶段审议流程、OpenSpec 集成、共识报告模型 |
-| implement/ | [CLAUDE.md](./implement/CLAUDE.md) | 方案落地、变更实施、验证与交接产物 |
-| init/ | [CLAUDE.md](./init/CLAUDE.md) | 五阶段生成流程、CLAUDE.md 结构规范、校验体系 |
-| init-full/ | [CLAUDE.md](./init-full/CLAUDE.md) | 全量初始化流程、深度扫描策略、多Agent协作生成 |
-| init-update/ | [CLAUDE.md](./init-update/CLAUDE.md) | 增量更新机制、变更指纹检测、模块级差异更新 |
-| agent/ | [CLAUDE.md](./agent/CLAUDE.md) | 调度决策树、执行预览、多Agent任务分配 |
-| cartography/ | [CLAUDE.md](./cartography/CLAUDE.md) | 仓库结构扫描、分层 codemap 生成与增量更新 |
-| uml/ | [CLAUDE.md](./uml/CLAUDE.md) | UML 图谱适用性判定、图文件生成与一致性校验 |
-| refine/ | [CLAUDE.md](./refine/CLAUDE.md) | CLAUDE.md 索引扫描、差距分析、Prompt 增强 |
-| ip-audit/ | [CLAUDE.md](./ip-audit/CLAUDE.md) | 知识产权可行性审查、风险矩阵、交接产物定义 |
-| ip-docs/ | [CLAUDE.md](./ip-docs/CLAUDE.md) | 软著/专利文档草稿写作、模板与交接消费 |
+| arc:e2e/ | [CLAUDE.md](./arc:e2e/CLAUDE.md) | E2E 测试执行、脚本接口、报告产物结构 |
+| arc:fix/ | [CLAUDE.md](./arc:fix/CLAUDE.md) | 缺陷分析流程、Fix Packet 结构、回归验证 |
+| arc:retest/ | [CLAUDE.md](./arc:retest/CLAUDE.md) | tmux 服务管理、配置模型、迭代回归流程 |
+| arc:audit/ | [CLAUDE.md](./arc:audit/CLAUDE.md) | 七维度评审框架、多Agent对抗、改进路线图 |
+| arc:decide/ | [CLAUDE.md](./arc:decide/CLAUDE.md) | 四阶段审议流程、OpenSpec 集成、共识报告模型 |
+| arc:build/ | [CLAUDE.md](./arc:build/CLAUDE.md) | 方案落地、变更实施、验证与交接产物 |
+| arc:init/ | [CLAUDE.md](./arc:init/CLAUDE.md) | 五阶段生成流程、CLAUDE.md 结构规范、校验体系 |
+| arc:init:full/ | [CLAUDE.md](./arc:init:full/CLAUDE.md) | 全量初始化流程、深度扫描策略、多Agent协作生成 |
+| arc:init:update/ | [CLAUDE.md](./arc:init:update/CLAUDE.md) | 增量更新机制、变更指纹检测、模块级差异更新 |
+| arc:exec/ | [CLAUDE.md](./arc:exec/CLAUDE.md) | 调度决策树、执行预览、多Agent任务分配 |
+| arc:cartography/ | [CLAUDE.md](./arc:cartography/CLAUDE.md) | 仓库结构扫描、分层 codemap 生成与增量更新 |
+| arc:model/ | [CLAUDE.md](./arc:model/CLAUDE.md) | UML 图谱适用性判定、图文件生成与一致性校验 |
+| arc:clarify/ | [CLAUDE.md](./arc:clarify/CLAUDE.md) | CLAUDE.md 索引扫描、差距分析、Prompt 增强 |
+| arc:ip-check/ | [CLAUDE.md](./arc:ip-check/CLAUDE.md) | 知识产权可行性审查、风险矩阵、交接产物定义 |
+| arc:ip-draft/ | [CLAUDE.md](./arc:ip-draft/CLAUDE.md) | 软著/专利文档草稿写作、模板与交接消费 |
 | score/ | [CLAUDE.md](./score/CLAUDE.md) | 量化评分、Code Smell 检测、评分聚合 |
-| gate/ | [CLAUDE.md](./gate/CLAUDE.md) | CI 门禁、阈值配置、豁免清单 |
+| arc:release/ | [CLAUDE.md](./arc:release/CLAUDE.md) | CI 门禁、阈值配置、豁免清单 |
 
 ## Skill Dependency Chain
 
@@ -85,7 +85,7 @@ arc:init  (独立运行；输出的 CLAUDE.md 被 arc:clarify 消费)
 arc:cartography  (独立运行；输出 codemap.md 可被 arc:clarify、arc:build、arc:audit 作为上下文参考)
 arc:model  (消费代码/配置/流程证据；输出 UML 图谱供评审、交接与架构沟通)
 score-module  (独立评分模块；由 arc:release 编排触发，输出量化数据给 arc:audit 与 arc:release)
-arc:build  (消费 deliberation/refine 结果；输出实现交接供 review/simulate 使用)
+arc:build  (消费 deliberation/refine 结果；输出实现交接供 arc:audit/simulate 使用)
 arc:audit  (消费 score 量化数据；输出评审报告)
 arc:release  (消费 score 数据与策略配置；执行 CI 门禁判定)
 arc:ip-check  (优先读取 arc:init、arc:audit 产物；输出交接 JSON 给 arc:ip-draft)
@@ -107,7 +107,7 @@ There is no build step. Skills are pure Markdown + Python scripts.
 
 All scripts are Python 3 and accept `--help`. No virtual environment is required for core functionality.
 
-### simulate/scripts/
+### arc:e2e/scripts/
 | Script | What it does |
 |--------|-------------|
 | `scaffold_run.py` | Creates `reports/<run_id>/` directory skeleton with report templates (`--pack e2e` or `--pack full-process`) |
@@ -117,30 +117,30 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 | `new_defect.py` | Generates `failures/failure-XXXX.md` from CLI args |
 | `accounts_to_personas.py` | Converts `accounts.jsonc` → personas JSON for replay |
 
-### triage/scripts/
+### arc:fix/scripts/
 | Script | What it does |
 |--------|-------------|
 | `triage_run.py` | Best-effort triage summary of a run_dir; outputs `triage.md` / `triage.json` |
 
-### loop/scripts/
+### arc:retest/scripts/
 | Script | What it does |
 |--------|-------------|
 | `uxloop_tmux.py` | Starts/restarts services in tmux panes from a JSON config; supports `--reset-window`, `--wait-ready` |
 | `uxloop_cleanup.py` | Kills tmux sessions/windows after testing is done |
 
-### ip-audit/scripts/
+### arc:ip-check/scripts/
 | Script | What it does |
 |--------|-------------|
 | `scaffold_audit_case.py` | Creates `.arc/ip-audit/<project>/` scaffold with context, analysis, reports, and handoff dirs |
 | `render_audit_report.py` | Renders feasibility report/checklist and outputs `handoff/ip-drafting-input.json` |
 
-### ip-docs/scripts/
+### arc:ip-draft/scripts/
 | Script | What it does |
 |--------|-------------|
 | `scaffold_drafting_case.py` | Creates `.arc/ip-docs/<project>/` scaffold with context/copyright/patent/report dirs |
 | `render_ip_documents.py` | Renders copyright/patent draft documents from handoff JSON and templates |
 
-### implement/scripts/
+### arc:build/scripts/
 | Script | What it does |
 |--------|-------------|
 | `scaffold_implement_case.py` | Creates `.arc/implement/<task>/` scaffold with context, plan, execution, reports and handoff dirs |
@@ -154,17 +154,17 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 | `grade_bugfix.py` | Bugfix 分级 (A/B/C) + 自动打标 |
 | `aggregate_score.py` | 评分聚合，输出综合评分和维度评分 |
 
-### gate/scripts/
+### arc:release/scripts/
 | Script | What it does |
 |--------|-------------|
 | `check_gate.py` | CI 门禁检查，支持 warn/strict/strict_dangerous 模式 |
 
-### review/scripts/
+### arc:audit/scripts/
 | Script | What it does |
 |--------|-------------|
 | `integrate_score.py` | 将 score 量化数据集成到 arc:audit |
 
-### deliberate/scripts/
+### arc:decide/scripts/
 | Script | What it does |
 |--------|-------------|
 | `generate_bdd_seed.py` | 从共识报告生成 BDD 场景种子 |
@@ -201,7 +201,7 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 ### 优先级顺序
 
 0. **优先级 0: 共享上下文索引 `.arc/context-hub/index.json`**
-   - 优先发现可复用产物（`CLAUDE.md`、`codemap.md`、`handoff`、`review/score` 报告）
+   - 优先发现可复用产物（`CLAUDE.md`、`codemap.md`、`handoff`、`arc:audit/score` 报告）
    - 校验 `expires_at` 与 `content_hash`
    - 如索引或产物失效，触发对应生产者 skill 更新后再降级
 
