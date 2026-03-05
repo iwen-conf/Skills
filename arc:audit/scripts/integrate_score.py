@@ -416,7 +416,7 @@ def _top_evidence(issues: list[dict], limit: int = 3) -> str:
 
 
 def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str:
-    """生成 HTML 可视化看板（图表 + 多维度 Tab 切换）"""
+    """Generate HTML dashboard following SPA 9-Tab Standard (1 overview + 4 business + 4 technical)."""
     dimension_order = [
         "architecture",
         "security",
@@ -430,371 +430,6 @@ def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str
     dimension_issues = review_input.get("dimension_issues", {})
     smell_summary = review_input.get("smell_summary", {})
     by_severity = smell_summary.get("by_severity", {})
-    gradient_style, severity_legend = _severity_style(by_severity)
-
-    available_dimensions = list(dimension_order)
-    tab_buttons: list[str] = []
-    tab_panels: list[str] = []
-    bar_rows: list[str] = []
-    dimension_issue_counts: dict[str, int] = {}
-    all_issues: list[dict] = []
-    dimension_panels: list[dict] = []
-
-    for dimension_key in available_dimensions:
-        label = _dimension_label(dimension_key)
-        score = float(dimension_scores.get(dimension_key, 0))
-        level = _score_level(score)
-        raw_issues = dimension_issues.get(dimension_key, [])
-        normalized_issues = []
-        for issue in raw_issues:
-            if isinstance(issue, dict):
-                normalized_issues.append({**issue, "dimension": dimension_key})
-
-        issue_count = len(normalized_issues)
-        dimension_issue_counts[dimension_key] = issue_count
-        all_issues.extend(normalized_issues)
-
-        issue_rows_html = _issue_rows_html(
-            normalized_issues,
-            include_dimension=False,
-            empty_text="该维度暂无量化问题",
-        )
-
-        severity_count = {"critical": 0, "high": 0, "medium": 0, "low": 0, "other": 0}
-        file_hotspots: dict[str, int] = {}
-        for issue in normalized_issues:
-            severity = str(issue.get("severity", "")).lower()
-            if severity in severity_count:
-                severity_count[severity] += 1
-            else:
-                severity_count["other"] += 1
-            file_key = str(issue.get("file", "-")) or "-"
-            file_hotspots[file_key] = file_hotspots.get(file_key, 0) + 1
-
-        severity_rows = []
-        for severity_key in ["critical", "high", "medium", "low", "other"]:
-            severity_rows.append(
-                "<tr>"
-                f"<td>{escape(severity_key)}</td>"
-                f"<td>{severity_count.get(severity_key, 0)}</td>"
-                "</tr>"
-            )
-
-        hotspot_rows = []
-        sorted_hotspots = sorted(
-            file_hotspots.items(),
-            key=lambda item: item[1],
-            reverse=True,
-        )[:10]
-        for file_path, count in sorted_hotspots:
-            hotspot_rows.append(
-                "<tr>"
-                f"<td>{escape(file_path)}</td>"
-                f"<td>{count}</td>"
-                "</tr>"
-            )
-        if not hotspot_rows:
-            hotspot_rows.append(
-                '<tr><td colspan="2" class="empty-cell">该维度暂无热点文件</td></tr>'
-            )
-
-        critical_count = severity_count["critical"]
-        high_count = severity_count["high"]
-        critical_and_high = severity_count["critical"] + severity_count["high"]
-        verdict, gate_decision, risk_level, sla = _judge_tab_status(
-            score, critical_count, high_count
-        )
-        evidence_summary = _top_evidence(normalized_issues, limit=3)
-
-        dimension_panels.append(
-            {
-                "label": label,
-                "score": score,
-                "panel_html": f"""
-<div class="panel-kpi">
-  <div class="kpi-box"><span>评分</span><strong>{score:.0f}/100</strong></div>
-  <div class="kpi-box"><span>评级</span><strong>{escape(level)}</strong></div>
-  <div class="kpi-box"><span>问题数</span><strong>{issue_count}</strong></div>
-  <div class="kpi-box"><span>高风险问题(C+H)</span><strong>{critical_and_high}</strong></div>
-</div>
-<h3>专家评审卡</h3>
-<table class="issues-table">
-  <thead>
-    <tr><th>项</th><th>结论</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>审核结论</td><td>{verdict}</td></tr>
-    <tr><td>Gate 建议</td><td>{gate_decision}</td></tr>
-    <tr><td>风险等级</td><td>{risk_level}</td></tr>
-    <tr><td>整改时限</td><td>{sla}</td></tr>
-    <tr><td>关键证据</td><td>{escape(evidence_summary)}</td></tr>
-  </tbody>
-</table>
-<h3>严重级别分布</h3>
-<table class="issues-table">
-  <thead>
-    <tr><th>严重级别</th><th>数量</th></tr>
-  </thead>
-  <tbody>
-    {''.join(severity_rows)}
-  </tbody>
-</table>
-<h3>热点文件 Top 10</h3>
-<table class="issues-table">
-  <thead>
-    <tr><th>文件</th><th>问题数</th></tr>
-  </thead>
-  <tbody>
-    {''.join(hotspot_rows)}
-  </tbody>
-</table>
-<h3>问题明细</h3>
-<table class="issues-table">
-  <thead>
-    <tr><th>ID</th><th>严重级别</th><th>文件</th><th>行</th><th>描述</th></tr>
-  </thead>
-  <tbody>
-    {issue_rows_html}
-  </tbody>
-</table>
-""",
-            }
-        )
-
-        bar_rows.append(
-            f"""
-<div class="bar-row">
-  <div class="bar-label">{escape(label)}</div>
-  <div class="bar-track"><div class="bar-fill" style="width: {max(0, min(score, 100)):.1f}%;"></div></div>
-  <div class="bar-value">{score:.0f}</div>
-</div>
-"""
-        )
-
-    total_issue_count = len(all_issues)
-    critical_issue_count = sum(
-        1 for issue in all_issues if str(issue.get("severity", "")).lower() == "critical"
-    )
-    high_issue_count = sum(
-        1 for issue in all_issues if str(issue.get("severity", "")).lower() == "high"
-    )
-
-    dimension_summary_rows = []
-    for dimension_key in available_dimensions:
-        dimension_summary_rows.append(
-            "<tr>"
-            f"<td>{escape(_dimension_label(dimension_key))}</td>"
-            f"<td>{float(dimension_scores.get(dimension_key, 0)):.0f}/100</td>"
-            f"<td>{dimension_issue_counts.get(dimension_key, 0)}</td>"
-            "</tr>"
-        )
-
-    severity_summary_rows = []
-    for severity_key in ["critical", "high", "medium", "low"]:
-        severity_summary_rows.append(
-            "<tr>"
-            f"<td>{escape(severity_key)}</td>"
-            f"<td>{int(by_severity.get(severity_key, 0))}</td>"
-            "</tr>"
-        )
-
-    category_summary_rows = []
-    for category_key, count in sorted(
-        smell_summary.get("by_category", {}).items(),
-        key=lambda item: str(item[0]),
-    ):
-        category_summary_rows.append(
-            "<tr>"
-            f"<td>{escape(str(category_key))}</td>"
-            f"<td>{int(count)}</td>"
-            "</tr>"
-        )
-    if not category_summary_rows:
-        category_summary_rows.append(
-            '<tr><td colspan="2" class="empty-cell">暂无类别统计数据</td></tr>'
-        )
-
-    bugfix_grade_rows = []
-    bugfix_summary = review_input.get("bugfix_summary") or {}
-    bugfix_by_grade = bugfix_summary.get("by_grade", {})
-    for grade_key, count in sorted(
-        bugfix_by_grade.items(),
-        key=lambda item: str(item[0]),
-    ):
-        bugfix_grade_rows.append(
-            "<tr>"
-            f"<td>{escape(str(grade_key))}</td>"
-            f"<td>{int(count)}</td>"
-            "</tr>"
-        )
-    if not bugfix_grade_rows:
-        bugfix_grade_rows.append(
-            '<tr><td colspan="2" class="empty-cell">暂无修复等级分布</td></tr>'
-        )
-
-    overall_score_value = float(review_input.get("quantitative_score", 0))
-    overall_verdict, overall_gate, overall_risk, overall_sla = _judge_tab_status(
-        overall_score_value,
-        critical_issue_count,
-        high_issue_count,
-    )
-    overall_evidence = _top_evidence(all_issues, limit=5)
-
-    overview_panel_html = f"""
-<div class="panel-kpi">
-  <div class="kpi-box"><span>综合分</span><strong>{overall_score_value:.0f}/100</strong></div>
-  <div class="kpi-box"><span>总问题数</span><strong>{total_issue_count}</strong></div>
-  <div class="kpi-box"><span>Critical</span><strong>{critical_issue_count}</strong></div>
-  <div class="kpi-box"><span>High</span><strong>{high_issue_count}</strong></div>
-</div>
-<h3>专家总评卡</h3>
-<table class="issues-table">
-  <thead>
-    <tr><th>项</th><th>结论</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>总评结论</td><td>{overall_verdict}</td></tr>
-    <tr><td>最终 Gate 建议</td><td>{overall_gate}</td></tr>
-    <tr><td>整体风险等级</td><td>{overall_risk}</td></tr>
-    <tr><td>全局整改时限</td><td>{overall_sla}</td></tr>
-    <tr><td>关键证据</td><td>{escape(overall_evidence)}</td></tr>
-  </tbody>
-</table>
-<h3>七维摘要</h3>
-<table class="issues-table">
-  <thead>
-    <tr><th>维度</th><th>评分</th><th>问题数</th></tr>
-  </thead>
-  <tbody>
-    {''.join(dimension_summary_rows)}
-  </tbody>
-</table>
-<h3>严重级别分布</h3>
-<table class="issues-table">
-  <thead>
-    <tr><th>严重级别</th><th>数量</th></tr>
-  </thead>
-  <tbody>
-    {''.join(severity_summary_rows)}
-  </tbody>
-</table>
-<h3>问题类别分布</h3>
-<table class="issues-table">
-  <thead>
-    <tr><th>类别</th><th>数量</th></tr>
-  </thead>
-  <tbody>
-    {''.join(category_summary_rows)}
-  </tbody>
-</table>
-<h3>修复历史等级分布</h3>
-<table class="issues-table">
-  <thead>
-    <tr><th>等级</th><th>数量</th></tr>
-  </thead>
-  <tbody>
-    {''.join(bugfix_grade_rows)}
-  </tbody>
-</table>
-"""
-
-    business_related_issues = []
-    seen_business_issue_keys = set()
-    for issue in all_issues:
-        is_related = str(issue.get("dimension", "")) == "business" or _is_business_related_issue(issue)
-        if not is_related:
-            continue
-        dedup_key = (
-            str(issue.get("id", "")),
-            str(issue.get("severity", "")),
-            str(issue.get("file", "")),
-            str(issue.get("line", "")),
-            str(issue.get("message", "")),
-            str(issue.get("dimension", "")),
-        )
-        if dedup_key in seen_business_issue_keys:
-            continue
-        seen_business_issue_keys.add(dedup_key)
-        business_related_issues.append(issue)
-
-    business_keywords_bug = ["bug", "错误", "异常", "失败", "缺陷", "fault", "defect"]
-    business_keywords_logic = [
-        "逻辑",
-        "流程",
-        "链路",
-        "状态",
-        "规则",
-        "不一致",
-        "workflow",
-        "state",
-        "rule",
-        "condition",
-    ]
-
-    business_bug_signal_count = 0
-    business_logic_signal_count = 0
-    business_critical_count = 0
-    business_high_count = 0
-    for issue in business_related_issues:
-        severity = str(issue.get("severity", "")).lower()
-        issue_text = " ".join(
-            [
-                str(issue.get("id", "")),
-                str(issue.get("file", "")),
-                str(issue.get("message", "")),
-            ]
-        ).lower()
-        if severity == "critical":
-            business_critical_count += 1
-        if severity == "high":
-            business_high_count += 1
-        if any(keyword in issue_text for keyword in business_keywords_bug):
-            business_bug_signal_count += 1
-        if any(keyword in issue_text for keyword in business_keywords_logic):
-            business_logic_signal_count += 1
-
-    business_score = float(dimension_scores.get("business", 0))
-    flow_score = int(
-        max(
-            0,
-            min(
-                100,
-                round(
-                    business_score
-                    - business_critical_count * 12
-                    - business_high_count * 6
-                    - business_bug_signal_count * 3
-                    - business_logic_signal_count * 2
-                ),
-            ),
-        )
-    )
-    if flow_score >= 85:
-        flow_status = "通畅"
-    elif flow_score >= 65:
-        flow_status = "基本通畅"
-    elif flow_score >= 45:
-        flow_status = "存在断点"
-    else:
-        flow_status = "阻塞明显"
-
-    cross_dimension_business_issues = [
-        issue
-        for issue in business_related_issues
-        if str(issue.get("dimension", "")) != "business"
-    ]
-
-    business_related_rows_html = _issue_rows_html(
-        sorted(
-            cross_dimension_business_issues,
-            key=lambda issue: _severity_rank(str(issue.get("severity", ""))),
-            reverse=True,
-        ),
-        include_dimension=True,
-        empty_text="未发现跨维度业务链路问题",
-        max_rows=30,
-    )
-
     special_scores = review_input.get("special_scores", {})
     business_maturity = float(special_scores.get("business_maturity", 0))
     dependency_health = float(special_scores.get("dependency_health", 0))
@@ -805,396 +440,456 @@ def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str
         else "深色（基于 time now()）"
     )
 
-    if business_maturity >= 8.5:
-        business_completion_level = "高"
-    elif business_maturity >= 6.5:
-        business_completion_level = "中"
-    else:
-        business_completion_level = "低"
+    # Collect all issues per dimension with normalization
+    all_issues: list[dict] = []
+    dim_issue_map: dict[str, list[dict]] = {}
+    dim_severity_counts: dict[str, dict[str, int]] = {}
+    for dk in dimension_order:
+        raw = dimension_issues.get(dk, [])
+        normalized = [{**i, "dimension": dk} for i in raw if isinstance(i, dict)]
+        dim_issue_map[dk] = normalized
+        all_issues.extend(normalized)
+        counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+        for i in normalized:
+            s = str(i.get("severity", "")).lower()
+            if s in counts:
+                counts[s] += 1
+        dim_severity_counts[dk] = counts
 
-    chain_signals = [
-        ("需求到规则一致性", business_logic_signal_count + business_bug_signal_count),
-        (
-            "服务编排链路",
-            sum(
-                1
-                for issue in cross_dimension_business_issues
-                if str(issue.get("dimension", "")) in {"architecture", "devops", "team"}
-            ),
-        ),
-        (
-            "数据状态一致性",
-            sum(
-                1
-                for issue in cross_dimension_business_issues
-                if any(
-                    token in " ".join(
-                        [
-                            str(issue.get("id", "")),
-                            str(issue.get("file", "")),
-                            str(issue.get("message", "")),
-                        ]
-                    ).lower()
-                    for token in ["state", "status", "db", "database", "transaction", "状态", "一致", "数据"]
-                )
-            ),
-        ),
-        ("异常与回滚闭环", business_critical_count + business_high_count),
-    ]
+    total_issues = len(all_issues)
+    total_critical = sum(c["critical"] for c in dim_severity_counts.values())
+    total_high = sum(c["high"] for c in dim_severity_counts.values())
 
-    chain_rows = []
-    for chain_name, signal_count in chain_signals:
-        if signal_count <= 0:
-            chain_status = "通畅"
-        elif signal_count <= 2:
-            chain_status = "需关注"
-        else:
-            chain_status = "存在断点"
-        chain_rows.append(
-            "<tr>"
-            f"<td>{escape(chain_name)}</td>"
-            f"<td>{signal_count}</td>"
-            f"<td>{chain_status}</td>"
-            "</tr>"
-        )
+    overall_score = float(review_input.get("quantitative_score", 0))
+    overall_grade = str(review_input.get("quantitative_grade", "-"))
 
-    business_verdict, business_gate, business_risk, business_sla = _judge_tab_status(
-        float(flow_score),
-        business_critical_count,
-        business_high_count,
-    )
-    business_evidence = _top_evidence(cross_dimension_business_issues, limit=5)
-
-    business_panel_html = f"""
-<div class="panel-kpi">
-  <div class="kpi-box"><span>业务完成度</span><strong>{business_maturity:.1f}/10 ({business_completion_level})</strong></div>
-  <div class="kpi-box"><span>业务链路通畅度</span><strong>{flow_score}/100 ({flow_status})</strong></div>
-  <div class="kpi-box"><span>明显业务 Bug 信号</span><strong>{business_bug_signal_count}</strong></div>
-  <div class="kpi-box"><span>业务逻辑不通顺信号</span><strong>{business_logic_signal_count}</strong></div>
-</div>
-<h3>业务专家评审卡</h3>
-<table class="issues-table">
-  <thead>
-    <tr><th>项</th><th>结论</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>业务结论</td><td>{business_verdict}</td></tr>
-    <tr><td>业务 Gate 建议</td><td>{business_gate}</td></tr>
-    <tr><td>业务风险等级</td><td>{business_risk}</td></tr>
-    <tr><td>业务整改时限</td><td>{business_sla}</td></tr>
-    <tr><td>关键证据</td><td>{escape(business_evidence)}</td></tr>
-  </tbody>
-</table>
-<h3>业务链路分段评估</h3>
-<table class="issues-table">
-  <thead>
-    <tr><th>链路段</th><th>信号数</th><th>状态</th></tr>
-  </thead>
-  <tbody>
-    {''.join(chain_rows)}
-  </tbody>
-</table>
-<h3>跨维度业务链路问题（与业务维度 Tab 去重）</h3>
-<table class="issues-table">
-  <thead>
-    <tr><th>来源维度</th><th>ID</th><th>严重级别</th><th>文件</th><th>行</th><th>描述</th></tr>
-  </thead>
-  <tbody>
-    {business_related_rows_html}
-  </tbody>
-</table>
-"""
+    # ---------- Tab builder ----------
+    tab_buttons: list[str] = []
+    tab_panels: list[str] = []
 
     def append_tab(title: str, content_html: str) -> None:
-        index = len(tab_buttons)
-        tab_id = f"tab-{index}"
-        panel_id = f"panel-{index}"
-        tab_active_class = "active" if index == 0 else ""
-        tab_selected = "true" if index == 0 else "false"
-        panel_active_class = "active" if index == 0 else ""
-        panel_hidden = "" if index == 0 else "hidden"
+        idx = len(tab_buttons)
+        tid = f"tab-{idx}"
+        pid = f"panel-{idx}"
+        active = idx == 0
         tab_buttons.append(
-            f'<button type="button" class="tab-btn {tab_active_class}" '
-            f'role="tab" id="{tab_id}" aria-selected="{tab_selected}" '
-            f'aria-controls="{panel_id}" data-tab="{index}">{escape(title)}</button>'
+            f'<button type="button" class="tab-btn {"active" if active else ""}" '
+            f'role="tab" id="{tid}" aria-selected="{"true" if active else "false"}" '
+            f'aria-controls="{pid}" data-tab="{idx}">{escape(title)}</button>'
         )
         tab_panels.append(
-            f'<section class="tab-panel {panel_active_class}" role="tabpanel" id="{panel_id}" '
-            f'aria-labelledby="{tab_id}" {panel_hidden}>{content_html}</section>'
+            f'<section class="tab-panel {"active" if active else ""}" role="tabpanel" '
+            f'id="{pid}" aria-labelledby="{tid}" {"" if active else "hidden"}>'
+            f'{content_html}</section>'
         )
 
-    append_tab("总览", overview_panel_html)
-    for item in dimension_panels:
-        append_tab(f"{item['label']} ({item['score']:.0f})", item["panel_html"])
-    append_tab("业务完成度", business_panel_html)
+    def _expert_card(dims: list[str]) -> str:
+        issues = []
+        for d in dims:
+            issues.extend(dim_issue_map.get(d, []))
+        score_avg = sum(float(dimension_scores.get(d, 0)) for d in dims) / max(len(dims), 1)
+        cc = sum(dim_severity_counts.get(d, {}).get("critical", 0) for d in dims)
+        hc = sum(dim_severity_counts.get(d, {}).get("high", 0) for d in dims)
+        verdict, gate, risk, sla = _judge_tab_status(score_avg, cc, hc)
+        evidence = _top_evidence(issues, limit=3)
+        return f"""
+<h3>专家评审卡</h3>
+<table class="issues-table">
+  <thead><tr><th>项</th><th>结论</th></tr></thead>
+  <tbody>
+    <tr><td>审核结论</td><td>{verdict}</td></tr>
+    <tr><td>Gate 建议</td><td>{gate}</td></tr>
+    <tr><td>风险等级</td><td>{risk}</td></tr>
+    <tr><td>整改时限</td><td>{sla}</td></tr>
+    <tr><td>关键证据</td><td>{escape(evidence)}</td></tr>
+  </tbody>
+</table>"""
+
+    def _dim_kpi(dims: list[str]) -> str:
+        issues = []
+        for d in dims:
+            issues.extend(dim_issue_map.get(d, []))
+        score_avg = sum(float(dimension_scores.get(d, 0)) for d in dims) / max(len(dims), 1)
+        cc = sum(dim_severity_counts.get(d, {}).get("critical", 0) for d in dims)
+        hc = sum(dim_severity_counts.get(d, {}).get("high", 0) for d in dims)
+        ch = cc + hc
+        return f"""
+<div class="panel-kpi">
+  <div class="kpi-box"><span>评分</span><strong>{score_avg:.0f}/100</strong></div>
+  <div class="kpi-box"><span>评级</span><strong>{escape(_score_level(score_avg))}</strong></div>
+  <div class="kpi-box"><span>问题数</span><strong>{len(issues)}</strong></div>
+  <div class="kpi-box"><span>高风险(C+H)</span><strong>{ch}</strong></div>
+</div>"""
+
+    def _issue_detail(dims: list[str], include_dim: bool = False) -> str:
+        issues = []
+        for d in dims:
+            issues.extend(dim_issue_map.get(d, []))
+        rows = _issue_rows_html(
+            sorted(issues, key=lambda i: _severity_rank(str(i.get("severity", ""))), reverse=True),
+            include_dimension=include_dim,
+            empty_text="暂无相关问题",
+            max_rows=30,
+        )
+        hdr = "<th>来源维度</th>" if include_dim else ""
+        return f"""
+<h3>问题明细</h3>
+<table class="issues-table">
+  <thead><tr>{hdr}<th>ID</th><th>严重级别</th><th>文件</th><th>行</th><th>描述</th></tr></thead>
+  <tbody>{rows}</tbody>
+</table>"""
+
+    # ===== Tab 1: Executive Overview =====
+    radar_labels = [escape(_dimension_label(d)) for d in dimension_order]
+    radar_values = [float(dimension_scores.get(d, 0)) for d in dimension_order]
+    radar_labels_js = json.dumps(radar_labels, ensure_ascii=False)
+    radar_values_js = json.dumps(radar_values)
+
+    dim_summary_rows = "".join(
+        f"<tr><td>{escape(_dimension_label(d))}</td>"
+        f"<td>{float(dimension_scores.get(d, 0)):.0f}/100</td>"
+        f"<td>{len(dim_issue_map.get(d, []))}</td></tr>"
+        for d in dimension_order
+    )
+    sev_summary_rows = "".join(
+        f"<tr><td>{escape(s)}</td><td>{int(by_severity.get(s, 0))}</td></tr>"
+        for s in ["critical", "high", "medium", "low"]
+    )
+    overall_verdict, overall_gate, overall_risk, overall_sla = _judge_tab_status(
+        overall_score, total_critical, total_high
+    )
+    overall_evidence = _top_evidence(all_issues, limit=5)
+
+    overview_html = f"""
+<div class="panel-kpi">
+  <div class="kpi-box"><span>综合分 (Apdex)</span><strong>{overall_score:.0f}/100</strong></div>
+  <div class="kpi-box"><span>总问题数</span><strong>{total_issues}</strong></div>
+  <div class="kpi-box"><span>业务成熟度</span><strong>{business_maturity:.1f}/10</strong></div>
+  <div class="kpi-box"><span>依赖健康度</span><strong>{dependency_health:.1f}/10</strong></div>
+</div>
+<h3>专家总评卡</h3>
+<table class="issues-table">
+  <thead><tr><th>项</th><th>结论</th></tr></thead>
+  <tbody>
+    <tr><td>总评结论</td><td>{overall_verdict}</td></tr>
+    <tr><td>最终 Gate 建议</td><td>{overall_gate}</td></tr>
+    <tr><td>整体风险等级</td><td>{overall_risk}</td></tr>
+    <tr><td>全局整改时限</td><td>{overall_sla}</td></tr>
+    <tr><td>关键证据</td><td>{escape(overall_evidence)}</td></tr>
+  </tbody>
+</table>
+<div class="charts-row">
+  <div class="chart-box"><div id="chart-radar" style="width:100%;height:360px;"></div></div>
+  <div class="chart-box"><div id="chart-gauge" style="width:100%;height:360px;"></div></div>
+</div>
+<h3>七维摘要</h3>
+<table class="issues-table">
+  <thead><tr><th>维度</th><th>评分</th><th>问题数</th></tr></thead>
+  <tbody>{dim_summary_rows}</tbody>
+</table>
+<h3>严重级别分布</h3>
+<table class="issues-table">
+  <thead><tr><th>严重级别</th><th>数量</th></tr></thead>
+  <tbody>{sev_summary_rows}</tbody>
+</table>"""
+    append_tab("全局总览", overview_html)
+
+    # ===== Tab 2: Business Completion =====
+    biz_score = float(dimension_scores.get("business", 0))
+    team_score = float(dimension_scores.get("team", 0))
+    bm_level = "高" if business_maturity >= 8.5 else ("中" if business_maturity >= 6.5 else "低")
+    biz_completion_html = f"""
+{_dim_kpi(["business", "team"])}
+<div class="panel-kpi">
+  <div class="kpi-box"><span>业务成熟度</span><strong>{business_maturity:.1f}/10 ({bm_level})</strong></div>
+  <div class="kpi-box"><span>业务维度</span><strong>{biz_score:.0f}/100</strong></div>
+  <div class="kpi-box"><span>团队效能</span><strong>{team_score:.0f}/100</strong></div>
+</div>
+{_expert_card(["business", "team"])}
+<div id="chart-completion" style="width:100%;height:320px;"></div>
+{_issue_detail(["business", "team"], include_dim=True)}"""
+    append_tab("业务完成情况", biz_completion_html)
+
+    # ===== Tab 3: Business Connection =====
+    arch_score = float(dimension_scores.get("architecture", 0))
+    td_score = float(dimension_scores.get("tech-debt", 0))
+    arch_issues = dim_issue_map.get("architecture", [])
+    dep_issues = [i for i in arch_issues if any(
+        kw in " ".join([str(i.get("id", "")), str(i.get("message", ""))]).lower()
+        for kw in ["depend", "import", "couple", "依赖", "耦合", "循环", "cycle"]
+    )]
+    conn_html = f"""
+{_dim_kpi(["architecture", "tech-debt"])}
+<div class="panel-kpi">
+  <div class="kpi-box"><span>架构评分</span><strong>{arch_score:.0f}/100</strong></div>
+  <div class="kpi-box"><span>技术债评分</span><strong>{td_score:.0f}/100</strong></div>
+  <div class="kpi-box"><span>依赖相关问题</span><strong>{len(dep_issues)}</strong></div>
+</div>
+{_expert_card(["architecture", "tech-debt"])}
+<div id="chart-topology" style="width:100%;height:360px;"></div>
+{_issue_detail(["architecture"], include_dim=False)}"""
+    append_tab("业务连接情况", conn_html)
+
+    # ===== Tab 4: Business Connectivity =====
+    business_issues = dim_issue_map.get("business", [])
+    devops_issues = dim_issue_map.get("devops", [])
+    business_keywords_bug = ["bug", "错误", "异常", "失败", "缺陷", "fault", "defect"]
+    business_keywords_logic = ["逻辑", "流程", "链路", "状态", "规则", "不一致",
+                               "workflow", "state", "rule", "condition"]
+    bug_count = sum(1 for i in business_issues if any(
+        kw in " ".join([str(i.get("id", "")), str(i.get("message", ""))]).lower()
+        for kw in business_keywords_bug
+    ))
+    logic_count = sum(1 for i in business_issues if any(
+        kw in " ".join([str(i.get("id", "")), str(i.get("message", ""))]).lower()
+        for kw in business_keywords_logic
+    ))
+    biz_critical = dim_severity_counts.get("business", {}).get("critical", 0)
+    biz_high = dim_severity_counts.get("business", {}).get("high", 0)
+    flow_score = int(max(0, min(100, round(
+        biz_score - biz_critical * 12 - biz_high * 6 - bug_count * 3 - logic_count * 2
+    ))))
+    flow_status = "通畅" if flow_score >= 85 else ("基本通畅" if flow_score >= 65 else ("存在断点" if flow_score >= 45 else "阻塞明显"))
+
+    chain_signals = [
+        ("需求到规则一致性", logic_count + bug_count),
+        ("服务编排链路", sum(1 for i in all_issues if str(i.get("dimension", "")) in {"architecture", "devops"} and _is_business_related_issue(i))),
+        ("数据状态一致性", sum(1 for i in business_issues if any(
+            t in " ".join([str(i.get("id", "")), str(i.get("message", ""))]).lower()
+            for t in ["state", "status", "db", "database", "transaction", "状态", "一致", "数据"]
+        ))),
+        ("异常与回滚闭环", biz_critical + biz_high),
+    ]
+    chain_rows = ""
+    for cn, sc in chain_signals:
+        cs = "通畅" if sc <= 0 else ("需关注" if sc <= 2 else "存在断点")
+        chain_rows += f"<tr><td>{escape(cn)}</td><td>{sc}</td><td>{cs}</td></tr>"
+
+    connectivity_html = f"""
+{_dim_kpi(["business", "devops"])}
+<div class="panel-kpi">
+  <div class="kpi-box"><span>链路通畅度</span><strong>{flow_score}/100 ({flow_status})</strong></div>
+  <div class="kpi-box"><span>Bug 信号</span><strong>{bug_count}</strong></div>
+  <div class="kpi-box"><span>逻辑不通顺</span><strong>{logic_count}</strong></div>
+</div>
+{_expert_card(["business", "devops"])}
+<div id="chart-sankey" style="width:100%;height:320px;"></div>
+<h3>业务链路分段评估</h3>
+<table class="issues-table">
+  <thead><tr><th>链路段</th><th>信号数</th><th>状态</th></tr></thead>
+  <tbody>{chain_rows}</tbody>
+</table>
+{_issue_detail(["business"], include_dim=False)}"""
+    append_tab("业务连通率", connectivity_html)
+
+    # ===== Tab 5: Business Logic Fluency =====
+    cq_score = float(dimension_scores.get("code-quality", 0))
+    logic_issues = [i for i in business_issues if any(
+        kw in " ".join([str(i.get("id", "")), str(i.get("message", ""))]).lower()
+        for kw in business_keywords_logic
+    )]
+    fluency_html = f"""
+{_dim_kpi(["business", "code-quality"])}
+<div class="panel-kpi">
+  <div class="kpi-box"><span>业务逻辑问题</span><strong>{logic_count}</strong></div>
+  <div class="kpi-box"><span>代码质量评分</span><strong>{cq_score:.0f}/100</strong></div>
+</div>
+{_expert_card(["business", "code-quality"])}
+<div id="chart-funnel" style="width:100%;height:320px;"></div>
+{_issue_detail(["business", "code-quality"], include_dim=True)}"""
+    append_tab("业务逻辑通顺性", fluency_html)
+
+    # ===== Tab 6: Architecture Health =====
+    arch_dims = ["architecture", "code-quality", "tech-debt"]
+    arch_health_html = f"""
+{_dim_kpi(arch_dims)}
+<div class="panel-kpi">
+  <div class="kpi-box"><span>架构</span><strong>{arch_score:.0f}/100</strong></div>
+  <div class="kpi-box"><span>代码质量</span><strong>{cq_score:.0f}/100</strong></div>
+  <div class="kpi-box"><span>技术债</span><strong>{td_score:.0f}/100</strong></div>
+  <div class="kpi-box"><span>依赖健康度</span><strong>{dependency_health:.1f}/10</strong></div>
+</div>
+{_expert_card(arch_dims)}
+<div class="charts-row">
+  <div class="chart-box"><div id="chart-dep-matrix" style="width:100%;height:320px;"></div></div>
+  <div class="chart-box"><div id="chart-polar" style="width:100%;height:320px;"></div></div>
+</div>
+{_issue_detail(arch_dims, include_dim=True)}"""
+    append_tab("架构健康度", arch_health_html)
+
+    # ===== Tab 7: Performance & Stability =====
+    devops_score = float(dimension_scores.get("devops", 0))
+    perf_html = f"""
+{_dim_kpi(["devops", "code-quality"])}
+<div class="panel-kpi">
+  <div class="kpi-box"><span>运维交付</span><strong>{devops_score:.0f}/100</strong></div>
+  <div class="kpi-box"><span>代码质量</span><strong>{cq_score:.0f}/100</strong></div>
+</div>
+{_expert_card(["devops", "code-quality"])}
+<div id="chart-perf" style="width:100%;height:320px;"></div>
+{_issue_detail(["devops", "code-quality"], include_dim=True)}"""
+    append_tab("性能与稳定性", perf_html)
+
+    # ===== Tab 8: Security & Governance =====
+    sec_score = float(dimension_scores.get("security", 0))
+    sec_issues = dim_issue_map.get("security", [])
+    sec_cats: dict[str, int] = {}
+    for i in sec_issues:
+        cat = str(i.get("id", "other")).split("-")[0] if i.get("id") else "other"
+        sec_cats[cat] = sec_cats.get(cat, 0) + 1
+    sec_cat_data_js = json.dumps(
+        [{"name": k, "value": v} for k, v in sorted(sec_cats.items(), key=lambda x: x[1], reverse=True)],
+        ensure_ascii=False,
+    )
+    sec_html = f"""
+{_dim_kpi(["security", "architecture"])}
+<div class="panel-kpi">
+  <div class="kpi-box"><span>安全评分</span><strong>{sec_score:.0f}/100</strong></div>
+  <div class="kpi-box"><span>架构评分</span><strong>{arch_score:.0f}/100</strong></div>
+</div>
+{_expert_card(["security", "architecture"])}
+<div id="chart-rose" style="width:100%;height:360px;"></div>
+{_issue_detail(["security"], include_dim=False)}"""
+    append_tab("安全治理与合规", sec_html)
+
+    # ===== Tab 9: Resource & FinOps =====
+    res_dims = ["devops", "tech-debt", "team"]
+    res_treemap_data: list[dict] = []
+    for d in res_dims:
+        children = []
+        for sev in ["critical", "high", "medium", "low"]:
+            c = dim_severity_counts.get(d, {}).get(sev, 0)
+            if c > 0:
+                children.append({"name": sev, "value": c})
+        if children:
+            res_treemap_data.append({"name": _dimension_label(d), "children": children})
+    res_treemap_js = json.dumps(res_treemap_data, ensure_ascii=False)
+
+    res_html = f"""
+{_dim_kpi(res_dims)}
+<div class="panel-kpi">
+  <div class="kpi-box"><span>运维</span><strong>{devops_score:.0f}/100</strong></div>
+  <div class="kpi-box"><span>技术债</span><strong>{td_score:.0f}/100</strong></div>
+  <div class="kpi-box"><span>团队</span><strong>{float(dimension_scores.get('team', 0)):.0f}/100</strong></div>
+</div>
+{_expert_card(res_dims)}
+<div id="chart-treemap" style="width:100%;height:360px;"></div>
+{_issue_detail(res_dims, include_dim=True)}"""
+    append_tab("资源利用与成本", res_html)
+
+    # ===== Assemble HTML =====
+    gradient_style, severity_legend = _severity_style(by_severity)
+    bar_rows = ""
+    for d in dimension_order:
+        s = float(dimension_scores.get(d, 0))
+        bar_rows += f"""
+<div class="bar-row">
+  <div class="bar-label">{escape(_dimension_label(d))}</div>
+  <div class="bar-track"><div class="bar-fill" style="width:{max(0, min(s, 100)):.1f}%;"></div></div>
+  <div class="bar-value">{s:.0f}</div>
+</div>"""
+
+    # Sankey data from chain signals
+    sankey_nodes = json.dumps([{"name": cn} for cn, _ in chain_signals] + [{"name": "业务总链路"}], ensure_ascii=False)
+    sankey_links = json.dumps([{"source": cn, "target": "业务总链路", "value": max(sc, 1)} for cn, sc in chain_signals], ensure_ascii=False)
+
+    # Funnel data
+    funnel_steps = [
+        {"name": "需求输入", "value": 100},
+        {"name": "规则匹配", "value": max(10, 100 - logic_count * 8)},
+        {"name": "状态流转", "value": max(10, 100 - logic_count * 8 - bug_count * 5)},
+        {"name": "业务闭环", "value": flow_score},
+    ]
+    funnel_js = json.dumps(funnel_steps, ensure_ascii=False)
+
+    # Polar bar data for architecture health
+    polar_data_js = json.dumps([
+        {"name": _dimension_label(d), "value": float(dimension_scores.get(d, 0))}
+        for d in arch_dims
+    ], ensure_ascii=False)
+
+    # Performance bar data
+    perf_data_js = json.dumps([
+        {"name": _dimension_label(d), "value": float(dimension_scores.get(d, 0))}
+        for d in ["devops", "code-quality"]
+    ], ensure_ascii=False)
+
+    # Completion bar data
+    completion_data_js = json.dumps([
+        {"name": _dimension_label(d), "value": float(dimension_scores.get(d, 0))}
+        for d in ["business", "team"]
+    ] + [{"name": "业务成熟度(×10)", "value": business_maturity * 10}], ensure_ascii=False)
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>评估可视化看板</title>
+  <title>SPA 项目评估大盘</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   <style>
     :root {{
-      --bg: #f8fafc;
-      --panel: #ffffff;
-      --text: #0f172a;
-      --muted: #475569;
-      --primary: #3b82f6;
-      --border: #e2e8f0;
-      --good: #22c55e;
-      --warn: #f59e0b;
-      --bad: #ef4444;
-      --chip: #f1f5f9;
-      --chip-active: #dbeafe;
-      --chip-active-border: #93c5fd;
-      --chip-active-text: #1d4ed8;
+      --bg: #f8fafc; --panel: #ffffff; --text: #0f172a; --muted: #475569;
+      --primary: #3b82f6; --border: #e2e8f0;
+      --good: #52C41A; --warn: #FAAD14; --bad: #F5222D; --offline: #BFBFBF;
+      --chip: #f1f5f9; --chip-active: #dbeafe;
+      --chip-active-border: #93c5fd; --chip-active-text: #1d4ed8;
     }}
     [data-theme="dark"] {{
-      --bg: #0b1220;
-      --panel: #111827;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --border: #2b3548;
-      --primary: #60a5fa;
-      --good: #34d399;
-      --warn: #fbbf24;
-      --bad: #f87171;
-      --chip: #1f2937;
-      --chip-active: #1e3a8a;
-      --chip-active-border: #3b82f6;
-      --chip-active-text: #dbeafe;
+      --bg: #0b1220; --panel: #111827; --text: #e5e7eb; --muted: #9ca3af;
+      --border: #2b3548; --primary: #60a5fa;
+      --good: #34d399; --warn: #fbbf24; --bad: #f87171; --offline: #6b7280;
+      --chip: #1f2937; --chip-active: #1e3a8a;
+      --chip-active-border: #3b82f6; --chip-active-text: #dbeafe;
     }}
-    body {{
-      margin: 0;
-      padding: 24px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      color: var(--text);
-      background: var(--bg);
-    }}
-    .container {{
-      max-width: 1200px;
-      margin: 0 auto;
-    }}
-    .header, .panel {{
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 18px;
-      margin-bottom: 16px;
-      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
-    }}
-    h1, h2 {{
-      margin: 0 0 10px 0;
-      font-weight: 700;
-    }}
-    h3 {{
-      margin: 14px 0 8px 0;
-      font-size: 15px;
-      font-weight: 700;
-    }}
-    .header-top {{
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }}
-    .toolbar {{
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }}
-    .tool-btn {{
-      border: 1px solid var(--border);
-      background: var(--chip);
-      color: var(--text);
-      border-radius: 8px;
-      padding: 8px 10px;
-      font-size: 12px;
-      cursor: pointer;
-    }}
-    .tool-btn:hover {{
-      border-color: var(--primary);
-    }}
-    .sub-text {{
-      color: var(--muted);
-      font-size: 14px;
-    }}
-    .summary-grid {{
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-      margin-top: 12px;
-    }}
-    .summary-card {{
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-      background: color-mix(in srgb, var(--panel) 80%, var(--bg) 20%);
-    }}
-    .summary-card span {{
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      margin-bottom: 6px;
-    }}
-    .summary-card strong {{
-      font-size: 20px;
-    }}
-    .charts-grid {{
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 14px;
-    }}
-    .bar-row {{
-      display: grid;
-      grid-template-columns: 110px 1fr 36px;
-      align-items: center;
-      gap: 10px;
-      margin: 10px 0;
-    }}
-    .bar-label {{
-      font-size: 13px;
-      color: var(--muted);
-    }}
-    .bar-track {{
-      height: 10px;
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--border) 60%, var(--panel) 40%);
-      overflow: hidden;
-    }}
-    .bar-fill {{
-      height: 100%;
-      border-radius: 999px;
-      background: linear-gradient(90deg, #60a5fa 0%, #2563eb 100%);
-    }}
-    .bar-value {{
-      text-align: right;
-      font-weight: 600;
-      font-size: 13px;
-    }}
-    .donut-wrap {{
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-top: 10px;
-    }}
-    .donut {{
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      background: {gradient_style};
-      position: relative;
-    }}
-    .donut::after {{
-      content: "";
-      position: absolute;
-      inset: 22px;
-      background: var(--panel);
-      border-radius: 50%;
-    }}
-    .legend {{
-      margin: 0;
-      padding-left: 18px;
-      color: var(--muted);
-      font-size: 13px;
-    }}
-    .tabs {{
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 12px;
-    }}
-    .tab-btn {{
-      border: 1px solid var(--border);
-      background: var(--chip);
-      color: var(--text);
-      border-radius: 8px;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-size: 13px;
-    }}
-    .tab-btn.active {{
-      background: var(--chip-active);
-      border-color: var(--chip-active-border);
-      color: var(--chip-active-text);
-      font-weight: 600;
-    }}
-    .tab-panel {{
-      display: none;
-    }}
-    .tab-panel.active {{
-      display: block;
-    }}
-    .panel-kpi {{
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 10px;
-      margin-bottom: 12px;
-    }}
-    .kpi-box {{
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px;
-      background: color-mix(in srgb, var(--panel) 82%, var(--bg) 18%);
-    }}
-    .kpi-box span {{
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      margin-bottom: 4px;
-    }}
-    .kpi-box strong {{
-      font-size: 18px;
-    }}
-    .issues-table {{
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }}
-    .issues-table th, .issues-table td {{
-      border: 1px solid var(--border);
-      padding: 8px;
-      text-align: left;
-      vertical-align: top;
-    }}
-    .issues-table th {{
-      background: color-mix(in srgb, var(--panel) 76%, var(--bg) 24%);
-    }}
-    .empty-cell {{
-      text-align: center;
-      color: var(--muted);
-      font-style: italic;
-    }}
-    @media (max-width: 920px) {{
-      .charts-grid {{
-        grid-template-columns: 1fr;
-      }}
-    }}
-    @media print {{
-      body {{
-        padding: 0;
-      }}
-      .toolbar, .tabs {{
-        display: none !important;
-      }}
-      .header, .panel {{
-        box-shadow: none;
-        break-inside: avoid;
-      }}
-      .tab-panel {{
-        display: block !important;
-        margin-bottom: 18px;
-      }}
-    }}
+    body {{ margin:0; padding:24px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; color:var(--text); background:var(--bg); }}
+    .container {{ max-width:1400px; margin:0 auto; }}
+    .header,.panel {{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:18px; margin-bottom:16px; box-shadow:0 4px 16px rgba(15,23,42,.04); }}
+    h1,h2 {{ margin:0 0 10px; font-weight:700; }}
+    h3 {{ margin:14px 0 8px; font-size:15px; font-weight:700; }}
+    .header-top {{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }}
+    .toolbar {{ display:flex; gap:8px; flex-wrap:wrap; }}
+    .tool-btn {{ border:1px solid var(--border); background:var(--chip); color:var(--text); border-radius:8px; padding:8px 10px; font-size:12px; cursor:pointer; }}
+    .tool-btn:hover {{ border-color:var(--primary); }}
+    .sub-text {{ color:var(--muted); font-size:14px; }}
+    .summary-grid {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:12px; }}
+    .summary-card {{ border:1px solid var(--border); border-radius:10px; padding:12px; background:color-mix(in srgb,var(--panel) 80%,var(--bg) 20%); }}
+    .summary-card span {{ display:block; color:var(--muted); font-size:12px; margin-bottom:6px; }}
+    .summary-card strong {{ font-size:20px; }}
+    .charts-grid {{ display:grid; grid-template-columns:2fr 1fr; gap:14px; }}
+    .charts-row {{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:12px 0; }}
+    .chart-box {{ min-height:200px; }}
+    .bar-row {{ display:grid; grid-template-columns:110px 1fr 36px; align-items:center; gap:10px; margin:10px 0; }}
+    .bar-label {{ font-size:13px; color:var(--muted); }}
+    .bar-track {{ height:10px; border-radius:999px; background:color-mix(in srgb,var(--border) 60%,var(--panel) 40%); overflow:hidden; }}
+    .bar-fill {{ height:100%; border-radius:999px; background:linear-gradient(90deg,#60a5fa 0%,#2563eb 100%); }}
+    .bar-value {{ text-align:right; font-weight:600; font-size:13px; }}
+    .donut-wrap {{ display:flex; align-items:center; gap:12px; margin-top:10px; }}
+    .donut {{ width:120px; height:120px; border-radius:50%; background:{gradient_style}; position:relative; }}
+    .donut::after {{ content:""; position:absolute; inset:22px; background:var(--panel); border-radius:50%; }}
+    .legend {{ margin:0; padding-left:18px; color:var(--muted); font-size:13px; }}
+    .tabs {{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }}
+    .tab-btn {{ border:1px solid var(--border); background:var(--chip); color:var(--text); border-radius:8px; padding:8px 12px; cursor:pointer; font-size:13px; }}
+    .tab-btn.active {{ background:var(--chip-active); border-color:var(--chip-active-border); color:var(--chip-active-text); font-weight:600; }}
+    .tab-panel {{ display:none; }}
+    .tab-panel.active {{ display:block; }}
+    .panel-kpi {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:12px; }}
+    .kpi-box {{ border:1px solid var(--border); border-radius:8px; padding:10px; background:color-mix(in srgb,var(--panel) 82%,var(--bg) 18%); }}
+    .kpi-box span {{ display:block; color:var(--muted); font-size:12px; margin-bottom:4px; }}
+    .kpi-box strong {{ font-size:18px; }}
+    .issues-table {{ width:100%; border-collapse:collapse; font-size:13px; }}
+    .issues-table th,.issues-table td {{ border:1px solid var(--border); padding:8px; text-align:left; vertical-align:top; }}
+    .issues-table th {{ background:color-mix(in srgb,var(--panel) 76%,var(--bg) 24%); }}
+    .empty-cell {{ text-align:center; color:var(--muted); font-style:italic; }}
+    @media (max-width:920px) {{ .charts-grid,.charts-row {{ grid-template-columns:1fr; }} }}
+    @media print {{ body {{ padding:0; }} .toolbar,.tabs {{ display:none !important; }} .header,.panel {{ box-shadow:none; break-inside:avoid; }} .tab-panel {{ display:block !important; margin-bottom:18px; }} }}
   </style>
 </head>
 <body data-theme="{selected_theme}">
   <div class="container">
     <section class="header">
       <div class="header-top">
-        <h1>评估可视化看板（HTML）</h1>
+        <h1>SPA 项目评估大盘</h1>
         <div class="toolbar">
           <button id="export-png" class="tool-btn">导出 PNG</button>
           <button id="export-pdf" class="tool-btn">导出 PDF</button>
@@ -1202,10 +897,10 @@ def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str
       </div>
       <div class="sub-text">项目：{escape(str(review_input.get('project_path', '-')))}</div>
       <div class="sub-text">扫描时间：{escape(str(review_input.get('scan_timestamp', '-')))}</div>
-      <div class="sub-text">主题模式：{escape(theme_mode_label)}</div>
+      <div class="sub-text">主题：{escape(theme_mode_label)} | 9 Tab（1 全局 + 4 业务 + 4 技术）</div>
       <div class="summary-grid">
-        <div class="summary-card"><span>综合分</span><strong>{float(review_input.get('quantitative_score', 0)):.0f}/100</strong></div>
-        <div class="summary-card"><span>评级</span><strong>{escape(str(review_input.get('quantitative_grade', '-')))}</strong></div>
+        <div class="summary-card"><span>综合分</span><strong>{overall_score:.0f}/100</strong></div>
+        <div class="summary-card"><span>评级</span><strong>{escape(overall_grade)}</strong></div>
         <div class="summary-card"><span>业务成熟度</span><strong>{business_maturity:.1f}/10</strong></div>
         <div class="summary-card"><span>依赖健康度</span><strong>{dependency_health:.1f}/10</strong></div>
       </div>
@@ -1214,7 +909,7 @@ def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str
     <section class="panel charts-grid">
       <div>
         <h2>维度评分图</h2>
-        {''.join(bar_rows)}
+        {bar_rows}
       </div>
       <div>
         <h2>严重级别分布</h2>
@@ -1228,7 +923,7 @@ def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str
     </section>
 
     <section class="panel">
-      <h2>多维度评估（9 Tab：总览 + 7维 + 业务完成度）</h2>
+      <h2>多维度评估（9 Tab：1 全局总览 + 4 业务深度剖析 + 4 技术效能维度）</h2>
       <div class="tabs">
         {''.join(tab_buttons)}
       </div>
@@ -1238,66 +933,235 @@ def generate_html_dashboard(review_input: dict, theme: str | None = None) -> str
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
-    const body = document.body;
-    const exportPngBtn = document.getElementById('export-png');
-    const exportPdfBtn = document.getElementById('export-pdf');
+    // Theme detection for ECharts
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    const textColor = isDark ? '#e5e7eb' : '#0f172a';
+    const splitColor = isDark ? '#2b3548' : '#e2e8f0';
 
-    exportPdfBtn.addEventListener('click', () => {{
-      window.print();
-    }});
-
-    exportPngBtn.addEventListener('click', async () => {{
-      if (typeof window.html2canvas !== 'function') {{
-        alert('导出 PNG 失败：html2canvas 加载失败');
-        return;
-      }}
-      const container = document.querySelector('.container');
-      if (!container) {{
-        return;
-      }}
-      const originalText = exportPngBtn.textContent;
-      exportPngBtn.disabled = true;
-      exportPngBtn.textContent = '生成中...';
-      try {{
-        const canvas = await window.html2canvas(container, {{
-          backgroundColor: getComputedStyle(body).backgroundColor,
-          scale: 2,
-          useCORS: true,
-        }});
-        const link = document.createElement('a');
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        link.download = `quantitative-dashboard-${{timestamp}}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      }} catch (error) {{
-        console.error(error);
-        alert('导出 PNG 失败，请重试');
-      }} finally {{
-        exportPngBtn.disabled = false;
-        exportPngBtn.textContent = originalText;
-      }}
-    }});
-
+    // Tab switching
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabPanels = document.querySelectorAll('.tab-panel');
-    tabButtons.forEach((button) => {{
-      button.addEventListener('click', () => {{
-        const target = button.getAttribute('data-tab');
-        tabButtons.forEach((item) => {{
-          item.classList.remove('active');
-          item.setAttribute('aria-selected', 'false');
+    tabButtons.forEach(btn => {{
+      btn.addEventListener('click', () => {{
+        const t = btn.getAttribute('data-tab');
+        tabButtons.forEach(b => {{ b.classList.remove('active'); b.setAttribute('aria-selected','false'); }});
+        tabPanels.forEach(p => {{ p.classList.remove('active'); p.setAttribute('hidden',''); }});
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected','true');
+        const tp = document.getElementById('panel-'+t);
+        if(tp) {{ tp.classList.add('active'); tp.removeAttribute('hidden'); }}
+        // Resize charts in active panel
+        tp && tp.querySelectorAll('[id^="chart-"]').forEach(el => {{
+          const c = echarts.getInstanceByDom(el);
+          if(c) c.resize();
         }});
-        tabPanels.forEach((panel) => {{
-          panel.classList.remove('active');
-          panel.setAttribute('hidden', '');
+      }});
+    }});
+
+    // Export
+    document.getElementById('export-pdf').addEventListener('click', () => window.print());
+    document.getElementById('export-png').addEventListener('click', async () => {{
+      if(typeof window.html2canvas !== 'function') {{ alert('html2canvas 加载失败'); return; }}
+      const btn = document.getElementById('export-png');
+      btn.disabled = true; btn.textContent = '生成中...';
+      try {{
+        const canvas = await window.html2canvas(document.querySelector('.container'), {{
+          backgroundColor: getComputedStyle(document.body).backgroundColor, scale:2, useCORS:true
         }});
-        button.classList.add('active');
-        button.setAttribute('aria-selected', 'true');
-        const targetPanel = document.getElementById(`panel-${{target}}`);
-        if (targetPanel) {{
-          targetPanel.classList.add('active');
-          targetPanel.removeAttribute('hidden');
-        }}
+        const a = document.createElement('a');
+        a.download = 'spa-dashboard-'+new Date().toISOString().replace(/[:.]/g,'-')+'.png';
+        a.href = canvas.toDataURL('image/png'); a.click();
+      }} catch(e) {{ console.error(e); alert('导出失败'); }}
+      finally {{ btn.disabled = false; btn.textContent = '导出 PNG'; }}
+    }});
+
+    // ===== ECharts Initialization =====
+    function initChart(id, opt) {{
+      const el = document.getElementById(id);
+      if(!el) return null;
+      const c = echarts.init(el, isDark ? 'dark' : null);
+      c.setOption(opt);
+      return c;
+    }}
+
+    // Tab 1: Radar Chart
+    initChart('chart-radar', {{
+      tooltip: {{}},
+      radar: {{
+        indicator: {radar_labels_js}.map(n => ({{name:n, max:100}})),
+        shape: 'polygon',
+        splitArea: {{ areaStyle: {{ color: isDark ? ['rgba(30,58,138,0.1)','rgba(30,58,138,0.2)'] : ['rgba(219,234,254,0.2)','rgba(219,234,254,0.4)'] }} }}
+      }},
+      series: [{{
+        type: 'radar',
+        data: [{{ value: {radar_values_js}, name: '七维评分', areaStyle: {{ opacity: 0.3 }} }}],
+        lineStyle: {{ width: 2 }},
+        itemStyle: {{ color: '#3b82f6' }}
+      }}]
+    }});
+
+    // Tab 1: Gauge
+    initChart('chart-gauge', {{
+      series: [{{
+        type: 'gauge',
+        startAngle: 200, endAngle: -20,
+        min: 0, max: 100,
+        detail: {{ formatter: '{{value}}', fontSize: 28, offsetCenter: [0, '60%'], color: textColor }},
+        data: [{{ value: {overall_score:.0f}, name: '综合分' }}],
+        axisLine: {{ lineStyle: {{ width: 20, color: [[0.3,'#F5222D'],[0.5,'#FAAD14'],[0.7,'#3b82f6'],[1,'#52C41A']] }} }},
+        axisTick: {{ show: false }},
+        splitLine: {{ show: false }},
+        axisLabel: {{ show: false }},
+        pointer: {{ width: 4 }},
+        title: {{ offsetCenter: [0, '80%'], color: textColor }}
+      }}]
+    }});
+
+    // Tab 2: Business Completion Bar
+    initChart('chart-completion', {{
+      tooltip: {{ trigger: 'axis' }},
+      xAxis: {{ type: 'category', data: {completion_data_js}.map(d => d.name), axisLabel: {{ color: textColor }} }},
+      yAxis: {{ type: 'value', max: 100, axisLabel: {{ color: textColor }}, splitLine: {{ lineStyle: {{ color: splitColor }} }} }},
+      series: [{{
+        type: 'bar', data: {completion_data_js}.map(d => ({{
+          value: d.value,
+          itemStyle: {{ color: d.value >= 70 ? '#52C41A' : d.value >= 50 ? '#FAAD14' : '#F5222D' }}
+        }})),
+        barWidth: '40%',
+        label: {{ show: true, position: 'top', color: textColor }}
+      }}]
+    }});
+
+    // Tab 3: Topology placeholder (force-directed)
+    initChart('chart-topology', {{
+      tooltip: {{}},
+      series: [{{
+        type: 'graph', layout: 'force', roam: true, draggable: true,
+        label: {{ show: true, color: textColor }},
+        force: {{ repulsion: 200, edgeLength: 120 }},
+        categories: [{{"name":"架构"}},{{"name":"业务"}},{{"name":"基础设施"}}],
+        data: [
+          {{name:'网关层',category:0,symbolSize:40}},
+          {{name:'业务逻辑层',category:1,symbolSize:50}},
+          {{name:'数据持久层',category:2,symbolSize:35}},
+          {{name:'认证服务',category:0,symbolSize:30}},
+          {{name:'消息队列',category:2,symbolSize:25}}
+        ],
+        links: [
+          {{source:'网关层',target:'业务逻辑层'}},
+          {{source:'业务逻辑层',target:'数据持久层'}},
+          {{source:'网关层',target:'认证服务'}},
+          {{source:'业务逻辑层',target:'消息队列'}}
+        ],
+        lineStyle: {{ curveness: 0.2 }}
+      }}]
+    }});
+
+    // Tab 4: Sankey Diagram
+    initChart('chart-sankey', {{
+      tooltip: {{ trigger: 'item' }},
+      series: [{{
+        type: 'sankey', layout: 'none', emphasis: {{ focus: 'adjacency' }},
+        data: {sankey_nodes},
+        links: {sankey_links},
+        lineStyle: {{ color: 'gradient', curveness: 0.5 }},
+        label: {{ color: textColor }}
+      }}]
+    }});
+
+    // Tab 5: Funnel
+    initChart('chart-funnel', {{
+      tooltip: {{ trigger: 'item', formatter: '{{b}}: {{c}}%' }},
+      series: [{{
+        type: 'funnel', left: '10%', width: '80%', sort: 'descending',
+        label: {{ show: true, position: 'inside', color: '#fff' }},
+        data: {funnel_js},
+        itemStyle: {{ borderWidth: 1, borderColor: '#fff' }}
+      }}]
+    }});
+
+    // Tab 6: Polar Bar (Architecture Health)
+    initChart('chart-polar', {{
+      angleAxis: {{ type: 'category', data: {polar_data_js}.map(d => d.name), axisLabel: {{ color: textColor }} }},
+      radiusAxis: {{ max: 100, axisLabel: {{ color: textColor }}, splitLine: {{ lineStyle: {{ color: splitColor }} }} }},
+      polar: {{}},
+      tooltip: {{ trigger: 'axis' }},
+      series: [{{
+        type: 'bar', coordinateSystem: 'polar',
+        data: {polar_data_js}.map(d => ({{
+          value: d.value,
+          itemStyle: {{ color: d.value >= 70 ? '#52C41A' : d.value >= 50 ? '#FAAD14' : '#F5222D' }}
+        }}))
+      }}]
+    }});
+
+    // Tab 6: Dependency Matrix Heatmap
+    (function() {{
+      const dims = {json.dumps([_dimension_label(d) for d in arch_dims], ensure_ascii=False)};
+      const vals = {json.dumps([float(dimension_scores.get(d, 0)) for d in arch_dims])};
+      const data = [];
+      for(let i=0;i<dims.length;i++) for(let j=0;j<dims.length;j++) {{
+        data.push([i, j, i===j ? vals[i] : Math.round((vals[i]+vals[j])/2)]);
+      }}
+      initChart('chart-dep-matrix', {{
+        tooltip: {{ formatter: p => dims[p.data[0]]+' × '+dims[p.data[1]]+': '+p.data[2] }},
+        xAxis: {{ type:'category', data:dims, axisLabel:{{color:textColor}} }},
+        yAxis: {{ type:'category', data:dims, axisLabel:{{color:textColor}} }},
+        visualMap: {{ min:0, max:100, calculable:true, orient:'horizontal', left:'center',
+          inRange: {{ color: ['#F5222D','#FAAD14','#52C41A'] }},
+          textStyle: {{ color: textColor }}
+        }},
+        series: [{{ type:'heatmap', data:data, label:{{show:true,color:textColor}} }}]
+      }});
+    }})();
+
+    // Tab 7: Performance Bar
+    initChart('chart-perf', {{
+      tooltip: {{ trigger: 'axis' }},
+      xAxis: {{ type: 'category', data: {perf_data_js}.map(d => d.name), axisLabel: {{ color: textColor }} }},
+      yAxis: {{ type: 'value', max: 100, axisLabel: {{ color: textColor }}, splitLine: {{ lineStyle: {{ color: splitColor }} }} }},
+      series: [{{
+        type: 'bar', data: {perf_data_js}.map(d => ({{
+          value: d.value,
+          itemStyle: {{ color: d.value >= 70 ? '#52C41A' : d.value >= 50 ? '#FAAD14' : '#F5222D' }}
+        }})),
+        barWidth: '40%',
+        label: {{ show: true, position: 'top', color: textColor }}
+      }}]
+    }});
+
+    // Tab 8: Nightingale Rose Chart
+    initChart('chart-rose', {{
+      tooltip: {{ trigger: 'item' }},
+      series: [{{
+        type: 'pie', roseType: 'area', radius: ['20%','65%'],
+        data: {sec_cat_data_js}.length > 0 ? {sec_cat_data_js} : [{{name:'暂无数据',value:1}}],
+        label: {{ color: textColor }},
+        itemStyle: {{ borderRadius: 4 }}
+      }}]
+    }});
+
+    // Tab 9: Treemap
+    initChart('chart-treemap', {{
+      tooltip: {{ formatter: p => p.name + ': ' + (p.value||'') }},
+      series: [{{
+        type: 'treemap', roam: false,
+        data: {res_treemap_js}.length > 0 ? {res_treemap_js} : [{{name:'暂无数据',value:1}}],
+        label: {{ show: true, color: '#fff' }},
+        levels: [
+          {{ itemStyle: {{ borderColor: '#555', borderWidth: 2, gapWidth: 2 }} }},
+          {{ colorSaturation: [0.3, 0.6], itemStyle: {{ borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 }} }}
+        ],
+        visualMin: 0,
+        visualDimension: 0
+      }}]
+    }});
+
+    // Responsive resize
+    window.addEventListener('resize', () => {{
+      document.querySelectorAll('[id^="chart-"]').forEach(el => {{
+        const c = echarts.getInstanceByDom(el);
+        if(c) c.resize();
       }});
     }});
   </script>
