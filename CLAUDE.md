@@ -79,7 +79,7 @@ arc:exec ────┬─▶ arc:init         (智能调度 → full/update)
               ├─▶ arc:e2e     (E2E 测试)
               │     └─▶ arc:fix
               │           └─▶ arc:retest
-              └─▶ Dispatch API dispatch (lane/role routing)
+              └─▶ Scheduling API dispatch (lane/role routing)
 
 arc:init  (独立运行；输出的 CLAUDE.md 被 arc:clarify 消费)
 arc:cartography  (独立运行；输出 codemap.md 可被 arc:clarify、arc:build、arc:audit 作为上下文参考)
@@ -180,11 +180,11 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 - **`run_id` format**: `YYYY-MM-DD_HH-mm-ss_<short>`, optionally suffixed with `_iterNN` in retest loops.
 - **Screenshot naming**: `s<4-digit-step>_<slug>.png` (e.g., `s0007_after-submit.png`).
 - **Agent 调用约定**：
-  - **Dispatch API**: `dispatch_job(lane="<domain>", capabilities=[...], description="...", prompt="...", execution_mode="<background|foreground>")`
-  - **Role API**: `dispatch_job(role="<agent>", capabilities=[...], description="...", prompt="...", execution_mode="<background|foreground>")`
+  - **Scheduling API**: `schedule_task(workstream="<domain>", capabilities=[...], description="...", prompt="...", run_mode="<background|foreground>")`
+  - **Role API**: `schedule_task(specialist="<agent>", capabilities=[...], description="...", prompt="...", run_mode="<background|foreground>")`
   - **可用 Lane**: `visual-engineering` | `ultrabrain` | `deep` | `artistry` | `quick` | `unspecified-low` | `unspecified-high` | `writing`
   - **可用 Role**: `explore`(代码搜索) | `librarian`(文档搜索) | `oracle`(架构咨询) | `prometheus`(宏观规划) | `metis`(策略审计) | `momus`(代码审查) | `hephaestus`(核心编程) | `atlas`(大规模重构) | `multimodal-looker`(视觉UI)
-  - **Session 延续**: 每次 dispatch_job() 返回 continuation_id，用 `continuation_id="<id>"` 延续多轮对话
+  - **Session 延续**: 每次 schedule_task() 返回 session_ref，用 `session_ref="<id>"` 延续多轮对话
 - **Working directory for arc:exec**: `.arc/exec/` (调度记录在此目录)。
 - **Working directory for arc:decide**: `.arc/deliberate/<task-name>/` (inside the target project).
 - **Working directory for arc:audit**: `.arc/review/<project-name>/` (inside the target project). 严禁修改被评审项目的源代码，只在此目录下产出评审文件。
@@ -268,18 +268,18 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 | Agent 代号 | 角色定位 | 调用方式 | 适用场景 | 底层模型 | 关键技能 |
 |-----------|---------|---------|---------|---------|---------|
 | **Sisyphus** | 主控调度员/项目经理 | 主进程（不通过 Task 调用） | 所有会话的默认入口，负责需求拆解、任务规划与路由 | anthropic/claude-opus-4-6 | ace-tool 项目检索、Exa 外网搜索 |
-| **Hephaestus** | 核心程序员/构造者 | primary（`lane="ultrabrain"`） | 端到端的功能硬核实现、智能合约安全审计、底层算法库彻底重写 | openai/gpt-5.3-codex (xhigh) | 深层 AST 操作、文件读写、编译器错误诊断 |
-| **Prometheus** | 宏观规划师/破冰者 | `role="prometheus"` | 复杂需求拆解、需求澄清、依赖关系图谱生成、并行执行策略蓝图绘制 | anthropic/claude-opus-4-6 (max) | 交互式需求澄清、甘特图与依赖树构建 |
-| **Metis** | 策略专家/算法优化师 | `role="metis"` | 执行前的策略审计，寻找 Prometheus 计划中的算法漏洞和逻辑盲区 | MiniMax/MiniMax-M2.5 | 计划突变、算法复杂度分析 |
-| **Momus** | 计划审查专家 | `role="momus"` | 审查 Prometheus 生成的执行计划，验证文件引用、任务完整性，返回 OKAY 或 NEEDS_REVISION | openai/gpt-5.2 | 计划验证、任务完整性检查 |
-| **Oracle** | 架构师/决策顾问 | `role="oracle"` | 复杂系统架构推演、并发竞争条件根因分析、多系统交互权衡策略制定 | openai/gpt-5.1-codex-max (high) | 全代码库只读扫描、诊断日志深度解析 |
-| **Atlas** | 基础重构者/重体力劳动者 | primary（`lane="writing"` 或大规模任务） | 全局级依赖替换、跨微服务批量重构、超大规模代码库格式化整改与目录迁移 | Kimi/kimi-2.5 | 巨型主循环管理、批量文件操作 |
-| **Librarian** | 知识管理与检索 | `role="librarian"` | 查阅外部长篇官方文档、研读最新 API 迁移手册、检索开源社区最佳实践 | GLM/glm-5 | Exa 全网搜索、Context7 文档摄取、GitHub 仓库爬取 |
-| **Explore** | 代码库侦察兵 | `role="explore"` | 极速踩点遍历深层文件树、执行基于上下文的模糊 grep 搜索、快速映射变量定义与系统依赖拓扑图 | anthropic/claude-haiku-4-5 | ast_grep_search、lsp_workspace_symbols |
-| **Multimodal-looker** | 视觉前端工程师 | `role="multimodal-looker"` | 解析 PDF 设计图、将图片直接转化为 React/Vue 响应式组件、分析浏览器截图并定位 CSS 布局漂移 | Google/gemini-3-flash-preview | 图像张量解析、视觉边界框映射、UI 样式表动态生成 |
-| **Sisyphus Junior** | 轻量级任务执行 | `role="sisyphus-junior"` | 简单的单文件修改、格式化、轻量级 CRUD 操作 | anthropic/claude-haiku-4-5 | 快速文件编辑、简单重构 |
+| **Hephaestus** | 核心程序员/构造者 | primary（`workstream="ultrabrain"`） | 端到端的功能硬核实现、智能合约安全审计、底层算法库彻底重写 | openai/gpt-5.3-codex (xhigh) | 深层 AST 操作、文件读写、编译器错误诊断 |
+| **Prometheus** | 宏观规划师/破冰者 | `specialist="prometheus"` | 复杂需求拆解、需求澄清、依赖关系图谱生成、并行执行策略蓝图绘制 | anthropic/claude-opus-4-6 (max) | 交互式需求澄清、甘特图与依赖树构建 |
+| **Metis** | 策略专家/算法优化师 | `specialist="metis"` | 执行前的策略审计，寻找 Prometheus 计划中的算法漏洞和逻辑盲区 | MiniMax/MiniMax-M2.5 | 计划突变、算法复杂度分析 |
+| **Momus** | 计划审查专家 | `specialist="momus"` | 审查 Prometheus 生成的执行计划，验证文件引用、任务完整性，返回 OKAY 或 NEEDS_REVISION | openai/gpt-5.2 | 计划验证、任务完整性检查 |
+| **Oracle** | 架构师/决策顾问 | `specialist="oracle"` | 复杂系统架构推演、并发竞争条件根因分析、多系统交互权衡策略制定 | openai/gpt-5.1-codex-max (high) | 全代码库只读扫描、诊断日志深度解析 |
+| **Atlas** | 基础重构者/重体力劳动者 | primary（`workstream="writing"` 或大规模任务） | 全局级依赖替换、跨微服务批量重构、超大规模代码库格式化整改与目录迁移 | Kimi/kimi-2.5 | 巨型主循环管理、批量文件操作 |
+| **Librarian** | 知识管理与检索 | `specialist="librarian"` | 查阅外部长篇官方文档、研读最新 API 迁移手册、检索开源社区最佳实践 | GLM/glm-5 | Exa 全网搜索、Context7 文档摄取、GitHub 仓库爬取 |
+| **Explore** | 代码库侦察兵 | `specialist="explore"` | 极速踩点遍历深层文件树、执行基于上下文的模糊 grep 搜索、快速映射变量定义与系统依赖拓扑图 | anthropic/claude-haiku-4-5 | ast_grep_search、lsp_workspace_symbols |
+| **Multimodal-looker** | 视觉前端工程师 | `specialist="multimodal-looker"` | 解析 PDF 设计图、将图片直接转化为 React/Vue 响应式组件、分析浏览器截图并定位 CSS 布局漂移 | Google/gemini-3-flash-preview | 图像张量解析、视觉边界框映射、UI 样式表动态生成 |
+| **Sisyphus Junior** | 轻量级任务执行 | `specialist="sisyphus-junior"` | 简单的单文件修改、格式化、轻量级 CRUD 操作 | anthropic/claude-haiku-4-5 | 快速文件编辑、简单重构 |
 
-> **注意**：`category` 路由（如 `deep`、`visual-engineering`、`quick`）是按领域自动选择最优模型，不绑定特定 Agent 代号。`role` 路由则指定具体的 Agent 角色。两者可在 `dispatch_job()` 中二选一使用。
+> **注意**：`category` 路由（如 `deep`、`visual-engineering`、`quick`）是按领域自动选择最优模型，不绑定特定 Agent 代号。`role` 路由则指定具体的 Agent 角色。两者可在 `schedule_task()` 中二选一使用。
 
 ### 关键使用边界（CRITICAL）
 
@@ -287,23 +287,23 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 
 | 错误场景 | 错误调用 | 问题 | 正确调用 |
 |---------|---------|------|---------|
-| 计划预分析 | `dispatch_job(role="momus", prompt="分析需求歧义...")` | Momus 是计划审查专家，不做预分析 | `dispatch_job(role="metis", prompt="分析需求歧义...")` |
-| 需求澄清 | `dispatch_job(role="metis", prompt="澄清用户需求...")` | Metis 是策略审计员，不负责需求澄清 | `dispatch_job(role="prometheus", prompt="澄清用户需求...")` |
-| 代码审查 | `dispatch_job(role="prometheus", prompt="审查这段代码...")` | Prometheus 是规划师，不审查代码 | `dispatch_job(lane="deep", prompt="审查这段代码...")` 或使用 Oracle 只读分析 |
-| 架构决策 | `dispatch_job(role="momus", prompt="评估架构方案...")` | Momus 是计划审查专家，不做架构决策 | `dispatch_job(role="oracle", prompt="评估架构方案...")` |
+| 计划预分析 | `schedule_task(specialist="momus", prompt="分析需求歧义...")` | Momus 是计划审查专家，不做预分析 | `schedule_task(specialist="metis", prompt="分析需求歧义...")` |
+| 需求澄清 | `schedule_task(specialist="metis", prompt="澄清用户需求...")` | Metis 是策略审计员，不负责需求澄清 | `schedule_task(specialist="prometheus", prompt="澄清用户需求...")` |
+| 代码审查 | `schedule_task(specialist="prometheus", prompt="审查这段代码...")` | Prometheus 是规划师，不审查代码 | `schedule_task(workstream="deep", prompt="审查这段代码...")` 或使用 Oracle 只读分析 |
+| 架构决策 | `schedule_task(specialist="momus", prompt="评估架构方案...")` | Momus 是计划审查专家，不做架构决策 | `schedule_task(specialist="oracle", prompt="评估架构方案...")` |
 
 **✅ 正确使用模式（Best Practices）**
 
 | 场景 | 应该用哪个 Agent | 调用方式 | 说明 |
 |------|----------------|---------|------|
-| 复杂需求拆解 | Prometheus | `dispatch_job(role="prometheus", capabilities=["arc:decide"], prompt="分析需求并生成执行计划...")` | Prometheus 会"采访"开发者以消除需求歧义 |
-| 计划质量审计 | Metis | `dispatch_job(role="metis", capabilities=["arc:decide"], prompt="审计这个执行计划，寻找算法漏洞...")` | Metis 在执行前进行策略审计 |
-| 计划审查 | Momus | `dispatch_job(role="momus", prompt="审查这个执行计划的完整性和可行性...")` | Momus 审查 Prometheus 生成的计划，返回 OKAY/NEEDS_REVISION |
-| 架构推演 | Oracle | `dispatch_job(role="oracle", prompt="分析这个并发竞争条件的根因...")` | Oracle 只读咨询，不亲自改代码 |
-| 代码库侦察 | Explore | `dispatch_job(role="explore", execution_mode="background", prompt="找到所有认证相关的中间件...")` | Explore 极速前哨，总是后台运行 |
-| 外部文档检索 | Librarian | `dispatch_job(role="librarian", execution_mode="background", prompt="查找 React 18 的最新 API 文档...")` | Librarian 打破知识截止日期限制 |
-| 知识产权审查 | Oracle/Deep/Writing | `dispatch_job(role="oracle", capabilities=["arc:ip-check"], execution_mode="background", ...)` + `dispatch_job(lane="deep", capabilities=["arc:ip-check"], execution_mode="background", ...)` + `dispatch_job(lane="writing", capabilities=["arc:ip-check"], execution_mode="background", ...)` | 三Agent并发评估后交叉反驳 |
-| 知识产权文档写作 | Oracle/Deep/Writing | `dispatch_job(role="oracle", capabilities=["arc:ip-draft"], execution_mode="background", ...)` + `dispatch_job(lane="deep", capabilities=["arc:ip-draft"], execution_mode="background", ...)` + `dispatch_job(lane="writing", capabilities=["arc:ip-draft"], execution_mode="background", ...)` | 三Agent并发起草后交叉审阅 |
+| 复杂需求拆解 | Prometheus | `schedule_task(specialist="prometheus", capabilities=["arc:decide"], prompt="分析需求并生成执行计划...")` | Prometheus 会"采访"开发者以消除需求歧义 |
+| 计划质量审计 | Metis | `schedule_task(specialist="metis", capabilities=["arc:decide"], prompt="审计这个执行计划，寻找算法漏洞...")` | Metis 在执行前进行策略审计 |
+| 计划审查 | Momus | `schedule_task(specialist="momus", prompt="审查这个执行计划的完整性和可行性...")` | Momus 审查 Prometheus 生成的计划，返回 OKAY/NEEDS_REVISION |
+| 架构推演 | Oracle | `schedule_task(specialist="oracle", prompt="分析这个并发竞争条件的根因...")` | Oracle 只读咨询，不亲自改代码 |
+| 代码库侦察 | Explore | `schedule_task(specialist="explore", run_mode="background", prompt="找到所有认证相关的中间件...")` | Explore 极速前哨，总是后台运行 |
+| 外部文档检索 | Librarian | `schedule_task(specialist="librarian", run_mode="background", prompt="查找 React 18 的最新 API 文档...")` | Librarian 打破知识截止日期限制 |
+| 知识产权审查 | Oracle/Deep/Writing | `schedule_task(specialist="oracle", capabilities=["arc:ip-check"], run_mode="background", ...)` + `schedule_task(workstream="deep", capabilities=["arc:ip-check"], run_mode="background", ...)` + `schedule_task(workstream="writing", capabilities=["arc:ip-check"], run_mode="background", ...)` | 三Agent并发评估后交叉反驳 |
+| 知识产权文档写作 | Oracle/Deep/Writing | `schedule_task(specialist="oracle", capabilities=["arc:ip-draft"], run_mode="background", ...)` + `schedule_task(workstream="deep", capabilities=["arc:ip-draft"], run_mode="background", ...)` + `schedule_task(workstream="writing", capabilities=["arc:ip-draft"], run_mode="background", ...)` | 三Agent并发起草后交叉审阅 |
 
 ### 典型工作流拓扑
 
@@ -312,7 +312,7 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 Sisyphus (主控)
   ├─▶ Librarian (后台) - 收集外部 API 文档
   ├─▶ Explore (后台) - 扫描本地代码库
-  └─▶ dispatch_job(lane="visual-engineering") - 执行前端重构
+  └─▶ schedule_task(workstream="visual-engineering") - 执行前端重构
       └─▶ LSP 诊断验证
 ```
 
@@ -337,14 +337,14 @@ Sisyphus (主控)
       ├─▶ Deep (后台) - 代码完整性/实现细节
       └─▶ Writing (后台) - 文档合规性/用户文档
           └─▶ 收集三Agent结果
-              └─▶ 交叉反驳/审阅 (复用continuation_id)
+              └─▶ 交叉反驳/审阅 (复用session_ref)
                   └─▶ 生成综合报告/定稿文档
 ```
 
 **3. Oracle 死锁破局机制**（连续失败 2 次后触发）
 ```
 Sisyphus (主控)
-  └─▶ dispatch_job(lane="quick") - 尝试修复 Bug
+  └─▶ schedule_task(workstream="quick") - 尝试修复 Bug
       └─▶ LSP 诊断失败 (第 1 次)
           └─▶ 重试修复
               └─▶ LSP 诊断失败 (第 2 次)
@@ -360,7 +360,7 @@ Sisyphus (主控)
 2. **Metis = 预规划分析**，不是需求澄清
 3. **Momus = 计划审查**，不是代码审查（审查 Prometheus 的计划）
 4. **Oracle = 架构咨询**，只读不写
-5. **Explore/Librarian = 后台侦察**，总是 `execution_mode="background"`
+5. **Explore/Librarian = 后台侦察**，总是 `run_mode="background"`
 6. **Hephaestus/Atlas = primary 模式**，通过 category 路由，不通过 role
 
 **参考文档**：[多智能体编程框架Agent解析.md](./多智能体编程框架Agent解析.md)

@@ -92,7 +92,7 @@ Code changes must not be implemented without clear plans, verification evidence,
 
 - **Orchestration Contract** (recommended): Follow `docs/orchestration-contract.md` and distribute implementation and verification tasks through the runtime adaptation layer.
 - **ace-tool MCP** (required): Locate the implementation entrance, influence surface, and related symbols.
-- **Dispatch API** (required): schedule implementation and verification tasks.
+- **Scheduling API** (required): schedule implementation and verification tasks.
 - **arc:decide** (recommended): consume upstream solution documents.
 - **arc:clarify** (optional): Supplement the context when the requirements are unclear.
 - **Exa MCP** (optional): Check official documentation and implementation reference.

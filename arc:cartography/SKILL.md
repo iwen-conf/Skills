@@ -95,7 +95,7 @@ suggestion:
 
 ### Step 5: Directory concurrency analysis and root graph summary
 
-1. Each directory analysis task is dispatched concurrently through `dispatch_job(...)` (by `docs/orchestration-contract.md`).
+1. Each directory analysis task is dispatched concurrently through `schedule_task(...)` (by `docs/orchestration-contract.md`).
 2. Each directory outputs/updates this directory `codemap.md`.
 3. Finally, the root level `codemap.md` is aggregated to form the warehouse Atlas entrance.
 

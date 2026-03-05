@@ -98,7 +98,7 @@ Must follow the link below to collaborate:
 * **Organization Contract**: Required. Following `docs/orchestration-contract.md`, scheduling is implemented through the runtime adaptation layer.
 - **ace-tool MCP** (required): Search project code and implementation evidence.
 - **Exa MCP** (recommended): Supplement existing technology/policy basis.
-- **Dispatch API** (required): Dispatch `oracle` / `deep` / `writing` three Agent collaboration.
+- **Scheduling API** (required): Dispatch `oracle` / `deep` / `writing` three Agent collaboration.
 - **arc:init** (strongly recommended): Read the `CLAUDE.md` level index.
 - **arc:audit** (optional): Reuse existing review report.
 
@@ -205,10 +205,10 @@ python arc:ip-check/scripts/scaffold_audit_case.py \
 
 ```typescript
 // Oracle: Architecture and Innovation Assessment
-dispatch_job(
-  role="oracle",
+schedule_task(
+  specialist="oracle",
   capabilities=["arc:ip-check"],
-  execution_mode="background",
+  run_mode="background",
 description="Oracle evaluates technological innovation and patent feasibility",
   prompt=`
 [TASK]: Evaluate the technological innovation and patent application feasibility of the project
@@ -245,10 +245,10 @@ description="Oracle evaluates technological innovation and patent feasibility",
 )
 
 // Deep: Project implementation evaluation
-dispatch_job(
-  lane="deep",
+schedule_task(
+  workstream="deep",
   capabilities=["arc:ip-check"],
-  execution_mode="background",
+  run_mode="background",
 description="Deep evaluates code integrity and software feasibility",
   prompt=`
 [TASK]: Evaluate the code integrity of the project and the feasibility of software application
@@ -286,10 +286,10 @@ description="Deep evaluates code integrity and software feasibility",
 )
 
 // Writing: Documentation and Compliance Analysis
-dispatch_job(
-  lane="writing",
+schedule_task(
+  workstream="writing",
   capabilities=["arc:ip-check"],
-  execution_mode="background",
+  run_mode="background",
 description="Writing evaluates document completeness and application readiness",
   prompt=`
 [TASK]: Evaluate the project’s document completeness and readiness for intellectual property application
@@ -327,7 +327,7 @@ description="Writing evaluates document completeness and application readiness",
 )
 ```
 
-**Wait for the three Agents to complete** and use `background_output(task_id="...")` to collect the results.
+**Wait for the three Agents to complete** and use `collect_task_output(task_id="...")` to collect the results.
 
 ### Phase 3: Cross-rebuttal
 
@@ -335,10 +335,10 @@ description="Writing evaluates document completeness and application readiness",
 
 ```typescript
 // Oracle refutes Deep and Writing
-dispatch_job(
-continuation_id="<oracle_continuation_id>", // Reuse Phase 2 session
+schedule_task(
+session_ref="<oracle_session_ref>", // Reuse Phase 2 session
   capabilities=["arc:ip-check"],
-  execution_mode="foreground",
+  run_mode="foreground",
 description="Oracle Cross Refutation Deep and Writing",
   prompt=`
 [TASK]: Refute Deep and Writing’s assessment and point out overly optimistic/pessimistic aspects

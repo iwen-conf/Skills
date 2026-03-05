@@ -99,7 +99,7 @@ No incremental writes are allowed without evidence of fingerprint differences.
 
 * **Organization Contract**: Required. Following `docs/orchestration-contract.md`, scheduling is implemented through the runtime adaptation layer.
 * **ace-tool (MCP)**: Required. Semantic search project code structure.
-* **Unified Dispatch API**: Required. Schedule oracle/deep/visual-engineering Agent.
+* **Unified scheduling interface**: Required. Schedule oracle/deep/visual-engineering Agent.
 * **Git**: required. Change detection relies on git commands.
 
 ## Critical Rules
@@ -246,10 +246,10 @@ No analysis required:
 
 ```typescript
 // oracle analysis
-dispatch_job(
- role: "oracle",
+schedule_task(
+ specialist: "oracle",
  capabilities: ["arc:init:update"],
- execution_mode: "background",
+ run_mode: "background",
 description: "oracle architecture analysis - new module",
 prompt: `Analyze the architecture of the following new modules...
 
@@ -259,19 +259,19 @@ Output to: <output_dir>/agents/oracle/analysis-update.md`
 )
 
 // deep analysis
-dispatch_job(
- lane: "deep",
+schedule_task(
+ workstream: "deep",
  capabilities: ["arc:init:update"],
- execution_mode: "background",
+ run_mode: "background",
 description: "deep engineering analysis",
  prompt: `...`
 )
 
 // visual-engineering analysis
-dispatch_job(
- lane: "visual-engineering",
+schedule_task(
+ workstream: "visual-engineering",
  capabilities: ["arc:init:update", "frontend-ui-ux"],
- execution_mode: "background",
+ run_mode: "background",
 description: "visual-engineering DX analysis",
  prompt: `...`
 )
@@ -281,18 +281,18 @@ description: "visual-engineering DX analysis",
 
 ```typescript
 // only deep + visual-engineering, skip oracle
-dispatch_job(lane: "deep", ...),
-dispatch_job(lane: "visual-engineering", ...)
+schedule_task(workstream: "deep", ...),
+schedule_task(workstream: "visual-engineering", ...)
 ```
 
 **MODIFIED_SOURCE module analysis** (1 Agent):
 
 ```typescript
 // only deep, shallow depth
-dispatch_job(
- lane: "deep",
+schedule_task(
+ workstream: "deep",
  capabilities: ["arc:init:update"],
- execution_mode: "background",
+ run_mode: "background",
 description: "deep shallow analysis - source code changes",
 prompt: `The following modules only have source code changes, for shallow analysis...
 

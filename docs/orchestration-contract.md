@@ -5,29 +5,29 @@
 
 ## 1) 核心调用语义
 
-使用统一伪接口 `dispatch_job(...)`：
+使用统一伪接口 `schedule_task(...)`：
 
 ```text
-dispatch_job(
+schedule_task(
   lane?: string,                 # 领域路由（如 deep / visual-engineering / writing）
   role?: string,                 # 专家角色路由（如 oracle / explore / librarian）
   capabilities?: string[],       # 执行时注入的技能/能力上下文
   description: string,           # 短描述
   prompt: string,                # 详细执行指令
-  execution_mode: "background" | "foreground",
-  continuation_id?: string       # 复用历史会话
+  run_mode: "background" | "foreground",
+  session_ref?: string       # 复用历史会话
 )
 ```
 
 约束：
 - `lane` 与 `role` 至少提供一个，推荐二选一。
-- `execution_mode="background"` 用于可并发任务。
-- 调度返回 `continuation_id`（或平台等价字段）用于后续追问/反驳轮。
+- `run_mode="background"` 用于可并发任务。
+- 调度返回 `session_ref`（或平台等价字段）用于后续追问/反驳轮。
 
 ## 2) 结果收集语义
 
 ```text
-collect_job(continuation_id)
+collect_task(session_ref)
 ```
 
 要求：
@@ -41,11 +41,11 @@ collect_job(continuation_id)
 - `lane` → 平台的“领域模型路由”字段
 - `role` → 平台的“专家子代理路由”字段
 - `capabilities` → 平台的“技能装载/工具预置”字段
-- `execution_mode` → 平台的“同步/异步或后台执行”字段
-- `continuation_id` → 平台的“会话 ID / task ID / thread ID”
+- `run_mode` → 平台的“同步/异步或后台执行”字段
+- `session_ref` → 平台的“会话 ID / task ID / thread ID”
 
 ## 4) 写作规范（Skill 作者）
 
-- 在 `SKILL.md` 中使用 `dispatch_job(...)`、`collect_job(...)` 表述调度。
+- 在 `SKILL.md` 中使用 `schedule_task(...)`、`collect_task(...)` 表述调度。
 - 禁止把某平台专有 API 作为唯一执行路径。
 - 如果必须给平台示例，放在“可选适配示例”并注明“非唯一实现”。

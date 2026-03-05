@@ -5,7 +5,7 @@
 
 ## 当前状态
 
-- 已完成从单一工具耦合到运行时无关编排（`dispatch_job / collect_job`）的迁移。
+- 已完成从单一工具耦合到运行时无关编排（`schedule_task / collect_job`）的迁移。
 - 所有 `arc:*` 技能已统一融合结构：`Quick Contract` / `Announce` / `The Iron Law` / `Workflow` / `Quality Gates` / `Red Flags`。
 - 路由文档已形成三层：矩阵、决策树、阶段视图 + 单页速查。
 - 所有 `SKILL.md` 的 frontmatter `description` 已统一为中文。

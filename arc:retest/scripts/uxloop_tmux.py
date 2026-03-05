@@ -385,7 +385,7 @@ def main() -> None:
         "services": summary_services,
         "attach_cmd": f"tmux attach -t {session_name}",
         "cleanup_cmd": (
-            f"python tmux-ui-ux-retest-loop/scripts/uxloop_cleanup.py --session {session_name} --window {window_name} --kill-session"
+            f"python arc:retest/scripts/uxloop_cleanup.py --session {session_name} --window {window_name} --kill-session"
         ),
     }
 

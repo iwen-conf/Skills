@@ -162,12 +162,12 @@ route_to("arc:init:update") #Default increment
 
 ### Step 2: Execute scheduling
 
-Use **Dispatch API** to dispatch the corresponding sub-Skill:
+Use **Scheduling API** to dispatch the corresponding sub-Skill:
 
 ```typescript
 // Schedule arc:init:full
-dispatch_job(
-  lane: "unspecified-high",
+schedule_task(
+  workstream: "unspecified-high",
   capabilities: ["arc:init:full"],
 prompt: `Perform full initialization...
 
@@ -175,12 +175,12 @@ Project path: <project_path>
 Depth level: <depth_level>
 Language: <language>
   ...`,
-  execution_mode: "foreground"
+  run_mode: "foreground"
 )
 
 // Or schedule arc:init:update
-dispatch_job(
-  lane: "unspecified-high",
+schedule_task(
+  workstream: "unspecified-high",
   capabilities: ["arc:init:update"],
 prompt: `Perform incremental update...
 
@@ -188,7 +188,7 @@ Project path: <project_path>
 Depth level: <depth_level>
 Language: <language>
   ...`,
-  execution_mode: "foreground"
+  run_mode: "foreground"
 )
 ```
 

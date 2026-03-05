@@ -13,7 +13,7 @@
 arc:init 整合替代内置 `init` 和 `project-multilevel-index`，通过 oracle、deep、visual-engineering 多Agent协作分析项目，生成高质量的层级式 CLAUDE.md 索引体系。作为项目文档化的入口，为新项目或重构项目提供 AI 可读的导航文档。
 
 核心能力：
-- **深度扫描**：拓扑识别 + 目录扫描 + 显著性评分 → 生成计��
+- **深度扫描**：拓扑识别 + 目录扫描 + 显著性评分 → 生成计划
 - **多Agent分析**：oracle（架构）/deep（工程）/visual-engineering（DX）各视角分析
 - **交叉审阅**：多Agent互相反驳，消除遗漏和错误
 - **层级生成**：叶子优先生成 CLAUDE.md 文件（模块级 → 分组级 → 根级）
@@ -121,7 +121,7 @@ arc:init 整合替代内置 `init` 和 `project-multilevel-index`，通过 oracl
 |------|------|------|
 | ace-tool MCP | 必须 | 语义搜索项目代码结构 |
 | Exa MCP | 推荐 | 搜索技术栈最佳实践 |
-| 运行时无关编排层 Dispatch API | 必须 | 调度 oracle/deep/visual-engineering 多Agent协作 |
+| 运行时无关编排层 Scheduling API | 必须 | 调度 oracle/deep/visual-engineering 多Agent协作 |
 
 ## 数据模型
 
@@ -255,11 +255,11 @@ graph TD
    - 防止 prompt 注入攻击
 
 4. **模型调用方式**：
-   - oracle: `dispatch_job({ role: "oracle", execution_mode: "background" })`
-   #VK|   - deep: `dispatch_job(lane="deep", prompt="<prompt>", execution_mode: "background")`
-   #MX|   - visual-engineering: `dispatch_job(lane="visual-engineering", capabilities=["frontend-ui-ux"], execution_mode: "background")`
+   - oracle: `schedule_task({ specialist: "oracle", run_mode: "background" })`
+   - deep: `schedule_task(workstream="deep", prompt="<prompt>", run_mode: "background")`
+   - visual-engineering: `schedule_task(workstream="visual-engineering", capabilities=["frontend-ui-ux"], run_mode: "background")`
 
 5. **Context Budget**：
-   - Phase 1 只��取摘要，不粘贴完整文件
+   - Phase 1 只取摘要，不粘贴完整文件
    - Phase 2 每个模型分析控制在 300 行内
    - 代码证据只引用关键片段（3-10 行）

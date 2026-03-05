@@ -85,7 +85,7 @@ Without clear read-only boundaries and evidence chains, full reconstruction must
 * **Organization Contract**: Required. Following `docs/orchestration-contract.md`, scheduling is implemented through the runtime adaptation layer.
 * **ace-tool (MCP)**: Required. Semantic search project code structure, architectural patterns, and entry files.
 * **Exa MCP**: Recommended. Search framework best practices and technology stack documentation.
-* **Unified Dispatch API**: Required. Scheduling the oracle/deep/visual-engineering Agent via `dispatch_job()`.
+* **Unified scheduling interface**: Required. Scheduling the oracle/deep/visual-engineering Agent via `schedule_task()`.
 
 ## Critical Rules
 
@@ -239,16 +239,16 @@ Generate `context/module-fingerprints.json`, providing a baseline for subsequent
 
 #### Step 2.1: Multi-Agent concurrent analysis
 
-**CRITICAL**: Each Agent must initiate concurrently in the same message (`execution_mode: "background"`).
+**CRITICAL**: Each Agent must initiate concurrently in the same message (`run_mode: "background"`).
 
 Each Agent reads `context/project-snapshot.md` and `context/generation-plan.md`, analyzing each directory in the build plan.
 
 **oracle analysis** (architectural perspective):
 ```
-dispatch_job(
- role: "oracle",
+schedule_task(
+ specialist: "oracle",
  capabilities: ["arc:init:full"],
- execution_mode: "background",
+ run_mode: "background",
 description: "oracle architecture analysis",
 prompt: "You are the project document architect.
 Read <output_dir>/context/project-snapshot.md and <output_dir>/context/generation-plan.md.
@@ -270,10 +270,10 @@ Project path: <project_path>"
 
 **deep analysis** (engineering perspective):
 ```
-dispatch_job(
- lane: "deep",
+schedule_task(
+ workstream: "deep",
  capabilities: ["arc:init:full"],
- execution_mode: "background",
+ run_mode: "background",
 description: "deep engineering analysis",
 prompt: "You are a backend engineering analyst.
 Read <output_dir>/context/project-snapshot.md and <output_dir>/context/generation-plan.md.
@@ -292,10 +292,10 @@ Write to <output_dir>/agents/deep/analysis.md. "
 
 **visual-engineering analysis** (DX/experience perspective):
 ```
-dispatch_job(
- lane: "visual-engineering",
+schedule_task(
+ workstream: "visual-engineering",
  capabilities: ["arc:init:full", "frontend-ui-ux"],
- execution_mode: "background",
+ run_mode: "background",
 description: "visual-engineering DX analysis",
 prompt: "You are a front-end and developer experience analyst.
 Read <output_dir>/context/project-snapshot.md and <output_dir>/context/generation-plan.md.
@@ -314,7 +314,7 @@ Write to <output_dir>/agents/visual-engineering/analysis.md. "
 
 #### Step 2.2: Wait for completion
 
-Wait for each Agent background task to complete (use `background_output(task_id="...")` to collect results).
+Wait for each Agent background task to complete (use `collect_task_output(task_id="...")` to collect results).
 
 ---
 
@@ -335,16 +335,16 @@ Each Agent must:
 4. **Challenge Maturity Judgment** (Attached is file path evidence)
 5. **Suggest corrections**
 
-**oracle rebuttal deep + visual-engineering** (using `dispatch_job(role="oracle", continuation_id="<reuse>", ...)`):
+**oracle rebuttal deep + visual-engineering** (using `schedule_task(specialist="oracle", session_ref="<reuse>", ...)`):
 - Read `agents/deep/analysis.md` and `agents/visual-engineering/analysis.md`
 - Output `agents/oracle/critique.md`
 
-**deep rebuttal to oracle + visual-engineering** (using `dispatch_job(lane="deep", continuation_id="<reuse>", ...)`):
+**deep rebuttal to oracle + visual-engineering** (using `schedule_task(workstream="deep", session_ref="<reuse>", ...)`):
 - Read `agents/oracle/analysis.md` and `agents/visual-engineering/analysis.md`
 - Rebuttal from an engineering/build/test perspective
 - Output `agents/deep/critique.md`
 
-**visual-engineering rebuttal to oracle + deep** (using `dispatch_job(lane="visual-engineering", continuation_id="<reuse>", ...)`):
+**visual-engineering rebuttal to oracle + deep** (using `schedule_task(workstream="visual-engineering", session_ref="<reuse>", ...)`):
 - Read `agents/oracle/analysis.md` and `agents/deep/analysis.md`
 - Refutation from the front-end/DX/document perspective
 - Output `agents/visual-engineering/critique.md`

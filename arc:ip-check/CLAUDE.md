@@ -44,33 +44,33 @@
 
 ```typescript
 // Phase 2: 并发启动三Agent
-dispatch_job(
-  role="oracle",
+schedule_task(
+  specialist="oracle",
   capabilities=["arc:ip-check"],
-  execution_mode="background",
+  run_mode="background",
   description="Oracle评估技术创新性与专利可行性",
   prompt="..."
 )
-dispatch_job(
-  lane="deep",
+schedule_task(
+  workstream="deep",
   capabilities=["arc:ip-check"],
-  execution_mode="background",
+  run_mode="background",
   description="Deep评估代码完整性与软著可行性",
   prompt="..."
 )
-dispatch_job(
-  lane="writing",
+schedule_task(
+  workstream="writing",
   capabilities=["arc:ip-check"],
-  execution_mode="background",
+  run_mode="background",
   description="Writing评估文档完备性与申请准备度",
   prompt="..."
 )
 
-// Phase 3: 交叉反驳(复用continuation_id)
-dispatch_job(
-  continuation_id="<oracle_continuation_id>",
+// Phase 3: 交叉反驳(复用session_ref)
+schedule_task(
+  session_ref="<oracle_session_ref>",
   capabilities=["arc:ip-check"],
-  execution_mode="foreground",
+  run_mode="foreground",
   description="Oracle交叉反驳Deep和Momus",
   prompt="..."
 )

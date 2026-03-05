@@ -50,33 +50,33 @@
 
 ```typescript
 // Phase 2: 并发启动三Agent起草
-dispatch_job(
-  role="oracle",
+schedule_task(
+  specialist="oracle",
   capabilities=["arc:ip-draft"],
-  execution_mode="background",
+  run_mode="background",
   description="Oracle起草技术方案描述",
   prompt="..."
 )
-dispatch_job(
-  lane="deep",
+schedule_task(
+  workstream="deep",
   capabilities=["arc:ip-draft"],
-  execution_mode="background",
+  run_mode="background",
   description="Deep起草实现细节",
   prompt="..."
 )
-dispatch_job(
-  lane="writing",
+schedule_task(
+  workstream="writing",
   capabilities=["arc:ip-draft"],
-  execution_mode="background",
+  run_mode="background",
   description="Writing起草用户文档",
   prompt="..."
 )
 
-// Phase 3: 交叉审阅(复用continuation_id)
-dispatch_job(
-  continuation_id="<oracle_continuation_id>",
+// Phase 3: 交叉审阅(复用session_ref)
+schedule_task(
+  session_ref="<oracle_session_ref>",
   capabilities=["arc:ip-draft"],
-  execution_mode="foreground",
+  run_mode="foreground",
   description="Oracle审阅Deep和Momus草稿",
   prompt="..."
 )

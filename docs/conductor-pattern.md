@@ -17,7 +17,7 @@ The Conductor Pattern enables chained skill orchestration, where one skill (the 
 │  1. PLAN    ──▶  2. DELEGATE  ──▶  3. VERIFY  ──▶  4. ITERATE │
 │       │               │                  │                │
 │       ▼               ▼                  ▼                │
-│   Generate     dispatch_job()        Collect            Loop
+│   Generate     schedule_task()        Collect            Loop
 │   Workflow        Dispatch           Results            Back
 │                                                       │
 └─────────────────────────────────────────────────────────────┘
@@ -40,7 +40,7 @@ The Conductor Pattern enables chained skill orchestration, where one skill (the 
 
 The Conductor is responsible for:
 - **Planning**: Generate a workflow with ordered steps
-- **Delegation**: Dispatch tasks to Worker skills via unified Dispatch API
+- **Delegation**: Dispatch tasks to Worker skills via unified Scheduling API
 - **Verification**: Collect and validate results
 - **Iteration**: Loop back on failure or continue on success
 
@@ -114,27 +114,27 @@ workflow:
 
 ### 4. Session Continuity
 
-Workers maintain session continuity via `continuation_id`:
+Workers maintain session continuity via `session_ref`:
 
 ```python
 # Step 1: Initial delegation
-result = dispatch_job(
+result = schedule_task(
     skill="arc:clarify",
     prompt="...",
-    execution_mode="background"
+    run_mode="background"
 )
-continuation_id = result["continuation_id"]
+session_ref = result["session_ref"]
 
 # Step 2: Continue session
-result = dispatch_job(
-    continuation_id=continuation_id,
+result = schedule_task(
+    session_ref=session_ref,
     prompt="Continue with the enhanced prompt..."
 )
 
 # Step 3: Pass to next worker with context
-result = dispatch_job(
+result = schedule_task(
     skill="arc:build",
-    prompt=f"Based on refinement session {continuation_id}..."
+    prompt=f"Based on refinement session {session_ref}..."
 )
 ```
 
@@ -294,7 +294,7 @@ for step in conductor.steps(run.id):
 
 ### Orchestration Anti-Patterns
 
-- **Orphan Sessions**: Failing to pass `continuation_id` between workers — breaks continuity
+- **Orphan Sessions**: Failing to pass `session_ref` between workers — breaks continuity
 - **Infinite Loops**: No max_iterations limit — stuck forever on failures
 - **Blind Delegation**: Dispatching without verifying worker completion — lost results
 - **State Blindness**: Not persisting workflow state — can't resume after interruption

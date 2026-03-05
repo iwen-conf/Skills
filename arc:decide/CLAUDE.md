@@ -113,7 +113,7 @@ arc:decide 通过共享文件系统协调 oracle、deep、visual-engineering 三
 |------|------|------|
 | ace-tool MCP | 必须 | 搜索项目代码结构 |
 | Exa MCP | 推荐 | 搜索最佳实践和技术文档 |
-| 运行时无关编排层 Dispatch API | 必须 | Agent 调度（lane/role 路由） |
+| 运行时无关编排层 Scheduling API | 必须 | Agent 调度（lane/role 路由） |
 | openspec CLI | 必须 | 结构化计划生成 |
 
 ## 数据模型
@@ -236,14 +236,14 @@ graph TD
 ## 注意事项
 
 1. **Agent 调用方式**：
-   - oracle: `dispatch_job(role="oracle", capabilities=["arc:decide"], execution_mode="background")`
-   - deep: `dispatch_job(lane="deep", capabilities=["arc:decide"], execution_mode="background")`
-   - visual-engineering: `dispatch_job(lane="visual-engineering", capabilities=["arc:decide", "frontend-ui-ux"], execution_mode="background")`
-   - visual: `dispatch_job(lane="visual-engineering", capabilities=["frontend-ui-ux"], execution_mode="background")`
+   - oracle: `schedule_task(specialist="oracle", capabilities=["arc:decide"], run_mode="background")`
+   - deep: `schedule_task(workstream="deep", capabilities=["arc:decide"], run_mode="background")`
+   - visual-engineering: `schedule_task(workstream="visual-engineering", capabilities=["arc:decide", "frontend-ui-ux"], run_mode="background")`
+   - visual: `schedule_task(workstream="visual-engineering", capabilities=["frontend-ui-ux"], run_mode="background")`
 
 2. **并发执行**：
    - 各Agent必须在同一消息中并发发起
-   - 使用 `execution_mode: "background"`
+   - 使用 `run_mode: "background"`
 
 3. **OpenSpec 工作流**：
    - 必须按 `proposal → specs → design → tasks` 顺序生成

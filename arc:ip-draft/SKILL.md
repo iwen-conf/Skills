@@ -95,7 +95,7 @@ High-confidence technical document drafts should not be output without review ha
 - **arc:ip-check** (strongly recommended): as the main input.
 - **ace-tool MCP** (required): Correct technical details and code evidence in the documentation.
 - **arc:init** (recommended): Reuse module index to reduce repeated scanning.
-- **Dispatch API** (required): Dispatch `oracle` / `deep` / `writing` three Agent collaboration.
+- **Scheduling API** (required): Dispatch `oracle` / `deep` / `writing` three Agent collaboration.
 
 ## Context Priority (mandatory)
 
@@ -194,10 +194,10 @@ python arc:ip-draft/scripts/scaffold_drafting_case.py \
 
 ```typescript
 // Oracle: Technical solution description
-dispatch_job(
-  role="oracle",
+schedule_task(
+  specialist="oracle",
   capabilities=["arc:ip-draft"],
-  execution_mode="background",
+  run_mode="background",
 description="Oracle drafting technical solution description",
   prompt=`
 [TASK]: Draft technical solution description and the core part of the patent technology briefing document
@@ -235,10 +235,10 @@ description="Oracle drafting technical solution description",
 )
 
 // Deep: Implementation details and technical effects
-dispatch_job(
-  lane="deep",
+schedule_task(
+  workstream="deep",
   capabilities=["arc:ip-draft"],
-  execution_mode="background",
+  run_mode="background",
 description="Deep drafting implementation details and technical effects",
   prompt=`
 [TASK]: Draft code implementation details, algorithm description and technical effect quantification
@@ -276,10 +276,10 @@ description="Deep drafting implementation details and technical effects",
 )
 
 // Writing: User documentation and function description
-dispatch_job(
-  lane="writing",
+schedule_task(
+  workstream="writing",
   capabilities=["arc:ip-draft"],
-  execution_mode="background",
+  run_mode="background",
 description="Writing drafting user documentation and function description",
   prompt=`
 [TASK]: Drafting user manuals, operating instructions and software application abstracts
@@ -319,7 +319,7 @@ description="Writing drafting user documentation and function description",
 )
 ```
 
-**Wait for the three Agents to complete** and use `background_output(task_id="...")` to collect the results.
+**Wait for the three Agents to complete** and use `collect_task_output(task_id="...")` to collect the results.
 
 ### Phase 3: Cross-review
 
@@ -327,10 +327,10 @@ description="Writing drafting user documentation and function description",
 
 ```typescript
 // Oracle reviews Deep and Writing
-dispatch_job(
-continuation_id="<oracle_continuation_id>", // Reuse Phase 2 session
+schedule_task(
+session_ref="<oracle_session_ref>", // Reuse Phase 2 session
   capabilities=["arc:ip-draft"],
-  execution_mode="foreground",
+  run_mode="foreground",
 description="Oracle cross-review Deep and Writing",
   prompt=`
 [TASK]: Review Deep and Writing documents to ensure technical accuracy and terminology consistency
