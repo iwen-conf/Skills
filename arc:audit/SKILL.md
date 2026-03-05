@@ -1,6 +1,6 @@
 ---
 name: "arc:audit"
-description: "项目体检：七维评审并输出 HTML 可视化报告、风险与改进路线。"
+description: "项目体检与七维质量评审，输出评分、风险与改进路线；当用户说“代码质量审查/technical audit/health check/技术尽调”时触发。"
 ---
 
 # Enterprise-level project review (multi-agent confrontational)

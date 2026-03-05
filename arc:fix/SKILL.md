@@ -1,6 +1,6 @@
 ---
 name: arc:fix
-description: "故障修复：定位根因、修复并闭环验证。"
+description: "故障修复闭环：定位根因、实施修复并回归验证；当用户说“线上故障/bug 修复/incident triage/fix broken flow”时触发。"
 ---
 
 # UI/UX defect troubleshooting and repair (based on arc:e2e, industrialization)

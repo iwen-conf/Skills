@@ -1,6 +1,6 @@
 ---
 name: "arc:uml"
-description: "UML 建模：基于代码生成标准 UML 与陈氏 E-R。"
+description: "UML 与 Chen E-R 建模：基于代码证据生成标准图谱；当用户说“画架构图/UML 建模/sequence diagram/ER 图”时触发。"
 ---
 
 # arc:uml — Project UML diagram generation
@@ -129,6 +129,30 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 - UML diagrams: follow UML standard semantics and are expressed using Mermaid syntax (recommended semantic baseline UML 2.5.1).
 - E-R diagram: Use Mermaid syntax to express Chen's drawing method; use of Crow's Foot / IDEF1X instead is prohibited.
 - See `references/notation-standards.md` for the determination details.
+
+### Mermaid Chen E-R 示例
+
+```mermaid
+flowchart LR
+  customer["实体: Customer"]
+  places{"联系: Places"}
+  order["实体: Order"]
+  customer_id((主键属性: customer_id))
+  customer_name((属性: name))
+  order_id((主键属性: order_id))
+  order_total((属性: total_amount))
+
+  customer ---|1| places
+  places ---|N| order
+  customer --- customer_id
+  customer --- customer_name
+  order --- order_id
+  order --- order_total
+
+  style customer stroke-width:2px
+  style order stroke-width:2px
+  style places stroke-width:2px
+```
 
 ## Dependencies
 

@@ -23,6 +23,24 @@
 - **联系基数**：在连线上按 Chen 风格标注（如 1, N）
 - 语法实现：使用 Mermaid `flowchart` 表达陈氏符号语义，不得切换到其他 DSL
 
+### Mermaid Chen 示例
+
+```mermaid
+flowchart LR
+  user["实体: User"]
+  owns{"联系: Owns"}
+  account["实体: Account"]
+  user_id((主键属性: user_id))
+  account_id((主键属性: account_id))
+  tags((多值属性: tags))
+
+  user ---|1| owns
+  owns ---|N| account
+  user --- user_id
+  account --- account_id
+  user --- tags
+```
+
 ## 禁止事项
 
 - 用 Crow's Foot / IDEF1X 代替陈氏 E-R。

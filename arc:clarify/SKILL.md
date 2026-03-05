@@ -1,6 +1,6 @@
 ---
 name: "arc:clarify"
-description: "需求澄清：补齐上下文并产出可执行提示。"
+description: "需求澄清与提示词增强：补齐上下文、识别歧义并产出可执行输入；当用户说“需求不清楚/clarify requirements/refine prompt”时触发。"
 ---
 
 # Question Refiner

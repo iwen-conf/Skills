@@ -1,6 +1,6 @@
 ---
 name: "arc:ip-draft"
-description: "知产起草：根据审查结果生成申请文档草稿。"
+description: "知识产权申请文档起草：基于审查结论生成软著/专利草稿；当用户说“撰写专利/起草软著材料/draft IP filing”时触发。"
 ---
 
 # arc:ip-draft — patent/software document writing

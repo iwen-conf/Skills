@@ -1,6 +1,6 @@
 ---
 name: "arc:ip-check"
-description: "知产审查：评估软著/专利可行性与风险。"
+description: "知识产权可行性审查：评估软著/专利价值、风险与申报优先级；当用户说“专利评估/IP review/FTO 风险”时触发。"
 ---
 
 # arc:ip-check — project patent/software review report

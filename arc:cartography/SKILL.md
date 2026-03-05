@@ -1,6 +1,6 @@
 ---
 name: arc:cartography
-description: "仓库地图：生成或刷新分层 codemap。"
+description: "仓库地图与分层 codemap 生成/刷新；当用户说“梳理代码结构/仓库导览/repo map/codebase overview”时触发。"
 ---
 
 # arc:cartography Skill
@@ -92,6 +92,10 @@ suggestion:
 - Tier 1: Quick search entrance
 - Tier 2: Module relationship analysis
 - Tier 3: Deep Implementation Context
+
+Tier schema and examples:
+- Canonical schema: [`../schemas/codemap.schema.json`](../schemas/codemap.schema.json)
+- Tier 1/2/3 examples: [`references/tiered-json-examples.md`](references/tiered-json-examples.md)
 
 ### Step 5: Directory concurrency analysis and root graph summary
 

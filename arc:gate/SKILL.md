@@ -1,6 +1,6 @@
 ---
 name: "arc:gate"
-description: "合并/上线门禁：基于评分阈值与豁免策略给出 Go/No-Go，并输出 CI 可消费结果。"
+description: "合并/上线门禁决策：基于阈值、豁免与证据给出 Go/No-Go；当用户说“是否可合并/发布门禁/release gate”时触发。"
 ---
 
 # arc:gate -- merge/release gate decision

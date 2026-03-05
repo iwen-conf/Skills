@@ -1,6 +1,6 @@
 ---
 name: "arc:init"
-description: "索引维护：统一入口自动更新项目索引。"
+description: "项目索引与上下文中枢维护：初始化或更新共享索引产物；当用户说“初始化项目索引/bootstrap context/update index”时触发。"
 ---
 
 # arc:init — Intelligent scheduler

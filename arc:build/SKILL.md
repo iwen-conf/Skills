@@ -1,6 +1,6 @@
 ---
 name: "arc:build"
-description: "代码交付：按方案实施变更并输出验证与交接。"
+description: "代码交付与实施落地：按既定方案改代码并给出验证与交接；当用户说“实现这个方案/落地开发/implement this plan”时触发。"
 ---
 
 # arc:build — implementation of the solution

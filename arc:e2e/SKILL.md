@@ -1,6 +1,6 @@
 ---
 name: "arc:e2e"
-description: "E2E 验证：按真实路径执行并沉淀证据。"
+description: "真实路径 E2E 验证与证据沉淀；当用户说“端到端测试/用户流程回归/e2e test/browser journey”时触发。"
 ---
 # **UI/UX Simulation & E2E Testing**
 
