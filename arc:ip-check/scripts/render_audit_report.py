@@ -11,7 +11,7 @@ from pathlib import Path
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Render ip-audit report artifacts")
-    parser.add_argument("--case-dir", required=True, help="Path to .arc/ip-audit/<project>")
+    parser.add_argument("--case-dir", required=True, help="Path to .arc/arc:ip-check/<project>")
     parser.add_argument("--project-name", required=True)
     parser.add_argument("--software-name", default="待命名软件")
     parser.add_argument("--applicant-type", default="enterprise")

@@ -283,14 +283,13 @@ def _to_markdown(data: dict[str, Any]) -> str:
         lines.append("| Step | Role | Action | Expected | Actual | Evidence |")
         lines.append("|------|------|--------|----------|--------|----------|")
         for row in failing_steps[:20]:
+            row_values = {
+                key: str(row.get(key, ""))
+                for key in ("step", "role", "action", "expected", "actual", "evidence")
+            }
             lines.append(
                 "| {step} | {role} | {action} | {expected} | {actual} | {evidence} |".format(
-                    step=str(row.get("step", "")),
-                    role=str(row.get("role", "")),
-                    action=str(row.get("action", "")),
-                    expected=str(row.get("expected", "")),
-                    actual=str(row.get("actual", "")),
-                    evidence=str(row.get("evidence", "")),
+                    **row_values
                 )
             )
     lines.append("")

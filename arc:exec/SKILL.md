@@ -602,7 +602,7 @@ Show users:
 └── rollback.sh # Rollback script
 ```
 
-> The working directory of a specific skill is defined by the respective SKILL.md (such as `.arc/init/`, `.arc/review/`, etc.).
+> The working directory of a specific skill is defined by the respective SKILL.md (such as `.arc/arc:init/`, `.arc/arc:audit/`, etc.).
 
 ## Timeouts and downgrades
 
@@ -703,4 +703,4 @@ Priority must be obtained according to the following context before scheduling:
 4. **Priority 3**: Project source code scanning (ace-tool MCP) — generate temporary snapshots
 5. **Priority 4**: External Reference Search (Exa MCP) — Search official documentation and best practices
 
-See the "Context Priority Protocol" chapter in [CLAUDE.md](../CLAUDE.md) for details.
+See `docs/orchestration-contract.md` and `docs/arc-routing-matrix.md` for details.

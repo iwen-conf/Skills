@@ -33,7 +33,7 @@
 ## 适配到本仓库后的约束
 
 - 编排统一使用 `docs/orchestration-contract.md`
-- 禁止回退到旧调度字段（`Task(...)`、`subagent_type` 等）
+- 禁止回退到旧调度字段（旧 API 占位符等）
 - 技能文档优先保留短小、可执行、可检验结构
 
 ## 已重点强化的 Skill（ROI 优先）

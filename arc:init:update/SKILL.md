@@ -72,9 +72,9 @@ No incremental writes are allowed without evidence of fingerprint differences.
 
 **The following conditions must be met to run**:
 
-1. `.arc/init/context/module-fingerprints.json` exists
-2. `.arc/init/context/project-snapshot.md` exists
-3. `.arc/init/context/generation-plan.md` exists
+1. `.arc/arc:init/context/module-fingerprints.json` exists
+2. `.arc/arc:init/context/project-snapshot.md` exists
+3. `.arc/arc:init/context/generation-plan.md` exists
 
 > If not satisfied, the user is prompted to run `arc:init` or `arc:init:full` for full initialization.
 
@@ -131,9 +131,9 @@ No incremental writes are allowed without evidence of fingerprint differences.
 
 #### Step U1.1: Load baseline
 
-1. Read `.arc/init/context/module-fingerprints.json`
-2. Read `.arc/init/context/generation-plan.md`
-3. Read `.arc/init/context/project-snapshot.md`
+1. Read `.arc/arc:init/context/module-fingerprints.json`
+2. Read `.arc/arc:init/context/generation-plan.md`
+3. Read `.arc/arc:init/context/project-snapshot.md`
 4. Record baseline git_ref
 
 #### Step U1.2: Git change detection
@@ -464,7 +464,7 @@ Update `summary.md`:
 ## Artifacts & Paths
 
 ```
-<project_path>/.arc/init/
+<project_path>/.arc/arc:init/
 ├── context/
 │ ├── project-snapshot.md # Update metadata
 │ ├── generation-plan.md # Update module list

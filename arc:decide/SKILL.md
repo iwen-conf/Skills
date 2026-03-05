@@ -117,7 +117,7 @@ Use **ace-tool MCP** for semantic search:
 |------|------|------|------|
 | `task_name` | string | yes | Task name, used for directory naming |
 | `workdir` | string | yes | Working directory absolute path |
-| `enhanced_prompt_path` | string | no | Enhance prompt path, read `.arc/deliberate/<task-name>/context/enhanced-prompt.md` by default |
+| `enhanced_prompt_path` | string | no | Enhance prompt path, read `.arc/arc:decide/<task-name>/context/enhanced-prompt.md` by default |
 | `max_rounds` | number | no | Maximum deliberation iteration rounds, default 3 |
 | `max_ambiguity_rounds` | number | no | Maximum ambiguity checking rounds, default 3 |
 
@@ -126,7 +126,7 @@ Use **ace-tool MCP** for semantic search:
 **Divided into directories by Agent role**, the output of all stages of each Agent is concentrated in its own directory:
 
 ```
-<workdir>/.arc/deliberate/<task-name>/
+<workdir>/.arc/arc:decide/<task-name>/
 ├── context/
 │ └── enhanced-prompt.md # arc:clarify output
 ├── agents/
@@ -183,9 +183,9 @@ schedule_task(
 description: "oracle ambiguity analysis",
 prompt: "You are an architect. Analyze the ambiguities of the following requirements.
 Contextual information: <MCP search results>
-Read <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md.
+Read <workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md.
 List all possible ambiguities, including: undefined boundary conditions, unclear constraints, possible different understandings of terminology, unstated assumptions, etc.
-Write the analysis results to <workdir>/.arc/deliberate/<task-name>/agents/oracle/ambiguity-round-N.md. "
+Write the analysis results to <workdir>/.arc/arc:decide/<task-name>/agents/oracle/ambiguity-round-N.md. "
 )
 ```
 
@@ -198,9 +198,9 @@ schedule_task(
 description: "deep ambiguity analysis",
 prompt: "You are a back-end architect. Analyze the ambiguities of the following requirements.
 Contextual information (from MCP search): <MCP search results>
-Read <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md.
+Read <workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md.
 List possible ambiguities from the perspectives of back-end architecture, technical constraints, performance requirements, etc.
-Write to <workdir>/.arc/deliberate/<task-name>/agents/deep/ambiguity-round-N.md. "
+Write to <workdir>/.arc/arc:decide/<task-name>/agents/deep/ambiguity-round-N.md. "
 )
 ```
 
@@ -213,9 +213,9 @@ schedule_task(
 description: "visual-engineering ambiguity analysis",
 prompt: "You are a front-end and DX engineer. Analyze the ambiguities of the following requirements.
 Contextual information (from MCP search): <MCP search results>
-Read <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md.
+Read <workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md.
 List possible ambiguities from the perspectives of user experience, completeness, maintainability, etc.
-Write to <workdir>/.arc/deliberate/<task-name>/agents/visual-engineering/ambiguity-round-N.md. "
+Write to <workdir>/.arc/arc:decide/<task-name>/agents/visual-engineering/ambiguity-round-N.md. "
 )
 ```
 
@@ -297,9 +297,9 @@ schedule_task(
   run_mode: "background",
 description: "oracle proposal Round N",
 prompt: "You are the architect (overall perspective, architectural design, technology selection).
-Read <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md.
+Read <workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md.
 Give a complete solution proposal, in plain text Markdown format only, code blocks are prohibited.
-Write the proposal to <workdir>/.arc/deliberate/<task-name>/agents/oracle/proposal-round-N.md. "
+Write the proposal to <workdir>/.arc/arc:decide/<task-name>/agents/oracle/proposal-round-N.md. "
 )
 ```
 
@@ -311,9 +311,9 @@ schedule_task(
   run_mode: "background",
 description: "deep proposal Round N",
 prompt: "You are a backend architect (backend architecture, performance optimization, database, security).
-Read <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md.
+Read <workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md.
 Give a complete solution proposal, in plain text Markdown format only, code blocks are prohibited.
-Write to <workdir>/.arc/deliberate/<task-name>/agents/deep/proposal-round-N.md. "
+Write to <workdir>/.arc/arc:decide/<task-name>/agents/deep/proposal-round-N.md. "
 )
 ```
 
@@ -325,9 +325,9 @@ schedule_task(
   run_mode: "background",
 description: "visual-engineering proposal Round N",
 prompt: "You are a front-end and DX engineer (UI/UX, user experience, responsive design, maintainability).
-Read <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md.
+Read <workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md.
 Give a complete solution proposal, in plain text Markdown format only, code blocks are prohibited.
-Write to <workdir>/.arc/deliberate/<task-name>/agents/visual-engineering/proposal-round-N.md. "
+Write to <workdir>/.arc/arc:decide/<task-name>/agents/visual-engineering/proposal-round-N.md. "
 )
 ```
 
@@ -406,7 +406,7 @@ OpenSpec uses a spec-driven workflow to generate artifacts in `proposal → spec
 Initialize OpenSpec and create changes within the review workspace:
 
 ```bash
-cd <workdir>/.arc/deliberate/<task-name>
+cd <workdir>/.arc/arc:decide/<task-name>
 openspec init --tools none
 openspec new change <task-name>
 ```
@@ -427,7 +427,7 @@ For each artifact (proposal → specs → design → tasks), execute the followi
 
 1. **Get OpenSpec structured directives**:
 ```bash
-cd <workdir>/.arc/deliberate/<task-name>
+cd <workdir>/.arc/arc:decide/<task-name>
 openspec instructions <artifact> --change <task-name>
 ```
 The `openspec instructions` output contains `<instruction>` (writing guide), `<template>` (structural template), and `<output>` (target write path).
@@ -443,7 +443,7 @@ description: "OpenSpec proposal generation",
   mode: "bypassPermissions",
 prompt: "Generate OpenSpec proposal based on consensus report.
 Read the following files:
-- <workdir>/.arc/deliberate/<task-name>/convergence/final-consensus.md
+- <workdir>/.arc/arc:decide/<task-name>/convergence/final-consensus.md
 
 Fill out the proposal according to the following OpenSpec instructions:
 <Paste full output of openspec instructions proposal here>
@@ -474,7 +474,7 @@ Repeat the above process for `specs`, `design`, and `tasks`. Each artifact must 
 After the generation is completed, verify the artifact structural integrity and change status:
 
 ```bash
-cd <workdir>/.arc/deliberate/<task-name>
+cd <workdir>/.arc/arc:decide/<task-name>
 openspec validate --change <task-name>
 openspec status --change <task-name>
 ```
@@ -486,7 +486,7 @@ openspec status --change <task-name>
 
 After OpenSpec generates the plan, **Multi-Agent concurrent independent review** (same message, `run_mode: "background"`).
 
-> The following path abbreviation `$CHANGE` stands for `<workdir>/.arc/deliberate/<task-name>/openspec/changes/<task-name>`.
+> The following path abbreviation `$CHANGE` stands for `<workdir>/.arc/arc:decide/<task-name>/openspec/changes/<task-name>`.
 
 **oracle review plan** (architectural perspective):
 ```
@@ -506,7 +506,7 @@ Review requirements:
 2. Refute unreasonable task ordering or dependencies
 3. Check plan for consistency with consensus reporting
 4. Give suggestions for modifications
-Write the review results to <workdir>/.arc/deliberate/<task-name>/agents/oracle/plan-review.md. "
+Write the review results to <workdir>/.arc/arc:decide/<task-name>/agents/oracle/plan-review.md. "
 )
 ```
 
@@ -528,7 +528,7 @@ Review requirements:
 2. Refute unreasonable task ordering or dependencies
 3. Supplement missing backend related tasks
 4. Give suggestions for modifications
-Write to <workdir>/.arc/deliberate/<task-name>/agents/deep/plan-review.md. "
+Write to <workdir>/.arc/arc:decide/<task-name>/agents/deep/plan-review.md. "
 )
 ```
 
@@ -550,7 +550,7 @@ Review requirements:
 2. Refute unreasonable design choices
 3. Supplement missing front-end related tasks
 4. Give suggestions for modifications
-Write to <workdir>/.arc/deliberate/<task-name>/agents/visual-engineering/plan-review.md. "
+Write to <workdir>/.arc/arc:decide/<task-name>/agents/visual-engineering/plan-review.md. "
 )
 ```
 
@@ -589,7 +589,7 @@ The main process handles it directly, integrates various review reports, and rev
 ### Step 3.6: Final verification and archiving
 
 ```bash
-cd <workdir>/.arc/deliberate/<task-name>
+cd <workdir>/.arc/arc:decide/<task-name>
 # final verification
 openspec validate --change <task-name>
 openspec status --change <task-name>
@@ -612,10 +612,10 @@ schedule_task(
   workstream: "deep",
   capabilities: ["arc:decide"],
 description: "Execution Review Plan",
-prompt: "According to the task list in .arc/deliberate/<task-name>/openspec/changes/<task-name>/tasks.md, execute the code implementation in sequence.
+prompt: "According to the task list in .arc/arc:decide/<task-name>/openspec/changes/<task-name>/tasks.md, execute the code implementation in sequence.
 Also refer to:
-- .arc/deliberate/<task-name>/openspec/changes/<task-name>/design.md (Architecture Design)
-- .arc/deliberate/<task-name>/openspec/changes/<task-name>/specs/ (specification constraints)
+- .arc/arc:decide/<task-name>/openspec/changes/<task-name>/design.md (Architecture Design)
+- .arc/arc:decide/<task-name>/openspec/changes/<task-name>/specs/ (specification constraints)
 Working directory: <workdir>
 Only output the implementation results, do not ask for confirmation.
 EOF
@@ -630,7 +630,7 @@ After execution completes, verify that the code meets the output requirements de
 After all tasks are completed, archive the OpenSpec changes:
 
 ```bash
-cd <workdir>/.arc/deliberate/<task-name>
+cd <workdir>/.arc/arc:decide/<task-name>
 openspec archive <task-name>
 ```
 

@@ -136,7 +136,7 @@ Assemble a structured enhanced prompt, consisting of four parts:
 Write the complete enhanced prompt to the shared directory:
 
 ```
-<workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md
+<workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md
 ```
 
 ## Quick Reference
@@ -175,7 +175,7 @@ Write the complete enhanced prompt to the shared directory:
 ### Output Anti-Patterns
 
 - **Missing Success Criteria**: Enhanced prompt without verification checklist — how to know it's done?
-- **Orphaned Output**: Not writing enhanced-prompt.md to `.arc/deliberate/` — breaks arc:decide consumption
+- **Orphaned Output**: Not writing enhanced-prompt.md to `.arc/arc:decide/` — breaks arc:decide consumption
 ## Integration
 
 After this Skill is completed, it is recommended to continue calling `arc:decide` Skill for multi-Agent deliberation.
@@ -187,7 +187,7 @@ If the shared product is found to be invalid during the refinement process:
 
 ```
 Problem refinement completed. Enhanced prompt has been written:
-.arc/deliberate/<task-name>/context/enhanced-prompt.md
+.arc/arc:decide/<task-name>/context/enhanced-prompt.md
 
 You can continue to call `arc decide` for multi-Agent deliberation.
 ```

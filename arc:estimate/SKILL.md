@@ -229,14 +229,14 @@ Use known tasks to calibrate estimates:
 
 ### Reads From
 
-- `.arc/deliberate/` — Deliberation results with task breakdown
-- `.arc/refine/` — Refined prompts with context
+- `.arc/arc:decide/` — Deliberation results with task breakdown
+- `.arc/arc:clarify/` — Refined prompts with context
 - `CLAUDE.md` — Project structure and patterns
 - `codemap.md` — Code organization for understanding
 
 ### Writes To
 
-- `.arc/estimate/` — Estimation reports and wave plans
+- `.arc/arc:estimate/` — Estimation reports and wave plans
 
 ### Dependencies
 

@@ -91,7 +91,7 @@ Must follow the link below to collaborate:
 | `software_name` | string | no | Apply for a software name; if not provided, use a temporary name and mark it in the report |
 | `applicant_type` | enum | no | `individual` / `enterprise` / `institution`, default `enterprise` |
 | `business_goal` | string | no | Product business goals (used to evaluate application priority) |
-| `output_dir` | string | no | Default `<project_path>/.arc/ip-audit/<project-name>/` |
+| `output_dir` | string | no | Default `<project_path>/.arc/arc:ip-check/<project-name>/` |
 
 ## Dependencies
 
@@ -106,8 +106,8 @@ Must follow the link below to collaborate:
 
 Strictly follow `.arc/context-priority-protocol.md`:
 
-1. `.arc/ip-audit/<project>/context/project-ip-snapshot.md`(24h)
-2. `.arc/review/<project>/` already has a review report
+1. `.arc/arc:ip-check/<project>/context/project-ip-snapshot.md`(24h)
+2. `.arc/arc:audit/<project>/` already has a review report
 3. Project `CLAUDE.md` Hierarchy Index (7 days)
 4. `ace-tool` Source code semantic scanning
 5. `Exa` external reference
@@ -141,7 +141,7 @@ If the first three levels of information are insufficient, the scan must be down
 ### file system communication
 
 ```
-<project_path>/.arc/ip-audit/<project-name>/
+<project_path>/.arc/arc:ip-check/<project-name>/
 ├── context/
 │ ├── project-ip-snapshot.md (shared input)
 │ └── external-references.md (Exa search results)
@@ -172,9 +172,9 @@ If the first three levels of information are insufficient, the scan must be down
 ### Phase 1: Context collection
 
 **Step 1.1: Check cache and index**
-1. Check if `.arc/ip-audit/<project>/context/project-ip-snapshot.md` exists and is fresh (<24h).
+1. Check if `.arc/arc:ip-check/<project>/context/project-ip-snapshot.md` exists and is fresh (<24h).
 2. Read the project `CLAUDE.md` level index (root level + core module level).
-3. If there is a `.arc/review/<project>/` review report, extract the architecture/technical debt/security conclusions.
+3. If there is a `.arc/arc:audit/<project>/` review report, extract the architecture/technical debt/security conclusions.
 
 **Step 1.2: Generate project snapshot**
 Use `ace-tool` to search for the following and generate `context/project-ip-snapshot.md`:
@@ -240,7 +240,7 @@ description="Oracle evaluates technological innovation and patent feasibility",
 - Do not confuse software and patent evaluation criteria
 - The output of other Agents must not be read at this stage (cross-rebuttal only in Phase 3)
 
-[CONTEXT]: Project path <project_path>, working directory .arc/ip-audit/<project-name>/
+[CONTEXT]: Project path <project_path>, working directory .arc/arc:ip-check/<project-name>/
 `
 )
 
@@ -281,7 +281,7 @@ description="Deep evaluates code integrity and software feasibility",
 - Do not confuse software and patent evaluation criteria
 - No other Agent output may be read at this stage
 
-[CONTEXT]: Project path <project_path>, working directory .arc/ip-audit/<project-name>/
+[CONTEXT]: Project path <project_path>, working directory .arc/arc:ip-check/<project-name>/
 `
 )
 
@@ -322,7 +322,7 @@ description="Writing evaluates document completeness and application readiness",
 - No legal advice may be given
 - No other Agent output may be read at this stage
 
-[CONTEXT]: Project path <project_path>, working directory .arc/ip-audit/<project-name>/
+[CONTEXT]: Project path <project_path>, working directory .arc/arc:ip-check/<project-name>/
 `
 )
 ```
@@ -361,7 +361,7 @@ description="Oracle Cross Refutation Deep and Writing",
 - Don’t simply agree with the other person’s point of view
 - No rebuttal without evidence
 
-[CONTEXT]: working directory .arc/ip-audit/<project-name>/
+[CONTEXT]: working directory .arc/arc:ip-check/<project-name>/
 `
 )
 
@@ -395,7 +395,7 @@ Generate `analysis/ip-assets.md`:
 Generate standardized reports using scripts:
 ```bash
 python arc:ip-check/scripts/render_audit_report.py \
-  --case-dir .arc/ip-audit/<project-name>/ \
+  --case-dir .arc/arc:ip-check/<project-name>/ \
   --project-name <project_name>
 ```
 
@@ -456,7 +456,7 @@ python arc:ip-check/scripts/format_compliance_checker.py \
 
 ## Artifacts
 
-Default output directory:`<project_path>/.arc/ip-audit/<project-name>/`
+Default output directory:`<project_path>/.arc/arc:ip-check/<project-name>/`
 
 - `context/project-ip-snapshot.md` (project snapshot)
 - `context/external-references.md` (external reference)

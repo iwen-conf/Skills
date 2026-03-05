@@ -51,7 +51,7 @@ Without clear read-only boundaries and evidence chains, full reconstruction must
 
 ## Quality Gates
 
-- Only writing to the `CLAUDE.md` and `.arc/init/` product directories is allowed.
+- Only writing to the `CLAUDE.md` and `.arc/arc:init/` product directories is allowed.
 - Each key conclusion must have source code or configuration evidence.
 - Links in the hierarchical index must be truly reachable.
 - The fingerprint and snapshot metadata must be updated after generation.
@@ -78,7 +78,7 @@ Without clear read-only boundaries and evidence chains, full reconstruction must
 | `depth_level` | string | no | Scan depth: `"shallow"` / `"standard"` / `"deep"`; default `"standard"` |
 | `max_module_depth` | number | no | Module-level CLAUDE.md maximum directory depth; default 3 |
 | `language` | string | no | Output language: `"zh-CN"` / `"en"`; default `"zh-CN"` |
-| `output_dir` | string | no | Working directory; default `<project_path>/.arc/init/` |
+| `output_dir` | string | no | Working directory; default `<project_path>/.arc/arc:init/` |
 
 ## Dependencies
 
@@ -94,7 +94,7 @@ Without clear read-only boundaries and evidence chains, full reconstruction must
  - It must be verified after generation, and verification failure must be repaired.
 
 1. **Only write CLAUDE.md, do not change the source code**
- - **Allow** writing to the CLAUDE.md file and the `.arc/init/` working directory.
+ - **Allow** writing to the CLAUDE.md file and the `.arc/arc:init/` working directory.
  - **Strictly Prohibited** Modification, deletion, or addition of any source code, configuration files, or other non-CLAUDE.md files of the scanned items.
 
 2. **Batch write confirmation**
@@ -439,7 +439,7 @@ If any problems are found, fix them immediately and re-check until everything pa
 ## Artifacts & Paths
 
 ```
-<project_path>/.arc/init/
+<project_path>/.arc/arc:init/
 ├── context/
 │ ├── project-snapshot.md # Phase 1: Project Snapshot
 │ ├── generation-plan.md # Phase 1: Generation plan

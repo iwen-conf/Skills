@@ -97,7 +97,7 @@ No ratings can be given without evidence, and no suggestions can be given withou
 | `depth_level` | string | no | Evaluation depth: `"quick"` / `"standard"` / `"deep"`; default `"standard"` |
 | `focus_areas` | array | no | Areas of special concern (such as `["security", "tech-debt"]`) will be analyzed more deeply in these dimensions. |
 | `business_flow_catalog` | array | no | Business flow list (such as `["signup->order->pay", "refund->reconcile"]`), used to compute flow-through rate and broken-flow rate |
-| `output_dir` | string | no | Output root directory; default `<project_path>/.arc/review/` |
+| `output_dir` | string | no | Output root directory; default `<project_path>/.arc/arc:audit/` |
 
 ## Dependencies
 
@@ -122,7 +122,7 @@ No ratings can be given without evidence, and no suggestions can be given withou
 
 1. **Read-Only without changing the code (Read-Only)**
    - **It is strictly prohibited** to modify, delete, or add any source code or configuration files of the reviewed project.
-   - **Allow** to create review output files in the `.arc/review/` directory.
+   - **Allow** to create review output files in the `.arc/arc:audit/` directory.
 
 2. **Must cite code evidence**
    - Each evaluation conclusion must be accompanied by a specific file path + line number or code snippet.
@@ -172,7 +172,7 @@ See `references/dimensions.md` for details. Each dimension contains inspection i
 
 **Before starting the project scan, check whether existing snapshots can be reused:**
 
-1. **Check if `.arc/review/<project-name>/context/project-snapshot.md` exists**
+1. **Check if `.arc/arc:audit/<project-name>/context/project-snapshot.md` exists**
 2. **Verify Snapshot Freshness**: Check generation time < 24 hours in snapshot metadata
 3. **Verify snapshot integrity**: Check whether the snapshot contains all required fields (basic information, directory structure, technology stack, code size, CI/CD, test structure)
 4. **If the snapshot exists and is fresh**:
@@ -190,7 +190,7 @@ Before entering Step 1.1, you must first try to reuse the upstream product:
 
 1. Read `.arc/context-hub/index.json` and retrieve the following products:
    - `.arc/score/<project>/handoff/review-input.json`
-   - `.arc/implement/<task>/handoff/change-summary.md` (if present)
+   - `.arc/arc:build/<task>/handoff/change-summary.md` (if present)
    - Latest `codemap.md` / `CLAUDE.md` metadata
 2. Verify product validity: `expires_at`, `content_hash`, path existence.
 3. If valid, it will be loaded directly into the review context to reduce the scope of repeated scanning.
@@ -466,7 +466,7 @@ Must be performed at the end of Phase 4:
 ```bash
 python3 <skills_root>/arc:audit/scripts/integrate_score.py \
   --project-path <project_path> \
-  --review-dir <project_path>/.arc/review/<project-name>
+  --review-dir <project_path>/.arc/arc:audit/<project-name>
 ```
 
 At least the following products should exist after execution:
@@ -481,7 +481,7 @@ If the `.arc/score/<project-name>/` quantification input is missing, you must fi
 ## Artifacts & Paths
 
 ```
-<workdir>/.arc/review/<project-name>/
+<workdir>/.arc/arc:audit/<project-name>/
 ├── context/
 │ └── project-snapshot.md # Snapshot of basic project information
 ├── oracle/
@@ -552,7 +552,7 @@ If the `.arc/score/<project-name>/` quantification input is missing, you must fi
 
 ### Review Process Anti-Patterns
 
-- **Source Modification**: Editing project source code during review — only write to `.arc/review/`
+- **Source Modification**: Editing project source code during review — only write to `.arc/arc:audit/`
 - **Single-Perspective Review**: Only evaluating one dimension — must cover all 7 ISO/IEC 25010 dimensions
 - **Business Blind Spot**: Not reporting business flow coverage and breakpoints in dimension 4
 - **Dependency Blind Spot**: Not quantifying outdated/vulnerable/unmaintained dependencies in dimension 7

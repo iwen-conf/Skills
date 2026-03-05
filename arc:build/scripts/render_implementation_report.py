@@ -10,7 +10,7 @@ from pathlib import Path
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Render arc:build output files")
-    parser.add_argument("--case-dir", required=True, help="Path to .arc/implement/<task>")
+    parser.add_argument("--case-dir", required=True, help="Path to .arc/arc:build/<task>")
     parser.add_argument("--task-name", required=True)
     parser.add_argument("--result", choices=["pass", "fail"], default="pass")
     parser.add_argument("--summary", default="实现完成，详见变更记录。")

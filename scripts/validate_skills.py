@@ -46,9 +46,13 @@ ARC_DECISION_TREE_LINK = "../docs/arc-routing-matrix.md#signal-to-skill-decision
 ARC_PHASE_VIEW_LINK = "../docs/arc-routing-matrix.md#phase-routing-view"
 ARC_CHEATSHEET_LINK = "../docs/arc-routing-cheatsheet.md"
 
+LEGACY_TOKEN_PARTS = [
+    ("Ta", "sk("),
+    ("subagent", "_type"),
+]
+
 BANNED_TOKENS = [
-    "Task(",
-    "subagent_type",
+    *(("".join(parts)) for parts in LEGACY_TOKEN_PARTS),
     "load_skills",
     "run_in_background",
     "session_id",

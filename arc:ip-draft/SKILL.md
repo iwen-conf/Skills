@@ -83,11 +83,11 @@ High-confidence technical document drafts should not be output without review ha
 |------|------|------|------|
 | `project_path` | string | yes | Absolute path to the target project root directory |
 | `project_name` | string | no | Deduced from path by default |
-| `audit_case_dir` | string | no | `arc:ip-check` Output directory; default `<project_path>/.arc/ip-audit/<project-name>/` |
+| `audit_case_dir` | string | no | `arc:ip-check` Output directory; default `<project_path>/.arc/arc:ip-check/<project-name>/` |
 | `software_name` | string | no | Software name, if not provided, it will be read from the handover file. |
 | `applicant_name` | string | no | Application subject name |
 | `target_docs` | enum | no | `copyright` / `patent` / `both`, default `both` |
-| `output_dir` | string | no | Default `<project_path>/.arc/ip-docs/<project-name>/` |
+| `output_dir` | string | no | Default `<project_path>/.arc/arc:ip-draft/<project-name>/` |
 
 ## Dependencies
 
@@ -100,7 +100,7 @@ High-confidence technical document drafts should not be output without review ha
 ## Context Priority (mandatory)
 
 1. `audit_case_dir/handoff/ip-drafting-input.json`
-2. `.arc/ip-docs/<project>/context/doc-context.md`
+2. `.arc/arc:ip-draft/<project>/context/doc-context.md`
 3. Project `CLAUDE.md`
 4. `ace-tool` Source code scan
 
@@ -130,7 +130,7 @@ High-confidence technical document drafts should not be output without review ha
 ### file system communication
 
 ```
-<project_path>/.arc/ip-docs/<project-name>/
+<project_path>/.arc/arc:ip-draft/<project-name>/
 ├── context/
 │ ├── doc-context.md (shared input)
 │ └── handoff-input.json (arc:ip-check handover)
@@ -230,7 +230,7 @@ description="Oracle drafting technical solution description",
 - The output of other agents must not be read at this stage (cross-review only in Phase 3)
 - Do not confuse the description style of software and patents
 
-[CONTEXT]: Project path <project_path>, working directory .arc/ip-docs/<project-name>/
+[CONTEXT]: Project path <project_path>, working directory .arc/arc:ip-draft/<project-name>/
 `
 )
 
@@ -271,7 +271,7 @@ description="Deep drafting implementation details and technical effects",
 - No other Agent output may be read at this stage
 - The complete source code may not be used (only key snippets)
 
-[CONTEXT]: Project path <project_path>, working directory .arc/ip-docs/<project-name>/
+[CONTEXT]: Project path <project_path>, working directory .arc/arc:ip-draft/<project-name>/
 `
 )
 
@@ -314,7 +314,7 @@ description="Writing drafting user documentation and function description",
 - No other Agent output may be read at this stage
 - Do not confuse soft copy abstracts with patent abstracts
 
-[CONTEXT]: Project path <project_path>, working directory .arc/ip-docs/<project-name>/
+[CONTEXT]: Project path <project_path>, working directory .arc/arc:ip-draft/<project-name>/
 `
 )
 ```
@@ -357,7 +357,7 @@ description="Oracle cross-review Deep and Writing",
 - Don’t simply agree with the other person’s point of view
 - No review without evidence
 
-[CONTEXT]: working directory .arc/ip-docs/<project-name>/
+[CONTEXT]: working directory .arc/arc:ip-draft/<project-name>/
 `
 )
 
@@ -382,7 +382,7 @@ Based on the review report, `convergence/terminology-alignment.md` is generated:
 Use a script to generate standardized documentation:
 ```bash
 python arc:ip-draft/scripts/render_ip_documents.py \
-  --case-dir .arc/ip-docs/<project-name>/ \
+  --case-dir .arc/arc:ip-draft/<project-name>/ \
   --handoff-json <audit_case_dir>/handoff/ip-drafting-input.json \
   --target-docs copyright
 ```
@@ -397,7 +397,7 @@ Generate files:
 
 ```bash
 python arc:ip-draft/scripts/render_ip_documents.py \
-  --case-dir .arc/ip-docs/<project-name>/ \
+  --case-dir .arc/arc:ip-draft/<project-name>/ \
   --handoff-json <audit_case_dir>/handoff/ip-drafting-input.json \
   --target-docs patent
 ```
@@ -436,7 +436,7 @@ python arc:ip-draft/scripts/render_ip_documents.py \
 
 ## Artifacts
 
-Default output directory:`<project_path>/.arc/ip-docs/<project-name>/`
+Default output directory:`<project_path>/.arc/arc:ip-draft/<project-name>/`
 
 - `context/doc-context.md` (document context)
 - `context/handoff-input.json` (arc:ip-check handover)

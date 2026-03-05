@@ -3,10 +3,10 @@
 integrate_score.py - 将 arc:score 量化数据集成到 arc:audit
 
 用法:
-    python integrate_score.py --score-dir .arc/score/<project> --review-dir .arc/review/<project>
+    python integrate_score.py --score-dir .arc/score/<project> --review-dir .arc/arc:audit/<project>
 
 或（未传 --score-dir 时尝试从 context-hub 自动发现）:
-    python integrate_score.py --project-path <project_root> --review-dir .arc/review/<project>
+    python integrate_score.py --project-path <project_root> --review-dir .arc/arc:audit/<project>
 """
 
 import argparse

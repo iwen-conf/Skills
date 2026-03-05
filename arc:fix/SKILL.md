@@ -208,14 +208,14 @@ python arc:fix/scripts/triage_run.py <run_dir> \
 3. If available, load it directly and narrow down the scope of investigation.
 4. If it fails, press `refresh_skill` reflow to trigger the update (`arc:init:update` / `arc:cartography` / `arc:audit` / `score` module refresh (triggered by `arc:release` orchestration))
 
-**Priority 1: Check `.arc/review/` Architecture Analysis**
-1. Find review artifacts: Check `.arc/review/<project-name>/` for the presence of an architectural analysis document
+**Priority 1: Check `.arc/arc:audit/` Architecture Analysis**
+1. Find review artifacts: Check `.arc/arc:audit/<project-name>/` for the presence of an architectural analysis document
 2. Verify freshness: check that `project-snapshot.md` or `diagnosis-report.md` was generated < 7 days ago
 3. Extract key information: module dependencies, common defect patterns, repair strategy suggestions
 4. If the review product does not exist or has expired: trigger the `arc:audit` update first and then continue.
 
-**Priority 2: Check `.arc/triage/known-patterns.md`**
-1. Find historical defect patterns: read `.arc/triage/known-patterns.md` if present
+**Priority 2: Check `.arc/arc:fix/known-patterns.md`**
+1. Find historical defect patterns: read `.arc/arc:fix/known-patterns.md` if present
 2. Match current failure: Compare current failure symptoms to known patterns
 3. Reuse repair strategy: If the match is successful, apply the verified repair solution directly
 
@@ -223,7 +223,7 @@ python arc:fix/scripts/triage_run.py <run_dir> \
 When the cache information is insufficient, use ace-tool to search the project source code to locate the root cause of the problem.
 
 **Priority 4: Cache Verification and Error Reporting**
-During the diagnostic process, if you discover that the information in `.arc/review/` or CLAUDE.md is inaccurate:
+During the diagnostic process, if you discover that the information in `.arc/arc:audit/` or CLAUDE.md is inaccurate:
 1. Tag cache errors: logging expected vs. actual
 2. Falling back to source code search: use ace-tool to get the correct information
 3. Generate error report: Generate cache validation failure report at `<run_dir>/analysis/context-errors/`
@@ -233,7 +233,7 @@ During the diagnostic process, if you discover that the information in `.arc/rev
    - Code map issue → `arc:cartography`
 
 **Priority 5: Update known defect pattern library**
-After successfully fixing the defect, append the newly discovered defect pattern to `.arc/triage/known-patterns.md`.
+After successfully fixing the defect, append the newly discovered defect pattern to `.arc/arc:fix/known-patterns.md`.
 
 ---
 
@@ -322,5 +322,5 @@ Note: arc:e2e allows clear text recording of account numbers/passwords; therefor
 
 - **Premature PASS**: Declaring fix complete before re-running failed test — must verify
 - **Partial Verification**: Only testing the fixed path, not related paths — regression risk
-- **Context Skip**: Not reading `.arc/simulate/` failure report before triage — missing context
+- **Context Skip**: Not reading `.arc/arc:e2e/` failure report before triage — missing context
 - **Session Waste**: Starting fresh instead of continuing with `session_ref` — loses diagnosis progress

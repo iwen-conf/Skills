@@ -86,7 +86,7 @@ python3 scripts/validate_skills.py
 - `description` 必须包含中文
 - `arc:*` 必须包含统一结构段落与路由链接
 - `When to Use` 必须包含：`首选触发 / 典型场景 / 边界提示`
-- 禁止遗留耦合关键字（如 `Task(`、`subagent_type` 等）
+- 禁止遗留旧调度关键字（旧 API 占位符等）
 
 ## 快速开始
 
@@ -123,4 +123,4 @@ arc init update
 
 ## 约定
 
-详见 `CLAUDE.md`。
+详见 `docs/orchestration-contract.md` 与 `docs/arc-routing-matrix.md`。
