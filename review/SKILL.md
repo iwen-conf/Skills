@@ -104,17 +104,15 @@ NO DEPENDENCY HEALTH SCORE WITHOUT VERSION EVIDENCE
 * **编排契约**: 必须。遵循 `docs/orchestration-contract.md`，通过运行时适配层实现调度。
 * **ace-tool (MCP)**: 必须。用于语义搜索项目代码结构、实现模式、CLAUDE.md 索引。
 * **Exa MCP**: 推荐。用于搜索项目依赖的行业标准、最佳实践、安全漏洞信息。
-* **统一 Dispatch API**: 必须。通过 `dispatch_job()` 调度 oracle/deep Agent。
+* **运行时无关调度层**: 必须。支持并发任务派发、结果收集与失败重试（不限定具体 API）。
 
-## Agent 调用方式
+## 评审分工模型（运行时无关）
 
-| Agent 角色 | 调用方式 | 用途 |
+| 评审组 | 关注重点 | 输出目录 |
 |------|---------|------|
-| **oracle** | `dispatch_job(role="oracle", capabilities=["arc:audit"], execution_mode="background", ...)` | 架构、安全、技术债务维度（架构专家） |
-| **deep** | `dispatch_job(lane="deep", capabilities=["arc:audit"], execution_mode="background", ...)` | 代码质量、DevOps 维度（工程专家） |
-| **deep(业务)** | `dispatch_job(lane="deep", capabilities=["arc:audit"], execution_mode="background", ...)` | 业务、团队维度(业务与流程分析专家) |
-| **explore** | `dispatch_job(role="explore", capabilities=[], execution_mode="background", ...)` | 代码库模式搜索（廉价） |
-| **librarian** | `dispatch_job(role="librarian", capabilities=[], execution_mode="background", ...)` | 最佳实践/安全漏洞搜索（廉价） |
+| **架构组** | architecture/security/tech-debt | `oracle/` |
+| **工程组** | code-quality/devops | `deep/` |
+| **业务组** | business/team | `deep-business/` |
 
 ## Critical Rules（核心铁律）
 
@@ -286,7 +284,7 @@ NO DEPENDENCY HEALTH SCORE WITHOUT VERSION EVIDENCE
 
 #### Step 2.1: 多 Agent 并发评估
 
-**CRITICAL**: 各 Agent 必须在同一消息中并发发起（`execution_mode: "background"`）。
+**CRITICAL**: 三个评审组必须并发启动（由当前运行时的并发机制实现，不限定调用语法）。
 
 每个 Agent 读取 `context/project-snapshot.md` 后，对全部 7 个维度各自独立评估。
 
@@ -294,81 +292,23 @@ NO DEPENDENCY HEALTH SCORE WITHOUT VERSION EVIDENCE
 - 维度 4（business）额外输出：`业务成熟度分: X/10`、`业务打通率: Y%`、`业务断链率: Z%`
 - 维度 7（tech-debt）额外输出：`依赖健康分: X/10`、`过时依赖率: Y%`、`高危漏洞依赖数: N`
 
-**oracle 评估**（架构视角，侧重 architecture/security/tech-debt）:
-```
-dispatch_job(
-  role: "oracle",
-  capabilities: ["arc:audit"],
-  execution_mode: "background",
-  description: "oracle 七维度评估",
-  prompt: "你是企业级软件评审专家。
+并发执行要求（运行时无关）：
 
-读取 <output_dir>/context/project-snapshot.md 了解项目概况。
-使用 ace-tool MCP 搜索项目代码，按七维度逐一评估。
-评估框架参考 <skills_dir>/review/references/dimensions.md。
+1. **架构组评估**（侧重 architecture/security/tech-debt）  
+   - 输入：`context/project-snapshot.md` + 项目代码证据  
+   - 输出：`oracle/dim-N-<name>.md`
+2. **工程组评估**（侧重 code-quality/devops）  
+   - 输入：`context/project-snapshot.md` + 项目代码证据  
+   - 输出：`deep/dim-N-<name>.md`
+3. **业务组评估**（侧重 business/team）  
+   - 输入：`context/project-snapshot.md` + 项目代码证据  
+   - 输出：`deep-business/dim-N-<name>.md`
 
-对每个维度，产出一个独立文件 <output_dir>/oracle/dim-N-<name>.md，格式：
-
-# 维度 N: <维度名>
-## 评分: X/10
-## 专项评分（仅维度4/7）
-- 业务成熟度分: X/10（仅维度4）
-- 依赖健康分: X/10（仅维度7）
-## 加分点
-- <观察> — 证据: `file:line`
-## 扣分点
-- <观察> — 证据: `file:line`
-## 关键发现
-<详细分析，引用代码证据>
-## 改进建议
-<具体建议及理由>
-
-项目路径: <project_path>
-评估深度: <depth_level>"
-)
-```
-
-**deep 评估**（工程视角，侧重 code-quality/devops）:
-```
-dispatch_job(
-  lane: "deep",
-  capabilities: ["arc:audit"],
-  execution_mode: "background",
-  description: "deep 七维度评估",
-  prompt: "你是企业级软件评审专家，侧重后端架构、代码质量和安全。
-
-读取 <output_dir>/context/project-snapshot.md 了解项目概况。
-评估框架参考 <skills_dir>/review/references/dimensions.md。
-
-对全部 7 个维度逐一评估，每个维度产出一个独立文件 <output_dir>/deep/dim-N-<name>.md。
-格式同 oracle（评分 + 加分点 + 扣分点 + 关键发现 + 改进建议）。
-维度4必须给业务成熟度分与打通率/断链率，维度7必须给依赖健康分与过时率/漏洞依赖数。
-必须引用代码证据（file:line）。"
-)
-```
-
-**deep 评估**(业务与流程视角,侧重 business/team):
-```
-dispatch_job(
-  lane: "deep",
-  capabilities: ["arc:audit"],
-  execution_mode: "background",
-  description: "deep 业务与流程七维度评估",
-  prompt: "你是企业级软件评审专家,侧重业务价值、团队协作和流程规范。
-
-读取 <output_dir>/context/project-snapshot.md 了解项目概况。
-评估框架参考 <skills_dir>/review/references/dimensions.md。
-
-对全部 7 个维度逐一评估,每个维度产出一个独立文件 <output_dir>/deep-business/dim-N-<name>.md。
-格式同 oracle（评分 + 加分点 + 扣分点 + 关键发现 + 改进建议）。
-维度4必须给业务成熟度分与打通率/断链率，维度7必须给依赖健康分与过时率/漏洞依赖数。
-必须引用代码证据（file:line）。"
-)
-```
+三个评审组都必须覆盖全部 7 维度；维度 4/7 必须输出专项评分，且所有结论必须附 `file:line` 证据。
 
 #### Step 2.2: 等待完成
 
-等待各 Agent 后台任务完成（使用 `background_output(task_id="...")` 收集结果）。
+等待三个评审组任务全部完成，并收集各目录下维度分析文件。
 
 ---
 
@@ -386,17 +326,17 @@ dispatch_job(
 3. **指出遗漏的问题或被忽略的优势**
 4. **给出修正后的评分建议**
 
-**oracle 反驳 deep + deep(业务)**(用 `dispatch_job(role="oracle", continuation_id="<复用>", ...)`)：
+**架构组反驳工程组 + 业务组**：
 - 读取 `deep/dim-*.md` 和 `deep-business/dim-*.md`
 - 从架构视角反驳
 - 产出 `oracle/critique.md`
 
-**deep 反驳 oracle + deep(业务)**(用 `dispatch_job(lane="deep", continuation_id="<复用>", ...)`)：
+**工程组反驳架构组 + 业务组**：
 - 读取 `oracle/dim-*.md` 和 `deep-business/dim-*.md`
 - 从工程/代码质量/安全角度反驳
 - 产出 `deep/critique.md`
 
-**deep(业务) 反驳 oracle + deep**(用 `dispatch_job(lane="deep", continuation_id="<复用>", ...)`)：
+**业务组反驳架构组 + 工程组**：
 - 读取 `oracle/dim-*.md` 和 `deep/dim-*.md`
 - 从质量/UX/运维角度反驳
 - 产出 `deep-business/critique.md`
@@ -519,6 +459,23 @@ dispatch_job(
 - [ ] <建议> — 维度: <维度名>
 ```
 
+#### Step 4.5: 生成量化可视化 HTML（强制）
+
+在 Phase 4 收尾阶段必须执行：
+
+```bash
+python3 <skills_root>/review/scripts/integrate_score.py \
+  --project-path <project_path> \
+  --review-dir <project_path>/.arc/review/<project-name>
+```
+
+执行后至少应存在以下产物：
+- `quantitative-dashboard.html`（自动主题：按用户本地时间）
+- `quantitative-dashboard.light.html`（浅色固定版）
+- `quantitative-dashboard.dark.html`（深色固定版）
+
+若缺失 `.arc/score/<project-name>/` 量化输入，必须先触发 `arc:release` 刷新 score 产物，再重试本步骤。
+
 ---
 
 ## Artifacts & Paths
@@ -601,6 +558,7 @@ dispatch_job(
 - **Dependency Blind Spot**: Not quantifying outdated/vulnerable/unmaintained dependencies in dimension 7
 - **Rubber Stamp**: Marking PASS without thorough analysis — each finding requires evidence
 - **Score Skipping**: Not preparing score artifacts first (typically via arc:release) — quantitative data required before qualitative review
+- **Dashboard Skipping**: Not running `review/scripts/integrate_score.py` in Phase 4 — HTML dashboard artifacts are mandatory
 
 ### Finding Anti-Patterns
 
@@ -620,11 +578,11 @@ dispatch_job(
 | 独立评估 | 多Agent×7 维度 | `(oracle|deep|deep-business)/dim-N-<name>.md` |
 | 交叉反驳 | 各Agent互相反驳 | `(oracle|deep|deep-business)/critique.md` |
 
-## 调用方式速查
+## 协作分工速查
 
-| 角色 | 调用方式 | 并发支持 |
-|------|---------|---------|
-| oracle | `dispatch_job(role="oracle", capabilities=["arc:audit"], execution_mode="background", ...)` | 后台异步 |
-| deep | `dispatch_job(lane="deep", capabilities=["arc:audit"], execution_mode="background", ...)` | 后台异步 |
-| deep(业务) | `dispatch_job(lane="deep", capabilities=["arc:audit"], execution_mode="background", ...)` | 后台异步 |
-| 主进程（聚合/报告） | 直接处理 | — |
+| 角色 | 职责 | 并发建议 |
+|------|------|---------|
+| 架构组 | 评估架构、安全、技术债并输出反驳 | 与工程组、业务组并发 |
+| 工程组 | 评估代码质量、DevOps 并输出反驳 | 与架构组、业务组并发 |
+| 业务组 | 评估业务价值、团队协作并输出反驳 | 与架构组、工程组并发 |
+| 主进程（聚合/报告） | 聚合评分、产出报告与看板 | 在三组完成后执行 |
