@@ -1,19 +1,19 @@
 ---
 name: arc:triage
-description: "当 arc:simulate 出现失败，需要定位根因、修复并提供失败到通过证据链时使用。"
+description: "当 arc:simulate 失败或线上故障需要定位根因、推动恢复并沉淀证据链时使用。"
 ---
 
 # UI/UX 缺陷排查与修复（基于 arc:simulate，工业化）
 
 ## Overview
 
-将 arc:simulate 产出的失败工件（reports/run_id 下的 report、events、screenshots 等）转化为：最小复现 → 根因定位 → 代码修复 → 回归通过证据。
+将 arc:simulate 失败工件或线上故障线索转化为：最小复现/止损 → 根因定位 → 修复与恢复 → 通过证据。
 
 ## Quick Contract
 
-- **Trigger**：`arc:simulate` 出现 FAIL，或回归存在不稳定/复现困难。
-- **Inputs**：失败 `run_dir`、失败步骤证据、必要时测试目标与账号上下文。
-- **Outputs**：根因分析、修复说明、fail/pass 对照证据与 `fix-packet`。
+- **Trigger**：`arc:simulate` 出现 FAIL、CI 测试间歇失败，或线上故障需要止损恢复。
+- **Inputs**：失败 `run_dir` 或 CI 失败样本、日志与时间序列、必要时测试目标与账号上下文。
+- **Outputs**：根因分析、修复说明、fail/pass 或稳定性对照证据与 `fix-packet`。
 - **Quality Gate**：关闭问题前必须通过 `## Quality Gates` 的 fail-to-pass 证据链检查。
 - **Decision Tree**：输入信号路由图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)。
 
@@ -60,9 +60,9 @@ NO FIX CLAIM WITHOUT FAIL-TO-PASS EVIDENCE CHAIN
 
 ## When to Use
 
-- **首选触发**：已拿到 `arc:simulate` FAIL 证据，需要定位并修复问题。
-- **典型场景**：间歇失败、回归不稳定、从失败到通过的闭环验证。
-- **边界提示**：尚无可复现失败工件时，先执行 `arc:simulate`。
+- **首选触发**：已拿到 FAIL 证据或线上故障信号，需要定位根因并推动恢复。
+- **典型场景**：间歇失败、回归不稳定、线上错误激增、关键业务中断修复。
+- **边界提示**：尚无可复现失败工件时先执行 `arc:simulate`；仅做质量评审结论用 `arc:review`。
 
 ## Context Budget（必须拆分，避免上下文过长）
 
@@ -74,8 +74,8 @@ NO FIX CLAIM WITHOUT FAIL-TO-PASS EVIDENCE CHAIN
 
 最终输出必须包含（建议直接按 `references/fix-packet.template.md` 组织）：
 
-- **Failing evidence**：至少 1 个失败 run 的 `run_id/run_dir` + 关键截图/日志路径
-- **Passing evidence**：至少 1 个通过 run 的 `run_id/run_dir` + 关键截图路径
+- **Failing evidence**：至少 1 组失败证据（`run_id/run_dir` 或 CI 日志样本）
+- **Passing evidence**：至少 1 组通过/恢复证据（回归 run 或稳定性统计）
 - **Root Cause**：具体到模块/条件/选择器/并发/权限策略
 - **Fix**：涉及的文件/关键逻辑与为什么这么改
 - **Verification**：如何复现失败 + 如何跑回归（含命令/参数）
@@ -86,6 +86,7 @@ NO FIX CLAIM WITHOUT FAIL-TO-PASS EVIDENCE CHAIN
 优先从失败工件开始工作：
 
 - `run_dir`：例如 `reports/2026-02-01_14-00-00_abcd/`
+- `failing_tests`：例如 `["tests/api/test_order.py::test_retry"]`
 - 若没有 `run_dir`，则需要 arc:simulate 的核心参数：`test_objective`、`personas`、`target_url`（以及可选 `validation_container`）
 
 ## Quick Triage（推荐先跑）

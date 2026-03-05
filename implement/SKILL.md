@@ -1,13 +1,13 @@
 ---
 name: "arc:implement"
-description: "当需求或方案已明确并需要落地代码变更、验证证据和交接产物时使用。"
+description: "当需求或方案已明确并需要按契约落地代码变更（含重构/迁移）并同步文档、验证证据和交接产物时使用。"
 ---
 
 # arc:implement — 方案落地实现
 
 ## Overview
 
-`arc:implement` 负责把需求与方案落到代码实现层，输出可交付的工程变更和执行报告。
+`arc:implement` 负责把需求与方案落到代码实现层，先冻结接口契约与兼容策略，再输出可交付的工程变更和执行报告。
 
 本技能强调“可实现、可验证、可回溯”：
 
@@ -74,7 +74,7 @@ NO CODE CHANGE WITHOUT PLAN, EVIDENCE, AND ROLLBACK
 ## When to Use
 
 - **首选触发**：需求或方案已明确，需要产出可提交代码变更。
-- **典型场景**：功能开发、重构落地、缺陷修复并附验证证据。
+- **典型场景**：功能开发、接口演进、数据库迁移、行为不变重构、文档同步、缺陷修复并附验证证据。
 - **边界提示**：需求模糊先 `arc:refine/arc:deliberate`，全面评估用 `arc:review`。
 
 ## Input Arguments

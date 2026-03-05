@@ -1,6 +1,6 @@
 # Superpowers 融合指南（已应用到本仓库）
 
-本指南提炼自 `superpowers/` 的高价值模式，并映射到 ARC 与通用 Skills。
+本指南提炼自 `superpowers/` 的高价值模式，并映射到 ARC 核心 Skills。
 
 ## 融合目标
 
@@ -38,11 +38,11 @@
 
 ## 已重点强化的 Skill（ROI 优先）
 
-1. `requirements-refiner`
-2. `repo-onboarding-map`
-3. `test-matrix-builder`
-4. `release-readiness`
-5. `doc-syncer`
+1. `arc:agent`
+2. `arc:review`
+3. `arc:gate`
+4. `arc:implement`
+5. `arc:triage`
 
 ## 持续演进建议
 

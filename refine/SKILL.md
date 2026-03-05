@@ -189,5 +189,5 @@ find . -name "CLAUDE.md" -type f
 问题细化完成。增强 prompt 已写入：
 .arc/deliberate/<task-name>/context/enhanced-prompt.md
 
-可继续调用 `arc-runtime run arc:deliberate` 进行多Agent审议。
+可继续调用 `arc deliberate` 进行多Agent审议。
 ```

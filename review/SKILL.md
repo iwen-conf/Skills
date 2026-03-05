@@ -1,13 +1,13 @@
 ---
 name: "arc:review"
-description: "当需要企业级多维项目诊断、证据化评审和改进路线图时使用。"
+description: "当需要对项目或关键 PR 做证据化评审，并同时输出测试策略、性能回归、安全基线与风险结论时使用。"
 ---
 
 # 企业级项目评审（多 Agent 对抗式）
 
 ## Overview
 
-赋予 Agent “企业级软件评审专家”的能力。通过 oracle、deep、deep(工程)、deep(业务) 三个专业 Agent 各自独立按七维度评估项目，再互相反驳对方的评分和发现，最终收敛出一份可交付的诊断报告与改进路线图。
+赋予 Agent “企业级软件评审专家”的能力。通过 oracle、deep、deep(工程)、deep(业务) 三个专业 Agent 各自独立按七维度评估项目或关键 PR，再互相反驳对方的评分和发现，最终收敛出一份可交付的诊断报告与改进路线图。
 
 七维度评估框架参考 ISO/IEC 25010 软件质量模型、TOGAF 企业架构框架及现代软件工程最佳实践（详见 `references/dimensions.md`）。
 
@@ -75,8 +75,8 @@ NO SCORE WITHOUT EVIDENCE, NO RECOMMENDATION WITHOUT TRADEOFF
 
 ## When to Use
 
-- **首选触发**：需要企业级多维度诊断和中长期改进路线图。
-- **典型场景**：技术尽调、里程碑复盘、架构升级前健康评估。
+- **首选触发**：需要对项目或关键 PR 做证据化、可追溯评审。
+- **典型场景**：技术尽调、里程碑复盘、架构升级前健康评估、合并前高风险 PR 评审、发布前测试策略/性能回归/安全基线评估。
 - **边界提示**：仅需量化扫描先用 `arc:score`，仅需阻断判定用 `arc:gate`。
 
 ## Input Arguments

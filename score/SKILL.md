@@ -343,10 +343,10 @@ python scripts/validate_score_artifacts.py \
 arc:init → arc:score → arc:review → arc:gate
 
 # 单独运行
-arc-runtime run arc:score --project /path/to/project
+arc score --project /path/to/project
 
 # 指定检测焦点
-arc-runtime run arc:score --project /path/to/project --focus security
+arc score --project /path/to/project --focus security
 ```
 
 ---

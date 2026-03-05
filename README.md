@@ -1,190 +1,106 @@
 # Arc Skills
 
-跨运行时的技能（Skill）集合，主要使用 **`arc:`** 命名空间，并提供独立的 `arc:cartography` 代码地图技能。每个技能是自包含插件，推荐通过运行时适配命令调用：`arc-runtime run arc:<name>`。
+跨运行时、可解耦的技能（Skill）仓库。  
+本仓库统一采用 `arc:xxx` 命名空间，当前保留 17 个核心编排技能。
 
-## 架构总览
+## 当前状态
 
-```mermaid
-graph TD
-    subgraph "智能调度"
-        agent["arc:agent<br/>需求分析 + Skill 路由 + 多Agent调度"]
-    end
-    subgraph "项目初始化"
-        init["arc:init<br/>多Agent协作 CLAUDE.md 生成"]
-    end
-    subgraph "代码地图"
-        cartography["arc:cartography<br/>仓库分层 codemap 生成"]
-    end
-    subgraph "需求理解"
-        refine["arc:refine<br/>问题细化"]
-    end
-    subgraph "多Agent审议"
-        deliberate["arc:deliberate<br/>多Agent审议 + OpenSpec"]
-    end
-    subgraph "工程实现"
-        implement["arc:implement<br/>方案落地与编码实现"]
-    end
-    subgraph "项目评审"
-        review["arc:review<br/>企业级七维度评审"]
-    end
-    subgraph "知识产权"
-        ip_audit["arc:ip-audit<br/>专利/软著可行性审查"]
-        ip_docs["arc:ip-docs<br/>申请文档草稿写作"]
-    end
-    subgraph "E2E 测试闭环"
-        simulate["arc:simulate<br/>E2E 浏览器测试"]
-        triage["arc:triage<br/>缺陷定位与修复"]
-        loop["arc:loop<br/>tmux 回归闭环"]
-    end
-    subgraph "运行时层"
-        runtime["Agent Runtime Adapter<br/>dispatch_job / collect_job"]
-    end
+- 已完成从单一工具耦合到运行时无关编排（`dispatch_job / collect_job`）的迁移。
+- 所有 `arc:*` 技能已统一融合结构：`Quick Contract` / `Announce` / `The Iron Law` / `Workflow` / `Quality Gates` / `Red Flags`。
+- 路由文档已形成三层：矩阵、决策树、阶段视图 + 单页速查。
+- 所有 `SKILL.md` 的 frontmatter `description` 已统一为中文。
 
-    agent -.->|"路由"| init
-    agent -.->|"路由"| cartography
-    agent -.->|"路由"| refine
-    agent -.->|"路由"| deliberate
-    agent -.->|"路由"| implement
-    agent -.->|"路由"| review
-    agent -.->|"路由"| ip_audit
-    agent -.->|"路由"| ip_docs
-    agent -.->|"路由"| simulate
-    agent -->|"统一编排契约"| runtime
+## Arc 技能清单（17）
 
-    init -.->|"CLAUDE.md"| refine
-    cartography -.->|"codemap.md"| refine
-    refine -->|"enhanced-prompt.md"| deliberate
-    deliberate -->|"implementation plan"| implement
-    implement -->|"change summary"| review
-    review -.->|"技术评审结果"| ip_audit
-    ip_audit -->|"handoff JSON"| ip_docs
-    simulate -->|"run_dir 报告"| triage
-    triage -->|"修复→重启"| loop
-    loop -->|"重测"| simulate
-```
-
-## 技能一览
-
-| 调用方式 | 目录 | 用途 |
-|---------|------|------|
-| `arc-runtime run arc:agent` | `agent/` | 智能调度 agent，分析用户需求后选择合适的 arc: skill，协调多Agent执行任务 |
-| `arc-runtime run arc:cartography` | `cartography/` | 仓库理解与分层代码地图（codemap）生成，支持增量更新 |
-| `arc-runtime run arc:simulate` | `simulate/` | 通过 agent-browser 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
-| `arc-runtime run arc:triage` | `triage/` | 分析 arc:simulate 的失败报告，定位根因、修复缺陷、执行回归验证 |
-| `arc-runtime run arc:loop` | `loop/` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
-| `arc-runtime run arc:refine` | `refine/` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
-| `arc-runtime run arc:deliberate` | `deliberate/` | 多Agent多视角审议，使用 OpenSpec 生成结构化计划 |
-| `arc-runtime run arc:implement` | `implement/` | 消费上游方案并落地编码实现，输出实现计划、执行日志与交接摘要 |
-| `arc-runtime run arc:review` | `review/` | 按企业级七维度框架深度评审软件项目，多Agent对抗式分析，输出诊断报告 |
-| `arc-runtime run arc:init` | `init/` | 多Agent协作生成项目层级式 CLAUDE.md 索引体系，深度扫描后输出根级+模块级 CLAUDE.md |
-| `arc-runtime run arc:ip-audit` | `ip-audit/` | 软件专利/软著可行性审查，输出评估报告、风险矩阵与文档交接 JSON |
-| `arc-runtime run arc:ip-docs` | `ip-docs/` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
-
-## 新增通用 Skills（跨项目）
-
-| Skill | 目录 | 用途 |
+| Skill | 目录 | 作用 |
 |---|---|---|
-| `requirements-refiner` | `requirements-refiner/` | 模糊需求精炼为可执行定义（目标/约束/验收/风险） |
-| `task-slicer` | `task-slicer/` | 大任务拆分与并行化编排 |
-| `estimation-risk` | `estimation-risk/` | 工时区间估算与风险缓冲 |
-| `repo-onboarding-map` | `repo-onboarding-map/` | 陌生仓库上手地图与改动落点 |
-| `contract-first-api` | `contract-first-api/` | 契约先行接口设计与兼容检查 |
-| `migration-safety` | `migration-safety/` | 数据库迁移安全执行与回滚策略 |
-| `refactor-safely` | `refactor-safely/` | 行为不变前提下的安全重构 |
-| `test-matrix-builder` | `test-matrix-builder/` | 功能/边界/异常测试矩阵构建 |
-| `flaky-test-doctor` | `flaky-test-doctor/` | 不稳定测试定位与修复 |
-| `security-fastcheck` | `security-fastcheck/` | 安全基线快速检查 |
-| `perf-regression-guard` | `perf-regression-guard/` | 性能基线与回归守护 |
-| `release-readiness` | `release-readiness/` | 发布准备度检查与 Go/No-Go 建议 |
-| `incident-triage` | `incident-triage/` | 故障分级、止血、定位、复盘 |
-| `doc-syncer` | `doc-syncer/` | 代码变更驱动文档同步 |
-| `pr-review-assistant` | `pr-review-assistant/` | 标准化 PR 评审维度与结论 |
+| `arc:agent` | `agent/` | 统一入口，做需求理解、Skill 路由与多 Agent 调度 |
+| `arc:refine` | `refine/` | 需求澄清与上下文补齐，输出可执行提示 |
+| `arc:deliberate` | `deliberate/` | 多视角审议与反驳收敛，用于高风险决策 |
+| `arc:estimate` | `estimate/` | round 模型估算、风险校准与并行波次规划 |
+| `arc:implement` | `implement/` | 方案落地为代码变更，附验证与交接产物 |
+| `arc:review` | `review/` | 企业级多维诊断与改进路线图 |
+| `arc:score` | `score/` | 量化评分与 smell 检测，输出机器可读结果 |
+| `arc:gate` | `gate/` | CI/CD 质量门禁判定（阈值 + 豁免） |
+| `arc:simulate` | `simulate/` | 用户路径 E2E 验证与 UI 证据沉淀 |
+| `arc:triage` | `triage/` | 基于失败工件做根因定位、修复与复验 |
+| `arc:loop` | `loop/` | 重启服务 + 多轮 fail-fix-retest 闭环 |
+| `arc:cartography` | `cartography/` | 分层 codemap 生成与增量刷新 |
+| `arc:init` | `init/` | CLAUDE 索引维护自动路由（full/update） |
+| `arc:init:full` | `init-full/` | CLAUDE 索引全量重建 |
+| `arc:init:update` | `init-update/` | CLAUDE 索引增量更新 |
+| `arc:ip-audit` | `ip-audit/` | 软著/专利可行性审查与风险评估 |
+| `arc:ip-docs` | `ip-docs/` | 基于审查交接起草 IP 申请材料 |
 
-### 推荐优先建设顺序（ROI）
+## 收敛结果
 
-1. `requirements-refiner`
-2. `repo-onboarding-map`
-3. `test-matrix-builder`
-4. `release-readiness`
-5. `doc-syncer`
+- 已取消独立“能力子技能”，全部能力并入核心流程，避免重复入口与职责分散。
+- `arc:agent`：统一承接仓库摸底与任务拆解路由。
+- `arc:implement`：统一承接契约先行、迁移、重构与文档同步交付。
+- `arc:review`：统一承接测试策略、性能回归、安全基线与 PR 评审结论。
+- `arc:triage`：统一承接 simulate 失败、flaky 与恢复闭环。
+- `arc:gate`：统一承接发布前 Go/No-Go 与门禁判定。
 
-### 融合强化状态（参考 superpowers）
+## 路由文档
 
-- 已强化：`requirements-refiner`、`repo-onboarding-map`、`test-matrix-builder`、`release-readiness`、`doc-syncer`
-- 强化项：`Use when` 触发描述、`Iron Law`、Phase 流程、`Red Flags`、质量门槛
+- 单页速查：`docs/arc-routing-cheatsheet.md`
+- 路由矩阵：`docs/arc-routing-matrix.md`
+- 决策树：`docs/arc-routing-matrix.md#signal-to-skill-decision-tree`
+- 阶段视图：`docs/arc-routing-matrix.md#phase-routing-view`
 
-## 与 Superpowers 融合
+## 编排与融合文档
 
-- 融合原则文档：`docs/superpowers-fusion-guide.md`
-- 核心编排契约：`docs/orchestration-contract.md`
-- 质量校验脚本：`scripts/validate_skills.py`
+- 编排契约：`docs/orchestration-contract.md`
+- 融合指南：`docs/superpowers-fusion-guide.md`
+- 执行模式说明：`docs/conductor-pattern.md`
+
+## 质量校验
 
 ```bash
 python3 scripts/validate_skills.py
 ```
 
-## 依赖链
+当前校验会检查（节选）：
 
-```mermaid
-graph LR
-    agent["arc:agent"] -.->|"路由"| init
-    cartography["arc:cartography"]
-    agent -.->|"路由"| cartography
-    agent -.->|"路由"| refine
-    agent -.->|"路由"| deliberate
-    agent -.->|"路由"| implement
-    agent -.->|"路由"| review
-    ip_audit["arc:ip-audit"]
-    ip_docs["arc:ip-docs"]
-    agent -.->|"路由"| ip_audit
-    agent -.->|"路由"| ip_docs
-    agent -->|"统一编排契约"| runtime["Agent Runtime Adapter"]
-
-    init -.->|"CLAUDE.md"| refine
-    cartography -.->|"codemap.md"| refine
-    refine --> deliberate
-    deliberate --> implement --> review
-    review -.-> ip_audit --> ip_docs
-    simulate --> triage --> loop --> simulate
-```
-
-- `arc:agent`：统一入口，智能路由到合适的 skill 或直接调度模型
-- `arc:cartography`：独立技能，生成仓库分层 codemap，供 `arc:refine` 等阶段快速建立上下文
-- `arc:init`：独立运行，输出的 CLAUDE.md 层级索引被 `arc:refine` 消费
-- `arc:refine` → `arc:deliberate`：问题细化后进入多Agent审议
-- `arc:deliberate` → `arc:implement`：方案进入工程实现阶段
-- `arc:implement` → `arc:review`：实现后进入质量评审
-- `arc:simulate` → `arc:triage` → `arc:loop` → `arc:simulate`：E2E 测试→缺陷修复→回归闭环
-- `arc:review`：独立运行，不依赖其他 Skill
-- `arc:ip-audit`：优先读取 `arc:init`/`arc:review` 产物，输出审查报告与 `handoff` 结构化交接
-- `arc:ip-docs`：消费 `arc:ip-audit` 交接信息，生成专利/软著申请文档草稿
+- `arc:*` frontmatter 仅允许 `name` + `description`
+- 所有 skill 名称必须为 `arc:xxx`
+- `description` 必须包含中文
+- `arc:*` 必须包含统一结构段落与路由链接
+- `When to Use` 必须包含：`首选触发 / 典型场景 / 边界提示`
+- 禁止遗留耦合关键字（如 `Task(`、`subagent_type` 等）
 
 ## 快速开始
 
 ```bash
-# 通过运行时适配器调用
-arc-runtime run arc:agent        # 智能调度（推荐入口）
-arc-runtime run arc:cartography  # 仓库分层代码地图生成
-arc-runtime run arc:init         # 项目初始化（多Agent协作生成 CLAUDE.md）
-arc-runtime run arc:simulate     # E2E 测试
-arc-runtime run arc:triage       # 缺陷修复
-arc-runtime run arc:loop         # 回归闭环
-arc-runtime run arc:refine       # 问题细化
-arc-runtime run arc:deliberate   # 多Agent审议
-arc-runtime run arc:implement    # 方案落地实现
-arc-runtime run arc:review       # 项目评审
-arc-runtime run arc:ip-audit     # 知识产权可行性审查
-arc-runtime run arc:ip-docs      # 知识产权申请文档写作
+# 命名到命令映射
+# arc:agent -> arc agent
+# arc:init:full -> arc init full
+# arc:init:update -> arc init update
+
+# 推荐入口
+arc agent
+
+# 常用链路
+arc refine
+arc deliberate
+arc implement
+
+# 质量链路
+arc score
+arc gate
+arc review
+
+# E2E 链路
+arc simulate
+arc triage
+arc loop
+
+# 初始化链路
+arc init
+arc init full
+arc init update
 ```
-
-## 技术栈
-
-- **技能定义**：Markdown（SKILL.md frontmatter）
-- **辅助脚本**：Python 3（`scripts/` 目录，`--help` 查看用法）
-- **编排适配**：统一使用 `dispatch_job / collect_job` 契约（见 `docs/orchestration-contract.md`）
-- **计划生成**：[OpenSpec](https://github.com/Fission-AI/OpenSpec) CLI（`openspec`）
-- **代码搜索**：ace-tool MCP（语义搜索）+ Exa MCP（互联网搜索）
 
 ## 约定
 
-详见 [CLAUDE.md](./CLAUDE.md)。
+详见 `CLAUDE.md`。

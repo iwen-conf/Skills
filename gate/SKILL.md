@@ -1,23 +1,24 @@
 ---
 name: "arc:gate"
-description: "当 CI/CD 需要基于 arc:score 结果执行可配置质量门禁与豁免控制时使用。"
+description: "当合并或上线前需要统一做质量门禁、发布准备度检查与 Go/No-Go 判定时使用。"
 ---
 
 # arc:gate -- CI 质量门禁
 
 ## Overview
 
-arc:gate 是 CI 门禁子模块，基于 arc:score 的量化数据执行可配置的质量门禁判定。支持 warn/strict/strict_dangerous 三种模式，提供阈值配置、豁免清单和 CI 集成能力。
+arc:gate 是统一门禁模块，基于 arc:score 的量化数据执行可配置质量判定，并补齐上线前发布准备度检查（回滚、监控、值班与公告）。支持 warn/strict/strict_dangerous 三种模式，提供阈值配置、豁免清单和 CI 集成能力。
 
 核心能力：
 - **门禁模式**：warn（仅告警）/ strict（阻断）/ strict_dangerous（额外拦截危险级别）
 - **阈值配置**：总分阈值、严重问题阈值、安全阈值
 - **豁免清单**：支持对特定问题进行时间有限的豁免
+- **发布准备度**：回滚、监控、值班、公告四类上线检查项
 - **CI 集成**：提供正确的 exit code，支持 GitHub Actions / GitLab CI
 
 ## Quick Contract
 
-- **Trigger**：CI/CD 需要自动质量门禁与阻断策略。
+- **Trigger**：合并或上线前需要自动门禁与 Go/No-Go 判定。
 - **Inputs**：`project_path`、score 产物路径、门禁配置、模式与豁免清单。
 - **Outputs**：`gate-result.json`、`summary.md`、可用于 CI 的明确 exit code。
 - **Quality Gate**：必须先通过 `## Quality Gates` 的阈值证据与豁免有效性检查。
@@ -66,9 +67,9 @@ NO GREEN BUILD WITHOUT EXPLICIT GATE DECISION
 
 ## When to Use
 
-- **首选触发**：CI/CD 需要自动化 pass/fail 质量门禁判定。
-- **典型场景**：基于 `arc:score` 阈值与豁免规则执行合并前阻断。
-- **边界提示**：要找问题根因先用 `arc:score` / `arc:review`，`arc:gate` 仅负责判定。
+- **首选触发**：合并或上线前需要自动化 pass/fail 与 Go/No-Go 判定。
+- **典型场景**：基于 `arc:score` 阈值与豁免执行阻断；发布窗口前统一检查回滚/监控/值班/公告。
+- **边界提示**：要找问题根因先用 `arc:score` / `arc:review`，`arc:gate` 负责判定与放行建议。
 
 ## Dependencies
 
@@ -239,16 +240,16 @@ whitelist:
 
 ```bash
 # 基本用法
-arc-runtime run arc:gate --project /path/to/project
+arc gate --project /path/to/project
 
 # strict 模式
-arc-runtime run arc:gate --project /path/to/project --mode strict
+arc gate --project /path/to/project --mode strict
 
 # 使用自定义配置
-arc-runtime run arc:gate --project /path/to/project --config gate-config.yaml
+arc gate --project /path/to/project --config gate-config.yaml
 
 # CI 集成
-arc-runtime run arc:gate --project . --mode strict --exit-code
+arc gate --project . --mode strict --exit-code
 ```
 
 ---
@@ -324,14 +325,14 @@ jobs:
           
       - name: Run arc:score
         run: |
-          arc-runtime run arc:score --project . --output .arc/score
+          arc score --project . --output .arc/score
           
       - name: Run arc:gate
         env:
           GATE_MODE: strict
           GATE_FAIL_ON_DANGEROUS: true
         run: |
-          arc-runtime run arc:gate --project . --mode strict --exit-code
+          arc gate --project . --mode strict --exit-code
           
       - name: Upload Reports
         if: always()
@@ -349,8 +350,8 @@ jobs:
 quality_gate:
   stage: test
   script:
-    - arc-runtime run arc:score --project . --output .arc/score
-    - arc-runtime run arc:gate --project . --mode strict --exit-code
+    - arc score --project . --output .arc/score
+    - arc gate --project . --mode strict --exit-code
   artifacts:
     when: always
     paths:

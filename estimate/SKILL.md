@@ -74,7 +74,7 @@ NO ESTIMATE WITHOUT SCOPE, RISK, AND ASSUMPTION TRACEABILITY
 ## Invocation
 
 ```bash
-arc-runtime run arc:estimate [--calibrate] [--waves] [--json]
+arc estimate [--calibrate] [--waves] [--json]
 ```
 
 ### Arguments
@@ -248,7 +248,7 @@ Use known tasks to calibrate estimates:
 ### Example 1: Simple Feature
 
 ```bash
-arc-runtime run arc:estimate
+arc estimate
 
 # Task: Add --verbose flag to CLI
 
@@ -264,7 +264,7 @@ Total: 8 rounds × 1.0 = 8 rounds (24 min)
 ### Example 2: Complex Feature
 
 ```bash
-arc-runtime run arc:estimate --waves
+arc estimate --waves
 
 # Task: Implement user authentication with OAuth
 

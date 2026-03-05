@@ -10,7 +10,13 @@ REQUIRED_HEADINGS = [
 ]
 
 GENERIC_REQUIRED_HEADINGS = [
+    "## Quick Contract",
+    "## Announce",
+    "## Input Arguments",
+    "## The Iron Law",
     "## Workflow",
+    "## Quality Gates",
+    "## Red Flags",
     "## Outputs",
 ]
 
@@ -24,6 +30,12 @@ ARC_FUSION_REQUIRED_HEADINGS = [
 ]
 
 ARC_WHEN_TO_USE_MARKERS = [
+    "**首选触发**",
+    "**典型场景**",
+    "**边界提示**",
+]
+
+GENERIC_WHEN_TO_USE_MARKERS = [
     "**首选触发**",
     "**典型场景**",
     "**边界提示**",
@@ -43,22 +55,26 @@ BANNED_TOKENS = [
     "oh-my-opencode",
 ]
 
-FUSION_GENERIC_SKILLS = {
-    "requirements-refiner",
-    "task-slicer",
-    "estimation-risk",
-    "repo-onboarding-map",
-    "contract-first-api",
-    "migration-safety",
-    "refactor-safely",
-    "test-matrix-builder",
-    "flaky-test-doctor",
-    "security-fastcheck",
-    "perf-regression-guard",
-    "release-readiness",
-    "incident-triage",
-    "doc-syncer",
-    "pr-review-assistant",
+FUSION_GENERIC_SKILLS = set()
+
+ARC_ROUTED_SKILLS = {
+    "arc:agent",
+    "arc:cartography",
+    "arc:deliberate",
+    "arc:estimate",
+    "arc:gate",
+    "arc:implement",
+    "arc:init",
+    "arc:init:full",
+    "arc:init:update",
+    "arc:ip-audit",
+    "arc:ip-docs",
+    "arc:loop",
+    "arc:refine",
+    "arc:review",
+    "arc:score",
+    "arc:simulate",
+    "arc:triage",
 }
 
 
@@ -104,12 +120,14 @@ def validate_file(path: Path):
         errors.append(f"{path}: missing frontmatter description")
     if "name" in fm and not re.fullmatch(r"[a-z0-9:-]+", fm["name"]):
         errors.append(f"{path}: name contains unsupported characters")
+    if "name" in fm and fm["name"] and not is_arc_skill(fm["name"]):
+        errors.append(f"{path}: skill name must use arc:xxx namespace")
     description = fm.get("description", "")
     if description and not contains_cjk(description):
         errors.append(f"{path}: description must contain Chinese text")
     skill_name = fm.get("name", "")
     enforce_fusion_profile = skill_name in FUSION_GENERIC_SKILLS
-    enforce_arc_profile = is_arc_skill(skill_name)
+    enforce_arc_profile = skill_name in ARC_ROUTED_SKILLS
     if enforce_arc_profile:
         allowed_keys = {"name", "description"}
         extra_keys = sorted(key for key in fm.keys() if key not in allowed_keys)
@@ -128,6 +146,9 @@ def validate_file(path: Path):
         for heading in GENERIC_REQUIRED_HEADINGS:
             if heading not in text:
                 errors.append(f"{path}: missing heading {heading}")
+        for marker in GENERIC_WHEN_TO_USE_MARKERS:
+            if marker not in text:
+                errors.append(f"{path}: generic when-to-use missing marker {marker}")
     if enforce_arc_profile:
         for heading in ARC_FUSION_REQUIRED_HEADINGS:
             if heading not in text:

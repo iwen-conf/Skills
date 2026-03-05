@@ -31,7 +31,7 @@ arc:init 整合替代内置 `init` 和 `project-multilevel-index`，通过 oracl
 
 ### 调用方式
 
-通过 Claude Code 调用：`arc-runtime run arc:init`
+通过 Claude Code 调用：`arc init`
 
 输入参数：
 - `project_path` (required): 待初始化项目根目录绝对路径

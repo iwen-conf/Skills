@@ -233,16 +233,16 @@ implement → test → [pass?] → done
 
 ```python
 # Start a workflow
-arc-runtime run arc:conductor start --workflow feature-implementation --input "Add user authentication"
+arc conductor start --workflow feature-implementation --input "Add user authentication"
 
 # Check workflow status
-arc-runtime run arc:conductor status <workflow-id>
+arc conductor status <workflow-id>
 
 # Resume interrupted workflow
-arc-runtime run arc:conductor resume <workflow-id>
+arc conductor resume <workflow-id>
 
 # Cancel workflow
-arc-runtime run arc:conductor cancel <workflow-id>
+arc conductor cancel <workflow-id>
 ```
 
 ### Programmatic API

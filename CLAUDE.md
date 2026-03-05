@@ -13,27 +13,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Repo Is
 
-A collection of Claude Code Skills (custom slash-command plugins), primarily under the **`arc:`** namespace, plus a standalone `arc:cartography` skill for repository codemap generation. Each top-level directory is a self-contained Skill defined by a `SKILL.md` frontmatter file. Arc skills are invoked via `arc-runtime run arc:<name>`, while arc:cartography is invoked via `arc-runtime run arc:cartography`.
+A collection of Claude Code Skills (custom slash-command plugins), primarily under the **`arc:`** namespace, plus a standalone `arc:cartography` skill for repository codemap generation. Each top-level directory is a self-contained Skill defined by a `SKILL.md` frontmatter file. Arc skills are invoked via `arc <skill>` (for example: `arc agent`, `arc init full`).
 
 ## Skill Inventory
 
 | Directory | Skill Name | Invoke | Purpose |
 |-----------|-----------|--------|---------|
-| `agent/` | arc:agent | `arc-runtime run arc:agent` | 智能调度 agent，分析用户需求后选择合适的 arc: skill，通过 运行时无关编排层 Agent 系统调度执行任务 |
-| `cartography/` | arc:cartography | `arc-runtime run arc:cartography` | 仓库理解与分层代码地图（codemap）生成，输出目录级与根级映射文档 |
-| `simulate/` | arc:simulate | `arc-runtime run arc:simulate` | 通过 `agent-browser` 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
-| `triage/` | arc:triage | `arc-runtime run arc:triage` | 分析 arc:simulate 的失败报告，定位根因、修复缺陷、执行回归验证 |
-| `loop/` | arc:loop | `arc-runtime run arc:loop` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
-| `refine/` | arc:refine | `arc-runtime run arc:refine` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
-| `deliberate/` | arc:deliberate | `arc-runtime run arc:deliberate` | 多 Agent 多视角审议，使用 OpenSpec 生成结构化计划 |
-| `implement/` | arc:implement | `arc-runtime run arc:implement` | 将方案落地为工程实现，输出实现计划、执行日志与交接摘要 |
-| `review/` | arc:review | `arc-runtime run arc:review` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图 |
-KZ|| `init/` | arc:init | `arc-runtime run arc:init` | 智能调度器，自动判断全量(full)或增量(update)模式 |
-QB|| `init-full/` | arc:init:full | `arc-runtime run arc:init:full` | 全量生成项目层级式 CLAUDE.md 索引体系，深度扫描+多Agent分析 |
-QB|| `init-update/` | arc:init:update | `arc-runtime run arc:init:update` | 增量更新 CLAUDE.md，基于指纹检测变更，仅更新受影响模块 |
-| `ip-docs/` | arc:ip-docs | `arc-runtime run arc:ip-docs` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
-| `score/` | arc:score | `arc-runtime run arc:score` | 量化评分与 Code Smell 检测，为评审提供量化数据支撑 |
-| `gate/` | arc:gate | `arc-runtime run arc:gate` | CI 质量门禁，基于评分数据执行可配置的阻断判定 |
+| `agent/` | arc:agent | `arc agent` | 智能调度 agent，分析用户需求后选择合适的 arc: skill，通过 运行时无关编排层 Agent 系统调度执行任务 |
+| `cartography/` | arc:cartography | `arc cartography` | 仓库理解与分层代码地图（codemap）生成，输出目录级与根级映射文档 |
+| `simulate/` | arc:simulate | `arc simulate` | 通过 `agent-browser` 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
+| `triage/` | arc:triage | `arc triage` | 分析 arc:simulate 的失败报告，定位根因、修复缺陷、执行回归验证 |
+| `loop/` | arc:loop | `arc loop` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
+| `refine/` | arc:refine | `arc refine` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
+| `deliberate/` | arc:deliberate | `arc deliberate` | 多 Agent 多视角审议，使用 OpenSpec 生成结构化计划 |
+| `implement/` | arc:implement | `arc implement` | 将方案落地为工程实现，输出实现计划、执行日志与交接摘要 |
+| `review/` | arc:review | `arc review` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图 |
+| `init/` | arc:init | `arc init` | 智能调度器，自动判断全量(full)或增量(update)模式 |
+| `init-full/` | arc:init:full | `arc init full` | 全量生成项目层级式 CLAUDE.md 索引体系，深度扫描+多Agent分析 |
+| `init-update/` | arc:init:update | `arc init update` | 增量更新 CLAUDE.md，基于指纹检测变更，仅更新受影响模块 |
+| `ip-docs/` | arc:ip-docs | `arc ip-docs` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
+| `score/` | arc:score | `arc score` | 量化评分与 Code Smell 检测，为评审提供量化数据支撑 |
+| `gate/` | arc:gate | `arc gate` | CI 质量门禁，基于评分数据执行可配置的阻断判定 |
 
 ## 模块文档索引
 
@@ -77,19 +77,19 @@ arc:agent ────┬─▶ arc:init         (智能调度 → full/update)
               └─▶ Dispatch API dispatch (lane/role routing)
 
 arc:init  (独立运行；输出的 CLAUDE.md 被 arc:refine 消费)
-arc:cartography  (独立运行；输出 codemap.md 可被 arc:refinearc-runtime run arc:implementarc-runtime run arc:review 作为上下文参考)
+arc:cartography  (独立运行；输出 codemap.md 可被 arc:refine、arc:implement、arc:review 作为上下文参考)
 arc:score  (消费 arc:init 产物；输出量化数据给 arc:review 和 arc:gate)
 arc:implement  (消费 deliberation/refine 结果；输出实现交接供 review/simulate 使用)
 arc:review  (消费 arc:score 量化数据；输出评审报告)
 arc:gate  (消费 arc:score 数据；执行 CI 门禁判定)
-arc:ip-audit  (优先读取 arc:initarc-runtime run arc:review 产物；输出交接 JSON 给 arc:ip-docs)
+arc:ip-audit  (优先读取 arc:init、arc:review 产物；输出交接 JSON 给 arc:ip-docs)
 ```
 
 ## Architecture
 
 Each Skill follows the same structure:
 
-- **`SKILL.md`** — The skill definition (frontmatter `name`/`description`/`version` + full instructions). This is the authoritative specification; always read it before modifying a skill.
+- **`SKILL.md`** — The skill definition (frontmatter `name`/`description` + full instructions). This is the authoritative specification; always read it before modifying a skill.
 - **`scripts/`** — Python helper scripts callable from the agent (use `--help` first).
 - **`references/`** — Decision trees, runbooks, templates consumed by the skill workflow.
 - **`templates/`** / **`examples/`** — Scaffold templates and sample data (simulate only).
@@ -213,7 +213,7 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
    - 触发：缓存和索引均不可用
    - 扫描：ace-tool 语义搜索代码结构
    - 生成：临时快照到 `.arc/<skill>/context/`
-   - 建议：提示用户运行 `arc-runtime run arc:init` 生成持久索引
+   - 建议：提示用户运行 `arc init` 生成持久索引
 
 4. **优先级 4: 外部参考搜索 (Exa MCP)**
    - 触发：涉及不熟悉的库/框架

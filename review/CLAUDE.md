@@ -29,7 +29,7 @@ arc:review 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软
 
 ### 调用方式
 
-通过 Claude Code 调用：`arc-runtime run arc:review`
+通过 Claude Code 调用：`arc review`
 
 输入参数：
 - `project_path` (required): 待评审项目根目录

@@ -1,6 +1,6 @@
 ---
 name: "arc:agent"
-description: "当用户需求模糊或跨多个工作流时使用，负责在运行时无关前提下路由合适的 arc 技能并编排多 Agent 执行。"
+description: "当用户需求模糊、陌生仓库需快速上手或跨多个工作流时使用，负责在运行时无关前提下路由并编排执行。"
 ---
 
 # 智能调度 Agent（需求分析 + Skill 路由 + 多 Agent 调度）
@@ -68,7 +68,7 @@ ROUTE BEFORE EXECUTE, VERIFY CAPABILITIES BEFORE DISPATCH
 ## When to Use
 
 - **首选触发**：用户只给目标或问题模糊，不知道应调用哪个 `arc:*`。
-- **典型场景**：同一任务需要跨多个技能编排（如 `arc:refine` → `arc:deliberate` → `arc:implement`）。
+- **典型场景**：同一任务需要跨多个技能编排，或先做仓库摸底/任务拆解再推进执行（如 `arc:refine` → `arc:deliberate` → `arc:implement`）。
 - **边界提示**：若已明确具体技能且边界清晰，直接调用目标技能而非 `arc:agent`。
 
 ## Input Arguments

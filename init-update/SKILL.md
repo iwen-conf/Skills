@@ -519,7 +519,7 @@ arc:init (调度器)
 ```
 
 **调用链**：
-1. 用户首次运行 `arc-runtime run arc:init` → 自动路由到 `arc:init:full`
-2. 后续运行 `arc-runtime run arc:init` → 自动路由到 `arc:init:update`（如 fingerprints 存在）
-3. 用户显式 `arc-runtime run arc:init:full` → 强制全量
-4. 用户显式 `arc-runtime run arc:init:update` → 强制增量
+1. 用户首次运行 `arc init` → 自动路由到 `arc:init:full`
+2. 后续运行 `arc init` → 自动路由到 `arc:init:update`（如 fingerprints 存在）
+3. 用户显式 `arc init full` → 强制全量
+4. 用户显式 `arc init update` → 强制增量

@@ -28,7 +28,7 @@ arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的
 
 ### 调用方式
 
-通过 Claude Code 调用：`arc-runtime run arc:agent`
+通过 Claude Code 调用：`arc agent`
 
 输入参数：
 - `task_description` (required): 用户的自然语言任务描述

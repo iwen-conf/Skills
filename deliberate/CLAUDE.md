@@ -28,7 +28,7 @@ arc:deliberate 通过共享文件系统协调 oracle、deep、visual-engineering
 
 ### 调用方式
 
-通过 Claude Code 调用：`arc-runtime run arc:deliberate`
+通过 Claude Code 调用：`arc deliberate`
 
 输入参数：
 - `task_name` (required): 任务名称，用于目录命名

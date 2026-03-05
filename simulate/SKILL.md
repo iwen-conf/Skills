@@ -251,7 +251,7 @@ NO E2E PASS CLAIM WITHOUT UI EVIDENCE AND ARTIFACT INTEGRITY
 
 1. **立即修复**（推荐）：
    ```bash
-   arc-runtime run arc:init --project-path <project-path>
+   arc init --project-path <project-path>
    ```
 
 2. **手动修复**：
