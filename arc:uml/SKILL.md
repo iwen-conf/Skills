@@ -24,12 +24,17 @@ All UML diagrams must conform to UML standard notation (it is recommended to ali
 - For unified routing comparison, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md).
 - A phased getting started view is available at [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view).
 - For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md).
-- If there is a conflict, the **边界提示** of this skill `## When to Use` shall prevail.
+- If there is a conflict, the **Boundary Note** of this skill `## When to Use` shall prevail.
 
 ## Announce
 
 Begin by stating clearly:
 "I'm using `arc:uml` to make a pattern applicability determination and then output an evidence-based UML diagram."
+
+## Teaming Requirement
+
+- Every execution must first "draw a team together" and at least clarify the three roles and responsibilities of `Owner`, `Executor` and `Reviewer`.
+- If the operating environment only has a single Agent, the three-role perspective must be explicitly output during delivery to form a "decision-execution-review" closed loop before submitting the conclusion.
 
 ## The Iron Law
 
@@ -58,18 +63,18 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 
 ## Expert Standards
 
-- UML 输出需对齐 `UML 2.5.1 / ISO 19505` 语义，关系与可见性禁止混用。
-- 行为类图（时序/活动/状态）必须与静态类图实体命名一致并可互证。
-- 架构类图（组件/部署/包）需对齐运行环境证据（配置、拓扑、接口边界）。
-- 若输出 E-R，必须严格使用 `Chen` 记法（实体/联系/属性语义完整表达）。
-- 每张图附 `建模假设 + 证据定位 + 适用边界`，避免图漂亮但不可落地。
+- UML output needs to be aligned to `UML 2.5.1 / ISO 19505` Semantics, relationships and visibility are not allowed to be mixed.
+- Behavioral class diagrams (sequences/activities/states) must be named consistently with static class diagram entities and can be mutually verified.
+- Architectural class diagrams (components/deployments/packages) need to align with runtime environment evidence (configuration, topology, interface boundaries).
+- If E-R is output, the `Chen` notation must be strictly used (complete expression of entity/relationship/attribute semantics).
+- Each picture is accompanied by `Modeling Assumptions + Evidence Location + Applicable Boundaries` to avoid beautiful pictures but unfeasible results.
 
 ## Scripts & Commands
 
-- 生成 UML 骨架（按图型）：`python3 arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types class,sequence,deployment`
-- 生成全量 UML 骨架：`python3 arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all`
-- 同时生成陈氏 E-R 骨架：`python3 arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all --include-er-chen`
-- 运行时主命令：`arc uml`
+- Generate UML skeleton (by diagram): `python3 arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types class,sequence,deployment`
+- Generate full UML skeleton: `python3 arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all`
+- Generate Chen's E-R skeleton at the same time: `python3 arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all --include-er-chen`
+- Runtime main command: `arc uml`
 
 ## Red Flags
 
@@ -87,9 +92,9 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 
 ## When to Use
 
-- **首选触发**: Systematic UML diagrams are required to illustrate architecture, interactions, deployment, or business processes.
-- **典型场景**: new member onboarding, architecture review, technical due diligence, pre-release knowledge accumulation, and cross-team alignment.
-- **边界提示**: Only the warehouse structure needs to use `arc:cartography` first; only quality diagnosis needs to use `arc:audit` first.
+- **Primary Trigger**: Systematic UML diagrams are required to illustrate architecture, interactions, deployment, or business processes.
+- **Typical Scenario**: new member onboarding, architecture review, technical due diligence, pre-release knowledge accumulation, and cross-team alignment.
+- **Boundary Note**: Only the warehouse structure needs to use `arc:cartography` first; only quality diagnosis needs to use `arc:audit` first.
 
 ## Input Arguments
 
@@ -130,17 +135,17 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 - E-R diagram: Use Mermaid syntax to express Chen's drawing method; use of Crow's Foot / IDEF1X instead is prohibited.
 - See `references/notation-standards.md` for the determination details.
 
-### Mermaid Chen E-R 示例
+### Mermaid Chen E-R Example
 
 ```mermaid
 flowchart LR
-  customer["实体: Customer"]
-  places{"联系: Places"}
-  order["实体: Order"]
-  customer_id((主键属性: customer_id))
-  customer_name((属性: name))
-  order_id((主键属性: order_id))
-  order_total((属性: total_amount))
+customer["Entity: Customer"]
+places{"Contact: Places"}
+order["Entity: Order"]
+customer_id((primary key attribute: customer_id))
+customer_name((attribute: name))
+order_id((primary key attribute: order_id))
+order_total((property: total_amount))
 
   customer ---|1| places
   places ---|N| order
@@ -219,7 +224,7 @@ flowchart LR
     ├── communication.mmd
     ├── interaction-overview.mmd
     ├── timing.mmd
-└── er-chen.mmd # Optional: Chen’s E-R diagram
+└── er-chen.mmd # Optional: Chen's E-R diagram
 ```
 
 ## Anti-Patterns

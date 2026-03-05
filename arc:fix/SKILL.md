@@ -25,12 +25,17 @@ Unified mode:
 - For unified routing comparison, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md).
 - A phased getting started view is available at [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view).
 - For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md).
-- If there is a conflict, the **边界提示** of this skill `## When to Use` shall prevail.
+- If there is a conflict, the **Boundary Note** of this skill `## When to Use` shall prevail.
 
 ## Announce
 
 Begin by stating clearly:
 "I'm using `arc:fix` to fix the failure evidence first, then locate the root cause and verify the fix."
+
+## Teaming Requirement
+
+- Every execution must first "draw a team together" and at least clarify the three roles and responsibilities of `Owner`, `Executor` and `Reviewer`.
+- If the operating environment only has a single Agent, the three-role perspective must be explicitly output during delivery to form a "decision-execution-review" closed loop before submitting the conclusion.
 
 ## The Iron Law
 
@@ -56,18 +61,18 @@ Without the evidence chain of "failure→repair→pass", it is not allowed to cl
 
 ## Expert Standards
 
-- 故障处置需按 `SEV 分级` 执行（SEV0-3），先止血再根治并记录时序。
-- 根因分析需结合 `5 Whys + Fault Tree`，避免停留在表象原因。
-- 修复验证必须量化 `MTTA/MTTR` 与恢复后稳定窗口（如 24h/72h）。
-- 上线修复建议优先采用 `canary/feature flag`，并绑定回滚阈值。
-- 结案必须产出 `Blameless Postmortem` 与 CAPA（纠正/预防措施）项。
+Error 500 (Server Error)!!1500.That's an error.There was an error. Please try again later.That's all we know.
+- Root cause analysis needs to be combined with `5 Whys + Fault Tree` to avoid staying at the superficial causes.
+- Repair verification must quantify `MTTA/MTTR` with post-recovery stability window (e.g. 24h/72h).
+- It is recommended to use `canary/feature flag` first and bind the rollback threshold for online repair.
+- Case closing must produce `Blameless Postmortem` and CAPA (Corrective/Preventive Action) items.
 
 ## Scripts & Commands
 
-- triage 摘要：`python3 arc:fix/scripts/triage_run.py <run_dir> --json-out <triage.json> --md-out <triage.md>`
-- 运行时主命令：`arc fix`
-- 多轮回归模式：`arc fix --mode retest-loop`
-- 推荐链路：`arc e2e`（产证据）→ `arc fix`（修复闭环）
+- Triage summary: `python3 arc:fix/scripts/triage_run.py <run_dir> --json-out <triage.json> --md-out <triage.md>`
+- Runtime main command: `arc fix`
+- Multiple loop regression mode: `arc fix --mode retest-loop`
+- Recommended link: `arc e2e` (produce evidence) → `arc fix` (fix closed loop)
 
 ## Red Flags
 
@@ -78,9 +83,9 @@ Without the evidence chain of "failure→repair→pass", it is not allowed to cl
 
 ## When to Use
 
-- **首选触发**: FAIL evidence or online fault signal has been obtained, and the root cause needs to be located and recovery promoted.
-- **典型场景**: Intermittent failure, unstable regression, surge in online errors, repair of critical business interruptions.
-- **边界提示**: Execute `arc:e2e` first when there is no reproducible failed artifact; only use `arc:audit` for quality review conclusions.
+- **Primary Trigger**: FAIL evidence or online fault signal has been obtained, and the root cause needs to be located and recovery promoted.
+- **Typical Scenario**: Intermittent failure, unstable regression, surge in online errors, repair of critical business interruptions.
+- **Boundary Note**: Execute `arc:e2e` first when there is no reproducible failed artifact; only use `arc:audit` for quality review conclusions.
 
 ## Context Budget (must be split to avoid too long context)
 
@@ -121,8 +126,8 @@ Triage decision tree (for quick judgment of "product defects vs test false posit
 
 All evidence is rooted in `run_dir` of arc:e2e:
 
-- **Failing run**：`reports/<fail_run_id>/`
-- **Passing run**：`reports/<pass_run_id>/`
+- **Failing run**:`reports/<fail_run_id>/`
+- **Passing run**:`reports/<pass_run_id>/`
 - **Accounts file (unified account management)**: `<run_dir>/accounts.jsonc` (plain text account/password/Token; not allowed to be submitted to the database)
 
 It is recommended to put "Analyze/Repair Deliverables" in `run_dir/analysis/` (does not affect `check_artifacts.py --strict`):
@@ -195,7 +200,7 @@ python arc:fix/scripts/triage_run.py <run_dir> \
   - `python arc:e2e/scripts/scaffold_run.py --help`
   - `python arc:e2e/scripts/scaffold_run.py --pack full-process --objective "<objective>" --target-url "<url>" --personas "<json-or-path>"`
 - Press `arc:e2e/SKILL.md` to execute the test to ensure disk placement:
-  - `report.md`、`action-log.md`、`screenshot-manifest.md`、`screenshots/`
+  - `report.md`,`action-log.md`,`screenshot-manifest.md`,`screenshots/`
 -(optional)`events.jsonl`
 - After failure, use the output `run_dir` as the input of this Skill to continue with the subsequent steps.
 

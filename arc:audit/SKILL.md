@@ -7,7 +7,7 @@ description: "项目体检与七维质量评审，输出评分、风险与改进
 
 ## Overview
 
-Give Agent the ability to be an “enterprise-level software review expert”. Through the three professional agents of architecture, deep, deep (engineering), and deep (business), each independently evaluates the project or key PR according to seven dimensions, and then refutes each other's scores and findings, and finally converges on a deliverable diagnostic report and improvement roadmap.
+Give Agent the ability to be an "enterprise-level software review expert". Through the three professional agents of architecture, deep, deep (engineering), and deep (business), each independently evaluates the project or key PR according to seven dimensions, and then refutes each other's scores and findings, and finally converges on a deliverable diagnostic report and improvement roadmap.
 
 In addition to the seven-dimensional total score, the review must add two new special scores: **Business Maturity Score** (focusing on business link opening rate/broken link rate) and **Dependency Health Score** (focusing on outdated dependencies/vulnerable dependencies/discontinued maintenance dependencies).
 
@@ -33,12 +33,17 @@ The process is divided into four stages:
 - For unified routing comparison, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md).
 - A phased getting started view is available at [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view).
 - For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md).
-- If there is a conflict, the **边界提示** of this skill `## When to Use` shall prevail.
+- If there is a conflict, the **Border Tip** of this skill `## When to Use` shall prevail.
 
 ## Announce
 
 Begin by stating clearly:
 "I am using `arc:audit` to do an evidence-based review first, and then output the seven-dimensional + special scoring diagnosis and roadmap."
+
+## Teaming Requirement
+
+- Each implementation must first "draw a team together" and clearly define at least three roles and responsibilities of `Owner`, `Executor`, and `Reviewer`.
+- If the operating environment only has a single Agent, the three-role perspective must be explicitly output during delivery to form a "decision-execution-review" closed loop before submitting the conclusion.
 
 ## The Iron Law
 
@@ -64,28 +69,28 @@ No ratings can be given without evidence, and no suggestions can be given withou
 - The business dimension must give "business link opening rate + link disconnection rate + business maturity score".
 - The technical debt dimension must give "dependency obsolescence rate + vulnerability risk + dependency health score".
 - Recommendations must include benefit, cost and risk trade-offs.
-- The report needs to distinguish between “observed facts” and “improvement suggestions”.
+- The report needs to distinguish between "observed facts" and "improvement suggestions".
 
 ## Expert Standards
 
-- 七维评审必须给出 `评分依据 + 证据 + 置信度`，并保留跨评审组校准记录。
-- 业务成熟度必须量化 `链路通畅率 / 断链率 / 关键场景通过率 / 业务异常信号`。
-- 依赖健康度必须覆盖 `EOL 状态 / CVE 暴露 / 升级阻塞 / 维护活跃度` 四类指标。
-- 报告必须输出 `治理路线图`（P0/P1/P2）并标注 owner、时限、验收口径。
-- HTML 报告必须遵循 SPA 大盘标准（`references/spa-dashboard-spec.md`），采用 **9 Tab 分层架构**：
-  - **1 全局总览**: 七维雷达图 + Apdex 指数 + KPI 卡片（含 Sparkline 趋势）
-  - **4 业务深度剖析**: 业务完成情况（旭日图/甘特图）、业务连接情况（力导向拓扑图）、业务连通率（桑基图/蜂窝热力图）、业务逻辑通顺性（流程挖掘 DAG/漏斗图）
-  - **4 技术效能维度**: 架构健康度（依赖矩阵/极坐标柱状图）、性能与稳定性（时序折线图/火焰图）、安全治理与合规（威胁态势图/玫瑰图）、资源利用与成本（矩形树图/堆叠面积图）
-  - 每个 Tab 内置 `专家评审卡`（结论/Gate 建议/风险等级/整改时限/关键证据）
-  - 全部图表由 ECharts CDN 驱动，支持交互式下钻
-  - 语义色板：成功 #52C41A、警告 #FAAD14、危险 #F5222D、离线 #BFBFBF
+- Seven-dimensional review must give `score + evidence + confidence`, and keep cross-review team calibration records.
+- Business maturity must be quantified `Link continuity rate / link disconnection rate / key scenario pass rate / business abnormality signal`.
+- Dependency health must cover `EOL status/CVE exposure/Upgrade blocking/Maintenance activity` four types of indicators.
+- The report must output `Governance Roadmap` (P0/P1/P2) and mark the owner, time limit, and acceptance criteria.
+- The HTML report must comply with the SPA market standard (`references/spa-dashboard-spec.md`) and adopt the **9 Tab hierarchical architecture**:
+  - **1 Global Overview**: Seven-dimensional radar chart + Apdex index + KPI card (including Sparkline trend)
+  - **4 Business in-depth analysis**: business completion status (sunburst chart/Gantt chart), business connection status (force-directed topology map), business connectivity rate (Sankey chart/cellular heat map), business logic smoothness (process mining DAG/funnel chart)
+  - **4 Technical Performance Dimensions**: Architecture health (dependency matrix/polar histogram), performance and stability (timing line chart/flame chart), security governance and compliance (threat landscape chart/rose chart), resource utilization and cost (rectangular tree chart/stacked area chart)
+- Each Tab has built-in `Expert Review Card` (Conclusion/Gate Suggestion/Risk Level/Correction Time Limit/Key Evidence)
+  - All charts are powered by ECharts CDN and support interactive drill-down
+  - Semantic palette: Success #52C41A, Warning #FAAD14, Danger #F5222D, Offline #BFBFBF
 
 ## Scripts & Commands
 
-- 运行时主命令：`arc audit`
-- 量化集成（自动选主题 + 9 Tab）：`python3 arc:audit/scripts/integrate_score.py --project-path <project_path> --review-dir <project_path>/.arc/arc:audit/<project_name>`
-- 指定 score 目录：`python3 arc:audit/scripts/integrate_score.py --score-dir <score_dir> --review-dir <project_path>/.arc/arc:audit/<project_name>`
-- 若缺少 score 输入，先执行：`arc gate`
+- Runtime main command: `arc audit`
+- Quantitative integration (automatic selection of topics + 9 Tab): `python3 arc:audit/scripts/integrate_score.py --project-path <project_path> --review-dir <project_path>/.arc/arc:audit/<project_name>`
+- Specify score directory: `python3 arc:audit/scripts/integrate_score.py --score-dir <score_dir> --review-dir <project_path>/.arc/arc:audit/<project_name>`
+- If the score input is missing, execute first: `arc gate`
 
 ## Red Flags
 
@@ -104,9 +109,9 @@ No ratings can be given without evidence, and no suggestions can be given withou
 
 ## When to Use
 
-- **首选触发**: Evidence-based and traceable review of projects or key PRs is required.
-- **典型场景**: Technical due diligence, milestone review, health assessment before architecture upgrade, high-risk PR review before merger, pre-release testing strategy/performance regression/security baseline assessment.
-- **边界提示**: Use `arc:gate` only for access control blocking; use `arc:build` for floor-to-ceiling transformation plan.
+- **Preferred Trigger**: Evidence-based and traceable review of projects or key PRs is required.
+- **Typical scenarios**: Technical due diligence, milestone review, health assessment before architecture upgrade, high-risk PR review before merger, pre-release testing strategy/performance regression/security baseline assessment.
+- **Boundary Tips**: Use `arc:gate` only for access control blocking; use `arc:build` for floor-to-ceiling transformation plan.
 
 ## Input Arguments
 
@@ -370,7 +375,7 @@ Each Agent must:
 
 #### Step 4.1: Aggregate Ratings
 
-Read each party’s dimensional analysis + rebuttal report, for each dimension:
+Read each party's dimensional analysis + rebuttal report, for each dimension:
 1. Take the **professional weighted average** of the ratings from all parties:
    - architecture/security/tech-debt: architecture 50%, deep 25%, deep(business) 25%
    - code-quality/devops: deep 50%, architecture 25%, deep (business) 25%
@@ -493,17 +498,17 @@ python3 <skills_root>/arc:audit/scripts/integrate_score.py \
 The generated dashboard follows the SPA 9-Tab Standard (`references/spa-dashboard-spec.md`):
 
 **Tab Layout (1 + 4 + 4)**:
-1. **全局总览 (Executive Overview)**: ECharts Radar Chart (七维归一化 0-100) + Donut Gauge (总进度) + KPI Sparkline Cards
-2. **业务完成情况 (Business Completion)**: 需求交付率 + 燃尽率 + 业务成熟度评估
-3. **业务连接情况 (Business Connection)**: 节点入度/出度 + 依赖层级深度 + 架构拓扑
-4. **业务连通率 (Business Connectivity)**: 接口成功率 + 消息投递率 + 桑基流量漏斗
-5. **业务逻辑通顺性 (Business Logic Fluency)**: 主流程转化率 + 异常回退率 + 流程挖掘
-6. **架构健康度 (Architecture Health)**: 圈复杂度 + 模块耦合度 + 依赖矩阵热力图
-7. **性能与稳定性 (Performance & Stability)**: P95/P99 延迟 + 吞吐量 QPS/TPS
-8. **安全治理与合规 (Security & Governance)**: 鉴权拦截率 + 高危 API 暴露率 + 安全事件分类
-9. **资源利用与成本 (Resource & FinOps)**: 资源利用率 + 闲置成本 + 僵尸服务检测
+1. **Executive Overview**: ECharts Radar Chart (seven-dimensional normalization 0-100) + Donut Gauge (total progress) + KPI Sparkline Cards
+2. **Business Completion**: demand delivery rate + burndown rate + business maturity assessment
+3. **Business Connection**: Node in-degree/out-degree + Dependency level depth + Architecture topology
+4. **Business Connectivity**: Interface success rate + message delivery rate + Sankey traffic funnel
+5. **Business Logic Fluency**: Main process conversion rate + exception fallback rate + process mining
+6. **Architecture Health**: Cyclomatic Complexity + Module Coupling + Dependency Matrix Heat Map
+7. **Performance & Stability**: P95/P99 latency + throughput QPS/TPS
+8. **Security & Governance**: Authentication interception rate + high-risk API exposure rate + security incident classification
+9. **Resource & FinOps**: Resource utilization + idle cost + zombie service detection
 
-**Mandatory per-tab components**: Expert review card (结论/Gate 建议/风险等级/整改时限/关键证据), ECharts chart, detail tables.
+**Mandatory per-tab components**: Expert review card (Conclusion/Gate Recommendation/Risk Level/Correction Time Limit/Key Evidence), ECharts chart, detail tables.
 
 At least the following products should exist after execution:
 - `quantitative-dashboard.html` (single output; 9 Tabs per SPA standard; ECharts CDN; theme selected by `time now()` at generation time)
@@ -537,7 +542,7 @@ If the `.arc/score/<project-name>/` quantification input is missing, you must fi
 │   └── critique.md
 ├── diagnostic-report.md # Final diagnostic report
 ├── scorecard.md # scorecard
-├── quantitative-dashboard.html # SPA 9-Tab 可视化大盘 (ECharts; 1全局+4业务+4技术; theme from time now())
+├── quantitative-dashboard.html # SPA 9-Tab Visualization Dashboard (ECharts; 1 global + 4 business + 4 technology; theme from time now())
 ├── business-maturity.md # Business maturity special score
 ├── dependency-health.md # Dependency health special score
 └── recommendations.md # Improvement recommendations (by priority)

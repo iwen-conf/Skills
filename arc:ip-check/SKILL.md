@@ -30,12 +30,17 @@ This skill does not directly produce formal application documents. The review co
 - For unified routing comparison, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md).
 - A phased getting started view is available at [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view).
 - For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md).
-- If there is a conflict, the **边界提示** of this skill `## When to Use` shall prevail.
+- If there is a conflict, the **Boundary Note** of this skill `## When to Use` shall prevail.
 
 ## Announce
 
 Begin by stating clearly:
 "I am using `arc:ip-check` to do feasibility review and risk classification first, and then give application suggestions."
+
+## Teaming Requirement
+
+- Every execution must first "draw a team together" and at least clarify the three roles and responsibilities of `Owner`, `Executor` and `Reviewer`.
+- If the operating environment only has a single Agent, the three-role perspective must be explicitly output during delivery to form a "decision-execution-review" closed loop before submitting the conclusion.
 
 ## The Iron Law
 
@@ -61,19 +66,19 @@ Without code evidence and risk matrix, no "applicable" conclusion should be give
 
 ## Expert Standards
 
-- 专利审查需分开评估 `新颖性/创造性/实用性`，并给出证据强弱等级。
-- 增加 `FTO`（实施自由）风险视角，标注潜在侵权与规避策略。
-- 软著评估需关注 `独创性表达` 与可证明的作者/版本链条。
-- 先证据后结论：每个创新主张必须绑定代码、流程、文档或实验记录。
-- 输出应区分技术评估与法律结论边界，禁止给出确定性法律承诺。
+- Patent review needs to separately evaluate `novelty/creativeness/practicability' and give a grade of evidence strength.
+- Added `FTO` (freedom to implement) risk perspective, marking potential infringements and avoidance strategies.
+- The evaluation of soft works requires attention to `original expression` and a provable author/version chain.
+- Evidence first, then conclusion: Every innovation claim must be bound to code, process, documents or experimental records.
+- The output should distinguish between technical assessment and legal conclusions, and it is prohibited to give deterministic legal commitments.
 
 ## Scripts & Commands
 
-- 审查工作区脚手架：`python3 arc:ip-check/scripts/scaffold_audit_case.py --project-path <project_path>`
-- 报告渲染：`python3 arc:ip-check/scripts/render_audit_report.py --case-dir <case_dir> --project-name <project_name>`
-- 格式合规检查：`python3 arc:ip-check/scripts/format_compliance_checker.py --project-path <project_path> --output <checklist.md>`
-- 费减资格检查：`python3 arc:ip-check/scripts/fee_reduction_check.py --applicant-type enterprise --annual-income <amount>`
-- 运行时主命令：`arc ip-check`
+- Audit workspace scaffolding: `python3 arc:ip-check/scripts/scaffold_audit_case.py --project-path <project_path>`
+- Report rendering: `python3 arc:ip-check/scripts/render_audit_report.py --case-dir <case_dir> --project-name <project_name>`
+- Format compliance check: `python3 arc:ip-check/scripts/format_compliance_checker.py --project-path <project_path> --output <checklist.md>`
+- Fee reduction eligibility check: `python3 arc:ip-check/scripts/fee_reduction_check.py --applicant-type enterprise --annual-income <amount>`
+- Runtime main command: `arc ip-check`
 
 ## Red Flags
 
@@ -94,9 +99,9 @@ Must follow the link below to collaborate:
 
 ## When to Use
 
-- **首选触发**: It is necessary to evaluate the feasibility, risks and priorities of soft works/patents before applying.
-- **典型场景**: Financing, bidding, and intellectual property due diligence before listing.
-- **边界提示**: Please refer to `arc:ip-draft` for drafting formal application documents.
+- **Primary Trigger**: It is necessary to evaluate the feasibility, risks and priorities of soft works/patents before applying.
+- **Typical Scenario**: Financing, bidding, and intellectual property due diligence before listing.
+- **Boundary Note**: Please refer to `arc:ip-draft` for drafting formal application documents.
 
 ## Input Arguments
 
@@ -308,7 +313,7 @@ schedule_task(
   execution_mode="background",
 description="Writing evaluates document completeness and application readiness",
   prompt=`
-[TASK]: Evaluate the project’s document completeness and readiness for intellectual property application
+[TASK]: Evaluate the project's document completeness and readiness for intellectual property application
 
 [EXPECTED OUTCOME]:
 - Generate agents/writing/compliance-analysis.md, including:
@@ -357,7 +362,7 @@ task_ref="<architecture_task_ref>", // Reuse Phase 2 session
   execution_mode="foreground",
 description="Architecture Cross Refutation Deep and Writing",
   prompt=`
-[TASK]: Refute Deep and Writing’s assessment and point out overly optimistic/pessimistic aspects
+[TASK]: Refute Deep and Writing's assessment and point out overly optimistic/pessimistic aspects
 
 [EXPECTED OUTCOME]:
 - Generate agents/architecture/critique.md, including:
@@ -374,7 +379,7 @@ description="Architecture Cross Refutation Deep and Writing",
 - Counterarguments must include the three elements of technology/program product perspective, and can cite policy anchors.
 
 [MUST NOT DO]:
-- Don’t simply agree with the other person’s point of view
+- Don't simply agree with the other person's point of view
 - No rebuttal without evidence
 
 [CONTEXT]: working directory .arc/arc:ip-check/<project-name>/

@@ -29,12 +29,17 @@ Core competencies:
 - For unified routing comparison, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md).
 - A phased getting started view is available at [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view).
 - For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md).
-- If there is a conflict, the **边界提示** of this skill `## When to Use` shall prevail.
+- If there is a conflict, the **Boundary Note** of this skill `## When to Use` shall prevail.
 
 ## Announce
 
 Begin by stating clearly:
 "I am using `arc:gate`, loading score artifacts and policies, then outputting the Go/No-Go decision."
+
+## Teaming Requirement
+
+- Every execution must first "draw a team together" and at least clarify the three roles and responsibilities of `Owner`, `Executor` and `Reviewer`.
+- If the operating environment only has a single Agent, the three-role perspective must be explicitly output during delivery to form a "decision-execution-review" closed loop before submitting the conclusion.
 
 ## The Iron Law
 
@@ -60,18 +65,18 @@ No build/release is green without explicit gate evidence.
 
 ## Expert Standards
 
-- 门禁规则建议 `Policy-as-Code` 化（可映射 OPA/Rego 等规则引擎语义）。
-- 安全门禁需覆盖 `OWASP` 高风险项与已知漏洞阈值，不得被总分掩盖。
-- 供应链门禁需校验 `SBOM + 来源可追溯`，避免未知依赖进入发布链路。
-- 例外项必须满足 `审批 + 到期 + 复盘` 三要素，超期自动失效。
-- 结论应同时支持 `人审` 与 `机审`：结构化结果、证据链接、退出码一致。
+- Access control rules are recommended to be `Policy-as-Code` (can map the semantics of rule engines such as OPA/Rego).
+- Security access must cover `OWASP` high-risk items and known vulnerability thresholds, and must not be covered by the total score.
+- Supply chain access control needs to verify `SBOM + source traceability` to prevent unknown dependencies from entering the release link.
+- Exceptions must meet the three elements of `approval + expiry + review`, and will automatically expire if they exceed the expiration date.
+- The conclusion should support both `human review' and `machine review': structured results, evidence links, and exit codes are consistent.
 
 ## Scripts & Commands
 
-- 脚本门禁（严格）：`python3 arc:gate/scripts/check_gate.py --project <project_path> --mode strict --exit-code`
-- 脚本门禁（危险拦截）：`python3 arc:gate/scripts/check_gate.py --project <project_path> --mode strict_dangerous --exit-code`
-- 自定义配置：`python3 arc:gate/scripts/check_gate.py --project <project_path> --config <gate-config.yaml> --output-dir <output_dir>`
-- 运行时主命令：`arc gate`
+- Script gate (strict): `python3 arc:gate/scripts/check_gate.py --project <project_path> --mode strict --exit-code`
+- Script gate (dangerous interception): `python3 arc:gate/scripts/check_gate.py --project <project_path> --mode strict_dangerous --exit-code`
+- Custom configuration: `python3 arc:gate/scripts/check_gate.py --project <project_path> --config <gate-config.yaml> --output-dir <output_dir>`
+- Runtime main command: `arc gate`
 
 ## Red Flags
 
@@ -82,9 +87,9 @@ No build/release is green without explicit gate evidence.
 
 ## When to Use
 
-- **首选触发**: 合并或上线前需要明确的门禁判定（Go/No-Go）。
-- **典型场景**: 依据评分阈值与豁免策略做阻断；在发布窗口统一校验回滚/监控/值班/公告准备度。
-- **边界提示**: `arc:gate` 只负责门禁判定，不负责部署执行；根因分析与改进路线请先用 `arc:audit`。
+- **Preferred Trigger**: A clear access decision (Go/No-Go) is required before merging or going online.
+- **Typical scenario**: Blocking based on score threshold and exemption policy; unified verification of rollback/monitoring/duty/announcement readiness in the release window.
+- **Boundary Tip**: `arc:gate` is only responsible for access control determination, not deployment and execution; please use `arc:audit` first for root cause analysis and improvement routes.
 
 ## Dependencies
 

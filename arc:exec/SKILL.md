@@ -7,19 +7,19 @@ description: "统一任务编排入口：理解需求、路由到 arc:* 或多 A
 
 ## Overview
 
-`arc:exec` 是调度型 Meta-Skill，不直接产出业务方案，而是负责：
+`arc:exec` is a scheduling Meta-Skill that does not directly produce business solutions, but is responsible for:
 
-1. 识别用户目标与约束；
-2. 在 `arc:*` 技能与通用多 Agent 执行之间做路由；
-3. 组织并发调度、结果收集、冲突仲裁；
-4. 输出可追踪的执行摘要与下一步建议。
+1. Identify user goals and constraints;
+2. Route between `arc:*` skills and general multi-Agent execution;
+3. Organize concurrent scheduling, result collection, and conflict arbitration;
+4. Output a trackable executive summary and next step recommendations.
 
 ## Quick Contract
 
-- **Trigger**: 需求模糊、跨多个技能、或用户只给目标不指定执行路径。
-- **Inputs**: `task_description`、`workdir`，可选 `preferred_skill`、`dry_run`、`confirm`、`snapshot`。
-- **Outputs**: 路由决策、调度记录、执行预览、聚合结论与后续动作。
-- **Quality Gate**: 通过 `## Quality Gates` 的“可解释路由 + 可追踪调度 + 可收敛聚合”检查。
+- **Trigger**: The requirements are vague, span multiple skills, or the user only gives the target without specifying the execution path.
+- **Inputs**: `task_description`, `workdir`; optional `preferred_skill`, `dry_run`, `confirm`, `snapshot`.
+- **Outputs**: routing decisions, scheduling records, execution preview, aggregation conclusions and follow-up actions.
+- **Quality Gate**: Passes the "Explainable Routing + Traceable Scheduling + Convergent Aggregation" check of `## Quality Gates`.
 - **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
 
 ## Routing Matrix
@@ -27,12 +27,17 @@ description: "统一任务编排入口：理解需求、路由到 arc:* 或多 A
 - For unified routing comparison, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md).
 - A phased getting started view is available at [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view).
 - For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md).
-- If there is a conflict, the **边界提示** of this skill `## When to Use` shall prevail.
+- If there is a conflict, the **Boundary Note** of this skill `## When to Use` shall prevail.
 
 ## Announce
 
 Begin by stating clearly:  
 "I am using `arc:exec` to complete requirement understanding, skill routing, and orchestration planning first."
+
+## Teaming Requirement
+
+- Every execution must first "draw a team together" and at least clarify the three roles and responsibilities of `Owner`, `Executor` and `Reviewer`.
+- If the operating environment only has a single Agent, the three-role perspective must be explicitly output during delivery to form a "decision-execution-review" closed loop before submitting the conclusion.
 
 ## The Iron Law
 
@@ -40,119 +45,119 @@ Begin by stating clearly:
 ROUTE BEFORE EXECUTE, COLLECT BEFORE CONCLUDE
 ```
 
-在完成路由与能力校验前不得调度；在收齐并发结果前不得给最终结论。
+No scheduling is allowed before routing and capability verification is completed; no final conclusion is given before all concurrent results are collected.
 
 ## Workflow
 
-1. 扫描上下文并理解需求（目标、范围、风险、依赖）。
-2. 决策执行路径：单技能、技能链路、或通用多 Agent 并发。
-3. 生成执行预览（可选快照、确认、dry-run）。
-4. 按波次调度并收集结果，执行冲突仲裁与降级处理。
-5. 输出聚合摘要、风险和下一动作。
+1. Scan the context and understand the requirements (goals, scope, risks, dependencies).
+2. Decision execution path: single skill, skill link, or general multi-agent concurrency.
+3. Generate execution preview (optional snapshot, confirmation, dry-run).
+4. Schedule and collect results according to waves, and perform conflict arbitration and downgrade processing.
+5. Output aggregate summary, risk and next action.
 
 ## Quality Gates
 
-- 路由结论必须可解释（为何选该 Skill / profile）。
-- 每次调度必须包含 `capability_profile`、`description`、`prompt`。
-- 并发任务必须具备收集点（`collect_task(...)`）和失败处理策略。
-- 聚合结论必须包含责任、风险、追踪标识（`task_ref` 或等价字段）。
+- The routing conclusion must be explainable (why this Skill/profile was selected).
+- Each schedule must contain `capability_profile`, `description`, `prompt`.
+- Concurrent tasks must have collection points (`collect_task(...)`) and failure handling strategies.
+- Aggregation conclusions must contain responsibility, risk, and tracking identifiers (`task_ref` or equivalent fields).
 
 ## Expert Standards
 
-- 编排输出必须给出 `RACI`：决策、执行、审阅、知会角色清晰。
-- 调度计划必须标注 `关键路径(CPM)` 与并发波次，避免伪并发。
-- 聚合阶段必须遵循 `冲突仲裁规则`（安全 > 正确性 > 一致性）。
-- 结果摘要需给出置信度、降级条件和回滚路径。
-- 涉及高风险改动时需明确人工确认闸门。
+- The orchestration output must give `RACI`: clear decision-making, execution, review and notification roles.
+- The scheduling plan must be marked with `critical path (CPM)` and concurrent waves to avoid false concurrency.
+- The aggregation phase must follow `conflict arbitration rules` (security > correctness > consistency).
+- The result summary needs to give the confidence level, degradation conditions and rollback path.
+- Manual confirmation gates need to be clearly defined when high-risk changes are involved.
 
 ## Scripts & Commands
 
-- 运行时主命令：`arc exec`
-- 初始化编排工作区：`python3 arc:exec/scripts/scaffold_exec_case.py --workdir <workdir> --task-name <task-name>`
-- 渲染调度与汇总产物：`python3 arc:exec/scripts/render_dispatch_report.py --case-dir <case_dir> --task-name <task-name> --dispatch "deep|[arc:build]|实现后端接口|done|execution/backend.md"`
-- 调度示例手册：`arc:exec/references/schedule-task-playbook.md`
+- Runtime main command: `arc exec`
+- Initialize the orchestration workspace: `python3 arc:exec/scripts/scaffold_exec_case.py --workdir <workdir> --task-name <task-name>`
+- Rendering scheduling and summary products: `python3 arc:exec/scripts/render_dispatch_report.py --case-dir <case_dir> --task-name <task-name> --dispatch "deep|[arc:build]|implement backend interface|done|execution/backend.md"`
+- Scheduling example manual: `arc:exec/references/schedule-task-playbook.md`
 
 ## Red Flags
 
-- 未做路由直接进入编码。
-- 并发任务无收集点、无失败分支。
-- 忽略 `context-hub` 缓存导致重复扫描。
-- 多 Agent 冲突未仲裁就直接拼接输出。
-- `dry_run=true` 时仍执行真实变更。
+- Enter encoding directly without routing.
+- There are no collection points and no failed branches for concurrent tasks.
+- Ignore `context-hub` cache causing duplicate scans.
+- Multi-Agent conflicts are directly spliced ​​and output without arbitration.
+- Still perform real changes when `dry_run=true`.
 
 ## When to Use
 
-- **首选触发**: 用户表达“帮我安排/拉团队执行”，或不确定应调用哪个 `arc:*`。
-- **典型场景**: 需求跨多个阶段（澄清→决策→实现→验证）或全栈并发任务分解。
-- **边界提示**: 若目标技能已明确且边界清晰，直接调用目标技能，不必经过 `arc:exec`。
+- **Preferred Trigger**: User expresses "Help me arrange/pull the team to execute", or is not sure which `arc:*` should be called.
+- **Typical scenario**: Requirements span multiple stages (clarification→decision→implementation→verification) or full-stack concurrent task decomposition.
+- **Boundary Tip**: If the target skill has been identified and the boundary is clear, call the target skill directly without going through `arc:exec`.
 
 ## Input Arguments
 
 | parameter | type | required | description |
 |-----------|------|----------|-------------|
-| `task_description` | string | yes | 用户任务描述 |
-| `workdir` | string | yes | 工作目录绝对路径 |
-| `preferred_skill` | string | no | 用户指定技能（命中则跳过路由） |
-| `dry_run` | boolean | no | 仅输出执行预览，不实际执行 |
-| `confirm` | boolean | no | 高影响操作前要求二次确认 |
-| `snapshot` | boolean | no | 执行前生成可回滚快照 |
+| `task_description` | string | yes | User task description |
+| `workdir` | string | yes | Absolute path to the working directory |
+| `preferred_skill` | string | no | User-specified skill (skip routing if hit) |
+| `dry_run` | boolean | no | Only output execution preview, not actual execution |
+| `confirm` | boolean | no | Require secondary confirmation before high-impact operations |
+| `snapshot` | boolean | no | Generate a rollback snapshot before execution |
 
 ## Dependencies
 
 - **Organization Contract**: Required. Follow `docs/orchestration-contract.md`.
-- **ace-tool (MCP)**: Required. 用于仓库语义检索与影响面定位。
-- **Exa MCP**: Optional. 用于外部资料补充与标准校验。
-- **All arc: skills**: 路由到对应技能后必须遵循其 `SKILL.md`。
+- **ace-tool (MCP)**: Required. Used for warehouse semantic retrieval and influence surface positioning.
+- **Exa MCP**: Optional. Used for external data supplement and standard verification.
+- **All arc: skills**: Routing to the corresponding skill must follow its `SKILL.md`.
 
 ## Scheduling Playbook
 
-`arc:exec` 的完整 `schedule_task(...)` 示例、参数组合、并发收集模板已抽出到：
+The complete `schedule_task(...)` example of `arc:exec`, parameter combinations, and concurrent collection templates have been extracted to:
 
 - `arc:exec/references/schedule-task-playbook.md`
 
-SKILL 正文只保留决策流程，避免过长与重复。
+SKILL The main text only retains the decision-making process to avoid being too long and repetitive.
 
 ## Instructions
 
 ### Phase 1: Understand
 
-1. 读取 `.arc/context-hub/index.json`（若存在），优先复用已生成产物。
-2. 使用 ace-tool MCP 获取代码结构、关键模块和可疑影响面。
-3. 必要时使用 Exa MCP 补充外部约束（标准、最佳实践、官方文档）。
-4. 形成任务画像：类型、技术域、复杂度、风险等级、是否可并发。
+1. Read `.arc/context-hub/index.json` (if it exists) and reuse the generated products first.
+2. Use ace-tool MCP to obtain the code structure, key modules and suspicious impact areas.
+3. Use Exa MCP to supplement external constraints (standards, best practices, official documentation) when necessary.
+4. Form a task portrait: type, technical domain, complexity, risk level, and whether it can be concurrent.
 
 ### Phase 2: Route
 
-1. 若 `preferred_skill` 可用，直接路由该技能。
-2. 否则按 `docs/arc-routing-matrix.md` 进行技能匹配。
-3. 无命中技能时，转入“通用多 Agent 调度”模式（Phase 3）。
-4. 写入路由记录：`routing/dispatch-log.md`（理由、证据、置信度、降级路径）。
+1. If `preferred_skill` is available, route the skill directly.
+2. Otherwise, press `docs/arc-routing-matrix.md` for skill matching.
+3. When there is no hit skill, it will switch to "universal multi-agent scheduling" mode (Phase 3).
+4. Write the routing record: `routing/dispatch-log.md` (reason, evidence, confidence, downgrade path).
 
 ### Phase 2.5: Preview & Safety
 
-1. 产出执行预览：计划动作、影响面、风险等级。
-2. 若 `snapshot=true`，创建快照并记录回滚指令。
-3. 若 `confirm=true` 或检测到高影响操作，先获得用户确认。
-4. 若 `dry_run=true`，在本阶段结束后退出并返回预览结果。
+1. Output execution preview: planned actions, impact areas, and risk levels.
+2. If `snapshot=true`, create a snapshot and record the rollback command.
+3. If `confirm=true` or a high-impact operation is detected, obtain user confirmation first.
+4. If `dry_run=true`, exit after this stage and return the preview results.
 
 ### Phase 3: Dispatch
 
-1. 将任务拆分为可并发子任务，按波次派发。
-2. 每个子任务必须显式指定：
+1. Split the task into concurrent subtasks and dispatch them in waves.
+2. Each subtask must be explicitly specified:
    - `capability_profile`
-   - `capabilities`（如需要）
-   - 读写路径和预期产物
-3. 对同波次任务统一收集 `task_ref`。
-4. 使用 `collect_task(...)` 收齐后再进入下一波次或聚合阶段。
+   - `capabilities` (if required)
+   - Read and write paths and expected products
+3. Collect `task_ref` for tasks of the same wave.
+4. Use `collect_task(...)` to collect them all before entering the next wave or aggregation stage.
 
 ### Phase 4: Aggregate
 
-1. 汇总各子任务产物并检测冲突。
-2. 发生冲突时按仲裁规则处理；必要时追加 `review` 调度。
-3. 输出 `aggregation/final-summary.md`，包含：
-   - 已执行动作；
-   - 风险与残留问题；
-   - 下一步建议与负责人。
+1. Summarize the products of each subtask and detect conflicts.
+2. When conflicts occur, they will be handled according to the arbitration rules; if necessary, a `review` schedule will be added.
+3. Output `aggregation/final-summary.md`, including:
+   - Actions performed;
+   - Risks and residual issues;
+   - Suggested next steps and owners.
 
 ## Outputs
 
@@ -178,10 +183,10 @@ SKILL 正文只保留决策流程，避免过长与重复。
 
 | condition | handling |
 |-----------|----------|
-| 单任务超时（>10min） | 重试一次；仍失败则降级为更小子任务 |
-| 并发任务部分失败 | 标注 `partial` 并触发补偿调度 |
-| 路由不确定 | 降级到 `arc:clarify` 获取约束后重路由 |
-| 上下文失效/缓存过期 | 先触发刷新，再进入调度 |
+| Single task timeout (>10min) | Try again; if still fails, downgrade to a smaller subtask |
+| Partial failure of concurrent tasks | Mark `partial` and trigger compensation scheduling |
+| Uncertain routing | Downgrade to `arc:clarify` and reroute after obtaining constraints |
+| Context invalidation/cache expiration | Trigger refresh first, then enter scheduling |
 
 ## Quick Reference
 
@@ -195,20 +200,20 @@ SKILL 正文只保留决策流程，避免过长与重复。
 
 ## Anti-Patterns
 
-- **Shotgun Dispatch**: 无边界地启动多个 Agent 导致重复劳动。
-- **Blocking Search**: 将 `search/research` 以前台串行执行，拖慢主链路。
-- **Orphaned Tasks**: 不追踪 `task_ref` 导致结果不可回收。
-- **Cache Blindness**: 明明有可复用产物却重复做同一分析。
-- **Unsafe Execution**: 高风险操作无确认、无快照、无回滚。
+- **Shotgun Dispatch**: Starting multiple Agents without boundaries leads to duplication of work.
+- **Blocking Search**: Execute `search/research` serially in the foreground, slowing down the main link.
+- **Orphaned Tasks**: Not tracking `task_ref` results in unrecyclable results.
+- **Cache Blindness**: Repeating the same analysis even though there are reusable products.
+- **Unsafe Execution**: No confirmation, no snapshot, and no rollback for high-risk operations.
 
 ## Context
 
-调度前按以下优先级读取上下文：
+The context is read with the following priorities before dispatching:
 
-1. `.arc/context-hub/index.json`（共享索引产物）
-2. `.arc/<skill>/`（技能缓存产物）
-3. 项目级 `CLAUDE.md`（项目规则/架构说明）
-4. ace-tool MCP 扫描结果（最新代码现实）
-5. Exa MCP（外部知识补充）
+1. `.arc/context-hub/index.json` (shared index product)
+2. `.arc/<skill>/` (skill cache product)
+3. Project-level `CLAUDE.md` (project rules/architecture description)
+4. ace-tool MCP scan results (latest code reality)
+5. Exa MCP (external knowledge supplement)
 
 See `docs/orchestration-contract.md` and `docs/arc-routing-matrix.md` for details.

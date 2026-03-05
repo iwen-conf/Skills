@@ -22,12 +22,17 @@ Systematically supplement user questions with contextual information. By scannin
 - For unified routing comparison, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md).
 - A phased getting started view is available at [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view).
 - For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md).
-- If there is a conflict, the **边界提示** of this skill `## When to Use` shall prevail.
+- If there is a conflict, the **Border Tip** of this skill `## When to Use` shall prevail.
 
 ## Announce
 
 Begin by stating clearly:
 "I am using `arc:clarify`, first complete the context and constraints, and then generate the executable prompt."
+
+## Teaming Requirement
+
+- Each implementation must first "draw a team together" and clearly define at least three roles and responsibilities of `Owner`, `Executor`, and `Reviewer`.
+- If the operating environment only has a single Agent, the three-role perspective must be explicitly output during delivery to form a "decision-execution-review" closed loop before submitting the conclusion.
 
 ## The Iron Law
 
@@ -53,18 +58,18 @@ The execution phase must not be entered before the context, constraints and acce
 
 ## Expert Standards
 
-- 需求质量对齐 `IEEE 29148`：完整性、一致性、可验证性、可追踪性必须显式检查。
-- 用户故事需满足 `INVEST`，并拆解为可独立交付的最小可验收单元。
-- 验收标准统一采用 `Given-When-Then`，禁止模糊语句（如“尽量”“适当”）。
-- 非功能约束必须分栏输出：性能、安全、可用性、合规、可观测性。
-- 产物需包含 `假设-风险-待澄清` 三联表，作为后续决策输入基线。
+- Requirements Quality Alignment `IEEE 29148`: Completeness, consistency, verifiability, traceability must be explicitly checked.
+- User stories need to meet `INVEST` and be broken down into the smallest acceptable unit that can be delivered independently.
+- The acceptance criteria are uniformly `Given-When-Then`, and vague statements (such as "try your best" and "appropriate") are prohibited.
+- Non-functional constraints must be output in columns: performance, security, availability, compliance, and observability.
+- The deliverable must include the `assumption-risk-open-questions` triplet table as the baseline input for downstream decisions.
 
 ## Scripts & Commands
 
-- 运行时主命令：`arc clarify`
-- 与估算联动：`arc clarify` → `arc decide --mode estimate`
-- 与实施联动：`arc clarify` → `arc decide` → `arc build`
-- 说明：`arc:clarify` 当前无独立 `scripts/`，以交互式澄清命令为准。
+- Runtime main command: `arc clarify`
+- Linked with estimation: `arc clarify` → `arc decide --mode estimate`
+- Linked with implementation: `arc clarify` → `arc decide` → `arc build`
+- Note: `arc:clarify` currently has no independent `scripts/`, subject to interactive clarification command.
 
 ## Red Flags
 
@@ -75,9 +80,9 @@ The execution phase must not be entered before the context, constraints and acce
 
 ## When to Use
 
-- **首选触发**: The requirements are vague or the context is insufficient and need to be converted into executable task descriptions.
-- **典型场景**: Module boundaries are unclear, constraints are missing, and acceptance criteria are undefined.
-- **边界提示**: Use `arc:decide` when multiple-solution disputes need to be demonstrated. If the requirements are clear, they will be implemented directly downstream.
+- **Preferred trigger**: The requirements are vague or the context is insufficient and need to be converted into executable task descriptions.
+- **Typical scenario**: Module boundaries are unclear, constraints are missing, and acceptance criteria are undefined.
+- **Boundary Tip**: Use `arc:decide` when multiple-solution disputes need to be demonstrated. If the requirements are clear, they will be implemented directly downstream.
 
 ## Core Pattern
 
@@ -87,7 +92,7 @@ Read the shared context index first, then downgrade according to priority:
 
 1. **Read first** `.arc/context-hub/index.json`, find reusable products:
    - `CLAUDE.md` level index
-   - `codemap.md`（arc:cartography）
+   - `codemap.md`(arc:cartography)
    - Recent arc:audit/score/implementation handoff
 2. **If the index is missing or invalid**, scan the project root directory and subdirectories to collect CLAUDE.md:
 

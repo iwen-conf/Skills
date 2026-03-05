@@ -12,7 +12,7 @@ This Skill is the **intelligent scheduling portal** of the `arc:init` subsystem,
 - **Full Mode** (`arc:init --mode full`): First initialization or forced full refresh
 - **Incremental Mode** (`arc:init --mode update`): Based on fingerprint detection, intelligent incremental update
 
-**Users don’t need to care about selection**: For daily use, you only need to call this entrance, and the system will automatically judge.
+**Users don't need to care about selection**: For daily use, you only need to call this entrance, and the system will automatically judge.
 
 Unified mode:
 - Use `arc:init --mode full` for forced full rebuild.
@@ -31,12 +31,17 @@ Unified mode:
 - For unified routing comparison, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md).
 - A phased getting started view is available at [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view).
 - For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md).
-- If there is a conflict, the **边界提示** of this skill `## When to Use` shall prevail.
+- If there is a conflict, the **Boundary Note** of this skill `## When to Use` shall prevail.
 
 ## Announce
 
 Begin by stating clearly:
 "I am using `arc:init` to determine full or incremental mode before performing index generation."
+
+## Teaming Requirement
+
+- Every execution must first "draw a team together" and at least clarify the three roles and responsibilities of `Owner`, `Executor` and `Reviewer`.
+- If the operating environment only has a single Agent, the three-role perspective must be explicitly output during delivery to form a "decision-execution-review" closed loop before submitting the conclusion.
 
 ## The Iron Law
 
@@ -62,18 +67,18 @@ Index writing must not be started until mode decision and baseline verification 
 
 ## Expert Standards
 
-- 模式选择必须基于 `指纹差异` 与 `schema 版本`，并保留判定证据。
-- 索引写入采用 `原子更新`（临时文件 + replace）避免中断态产物。
-- 增量刷新需输出 `命中/未命中清单`，证明最小影响原则已执行。
-- 元数据需包含 `schema_version`、生成器版本、哈希算法，保障兼容演进。
-- 故障恢复必须支持 `上一个稳定索引回滚` 与一致性自检重建。
+- Schema selection must be based on `fingerprint difference` and `schema version`, and the judgment evidence should be retained.
+- Index writing uses `atomic update` (temporary file + replace) to avoid interruption artifacts.
+- Incremental refresh needs to output a `hit/miss list` to prove that the principle of minimal impact has been implemented.
+- Metadata must include `schema_version`, generator version, and hash algorithm to ensure compatibility with evolution.
+- Failure recovery must support `last stable index rollback` and consistency self-check reconstruction.
 
 ## Scripts & Commands
 
-- 自动模式入口：`arc init`
-- 强制全量模式：`arc init --mode full`
-- 显式增量模式：`arc init --mode update`
-- 说明：`arc:init` 当前无独立 `scripts/`，通过运行时命令统一编排 full/update。
+- Automatic mode entry: `arc init`
+- Force full mode: `arc init --mode full`
+- Explicit incremental mode: `arc init --mode update`
+- Note: `arc:init` currently does not have independent `scripts/`, and full/update is unified and arranged through runtime commands.
 
 ## Red Flags
 
@@ -84,9 +89,9 @@ Index writing must not be started until mode decision and baseline verification 
 
 ## When to Use
 
-- **首选触发**: Need to automatically select full or incremental to maintain CLAUDE index.
-- **典型场景**: Daily index maintenance, but you don’t want to manually judge `full/update`.
-- **边界提示**: Use `arc:init --mode full` when it is clear that the full amount is required, and `arc:init --mode update` when it is clear that the increment is required.
+- **Primary Trigger**: Need to automatically select full or incremental to maintain CLAUDE index.
+- **Typical Scenario**: Daily index maintenance, but you don't want to manually judge `full/update`.
+- **Boundary Note**: Use `arc:init --mode full` when it is clear that the full amount is required, and `arc:init --mode update` when it is clear that the increment is required.
 
 ## Working mode selection
 

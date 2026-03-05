@@ -22,12 +22,17 @@ Generates an incrementally maintainable layer `codemap.md` that provides stable 
 - For unified routing comparison, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md).
 - A phased getting started view is available at [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view).
 - For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md).
-- If there is a conflict, the **边界提示** of this skill `## When to Use` shall prevail.
+- If there is a conflict, the **Border Tip** of this skill `## When to Use` shall prevail.
 
 ## Announce
 
 Begin by stating clearly:
 "I'm using `arc:cartography` to update the codemap baseline first and then hand it over to downstream skills for reuse."
+
+## Teaming Requirement
+
+- Each implementation must first "draw a team together" and clearly define at least three roles and responsibilities of `Owner`, `Executor`, and `Reviewer`.
+- If the operating environment only has a single Agent, the three-role perspective must be explicitly output during delivery to form a "decision-execution-review" closed loop before submitting the conclusion.
 
 ## The Iron Law
 
@@ -44,9 +49,9 @@ Before making key structural changes, the latest codemap must be available as a 
 
 ## When to Use
 
-- **首选触发**: The warehouse structure map (`codemap.md`) needs to be built or refreshed.
-- **典型场景**: Taking over an unfamiliar warehouse for the first time and synchronizing the context after a major change in the directory structure.
-- **边界提示**: Use `arc:clarify` for requirement clarification and `arc:build` for code implementation.
+- **Preferred trigger**: The warehouse structure map (`codemap.md`) needs to be built or refreshed.
+- **Typical scenario**: Taking over an unfamiliar warehouse for the first time and synchronizing the context after a major change in the directory structure.
+- **Boundary Tip**: Use `arc:clarify` for requirement clarification and `arc:build` for code implementation.
 
 ## Workflow
 
@@ -130,19 +135,19 @@ Write the root-level and directory-level `codemap` products into `.arc/context-h
 
 ## Expert Standards
 
-- 地图分层需对齐 `C4` 视角（Context/Container/Component/Code）并可互相映射。
-- 结构视图需满足 `ISO/IEC 42010` 的关注点可追溯：角色、视角、证据来源明确。
-- 变更检测采用 `churn × dependency` 热点法，输出高风险目录与关键依赖节点。
-- 每次更新必须输出 `增量差异清单`（新增/删除/移动/重命名）供下游直接消费。
-- 索引产物必须具备 `可复现签名`：输入快照、哈希、生成时间、版本号。
+- Map layers need to be aligned with the `C4` perspective (Context/Container/Component/Code) and map to each other.
+- The structural view needs to meet the `ISO/IEC 42010` focus traceability: roles, perspectives, and evidence sources are clear.
+- Change detection uses the `churn × dependency` hotspot method to output high-risk directories and key dependency nodes.
+- Each update must output `incremental diff list` (add/delete/move/rename) for direct downstream consumption.
+- The index product must have `reproducible signature`: input snapshot, hash, generation time, version number.
 
 ## Scripts & Commands
 
-- 初始化 codemap：`python3 arc:cartography/scripts/cartographer.py init --root <project_path>`
-- 检测变更：`python3 arc:cartography/scripts/cartographer.py changes --root <project_path>`
-- 增量更新：`python3 arc:cartography/scripts/cartographer.py update --root <project_path>`
-- 导出分层 JSON：`python3 arc:cartography/scripts/cartographer.py export --root <project_path> --tier 2 --output codemap.tier2.json`
-- 运行时主命令：`arc cartography`
+- Initialization codemap: `python3 arc:cartography/scripts/cartographer.py init --root <project_path>`
+- Detect changes: `python3 arc:cartography/scripts/cartographer.py changes --root <project_path>`
+- Incremental update: `python3 arc:cartography/scripts/cartographer.py update --root <project_path>`
+- Export layered JSON: `python3 arc:cartography/scripts/cartographer.py export --root <project_path> --tier 2 --output codemap.tier2.json`
+- Runtime main command: `arc cartography`
 
 ## Red Flags
 
