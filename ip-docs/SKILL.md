@@ -1,13 +1,13 @@
 ---
-name: "arc:ip-docs"
-description: "拿到 arc:ip-audit 交接后使用：起草结构化软著/专利申请材料与文档草稿。"
+name: "arc:ip-draft"
+description: "拿到 arc:ip-check 交接后使用：起草结构化软著/专利申请材料与文档草稿。"
 ---
 
-# arc:ip-docs — 专利/软著文档写作
+# arc:ip-draft — 专利/软著文档写作
 
 ## Overview
 
-`arc:ip-docs` 采用**多Agent协作模式**专注于文档写作,不做可行性裁决。它消费 `arc:ip-audit` 的审查结果,并结合项目代码上下文输出可编辑申请文档草稿。
+`arc:ip-draft` 采用**多Agent协作模式**专注于文档写作,不做可行性裁决。它消费 `arc:ip-check` 的审查结果,并结合项目代码上下文输出可编辑申请文档草稿。
 
 **核心能力**:
 - 三Agent并发独立起草(oracle技术方案/deep实现细节/writing用户文档)
@@ -33,7 +33,7 @@ description: "拿到 arc:ip-audit 交接后使用：起草结构化软著/专利
 ## Announce
 
 开始时明确说明：  
-“我正在使用 `arc:ip-docs`，先读取审查交接，再分轨起草软著与专利文档。”
+“我正在使用 `arc:ip-draft`，先读取审查交接，再分轨起草软著与专利文档。”
 
 ## The Iron Law
 
@@ -45,7 +45,7 @@ NO IP DRAFTING WITHOUT AUDIT HANDOFF OR TRACEABLE CODE EVIDENCE
 
 ## Workflow
 
-1. 读取 `arc:ip-audit` 交接文件并建立写作上下文。
+1. 读取 `arc:ip-check` 交接文件并建立写作上下文。
 2. 多 Agent 并发起草技术方案、实现细节与文档章节。
 3. 交叉审阅并统一术语、边界与证据引用。
 4. 分目录输出软著与专利草稿及写作日志。
@@ -66,16 +66,16 @@ NO IP DRAFTING WITHOUT AUDIT HANDOFF OR TRACEABLE CODE EVIDENCE
 
 ## Mandatory Linkage(不可单打独斗)
 
-1. 默认先读取 `arc:ip-audit` 产物:`handoff/ip-drafting-input.json`。
-2. 若交接文件缺失,优先提示先执行 `arc:ip-audit`;仅在用户明确要求时做最小化兜底草稿。
+1. 默认先读取 `arc:ip-check` 产物:`handoff/ip-drafting-input.json`。
+2. 若交接文件缺失,优先提示先执行 `arc:ip-check`;仅在用户明确要求时做最小化兜底草稿。
 3. 文档内容必须回连项目上下文:`CLAUDE.md` + `ace-tool` 证据。
-4. 对术语冲突或技术路线不明确,串联 `arc:deliberate` 做定稿前校正。
+4. 对术语冲突或技术路线不明确,串联 `arc:decide` 做定稿前校正。
 
 ## When to Use
 
-- **首选触发**：已有 `arc:ip-audit` 交接，需生成可编辑申请材料草稿。
+- **首选触发**：已有 `arc:ip-check` 交接，需生成可编辑申请材料草稿。
 - **典型场景**：软著说明、专利交底书、权利要求与附图文字说明撰写。
-- **边界提示**：若尚未完成可行性审查，先执行 `arc:ip-audit`。
+- **边界提示**：若尚未完成可行性审查，先执行 `arc:ip-check`。
 
 ## Input Arguments
 
@@ -83,7 +83,7 @@ NO IP DRAFTING WITHOUT AUDIT HANDOFF OR TRACEABLE CODE EVIDENCE
 |------|------|------|------|
 | `project_path` | string | 是 | 目标项目根目录绝对路径 |
 | `project_name` | string | 否 | 默认从路径推导 |
-| `audit_case_dir` | string | 否 | `arc:ip-audit` 输出目录;默认 `<project_path>/.arc/ip-audit/<project-name>/` |
+| `audit_case_dir` | string | 否 | `arc:ip-check` 输出目录;默认 `<project_path>/.arc/ip-audit/<project-name>/` |
 | `software_name` | string | 否 | 软件名称,未提供则从交接文件读取 |
 | `applicant_name` | string | 否 | 申请主体名称 |
 | `target_docs` | enum | 否 | `copyright` / `patent` / `both`,默认 `both` |
@@ -92,7 +92,7 @@ NO IP DRAFTING WITHOUT AUDIT HANDOFF OR TRACEABLE CODE EVIDENCE
 ## Dependencies
 
 * **编排契约**: 必须。遵循 `docs/orchestration-contract.md`，通过运行时适配层实现调度。
-- **arc:ip-audit**(强推荐):作为主输入。
+- **arc:ip-check**(强推荐):作为主输入。
 - **ace-tool MCP**(必须):校正文档中的技术细节与代码证据。
 - **arc:init**(推荐):复用模块索引,减少重复扫描。
 - **Dispatch API**(必须):调度 `oracle` / `deep` / `writing` 三Agent协作。
@@ -133,7 +133,7 @@ NO IP DRAFTING WITHOUT AUDIT HANDOFF OR TRACEABLE CODE EVIDENCE
 <project_path>/.arc/ip-docs/<project-name>/
 ├── context/
 │   ├── doc-context.md (共享输入)
-│   └── handoff-input.json (arc:ip-audit交接)
+│   └── handoff-input.json (arc:ip-check交接)
 ├── agents/
 │   ├── oracle/
 │   │   ├── technical-description.md (独立起草)
@@ -196,7 +196,7 @@ python ip-docs/scripts/scaffold_drafting_case.py \
 // Oracle: 技术方案描述
 dispatch_job(
   role="oracle",
-  capabilities=["arc:ip-docs"],
+  capabilities=["arc:ip-draft"],
   execution_mode="background",
   description="Oracle起草技术方案描述",
   prompt=`
@@ -237,7 +237,7 @@ dispatch_job(
 // Deep: 实现细节与技术效果
 dispatch_job(
   lane="deep",
-  capabilities=["arc:ip-docs"],
+  capabilities=["arc:ip-draft"],
   execution_mode="background",
   description="Deep起草实现细节与技术效果",
   prompt=`
@@ -278,7 +278,7 @@ dispatch_job(
 // Writing: 用户文档与功能描述
 dispatch_job(
   lane="writing",
-  capabilities=["arc:ip-docs"],
+  capabilities=["arc:ip-draft"],
   execution_mode="background",
   description="Writing起草用户文档与功能描述",
   prompt=`
@@ -329,7 +329,7 @@ dispatch_job(
 // Oracle审阅Deep和Writing
 dispatch_job(
   continuation_id="<oracle_continuation_id>", // 复用Phase 2的session
-  capabilities=["arc:ip-docs"],
+  capabilities=["arc:ip-draft"],
   execution_mode="foreground",
   description="Oracle交叉审阅Deep和Writing",
   prompt=`
@@ -439,7 +439,7 @@ python ip-docs/scripts/render_ip_documents.py \
 默认输出目录:`<project_path>/.arc/ip-docs/<project-name>/`
 
 - `context/doc-context.md` (文档上下文)
-- `context/handoff-input.json` (arc:ip-audit交接)
+- `context/handoff-input.json` (arc:ip-check交接)
 - `agents/oracle/technical-description.md` (Oracle独立起草)
 - `agents/oracle/review.md` (Oracle审阅)
 - `agents/deep/implementation-details.md` (Deep独立起草)
@@ -472,4 +472,4 @@ python ip-docs/scripts/render_ip_documents.py \
 - **Agent超时(>10min)**: 询问用户是否继续等待或降级为双Agent起草。
 - **Agent起草缺失**: 用其他两个Agent填补,标注"双源起草"。
 - **术语冲突无法解决**: 在文档中列出冲突术语,标注"需人工裁决"。
-- **交接文件缺失**: 提示用户先执行 `arc:ip-audit`,或在用户明确要求时做最小化兜底草稿(标注"未经审查评估")。
+- **交接文件缺失**: 提示用户先执行 `arc:ip-check`,或在用户明确要求时做最小化兜底草稿(标注"未经审查评估")。

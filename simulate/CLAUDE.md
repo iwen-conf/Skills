@@ -10,7 +10,7 @@
 
 ## 模块职责
 
-arc:simulate 赋予 Agent "高级自动化测试工程师"的能力，通过 `agent-browser` 工具模拟真实用户操作无头浏览器，执行端到端（E2E）业务流测试。
+arc:e2e 赋予 Agent "高级自动化测试工程师"的能力，通过 `agent-browser` 工具模拟真实用户操作无头浏览器，执行端到端（E2E）业务流测试。
 
 核心能力：
 - **拟人化操作**：模拟点击、输入、等待，禁止绕过 UI 直接调用 API
@@ -71,7 +71,7 @@ pip install -r simulate/requirements.txt
 
 ### Skill 调用接口
 
-通过 Claude Code 调用：`arc simulate`
+通过 Claude Code 调用：`arc e2e`
 
 输入参数（在上下文中提供）：
 - `test_objective` (required): 测试目标描述
@@ -166,7 +166,7 @@ graph TD
 |------|------|
 | E2E 产物校验 | `check_artifacts.py --strict` 校验必需文件、截图引用、JSONL 解析、Markdown 表格 |
 | Markdown 格式 | `mdformat --check` 或内置校验逻辑 |
-| 回归验证 | 配合 `arc:loop` 和 `arc:triage` 形成闭环 |
+| 回归验证 | 配合 `arc:retest` 和 `arc:fix` 形成闭环 |
 
 ### 质量门禁
 

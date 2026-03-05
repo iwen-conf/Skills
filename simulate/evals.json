@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "skill": "arc:simulate",
+  "skill": "arc:e2e",
   "defaults": {
     "timeout": 300,
     "working_dir": "reports"

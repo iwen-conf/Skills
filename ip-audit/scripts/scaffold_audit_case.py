@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Scaffold an arc:ip-audit case directory."""
+"""Scaffold an arc:ip-check case directory."""
 
 from __future__ import annotations
 

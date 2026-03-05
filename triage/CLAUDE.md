@@ -10,13 +10,13 @@
 
 ## 模块职责
 
-arc:triage 读取 arc:simulate 的失败报告，定位根因、执行修复、验证回归。作为测试闭环的核心环节，负责将失败转化为可交付的修复方案。
+arc:fix 读取 arc:e2e 的失败报告，定位根因、执行修复、验证回归。作为测试闭环的核心环节，负责将失败转化为可交付的修复方案。
 
 核心能力：
 - **失败分析**：解析测试报告，定位失败步骤和根因
 - **证据链追踪**：关联截图、日志、数据库状态
 - **修复执行**：在获得用户确认后执行���码修复
-- **回归验证**：配合 arc:loop 形成修复-验证闭环
+- **回归验证**：配合 arc:retest 形成修复-验证闭环
 
 ## 入口与启动
 
@@ -43,7 +43,7 @@ python triage/scripts/triage_run.py reports/2026-02-24_10-00-00_test1 --md-out t
 2. 分析失败步骤，定位根因
 3. 生成修复方案（Fix Packet）
 4. 用户确认后执行修复
-5. 调用 arc:loop 执行回归测试
+5. 调用 arc:retest 执行回归测试
 
 ## 对外接口
 
@@ -55,7 +55,7 @@ python triage/scripts/triage_run.py reports/2026-02-24_10-00-00_test1 --md-out t
 
 ### Skill 调用接口
 
-通过 Claude Code 调用：`arc triage`
+通过 Claude Code 调用：`arc fix`
 
 输入参数：
 - `run_dir` (required): 测试运行目录路径
@@ -65,8 +65,8 @@ python triage/scripts/triage_run.py reports/2026-02-24_10-00-00_test1 --md-out t
 
 | 交互方向 | Skill | 数据流 |
 |---------|-------|--------|
-| 输入 | arc:simulate | 读取 `reports/<run_id>/` 的失败报告 |
-| 输出 | arc:loop | 触发回归测试 |
+| 输入 | arc:e2e | 读取 `reports/<run_id>/` 的失败报告 |
+| 输出 | arc:retest | 触发回归测试 |
 
 ## 关键依赖
 
@@ -82,10 +82,10 @@ python triage/scripts/triage_run.py reports/2026-02-24_10-00-00_test1 --md-out t
 
 | 文件 | 来源 | 说明 |
 |------|------|------|
-| `report.md` | arc:simulate | 测试报告 |
-| `failures/failure-XXXX.md` | arc:simulate | 失败详情 |
-| `screenshots/*.png` | arc:simulate | 失败截图 |
-| `events.jsonl` | arc:simulate | 操作事件流 |
+| `report.md` | arc:e2e | 测试报告 |
+| `failures/failure-XXXX.md` | arc:e2e | 失败详情 |
+| `screenshots/*.png` | arc:e2e | 失败截图 |
+| `events.jsonl` | arc:e2e | 操作事件流 |
 
 ### 输出产物
 
@@ -137,7 +137,7 @@ graph TD
     end
 
     subgraph 回归
-        LOOP["arc:loop<br/>回归测试"]
+        LOOP["arc:retest<br/>回归测试"]
     end
 
     REPORT --> TRIAGE
@@ -155,7 +155,7 @@ graph TD
 
 | 类型 | 说明 |
 |------|------|
-| 回归验证 | 修复后必须通过 arc:loop 回归测试 |
+| 回归验证 | 修复后必须通过 arc:retest 回归测试 |
 | 证据链完整 | 每个修复步骤必须有截图或日志证据 |
 
 ### 质量约束

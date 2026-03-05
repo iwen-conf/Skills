@@ -11,7 +11,7 @@
 
 ## 模块职责
 
-arc:review 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，通过多Agent对抗式分析输出诊断报告与改进路线图。作为项目质量诊断的核心工具，适用于技术尽调、代码审计、架构评审等场景。
+arc:audit 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，通过多Agent对抗式分析输出诊断报告与改进路线图。作为项目质量诊断的核心工具，适用于技术尽调、代码审计、架构评审等场景。
 
 核心能力：
 - **七维度框架**：功能适用性、性能效率、兼容性、易用性、可靠性、安全性、可维护性
@@ -31,7 +31,7 @@ arc:review 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软
 
 ### 调用方式
 
-通过 Claude Code 调用：`arc review`
+通过 Claude Code 调用：`arc audit`
 
 输入参数：
 - `project_path` (required): 待评审项目根目录
@@ -71,7 +71,10 @@ arc:review 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软
 │   └── critique.md         # 对 oracle/deep 的反驳
 ├── consensus.md            # 共识报告
 ├── roadmap.md              # 改进路线图
-└── summary.md              # 执行摘要
+├── summary.md              # 执行摘要
+├── quantitative-dashboard.html  # 量化评估 HTML（自动主题：按用户本地时间）
+├── quantitative-dashboard.light.html  # 量化评估 HTML（浅色固定版）
+└── quantitative-dashboard.dark.html  # 量化评估 HTML（深色固定版）
 ```
 
 ## 关键依赖

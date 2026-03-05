@@ -5,25 +5,25 @@
 
 ## 1) 先判信号
 
-- 技能边界不清 → `arc:agent`
-- 需求上下文不清 → `arc:refine`
-- 方案争议/高风险 → `arc:deliberate`
-- 已有方案要落地 → `arc:implement`
-- 需要系统建模图谱 → `arc:uml`
+- 技能边界不清 → `arc:exec`
+- 需求上下文不清 → `arc:clarify`
+- 方案争议/高风险 → `arc:decide`
+- 已有方案要落地 → `arc:build`
+- 需要系统建模图谱 → `arc:model`
 
 ## 2) 常用链路
 
-- 需求到落地：`arc:refine` → `arc:deliberate`（可选）→ `arc:implement`
-- 质量治理：`arc:gate`（先触发 `score/`，并联 `arc:review`）
-- E2E 修复：`arc:simulate` → `arc:triage`（多轮用 `arc:loop`）
+- 需求到落地：`arc:clarify` → `arc:decide`（可选）→ `arc:build`
+- 质量治理：`arc:release`（先触发 `score/`，并联 `arc:audit`）
+- E2E 修复：`arc:e2e` → `arc:fix`（多轮用 `arc:retest`）
 - 索引维护：`arc:init`（自动）/ `arc:init:full` / `arc:init:update`
 - 结构地图：`arc:cartography`
-- UML 图谱：`arc:uml`
-- IP 流程：`arc:ip-audit` → `arc:ip-docs`
+- UML 图谱：`arc:model`
+- IP 流程：`arc:ip-check` → `arc:ip-draft`
 
 ## 3) 不确定时的默认顺序
 
-1. 先 `arc:agent` 判断路由
-2. 需求不清先 `arc:refine`
-3. 争议大再 `arc:deliberate`
-4. 最后 `arc:implement`
+1. 先 `arc:exec` 判断路由
+2. 需求不清先 `arc:clarify`
+3. 争议大再 `arc:decide`
+4. 最后 `arc:build`

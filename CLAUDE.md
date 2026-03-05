@@ -6,37 +6,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | 时间 | 操作 |
 |------|------|
-| 2026-03-03 | 新增评分子模块与 arc:gate，引入量化评分与 CI 门禁能力；后续将 `arc:score` 对外入口收敛到 `arc:gate` |
+| 2026-03-03 | 新增评分子模块与 arc:release，引入量化评分与 CI 门禁能力；后续将 `arc:score` 对外入口收敛到 `arc:release` |
 | 2026-02-28 | 新增 arc:init:full 与 arc:init:update，拆分全量初始化与增量更新能力；arc:init 改为智能调度器 |
 
 ---
 
 ## What This Repo Is
 
-A collection of Claude Code Skills (custom slash-command plugins), primarily under the **`arc:`** namespace, plus a standalone `arc:cartography` skill for repository codemap generation. Each top-level directory is a self-contained Skill defined by a `SKILL.md` frontmatter file. Arc skills are invoked via `arc <skill>` (for example: `arc agent`, `arc init full`).
+A collection of Claude Code Skills (custom slash-command plugins), primarily under the **`arc:`** namespace, plus a standalone `arc:cartography` skill for repository codemap generation. Each top-level directory is a self-contained Skill defined by a `SKILL.md` frontmatter file. Arc skills are invoked via `arc <skill>` (for example: `arc exec`, `arc init full`).
 
 ## Skill Inventory
 
 | Directory | Skill Name | Invoke | Purpose |
 |-----------|-----------|--------|---------|
-| `agent/` | arc:agent | `arc agent` | 智能调度 agent，分析用户需求后选择合适的 arc: skill，通过 运行时无关编排层 Agent 系统调度执行任务 |
+| `agent/` | arc:exec | `arc exec` | 智能执行编排入口，分析用户需求后选择合适的 arc: skill，并通过 运行时无关编排层 Agent 系统调度执行任务 |
 | `cartography/` | arc:cartography | `arc cartography` | 仓库理解与分层代码地图（codemap）生成，输出目录级与根级映射文档 |
-| `uml/` | arc:uml | `arc uml` | 基于项目实际代码与配置生成 14 类 UML 图谱（结构/行为/部署） |
-| `simulate/` | arc:simulate | `arc simulate` | 通过 `agent-browser` 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
-| `triage/` | arc:triage | `arc triage` | 分析 arc:simulate 的失败报告，定位根因、修复缺陷、执行回归验证 |
-| `loop/` | arc:loop | `arc loop` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
-| `refine/` | arc:refine | `arc refine` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
-| `deliberate/` | arc:deliberate | `arc deliberate` | 多 Agent 多视角审议，使用 OpenSpec 生成结构化计划 |
+| `uml/` | arc:model | `arc model` | 基于项目实际代码与配置生成 14 类 UML 图谱（结构/行为/部署） |
+| `simulate/` | arc:e2e | `arc e2e` | 通过 `agent-browser` 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
+| `triage/` | arc:fix | `arc fix` | 分析 arc:e2e 的失败报告，定位根因、修复缺陷、执行回归验证 |
+| `loop/` | arc:retest | `arc retest` | 管理 tmux 会话启动/重启服务，循环执行 arc:e2e 直到 PASS 或达到迭代上限 |
+| `refine/` | arc:clarify | `arc clarify` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
+| `deliberate/` | arc:decide | `arc decide` | 多 Agent 多视角审议，使用 OpenSpec 生成结构化计划 |
 | `estimate/` | arc:estimate | `arc estimate` | 给出工时区间、风险分级与并行波次建议，辅助排期与资源决策 |
-| `implement/` | arc:implement | `arc implement` | 将方案落地为工程实现，输出实现计划、执行日志与交接摘要 |
-| `review/` | arc:review | `arc review` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图 |
+| `implement/` | arc:build | `arc build` | 将方案落地为工程实现，输出实现计划、执行日志与交接摘要 |
+| `review/` | arc:audit | `arc audit` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图 |
 | `init/` | arc:init | `arc init` | 智能调度器，自动判断全量(full)或增量(update)模式 |
 | `init-full/` | arc:init:full | `arc init full` | 全量生成项目层级式 CLAUDE.md 索引体系，深度扫描+多Agent分析 |
 | `init-update/` | arc:init:update | `arc init update` | 增量更新 CLAUDE.md，基于指纹检测变更，仅更新受影响模块 |
-| `ip-audit/` | arc:ip-audit | `arc ip-audit` | 申请前做软著/专利可行性审查，输出风险与交接输入 |
-| `ip-docs/` | arc:ip-docs | `arc ip-docs` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
-| `score/` | internal-score-module | 由 `arc gate` 编排调用 | 量化评分与 Code Smell 检测，为评审提供量化数据支撑 |
-| `gate/` | arc:gate | `arc gate` | CI 质量门禁，基于评分数据执行可配置的阻断判定 |
+| `ip-audit/` | arc:ip-check | `arc ip-check` | 申请前做软著/专利可行性审查，输出风险与交接输入 |
+| `ip-docs/` | arc:ip-draft | `arc ip-draft` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
+| `score/` | internal-score-module | 由 `arc release` 编排调用 | 量化评分与 Code Smell 检测，为评审提供量化数据支撑 |
+| `gate/` | arc:release | `arc release` | CI 质量门禁，基于评分数据执行可配置的阻断判定 |
 
 ## 模块文档索引
 
@@ -65,30 +65,30 @@ A collection of Claude Code Skills (custom slash-command plugins), primarily und
 ## Skill Dependency Chain
 
 ```
-arc:agent ────┬─▶ arc:init         (智能调度 → full/update)
+arc:exec ────┬─▶ arc:init         (智能调度 → full/update)
               ├─▶ arc:cartography  (仓库地图/codemap 生成)
-              ├─▶ arc:uml          (系统建模/UML 图谱生成)
-              ├─▶ arc:refine       (问题细化)
-              │     └─▶ arc:deliberate
-              ├─▶ arc:implement    (方案落地实现)
-              ├─▶ score-module(独立语义层，由 arc:gate 编排触发) ──▶ arc:review
-              │                                   └─▶ arc:gate (CI 门禁)
-              ├─▶ arc:review       (项目评审)
-              ├─▶ arc:ip-audit     (知识产权可行性审查)
-              │     └─▶ arc:ip-docs
-              ├─▶ arc:simulate     (E2E 测试)
-              │     └─▶ arc:triage
-              │           └─▶ arc:loop
+              ├─▶ arc:model          (系统建模/UML 图谱生成)
+              ├─▶ arc:clarify       (问题细化)
+              │     └─▶ arc:decide
+              ├─▶ arc:build    (方案落地实现)
+              ├─▶ score-module(独立语义层，由 arc:release 编排触发) ──▶ arc:audit
+              │                                   └─▶ arc:release (CI 门禁)
+              ├─▶ arc:audit       (项目评审)
+              ├─▶ arc:ip-check     (知识产权可行性审查)
+              │     └─▶ arc:ip-draft
+              ├─▶ arc:e2e     (E2E 测试)
+              │     └─▶ arc:fix
+              │           └─▶ arc:retest
               └─▶ Dispatch API dispatch (lane/role routing)
 
-arc:init  (独立运行；输出的 CLAUDE.md 被 arc:refine 消费)
-arc:cartography  (独立运行；输出 codemap.md 可被 arc:refine、arc:implement、arc:review 作为上下文参考)
-arc:uml  (消费代码/配置/流程证据；输出 UML 图谱供评审、交接与架构沟通)
-score-module  (独立评分模块；由 arc:gate 编排触发，输出量化数据给 arc:review 与 arc:gate)
-arc:implement  (消费 deliberation/refine 结果；输出实现交接供 review/simulate 使用)
-arc:review  (消费 score 量化数据；输出评审报告)
-arc:gate  (消费 score 数据与策略配置；执行 CI 门禁判定)
-arc:ip-audit  (优先读取 arc:init、arc:review 产物；输出交接 JSON 给 arc:ip-docs)
+arc:init  (独立运行；输出的 CLAUDE.md 被 arc:clarify 消费)
+arc:cartography  (独立运行；输出 codemap.md 可被 arc:clarify、arc:build、arc:audit 作为上下文参考)
+arc:model  (消费代码/配置/流程证据；输出 UML 图谱供评审、交接与架构沟通)
+score-module  (独立评分模块；由 arc:release 编排触发，输出量化数据给 arc:audit 与 arc:release)
+arc:build  (消费 deliberation/refine 结果；输出实现交接供 review/simulate 使用)
+arc:audit  (消费 score 量化数据；输出评审报告)
+arc:release  (消费 score 数据与策略配置；执行 CI 门禁判定)
+arc:ip-check  (优先读取 arc:init、arc:audit 产物；输出交接 JSON 给 arc:ip-draft)
 ```
 
 ## Architecture
@@ -162,7 +162,7 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 ### review/scripts/
 | Script | What it does |
 |--------|-------------|
-| `integrate_score.py` | 将 score 量化数据集成到 arc:review |
+| `integrate_score.py` | 将 score 量化数据集成到 arc:audit |
 
 ### deliberate/scripts/
 | Script | What it does |
@@ -185,14 +185,14 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
   - **可用 Lane**: `visual-engineering` | `ultrabrain` | `deep` | `artistry` | `quick` | `unspecified-low` | `unspecified-high` | `writing`
   - **可用 Role**: `explore`(代码搜索) | `librarian`(文档搜索) | `oracle`(架构咨询) | `prometheus`(宏观规划) | `metis`(策略审计) | `momus`(代码审查) | `hephaestus`(核心编程) | `atlas`(大规模重构) | `multimodal-looker`(视觉UI)
   - **Session 延续**: 每次 dispatch_job() 返回 continuation_id，用 `continuation_id="<id>"` 延续多轮对话
-- **Working directory for arc:agent**: `.arc/agent/` (调度记录在此目录)。
-- **Working directory for arc:deliberate**: `.arc/deliberate/<task-name>/` (inside the target project).
-- **Working directory for arc:review**: `.arc/review/<project-name>/` (inside the target project). 严禁修改被评审项目的源代码，只在此目录下产出评审文件。
+- **Working directory for arc:exec**: `.arc/exec/` (调度记录在此目录)。
+- **Working directory for arc:decide**: `.arc/deliberate/<task-name>/` (inside the target project).
+- **Working directory for arc:audit**: `.arc/review/<project-name>/` (inside the target project). 严禁修改被评审项目的源代码，只在此目录下产出评审文件。
 - **Working directory for arc:init**: `.arc/init/` (inside the target project). 工作文件在此目录下，最终 CLAUDE.md 输出到项目目录树中。只写 CLAUDE.md，不改源码。
-- **Working directory for arc:implement**: `.arc/implement/<task-name>/` (inside the target project). 记录计划、执行日志、验证与交接，不做无关改动。
-- **Working directory for arc:ip-audit**: `.arc/ip-audit/<project-name>/` (inside the target project). 只做审查与交接，不写申请正式文档。
-- **Working directory for arc:ip-docs**: `.arc/ip-docs/<project-name>/` (inside the target project). 仅生成可编辑文档草稿，不修改业务源码。
-- **OpenSpec integration**: arc:deliberate 的 Phase 3 使用 [OpenSpec](https://github.com/Fission-AI/OpenSpec) CLI（`openspec`）生成结构化计划。OpenSpec 在 `.arc/deliberate/<task-name>/` 内初始化，artifact 写入 `openspec/changes/<task-name>/` 下。工作流：`openspec init` → `openspec new change` → `openspec instructions` → `openspec validate` → `openspec archive`。
+- **Working directory for arc:build**: `.arc/implement/<task-name>/` (inside the target project). 记录计划、执行日志、验证与交接，不做无关改动。
+- **Working directory for arc:ip-check**: `.arc/ip-audit/<project-name>/` (inside the target project). 只做审查与交接，不写申请正式文档。
+- **Working directory for arc:ip-draft**: `.arc/ip-docs/<project-name>/` (inside the target project). 仅生成可编辑文档草稿，不修改业务源码。
+- **OpenSpec integration**: arc:decide 的 Phase 3 使用 [OpenSpec](https://github.com/Fission-AI/OpenSpec) CLI（`openspec`）生成结构化计划。OpenSpec 在 `.arc/deliberate/<task-name>/` 内初始化，artifact 写入 `openspec/changes/<task-name>/` 下。工作流：`openspec init` → `openspec new change` → `openspec instructions` → `openspec validate` → `openspec archive`。
 
 ## 上下文优先级协议 (Context Priority Protocol)
 
@@ -235,13 +235,13 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 
 **自我修复流程**：
 1. 检测到缓存错误 → 判断错误类型
-2. 结构性错误 → 触发对应生产者 Skill 重新生成（如 `arc:init:update` / `arc:cartography` / `score` 模块刷新（由 `arc:gate` 编排触发））
+2. 结构性错误 → 触发对应生产者 Skill 重新生成（如 `arc:init:update` / `arc:cartography` / `score` 模块刷新（由 `arc:release` 编排触发））
 3. 局部错误 → 标记错误位置 → 回退到源码扫描 → 生成补丁到 `.arc/<skill>/patches/`
 4. 回写共享索引：更新过期标记、刷新时间与产物哈希
 
 **错误报告位置**：
-- arc:simulate: `<run_dir>/context-errors/cache-error-YYYYMMDD-HHMMSS.md`
-- arc:triage: `<run_dir>/analysis/context-errors/cache-error-YYYYMMDD-HHMMSS.md`
+- arc:e2e: `<run_dir>/context-errors/cache-error-YYYYMMDD-HHMMSS.md`
+- arc:fix: `<run_dir>/analysis/context-errors/cache-error-YYYYMMDD-HHMMSS.md`
 - 其他 Skill: `.arc/<skill>/context-errors/cache-error-YYYYMMDD-HHMMSS.md`
 
 ### 时间戳与过期策略
@@ -296,14 +296,14 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 
 | 场景 | 应该用哪个 Agent | 调用方式 | 说明 |
 |------|----------------|---------|------|
-| 复杂需求拆解 | Prometheus | `dispatch_job(role="prometheus", capabilities=["arc:deliberate"], prompt="分析需求并生成执行计划...")` | Prometheus 会"采访"开发者以消除需求歧义 |
-| 计划质量审计 | Metis | `dispatch_job(role="metis", capabilities=["arc:deliberate"], prompt="审计这个执行计划，寻找算法漏洞...")` | Metis 在执行前进行策略审计 |
+| 复杂需求拆解 | Prometheus | `dispatch_job(role="prometheus", capabilities=["arc:decide"], prompt="分析需求并生成执行计划...")` | Prometheus 会"采访"开发者以消除需求歧义 |
+| 计划质量审计 | Metis | `dispatch_job(role="metis", capabilities=["arc:decide"], prompt="审计这个执行计划，寻找算法漏洞...")` | Metis 在执行前进行策略审计 |
 | 计划审查 | Momus | `dispatch_job(role="momus", prompt="审查这个执行计划的完整性和可行性...")` | Momus 审查 Prometheus 生成的计划，返回 OKAY/NEEDS_REVISION |
 | 架构推演 | Oracle | `dispatch_job(role="oracle", prompt="分析这个并发竞争条件的根因...")` | Oracle 只读咨询，不亲自改代码 |
 | 代码库侦察 | Explore | `dispatch_job(role="explore", execution_mode="background", prompt="找到所有认证相关的中间件...")` | Explore 极速前哨，总是后台运行 |
 | 外部文档检索 | Librarian | `dispatch_job(role="librarian", execution_mode="background", prompt="查找 React 18 的最新 API 文档...")` | Librarian 打破知识截止日期限制 |
-| 知识产权审查 | Oracle/Deep/Writing | `dispatch_job(role="oracle", capabilities=["arc:ip-audit"], execution_mode="background", ...)` + `dispatch_job(lane="deep", capabilities=["arc:ip-audit"], execution_mode="background", ...)` + `dispatch_job(lane="writing", capabilities=["arc:ip-audit"], execution_mode="background", ...)` | 三Agent并发评估后交叉反驳 |
-| 知识产权文档写作 | Oracle/Deep/Writing | `dispatch_job(role="oracle", capabilities=["arc:ip-docs"], execution_mode="background", ...)` + `dispatch_job(lane="deep", capabilities=["arc:ip-docs"], execution_mode="background", ...)` + `dispatch_job(lane="writing", capabilities=["arc:ip-docs"], execution_mode="background", ...)` | 三Agent并发起草后交叉审阅 |
+| 知识产权审查 | Oracle/Deep/Writing | `dispatch_job(role="oracle", capabilities=["arc:ip-check"], execution_mode="background", ...)` + `dispatch_job(lane="deep", capabilities=["arc:ip-check"], execution_mode="background", ...)` + `dispatch_job(lane="writing", capabilities=["arc:ip-check"], execution_mode="background", ...)` | 三Agent并发评估后交叉反驳 |
+| 知识产权文档写作 | Oracle/Deep/Writing | `dispatch_job(role="oracle", capabilities=["arc:ip-draft"], execution_mode="background", ...)` + `dispatch_job(lane="deep", capabilities=["arc:ip-draft"], execution_mode="background", ...)` + `dispatch_job(lane="writing", capabilities=["arc:ip-draft"], execution_mode="background", ...)` | 三Agent并发起草后交叉审阅 |
 
 ### 典型工作流拓扑
 
@@ -329,10 +329,10 @@ Sisyphus (主控)
                       └─▶ Atlas (重体力劳动) - 执行大规模重构
 ```
 
-**4. 知识产权多Agent协作拓扑**（arc:ip-audit / arc:ip-docs）
+**4. 知识产权多Agent协作拓扑**（arc:ip-check / arc:ip-draft）
 ```
 Sisyphus (主控)
-  └─▶ arc:ip-audit / arc:ip-docs
+  └─▶ arc:ip-check / arc:ip-draft
       ├─▶ Oracle (后台) - 技术创新性/方案描述
       ├─▶ Deep (后台) - 代码完整性/实现细节
       └─▶ Writing (后台) - 文档合规性/用户文档

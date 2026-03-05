@@ -6,7 +6,7 @@
 
 | 时间 | 操作 |
 |------|------|
-| 2026-03-03 | 初始版本，建立 score 评分模块；`arc:score` 对外入口收敛到 `arc:gate` |
+| 2026-03-03 | 初始版本，建立 score 评分模块；`arc:score` 对外入口收敛到 `arc:release` |
 
 ## 模块定位
 
@@ -14,11 +14,11 @@
 
 - 输入：项目源码、历史提交、规则配置
 - 输出：`smell-report.json`、`bugfix-grades.json`、`overall-score.json`、`handoff/review-input.json`
-- 消费方：`arc:review`、`arc:gate`
+- 消费方：`arc:audit`、`arc:release`
 
 > 语义边界：  
 > - `score/`：回答“质量分数是多少、问题有哪些”  
-> - `arc:gate`：回答“是否允许合并/发布”
+> - `arc:release`：回答“是否允许合并/发布”
 
 ## 目录与产物
 
@@ -57,8 +57,8 @@ score/
 flowchart LR
   SRC["源码/历史提交"] --> SCORE["score/ scripts"]
   SCORE --> OUT[".arc/score/* 产物"]
-  OUT --> REVIEW["arc:review"]
-  OUT --> GATE["arc:gate"]
+  OUT --> REVIEW["arc:audit"]
+  OUT --> GATE["arc:release"]
 ```
 
 ## 约束

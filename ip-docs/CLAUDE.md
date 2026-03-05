@@ -2,7 +2,7 @@
 
 ## 模块定位
 
-`ip-docs/` 提供 `arc:ip-docs`，采用**多Agent协作模式**(oracle/deep/momus)专注于软著/专利申请文档草稿写作，不做可行性裁决。
+`ip-docs/` 提供 `arc:ip-draft`，采用**多Agent协作模式**(oracle/deep/momus)专注于软著/专利申请文档草稿写作，不做可行性裁决。
 
 ## 核心产物
 
@@ -43,8 +43,8 @@
 
 ## 协作关系与调用方式
 
-- 上游：`arc:ip-audit`（优先读取 `handoff/ip-drafting-input.json`）
-- 平级：`arc:init`、`arc:deliberate`（用于上下文补全与术语校正）
+- 上游：`arc:ip-check`（优先读取 `handoff/ip-drafting-input.json`）
+- 平级：`arc:init`、`arc:decide`（用于上下文补全与术语校正）
 
 ### Agent调用示例
 
@@ -52,21 +52,21 @@
 // Phase 2: 并发启动三Agent起草
 dispatch_job(
   role="oracle",
-  capabilities=["arc:ip-docs"],
+  capabilities=["arc:ip-draft"],
   execution_mode="background",
   description="Oracle起草技术方案描述",
   prompt="..."
 )
 dispatch_job(
   lane="deep",
-  capabilities=["arc:ip-docs"],
+  capabilities=["arc:ip-draft"],
   execution_mode="background",
   description="Deep起草实现细节",
   prompt="..."
 )
 dispatch_job(
   lane="writing",
-  capabilities=["arc:ip-docs"],
+  capabilities=["arc:ip-draft"],
   execution_mode="background",
   description="Writing起草用户文档",
   prompt="..."
@@ -75,7 +75,7 @@ dispatch_job(
 // Phase 3: 交叉审阅(复用continuation_id)
 dispatch_job(
   continuation_id="<oracle_continuation_id>",
-  capabilities=["arc:ip-docs"],
+  capabilities=["arc:ip-draft"],
   execution_mode="foreground",
   description="Oracle审阅Deep和Momus草稿",
   prompt="..."

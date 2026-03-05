@@ -14,7 +14,7 @@
     "skill": {
       "type": "string",
       "pattern": "^arc:[a-z-]+$",
-      "description": "Target skill name (e.g., arc:simulate)"
+      "description": "Target skill name (e.g., arc:e2e)"
     },
     "defaults": {
       "type": "object",

@@ -69,7 +69,7 @@ NO ESTIMATE WITHOUT SCOPE, RISK, AND ASSUMPTION TRACEABILITY
 
 - **首选触发**：需求已明确，需要工时区间、资源排期与风险缓冲。
 - **典型场景**：并行波次规划、关键路径识别、里程碑承诺校准。
-- **边界提示**：需求不清先 `arc:refine`；需要编码落地用 `arc:implement`。
+- **边界提示**：需求不清先 `arc:clarify`；需要编码落地用 `arc:build`。
 
 ## Invocation
 
@@ -240,8 +240,8 @@ Use known tasks to calibrate estimates:
 
 ### Dependencies
 
-- `arc:refine` — For task context (optional)
-- `arc:deliberate` — For task breakdown (optional)
+- `arc:clarify` — For task context (optional)
+- `arc:decide` — For task breakdown (optional)
 
 ## Examples
 

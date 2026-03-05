@@ -57,6 +57,6 @@ python3 cartography/scripts/cartographer.py update --root .
 
 ## 与 arc 技能协同
 
-- 可在 `arc:refine` 前执行，补充问题上下文
-- 可在 `arc:implement` 前执行，快速定位模块边界
-- 可在 `arc:review` 前执行，辅助评审范围划分
+- 可在 `arc:clarify` 前执行，补充问题上下文
+- 可在 `arc:build` 前执行，快速定位模块边界
+- 可在 `arc:audit` 前执行，辅助评审范围划分

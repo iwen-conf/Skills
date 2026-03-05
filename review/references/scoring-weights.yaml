@@ -1,5 +1,5 @@
 # 评分权重配置
-# 用于 arc:review 综合量化评分与 Agent 定性评分
+# 用于 arc:audit 综合量化评分与 Agent 定性评分
 
 version: "1.1.0"
 

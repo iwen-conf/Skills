@@ -2,7 +2,7 @@
 
 ## 模块定位
 
-`implement/` 提供 `arc:implement`，负责将方案与需求落地为工程实现并输出可验证交付件。
+`implement/` 提供 `arc:build`，负责将方案与需求落地为工程实现并输出可验证交付件。
 
 ## 核心产物
 
@@ -18,5 +18,5 @@
 
 ## 协作关系
 
-- 上游：`arc:refine`、`arc:deliberate`
-- 下游：`arc:review`、`arc:simulate`
+- 上游：`arc:clarify`、`arc:decide`
+- 下游：`arc:audit`、`arc:e2e`

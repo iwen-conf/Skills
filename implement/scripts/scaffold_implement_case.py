@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Scaffold an arc:implement case directory."""
+"""Scaffold an arc:build case directory."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ SUBDIRS = ["context", "plan", "execution", "reports", "handoff"]
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Create arc:implement workspace")
+    parser = argparse.ArgumentParser(description="Create arc:build workspace")
     parser.add_argument("--project-path", required=True, help="Absolute path of target project")
     parser.add_argument("--task-name", required=True, help="Implementation task name")
     parser.add_argument("--output-dir", help="Case output directory override")

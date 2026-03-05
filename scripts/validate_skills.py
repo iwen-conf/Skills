@@ -58,23 +58,23 @@ BANNED_TOKENS = [
 FUSION_GENERIC_SKILLS = set()
 
 ARC_ROUTED_SKILLS = {
-    "arc:agent",
+    "arc:exec",
     "arc:cartography",
-    "arc:deliberate",
+    "arc:decide",
     "arc:estimate",
-    "arc:gate",
-    "arc:implement",
+    "arc:release",
+    "arc:build",
     "arc:init",
     "arc:init:full",
     "arc:init:update",
-    "arc:ip-audit",
-    "arc:ip-docs",
-    "arc:loop",
-    "arc:refine",
-    "arc:review",
-    "arc:simulate",
-    "arc:triage",
-    "arc:uml",
+    "arc:ip-check",
+    "arc:ip-draft",
+    "arc:retest",
+    "arc:clarify",
+    "arc:audit",
+    "arc:e2e",
+    "arc:fix",
+    "arc:model",
 }
 
 

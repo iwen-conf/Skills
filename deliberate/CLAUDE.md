@@ -10,7 +10,7 @@ arc:init 多Agent协作生成模块级 CLAUDE.md
 
 ## 模块职责
 
-arc:deliberate 通过共享文件系统协调 oracle、deep、visual-engineering 三个专业 Agent 进行迭代式协作审议，使用 OpenSpec 生成结构化可执行计划。适用于复杂技术决策、架构设计、方案对比等需要多视角验证的场景。
+arc:decide 通过共享文件系统协调 oracle、deep、visual-engineering 三个专业 Agent 进行迭代式协作审议，使用 OpenSpec 生成结构化可执行计划。适用于复杂技术决策、架构设计、方案对比等需要多视角验证的场景。
 
 核心能力：
 - **歧义检查**：多Agent分析需求 → 识别歧义 → 用户澄清 → 直到无歧义
@@ -28,7 +28,7 @@ arc:deliberate 通过共享文件系统协调 oracle、deep、visual-engineering
 
 ### 调用方式
 
-通过 Claude Code 调用：`arc deliberate`
+通过 Claude Code 调用：`arc decide`
 
 输入参数：
 - `task_name` (required): 任务名称，用于目录命名
@@ -79,7 +79,7 @@ arc:deliberate 通过共享文件系统协调 oracle、deep、visual-engineering
 ```
 <workdir>/.arc/deliberate/<task-name>/
 ├── context/
-│   └── enhanced-prompt.md              # arc:refine 产出
+│   └── enhanced-prompt.md              # arc:clarify 产出
 ├── agents/
 │   ├── oracle/
 │   │   ├── ambiguity-round-N.md        # 歧义分析
@@ -236,9 +236,9 @@ graph TD
 ## 注意事项
 
 1. **Agent 调用方式**：
-   - oracle: `dispatch_job(role="oracle", capabilities=["arc:deliberate"], execution_mode="background")`
-   - deep: `dispatch_job(lane="deep", capabilities=["arc:deliberate"], execution_mode="background")`
-   - visual-engineering: `dispatch_job(lane="visual-engineering", capabilities=["arc:deliberate", "frontend-ui-ux"], execution_mode="background")`
+   - oracle: `dispatch_job(role="oracle", capabilities=["arc:decide"], execution_mode="background")`
+   - deep: `dispatch_job(lane="deep", capabilities=["arc:decide"], execution_mode="background")`
+   - visual-engineering: `dispatch_job(lane="visual-engineering", capabilities=["arc:decide", "frontend-ui-ux"], execution_mode="background")`
    - visual: `dispatch_job(lane="visual-engineering", capabilities=["frontend-ui-ux"], execution_mode="background")`
 
 2. **并发执行**：

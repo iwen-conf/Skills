@@ -10,7 +10,7 @@
 
 ## 模块职责
 
-arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的统一入口和智能调度层。它不直接完成具体任务，而是分析用户需求、选择最合适的 Skill、通过 运行时无关编排层 Agent 系统调度执行、整合结果呈现。
+arc:exec 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的统一入口和智能调度层。它不直接完成具体任务，而是分析用户需求、选择最合适的 Skill、通过 运行时无关编排层 Agent 系统调度执行、整合结果呈现。
 
 核心能力：
 - **需求理解**：分析用户自然语言描述，结合项目上下文理解真实意图
@@ -28,7 +28,7 @@ arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的
 
 ### 调用方式
 
-通过 Claude Code 调用：`arc agent`
+通过 Claude Code 调用：`arc exec`
 
 输入参数：
 - `task_description` (required): 用户的自然语言任务描述
@@ -91,22 +91,22 @@ arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的
 │   └── arc:cartography
 │
 ├── 问题描述模糊 / 缺少项目上下文
-│   └── arc:refine → (可选) arc:deliberate
+│   └── arc:clarify → (可选) arc:decide
 │
 ├── 复杂技术决策 / 多方案对比 / 架构设计
-│   └── arc:deliberate
+│   └── arc:decide
 │
 ├── 项目评审 / 质量诊断 / 技术尽调
-│   └── arc:review
+│   └── arc:audit
 │
 ├── E2E 浏览器测试 / 用户流程验证
-│   └── arc:simulate
+│   └── arc:e2e
 │
 ├── 缺陷定位与修复（基于测试报告）
-│   └── arc:triage
+│   └── arc:fix
 │
 ├── 服务启动 + 回归测试闭环
-│   └── arc:loop
+│   └── arc:retest
 │
 ├── 纯后端开发任务（API、数据库、算法、CLI）
 │   └── dispatch_job(lane="deep", capabilities=[...])
@@ -126,18 +126,18 @@ arc:agent 是一个**元技能（Meta-Skill）**，作为所有 `arc:` 技能的
 |------|-----------|
 | 用户提到「初始化」「生成文档」「CLAUDE.md」 | arc:init |
 | 用户提到「代码地图」「codemap」「仓库结构」「目录职责」 | arc:cartography |
-| 用户提到「评审」「review」「诊断」「质量」 | arc:review |
-| 用户提到「讨论」「deliberate」「方案」「架构决策」 | arc:deliberate |
-| 用户提到「测试」「E2E」「simulate」「浏览器」 | arc:simulate |
-| 用户提到「修复」「triage」「bug」「失败」 | arc:triage |
-| 用户提到「回归」「loop」「重测」 | arc:loop |
-| 用户描述模糊，缺少细节 | arc:refine |
+| 用户提到「评审」「review」「诊断」「质量」 | arc:audit |
+| 用户提到「讨论」「deliberate」「方案」「架构决策」 | arc:decide |
+| 用户提到「测试」「E2E」「simulate」「浏览器」 | arc:e2e |
+| 用户提到「修复」「triage」「bug」「失败」 | arc:fix |
+| 用户提到「回归」「loop」「重测」 | arc:retest |
+| 用户描述模糊，缺少细节 | arc:clarify |
 | 用户直接给出明确的开发任务 | 按领域 category 分派 Agent |
 
 ### 输出产物
 
 ```
-<workdir>/.arc/agent/
+<workdir>/.arc/exec/
 ├── dispatch-log.md          # 调度决策记录
 ├── snapshots/               # 执行前快照（snapshot 模式）
 │   └── <timestamp>/
@@ -261,7 +261,7 @@ graph TD
 2. **需求模糊时主动澄清**：禁止在理解不充分的情况下调度
 3. **尊重 Skill 边界**：路由后严格按该 skill 的 SKILL.md 执行
 4. **Agent 选择有据**：后端→lane:deep，前端→lane:visual-engineering，架构→subagent:oracle，计划审查→subagent:momus
-5. **记录调度决策**：写入 `.arc/agent/dispatch-log.md`
+5. **记录调度决策**：写入 `.arc/exec/dispatch-log.md`
 6. **安全执行原则**：高影响操作需用户确认
 
 ### 超时与降级

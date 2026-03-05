@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Scaffold an arc:ip-docs case directory."""
+"""Scaffold an arc:ip-draft case directory."""
 
 from __future__ import annotations
 

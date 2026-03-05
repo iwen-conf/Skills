@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render arc:implement delivery documents from templates."""
+"""Render arc:build delivery documents from templates."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Render arc:implement output files")
+    parser = argparse.ArgumentParser(description="Render arc:build output files")
     parser.add_argument("--case-dir", required=True, help="Path to .arc/implement/<task>")
     parser.add_argument("--task-name", required=True)
     parser.add_argument("--result", choices=["pass", "fail"], default="pass")
@@ -54,7 +54,7 @@ def main() -> int:
         "what_changed": "- 待补充关键改动文件\n- 待补充核心实现点",
         "why": "- 对齐实现目标与范围",
         "validation": f"- {args.verification}",
-        "next_steps": "1. 执行 arc:review\n2. 执行 arc:simulate（如涉及UI流程）",
+        "next_steps": "1. 执行 arc:audit\n2. 执行 arc:e2e（如涉及UI流程）",
     }
 
     exec_report_tpl = load_template(base_tpl / "execution-report.md.tpl")

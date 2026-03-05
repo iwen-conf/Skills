@@ -2,7 +2,7 @@
 
 ## 模块定位
 
-`ip-audit/` 提供 `arc:ip-audit`，采用**多Agent协作模式**(oracle/deep/momus)负责软件专利/软著可行性审查，不负责最终申请文书写作。
+`ip-audit/` 提供 `arc:ip-check`，采用**多Agent协作模式**(oracle/deep/momus)负责软件专利/软著可行性审查，不负责最终申请文书写作。
 
 ## 核心产物
 
@@ -37,8 +37,8 @@
 
 ## 协作关系与调用方式
 
-- 上游：`arc:init`、`arc:review`（提供上下文）
-- 下游：`arc:ip-docs`（消费 handoff JSON）
+- 上游：`arc:init`、`arc:audit`（提供上下文）
+- 下游：`arc:ip-draft`（消费 handoff JSON）
 
 ### Agent调用示例
 
@@ -46,21 +46,21 @@
 // Phase 2: 并发启动三Agent
 dispatch_job(
   role="oracle",
-  capabilities=["arc:ip-audit"],
+  capabilities=["arc:ip-check"],
   execution_mode="background",
   description="Oracle评估技术创新性与专利可行性",
   prompt="..."
 )
 dispatch_job(
   lane="deep",
-  capabilities=["arc:ip-audit"],
+  capabilities=["arc:ip-check"],
   execution_mode="background",
   description="Deep评估代码完整性与软著可行性",
   prompt="..."
 )
 dispatch_job(
   lane="writing",
-  capabilities=["arc:ip-audit"],
+  capabilities=["arc:ip-check"],
   execution_mode="background",
   description="Writing评估文档完备性与申请准备度",
   prompt="..."
@@ -69,7 +69,7 @@ dispatch_job(
 // Phase 3: 交叉反驳(复用continuation_id)
 dispatch_job(
   continuation_id="<oracle_continuation_id>",
-  capabilities=["arc:ip-audit"],
+  capabilities=["arc:ip-check"],
   execution_mode="foreground",
   description="Oracle交叉反驳Deep和Momus",
   prompt="..."

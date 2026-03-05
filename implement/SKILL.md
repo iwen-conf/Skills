@@ -1,13 +1,13 @@
 ---
-name: "arc:implement"
+name: "arc:build"
 description: "方案已明确时使用：按契约落地代码变更（含重构/迁移），并同步验证证据与交接文档。"
 ---
 
-# arc:implement — 方案落地实现
+# arc:build — 方案落地实现
 
 ## Overview
 
-`arc:implement` 负责把需求与方案落到代码实现层，先冻结接口契约与兼容策略，再输出可交付的工程变更和执行报告。
+`arc:build` 负责把需求与方案落到代码实现层，先冻结接口契约与兼容策略，再输出可交付的工程变更和执行报告。
 
 本技能强调“可实现、可验证、可回溯”：
 
@@ -33,7 +33,7 @@ description: "方案已明确时使用：按契约落地代码变更（含重构
 ## Announce
 
 开始时明确说明：  
-“我正在使用 `arc:implement`，先固化实现计划与验证路径，再落地代码。”
+“我正在使用 `arc:build`，先固化实现计划与验证路径，再落地代码。”
 
 ## The Iron Law
 
@@ -66,16 +66,16 @@ NO CODE CHANGE WITHOUT PLAN, EVIDENCE, AND ROLLBACK
 
 ## Mandatory Linkage（不可单打独斗）
 
-1. 优先读取 `arc:deliberate` 产物（若存在）作为实现输入。
-2. 需求模糊时先走 `arc:refine`，不得直接盲改。
-3. 实现完成后建议交给 `arc:review` 或 `arc:simulate` 做验证闭环。
+1. 优先读取 `arc:decide` 产物（若存在）作为实现输入。
+2. 需求模糊时先走 `arc:clarify`，不得直接盲改。
+3. 实现完成后建议交给 `arc:audit` 或 `arc:e2e` 做验证闭环。
 4. 输出标准化交接文件，供下游技能消费。
 
 ## When to Use
 
 - **首选触发**：需求或方案已明确，需要产出可提交代码变更。
 - **典型场景**：功能开发、接口演进、数据库迁移、行为不变重构、文档同步、缺陷修复并附验证证据。
-- **边界提示**：需求模糊先 `arc:refine/arc:deliberate`，全面评估用 `arc:review`。
+- **边界提示**：需求模糊先 `arc:clarify/arc:decide`，全面评估用 `arc:audit`。
 
 ## Input Arguments
 
@@ -93,8 +93,8 @@ NO CODE CHANGE WITHOUT PLAN, EVIDENCE, AND ROLLBACK
 - **编排契约**（推荐）：遵循 `docs/orchestration-contract.md`，通过运行时适配层分发实现与验证任务。
 - **ace-tool MCP**（必须）：定位实现入口、影响面、相关符号。
 - **Dispatch API**（必须）：调度实现与验证任务。
-- **arc:deliberate**（推荐）：消费上游方案文档。
-- **arc:refine**（可选）：需求不清晰时补充上下文。
+- **arc:decide**（推荐）：消费上游方案文档。
+- **arc:clarify**（可选）：需求不清晰时补充上下文。
 - **Exa MCP**（可选）：查官方文档与实现参考。
 
 ## Context Priority（强制）
@@ -103,14 +103,14 @@ NO CODE CHANGE WITHOUT PLAN, EVIDENCE, AND ROLLBACK
 1. `.arc/implement/<task>/context/implementation-brief.md`（24h）
 2. `.arc/deliberate/<task>/` 下方案产物（若存在）
 3. `codemap.md`（arc:cartography）与 `CLAUDE.md` 层级索引（7天）
-4. score 产物（由 `score/` 模块生成）/ `arc:review` / 上次 `arc:implement` handoff（若索引可用）
+4. score 产物（由 `score/` 模块生成）/ `arc:audit` / 上次 `arc:build` handoff（若索引可用）
 5. `ace-tool` 语义扫描
 6. `Exa` 外部文档
 
 失效回流规则：
 - CLAUDE 索引失效：触发 `arc:init:update`
 - codemap 失效：触发 `arc:cartography` 更新
-- score/review 产物失效：触发 `score` 模块刷新（由 `arc:gate` 编排触发）/ `arc:review` 更新
+- score/review 产物失效：触发 `score` 模块刷新（由 `arc:release` 编排触发）/ `arc:audit` 更新
 
 ## Critical Rules
 
@@ -143,7 +143,7 @@ python implement/scripts/scaffold_implement_case.py \
 - 变更步骤
 - 风险与回退方案
 - 验证计划
-2. 若存在重大技术分歧，先回到 `arc:deliberate` 论证。
+2. 若存在重大技术分歧，先回到 `arc:decide` 论证。
 
 ### Phase 3: 编码落地
 
@@ -197,11 +197,11 @@ python implement/scripts/render_implementation_report.py --case-dir <output_dir>
 
 ## Anti-Patterns
 
-**CRITICAL: The following behaviors are FORBIDDEN in arc:implement execution:**
+**CRITICAL: The following behaviors are FORBIDDEN in arc:build execution:**
 
 ### Planning Anti-Patterns
 
-- **Speculation Implementation**: Writing code without reading arc:deliberate or arc:refine output first — must have approved plan
+- **Speculation Implementation**: Writing code without reading arc:decide or arc:clarify output first — must have approved plan
 - **Scope Creep**: Adding features not in the approved plan — strict scope adherence required
 - **Pattern Ignorance**: Not reading existing code patterns before implementing — causes inconsistency
 

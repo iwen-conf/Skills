@@ -6,16 +6,16 @@ Runs evals.json test suites for arc: skills.
 
 Usage:
     # Run all evals for a skill
-    python run_evals.py --skill arc:simulate
+    python run_evals.py --skill arc:e2e
 
     # Run specific eval
-    python run_evals.py --skill arc:simulate --id compile_then_gate
+    python run_evals.py --skill arc:e2e --id compile_then_gate
 
     # Run with specific trigger
-    python run_evals.py --skill arc:simulate --trigger ci
+    python run_evals.py --skill arc:e2e --trigger ci
 
     # JSON output
-    python run_evals.py --skill arc:simulate --json
+    python run_evals.py --skill arc:e2e --json
 
 Exit codes:
     0 = All tests PASS
@@ -394,7 +394,7 @@ class EvalRunner:
 
     def find_evals(self, skill: str) -> Path:
         """Find evals.json for a skill."""
-        # Convert arc:simulate -> simulate
+        # Convert arc:e2e -> simulate
         skill_dir = skill.replace("arc:", "")
         evals_path = self.skills_root / skill_dir / "evals.json"
 
@@ -591,7 +591,7 @@ class EvalRunner:
 def main():
     parser = argparse.ArgumentParser(description="Run arc: skill evaluations")
     parser.add_argument(
-        "--skill", "-s", required=True, help="Skill to evaluate (e.g., arc:simulate)"
+        "--skill", "-s", required=True, help="Skill to evaluate (e.g., arc:e2e)"
     )
     parser.add_argument("--id", help="Run specific eval by ID")
     parser.add_argument("--trigger", help="Filter by trigger type")

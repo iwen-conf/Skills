@@ -10,7 +10,7 @@
 
 ## 模块职责
 
-arc:loop 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 进行回归测试，直到 PASS 或达到迭代上限。作为测试闭环的调度层，协调服务状态和测试执行。
+arc:retest 管理 tmux 会话启动/重启服务，循环执行 arc:e2e 进行回归测试，直到 PASS 或达到迭代上限。作为测试闭环的调度层，协调服务状态和测试执行。
 
 核心能力：
 - **服务编排**：通过 JSON 配置管理多个服务的启动和重启
@@ -74,12 +74,12 @@ python loop/scripts/uxloop_cleanup.py --session uxloop --window svc --kill-sessi
 
 ### Skill 调用接口
 
-通过 Claude Code 调用：`arc loop`
+通过 Claude Code 调用：`arc retest`
 
 输入参数：
 - `config_path` (required): 配置文件路径
 - `max_iterations` (optional): 最大迭代次数，默认 5
-- `simulate_params` (optional): arc:simulate 参数
+- `simulate_params` (optional): arc:e2e 参数
 
 ### 就绪检查类型
 
@@ -95,8 +95,8 @@ python loop/scripts/uxloop_cleanup.py --session uxloop --window svc --kill-sessi
 |------|------|------|------|
 | Python | 运行时 | >= 3.10 | 辅助脚本执行 |
 | tmux | 外部 CLI | 必须 | 终端复用和进程管理 |
-| arc:simulate | Skill | 必须 | E2E 测试执行 |
-| arc:triage | Skill | 必须 | 失败修复 |
+| arc:e2e | Skill | 必须 | E2E 测试执行 |
+| arc:fix | Skill | 必须 | 失败修复 |
 
 ## 数据模型
 
@@ -137,9 +137,9 @@ graph TD
     end
 
     subgraph 测试循环
-        SIM["arc:simulate<br/>执行测试"]
+        SIM["arc:e2e<br/>执行测试"]
         CHECK{"PASS?"}
-        TRIAGE["arc:triage<br/>修复"]
+        TRIAGE["arc:fix<br/>修复"]
         ITER{"迭代上限?"}
     end
 

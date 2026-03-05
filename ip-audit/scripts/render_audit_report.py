@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render arc:ip-audit report files from templates."""
+"""Render arc:ip-check report files from templates."""
 
 from __future__ import annotations
 

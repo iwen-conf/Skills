@@ -38,11 +38,11 @@
 
 ## 已重点强化的 Skill（ROI 优先）
 
-1. `arc:agent`
-2. `arc:review`
-3. `arc:gate`
-4. `arc:implement`
-5. `arc:triage`
+1. `arc:exec`
+2. `arc:audit`
+3. `arc:release`
+4. `arc:build`
+5. `arc:fix`
 
 ## 持续演进建议
 

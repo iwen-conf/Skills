@@ -1,5 +1,5 @@
 ---
-name: "arc:refine"
+name: "arc:clarify"
 description: "需求模糊或约束不全时使用：补齐上下文并生成可直接执行的高质量提示。"
 ---
 
@@ -27,7 +27,7 @@ description: "需求模糊或约束不全时使用：补齐上下文并生成可
 ## Announce
 
 开始时明确说明：  
-“我正在使用 `arc:refine`，先补齐上下文与约束，再生成可执行 prompt。”
+“我正在使用 `arc:clarify`，先补齐上下文与约束，再生成可执行 prompt。”
 
 ## The Iron Law
 
@@ -62,7 +62,7 @@ NO EXECUTION PROMPT WITHOUT CONTEXT, CONSTRAINTS, AND SUCCESS CRITERIA
 
 - **首选触发**：需求模糊或上下文不足，需要转成可执行任务描述。
 - **典型场景**：模块边界不清、约束缺失、验收标准未定义。
-- **边界提示**：多方案争议需论证时用 `arc:deliberate`，需求已清晰则直接下游执行。
+- **边界提示**：多方案争议需论证时用 `arc:decide`，需求已清晰则直接下游执行。
 
 ## Core Pattern
 
@@ -151,7 +151,7 @@ find . -name "CLAUDE.md" -type f
 
 ## Anti-Patterns
 
-**CRITICAL: The following behaviors are FORBIDDEN in arc:refine execution:**
+**CRITICAL: The following behaviors are FORBIDDEN in arc:clarify execution:**
 
 ### Scanning Anti-Patterns
 
@@ -175,19 +175,19 @@ find . -name "CLAUDE.md" -type f
 ### Output Anti-Patterns
 
 - **Missing Success Criteria**: Enhanced prompt without verification checklist — how to know it's done?
-- **Orphaned Output**: Not writing enhanced-prompt.md to `.arc/deliberate/` — breaks arc:deliberate consumption
+- **Orphaned Output**: Not writing enhanced-prompt.md to `.arc/deliberate/` — breaks arc:decide consumption
 ## Integration
 
-此 Skill 完成后，建议继续调用 `arc:deliberate` Skill 进行多Agent审议。
+此 Skill 完成后，建议继续调用 `arc:decide` Skill 进行多Agent审议。
 
 如果在细化过程中发现共享产物失效：
 - CLAUDE 索引失效 → 触发 `arc:init:update`（必要时 `arc:init:full`）
 - codemap 失效 → 触发 `arc:cartography` 更新
-- score/review 数据失效 → 触发 `score` 模块刷新（由 `arc:gate` 编排触发）/ `arc:review` 更新
+- score/review 数据失效 → 触发 `score` 模块刷新（由 `arc:release` 编排触发）/ `arc:audit` 更新
 
 ```
 问题细化完成。增强 prompt 已写入：
 .arc/deliberate/<task-name>/context/enhanced-prompt.md
 
-可继续调用 `arc deliberate` 进行多Agent审议。
+可继续调用 `arc decide` 进行多Agent审议。
 ```

@@ -273,7 +273,7 @@ arc:init (本 Skill - 智能调度)
  └── arc:init:update (增量更新)
 
 下游消费者:
-arc:refine / arc:deliberate / arc:implement / arc:simulate / arc:review
+arc:clarify / arc:decide / arc:build / arc:e2e / arc:audit
   ↑ 通过 `.arc/context-hub/index.json` 读取 CLAUDE 索引产物
 
 依赖关系:
