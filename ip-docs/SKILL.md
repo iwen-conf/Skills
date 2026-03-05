@@ -1,6 +1,6 @@
 ---
 name: "arc:ip-docs"
-description: "当已获得 arc:ip-audit 交接并需要起草结构化软著/专利申请材料时使用。"
+description: "拿到 arc:ip-audit 交接后使用：起草结构化软著/专利申请材料与文档草稿。"
 ---
 
 # arc:ip-docs — 专利/软著文档写作

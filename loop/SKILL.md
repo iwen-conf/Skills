@@ -1,6 +1,6 @@
 ---
 name: "arc:loop"
-description: "当修复需要重启服务并进行多轮失败-修复-回归闭环验证时使用。"
+description: "修复后必须重启服务时使用：执行失败-修复-回归的多轮闭环并沉淀证据。"
 ---
 
 # tmux 启动 + arc:simulate 回归闭环（工业化）

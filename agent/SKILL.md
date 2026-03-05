@@ -1,6 +1,6 @@
 ---
 name: "arc:agent"
-description: "当用户需求模糊、陌生仓库需快速上手或跨多个工作流时使用，负责在运行时无关前提下路由并编排执行。"
+description: "不知道该用哪个 skill 时先用它：自动理解需求、路由到合适技能，并可编排多 Agent 协同执行。"
 ---
 
 # 智能调度 Agent（需求分析 + Skill 路由 + 多 Agent 调度）
@@ -175,6 +175,7 @@ dispatch_job({
 - `git-master` — Git 操作
 - `dev-browser` — 持久状态浏览器自动化
 - `arc:cartography` — 仓库理解与分层 codemap 生成
+- `arc:uml` — 基于项目证据生成 UML 图谱
 - 所有 `arc:*` 用户技能
 
 ## Skill 路由决策树
@@ -199,6 +200,9 @@ dispatch_job({
 │
 ├── 项目评审 / 质量诊断 / 技术尽调
 │   └── arc:review
+│
+├── 系统建模 / UML 图谱输出（类图、时序图、部署图等）
+│   └── arc:uml
 │
 ├── 知识产权可行性评估 / 专利软著审查报告
 │   └── arc:ip-audit
@@ -255,6 +259,7 @@ dispatch_job({
 | 用户提到「初始化」「生成文档」「CLAUDE.md」 | arc:init |
 | 用户提到「代码地图」「codemap」「仓库结构」「目录职责」 | arc:cartography |
 | 用户提到「评审」「review」「诊断」「质量」 | arc:review |
+| 用户提到「UML」「类图」「时序图」「部署图」「组件图」 | arc:uml |
 | 用户提到「知识产权评估」「专利可行性」「软著可行性」「IP审查」 | arc:ip-audit |
 | 用户提到「技术交底书」「权利要求」「软著说明书」「申请文档写作」 | arc:ip-docs |
 | 用户提到「讨论」「deliberate」「方案」「架构决策」 | arc:deliberate |

@@ -1,6 +1,6 @@
 ---
 name: "arc:refine"
-description: "当用户意图模糊或约束不完整，需要补齐上下文并生成可执行提示时使用。"
+description: "需求模糊或约束不全时使用：补齐上下文并生成可直接执行的高质量提示。"
 ---
 
 # Question Refiner

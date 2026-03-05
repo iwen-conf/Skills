@@ -74,6 +74,7 @@ ARC_ROUTED_SKILLS = {
     "arc:review",
     "arc:simulate",
     "arc:triage",
+    "arc:uml",
 }
 
 

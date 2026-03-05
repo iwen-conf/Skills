@@ -1,6 +1,6 @@
 ---
 name: "arc:simulate"
-description: "当需要按真实用户路径执行 E2E 验证并沉淀 UI 证据工件时使用。"
+description: "需要按真实用户路径做 E2E 验证时使用：自动执行流程并输出截图与证据工件。"
 ---
 # **UI/UX Simulation & E2E Testing**
 

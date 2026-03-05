@@ -1,7 +1,7 @@
 # Arc Skills
 
 跨运行时、可解耦的技能（Skill）仓库。  
-本仓库统一采用 `arc:xxx` 命名空间，当前保留 16 个核心编排技能。
+本仓库统一采用 `arc:xxx` 命名空间，当前保留 17 个核心编排技能。
 
 ## 当前状态
 
@@ -10,7 +10,7 @@
 - 路由文档已形成三层：矩阵、决策树、阶段视图 + 单页速查。
 - 所有 `SKILL.md` 的 frontmatter `description` 已统一为中文。
 
-## Arc 技能清单（16）
+## Arc 技能清单（17）
 
 | Skill | 目录 | 作用 |
 |---|---|---|
@@ -25,11 +25,29 @@
 | `arc:triage` | `triage/` | 基于失败工件做根因定位、修复与复验 |
 | `arc:loop` | `loop/` | 重启服务 + 多轮 fail-fix-retest 闭环 |
 | `arc:cartography` | `cartography/` | 分层 codemap 生成与增量刷新 |
+| `arc:uml` | `uml/` | 基于项目证据生成 14 类 UML 图谱（需 E-R 时按陈氏画法） |
 | `arc:init` | `init/` | CLAUDE 索引维护自动路由（full/update） |
 | `arc:init:full` | `init-full/` | CLAUDE 索引全量重建 |
 | `arc:init:update` | `init-update/` | CLAUDE 索引增量更新 |
 | `arc:ip-audit` | `ip-audit/` | 软著/专利可行性审查与风险评估 |
 | `arc:ip-docs` | `ip-docs/` | 基于审查交接起草 IP 申请材料 |
+
+## 我该用哪个 Skill？
+
+| 你现在的情况 | 直接用 |
+|---|---|
+| 不知道该选哪个 | `arc:agent` |
+| 需求说不清、约束不完整 | `arc:refine` |
+| 方案有争议、风险高 | `arc:deliberate` |
+| 方案已定，开始改代码 | `arc:implement` |
+| 想评估项目健康度/PR 风险 | `arc:review` |
+| 准备合并或发布，做门禁 | `arc:gate` |
+| 需要真实用户路径 E2E 验证 | `arc:simulate` |
+| E2E 失败或线上故障排查 | `arc:triage` |
+| 修复后必须重启并多轮回归 | `arc:loop` |
+| 刚接手陌生仓库，先看结构 | `arc:cartography` |
+| 需要系统建模图（类图/时序图/部署图等） | `arc:uml` |
+| 要维护 CLAUDE 索引（不想判断 full/update） | `arc:init` |
 
 ## 收敛结果
 
@@ -84,6 +102,7 @@ arc agent
 arc refine
 arc deliberate
 arc implement
+arc uml
 
 # 质量链路
 # `arc gate` 会编排触发 `score/` 评分模块

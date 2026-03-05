@@ -1,6 +1,6 @@
 ---
 name: arc:cartography
-description: "当需要快速理解陌生仓库或为下游 arc 技能刷新分层 codemap.md 上下文时使用。"
+description: "首次接手仓库或结构变化后使用：快速生成/刷新分层 codemap，帮助后续实现、评审与排障。"
 ---
 
 # arc:cartography Skill

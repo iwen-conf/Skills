@@ -1,6 +1,6 @@
 ---
 name: "arc:init"
-description: "当需要构建或刷新层级 CLAUDE.md 索引并自动选择全量或增量模式时使用。"
+description: "维护 CLAUDE.md 索引的默认入口：自动判断走全量重建还是增量更新。"
 ---
 
 # arc:init — 智能调度器

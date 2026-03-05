@@ -1,6 +1,6 @@
 ---
 name: arc:triage
-description: "当 arc:simulate 失败或线上故障需要定位根因、推动恢复并沉淀证据链时使用。"
+description: "arc:simulate 失败或线上故障时使用：定位根因、推动恢复，并产出 fail-to-pass 证据链。"
 ---
 
 # UI/UX 缺陷排查与修复（基于 arc:simulate，工业化）

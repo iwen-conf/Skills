@@ -1,6 +1,6 @@
 ---
 name: "arc:deliberate"
-description: "当技术方案高风险或存在多路径争议时使用，通过多 Agent 多视角审议与反驳收敛决策。"
+description: "方案有争议或风险高时使用：让多 Agent 独立提案并互相反驳，最终收敛到可执行决策。"
 ---
 
 # Multi-Agent Deliberation

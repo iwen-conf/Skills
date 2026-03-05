@@ -1,6 +1,6 @@
 ---
 name: arc:estimate
-description: "当范围基本明确且需要工时区间、风险校准和并行波次排期时使用。"
+description: "需求范围已基本明确时使用：输出工时区间、风险系数、并行波次排期与里程碑。"
 ---
 
 # arc:estimate Skill

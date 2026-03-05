@@ -9,6 +9,7 @@
 - 需求上下文不清 → `arc:refine`
 - 方案争议/高风险 → `arc:deliberate`
 - 已有方案要落地 → `arc:implement`
+- 需要系统建模图谱 → `arc:uml`
 
 ## 2) 常用链路
 
@@ -17,6 +18,7 @@
 - E2E 修复：`arc:simulate` → `arc:triage`（多轮用 `arc:loop`）
 - 索引维护：`arc:init`（自动）/ `arc:init:full` / `arc:init:update`
 - 结构地图：`arc:cartography`
+- UML 图谱：`arc:uml`
 - IP 流程：`arc:ip-audit` → `arc:ip-docs`
 
 ## 3) 不确定时的默认顺序

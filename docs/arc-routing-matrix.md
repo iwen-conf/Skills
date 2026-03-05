@@ -16,6 +16,7 @@
 | `arc:triage` | 基于 FAIL 工件做定位修复 | 尚无可复现失败证据 | `arc:simulate`（先产证据） |
 | `arc:loop` | 需重启服务的多轮回归闭环 | 一次性单轮排查即可完成 | `arc:simulate` / `arc:triage` |
 | `arc:cartography` | 需生成或刷新 `codemap` | 仅做需求澄清或编码落地 | `arc:refine` / `arc:implement` / `arc:review` |
+| `arc:uml` | 需要按项目实际情况输出 UML 图谱 | 仅需仓库目录概览或单点评审结论 | `arc:cartography` / `arc:review` / `arc:implement` |
 | `arc:init` | 自动选择 full/update 维护 CLAUDE 索引 | 已明确必须 full 或 update | `arc:init:full` / `arc:init:update` |
 | `arc:init:full` | 首次初始化或全量重建 | 仅有局部增量变更 | `arc:init:update`（后续维护） |
 | `arc:init:update` | 已有基线的增量同步 | 缺失基线或基线严重失效 | `arc:init` / `arc:init:full` |
@@ -37,6 +38,7 @@ flowchart TD
     E -- "否" --> F{"是质量治理链路?"}
     F -- "门禁阻断" --> GT["arc:gate"]
     F -- "企业级诊断" --> RV["arc:review"]
+    F -- "系统建模/UML" --> UML["arc:uml"]
     F -- "否" --> G{"是 E2E 验证链路?"}
     G -- "执行验证" --> SM["arc:simulate"]
     G -- "失败修复" --> TR["arc:triage"]
@@ -58,6 +60,7 @@ flowchart TD
 | 澄清（Clarify） | 从模糊输入转为可执行需求 | `arc:agent` / `arc:refine` | `arc:cartography` | `refined prompt` → 决策/落地 |
 | 决策（Decide） | 处理高风险方案分歧 | `arc:deliberate` | `arc:estimate` | `consensus plan` → 实施 |
 | 落地（Build） | 产出可提交代码变更 | `arc:implement` | `arc:init*` / `arc:cartography` | `change handoff` → 验证 |
+| 建模（Modeling） | 输出结构/行为/部署 UML 图谱 | `arc:uml` | `arc:cartography` / `arc:review` | `uml pack` → 评审/交接 |
 | 验证（Validate） | 验证行为、定位失败、闭环修复 | `arc:simulate` / `arc:triage` / `arc:loop` | `arc:implement` | `pass/fail evidence` → 治理 |
 | 治理（Govern） | 门禁阻断、改进路线与治理闭环 | `arc:gate` / `arc:review` | `arc:implement` | `gate/review outputs` |
 | 知识产权（IP） | 先审查可行性，再起草材料 | `arc:ip-audit` / `arc:ip-docs` | `arc:review` | `ip-drafting-input` → 申请材料草稿 |
@@ -68,5 +71,6 @@ flowchart TD
 - 先判定“是否已明确需求边界”：未明确优先 `arc:refine`。
 - 先判定“是否争议高风险”：高风险优先 `arc:deliberate`。
 - 先判定“是否进入落地阶段”：已明确直接 `arc:implement`。
+- 先判定“是否需要系统建模图”：需要 UML 图谱优先 `arc:uml`。
 - 质量链路默认：`arc:gate`（先触发 `score/`），必要时并联 `arc:review`。
 - E2E 修复链路默认：`arc:simulate` → `arc:triage`（循环则 `arc:loop`）。

@@ -1,6 +1,6 @@
 ---
 name: "arc:gate"
-description: "当合并或上线前需要统一做质量门禁、发布准备度检查与 Go/No-Go 判定时使用。"
+description: "合并或上线前使用：执行质量门禁与发布准备度检查，给出 Go/No-Go 判定并可阻断风险变更。"
 ---
 
 # arc:gate -- CI 质量门禁

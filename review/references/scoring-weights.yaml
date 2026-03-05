@@ -1,7 +1,7 @@
 # 评分权重配置
 # 用于 arc:review 综合量化评分与 Agent 定性评分
 
-version: "1.0.0"
+version: "1.1.0"
 
 # 量化评分与定性评分的权重比例
 # quantitative = arc:score 量化数据
@@ -51,6 +51,31 @@ overall_weights:
   devops: 0.1
   team: 0.05
   tech-debt: 0.1
+
+# 专项评分配置（必须输出）
+# 说明：
+# - business_maturity 属于 business 维度内的专项子分
+# - dependency_health 属于 tech-debt 维度内的专项子分
+special_scores:
+  business_maturity:
+    source_dimension: business
+    weight_in_dimension: 0.35
+    description: 业务成熟度（打通率、断链率、闭环能力）
+    components:
+      flow_coverage: 0.4
+      breakage_control: 0.25
+      ops_closed_loop: 0.2
+      rule_evolvability: 0.15
+
+  dependency_health:
+    source_dimension: tech-debt
+    weight_in_dimension: 0.4
+    description: 依赖健康度（过时、漏洞、停维护、升级自动化）
+    components:
+      outdated_ratio: 0.35
+      vulnerability_risk: 0.35
+      unmaintained_ratio: 0.2
+      upgrade_automation: 0.1
 
 # 多 Agent 评分聚合权重
 # 各维度由 oracle / deep / deep(业务) 三方评审
@@ -132,3 +157,9 @@ adjustments:
   
   # 严重问题惩罚：存在 critical 级别问题时
   critical_penalty: 2  # 扣 2 分
+
+  # 业务成熟度过低惩罚：专项分 < 4 时触发
+  low_business_maturity_penalty: 1
+
+  # 依赖健康度过低惩罚：专项分 < 4 时触发
+  poor_dependency_health_penalty: 1.5

@@ -1,6 +1,6 @@
 ---
 name: "arc:init:full"
-description: "当项目首次初始化或需要强制全量重建 CLAUDE.md 索引与基线指纹时使用。"
+description: "首次接入项目或索引失真时使用：强制全量重建 CLAUDE.md 索引与基线指纹。"
 ---
 
 # arc:init:full — 全量初始化

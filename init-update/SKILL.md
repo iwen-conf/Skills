@@ -1,6 +1,6 @@
 ---
 name: "arc:init:update"
-description: "当已有 CLAUDE.md 索引基线并仅需按变更模块增量更新时使用。"
+description: "日常迭代后使用：基于变更模块增量更新 CLAUDE.md，避免全量扫描。"
 ---
 
 # arc:init:update — 增量更新
