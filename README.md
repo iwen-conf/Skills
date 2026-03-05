@@ -29,7 +29,7 @@
 | 索引 | `arc:init` | 自动维护索引（full/update 模式内聚） |
 | 质量 | `arc:e2e` | 按真实路径执行 E2E 验证 |
 | 质量 | `arc:fix` | 基于失败证据定位并修复（可含 retest 模式） |
-| 治理 | `arc:audit` | 七维评审 + 业务/依赖成熟度 |
+| 治理 | `arc:audit` | 七维评审 + HTML 可视化报告 + 业务/依赖成熟度 |
 | 治理 | `arc:release` | 质量阈值判定与 Go/No-Go |
 | 知产 | `arc:ip-check` | 软著/专利可行性与风险评估 |
 | 知产 | `arc:ip-draft` | 依据审查结果起草申请材料 |
