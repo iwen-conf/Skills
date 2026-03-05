@@ -40,7 +40,7 @@
 
 1. `arc:exec`
 2. `arc:audit`
-3. `arc:release`
+3. `arc:gate`
 4. `arc:build`
 5. `arc:fix`
 

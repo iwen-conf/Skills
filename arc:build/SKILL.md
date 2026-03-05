@@ -110,7 +110,7 @@ Code changes must not be implemented without clear plans, verification evidence,
 Failure reflow rules:
 - CLAUDE index invalid: trigger `arc:init --mode update`
 - codemap invalid: trigger `arc:cartography` update
-- score/review product failure: trigger `score` module refresh (triggered by `arc:release` arrangement) / `arc:audit` update
+- score/review product failure: trigger `score` module refresh (triggered by `arc:gate` arrangement) / `arc:audit` update
 
 ## Critical Rules
 

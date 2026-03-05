@@ -25,12 +25,12 @@
 | 方案 | `arc:decide` | 高风险方案收敛（可含估算模式） |
 | 交付 | `arc:build` | 按方案实施改动并交付验证 |
 | 交付 | `arc:cartography` | 生成/刷新 codemap 结构视图 |
-| 交付 | `arc:model` | 生成标准 UML（E-R 用陈氏画法） |
+| 交付 | `arc:uml` | 生成标准 UML（E-R 用陈氏画法） |
 | 索引 | `arc:init` | 自动维护索引（full/update 模式内聚） |
 | 质量 | `arc:e2e` | 按真实路径执行 E2E 验证 |
 | 质量 | `arc:fix` | 基于失败证据定位并修复（可含 retest 模式） |
 | 治理 | `arc:audit` | 七维评审 + HTML 可视化报告 + 业务/依赖成熟度 |
-| 治理 | `arc:release` | 质量阈值判定与 Go/No-Go |
+| 治理 | `arc:gate` | 合并/上线门禁判定（Go/No-Go） |
 | 知产 | `arc:ip-check` | 软著/专利可行性与风险评估 |
 | 知产 | `arc:ip-draft` | 依据审查结果起草申请材料 |
 
@@ -44,12 +44,12 @@
 | 方案有争议、风险高 | `arc:decide` |
 | 方案已定，开始改代码 | `arc:build` |
 | 想评估项目健康度/PR 风险 | `arc:audit` |
-| 准备合并或发布，做门禁 | `arc:release` |
+| 准备合并或发布，做门禁 | `arc:gate` |
 | 需要真实用户路径 E2E 验证 | `arc:e2e` |
 | E2E 失败或线上故障排查 | `arc:fix` |
 | 修复后必须重启并多轮回归 | `arc:fix --mode retest-loop` |
 | 刚接手陌生仓库，先看结构 | `arc:cartography` |
-| 需要系统建模图（类图/时序图/部署图等） | `arc:model` |
+| 需要系统建模图（类图/时序图/部署图等） | `arc:uml` |
 | 要维护索引（不想判断 full/update） | `arc:init` |
 
 ## 最简记忆（只记 5 个）
@@ -57,13 +57,13 @@
 - 不知道用什么：`arc:exec`
 - 要改代码交付：`arc:build`
 - 要项目体检打分：`arc:audit`
-- 要发布门禁：`arc:release`
-- 要画 UML：`arc:model`
+- 要发布门禁：`arc:gate`
+- 要画 UML：`arc:uml`
 
 ## 收敛结果
 
 - 入口从 17 个收敛为 13 个主技能，减少重复选择成本。
-- `arc:score` 对外入口收敛到 `arc:release`；内部 `score/` 负责量化评分，`arc:release` 负责门禁判定。
+- `arc:score` 对外入口收敛到 `arc:gate`；内部 `score/` 负责量化评分，`arc:gate` 负责门禁判定。
 - 路由、矩阵、速查与 README 统一采用同一套 Skill ID 口径。
 
 ## 路由文档
@@ -109,11 +109,11 @@ arc exec
 arc clarify
 arc decide
 arc build
-arc model
+arc uml
 
 # 质量链路
-# `arc release` 会编排触发 `score/` 评分模块
-arc release
+# `arc gate` 会编排触发 `score/` 评分模块
+arc gate
 arc audit
 
 # E2E 链路

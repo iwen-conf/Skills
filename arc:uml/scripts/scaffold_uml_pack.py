@@ -3,8 +3,8 @@
 scaffold_uml_pack.py - 初始化 UML 图谱骨架文件
 
 用法：
-    python3 scaffold_uml_pack.py --output-dir .arc/arc:model/demo --types all
-    python3 scaffold_uml_pack.py --output-dir .arc/arc:model/demo --types class,sequence,deployment
+    python3 scaffold_uml_pack.py --output-dir .arc/arc:uml/demo --types all
+    python3 scaffold_uml_pack.py --output-dir .arc/arc:uml/demo --types class,sequence,deployment
 """
 
 from __future__ import annotations

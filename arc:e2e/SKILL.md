@@ -184,7 +184,7 @@ The following constraints must be strictly adhered to when executing tests, any 
    * `arc:build` handoff (range of changes in this round)
 2. Verify product freshness: `expires_at` + `content_hash`.
 3. If the product is available, load it directly without repeating the full scan.
-4. If the product fails, it will be updated according to `refresh_skill` reflow (`arc:init --mode update` / `arc:cartography` / `score` module refresh (triggered by `arc:release` arrangement) / `arc:audit`).
+4. If the product fails, it will be updated according to `refresh_skill` reflow (`arc:init --mode update` / `arc:cartography` / `score` module refresh (triggered by `arc:gate` arrangement) / `arc:audit`).
 
 **Priority 1: Read project CLAUDE.md level index**
 
@@ -217,7 +217,7 @@ During the test execution, if the information in CLAUDE.md is found to be inaccu
 4. **Reflow update suggestions**:
    - CLAUDE index problem → `arc:init --mode update`
    - codemap issues → `arc:cartography` updated
-   - Rating/review product issues → `score` module refresh (triggered by `arc:release` arrangement) / `arc:audit` update
+   - Rating/review product issues → `score` module refresh (triggered by `arc:gate` arrangement) / `arc:audit` update
 
 **Cache Error Report Template** (`<run_dir>/context-errors/cache-error-YYYYMMDD-HHMMSS.md`):
 

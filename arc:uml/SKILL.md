@@ -1,13 +1,13 @@
 ---
-name: "arc:model"
+name: "arc:uml"
 description: "UML 建模：基于代码生成标准 UML 与陈氏 E-R。"
 ---
 
-# arc:model — Project UML diagram generation
+# arc:uml — Project UML diagram generation
 
 ## Overview
 
-`arc:model` is used to generate UML diagrams from real project evidence (code, configurations, interfaces, deployments and business processes).
+`arc:uml` is used to generate UML diagrams from real project evidence (code, configurations, interfaces, deployments and business processes).
 This skill emphasizes "selecting graphics according to actual conditions", rather than mechanically drawing all 14 types of graphics.
 All UML diagrams must conform to UML standard notation (it is recommended to align with UML 2.5.1); if the project requires E-R diagrams, **Chen's notation** must be used.
 
@@ -29,7 +29,7 @@ All UML diagrams must conform to UML standard notation (it is recommended to ali
 ## Announce
 
 Begin by stating clearly:
-"I'm using `arc:model` to make a pattern applicability determination and then output an evidence-based UML diagram."
+"I'm using `arc:uml` to make a pattern applicability determination and then output an evidence-based UML diagram."
 
 ## The Iron Law
 
@@ -88,7 +88,7 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 | `render_format` | string | no | Fixed to `mermaid` (mandatory) |
 | `include_er` | boolean | no | Whether to output the E-R diagram (it must be Chen's drawing method when outputting), automatically determined by default |
 | `depth_level` | string | no | `quick` / `standard` / `deep`, default `standard` |
-| `output_dir` | string | no | Default `<project_path>/.arc/arc:model/` |
+| `output_dir` | string | no | Default `<project_path>/.arc/arc:uml/` |
 
 ## Diagram Catalog (14 categories)
 
@@ -159,7 +159,7 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 ## Outputs
 
 ```text
-<project_path>/.arc/arc:model/<project-name>/
+<project_path>/.arc/arc:uml/<project-name>/
 ├── context/
 │   └── project-snapshot.md
 ├── diagram-plan.md

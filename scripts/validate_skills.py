@@ -68,7 +68,7 @@ ARC_ROUTED_SKILLS = {
     "arc:exec",
     "arc:cartography",
     "arc:decide",
-    "arc:release",
+    "arc:gate",
     "arc:build",
     "arc:init",
     "arc:ip-check",
@@ -77,7 +77,7 @@ ARC_ROUTED_SKILLS = {
     "arc:audit",
     "arc:e2e",
     "arc:fix",
-    "arc:model",
+    "arc:uml",
 }
 
 

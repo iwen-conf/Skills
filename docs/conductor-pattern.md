@@ -155,7 +155,7 @@ refine → deliberate → implement → review → test
 Multiple independent workers execute in parallel:
 
 ```
-          ┌─→ arc:release ─┐
+          ┌─→ arc:gate ─┐
 refine ──┼─→ arc:audit ─┼─→ aggregate
           └─→ arc:e2e ─┘
 ```

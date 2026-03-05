@@ -183,7 +183,7 @@ After this Skill is completed, it is recommended to continue calling `arc:decide
 If the shared product is found to be invalid during the refinement process:
 - CLAUDE index invalidation → trigger `arc:init --mode update` (`arc:init --mode full` if necessary)
 - codemap invalid → trigger `arc:cartography` update
-- score/review data invalidation → trigger `score` module refresh (triggered by `arc:release` arrangement) / `arc:audit` update
+- score/review data invalidation → trigger `score` module refresh (triggered by `arc:gate` arrangement) / `arc:audit` update
 
 ```
 Problem refinement completed. Enhanced prompt has been written:

@@ -1,28 +1,28 @@
 ---
-name: "arc:release"
-description: "发布门禁：执行质量阈值检查并给出 Go/No-Go。"
+name: "arc:gate"
+description: "合并/上线门禁：基于评分阈值与豁免策略给出 Go/No-Go，并输出 CI 可消费结果。"
 ---
 
-# arc:release -- CI quality gate control
+# arc:gate -- merge/release gate decision
 
 ## Overview
 
-arc:release is a unified access control module that consumes the quantitative data produced by the `score/` module to perform configurable quality judgments and completes release readiness checks (rollback, monitoring, duty and announcements) before going online. Supports three modes: warn/strict/strict_dangerous, and provides threshold configuration, exemption list and CI integration capabilities.
+`arc:gate` focuses on quality gate decisions before merge/release. It consumes `score/` outputs, applies threshold and waiver policies, and returns explicit Go/No-Go with CI-ready exit code. It does not execute deployment actions.
 
 Core competencies:
-- **Access Control Mode**: warn (warning only)/strict (blocking)/strict_dangerous (additional interception dangerous level)
-- **Threshold configuration**: total score threshold, serious problem threshold, safety threshold
-- **Waiver List**: Supports time-limited waivers for specific issues
-- **Release readiness**: four types of online inspection items: rollback, monitoring, duty, and announcement
-- **CI integration**: Provide correct exit code, support GitHub Actions / GitLab CI
+- **Gate mode**: `warn` / `strict` / `strict_dangerous`
+- **Policy checks**: overall score, critical/high issues, security signals
+- **Waiver policy**: rule-level temporary exemptions with approver and expiry
+- **Release readiness**: rollback, monitoring, oncall, announcement checks
+- **CI integration**: deterministic exit code for pipelines
 
 ## Quick Contract
 
-- **Trigger**: Automatic access control and Go/No-Go determination are required before merging or going online.
-- **Inputs**: `project_path`, score product path, access control configuration, mode and exemption list.
-- **Outputs**: `gate-result.json`, `summary.md`, explicit exit code available for CI.
-- **Quality Gate**: Must first pass threshold evidence and exemption validity checks of `## Quality Gates`.
-- **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
+- **Trigger**: Merge/release requires explicit Go/No-Go gate judgment.
+- **Inputs**: `project_path`, score artifact path, gate config, mode, waiver list.
+- **Outputs**: `gate-result.json`, `summary.md`, CI exit code.
+- **Quality Gate**: Enforce threshold evidence and waiver validity in `## Quality Gates`.
+- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
 
 ## Routing Matrix
 
@@ -34,7 +34,7 @@ Core competencies:
 ## Announce
 
 Begin by stating clearly:
-"I am using `arc:release`, first load the score and strategy, and then output the access control decision."
+"I am using `arc:gate`, loading score artifacts and policies, then outputting the Go/No-Go decision."
 
 ## The Iron Law
 
@@ -42,34 +42,34 @@ Begin by stating clearly:
 NO GREEN BUILD WITHOUT EXPLICIT GATE DECISION
 ```
 
-Without clear judgment and basis for access control, no passage shall be marked.
+No build/release is green without explicit gate evidence.
 
 ## Workflow
 
-1. Read the shared index and score products, triggering reflow updates if necessary.
-2. Load the access control configuration and perform threshold checks.
-3. Apply exemption rules and verify validity and approval information.
-4. Output `gate-result.json`, summary, and CI exit code.
+1. Read shared index and load score artifacts (refresh when stale).
+2. Load gate config and run threshold checks.
+3. Apply waiver rules and validate approval/expiry.
+4. Output decision artifacts and CI exit code.
 
 ## Quality Gates
 
-- The basis for determination must be traceable to specific thresholds and evidence documentation.
-- Exemptions must have `reason`, `approved_by`, `expires_at`.
-- Missing or expired scoring data must be refreshed before judging.
-- The resulting output must contain both pass/fail and violation details.
+- Decision basis must map to explicit thresholds and evidence.
+- Waivers must include `reason`, `approved_by`, `expires_at`.
+- Missing/expired score artifacts must be refreshed before judging.
+- Output must include pass/fail decision plus violation details.
 
 ## Red Flags
 
-- Only look at the overall score and ignore high-risk safety issues.
-- Expired exemptions are still considered valid.
-- The score product expires but the old result continues to be used.
-- Ungated digests at the CI stage result in non-auditability.
+- Only checking total score while ignoring security-critical signals.
+- Treating expired waivers as valid.
+- Reusing stale score artifacts without refresh.
+- Producing CI summary without explicit gate decision.
 
 ## When to Use
 
-- **首选触发**: Automated pass/fail and Go/No-Go determination is required before merging or going online.
-- **典型场景**: Execution blocking based on score threshold and exemption; unified check of rollback/monitoring/duty/announcement before release window.
-- **边界提示**: For root cause location and systematic improvement, first use `arc:audit`, `arc:release` to focus on blocking judgment and release suggestions.
+- **首选触发**: 合并或上线前需要明确的门禁判定（Go/No-Go）。
+- **典型场景**: 依据评分阈值与豁免策略做阻断；在发布窗口统一校验回滚/监控/值班/公告准备度。
+- **边界提示**: `arc:gate` 只负责门禁判定，不负责部署执行；根因分析与改进路线请先用 `arc:audit`。
 
 ## Dependencies
 
@@ -115,7 +115,7 @@ Before loading configuration and scoring, read `.arc/context-hub/index.json`:
 1. Retrieve score products (`overall-score.json`, `smell-report.json`)
 2. Verify the existence of `expires_at` and file path (if `content_hash` is provided and is sha256, verify hash consistency)
 3. Through verification, the score product path in the index is directly reused.
-4. If missing/expired/hash is inconsistent, first reflow triggers `score/` module refresh (triggered by `arc:release` orchestration), and then executes access control
+4. If missing/expired/hash is inconsistent, first reflow triggers `score/` module refresh (triggered by `arc:gate` orchestration), and then executes access control
 
 ### Step 1.1: Load access control configuration
 
@@ -233,23 +233,23 @@ Provide the correct exit code:
 
 ### Shared index constraints
 
-- `arc:release` must first discover the score product through `.arc/context-hub/index.json`
+- `arc:gate` must first discover the score product through `.arc/context-hub/index.json`
 - If it is found that the score data is expired, it must be reflowed to trigger a refresh of the scoring stage instead of directly using the old data for judgment.
 
 ### Call example
 
 ```bash
 # Basic usage
-arc release --project /path/to/project
+arc gate --project /path/to/project
 
 # strict mode
-arc release --project /path/to/project --mode strict
+arc gate --project /path/to/project --mode strict
 
 # Use custom configuration
-arc release --project /path/to/project --config gate-config.yaml
+arc gate --project /path/to/project --config gate-config.yaml
 
 # CI integration
-arc release --project . --mode strict --exit-code
+arc gate --project . --mode strict --exit-code
 ```
 
 ---
@@ -323,12 +323,12 @@ jobs:
           # Install the runtime adaptation layer you use (example placeholder)
           echo "install your arc adapter here"
           
-      - name: Run arc:release
+      - name: Run arc:gate
         env:
           GATE_MODE: strict
           GATE_FAIL_ON_DANGEROUS: true
         run: |
-          arc release --project . --mode strict --exit-code
+          arc gate --project . --mode strict --exit-code
           
       - name: Upload Reports
         if: always()
@@ -346,7 +346,7 @@ jobs:
 quality_gate:
   stage: test
   script:
-    - arc release --project . --mode strict --exit-code
+    - arc gate --project . --mode strict --exit-code
   artifacts:
     when: always
     paths:
@@ -361,7 +361,7 @@ quality_gate:
 
 | Condition | deal with |
 |------|------|
-| score product does not exist | First generate the score product and then run arc:release |
+| score product does not exist | First generate the score product and then run arc:gate |
 | Configuration file parsing failed | Use default configuration with warning |
 | Exemption list expired | Ignore expired exemptions |
 

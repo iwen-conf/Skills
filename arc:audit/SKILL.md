@@ -85,7 +85,7 @@ No ratings can be given without evidence, and no suggestions can be given withou
 
 - **首选触发**: Evidence-based and traceable review of projects or key PRs is required.
 - **典型场景**: Technical due diligence, milestone review, health assessment before architecture upgrade, high-risk PR review before merger, pre-release testing strategy/performance regression/security baseline assessment.
-- **边界提示**: Use `arc:release` only for access control blocking; use `arc:build` for floor-to-ceiling transformation plan.
+- **边界提示**: Use `arc:gate` only for access control blocking; use `arc:build` for floor-to-ceiling transformation plan.
 
 ## Input Arguments
 
@@ -195,7 +195,7 @@ Before entering Step 1.1, you must first try to reuse the upstream product:
 2. Verify product validity: `expires_at`, `content_hash`, path existence.
 3. If valid, it will be loaded directly into the review context to reduce the scope of repeated scanning.
 4. If it is invalid, a reflow update will be triggered:
-   - score invalid → `score` module refresh (triggered by `arc:release` orchestration)
+   - score invalid → `score` module refresh (triggered by `arc:gate` orchestration)
    - codemap/CLAUDE metadata invalid → `arc:init --mode update` / `arc:cartography`
 5. Write the reused product path into `context/project-snapshot.md` metadata.
 
@@ -474,7 +474,7 @@ At least the following products should exist after execution:
 - `quantitative-dashboard.light.html` (light fixed version)
 - `quantitative-dashboard.dark.html` (dark fixed version)
 
-If the `.arc/score/<project-name>/` quantification input is missing, you must first trigger `arc:release` to refresh the score product, and then retry this step.
+If the `.arc/score/<project-name>/` quantification input is missing, you must first trigger `arc:gate` to refresh the score product, and then retry this step.
 
 ---
 
@@ -557,7 +557,7 @@ If the `.arc/score/<project-name>/` quantification input is missing, you must fi
 - **Business Blind Spot**: Not reporting business flow coverage and breakpoints in dimension 4
 - **Dependency Blind Spot**: Not quantifying outdated/vulnerable/unmaintained dependencies in dimension 7
 - **Rubber Stamp**: Marking PASS without thorough analysis — each finding requires evidence
-- **Score Skipping**: Not preparing score artifacts first (typically via arc:release) — quantitative data required before qualitative review
+- **Score Skipping**: Not preparing score artifacts first (typically via arc:gate) — quantitative data required before qualitative review
 - **Dashboard Skipping**: Not running `arc:audit/scripts/integrate_score.py` in Phase 4 — HTML dashboard artifacts are mandatory
 
 ### Finding Anti-Patterns

@@ -176,7 +176,7 @@ Each call to `schedule_task()` returns `task_ref`, and the conversation can be c
 - `git-master` — Git operations
 - `dev-browser` — Persistent state browser automation
 - `arc:cartography` — Warehouse understanding and hierarchical codemap generation
-- `arc:model` — Generate UML diagrams based on project evidence
+- `arc:uml` — Generate UML diagrams based on project evidence
 - All `arc:*` user skills
 
 ## Skill routing decision tree
@@ -203,7 +203,7 @@ User needs
 │   └── arc:audit
 │
 ├── System modeling/UML diagram output (class diagram, sequence diagram, deployment diagram, etc.)
-│   └── arc:model
+│   └── arc:uml
 │
 ├── Intellectual property feasibility assessment / patent soft copy review report
 │   └── arc:ip-check
@@ -260,7 +260,7 @@ User needs
 | Users mentioned "initialization" "generated document" "CLAUDE.md" | arc:init |
 | Users mentioned "code map", "codemap", "warehouse structure" and "directory responsibilities" | arc:cartography |
 | Users mentioned "review", "review", "diagnosis" and "quality" | arc:audit |
-| Users mentioned "UML", "class diagram", "sequence diagram", "deployment diagram" and "component diagram" | arc:model |
+| Users mentioned "UML", "class diagram", "sequence diagram", "deployment diagram" and "component diagram" | arc:uml |
 | Users mentioned "Intellectual Property Assessment", "Patent Feasibility", "Software Feasibility" and "IP Review" | arc:ip-check |
 | Users mentioned "technical briefing document", "rights requirements", "soft copy instructions" and "application document writing" | arc:ip-draft |
 | Users mentioned "discussion", "deliberate", "plan" and "architectural decision" | arc:decide |
@@ -324,7 +324,7 @@ User needs
 
 1. Read `.arc/context-hub/index.json` to retrieve artifacts that match the current task (`CLAUDE.md`, `codemap.md`, `handoff/*.json`, arc:audit/scoring reports).
 2. Build `context_pack`: Records `path`, `generated_at`, `expires_at`, `content_hash`.
-3. If the product is expired or inconsistent, the reflow update is triggered according to `refresh_skill` in the index (for example, `arc:init --mode update`, `arc:cartography`, `score` module refresh (triggered by `arc:release` orchestration)).
+3. If the product is expired or inconsistent, the reflow update is triggered according to `refresh_skill` in the index (for example, `arc:init --mode update`, `arc:cartography`, `score` module refresh (triggered by `arc:gate` orchestration)).
 4. Inject `context_pack` in subsequent Task scheduling, requiring downstream skills to consume these products first.
 
 #### Step 1.1: Project context search
