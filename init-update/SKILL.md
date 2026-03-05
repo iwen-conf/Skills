@@ -1,6 +1,6 @@
 ---
 name: "arc:init:update"
-description: "增量更新项目 CLAUDE.md 索引体系。基于指纹对比和 git diff 检测变更，仅分析和更新受影响的模块，大幅减少更新成本。"
+description: "当已有 CLAUDE.md 索引基线并仅需按变更模块增量更新时使用。"
 ---
 
 # arc:init:update — 增量更新
@@ -19,6 +19,55 @@ description: "增量更新项目 CLAUDE.md 索引体系。基于指纹对比和 
 - 保留未变更 CLAUDE.md 的手动编辑内容
 - 生成增量报告，清晰展示变更范围
 
+## Quick Contract
+
+- **Trigger**：已有初始化基线，且仅需同步近期变更模块。
+- **Inputs**：项目路径、基线指纹、可选 `force_modules`、`since` 与 `dry_run`。
+- **Outputs**：增量变更报告、受影响 CLAUDE 更新结果、刷新后的指纹状态。
+- **Quality Gate**：写入前必须通过 `## Quality Gates` 的指纹差异与最小修改检查。
+- **Decision Tree**：输入信号路由图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)。
+
+## Routing Matrix
+
+- 统一路由对照见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md)。
+- 阶段化上手视图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view)。
+- 单页速查见 [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md)。
+- 若出现冲突，以本技能 `## When to Use` 的**边界提示**为准。
+
+## Announce
+
+开始时明确说明：  
+“我正在使用 `arc:init:update`，先做变更检测，再只更新受影响索引。”
+
+## The Iron Law
+
+```
+NO INCREMENTAL WRITE WITHOUT FINGERPRINT DIFF
+```
+
+没有指纹差异证据，不得进行增量写入。
+
+## Workflow
+
+1. 读取基线指纹、快照与 generation plan。
+2. 结合 git diff 重算指纹并做变更分类。
+3. 仅更新变更模块及必要祖先索引。
+4. 生成增量报告并刷新基线状态。
+
+## Quality Gates
+
+- 每个更新动作都要对应变更分类结果。
+- 未变更模块必须保持原样，不得误改。
+- 用户手动区块必须按规则保留。
+- 增量报告必须包含基线 ref 与本次差异摘要。
+
+## Red Flags
+
+- 跳过指纹对比，按猜测更新模块。
+- 变更范围扩散到无关目录。
+- 覆盖用户手动编辑区域。
+- 无变更报告却声称更新完成。
+
 ## Prerequisites
 
 **必须满足以下条件才能运行**：
@@ -31,10 +80,9 @@ description: "增量更新项目 CLAUDE.md 索引体系。基于指纹对比和 
 
 ## When to Use
 
-- 已运行过 `arc:init`，需要更新部分模块
-- 新增/删除/修改了部分代码，需要同步 CLAUDE.md
-- 定期维护项目索引，希望减少时间和成本
-- 用户显式要求增量更新
+- **首选触发**：已有 `arc:init` 基线，需要低成本同步受影响模块。
+- **典型场景**：日常代码增删改后更新 CLAUDE 索引。
+- **边界提示**：缺少指纹基线或索引严重过期时改用 `arc:init` / `arc:init:full`。
 
 ## Input Arguments
 
@@ -49,8 +97,9 @@ description: "增量更新项目 CLAUDE.md 索引体系。基于指纹对比和 
 
 ## Dependencies
 
+* **编排契约**: 必须。遵循 `docs/orchestration-contract.md`，通过运行时适配层实现调度。
 * **ace-tool (MCP)**: 必须。语义搜索项目代码结构。
-* **oh-my-opencode Task API**: 必须。调度 oracle/deep/visual-engineering Agent。
+* **统一 Dispatch API**: 必须。调度 oracle/deep/visual-engineering Agent。
 * **Git**: 必须。变更检测依赖 git 命令。
 
 ## Critical Rules
@@ -197,10 +246,10 @@ git diff --name-status --diff-filter=D <baseline_git_ref>..HEAD
 
 ```typescript
 // oracle 分析
-Task(
- subagent_type: "oracle",
- load_skills: ["arc:init:update"],
- run_in_background: true,
+dispatch_job(
+ role: "oracle",
+ capabilities: ["arc:init:update"],
+ execution_mode: "background",
  description: "oracle 架构分析 - 新模块",
  prompt: `分析以下新增模块的架构...
 
@@ -210,19 +259,19 @@ Task(
 )
 
 // deep 分析
-Task(
- category: "deep",
- load_skills: ["arc:init:update"],
- run_in_background: true,
+dispatch_job(
+ lane: "deep",
+ capabilities: ["arc:init:update"],
+ execution_mode: "background",
  description: "deep 工程分析",
  prompt: `...`
 )
 
 // visual-engineering 分析
-Task(
- category: "visual-engineering",
- load_skills: ["arc:init:update", "frontend-ui-ux"],
- run_in_background: true,
+dispatch_job(
+ lane: "visual-engineering",
+ capabilities: ["arc:init:update", "frontend-ui-ux"],
+ execution_mode: "background",
  description: "visual-engineering DX 分析",
  prompt: `...`
 )
@@ -232,18 +281,18 @@ Task(
 
 ```typescript
 // 仅 deep + visual-engineering，跳过 oracle
-Task(category: "deep", ...),
-Task(category: "visual-engineering", ...)
+dispatch_job(lane: "deep", ...),
+dispatch_job(lane: "visual-engineering", ...)
 ```
 
 **MODIFIED_SOURCE 模块分析**（1 Agent）：
 
 ```typescript
 // 仅 deep，shallow depth
-Task(
- category: "deep",
- load_skills: ["arc:init:update"],
- run_in_background: true,
+dispatch_job(
+ lane: "deep",
+ capabilities: ["arc:init:update"],
+ execution_mode: "background",
  description: "deep 浅层分析 - 源码变更",
  prompt: `以下模块仅源码变更，进行浅层分析...
 
@@ -470,7 +519,7 @@ arc:init (调度器)
 ```
 
 **调用链**：
-1. 用户首次运行 `/arc:init` → 自动路由到 `arc:init:full`
-2. 后续运行 `/arc:init` → 自动路由到 `arc:init:update`（如 fingerprints 存在）
-3. 用户显式 `/arc:init:full` → 强制全量
-4. 用户显式 `/arc:init:update` → 强制增量
+1. 用户首次运行 `arc-runtime run arc:init` → 自动路由到 `arc:init:full`
+2. 后续运行 `arc-runtime run arc:init` → 自动路由到 `arc:init:update`（如 fingerprints 存在）
+3. 用户显式 `arc-runtime run arc:init:full` → 强制全量
+4. 用户显式 `arc-runtime run arc:init:update` → 强制增量

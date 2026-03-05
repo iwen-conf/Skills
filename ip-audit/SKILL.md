@@ -1,6 +1,6 @@
 ---
 name: "arc:ip-audit"
-description: "面向软件项目的知识产权可行性审查与风险评估。采用多Agent协作模式(oracle/deep/writing)深度分析项目,输出专利/软件著作权申请可行性报告、优先级矩阵与申请准备度清单。用于申请前评估、融资前尽调、立项前合规审查。"
+description: "当准备申请前需要评估软件软著/专利可行性、风险和优先级时使用。"
 ---
 
 # arc:ip-audit — 项目专利/软著审查报告
@@ -17,6 +17,55 @@ description: "面向软件项目的知识产权可行性审查与风险评估。
 
 本技能不直接产出正式申请文书,审查结论将以结构化交接文件输出,供 `arc:ip-docs` 继续完成文档撰写。
 
+## Quick Contract
+
+- **Trigger**：准备申请前评估、尽调或合规审查，需要判断软著/专利可行性。
+- **Inputs**：项目路径、申请主体信息、软件名与业务目标（可选）。
+- **Outputs**：可行性报告、风险矩阵、优先级建议与 `ip-drafting-input.json`。
+- **Quality Gate**：输出前必须通过 `## Quality Gates` 的证据绑定与双轨评分检查。
+- **Decision Tree**：输入信号路由图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)。
+
+## Routing Matrix
+
+- 统一路由对照见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md)。
+- 阶段化上手视图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view)。
+- 单页速查见 [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md)。
+- 若出现冲突，以本技能 `## When to Use` 的**边界提示**为准。
+
+## Announce
+
+开始时明确说明：  
+“我正在使用 `arc:ip-audit`，先做可行性审查与风险分级，再给申请建议。”
+
+## The Iron Law
+
+```
+NO FILING FEASIBILITY CLAIM WITHOUT CODE EVIDENCE AND RISK MATRIX
+```
+
+没有代码证据与风险矩阵，不得给出“可申请”结论。
+
+## Workflow
+
+1. 汇总项目上下文与历史评审产物，建立审查基线。
+2. 多 Agent 并发完成软著/专利双轨独立评估。
+3. 执行交叉反驳，收敛评分与关键争议点。
+4. 输出可行性报告与 `ip-drafting-input.json` 交接文件。
+
+## Quality Gates
+
+- 软著与专利必须分别评分，不能混合结论。
+- 每项风险必须标注概率、影响与缓解建议。
+- 结论必须引用具体模块/文件证据。
+- 交接文件字段必须完整可被 `arc:ip-docs` 消费。
+
+## Red Flags
+
+- 把审查意见写成法律结论或担保承诺。
+- 未区分软著与专利的评估维度。
+- 高风险项缺失缓解路径。
+- 无交接文件却宣称可进入文书阶段。
+
 ## Mandatory Linkage(不可单打独斗)
 
 必须按以下链路协作:
@@ -29,10 +78,9 @@ description: "面向软件项目的知识产权可行性审查与风险评估。
 
 ## When to Use
 
-- 需要判断项目是否适合申请软著/专利。
-- 需要在融资、投标、上架前做知识产权可行性尽调。
-- 需要评估项目中的创新点是否达到专利门槛。
-- 需要明确申请顺序、风险点和费减可行性。
+- **首选触发**：申请前需要评估软著/专利可行性、风险与优先级。
+- **典型场景**：融资、投标、上架前的知识产权尽调。
+- **边界提示**：正式申请文书起草请转 `arc:ip-docs`。
 
 ## Input Arguments
 
@@ -47,9 +95,10 @@ description: "面向软件项目的知识产权可行性审查与风险评估。
 
 ## Dependencies
 
+* **编排契约**: 必须。遵循 `docs/orchestration-contract.md`，通过运行时适配层实现调度。
 - **ace-tool MCP**(必须):搜索项目代码与实现证据。
 - **Exa MCP**(推荐):补充现有技术/政策依据。
-- **Task API**(必须):调度 `oracle` / `deep` / `writing` 三Agent协作。
+- **Dispatch API**(必须):调度 `oracle` / `deep` / `writing` 三Agent协作。
 - **arc:init**(强推荐):读取 `CLAUDE.md` 层级索引。
 - **arc:review**(可选):复用现有评审报告。
 
@@ -81,9 +130,9 @@ description: "面向软件项目的知识产权可行性审查与风险评估。
 
 | Agent | 角色定位 | 评估维度 | 输出文件 |
 |-------|---------|---------|---------|
-| **oracle** (subagent) | 架构与创新性专家 | 技术方案独创性、架构设计新颖性、现有技术差异度、专利申请可行性 | `agents/oracle/innovation-analysis.md` |
-| **deep** (category) | 工程实现专家 | 代码完整性、实现充分性、技术效果可量化性、软著申请可行性 | `agents/deep/implementation-analysis.md` |
-| **writing** (category) | 文档与合规分析专家 | 文档完备性、材料准备度、申请流程风险、知识产权合规性 | `agents/writing/compliance-analysis.md` |
+| **oracle** (role) | 架构与创新性专家 | 技术方案独创性、架构设计新颖性、现有技术差异度、专利申请可行性 | `agents/oracle/innovation-analysis.md` |
+| **deep** (lane) | 工程实现专家 | 代码完整性、实现充分性、技术效果可量化性、软著申请可行性 | `agents/deep/implementation-analysis.md` |
+| **writing** (lane) | 文档与合规分析专家 | 文档完备性、材料准备度、申请流程风险、知识产权合规性 | `agents/writing/compliance-analysis.md` |
 
 ### 协作流程
 
@@ -156,10 +205,10 @@ python ip-audit/scripts/scaffold_audit_case.py \
 
 ```typescript
 // Oracle: 架构与创新性评估
-Task(
-  subagent_type="oracle",
-  load_skills=["arc:ip-audit"],
-  run_in_background=true,
+dispatch_job(
+  role="oracle",
+  capabilities=["arc:ip-audit"],
+  execution_mode="background",
   description="Oracle评估技术创新性与专利可行性",
   prompt=`
 [TASK]: 评估项目的技术创新性与专利申请可行性
@@ -196,10 +245,10 @@ Task(
 )
 
 // Deep: 工程实现评估
-Task(
-  category="deep",
-  load_skills=["arc:ip-audit"],
-  run_in_background=true,
+dispatch_job(
+  lane="deep",
+  capabilities=["arc:ip-audit"],
+  execution_mode="background",
   description="Deep评估代码完整性与软著可行性",
   prompt=`
 [TASK]: 评估项目的代码完整性与软著申请可行性
@@ -237,10 +286,10 @@ Task(
 )
 
 // Writing: 文档与合规分析
-Task(
-  category="writing",
-  load_skills=["arc:ip-audit"],
-  run_in_background=true,
+dispatch_job(
+  lane="writing",
+  capabilities=["arc:ip-audit"],
+  execution_mode="background",
   description="Writing评估文档完备性与申请准备度",
   prompt=`
 [TASK]: 评估项目的文档完备性与知识产权申请准备度
@@ -286,10 +335,10 @@ Task(
 
 ```typescript
 // Oracle反驳Deep和Writing
-Task(
-  session_id="<oracle_session_id>", // 复用Phase 2的session
-  load_skills=["arc:ip-audit"],
-  run_in_background=false,
+dispatch_job(
+  continuation_id="<oracle_continuation_id>", // 复用Phase 2的session
+  capabilities=["arc:ip-audit"],
+  execution_mode="foreground",
   description="Oracle交叉反驳Deep和Writing",
   prompt=`
 [TASK]: 反驳Deep和Writing的评估,指出过度乐观/悲观之处

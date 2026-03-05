@@ -1,6 +1,6 @@
 ---
 name: "arc:loop"
-description: 使用 tmux 启动/重启本地或测试环境服务（多服务多 pane、可 pipe-pane 落日志），并循环运行 arc:simulate 做回归验证（失败→修复→重启→再测），直到 PASS 或达到迭代上限；每轮输出 run_id、git 版本、tmux 会话信息与报告/日志路径。
+description: "当修复需要重启服务并进行多轮失败-修复-回归闭环验证时使用。"
 ---
 
 # tmux 启动 + arc:simulate 回归闭环（工业化）
@@ -8,6 +8,61 @@ description: 使用 tmux 启动/重启本地或测试环境服务（多服务多
 ## Overview
 
 用于“修复后必须重启服务才能生效”的项目：把服务启动/重启、日志取证、回归测试与失败再修复串成可重复闭环，并且每轮都有可交付证据。
+
+## Quick Contract
+
+- **Trigger**：修复后需要重启服务并进行多轮回归闭环验证。
+- **Inputs**：tmux 服务配置、`arc:simulate` 参数、`max_iterations`。
+- **Outputs**：每轮 `run_id`、服务日志路径、测试结果与失败分流信息。
+- **Quality Gate**：收敛前必须通过 `## Quality Gates` 的证据链与迭代控制检查。
+- **Decision Tree**：输入信号路由图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)。
+
+## Routing Matrix
+
+- 统一路由对照见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md)。
+- 阶段化上手视图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view)。
+- 单页速查见 [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md)。
+- 若出现冲突，以本技能 `## When to Use` 的**边界提示**为准。
+
+## Announce
+
+开始时明确说明：  
+“我正在使用 `arc:loop`，先拉起服务并建立回归闭环，再逐轮验证。”
+
+## The Iron Law
+
+```
+NO RETEST LOOP WITHOUT SERVICE RESTART AND TRACEABLE EVIDENCE
+```
+
+没有重启确认与证据链，不得宣称回归结果有效。
+
+## Workflow
+
+1. 准备 `tmux` 启动配置并记录基线状态。
+2. 启动/重启服务并落盘日志。
+3. 执行 `arc:simulate` 产出本轮测试工件。
+4. FAIL 则进入 `arc:triage` 修复，PASS 则收敛交付。
+
+## Quality Gates
+
+- 每轮必须输出 `run_id`、`run_dir`、日志路径与 git 状态。
+- 服务日志与测试报告必须可按同一轮次关联。
+- FAIL 必须附根因与修复证据，禁止“感觉修好”。
+- 达到迭代上限必须停止并输出下一步建议。
+
+## Red Flags
+
+- 修复后不重启就直接复测。
+- 报告通过但找不到对应日志与 run 证据。
+- 无限循环回归无 `max_iterations` 上限。
+- 通过绕过鉴权/权限逻辑来“制造 PASS”。
+
+## When to Use
+
+- **首选触发**：修复需要重启服务，并要执行多轮 fail→fix→retest 闭环。
+- **典型场景**：需要统一沉淀 run_id、日志、报告三位一体证据链。
+- **边界提示**：仅做单次失败根因定位可直接用 `arc:triage`。
 
 ## Context Budget（避免 Request too large）
 

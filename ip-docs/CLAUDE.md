@@ -50,33 +50,33 @@
 
 ```typescript
 // Phase 2: 并发启动三Agent起草
-Task(
-  subagent_type="oracle",
-  load_skills=["arc:ip-docs"],
-  run_in_background=true,
+dispatch_job(
+  role="oracle",
+  capabilities=["arc:ip-docs"],
+  execution_mode="background",
   description="Oracle起草技术方案描述",
   prompt="..."
 )
-Task(
-  category="deep",
-  load_skills=["arc:ip-docs"],
-  run_in_background=true,
+dispatch_job(
+  lane="deep",
+  capabilities=["arc:ip-docs"],
+  execution_mode="background",
   description="Deep起草实现细节",
   prompt="..."
 )
-Task(
-  category="writing",
-  load_skills=["arc:ip-docs"],
-  run_in_background=true,
+dispatch_job(
+  lane="writing",
+  capabilities=["arc:ip-docs"],
+  execution_mode="background",
   description="Writing起草用户文档",
   prompt="..."
 )
 
-// Phase 3: 交叉审阅(复用session_id)
-Task(
-  session_id="<oracle_session_id>",
-  load_skills=["arc:ip-docs"],
-  run_in_background=false,
+// Phase 3: 交叉审阅(复用continuation_id)
+dispatch_job(
+  continuation_id="<oracle_continuation_id>",
+  capabilities=["arc:ip-docs"],
+  execution_mode="foreground",
   description="Oracle审阅Deep和Momus草稿",
   prompt="..."
 )

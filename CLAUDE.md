@@ -13,27 +13,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Repo Is
 
-A collection of Claude Code Skills (custom slash-command plugins), primarily under the **`arc:`** namespace, plus a standalone `arc:cartography` skill for repository codemap generation. Each top-level directory is a self-contained Skill defined by a `SKILL.md` frontmatter file. Arc skills are invoked via `/arc:<name>`, while arc:cartography is invoked via `/arc:cartography`.
+A collection of Claude Code Skills (custom slash-command plugins), primarily under the **`arc:`** namespace, plus a standalone `arc:cartography` skill for repository codemap generation. Each top-level directory is a self-contained Skill defined by a `SKILL.md` frontmatter file. Arc skills are invoked via `arc-runtime run arc:<name>`, while arc:cartography is invoked via `arc-runtime run arc:cartography`.
 
 ## Skill Inventory
 
 | Directory | Skill Name | Invoke | Purpose |
 |-----------|-----------|--------|---------|
-| `agent/` | arc:agent | `/arc:agent` | 智能调度 agent，分析用户需求后选择合适的 arc: skill，通过 oh-my-opencode Agent 系统调度执行任务 |
-| `cartography/` | arc:cartography | `/arc:cartography` | 仓库理解与分层代码地图（codemap）生成，输出目录级与根级映射文档 |
-| `simulate/` | arc:simulate | `/arc:simulate` | 通过 `agent-browser` 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
-| `triage/` | arc:triage | `/arc:triage` | 分析 arc:simulate 的失败报告，定位根因、修复缺陷、执行回归验证 |
-| `loop/` | arc:loop | `/arc:loop` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
-| `refine/` | arc:refine | `/arc:refine` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
-| `deliberate/` | arc:deliberate | `/arc:deliberate` | 多 Agent 多视角审议，使用 OpenSpec 生成结构化计划 |
-| `implement/` | arc:implement | `/arc:implement` | 将方案落地为工程实现，输出实现计划、执行日志与交接摘要 |
-| `review/` | arc:review | `/arc:review` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图 |
-KZ|| `init/` | arc:init | `/arc:init` | 智能调度器，自动判断全量(full)或增量(update)模式 |
-QB|| `init-full/` | arc:init:full | `/arc:init:full` | 全量生成项目层级式 CLAUDE.md 索引体系，深度扫描+多Agent分析 |
-QB|| `init-update/` | arc:init:update | `/arc:init:update` | 增量更新 CLAUDE.md，基于指纹检测变更，仅更新受影响模块 |
-| `ip-docs/` | arc:ip-docs | `/arc:ip-docs` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
-| `score/` | arc:score | `/arc:score` | 量化评分与 Code Smell 检测，为评审提供量化数据支撑 |
-| `gate/` | arc:gate | `/arc:gate` | CI 质量门禁，基于评分数据执行可配置的阻断判定 |
+| `agent/` | arc:agent | `arc-runtime run arc:agent` | 智能调度 agent，分析用户需求后选择合适的 arc: skill，通过 运行时无关编排层 Agent 系统调度执行任务 |
+| `cartography/` | arc:cartography | `arc-runtime run arc:cartography` | 仓库理解与分层代码地图（codemap）生成，输出目录级与根级映射文档 |
+| `simulate/` | arc:simulate | `arc-runtime run arc:simulate` | 通过 `agent-browser` 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
+| `triage/` | arc:triage | `arc-runtime run arc:triage` | 分析 arc:simulate 的失败报告，定位根因、修复缺陷、执行回归验证 |
+| `loop/` | arc:loop | `arc-runtime run arc:loop` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
+| `refine/` | arc:refine | `arc-runtime run arc:refine` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
+| `deliberate/` | arc:deliberate | `arc-runtime run arc:deliberate` | 多 Agent 多视角审议，使用 OpenSpec 生成结构化计划 |
+| `implement/` | arc:implement | `arc-runtime run arc:implement` | 将方案落地为工程实现，输出实现计划、执行日志与交接摘要 |
+| `review/` | arc:review | `arc-runtime run arc:review` | 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图 |
+KZ|| `init/` | arc:init | `arc-runtime run arc:init` | 智能调度器，自动判断全量(full)或增量(update)模式 |
+QB|| `init-full/` | arc:init:full | `arc-runtime run arc:init:full` | 全量生成项目层级式 CLAUDE.md 索引体系，深度扫描+多Agent分析 |
+QB|| `init-update/` | arc:init:update | `arc-runtime run arc:init:update` | 增量更新 CLAUDE.md，基于指纹检测变更，仅更新受影响模块 |
+| `ip-docs/` | arc:ip-docs | `arc-runtime run arc:ip-docs` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
+| `score/` | arc:score | `arc-runtime run arc:score` | 量化评分与 Code Smell 检测，为评审提供量化数据支撑 |
+| `gate/` | arc:gate | `arc-runtime run arc:gate` | CI 质量门禁，基于评分数据执行可配置的阻断判定 |
 
 ## 模块文档索引
 
@@ -74,15 +74,15 @@ arc:agent ────┬─▶ arc:init         (智能调度 → full/update)
               ├─▶ arc:simulate     (E2E 测试)
               │     └─▶ arc:triage
               │           └─▶ arc:loop
-              └─▶ Task API dispatch (category/subagent routing)
+              └─▶ Dispatch API dispatch (lane/role routing)
 
 arc:init  (独立运行；输出的 CLAUDE.md 被 arc:refine 消费)
-arc:cartography  (独立运行；输出 codemap.md 可被 arc:refine/arc:implement/arc:review 作为上下文参考)
+arc:cartography  (独立运行；输出 codemap.md 可被 arc:refinearc-runtime run arc:implementarc-runtime run arc:review 作为上下文参考)
 arc:score  (消费 arc:init 产物；输出量化数据给 arc:review 和 arc:gate)
 arc:implement  (消费 deliberation/refine 结果；输出实现交接供 review/simulate 使用)
 arc:review  (消费 arc:score 量化数据；输出评审报告)
 arc:gate  (消费 arc:score 数据；执行 CI 门禁判定)
-arc:ip-audit  (优先读取 arc:init/arc:review 产物；输出交接 JSON 给 arc:ip-docs)
+arc:ip-audit  (优先读取 arc:initarc-runtime run arc:review 产物；输出交接 JSON 给 arc:ip-docs)
 ```
 
 ## Architecture
@@ -174,11 +174,11 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 - **`run_id` format**: `YYYY-MM-DD_HH-mm-ss_<short>`, optionally suffixed with `_iterNN` in retest loops.
 - **Screenshot naming**: `s<4-digit-step>_<slug>.png` (e.g., `s0007_after-submit.png`).
 - **Agent 调用约定**：
-  - **Task API**: `Task(category="<domain>", load_skills=[...], description="...", prompt="...", run_in_background=true/false)`
-  - **Subagent API**: `Task(subagent_type="<agent>", load_skills=[...], description="...", prompt="...", run_in_background=true/false)`
-  - **可用 Category**: `visual-engineering` | `ultrabrain` | `deep` | `artistry` | `quick` | `unspecified-low` | `unspecified-high` | `writing`
-  - **可用 Subagent**: `explore`(代码搜索) | `librarian`(文档搜索) | `oracle`(架构咨询) | `prometheus`(宏观规划) | `metis`(策略审计) | `momus`(代码审查) | `hephaestus`(核心编程) | `atlas`(大规模重构) | `multimodal-looker`(视觉UI)
-  - **Session 延续**: 每次 Task() 返回 session_id，用 `session_id="<id>"` 延续多轮对话
+  - **Dispatch API**: `dispatch_job(lane="<domain>", capabilities=[...], description="...", prompt="...", execution_mode="<background|foreground>")`
+  - **Role API**: `dispatch_job(role="<agent>", capabilities=[...], description="...", prompt="...", execution_mode="<background|foreground>")`
+  - **可用 Lane**: `visual-engineering` | `ultrabrain` | `deep` | `artistry` | `quick` | `unspecified-low` | `unspecified-high` | `writing`
+  - **可用 Role**: `explore`(代码搜索) | `librarian`(文档搜索) | `oracle`(架构咨询) | `prometheus`(宏观规划) | `metis`(策略审计) | `momus`(代码审查) | `hephaestus`(核心编程) | `atlas`(大规模重构) | `multimodal-looker`(视觉UI)
+  - **Session 延续**: 每次 dispatch_job() 返回 continuation_id，用 `continuation_id="<id>"` 延续多轮对话
 - **Working directory for arc:agent**: `.arc/agent/` (调度记录在此目录)。
 - **Working directory for arc:deliberate**: `.arc/deliberate/<task-name>/` (inside the target project).
 - **Working directory for arc:review**: `.arc/review/<project-name>/` (inside the target project). 严禁修改被评审项目的源代码，只在此目录下产出评审文件。
@@ -213,7 +213,7 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
    - 触发：缓存和索引均不可用
    - 扫描：ace-tool 语义搜索代码结构
    - 生成：临时快照到 `.arc/<skill>/context/`
-   - 建议：提示用户运行 `/arc:init` 生成持久索引
+   - 建议：提示用户运行 `arc-runtime run arc:init` 生成持久索引
 
 4. **优先级 4: 外部参考搜索 (Exa MCP)**
    - 触发：涉及不熟悉的库/框架
@@ -257,23 +257,23 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 
 ### 核心 Agent 矩阵
 
-> **Primary vs Subagent 模式**：oh-my-opencode 的 Agent 分为 **primary**（主控模式，响应用户 UI 模型选择）和 **subagent**（子代理模式，使用预定义模型）。Sisyphus 即 Claude Code 会话的主进程本身；Hephaestus 和 Atlas 也是 primary 模式，通过 category 路由调度而非 subagent_type。
+> **Primary vs Subagent 模式**：运行时无关编排层 的 Agent 分为 **primary**（主控模式，响应用户 UI 模型选择）和 **subagent**（子代理模式，使用预定义模型）。Sisyphus 即 Claude Code 会话的主进程本身；Hephaestus 和 Atlas 也是 primary 模式，通过 category 路由调度而非 role。
 
 | Agent 代号 | 角色定位 | 调用方式 | 适用场景 | 底层模型 | 关键技能 |
 |-----------|---------|---------|---------|---------|---------|
 | **Sisyphus** | 主控调度员/项目经理 | 主进程（不通过 Task 调用） | 所有会话的默认入口，负责需求拆解、任务规划与路由 | anthropic/claude-opus-4-6 | ace-tool 项目检索、Exa 外网搜索 |
-| **Hephaestus** | 核心程序员/构造者 | primary（`category="ultrabrain"`） | 端到端的功能硬核实现、智能合约安全审计、底层算法库彻底重写 | openai/gpt-5.3-codex (xhigh) | 深层 AST 操作、文件读写、编译器错误诊断 |
-| **Prometheus** | 宏观规划师/破冰者 | `subagent_type="prometheus"` | 复杂需求拆解、需求澄清、依赖关系图谱生成、并行执行策略蓝图绘制 | anthropic/claude-opus-4-6 (max) | 交互式需求澄清、甘特图与依赖树构建 |
-| **Metis** | 策略专家/算法优化师 | `subagent_type="metis"` | 执行前的策略审计，寻找 Prometheus 计划中的算法漏洞和逻辑盲区 | MiniMax/MiniMax-M2.5 | 计划突变、算法复杂度分析 |
-| **Momus** | 计划审查专家 | `subagent_type="momus"` | 审查 Prometheus 生成的执行计划，验证文件引用、任务完整性，返回 OKAY 或 NEEDS_REVISION | openai/gpt-5.2 | 计划验证、任务完整性检查 |
-| **Oracle** | 架构师/决策顾问 | `subagent_type="oracle"` | 复杂系统架构推演、并发竞争条件根因分析、多系统交互权衡策略制定 | openai/gpt-5.1-codex-max (high) | 全代码库只读扫描、诊断日志深度解析 |
-| **Atlas** | 基础重构者/重体力劳动者 | primary（`category="writing"` 或大规模任务） | 全局级依赖替换、跨微服务批量重构、超大规模代码库格式化整改与目录迁移 | Kimi/kimi-2.5 | 巨型主循环管理、批量文件操作 |
-| **Librarian** | 知识管理与检索 | `subagent_type="librarian"` | 查阅外部长篇官方文档、研读最新 API 迁移手册、检索开源社区最佳实践 | GLM/glm-5 | Exa 全网搜索、Context7 文档摄取、GitHub 仓库爬取 |
-| **Explore** | 代码库侦察兵 | `subagent_type="explore"` | 极速踩点遍历深层文件树、执行基于上下文的模糊 grep 搜索、快速映射变量定义与系统依赖拓扑图 | anthropic/claude-haiku-4-5 | ast_grep_search、lsp_workspace_symbols |
-| **Multimodal-looker** | 视觉前端工程师 | `subagent_type="multimodal-looker"` | 解析 PDF 设计图、将图片直接转化为 React/Vue 响应式组件、分析浏览器截图并定位 CSS 布局漂移 | Google/gemini-3-flash-preview | 图像张量解析、视觉边界框映射、UI 样式表动态生成 |
-| **Sisyphus Junior** | 轻量级任务执行 | `subagent_type="sisyphus-junior"` | 简单的单文件修改、格式化、轻量级 CRUD 操作 | anthropic/claude-haiku-4-5 | 快速文件编辑、简单重构 |
+| **Hephaestus** | 核心程序员/构造者 | primary（`lane="ultrabrain"`） | 端到端的功能硬核实现、智能合约安全审计、底层算法库彻底重写 | openai/gpt-5.3-codex (xhigh) | 深层 AST 操作、文件读写、编译器错误诊断 |
+| **Prometheus** | 宏观规划师/破冰者 | `role="prometheus"` | 复杂需求拆解、需求澄清、依赖关系图谱生成、并行执行策略蓝图绘制 | anthropic/claude-opus-4-6 (max) | 交互式需求澄清、甘特图与依赖树构建 |
+| **Metis** | 策略专家/算法优化师 | `role="metis"` | 执行前的策略审计，寻找 Prometheus 计划中的算法漏洞和逻辑盲区 | MiniMax/MiniMax-M2.5 | 计划突变、算法复杂度分析 |
+| **Momus** | 计划审查专家 | `role="momus"` | 审查 Prometheus 生成的执行计划，验证文件引用、任务完整性，返回 OKAY 或 NEEDS_REVISION | openai/gpt-5.2 | 计划验证、任务完整性检查 |
+| **Oracle** | 架构师/决策顾问 | `role="oracle"` | 复杂系统架构推演、并发竞争条件根因分析、多系统交互权衡策略制定 | openai/gpt-5.1-codex-max (high) | 全代码库只读扫描、诊断日志深度解析 |
+| **Atlas** | 基础重构者/重体力劳动者 | primary（`lane="writing"` 或大规模任务） | 全局级依赖替换、跨微服务批量重构、超大规模代码库格式化整改与目录迁移 | Kimi/kimi-2.5 | 巨型主循环管理、批量文件操作 |
+| **Librarian** | 知识管理与检索 | `role="librarian"` | 查阅外部长篇官方文档、研读最新 API 迁移手册、检索开源社区最佳实践 | GLM/glm-5 | Exa 全网搜索、Context7 文档摄取、GitHub 仓库爬取 |
+| **Explore** | 代码库侦察兵 | `role="explore"` | 极速踩点遍历深层文件树、执行基于上下文的模糊 grep 搜索、快速映射变量定义与系统依赖拓扑图 | anthropic/claude-haiku-4-5 | ast_grep_search、lsp_workspace_symbols |
+| **Multimodal-looker** | 视觉前端工程师 | `role="multimodal-looker"` | 解析 PDF 设计图、将图片直接转化为 React/Vue 响应式组件、分析浏览器截图并定位 CSS 布局漂移 | Google/gemini-3-flash-preview | 图像张量解析、视觉边界框映射、UI 样式表动态生成 |
+| **Sisyphus Junior** | 轻量级任务执行 | `role="sisyphus-junior"` | 简单的单文件修改、格式化、轻量级 CRUD 操作 | anthropic/claude-haiku-4-5 | 快速文件编辑、简单重构 |
 
-> **注意**：`category` 路由（如 `deep`、`visual-engineering`、`quick`）是按领域自动选择最优模型，不绑定特定 Agent 代号。`subagent_type` 路由则指定具体的 Agent 角色。两者可在 `Task()` 中二选一使用。
+> **注意**：`category` 路由（如 `deep`、`visual-engineering`、`quick`）是按领域自动选择最优模型，不绑定特定 Agent 代号。`role` 路由则指定具体的 Agent 角色。两者可在 `dispatch_job()` 中二选一使用。
 
 ### 关键使用边界（CRITICAL）
 
@@ -281,23 +281,23 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 
 | 错误场景 | 错误调用 | 问题 | 正确调用 |
 |---------|---------|------|---------|
-| 计划预分析 | `Task(subagent_type="momus", prompt="分析需求歧义...")` | Momus 是计划审查专家，不做预分析 | `Task(subagent_type="metis", prompt="分析需求歧义...")` |
-| 需求澄清 | `Task(subagent_type="metis", prompt="澄清用户需求...")` | Metis 是策略审计员，不负责需求澄清 | `Task(subagent_type="prometheus", prompt="澄清用户需求...")` |
-| 代码审查 | `Task(subagent_type="prometheus", prompt="审查这段代码...")` | Prometheus 是规划师，不审查代码 | `Task(category="deep", prompt="审查这段代码...")` 或使用 Oracle 只读分析 |
-| 架构决策 | `Task(subagent_type="momus", prompt="评估架构方案...")` | Momus 是计划审查专家，不做架构决策 | `Task(subagent_type="oracle", prompt="评估架构方案...")` |
+| 计划预分析 | `dispatch_job(role="momus", prompt="分析需求歧义...")` | Momus 是计划审查专家，不做预分析 | `dispatch_job(role="metis", prompt="分析需求歧义...")` |
+| 需求澄清 | `dispatch_job(role="metis", prompt="澄清用户需求...")` | Metis 是策略审计员，不负责需求澄清 | `dispatch_job(role="prometheus", prompt="澄清用户需求...")` |
+| 代码审查 | `dispatch_job(role="prometheus", prompt="审查这段代码...")` | Prometheus 是规划师，不审查代码 | `dispatch_job(lane="deep", prompt="审查这段代码...")` 或使用 Oracle 只读分析 |
+| 架构决策 | `dispatch_job(role="momus", prompt="评估架构方案...")` | Momus 是计划审查专家，不做架构决策 | `dispatch_job(role="oracle", prompt="评估架构方案...")` |
 
 **✅ 正确使用模式（Best Practices）**
 
 | 场景 | 应该用哪个 Agent | 调用方式 | 说明 |
 |------|----------------|---------|------|
-| 复杂需求拆解 | Prometheus | `Task(subagent_type="prometheus", load_skills=["arc:deliberate"], prompt="分析需求并生成执行计划...")` | Prometheus 会"采访"开发者以消除需求歧义 |
-| 计划质量审计 | Metis | `Task(subagent_type="metis", load_skills=["arc:deliberate"], prompt="审计这个执行计划，寻找算法漏洞...")` | Metis 在执行前进行策略审计 |
-| 计划审查 | Momus | `Task(subagent_type="momus", prompt="审查这个执行计划的完整性和可行性...")` | Momus 审查 Prometheus 生成的计划，返回 OKAY/NEEDS_REVISION |
-| 架构推演 | Oracle | `Task(subagent_type="oracle", prompt="分析这个并发竞争条件的根因...")` | Oracle 只读咨询，不亲自改代码 |
-| 代码库侦察 | Explore | `Task(subagent_type="explore", run_in_background=true, prompt="找到所有认证相关的中间件...")` | Explore 极速前哨，总是后台运行 |
-| 外部文档检索 | Librarian | `Task(subagent_type="librarian", run_in_background=true, prompt="查找 React 18 的最新 API 文档...")` | Librarian 打破知识截止日期限制 |
-| 知识产权审查 | Oracle/Deep/Writing | `Task(subagent_type="oracle", load_skills=["arc:ip-audit"], run_in_background=true, ...)` + `Task(category="deep", load_skills=["arc:ip-audit"], run_in_background=true, ...)` + `Task(category="writing", load_skills=["arc:ip-audit"], run_in_background=true, ...)` | 三Agent并发评估后交叉反驳 |
-| 知识产权文档写作 | Oracle/Deep/Writing | `Task(subagent_type="oracle", load_skills=["arc:ip-docs"], run_in_background=true, ...)` + `Task(category="deep", load_skills=["arc:ip-docs"], run_in_background=true, ...)` + `Task(category="writing", load_skills=["arc:ip-docs"], run_in_background=true, ...)` | 三Agent并发起草后交叉审阅 |
+| 复杂需求拆解 | Prometheus | `dispatch_job(role="prometheus", capabilities=["arc:deliberate"], prompt="分析需求并生成执行计划...")` | Prometheus 会"采访"开发者以消除需求歧义 |
+| 计划质量审计 | Metis | `dispatch_job(role="metis", capabilities=["arc:deliberate"], prompt="审计这个执行计划，寻找算法漏洞...")` | Metis 在执行前进行策略审计 |
+| 计划审查 | Momus | `dispatch_job(role="momus", prompt="审查这个执行计划的完整性和可行性...")` | Momus 审查 Prometheus 生成的计划，返回 OKAY/NEEDS_REVISION |
+| 架构推演 | Oracle | `dispatch_job(role="oracle", prompt="分析这个并发竞争条件的根因...")` | Oracle 只读咨询，不亲自改代码 |
+| 代码库侦察 | Explore | `dispatch_job(role="explore", execution_mode="background", prompt="找到所有认证相关的中间件...")` | Explore 极速前哨，总是后台运行 |
+| 外部文档检索 | Librarian | `dispatch_job(role="librarian", execution_mode="background", prompt="查找 React 18 的最新 API 文档...")` | Librarian 打破知识截止日期限制 |
+| 知识产权审查 | Oracle/Deep/Writing | `dispatch_job(role="oracle", capabilities=["arc:ip-audit"], execution_mode="background", ...)` + `dispatch_job(lane="deep", capabilities=["arc:ip-audit"], execution_mode="background", ...)` + `dispatch_job(lane="writing", capabilities=["arc:ip-audit"], execution_mode="background", ...)` | 三Agent并发评估后交叉反驳 |
+| 知识产权文档写作 | Oracle/Deep/Writing | `dispatch_job(role="oracle", capabilities=["arc:ip-docs"], execution_mode="background", ...)` + `dispatch_job(lane="deep", capabilities=["arc:ip-docs"], execution_mode="background", ...)` + `dispatch_job(lane="writing", capabilities=["arc:ip-docs"], execution_mode="background", ...)` | 三Agent并发起草后交叉审阅 |
 
 ### 典型工作流拓扑
 
@@ -306,7 +306,7 @@ All scripts are Python 3 and accept `--help`. No virtual environment is required
 Sisyphus (主控)
   ├─▶ Librarian (后台) - 收集外部 API 文档
   ├─▶ Explore (后台) - 扫描本地代码库
-  └─▶ Task(category="visual-engineering") - 执行前端重构
+  └─▶ dispatch_job(lane="visual-engineering") - 执行前端重构
       └─▶ LSP 诊断验证
 ```
 
@@ -331,14 +331,14 @@ Sisyphus (主控)
       ├─▶ Deep (后台) - 代码完整性/实现细节
       └─▶ Writing (后台) - 文档合规性/用户文档
           └─▶ 收集三Agent结果
-              └─▶ 交叉反驳/审阅 (复用session_id)
+              └─▶ 交叉反驳/审阅 (复用continuation_id)
                   └─▶ 生成综合报告/定稿文档
 ```
 
 **3. Oracle 死锁破局机制**（连续失败 2 次后触发）
 ```
 Sisyphus (主控)
-  └─▶ Task(category="quick") - 尝试修复 Bug
+  └─▶ dispatch_job(lane="quick") - 尝试修复 Bug
       └─▶ LSP 诊断失败 (第 1 次)
           └─▶ 重试修复
               └─▶ LSP 诊断失败 (第 2 次)
@@ -354,7 +354,7 @@ Sisyphus (主控)
 2. **Metis = 预规划分析**，不是需求澄清
 3. **Momus = 计划审查**，不是代码审查（审查 Prometheus 的计划）
 4. **Oracle = 架构咨询**，只读不写
-5. **Explore/Librarian = 后台侦察**，总是 `run_in_background=true`
-6. **Hephaestus/Atlas = primary 模式**，通过 category 路由，不通过 subagent_type
+5. **Explore/Librarian = 后台侦察**，总是 `execution_mode="background"`
+6. **Hephaestus/Atlas = primary 模式**，通过 category 路由，不通过 role
 
 **参考文档**：[多智能体编程框架Agent解析.md](./多智能体编程框架Agent解析.md)

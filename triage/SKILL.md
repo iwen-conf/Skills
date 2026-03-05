@@ -1,6 +1,6 @@
 ---
 name: arc:triage
-description: 读取 arc:simulate 的失败报告并定位/排查/修复缺陷（E2E/UI 自动化测试失败、回归失败、复现不稳定等），可用 triage_run.py 快速汇总 run_dir；强制输出大量 DEBUG 日志，禁止通过改代码跳过/短路权限(鉴权/授权)验证来让业务流”通过”，并在修复后给出可交付的 Fix Packet 与验证证据。
+description: "当 arc:simulate 出现失败，需要定位根因、修复并提供失败到通过证据链时使用。"
 ---
 
 # UI/UX 缺陷排查与修复（基于 arc:simulate，工业化）
@@ -8,6 +8,61 @@ description: 读取 arc:simulate 的失败报告并定位/排查/修复缺陷（
 ## Overview
 
 将 arc:simulate 产出的失败工件（reports/run_id 下的 report、events、screenshots 等）转化为：最小复现 → 根因定位 → 代码修复 → 回归通过证据。
+
+## Quick Contract
+
+- **Trigger**：`arc:simulate` 出现 FAIL，或回归存在不稳定/复现困难。
+- **Inputs**：失败 `run_dir`、失败步骤证据、必要时测试目标与账号上下文。
+- **Outputs**：根因分析、修复说明、fail/pass 对照证据与 `fix-packet`。
+- **Quality Gate**：关闭问题前必须通过 `## Quality Gates` 的 fail-to-pass 证据链检查。
+- **Decision Tree**：输入信号路由图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)。
+
+## Routing Matrix
+
+- 统一路由对照见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md)。
+- 阶段化上手视图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view)。
+- 单页速查见 [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md)。
+- 若出现冲突，以本技能 `## When to Use` 的**边界提示**为准。
+
+## Announce
+
+开始时明确说明：  
+“我正在使用 `arc:triage`，先固定失败证据，再定位根因并验证修复。”
+
+## The Iron Law
+
+```
+NO FIX CLAIM WITHOUT FAIL-TO-PASS EVIDENCE CHAIN
+```
+
+没有“失败→修复→通过”的证据链，不得宣称问题已解决。
+
+## Workflow
+
+1. 固定失败 run 的最小复现证据与上下文。
+2. 快速分流并定位根因（产品/测试/环境/数据）。
+3. 实施最小修复并保持权限/鉴权语义不被绕过。
+4. 回归验证并输出可交付 Fix Packet。
+
+## Quality Gates
+
+- 必须同时提供 failing 与 passing run 证据。
+- 根因必须具体到模块、条件或时序点。
+- 修复说明必须包含影响面与回归命令。
+- 全流程需保留 DEBUG 线索与工件路径。
+
+## Red Flags
+
+- 只给“已修复”描述，没有复现证据。
+- 通过删改鉴权/授权逻辑来规避失败。
+- 把测试误报当作产品缺陷直接改代码。
+- 未复测即关闭问题单。
+
+## When to Use
+
+- **首选触发**：已拿到 `arc:simulate` FAIL 证据，需要定位并修复问题。
+- **典型场景**：间歇失败、回归不稳定、从失败到通过的闭环验证。
+- **边界提示**：尚无可复现失败工件时，先执行 `arc:simulate`。
 
 ## Context Budget（必须拆分，避免上下文过长）
 
@@ -267,4 +322,4 @@ python simulate/scripts/new_defect.py \
 - **Premature PASS**: Declaring fix complete before re-running failed test — must verify
 - **Partial Verification**: Only testing the fixed path, not related paths — regression risk
 - **Context Skip**: Not reading `.arc/simulate/` failure report before triage — missing context
-- **Session Waste**: Starting fresh instead of continuing with `session_id` — loses diagnosis progress
+- **Session Waste**: Starting fresh instead of continuing with `continuation_id` — loses diagnosis progress

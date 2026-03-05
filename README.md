@@ -1,6 +1,6 @@
 # Arc Skills
 
-Claude Code 技能（Skill）集合，主要使用 **`arc:`** 命名空间，并提供独立的 `arc:cartography` 代码地图技能。每个技能是一个自包含的 Skill 插件：arc 系列通过 `/arc:<name>` 调用，arc:cartography 通过 `/arc:cartography` 调用。
+跨运行时的技能（Skill）集合，主要使用 **`arc:`** 命名空间，并提供独立的 `arc:cartography` 代码地图技能。每个技能是自包含插件，推荐通过运行时适配命令调用：`arc-runtime run arc:<name>`。
 
 ## 架构总览
 
@@ -36,10 +36,8 @@ graph TD
         triage["arc:triage<br/>缺陷定位与修复"]
         loop["arc:loop<br/>tmux 回归闭环"]
     end
-    subgraph "模型层"
-        claude["Claude<br/>Task subagent"]
-        codex["Codex<br/>Bash: codex exec --full-auto"]
-        gemini["Gemini<br/>Bash: gemini -p --yolo"]
+    subgraph "运行时层"
+        runtime["Agent Runtime Adapter<br/>dispatch_job / collect_job"]
     end
 
     agent -.->|"路由"| init
@@ -51,9 +49,7 @@ graph TD
     agent -.->|"路由"| ip_audit
     agent -.->|"路由"| ip_docs
     agent -.->|"路由"| simulate
-    agent -->|"Task subagent"| claude
-    agent -->|"Bash 调度"| codex
-    agent -->|"Bash 调度"| gemini
+    agent -->|"统一编排契约"| runtime
 
     init -.->|"CLAUDE.md"| refine
     cartography -.->|"codemap.md"| refine
@@ -71,18 +67,61 @@ graph TD
 
 | 调用方式 | 目录 | 用途 |
 |---------|------|------|
-| `/arc:agent` | `agent/` | 智能调度 agent，分析用户需求后选择合适的 arc: skill，协调多Agent执行任务 |
-| `/arc:cartography` | `cartography/` | 仓库理解与分层代码地图（codemap）生成，支持增量更新 |
-| `/arc:simulate` | `simulate/` | 通过 agent-browser 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
-| `/arc:triage` | `triage/` | 分析 arc:simulate 的失败报告，定位根因、修复缺陷、执行回归验证 |
-| `/arc:loop` | `loop/` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
-| `/arc:refine` | `refine/` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
-| `/arc:deliberate` | `deliberate/` | 多Agent多视角审议，使用 OpenSpec 生成结构化计划 |
-| `/arc:implement` | `implement/` | 消费上游方案并落地编码实现，输出实现计划、执行日志与交接摘要 |
-| `/arc:review` | `review/` | 按企业级七维度框架深度评审软件项目，多Agent对抗式分析，输出诊断报告 |
-| `/arc:init` | `init/` | 多Agent协作生成项目层级式 CLAUDE.md 索引体系，深度扫描后输出根级+模块级 CLAUDE.md |
-| `/arc:ip-audit` | `ip-audit/` | 软件专利/软著可行性审查，输出评估报告、风险矩阵与文档交接 JSON |
-| `/arc:ip-docs` | `ip-docs/` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
+| `arc-runtime run arc:agent` | `agent/` | 智能调度 agent，分析用户需求后选择合适的 arc: skill，协调多Agent执行任务 |
+| `arc-runtime run arc:cartography` | `cartography/` | 仓库理解与分层代码地图（codemap）生成，支持增量更新 |
+| `arc-runtime run arc:simulate` | `simulate/` | 通过 agent-browser 模拟真实用户进行 E2E 浏览器测试，生成含截图的结构化报告 |
+| `arc-runtime run arc:triage` | `triage/` | 分析 arc:simulate 的失败报告，定位根因、修复缺陷、执行回归验证 |
+| `arc-runtime run arc:loop` | `loop/` | 管理 tmux 会话启动/重启服务，循环执行 arc:simulate 直到 PASS 或达到迭代上限 |
+| `arc-runtime run arc:refine` | `refine/` | 扫描 CLAUDE.md 层级索引，为模糊的用户 prompt 补充项目上下文 |
+| `arc-runtime run arc:deliberate` | `deliberate/` | 多Agent多视角审议，使用 OpenSpec 生成结构化计划 |
+| `arc-runtime run arc:implement` | `implement/` | 消费上游方案并落地编码实现，输出实现计划、执行日志与交接摘要 |
+| `arc-runtime run arc:review` | `review/` | 按企业级七维度框架深度评审软件项目，多Agent对抗式分析，输出诊断报告 |
+| `arc-runtime run arc:init` | `init/` | 多Agent协作生成项目层级式 CLAUDE.md 索引体系，深度扫描后输出根级+模块级 CLAUDE.md |
+| `arc-runtime run arc:ip-audit` | `ip-audit/` | 软件专利/软著可行性审查，输出评估报告、风险矩阵与文档交接 JSON |
+| `arc-runtime run arc:ip-docs` | `ip-docs/` | 基于项目上下文与审查结论撰写软著/专利申请文档草稿 |
+
+## 新增通用 Skills（跨项目）
+
+| Skill | 目录 | 用途 |
+|---|---|---|
+| `requirements-refiner` | `requirements-refiner/` | 模糊需求精炼为可执行定义（目标/约束/验收/风险） |
+| `task-slicer` | `task-slicer/` | 大任务拆分与并行化编排 |
+| `estimation-risk` | `estimation-risk/` | 工时区间估算与风险缓冲 |
+| `repo-onboarding-map` | `repo-onboarding-map/` | 陌生仓库上手地图与改动落点 |
+| `contract-first-api` | `contract-first-api/` | 契约先行接口设计与兼容检查 |
+| `migration-safety` | `migration-safety/` | 数据库迁移安全执行与回滚策略 |
+| `refactor-safely` | `refactor-safely/` | 行为不变前提下的安全重构 |
+| `test-matrix-builder` | `test-matrix-builder/` | 功能/边界/异常测试矩阵构建 |
+| `flaky-test-doctor` | `flaky-test-doctor/` | 不稳定测试定位与修复 |
+| `security-fastcheck` | `security-fastcheck/` | 安全基线快速检查 |
+| `perf-regression-guard` | `perf-regression-guard/` | 性能基线与回归守护 |
+| `release-readiness` | `release-readiness/` | 发布准备度检查与 Go/No-Go 建议 |
+| `incident-triage` | `incident-triage/` | 故障分级、止血、定位、复盘 |
+| `doc-syncer` | `doc-syncer/` | 代码变更驱动文档同步 |
+| `pr-review-assistant` | `pr-review-assistant/` | 标准化 PR 评审维度与结论 |
+
+### 推荐优先建设顺序（ROI）
+
+1. `requirements-refiner`
+2. `repo-onboarding-map`
+3. `test-matrix-builder`
+4. `release-readiness`
+5. `doc-syncer`
+
+### 融合强化状态（参考 superpowers）
+
+- 已强化：`requirements-refiner`、`repo-onboarding-map`、`test-matrix-builder`、`release-readiness`、`doc-syncer`
+- 强化项：`Use when` 触发描述、`Iron Law`、Phase 流程、`Red Flags`、质量门槛
+
+## 与 Superpowers 融合
+
+- 融合原则文档：`docs/superpowers-fusion-guide.md`
+- 核心编排契约：`docs/orchestration-contract.md`
+- 质量校验脚本：`scripts/validate_skills.py`
+
+```bash
+python3 scripts/validate_skills.py
+```
 
 ## 依赖链
 
@@ -99,9 +138,7 @@ graph LR
     ip_docs["arc:ip-docs"]
     agent -.->|"路由"| ip_audit
     agent -.->|"路由"| ip_docs
-    agent -->|"Task subagent"| claude["Claude"]
-    agent -->|"Bash"| codex["Codex"]
-    agent -->|"Bash"| gemini["Gemini"]
+    agent -->|"统一编排契约"| runtime["Agent Runtime Adapter"]
 
     init -.->|"CLAUDE.md"| refine
     cartography -.->|"codemap.md"| refine
@@ -125,26 +162,26 @@ graph LR
 ## 快速开始
 
 ```bash
-# 在 Claude Code 中调用
-/arc:agent       # 智能调度（推荐入口）
-/arc:cartography  # 仓库分层代码地图生成
-/arc:init        # 项目初始化（多Agent协作生成 CLAUDE.md）
-/arc:simulate    # E2E 测试
-/arc:triage      # 缺陷修复
-/arc:loop        # 回归闭环
-/arc:refine      # 问题细化
-/arc:deliberate  # 多Agent审议
-/arc:implement   # 方案落地实现
-/arc:review      # 项目评审
-/arc:ip-audit    # 知识产权可行性审查
-/arc:ip-docs     # 知识产权申请文档写作
+# 通过运行时适配器调用
+arc-runtime run arc:agent        # 智能调度（推荐入口）
+arc-runtime run arc:cartography  # 仓库分层代码地图生成
+arc-runtime run arc:init         # 项目初始化（多Agent协作生成 CLAUDE.md）
+arc-runtime run arc:simulate     # E2E 测试
+arc-runtime run arc:triage       # 缺陷修复
+arc-runtime run arc:loop         # 回归闭环
+arc-runtime run arc:refine       # 问题细化
+arc-runtime run arc:deliberate   # 多Agent审议
+arc-runtime run arc:implement    # 方案落地实现
+arc-runtime run arc:review       # 项目评审
+arc-runtime run arc:ip-audit     # 知识产权可行性审查
+arc-runtime run arc:ip-docs      # 知识产权申请文档写作
 ```
 
 ## 技术栈
 
 - **技能定义**：Markdown（SKILL.md frontmatter）
 - **辅助脚本**：Python 3（`scripts/` 目录，`--help` 查看用法）
-- **外部模型**：`codex exec` (Codex CLI) + `gemini -p` (Gemini CLI)
+- **编排适配**：统一使用 `dispatch_job / collect_job` 契约（见 `docs/orchestration-contract.md`）
 - **计划生成**：[OpenSpec](https://github.com/Fission-AI/OpenSpec) CLI（`openspec`）
 - **代码搜索**：ace-tool MCP（语义搜索）+ Exa MCP（互联网搜索）
 

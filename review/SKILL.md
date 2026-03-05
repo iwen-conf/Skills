@@ -1,6 +1,6 @@
 ---
 name: "arc:review"
-description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软件项目，多 Agent 对抗式分析，输出诊断报告与改进路线图"
+description: "当需要企业级多维项目诊断、证据化评审和改进路线图时使用。"
 ---
 
 # 企业级项目评审（多 Agent 对抗式）
@@ -18,6 +18,55 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 3. **交叉反驳**：各 Agent 互相反驳评分和发现 → 各出反驳报告
 4. **收敛报告**：主进程聚合 → 最终诊断报告 + 评分卡 + 改进建议
 
+## Quick Contract
+
+- **Trigger**：需要企业级多维诊断、风险识别与改进路线图。
+- **Inputs**：项目路径、评估维度范围、深度级别与关注领域。
+- **Outputs**：诊断报告、评分卡、改进建议与证据清单。
+- **Quality Gate**：发布报告前必须通过 `## Quality Gates` 的证据与权衡检查。
+- **Decision Tree**：输入信号路由图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)。
+
+## Routing Matrix
+
+- 统一路由对照见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md)。
+- 阶段化上手视图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view)。
+- 单页速查见 [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md)。
+- 若出现冲突，以本技能 `## When to Use` 的**边界提示**为准。
+
+## Announce
+
+开始时明确说明：  
+“我正在使用 `arc:review`，先做证据化评审，再输出七维度诊断与路线图。”
+
+## The Iron Law
+
+```
+NO SCORE WITHOUT EVIDENCE, NO RECOMMENDATION WITHOUT TRADEOFF
+```
+
+无证据不得评分，无权衡不得给建议。
+
+## Workflow
+
+1. 侦察项目上下文并建立评审快照。
+2. 多 Agent 并发完成七维度独立评估。
+3. 交叉反驳并修正评分分歧。
+4. 产出最终诊断报告、评分卡与改进路线图。
+
+## Quality Gates
+
+- 每个维度结论必须绑定代码或配置证据。
+- 评分必须有加/扣分项与解释。
+- 建议必须包含收益、成本与风险权衡。
+- 报告需区分“观察事实”与“改进建议”。
+
+## Red Flags
+
+- 只给主观判断，不给证据路径。
+- 七维度被简化成单一总分结论。
+- 忽略反驳阶段直接合并报告。
+- 报告无法指向可执行改进行动。
+
 ## Context Budget（避免 Request too large）
 
 - 项目侦察阶段不要把整个代码库粘贴到对话中；只提取关键文件路径、目录结构、依赖清单、配置摘要。
@@ -26,11 +75,9 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 
 ## When to Use
 
-- 项目启动前的技术尽职调查（Tech Due Diligence）
-- 迭代里程碑后的架构健康度复盘
-- 架构升级/重构前的现状评估与风险分析
-- 新团队接手遗留项目前的全面摸底
-- 技术选型决策需要多视角验证
+- **首选触发**：需要企业级多维度诊断和中长期改进路线图。
+- **典型场景**：技术尽调、里程碑复盘、架构升级前健康评估。
+- **边界提示**：仅需量化扫描先用 `arc:score`，仅需阻断判定用 `arc:gate`。
 
 ## Input Arguments
 
@@ -45,19 +92,20 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 
 ## Dependencies
 
+* **编排契约**: 必须。遵循 `docs/orchestration-contract.md`，通过运行时适配层实现调度。
 * **ace-tool (MCP)**: 必须。用于语义搜索项目代码结构、实现模式、CLAUDE.md 索引。
 * **Exa MCP**: 推荐。用于搜索项目依赖的行业标准、最佳实践、安全漏洞信息。
-* **oh-my-opencode Task API**: 必须。通过 Task() 调度 oracle/deep Agent。
+* **统一 Dispatch API**: 必须。通过 `dispatch_job()` 调度 oracle/deep Agent。
 
 ## Agent 调用方式
 
 | Agent 角色 | 调用方式 | 用途 |
 |------|---------|------|
-| **oracle** | `Task(subagent_type="oracle", load_skills=["arc:review"], run_in_background=true, ...)` | 架构、安全、技术债务维度（架构专家） |
-| **deep** | `Task(category="deep", load_skills=["arc:review"], run_in_background=true, ...)` | 代码质量、DevOps 维度（工程专家） |
-| **deep(业务)** | `Task(category="deep", load_skills=["arc:review"], run_in_background=true, ...)` | 业务、团队维度(业务与流程分析专家) |
-| **explore** | `Task(subagent_type="explore", load_skills=[], run_in_background=true, ...)` | 代码库模式搜索（廉价） |
-| **librarian** | `Task(subagent_type="librarian", load_skills=[], run_in_background=true, ...)` | 最佳实践/安全漏洞搜索（廉价） |
+| **oracle** | `dispatch_job(role="oracle", capabilities=["arc:review"], execution_mode="background", ...)` | 架构、安全、技术债务维度（架构专家） |
+| **deep** | `dispatch_job(lane="deep", capabilities=["arc:review"], execution_mode="background", ...)` | 代码质量、DevOps 维度（工程专家） |
+| **deep(业务)** | `dispatch_job(lane="deep", capabilities=["arc:review"], execution_mode="background", ...)` | 业务、团队维度(业务与流程分析专家) |
+| **explore** | `dispatch_job(role="explore", capabilities=[], execution_mode="background", ...)` | 代码库模式搜索（廉价） |
+| **librarian** | `dispatch_job(role="librarian", capabilities=[], execution_mode="background", ...)` | 最佳实践/安全漏洞搜索（廉价） |
 
 ## Critical Rules（核心铁律）
 
@@ -207,16 +255,16 @@ description: "按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审
 
 #### Step 2.1: 多 Agent 并发评估
 
-**CRITICAL**: 各 Agent 必须在同一消息中并发发起（`run_in_background: true`）。
+**CRITICAL**: 各 Agent 必须在同一消息中并发发起（`execution_mode: "background"`）。
 
 每个 Agent 读取 `context/project-snapshot.md` 后，对全部 7 个维度各自独立评估。
 
 **oracle 评估**（架构视角，侧重 architecture/security/tech-debt）:
 ```
-Task(
-  subagent_type: "oracle",
-  load_skills: ["arc:review"],
-  run_in_background: true,
+dispatch_job(
+  role: "oracle",
+  capabilities: ["arc:review"],
+  execution_mode: "background",
   description: "oracle 七维度评估",
   prompt: "你是企业级软件评审专家。
 
@@ -244,10 +292,10 @@ Task(
 
 **deep 评估**（工程视角，侧重 code-quality/devops）:
 ```
-Task(
-  category: "deep",
-  load_skills: ["arc:review"],
-  run_in_background: true,
+dispatch_job(
+  lane: "deep",
+  capabilities: ["arc:review"],
+  execution_mode: "background",
   description: "deep 七维度评估",
   prompt: "你是企业级软件评审专家，侧重后端架构、代码质量和安全。
 
@@ -262,10 +310,10 @@ Task(
 
 **deep 评估**(业务与流程视角,侧重 business/team):
 ```
-Task(
-  category: "deep",
-  load_skills: ["arc:review"],
-  run_in_background: true,
+dispatch_job(
+  lane: "deep",
+  capabilities: ["arc:review"],
+  execution_mode: "background",
   description: "deep 业务与流程七维度评估",
   prompt: "你是企业级软件评审专家,侧重业务价值、团队协作和流程规范。
 
@@ -298,17 +346,17 @@ Task(
 3. **指出遗漏的问题或被忽略的优势**
 4. **给出修正后的评分建议**
 
-**oracle 反驳 deep + deep(业务)**(用 `Task(subagent_type="oracle", session_id="<复用>", ...)`)：
+**oracle 反驳 deep + deep(业务)**(用 `dispatch_job(role="oracle", continuation_id="<复用>", ...)`)：
 - 读取 `deep/dim-*.md` 和 `deep-business/dim-*.md`
 - 从架构视角反驳
 - 产出 `oracle/critique.md`
 
-**deep 反驳 oracle + deep(业务)**(用 `Task(category="deep", session_id="<复用>", ...)`)：
+**deep 反驳 oracle + deep(业务)**(用 `dispatch_job(lane="deep", continuation_id="<复用>", ...)`)：
 - 读取 `oracle/dim-*.md` 和 `deep-business/dim-*.md`
 - 从工程/代码质量/安全角度反驳
 - 产出 `deep/critique.md`
 
-**deep(业务) 反驳 oracle + deep**(用 `Task(category="deep", session_id="<复用>", ...)`)：
+**deep(业务) 反驳 oracle + deep**(用 `dispatch_job(lane="deep", continuation_id="<复用>", ...)`)：
 - 读取 `oracle/dim-*.md` 和 `deep/dim-*.md`
 - 从质量/UX/运维角度反驳
 - 产出 `deep-business/critique.md`
@@ -463,8 +511,8 @@ Task(
   └── 生成项目快照... [完成]
 
 === 阶段 2: 独立评估 ===
-  ├── oracle(subagent) 7 维度... [完成]
-  ├── deep(category) 7 维度... [完成]
+  ├── oracle(role) 7 维度... [完成]
+  ├── deep(lane) 7 维度... [完成]
   └── deep(业务) 7 维度... [完成]
 
 === 阶段 3: 交叉反驳 ===
@@ -511,7 +559,7 @@ Task(
 
 | 角色 | 调用方式 | 并发支持 |
 |------|---------|---------|
-| oracle | `Task(subagent_type="oracle", load_skills=["arc:review"], run_in_background=true, ...)` | 后台异步 |
-| deep | `Task(category="deep", load_skills=["arc:review"], run_in_background=true, ...)` | 后台异步 |
-| deep(业务) | `Task(category="deep", load_skills=["arc:review"], run_in_background=true, ...)` | 后台异步 |
+| oracle | `dispatch_job(role="oracle", capabilities=["arc:review"], execution_mode="background", ...)` | 后台异步 |
+| deep | `dispatch_job(lane="deep", capabilities=["arc:review"], execution_mode="background", ...)` | 后台异步 |
+| deep(业务) | `dispatch_job(lane="deep", capabilities=["arc:review"], execution_mode="background", ...)` | 后台异步 |
 | 主进程（聚合/报告） | 直接处理 | — |

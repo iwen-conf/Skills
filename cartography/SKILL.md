@@ -1,175 +1,154 @@
 ---
 name: arc:cartography
-description: 仓库理解与分层代码地图（codemap）生成
+description: "当需要快速理解陌生仓库或为下游 arc 技能刷新分层 codemap.md 上下文时使用。"
 ---
 
 # arc:cartography Skill
 
-You help users understand and map repositories by creating hierarchical codemaps.
+## Overview
+
+生成可增量维护的分层 `codemap.md`，为 `arc:refine`、`arc:implement`、`arc:review` 等下游技能提供稳定上下文。
+
+## Quick Contract
+
+- **Trigger**：需要快速理解陌生仓库，或下游技能需要最新结构化上下文。
+- **Inputs**：仓库根路径、包含/排除规则、是否首次初始化。
+- **Outputs**：分层 `codemap.md`、可选 tier JSON、`.arc/context-hub/index.json` 元数据。
+- **Quality Gate**：发布前必须通过 `## Quality Gates` 的增量准确性与索引一致性检查。
+- **Decision Tree**：输入信号路由图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)。
+
+## Routing Matrix
+
+- 统一路由对照见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md)。
+- 阶段化上手视图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view)。
+- 单页速查见 [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md)。
+- 若出现冲突，以本技能 `## When to Use` 的**边界提示**为准。
+
+## Announce
+
+开始时明确说明：  
+“我正在使用 `arc:cartography`，先更新 codemap 基线，再交给下游技能复用。”
+
+## The Iron Law
+
+```
+NO MAJOR CHANGE WITHOUT CURRENT CODEMAP
+```
+
+关键结构变更前，必须先有最新 codemap 作为上下文基线。
+
+## Dependencies
+
+- **编排契约**：必须。遵循 `docs/orchestration-contract.md`，通过运行时适配层并发分派目录分析任务。
+- **cartographer.py**：必须。路径为 `<skills_root>/cartography/scripts/cartographer.py`。
 
 ## When to Use
 
-- User asks to understand/map a repository
-- User wants codebase documentation
-- Starting work on an unfamiliar codebase
+- **首选触发**：需要构建或刷新仓库结构地图（`codemap.md`）。
+- **典型场景**：首次接手陌生仓库、目录结构大改后同步上下文。
+- **边界提示**：需求澄清用 `arc:refine`，代码落地用 `arc:implement`。
 
 ## Workflow
 
-### Step 1: Check for Existing State
+### Step 1: 检查状态
 
-**First, check if `.slim/cartography.json` exists in the repo root.**
+优先检查仓库根目录 `.slim/cartography.json`：
+- 存在：进入变更检测流程
+- 不存在：执行初始化流程
 
-If it **exists**: Skip to Step 3 (Detect Changes) - no need to re-initialize.
-
-If it **doesn't exist**: Continue to Step 2 (Initialize).
-
-### Step 2: Initialize (Only if no state exists)
-
-1. **Analyze the repository structure** - List files, understand directories
-2. **Infer patterns** for **core code/config files ONLY** to include:
-   - **Include**: `src/**/*.ts`, `package.json`, etc.
-   - **Exclude (MANDATORY)**: Do NOT include tests, documentation, or translations.
-     - Tests: `**/*.test.ts`, `**/*.spec.ts`, `tests/**`, `__tests__/**`
-     - Docs: `docs/**`, `*.md` (except root `README.md` if needed), `LICENSE`
-     - Build/Deps: `node_modules/**`, `dist/**`, `build/**`, `*.min.js`
-   - Respect `.gitignore` automatically
-3. **Run cartographer.py init**:
+### Step 2: 初始化（仅首次）
 
 ```bash
-python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py init \
+python3 <skills_root>/cartography/scripts/cartographer.py init \
   --root ./ \
   --include "src/**/*.ts" \
   --exclude "**/*.test.ts" --exclude "dist/**" --exclude "node_modules/**"
 ```
 
-This creates:
-- `.slim/cartography.json` - File and folder hashes for change detection
-- Empty `codemap.md` files in all relevant subdirectories
+初始化后会生成：
+- `.slim/cartography.json`（变更检测基线）
+- 相关目录下的 `codemap.md` 占位文件
 
-4. **Delegate to Explorer agents** - Spawn one explorer per folder to read code and fill in its specific `codemap.md` file.
-
-### Step 3: Detect Changes (If state already exists)
-
-1. **Run cartographer.py changes** to see what changed:
+### Step 3: 增量检测与更新
 
 ```bash
-python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py changes \
-  --root ./
+python3 <skills_root>/cartography/scripts/cartographer.py changes --root ./
+python3 <skills_root>/cartography/scripts/cartographer.py update  --root ./
 ```
 
-2. **Review the output** - It shows:
-   - Added files
-   - Removed files
-   - Modified files
-   - Affected folders
+规则：
+- 只更新受影响目录的 `codemap.md`
+- 未受影响目录不重写
 
-3. **Only update affected codemaps** - Spawn one explorer per affected folder to update its `codemap.md`.
-4. **Run update** to save new state:
+### Step 4: 可选导出分层 JSON
 
 ```bash
-python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py update \
-  --root ./
+python3 <skills_root>/cartography/scripts/cartographer.py export --root ./ --tier 1 --output codemap/index.json
+python3 <skills_root>/cartography/scripts/cartographer.py export --root ./ --tier 2 --output codemap/context.json
+python3 <skills_root>/cartography/scripts/cartographer.py export --root ./ --tier 3 --output codemap/full.json
 ```
 
-### Step 4: Export Tiered Codemap (Optional)
+建议：
+- Tier 1：快速检索入口
+- Tier 2：模块关系分析
+- Tier 3：深度实现上下文
 
-For progressive retrieval optimization, export codemap in JSON format with different detail tiers:
+### Step 5: 目录并发分析与根图汇总
 
-```bash
-# Tier 1: Index (~50-100 tokens/entry) - minimal metadata for fast scanning
-python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py export \
-  --root ./ --tier 1 --output codemap/index.json
+1. 通过 `dispatch_job(...)` 并发分派各目录分析任务（按 `docs/orchestration-contract.md`）。
+2. 每个目录输出/更新本目录 `codemap.md`。
+3. 最后聚合根级 `codemap.md`，形成仓库 Atlas 入口。
 
-# Tier 2: Context (~200-300 tokens/entry) - adds dependencies and summary
-python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py export \
-  --root ./ --tier 2 --output codemap/context.json
+### Step 6: 发布共享上下文元数据
 
-# Tier 3: Full (~500-1000 tokens/entry) - complete code and documentation
-python3 ~/.config/opencode/skills/cartography/scripts/cartographer.py export \
-  --root ./ --tier 3 --output codemap/full.json
-```
+将根级与目录级 `codemap` 产物写入 `.arc/context-hub/index.json`，每条记录至少包含：
+- `path`
+- `content_hash`
+- `generated_at`
+- `ttl_seconds`
+- `expires_at`
+- `producer_skill=arc:cartography`
+- `refresh_skill=arc:cartography`
 
-**Tier Usage Guidelines:**
-- **Tier 1**: Use for initial codebase scanning, finding relevant files
-- **Tier 2**: Use for understanding module relationships and dependencies
-- **Tier 3**: Use when you need full code context for implementation
+## Codemap 写作要求
 
-**Consumer Skills:**
-- `arc:refine` uses Tier 1-2 for context gathering
-- `arc:implement` uses Tier 3 for code-level details
-- `arc:review` uses Tier 2 for architecture analysis
+- **Responsibility**：说明目录职责与边界
+- **Design Patterns**：标注关键模式和抽象层
+- **Data & Control Flow**：描述主要调用链/数据流
+- **Integration Points**：列出依赖与被依赖方
 
-### Step 4: Finalize Repository Atlas (Root Codemap)
+## Quality Gates
 
-Once all specific directories are mapped, the Orchestrator must create or update the root `codemap.md`. This file serves as the **Master Entry Point** for any agent or human entering the repository.
+- 增量流程必须只更新受影响目录。
+- 根级与目录级 codemap 必须保持链接可达。
+- `.arc/context-hub/index.json` 必须同步刷新元数据。
+- tier 导出产物必须与实际结构一致且可消费。
 
-1.  **Map Root Assets**: Document the root-level files (e.g., `package.json`, `index.ts`, `plugin.json`) and the project's overall purpose.
-2.  **Aggregate Sub-Maps**: Create a "Repository Directory Map" section. For every folder that has a `codemap.md`, extract its **Responsibility** summary and include it in a table or list in the root map.
-3.  **Cross-Reference**: Ensure that the root map contains the absolute or relative paths to the sub-maps so agents can jump directly to the relevant details.
+## Red Flags
 
-### Step 5: Publish Shared Context Metadata
+- 跳过变更检测直接全量重写所有 codemap
+- 不区分受影响目录与未变更目录
+- 根级 atlas 不更新导致下游入口过期
+- 无共享索引发布导致下游无法复用产物
 
-After generating/updating codemaps, publish artifact metadata into `.arc/context-hub/index.json` for downstream skills:
-
-1.  Register `codemap.md` (root atlas) and every updated folder-level `*/codemap.md`.
-2.  For each artifact, write `path`, `content_hash`, `generated_at`, `ttl_seconds`, `expires_at`.
-3.  Set `producer_skill: "arc:cartography"` and `refresh_skill: "arc:cartography"`.
-4.  Mark suggested consumers as `arc:refine`, `arc:implement`, `arc:review`, `arc:simulate`, `arc:triage`.
-5.  If index file does not exist, create a minimal valid index before registration.
-
-
-## Codemap Content
-
-Explorers are granted write permissions for `codemap.md` files during this workflow. Use precise technical terminology to document the implementation:
-
-- **Responsibility** - Define the specific role of this directory using standard software engineering terms (e.g., "Service Layer", "Data Access Object", "Middleware").
-- **Design Patterns** - Identify and name specific patterns used (e.g., "Observer", "Singleton", "Factory", "Strategy"). Detail the abstractions and interfaces.
-- **Data & Control Flow** - Explicitly trace how data enters and leaves the module. Mention specific function call sequences and state transitions.
-- **Integration Points** - List dependencies and consumer modules. Use technical names for hooks, events, or API endpoints.
-
-Example codemap:
+示例（目录级）：
 
 ```markdown
-# src/agents/
+# src/services/
 
 ## Responsibility
-Defines agent personalities and manages their configuration lifecycle.
+封装业务服务层，组合仓储层与外部网关。
 
 ## Design
-Each agent is a prompt + permission set. Config system uses:
-- Default prompts (orchestrator.ts, explorer.ts, etc.)
-- User overrides from ~/.config/opencode/oh-my-opencode-slim.json
-- Permission wildcards for skill/MCP access control
+- 采用 Service + Repository 分层
+- 使用策略模式选择不同支付渠道实现
 
 ## Flow
-1. Plugin loads → calls getAgentConfigs()
-2. Reads user config preset
-3. Merges defaults with overrides
-4. Applies permission rules (wildcard expansion)
-5. Returns agent configs to OpenCode
+1. API Handler 调用 Service
+2. Service 完成参数校验与事务编排
+3. Repository 持久化并返回领域对象
 
 ## Integration
-- Consumed by: Main plugin (src/index.ts)
-- Depends on: Config loader, skills registry
-```
-
-Example **Root Codemap (Atlas)**:
-
-```markdown
-# Repository Atlas: oh-my-opencode-slim
-
-## Project Responsibility
-A high-performance, low-latency agent orchestration plugin for OpenCode, focusing on specialized sub-agent delegation and background task management.
-
-## System Entry Points
-- `src/index.ts`: Plugin initialization and OpenCode integration.
-- `package.json`: Dependency manifest and build scripts.
-- `oh-my-opencode-slim.json`: User configuration schema.
-
-## Directory Map (Aggregated)
-| Directory | Responsibility Summary | Detailed Map |
-|-----------|------------------------|--------------|
-| `src/agents/` | Defines agent personalities (Orchestrator, Explorer) and manages model routing. | [View Map](src/agents/codemap.md) |
-| `src/features/` | Core logic for tmux integration, background task spawning, and session state. | [View Map](src/features/codemap.md) |
-| `src/config/` | Implements the configuration loading pipeline and environment variable injection. | [View Map](src/config/codemap.md) |
+- 被 `src/api/` 调用
+- 依赖 `src/repositories/` 与 `src/gateways/`
 ```

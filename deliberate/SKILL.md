@@ -1,6 +1,6 @@
 ---
 name: "arc:deliberate"
-description: 当复杂问题需要多 Agent 多视角分析并通过迭代讨论达成共识时使用
+description: "当技术方案高风险或存在多路径争议时使用，通过多 Agent 多视角审议与反驳收敛决策。"
 ---
 
 # Multi-Agent Deliberation
@@ -14,29 +14,78 @@ description: 当复杂问题需要多 Agent 多视角分析并通过迭代讨论
 1. **歧义检查阶段**：多 Agent 分析需求 → 识别歧义 → 互相反驳 → 用户澄清 → 直到无歧义
 2. **审议阶段**：多 Agent 独立提案 → 交叉审阅 → 互相反驳 → 迭代收敛 → 合成共识报告
 3. **计划生成阶段**：OpenSpec 生成结构化计划 → 多 Agent 审查反驳 → 定稿可执行计划
-4. **执行阶段**：使用 Task(category="deep") 执行代码实现
+4. **执行阶段**：使用 dispatch_job(lane="deep") 执行代码实现
+
+## Quick Contract
+
+- **Trigger**：技术决策高风险、存在明显分歧、或需要多视角论证后再执行。
+- **Inputs**：`task_name`、`workdir`、增强 prompt、最大轮次与歧义轮次限制。
+- **Outputs**：歧义清单、各 Agent 提案/反驳、收敛摘要与可执行计划。
+- **Quality Gate**：进入实现前必须通过 `## Quality Gates` 的共识与计划完整性检查。
+- **Decision Tree**：输入信号路由图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)。
+
+## Routing Matrix
+
+- 统一路由对照见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md)。
+- 阶段化上手视图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view)。
+- 单页速查见 [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md)。
+- 若出现冲突，以本技能 `## When to Use` 的**边界提示**为准。
+
+## Announce
+
+开始时明确说明：  
+“我正在使用 `arc:deliberate`，先做多视角审议与分歧收敛，再进入执行。”
+
+## The Iron Law
+
+```
+NO CONSENSUS CLAIM WITHOUT CROSS-CRITIQUE EVIDENCE
+```
+
+没有交叉反驳证据，不得宣称“已达成共识”。
+
+## Workflow
+
+1. 先做歧义检查，必要时回到用户澄清问题。
+2. 多 Agent 独立提案并互相反驳，形成收敛证据。
+3. 生成结构化计划并做计划级再审查。
+4. 仅在争议收敛后进入执行阶段。
+
+## Quality Gates
+
+- 每轮审议必须保留提案与反驳记录。
+- 共识结论必须注明保留分歧与决策理由。
+- 进入执行前必须有可执行计划与风险清单。
+- 外部信息引用必须标注来源与时效。
+
+## Red Flags
+
+- 未经反驳流程直接合成“最终方案”。
+- 把偏好意见当作证据结论。
+- 歧义未清理就开始编码执行。
+- 只采纳单 Agent 视角且无解释。
 
 ## Agent 调用方式
 
-**CRITICAL**: 所有任务通过 oh-my-opencode 的 Task() API 调度：
+**CRITICAL**: 所有任务通过统一 `dispatch_job()` API 调度：
 
 | Agent 角色 | 调用方式 | 用途 |
 |------|---------|------|
-| **oracle** | `Task(subagent_type="oracle", load_skills=["arc:deliberate"], ...)` | 架构分析、设计评审（只读高质量推理） |
-| **deep** | `Task(category="deep", load_skills=[...], ...)` | 深度工程分析、方案提案、代码执行 |
-| **visual-engineering** | `Task(category="visual-engineering", load_skills=["arc:deliberate", "frontend-ui-ux"], ...)` | 前端与DX视角、UI/UX设计、交互体验 |
-| **metis** | `Task(subagent_type="metis", load_skills=["arc:refine"], ...)` | 需求预分析、歧义检测 |
-| **explore** | `Task(subagent_type="explore", load_skills=[], run_in_background=true, ...)` | 代码库搜索（廉价、后台） |
-| **librarian** | `Task(subagent_type="librarian", load_skills=[], run_in_background=true, ...)` | 外部文档搜索（廉价、后台） |
+| **oracle** | `dispatch_job(role="oracle", capabilities=["arc:deliberate"], ...)` | 架构分析、设计评审（只读高质量推理） |
+| **deep** | `dispatch_job(lane="deep", capabilities=[...], ...)` | 深度工程分析、方案提案、代码执行 |
+| **visual-engineering** | `dispatch_job(lane="visual-engineering", capabilities=["arc:deliberate", "frontend-ui-ux"], ...)` | 前端与DX视角、UI/UX设计、交互体验 |
+| **metis** | `dispatch_job(role="metis", capabilities=["arc:refine"], ...)` | 需求预分析、歧义检测 |
+| **explore** | `dispatch_job(role="explore", capabilities=[], execution_mode="background", ...)` | 代码库搜索（廉价、后台） |
+| **librarian** | `dispatch_job(role="librarian", capabilities=[], execution_mode="background", ...)` | 外部文档搜索（廉价、后台） |
 
-通用 Task 调用模板：
+通用 `dispatch_job` 调用模板：
 ```
-Task(
-  category: "<category>",              // 或 subagent_type: "<agent>"
-  load_skills: ["arc:deliberate", ...], // 装备相关 skill
+dispatch_job(
+  lane: "<lane>",              // 或 role: "<agent>"
+  capabilities: ["arc:deliberate", ...], // 装备相关 skill
   description: "<简短描述>",
   prompt: "<具体任务指令，包含读写文件路径>",
-  run_in_background: true               // 并发执行
+  execution_mode: "background"               // 并发执行
 )
 ```
 
@@ -56,10 +105,9 @@ Task(
 
 ## When to Use
 
-- 复杂技术决策需要多视角验证（架构、性能、安全、兼容性）
-- 单个模型的方案可能有盲点，需要交叉审阅
-- 用户需要可解释的决策而非黑盒结论
-- 问题涉及多个技术领域,需要 oracle(架构)+ deep(工程)+ visual-engineering(前端与DX)协作
+- **首选触发**：高风险技术决策需要多视角辩论并收敛共识。
+- **典型场景**：架构/性能/安全/兼容性存在明显 trade-off。
+- **边界提示**：需求不清先 `arc:refine`；路线已定直接 `arc:implement`。
 
 ## Core Pattern
 
@@ -124,14 +172,14 @@ Task(
 2. **搜索外部信息**：使用 `Exa MCP` 的 `web_search_exa` 或 `company_research_exa` 搜索互联网
 3. **分析**：并发调用多个 Agent，分析增强后的 prompt，识别潜在歧义
 
-**多 Agent 并发调用**（在同一消息中发起，`run_in_background: true`）：
+**多 Agent 并发调用**（在同一消息中发起，`execution_mode: "background"`）：
 
 **oracle 分析**（架构视角）:
 ```
-Task(
-  subagent_type: "oracle",
-  load_skills: ["arc:deliberate"],
-  run_in_background: true,
+dispatch_job(
+  role: "oracle",
+  capabilities: ["arc:deliberate"],
+  execution_mode: "background",
   description: "oracle 歧义分析",
   prompt: "你是架构师角色。分析以下需求的歧义点。
 上下文信息：<MCP 搜索结果>
@@ -143,10 +191,10 @@ Task(
 
 **deep 分析**（工程视角）:
 ```
-Task(
-  category: "deep",
-  load_skills: ["arc:deliberate"],
-  run_in_background: true,
+dispatch_job(
+  lane: "deep",
+  capabilities: ["arc:deliberate"],
+  execution_mode: "background",
   description: "deep 歧义分析",
   prompt: "你是后端架构师。分析以下需求的歧义点。
 上下文信息（来自 MCP 搜索）：<MCP 搜索结果>
@@ -158,10 +206,10 @@ Task(
 
 **visual-engineering 分析**(前端与DX视角):
 ```
-Task(
-  category: "visual-engineering",
-  load_skills: ["arc:deliberate", "frontend-ui-ux"],
-  run_in_background: true,
+dispatch_job(
+  lane: "visual-engineering",
+  capabilities: ["arc:deliberate", "frontend-ui-ux"],
+  execution_mode: "background",
   description: "visual-engineering 歧义分析",
   prompt: "你是前端与DX工程师。分析以下需求的歧义点。
 上下文信息（来自 MCP 搜索）：<MCP 搜索结果>
@@ -181,11 +229,11 @@ Task(
 3. 补充对方遗漏的歧义
 4. 将反驳内容追加到自己的 `ambiguity-round-N.md`
 
-调用方式同 Step 1.1(oracle 用 `Task(subagent_type="oracle")`,deep 用 `Task(category="deep")`,visual-engineering 用 `Task(category="visual-engineering")`)。
+调用方式同 Step 1.1(oracle 用 `dispatch_job(role="oracle")`,deep 用 `dispatch_job(lane="deep")`,visual-engineering 用 `dispatch_job(lane="visual-engineering")`)。
 
 ### Step 1.3: 聚合歧义
 
-读取各份分析报告，主进程直接处理（不需 subagent）聚合所有歧义点：
+读取各份分析报告，主进程直接处理（不需额外角色调度）聚合所有歧义点：
 
 ```markdown
 # 歧义汇总 (Round N)
@@ -239,14 +287,14 @@ Task(
 
 ### Step 2.2: 并发派发提案 (每轮)
 
-**CRITICAL**: 各 Agent 必须在同一消息中并发发起（`run_in_background: true`）。
+**CRITICAL**: 各 Agent 必须在同一消息中并发发起（`execution_mode: "background"`）。
 
 **oracle 提案**（架构视角）:
 ```
-Task(
-  subagent_type: "oracle",
-  load_skills: ["arc:deliberate"],
-  run_in_background: true,
+dispatch_job(
+  role: "oracle",
+  capabilities: ["arc:deliberate"],
+  execution_mode: "background",
   description: "oracle 提案 Round N",
   prompt: "你是架构师角色（全局视角、架构设计、技术选型）。
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
@@ -257,10 +305,10 @@ Task(
 
 **deep 提案**（工程视角）:
 ```
-Task(
-  category: "deep",
-  load_skills: ["arc:deliberate"],
-  run_in_background: true,
+dispatch_job(
+  lane: "deep",
+  capabilities: ["arc:deliberate"],
+  execution_mode: "background",
   description: "deep 提案 Round N",
   prompt: "你是后端架构师（后端架构、性能优化、数据库、安全）。
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
@@ -271,10 +319,10 @@ Task(
 
 **visual-engineering 提案**(前端与DX视角):
 ```
-Task(
-  category: "visual-engineering",
-  load_skills: ["arc:deliberate", "frontend-ui-ux"],
-  run_in_background: true,
+dispatch_job(
+  lane: "visual-engineering",
+  capabilities: ["arc:deliberate", "frontend-ui-ux"],
+  execution_mode: "background",
   description: "visual-engineering 提案 Round N",
   prompt: "你是前端与DX工程师(UI/UX、用户体验、响应式设计、可维护性)。
 读取 <workdir>/.arc/deliberate/<task-name>/context/enhanced-prompt.md。
@@ -297,17 +345,17 @@ Task(
 3. **用论据反驳对方的技术选择**
 4. 提出自己的替代方案
 
-**oracle 审阅 deep + visual-engineering**(用 `Task(subagent_type="oracle", session_id="<复用上轮 session>", ...)`):
+**oracle 审阅 deep + visual-engineering**(用 `dispatch_job(role="oracle", continuation_id="<复用上轮 session>", ...)`):
 - 读取 `agents/deep/proposal-round-N.md` 和 `agents/visual-engineering/proposal-round-N.md`
 - 从架构视角反驳 deep 的工程选择、visual-engineering 的前端设计
 - 产出：`agents/oracle/critique-round-N.md`
 
-**deep 审阅 oracle + visual-engineering**(用 `Task(category="deep", session_id="<复用上轮 session>", ...)`):
+**deep 审阅 oracle + visual-engineering**(用 `dispatch_job(lane="deep", continuation_id="<复用上轮 session>", ...)`):
 - 读取 `agents/oracle/proposal-round-N.md` 和 `agents/visual-engineering/proposal-round-N.md`
 - 从工程视角反驳 oracle 的架构设计、visual-engineering 的体验要求
 - 产出：`agents/deep/critique-round-N.md`
 
-**visual-engineering 审阅 oracle + deep**(用 `Task(category="visual-engineering", session_id="<复用上轮 session>", ...)`):
+**visual-engineering 审阅 oracle + deep**(用 `dispatch_job(lane="visual-engineering", continuation_id="<复用上轮 session>", ...)`):
 - 读取 `agents/oracle/proposal-round-N.md` 和 `agents/deep/proposal-round-N.md`
 - 从质量视角反驳 oracle 的抽象设计、deep 的工程实现
 - 产出:`agents/visual-engineering/critique-round-N.md`
@@ -384,14 +432,14 @@ openspec instructions <artifact> --change <task-name>
 ```
 `openspec instructions` 输出包含 `<instruction>`（写作指南）、`<template>`（结构模板）和 `<output>`（目标写入路径）。
 
-2. **执行子Agent写入**：将 OpenSpec 指令 + `convergence/final-consensus.md` 的内容一起发给执行子Agent（`subagent_type: "general-purpose"`），由其按模板填充并写入指定路径。
+2. **执行子Agent写入**：将 OpenSpec 指令 + `convergence/final-consensus.md` 的内容一起发给执行子Agent（`role: "general-purpose"`），由其按模板填充并写入指定路径。
 
-**执行子Agent生成 proposal**（subagent，每个 artifact 单独调用）:
+**执行子Agent生成 proposal**（role 调度，每个 artifact 单独调用）:
 ```
-Task({
+dispatch_job({
   description: "OpenSpec proposal 生成",
-  subagent_type: "general-purpose",
-  run_in_background: true,
+  role: "general-purpose",
+  execution_mode: "background",
   mode: "bypassPermissions",
   prompt: "基于共识报告生成 OpenSpec proposal。
 读取以下文件：
@@ -436,16 +484,16 @@ openspec status --change <task-name>
 
 ### Step 3.3: 多 Agent 并发审查计划
 
-OpenSpec 生成计划后，**多 Agent 并发独立审查**（同一消息，`run_in_background: true`）。
+OpenSpec 生成计划后，**多 Agent 并发独立审查**（同一消息，`execution_mode: "background"`）。
 
 > 以下路径简写 `$CHANGE` 代表 `<workdir>/.arc/deliberate/<task-name>/openspec/changes/<task-name>`。
 
 **oracle 审查计划**（架构视角）:
 ```
-Task(
-  subagent_type: "oracle",
-  load_skills: ["arc:deliberate"],
-  run_in_background: true,
+dispatch_job(
+  role: "oracle",
+  capabilities: ["arc:deliberate"],
+  execution_mode: "background",
   description: "oracle 审查计划",
   prompt: "你是架构师角色。审查以下 OpenSpec 计划文件，从全局架构、整体一致性、任务排序合理性角度进行审查反驳。
 读取以下文件：
@@ -464,10 +512,10 @@ Task(
 
 **deep 审查计划**（工程视角）:
 ```
-Task(
-  category: "deep",
-  load_skills: ["arc:deliberate"],
-  run_in_background: true,
+dispatch_job(
+  lane: "deep",
+  capabilities: ["arc:deliberate"],
+  execution_mode: "background",
   description: "deep 审查计划",
   prompt: "你是后端架构师。审查以下 OpenSpec 计划文件，从后端架构、性能、安全、可行性角度进行审查反驳。
 读取以下文件：
@@ -486,10 +534,10 @@ Task(
 
 **visual-engineering 审查计划**(前端与DX视角):
 ```
-Task(
-  category: "visual-engineering",
-  load_skills: ["arc:deliberate", "frontend-ui-ux"],
-  run_in_background: true,
+dispatch_job(
+  lane: "visual-engineering",
+  capabilities: ["arc:deliberate", "frontend-ui-ux"],
+  execution_mode: "background",
   description: "visual-engineering 审查计划",
   prompt: "你是前端与交互设计师。审查以下 OpenSpec 计划文件，从前端交互、UI/UX、组件架构、用户体验角度进行审查反驳。
 读取以下文件：
@@ -510,7 +558,7 @@ Task(
 
 **CRITICAL**: 各 Agent 互相反驳对方的计划审查意见。每个 Agent 读取另外两个的 `plan-review.md`，反驳不合理之处，补充遗漏。
 
-调用方式:oracle 用 `Task(subagent_type="oracle", session_id="<复用>")`,deep 用 `Task(category="deep", session_id="<复用>")`,visual-engineering 用 `Task(category="visual-engineering", session_id="<复用>")`,三者并发。
+调用方式:oracle 用 `dispatch_job(role="oracle", continuation_id="<复用>")`,deep 用 `dispatch_job(lane="deep", continuation_id="<复用>")`,visual-engineering 用 `dispatch_job(lane="visual-engineering", continuation_id="<复用>")`,三者并发。
 
 各 Agent 产出覆盖（更新）自己的 `plan-review.md`，追加反驳段落。
 
@@ -553,16 +601,16 @@ openspec archive <task-name>
 
 ## Phase 4: 执行阶段（Execution）
 
-**CRITICAL**: 计划定稿后，使用 `Task(category="deep")` 执行代码实现。
+**CRITICAL**: 计划定稿后，使用 `dispatch_job(lane="deep")` 执行代码实现。
 
 ### Step 4.1: Agent 执行计划
 
 根据定稿计划，使用 deep Agent 按 `tasks.md` 逐步执行：
 
 ```
-Task(
-  category: "deep",
-  load_skills: ["arc:deliberate"],
+dispatch_job(
+  lane: "deep",
+  capabilities: ["arc:deliberate"],
   description: "执行审议计划",
   prompt: "根据 .arc/deliberate/<task-name>/openspec/changes/<task-name>/tasks.md 中的任务列表，按顺序执行代码实现。
 同时参考：
@@ -604,9 +652,9 @@ openspec archive <task-name>
 
 === 阶段 1: 歧义检查 ===
 Round 1/3:
-  ├── oracle(subagent) 分析... [完成]
-  ├── deep(category) 分析... [完成]
-  ├── visual-engineering(category) 分析... [完成]
+  ├── oracle(role) 分析... [完成]
+  ├── deep(lane) 分析... [完成]
+  ├── visual-engineering(lane) 分析... [完成]
   ├── 聚合歧义... [N 个歧义]
   └── 用户澄清... [进行中]
 
@@ -668,7 +716,7 @@ Round 1/3:
 
 | 角色 | 调用方式 | 并发支持 |
 |------|---------|---------|
-| oracle | `Task(subagent_type="oracle", load_skills=["arc:deliberate"], run_in_background=true, ...)` | 后台异步 |
-| deep | `Task(category="deep", load_skills=["arc:deliberate"], run_in_background=true, ...)` | 后台异步 |
-| visual-engineering | `Task(category="visual-engineering", load_skills=["arc:deliberate", "frontend-ui-ux"], run_in_background=true, ...)` | 后台异步 |
+| oracle | `dispatch_job(role="oracle", capabilities=["arc:deliberate"], execution_mode="background", ...)` | 后台异步 |
+| deep | `dispatch_job(lane="deep", capabilities=["arc:deliberate"], execution_mode="background", ...)` | 后台异步 |
+| visual-engineering | `dispatch_job(lane="visual-engineering", capabilities=["arc:deliberate", "frontend-ui-ux"], execution_mode="background", ...)` | 后台异步 |
 | 聚合/定稿 | 主进程直接处理 | — |

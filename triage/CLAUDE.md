@@ -55,7 +55,7 @@ python triage/scripts/triage_run.py reports/2026-02-24_10-00-00_test1 --md-out t
 
 ### Skill 调用接口
 
-通过 Claude Code 调用：`/arc:triage`
+通过 Claude Code 调用：`arc-runtime run arc:triage`
 
 输入参数：
 - `run_dir` (required): 测试运行目录路径

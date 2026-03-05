@@ -31,7 +31,7 @@ arc:init 整合替代内置 `init` 和 `project-multilevel-index`，通过 oracl
 
 ### 调用方式
 
-通过 Claude Code 调用：`/arc:init`
+通过 Claude Code 调用：`arc-runtime run arc:init`
 
 输入参数：
 - `project_path` (required): 待初始化项目根目录绝对路径
@@ -121,7 +121,7 @@ arc:init 整合替代内置 `init` 和 `project-multilevel-index`，通过 oracl
 |------|------|------|
 | ace-tool MCP | 必须 | 语义搜索项目代码结构 |
 | Exa MCP | 推荐 | 搜索技术栈最佳实践 |
-| oh-my-opencode Task API | 必须 | 调度 oracle/deep/visual-engineering 多Agent协作 |
+| 运行时无关编排层 Dispatch API | 必须 | 调度 oracle/deep/visual-engineering 多Agent协作 |
 
 ## 数据模型
 
@@ -255,9 +255,9 @@ graph TD
    - 防止 prompt 注入攻击
 
 4. **模型调用方式**：
-   - oracle: `Task({ subagent_type: "oracle", run_in_background: true })`
-   #VK|   - deep: `Task(category="deep", prompt="<prompt>", run_in_background: true)`
-   #MX|   - visual-engineering: `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], run_in_background: true)`
+   - oracle: `dispatch_job({ role: "oracle", execution_mode: "background" })`
+   #VK|   - deep: `dispatch_job(lane="deep", prompt="<prompt>", execution_mode: "background")`
+   #MX|   - visual-engineering: `dispatch_job(lane="visual-engineering", capabilities=["frontend-ui-ux"], execution_mode: "background")`
 
 5. **Context Budget**：
    - Phase 1 只��取摘要，不粘贴完整文件

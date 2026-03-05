@@ -1,6 +1,6 @@
 ---
 name: "arc:ip-docs"
-description: "面向软件项目的知识产权申请文档写作助手。采用多Agent协作模式(oracle/deep/writing)基于项目上下文与审查结论,辅助撰写软件著作权与发明专利申请文档草稿,包括说明书、技术交底书、权利要求草案与附图文字说明。"
+description: "当已获得 arc:ip-audit 交接并需要起草结构化软著/专利申请材料时使用。"
 ---
 
 # arc:ip-docs — 专利/软著文档写作
@@ -15,6 +15,55 @@ description: "面向软件项目的知识产权申请文档写作助手。采用
 - 证据驱动的文档写作(每个技术描述可回溯到代码)
 - 结构化草稿输出(软著/专利分轨产出)
 
+## Quick Contract
+
+- **Trigger**：审查交接已就绪，需要生成软著/专利申请材料草稿。
+- **Inputs**：项目路径、`ip-audit` 交接目录、目标文档范围与申请主体信息。
+- **Outputs**：分轨草稿（`copyright/`、`patent/`）、术语对齐结果与写作日志。
+- **Quality Gate**：交付前必须通过 `## Quality Gates` 的证据可追溯与术语一致性检查。
+- **Decision Tree**：输入信号路由图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)。
+
+## Routing Matrix
+
+- 统一路由对照见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md)。
+- 阶段化上手视图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view)。
+- 单页速查见 [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md)。
+- 若出现冲突，以本技能 `## When to Use` 的**边界提示**为准。
+
+## Announce
+
+开始时明确说明：  
+“我正在使用 `arc:ip-docs`，先读取审查交接，再分轨起草软著与专利文档。”
+
+## The Iron Law
+
+```
+NO IP DRAFTING WITHOUT AUDIT HANDOFF OR TRACEABLE CODE EVIDENCE
+```
+
+没有审查交接或可追溯证据，不得输出高置信技术文档草稿。
+
+## Workflow
+
+1. 读取 `arc:ip-audit` 交接文件并建立写作上下文。
+2. 多 Agent 并发起草技术方案、实现细节与文档章节。
+3. 交叉审阅并统一术语、边界与证据引用。
+4. 分目录输出软著与专利草稿及写作日志。
+
+## Quality Gates
+
+- 每个关键技术描述都要可回溯到代码或审查交接。
+- 软著与专利材料必须物理分轨输出。
+- 术语表必须在全文保持一致。
+- 草稿必须标注“可编辑草稿”定位，避免误导为最终法律文本。
+
+## Red Flags
+
+- 跳过交接文件直接臆测技术细节。
+- 混写软著与专利内容导致结构错乱。
+- 术语漂移，同一对象多称谓。
+- 未给证据引用却输出确定性结论。
+
 ## Mandatory Linkage(不可单打独斗)
 
 1. 默认先读取 `arc:ip-audit` 产物:`handoff/ip-drafting-input.json`。
@@ -24,9 +73,9 @@ description: "面向软件项目的知识产权申请文档写作助手。采用
 
 ## When to Use
 
-- 已完成审查评估,开始准备软著/专利申请文档。
-- 需要撰写软著说明书、代码材料说明、专利技术交底书。
-- 需要形成权利要求草案和附图文字说明供代理人加工。
+- **首选触发**：已有 `arc:ip-audit` 交接，需生成可编辑申请材料草稿。
+- **典型场景**：软著说明、专利交底书、权利要求与附图文字说明撰写。
+- **边界提示**：若尚未完成可行性审查，先执行 `arc:ip-audit`。
 
 ## Input Arguments
 
@@ -42,10 +91,11 @@ description: "面向软件项目的知识产权申请文档写作助手。采用
 
 ## Dependencies
 
+* **编排契约**: 必须。遵循 `docs/orchestration-contract.md`，通过运行时适配层实现调度。
 - **arc:ip-audit**(强推荐):作为主输入。
 - **ace-tool MCP**(必须):校正文档中的技术细节与代码证据。
 - **arc:init**(推荐):复用模块索引,减少重复扫描。
-- **Task API**(必须):调度 `oracle` / `deep` / `writing` 三Agent协作。
+- **Dispatch API**(必须):调度 `oracle` / `deep` / `writing` 三Agent协作。
 
 ## Context Priority(强制)
 
@@ -69,9 +119,9 @@ description: "面向软件项目的知识产权申请文档写作助手。采用
 
 | Agent | 角色定位 | 起草内容 | 输出文件 |
 |-------|---------|---------|---------|
-| **oracle** (subagent) | 技术方案描述专家 | 架构设计、技术方案、系统流程、专利技术交底书核心部分 | `agents/oracle/technical-description.md` |
-| **deep** (category) | 实现细节专家 | 代码实现、算法细节、性能优化、技术效果量化、软著技术交底 | `agents/deep/implementation-details.md` |
-| **writing** (category) | 用户文档写作专家 | 用户手册、操作说明、功能描述、软著申请摘要、权利要求书 | `agents/writing/user-documentation.md` |
+| **oracle** (role) | 技术方案描述专家 | 架构设计、技术方案、系统流程、专利技术交底书核心部分 | `agents/oracle/technical-description.md` |
+| **deep** (lane) | 实现细节专家 | 代码实现、算法细节、性能优化、技术效果量化、软著技术交底 | `agents/deep/implementation-details.md` |
+| **writing** (lane) | 用户文档写作专家 | 用户手册、操作说明、功能描述、软著申请摘要、权利要求书 | `agents/writing/user-documentation.md` |
 
 ### 协作流程
 
@@ -144,10 +194,10 @@ python ip-docs/scripts/scaffold_drafting_case.py \
 
 ```typescript
 // Oracle: 技术方案描述
-Task(
-  subagent_type="oracle",
-  load_skills=["arc:ip-docs"],
-  run_in_background=true,
+dispatch_job(
+  role="oracle",
+  capabilities=["arc:ip-docs"],
+  execution_mode="background",
   description="Oracle起草技术方案描述",
   prompt=`
 [TASK]: 起草技术方案描述与专利技术交底书核心部分
@@ -185,10 +235,10 @@ Task(
 )
 
 // Deep: 实现细节与技术效果
-Task(
-  category="deep",
-  load_skills=["arc:ip-docs"],
-  run_in_background=true,
+dispatch_job(
+  lane="deep",
+  capabilities=["arc:ip-docs"],
+  execution_mode="background",
   description="Deep起草实现细节与技术效果",
   prompt=`
 [TASK]: 起草代码实现细节、算法描述与技术效果量化
@@ -226,10 +276,10 @@ Task(
 )
 
 // Writing: 用户文档与功能描述
-Task(
-  category="writing",
-  load_skills=["arc:ip-docs"],
-  run_in_background=true,
+dispatch_job(
+  lane="writing",
+  capabilities=["arc:ip-docs"],
+  execution_mode="background",
   description="Writing起草用户文档与功能描述",
   prompt=`
 [TASK]: 起草用户手册、操作说明与软著申请摘要
@@ -277,10 +327,10 @@ Task(
 
 ```typescript
 // Oracle审阅Deep和Writing
-Task(
-  session_id="<oracle_session_id>", // 复用Phase 2的session
-  load_skills=["arc:ip-docs"],
-  run_in_background=false,
+dispatch_job(
+  continuation_id="<oracle_continuation_id>", // 复用Phase 2的session
+  capabilities=["arc:ip-docs"],
+  execution_mode="foreground",
   description="Oracle交叉审阅Deep和Writing",
   prompt=`
 [TASK]: 审阅Deep和Writing的文档,确保技术准确性与术语一致性

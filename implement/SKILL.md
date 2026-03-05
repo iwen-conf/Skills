@@ -1,6 +1,6 @@
 ---
 name: "arc:implement"
-description: "面向软件需求的工程实现技能。消费 arc:refine/arc:deliberate 等上游产物，将方案落地为可提交代码变更，并输出实现计划、验证记录与交接报告。用于功能开发、重构落地、缺陷修复实现。"
+description: "当需求或方案已明确并需要落地代码变更、验证证据和交接产物时使用。"
 ---
 
 # arc:implement — 方案落地实现
@@ -15,6 +15,55 @@ description: "面向软件需求的工程实现技能。消费 arc:refine/arc:de
 - 实现中记录关键决策与风险
 - 实现后产出验证证据与交接摘要
 
+## Quick Contract
+
+- **Trigger**：需求/方案已清晰，需要将计划落实为可提交代码变更。
+- **Inputs**：`project_path`、`task_name`、实现目标、变更范围与验证等级。
+- **Outputs**：实现计划、代码变更、验证记录与 handoff 摘要。
+- **Quality Gate**：交接前必须通过 `## Quality Gates` 的计划先行与证据验证检查。
+- **Decision Tree**：输入信号路由图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)。
+
+## Routing Matrix
+
+- 统一路由对照见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md)。
+- 阶段化上手视图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view)。
+- 单页速查见 [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md)。
+- 若出现冲突，以本技能 `## When to Use` 的**边界提示**为准。
+
+## Announce
+
+开始时明确说明：  
+“我正在使用 `arc:implement`，先固化实现计划与验证路径，再落地代码。”
+
+## The Iron Law
+
+```
+NO CODE CHANGE WITHOUT PLAN, EVIDENCE, AND ROLLBACK
+```
+
+未明确计划、验证证据与回退策略，不得实施代码改动。
+
+## Workflow
+
+1. 消费上游需求/方案产物并建立实现简报。
+2. 生成最小实现计划，拆分可审查改动单元。
+3. 分阶段实现并同步记录关键决策与风险。
+4. 执行验证、输出交接材料并标注影响面。
+
+## Quality Gates
+
+- 必须先产出 `implementation-plan.md` 再编码。
+- 每项关键改动必须有验证命令与结果。
+- 交接摘要必须覆盖影响模块与回归关注点。
+- 失败场景必须可回退，不允许不可逆操作。
+
+## Red Flags
+
+- 跳过计划直接大规模改代码。
+- 只给“已完成”结论，没有验证证据。
+- 变更范围失控，触碰无关目录。
+- 无回退方案却改动关键路径。
+
 ## Mandatory Linkage（不可单打独斗）
 
 1. 优先读取 `arc:deliberate` 产物（若存在）作为实现输入。
@@ -24,10 +73,9 @@ description: "面向软件需求的工程实现技能。消费 arc:refine/arc:de
 
 ## When to Use
 
-- 需求已经明确，需要开始编码落地。
-- 已有方案文档，需要转成可提交代码变更。
-- 需要对现有模块进行重构并保持行为一致。
-- 缺陷已定位，需要实施修复并给出验证证据。
+- **首选触发**：需求或方案已明确，需要产出可提交代码变更。
+- **典型场景**：功能开发、重构落地、缺陷修复并附验证证据。
+- **边界提示**：需求模糊先 `arc:refine/arc:deliberate`，全面评估用 `arc:review`。
 
 ## Input Arguments
 
@@ -42,8 +90,9 @@ description: "面向软件需求的工程实现技能。消费 arc:refine/arc:de
 
 ## Dependencies
 
+- **编排契约**（推荐）：遵循 `docs/orchestration-contract.md`，通过运行时适配层分发实现与验证任务。
 - **ace-tool MCP**（必须）：定位实现入口、影响面、相关符号。
-- **Task API**（必须）：调度实现与验证任务。
+- **Dispatch API**（必须）：调度实现与验证任务。
 - **arc:deliberate**（推荐）：消费上游方案文档。
 - **arc:refine**（可选）：需求不清晰时补充上下文。
 - **Exa MCP**（可选）：查官方文档与实现参考。

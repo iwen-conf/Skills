@@ -17,7 +17,7 @@ The Conductor Pattern enables chained skill orchestration, where one skill (the 
 │  1. PLAN    ──▶  2. DELEGATE  ──▶  3. VERIFY  ──▶  4. ITERATE │
 │       │               │                  │                │
 │       ▼               ▼                  ▼                │
-│   Generate        Task()             Collect            Loop
+│   Generate     dispatch_job()        Collect            Loop
 │   Workflow        Dispatch           Results            Back
 │                                                       │
 └─────────────────────────────────────────────────────────────┘
@@ -40,7 +40,7 @@ The Conductor Pattern enables chained skill orchestration, where one skill (the 
 
 The Conductor is responsible for:
 - **Planning**: Generate a workflow with ordered steps
-- **Delegation**: Dispatch tasks to Worker skills via Task API
+- **Delegation**: Dispatch tasks to Worker skills via unified Dispatch API
 - **Verification**: Collect and validate results
 - **Iteration**: Loop back on failure or continue on success
 
@@ -114,27 +114,27 @@ workflow:
 
 ### 4. Session Continuity
 
-Workers maintain session continuity via `session_id`:
+Workers maintain session continuity via `continuation_id`:
 
 ```python
 # Step 1: Initial delegation
-result = task(
+result = dispatch_job(
     skill="arc:refine",
     prompt="...",
-    run_in_background=True
+    execution_mode="background"
 )
-session_id = result["session_id"]
+continuation_id = result["continuation_id"]
 
 # Step 2: Continue session
-result = task(
-    session_id=session_id,
+result = dispatch_job(
+    continuation_id=continuation_id,
     prompt="Continue with the enhanced prompt..."
 )
 
 # Step 3: Pass to next worker with context
-result = task(
+result = dispatch_job(
     skill="arc:implement",
-    prompt=f"Based on refinement session {session_id}..."
+    prompt=f"Based on refinement session {continuation_id}..."
 )
 ```
 
@@ -233,16 +233,16 @@ implement → test → [pass?] → done
 
 ```python
 # Start a workflow
-/arc:conductor start --workflow feature-implementation --input "Add user authentication"
+arc-runtime run arc:conductor start --workflow feature-implementation --input "Add user authentication"
 
 # Check workflow status
-/arc:conductor status <workflow-id>
+arc-runtime run arc:conductor status <workflow-id>
 
 # Resume interrupted workflow
-/arc:conductor resume <workflow-id>
+arc-runtime run arc:conductor resume <workflow-id>
 
 # Cancel workflow
-/arc:conductor cancel <workflow-id>
+arc-runtime run arc:conductor cancel <workflow-id>
 ```
 
 ### Programmatic API
@@ -294,7 +294,7 @@ for step in conductor.steps(run.id):
 
 ### Orchestration Anti-Patterns
 
-- **Orphan Sessions**: Failing to pass `session_id` between workers — breaks continuity
+- **Orphan Sessions**: Failing to pass `continuation_id` between workers — breaks continuity
 - **Infinite Loops**: No max_iterations limit — stuck forever on failures
 - **Blind Delegation**: Dispatching without verifying worker completion — lost results
 - **State Blindness**: Not persisting workflow state — can't resume after interruption

@@ -71,7 +71,7 @@ pip install -r simulate/requirements.txt
 
 ### Skill 调用接口
 
-通过 Claude Code 调用：`/arc:simulate`
+通过 Claude Code 调用：`arc-runtime run arc:simulate`
 
 输入参数（在上下文中提供）：
 - `test_objective` (required): 测试目标描述

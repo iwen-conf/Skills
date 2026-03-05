@@ -39,7 +39,7 @@ python3 cartography/scripts/cartographer.py update --root .
 
 ### Skill 调用接口
 
-通过 Claude Code 调用：`/arc:cartography`
+通过 Claude Code 调用：`arc-runtime run arc:cartography`
 
 ### CLI 接口
 

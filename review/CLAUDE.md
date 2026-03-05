@@ -29,7 +29,7 @@ arc:review 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软
 
 ### 调用方式
 
-通过 Claude Code 调用：`/arc:review`
+通过 Claude Code 调用：`arc-runtime run arc:review`
 
 输入参数：
 - `project_path` (required): 待评审项目根目录
@@ -77,7 +77,7 @@ arc:review 按企业级七维度框架（ISO/IEC 25010 + TOGAF）深度评审软
 |------|------|------|
 | ace-tool MCP | 必须 | 语义搜索项目代码结构 |
 | Exa MCP | 推荐 | 搜索最佳实践和漏洞信息 |
-| oh-my-opencode Task API | 必须 | Agent 调度（category/subagent 路由） |
+| 运行时无关编排层 Dispatch API | 必须 | Agent 调度（lane/role 路由） |
 
 ## 数据模型
 

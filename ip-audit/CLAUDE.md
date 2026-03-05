@@ -44,33 +44,33 @@
 
 ```typescript
 // Phase 2: 并发启动三Agent
-Task(
-  subagent_type="oracle",
-  load_skills=["arc:ip-audit"],
-  run_in_background=true,
+dispatch_job(
+  role="oracle",
+  capabilities=["arc:ip-audit"],
+  execution_mode="background",
   description="Oracle评估技术创新性与专利可行性",
   prompt="..."
 )
-Task(
-  category="deep",
-  load_skills=["arc:ip-audit"],
-  run_in_background=true,
+dispatch_job(
+  lane="deep",
+  capabilities=["arc:ip-audit"],
+  execution_mode="background",
   description="Deep评估代码完整性与软著可行性",
   prompt="..."
 )
-Task(
-  category="writing",
-  load_skills=["arc:ip-audit"],
-  run_in_background=true,
+dispatch_job(
+  lane="writing",
+  capabilities=["arc:ip-audit"],
+  execution_mode="background",
   description="Writing评估文档完备性与申请准备度",
   prompt="..."
 )
 
-// Phase 3: 交叉反驳(复用session_id)
-Task(
-  session_id="<oracle_session_id>",
-  load_skills=["arc:ip-audit"],
-  run_in_background=false,
+// Phase 3: 交叉反驳(复用continuation_id)
+dispatch_job(
+  continuation_id="<oracle_continuation_id>",
+  capabilities=["arc:ip-audit"],
+  execution_mode="foreground",
   description="Oracle交叉反驳Deep和Momus",
   prompt="..."
 )

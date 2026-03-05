@@ -74,7 +74,7 @@ python loop/scripts/uxloop_cleanup.py --session uxloop --window svc --kill-sessi
 
 ### Skill 调用接口
 
-通过 Claude Code 调用：`/arc:loop`
+通过 Claude Code 调用：`arc-runtime run arc:loop`
 
 输入参数：
 - `config_path` (required): 配置文件路径

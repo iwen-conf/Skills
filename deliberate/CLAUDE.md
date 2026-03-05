@@ -28,7 +28,7 @@ arc:deliberate 通过共享文件系统协调 oracle、deep、visual-engineering
 
 ### 调用方式
 
-通过 Claude Code 调用：`/arc:deliberate`
+通过 Claude Code 调用：`arc-runtime run arc:deliberate`
 
 输入参数：
 - `task_name` (required): 任务名称，用于目录命名
@@ -113,7 +113,7 @@ arc:deliberate 通过共享文件系统协调 oracle、deep、visual-engineering
 |------|------|------|
 | ace-tool MCP | 必须 | 搜索项目代码结构 |
 | Exa MCP | 推荐 | 搜索最佳实践和技术文档 |
-| oh-my-opencode Task API | 必须 | Agent 调度（category/subagent 路由） |
+| 运行时无关编排层 Dispatch API | 必须 | Agent 调度（lane/role 路由） |
 | openspec CLI | 必须 | 结构化计划生成 |
 
 ## 数据模型
@@ -236,14 +236,14 @@ graph TD
 ## 注意事项
 
 1. **Agent 调用方式**：
-   - oracle: `Task(subagent_type="oracle", load_skills=["arc:deliberate"], run_in_background=true)`
-   - deep: `Task(category="deep", load_skills=["arc:deliberate"], run_in_background=true)`
-   - visual-engineering: `Task(category="visual-engineering", load_skills=["arc:deliberate", "frontend-ui-ux"], run_in_background=true)`
-   - visual: `Task(category="visual-engineering", load_skills=["frontend-ui-ux"], run_in_background=true)`
+   - oracle: `dispatch_job(role="oracle", capabilities=["arc:deliberate"], execution_mode="background")`
+   - deep: `dispatch_job(lane="deep", capabilities=["arc:deliberate"], execution_mode="background")`
+   - visual-engineering: `dispatch_job(lane="visual-engineering", capabilities=["arc:deliberate", "frontend-ui-ux"], execution_mode="background")`
+   - visual: `dispatch_job(lane="visual-engineering", capabilities=["frontend-ui-ux"], execution_mode="background")`
 
 2. **并发执行**：
    - 各Agent必须在同一消息中并发发起
-   - 使用 `run_in_background: true`
+   - 使用 `execution_mode: "background"`
 
 3. **OpenSpec 工作流**：
    - 必须按 `proposal → specs → design → tasks` 顺序生成

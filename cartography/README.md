@@ -14,13 +14,13 @@ arc:cartography helps orchestrators map and understand codebases by:
 
 ```bash
 # Initialize mapping
-python3 cartographer.py init --root /repo --include "src/**/*.ts" --exclude "node_modules/**"
+python3 <skills_root>/cartography/scripts/cartographer.py init --root /repo --include "src/**/*.ts" --exclude "node_modules/**"
 
 # Check what changed
-python3 cartographer.py changes --root /repo
+python3 <skills_root>/cartography/scripts/cartographer.py changes --root /repo
 
 # Update hashes
-python3 cartographer.py update --root /repo
+python3 <skills_root>/cartography/scripts/cartographer.py update --root /repo
 ```
 
 ## Outputs
@@ -54,4 +54,4 @@ Empty templates created in each folder for explorers to fill with:
 
 ## Installation
 
-Installed automatically via oh-my-opencode-slim installer when custom skills are enabled.
+将本技能目录放入你的技能根目录（例如 `<skills_root>/cartography/`），并确保运行时可访问 `scripts/cartographer.py`。

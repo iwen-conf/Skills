@@ -1,11 +1,67 @@
 ---
 name: "arc:simulate"
-description: 模拟真实用户操作无头浏览器，执行端到端(E2E)业务流测试。支持跨账号切换、UI交互验证及Docker数据校验。 
-version: 1.1.0
+description: "当需要按真实用户路径执行 E2E 验证并沉淀 UI 证据工件时使用。"
 ---
 # **UI/UX Simulation & E2E Testing**
 
+## Overview
+
 本 Skill 赋予 Agent "高级自动化测试工程师" 的能力。Agent 将使用 agent-browser 二进制工具，模拟真实人类用户的思维逻辑与操作习惯，执行高保真的业务流闭环测试。
+
+## Quick Contract
+
+- **Trigger**：需要按真实用户路径验证端到端业务流并留存 UI 证据。
+- **Inputs**：`test_objective`、`personas`、`target_url`、可选验证与输出参数。
+- **Outputs**：`report.md`、`action-log`、`screenshot-manifest`、`screenshots/` 与账号文件。
+- **Quality Gate**：结果宣告前必须通过 `## Quality Gates` 的工件完整性与格式检查。
+- **Decision Tree**：输入信号路由图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)。
+
+## Routing Matrix
+
+- 统一路由对照见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md)。
+- 阶段化上手视图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view)。
+- 单页速查见 [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md)。
+- 若出现冲突，以本技能 `## When to Use` 的**边界提示**为准。
+
+## Announce
+
+开始时明确说明：  
+“我正在使用 `arc:simulate`，将按真实用户路径执行 E2E 并沉淀可审计证据。”
+
+## The Iron Law
+
+```
+NO E2E PASS CLAIM WITHOUT UI EVIDENCE AND ARTIFACT INTEGRITY
+```
+
+没有 UI 证据与工件完整性校验，不得宣称通过。
+
+## Workflow
+
+1. 获取测试目标、账号角色与运行参数并建档。
+2. 按 UI 操作路径执行业务流并记录事件与截图。
+3. 汇总报告、校验工件完整性与 Markdown 格式。
+4. 输出 PASS/FAIL 证据，必要时回流 `arc:triage`。
+
+## Quality Gates
+
+- 每次运行必须产出 `run_id` 与标准化工件目录。
+- 报告中的失败步骤必须能映射到截图/日志证据。
+- 账号与会话切换必须符合会话隔离规则。
+- 所有 Markdown 产物必须通过格式校验。
+
+## Red Flags
+
+- 通过 API/脚本绕过 UI 操作链路。
+- 报告结论与截图/事件记录不一致。
+- 缺少 `accounts.jsonc` 或关键工件仍继续交付。
+- 在未授权情况下执行写操作数据库变更。
+
+## When to Use
+
+- **首选触发**：需要按真实用户路径做 E2E 验证并沉淀 UI 证据。
+- **典型场景**：跨账号/跨角色流程、关键状态流转与截图取证。
+- **边界提示**：失败根因定位与修复请转 `arc:triage`。
 
 ## Context Budget（避免 Request too large）
 
@@ -195,7 +251,7 @@ version: 1.1.0
 
 1. **立即修复**（推荐）：
    ```bash
-   /arc:init --project-path <project-path>
+   arc-runtime run arc:init --project-path <project-path>
    ```
 
 2. **手动修复**：

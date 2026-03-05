@@ -1,10 +1,6 @@
 ---
 name: arc:estimate
-description: Work estimation skill using round-based estimation with risk calibration
-version: 1.0.0
-producer_skill: "arc:estimate"
-refresh_skill: "arc:estimate"
-consumers: []
+description: "当范围基本明确且需要工时区间、风险校准和并行波次排期时使用。"
 ---
 
 # arc:estimate Skill
@@ -20,10 +16,65 @@ arc:estimate provides structured work estimation for software development tasks:
 - **Wave Planning**: Group modules into parallel-executable batches
 - **Risk Calibration**: Apply multipliers based on uncertainty (1.0–2.0x)
 
+## Quick Contract
+
+- **Trigger**：需求已相对明确，需要排期、资源分配或风险缓冲建议。
+- **Inputs**：任务描述、模块边界、依赖关系、历史校准样本（如有）。
+- **Outputs**：round/module/wave 估算、风险校准结果、关键路径与区间工时。
+- **Quality Gate**：对外承诺前必须通过 `## Quality Gates` 的可解释性与可追溯性检查。
+- **Decision Tree**：输入信号路由图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)。
+
+## Routing Matrix
+
+- 统一路由对照见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md)。
+- 阶段化上手视图见 [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view)。
+- 单页速查见 [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md)。
+- 若出现冲突，以本技能 `## When to Use` 的**边界提示**为准。
+
+## Announce
+
+开始时明确说明：  
+“我正在使用 `arc:estimate`，先做范围拆解、风险校准，再给区间估算。”
+
+## The Iron Law
+
+```
+NO ESTIMATE WITHOUT SCOPE, RISK, AND ASSUMPTION TRACEABILITY
+```
+
+没有范围、风险与假设链路，不得输出可承诺工期。
+
+## Workflow
+
+1. 拆解任务为模块与 round 原子单元。
+2. 逐模块评估不确定性并应用风险系数。
+3. 依据依赖关系生成并行 wave 与关键路径。
+4. 输出区间估算、校准依据与缓冲建议。
+
+## Quality Gates
+
+- 每个模块都要有可解释的 round 组成。
+- 风险系数必须对应明确触发条件。
+- 波次划分必须有依赖依据，不可拍脑袋。
+- 结果必须给出基线值与校准后值。
+
+## Red Flags
+
+- 直接给单点时长、无区间与假设。
+- 把未知项按“低风险”默认处理。
+- 忽略并行依赖导致排期失真。
+- 无历史校准样本却给高置信承诺。
+
+## When to Use
+
+- **首选触发**：需求已明确，需要工时区间、资源排期与风险缓冲。
+- **典型场景**：并行波次规划、关键路径识别、里程碑承诺校准。
+- **边界提示**：需求不清先 `arc:refine`；需要编码落地用 `arc:implement`。
+
 ## Invocation
 
 ```bash
-/arc:estimate [--calibrate] [--waves] [--json]
+arc-runtime run arc:estimate [--calibrate] [--waves] [--json]
 ```
 
 ### Arguments
@@ -197,7 +248,7 @@ Use known tasks to calibrate estimates:
 ### Example 1: Simple Feature
 
 ```bash
-/arc:estimate
+arc-runtime run arc:estimate
 
 # Task: Add --verbose flag to CLI
 
@@ -213,7 +264,7 @@ Total: 8 rounds × 1.0 = 8 rounds (24 min)
 ### Example 2: Complex Feature
 
 ```bash
-/arc:estimate --waves
+arc-runtime run arc:estimate --waves
 
 # Task: Implement user authentication with OAuth
 
