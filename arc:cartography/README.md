@@ -8,7 +8,7 @@ arc:cartography helps orchestrators map and understand codebases by:
 
 1. Selecting relevant code/config files using LLM judgment
 2. Creating `.slim/cartography.json` for change tracking
-3. Generating empty `codemap.md` templates for explorers to fill in
+3. Generating empty `codemap.md` templates for searchrs to fill in
 
 ## Commands
 
@@ -46,7 +46,7 @@ python3 <skills_root>/arc:cartography/scripts/cartographer.py update --root /rep
 
 ### codemap.md (per folder)
 
-Empty templates created in each folder for explorers to fill with:
+Empty templates created in each folder for searchrs to fill with:
 - Responsibility
 - Design patterns
 - Data/control flow

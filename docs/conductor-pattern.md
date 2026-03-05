@@ -114,27 +114,27 @@ workflow:
 
 ### 4. Session Continuity
 
-Workers maintain session continuity via `session_ref`:
+Workers maintain session continuity via `task_ref`:
 
 ```python
 # Step 1: Initial delegation
 result = schedule_task(
     skill="arc:clarify",
     prompt="...",
-    run_mode="background"
+    execution_mode="background"
 )
-session_ref = result["session_ref"]
+task_ref = result["task_ref"]
 
 # Step 2: Continue session
 result = schedule_task(
-    session_ref=session_ref,
+    task_ref=task_ref,
     prompt="Continue with the enhanced prompt..."
 )
 
 # Step 3: Pass to next worker with context
 result = schedule_task(
     skill="arc:build",
-    prompt=f"Based on refinement session {session_ref}..."
+    prompt=f"Based on refinement session {task_ref}..."
 )
 ```
 
@@ -294,7 +294,7 @@ for step in conductor.steps(run.id):
 
 ### Orchestration Anti-Patterns
 
-- **Orphan Sessions**: Failing to pass `session_ref` between workers — breaks continuity
+- **Orphan Sessions**: Failing to pass `task_ref` between workers — breaks continuity
 - **Infinite Loops**: No max_iterations limit — stuck forever on failures
 - **Blind Delegation**: Dispatching without verifying worker completion — lost results
 - **State Blindness**: Not persisting workflow state — can't resume after interruption

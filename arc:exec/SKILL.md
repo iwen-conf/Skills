@@ -11,7 +11,7 @@ description: "不知道该用哪个 skill 时先用它：自动理解需求、�
 
 1. **Requirements Understanding**: Analyze the user's natural language description and understand the true intention based on the project context.
 2. **Skill routing**: Match the most suitable `arc:` skill (or skill combination)
-3. **Multi-Agent Scheduling**: Allocate specific work to appropriate lane/role execution in the runtime-independent Agent system
+3. **Multi-Agent Scheduling**: Allocate specific work to appropriate capability profile execution in the runtime-independent Agent system
 4. **Result Integration**: Collect the output of each Agent, resolve conflicts, and present the final results
 
 It is suitable for scenarios where users are not sure which skill to use, need to combine multiple skills, or directly assign development tasks.
@@ -20,7 +20,7 @@ It is suitable for scenarios where users are not sure which skill to use, need t
 
 - **Trigger**: The requirements are vague, span multiple skills, or the user only gives the target without specifying the execution path.
 - **Inputs**: `task_description`, `workdir`, optional `preferred_skill` and execution control parameters.
-- **Outputs**: Routing decisions, dispatch records (lane/role/capabilities), aggregation results and subsequent recommendations.
+- **Outputs**: Routing decisions, dispatch records (capability profile/capabilities), aggregation results and subsequent recommendations.
 - **Quality Gate**: The routing and traceability check of `## Quality Gates` must be passed before downstream execution.
 - **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
 
@@ -48,8 +48,8 @@ Before all actions are performed, routing decisions must be completed and `capab
 ## Workflow
 
 1. Analyze requirements and constraints, and determine single Skill or multi-Skill combination paths.
-2. Select lane/role and `capabilities` to form an executable scheduling plan.
-3. Execute through `schedule_task()` and trace `session_ref`.
+2. Select capability profile and `capabilities` to form an executable scheduling plan.
+3. Execute through `schedule_task()` and trace `task_ref`.
 4. Aggregate multi-Agent results, handle conflicts and output unified conclusions.
 
 ## Quality Gates
@@ -88,7 +88,7 @@ Before all actions are performed, routing decisions must be completed and `capab
 * **Organization Contract**: Required. Following `docs/orchestration-contract.md`, scheduling is implemented through the runtime adaptation layer.
 * **ace-tool (MCP)**: Required. Semantically search project code structure and understand project context.
 * **Exa MCP**: Recommended. Search external technical information to aid in requirements understanding.
-* **Unified scheduling interface**: Required. Call lane/role through `schedule_task()` to perform all tasks.
+* **Unified scheduling interface**: Required. Call capability profile through `schedule_task()` to perform all tasks.
 * **All arc: skills**: routing targets, need to be executed according to their respective SKILL.md.
 
 ## schedule_task() API reference
@@ -97,19 +97,19 @@ Unified Agent scheduling interface, all task dispatching is completed through th
 
 ```
 schedule_task(
-workstream="<lane>", // Model selection for domain optimization
+capability_profile="<lane>", // Model selection for domain optimization
 capabilities=["skill1", ...], // Skills equipped for Agent
 description="<short desc>", // Short description of the task
 prompt="<detailed prompt>", // Detailed task instructions
-run_mode="<background|foreground>" //Background concurrency or foreground synchronization
+execution_mode="<background|foreground>" //Background concurrency or foreground synchronization
 )
 // Or use a dedicated role
 schedule_task(
-specialist="<agent>", //Specialized Agent type
+capability_profile="<agent>", //Specialized Agent type
   capabilities=["skill1", ...],
   description="<short desc>",
   prompt="<detailed prompt>",
-  run_mode="<background|foreground>"
+  execution_mode="<background|foreground>"
 )
 ```
 
@@ -118,34 +118,34 @@ specialist="<agent>", //Specialized Agent type
 **`capabilities` is a required parameter** that is used to equip the Agent with the context and capabilities of the relevant skills:
 
 ```typescript
-// ✅ Correct: Use prometheus for demand planning
+// ✅ Correct: Use planning for demand planning
 schedule_task({
-  specialist: "prometheus",
+  capability_profile: "planning",
   capabilities: ["arc:decide"],
 prompt: "Analyze requirements and generate execution plans..."
 })
 
-// ❌ Error: Use momus for plan review (should use metis)
+// ❌ Error: Use review for plan review (should use review)
 schedule_task({
-  specialist: "momus",
+  capability_profile: "review",
 prompt: "Review this execution plan..."
-}) // → should use metis or prometheus
+}) // → should use review or planning
 ```
 
 **capabilities selection rules**:
 - When calling the Agent inside arc: skills, the corresponding skill must be equipped: `capabilities=["arc:init"]`
 - Front-end tasks use: `capabilities=["frontend-ui-ux"]` or `capabilities=["playwright"]`
-- Common tasks (explore/librarian) use: `capabilities=[]`
+- Common tasks (search/research) use: `capabilities=[]`
 - Multiple skills can be equipped: `capabilities=["arc:decide", "frontend-ui-ux"]`
 
 
-Each call to `schedule_task()` returns `session_ref`, and the conversation can be continued through `session_ref="<id>"` for multiple rounds.
+Each call to `schedule_task()` returns `task_ref`, and the conversation can be continued through `task_ref="<id>"` for multiple rounds.
 
 ### Available Lanes (realm routing)
 
 | Lane | Applicable scenarios |
 |----------|---------|
-| `visual-engineering` | Front-end, UI/UX, design, style, animation |
+| `ui` | Front-end, UI/UX, design, style, animation |
 | `ultrabrain` | Difficult logic-intensive tasks |
 | `deep` | Goal-oriented independent problem solving and in-depth research |
 | `artistry` | Creative problem solving beyond standard models |
@@ -158,16 +158,16 @@ Each call to `schedule_task()` returns `session_ref`, and the conversation can b
 
 | Role | characteristic | Applicable scenarios |
 |----------|------|---------|
-| `explore` | Cheap, backstage | Code base contextual search, grep analysis |
-| `librarian` | Cheap, backstage | External documentation/OSS search |
-| `oracle` | Expensive, read-only | High IQ architecture consulting, system deduction, trade-off strategies |
-| `prometheus` | expensive | Macro planning, demand disassembly, demand clarification, dependency mapping |
-| `metis` | expensive | Pre-planning analysis, algorithm vulnerability detection, ambiguity detection |
-| `momus` | expensive | Plan Review (review the plan for Prometheus, returns OKAY/NEEDS_REVISION) |
+| `search` | Cheap, backstage | Code base contextual search, grep analysis |
+| `research` | Cheap, backstage | External documentation/OSS search |
+| `architecture` | Expensive, read-only | High IQ architecture consulting, system deduction, trade-off strategies |
+| `planning` | expensive | Macro planning, demand disassembly, demand clarification, dependency mapping |
+| `review` | expensive | Pre-planning analysis, algorithm vulnerability detection, ambiguity detection |
+| `review` | expensive | Plan Review (review the plan for Planning, returns OKAY/NEEDS_REVISION) |
 | `sisyphus-junior` | cheap | Lightweight task execution, simple single file modification |
 | `multimodal-looker` | cheap | Analyze design drawings, convert images to components, and CSS layout analysis |
 
-> **Note**: Hephaestus and Atlas are **primary mode** Agents, not called through `role`, but routed through `lane` (such as `workstream="ultrabrain"` corresponding to Hephaestus' capabilities).
+> **Note**: Hephaestus and Atlas are **primary mode** Agents, not called through `capability_profile`, but routed through `capability_profile` (such as `capability_profile="ultrabrain"` corresponding to Hephaestus' capabilities).
 
 ### Available Skills (capabilities parameter)
 
@@ -221,36 +221,36 @@ User needs
 │   └── arc:retest
 │
 ├── Pure back-end development tasks (API, database, algorithm, CLI)
-│   └── schedule_task(workstream="deep", capabilities=[], ...)
+│   └── schedule_task(capability_profile="deep", capabilities=[], ...)
 │
 ├── Pure front-end development tasks (UI, components, styles, interactions)
-│   └── schedule_task(workstream="visual-engineering", capabilities=["frontend-ui-ux", "playwright"], ...)
+│   └── schedule_task(capability_profile="ui", capabilities=["frontend-ui-ux", "playwright"], ...)
 │
 ├── Architecture design/technical decision-making consulting
-│   └── schedule_task(specialist="oracle", capabilities=["arc:decide"], ...)
+│   └── schedule_task(capability_profile="architecture", capabilities=["arc:decide"], ...)
 │
 ├── The requirements are vague and need clarification
-│   └── schedule_task(specialist="prometheus", capabilities=["arc:clarify"], ...)
+│   └── schedule_task(capability_profile="planning", capabilities=["arc:clarify"], ...)
 │
 ├── Plan needs review
-│   └── schedule_task(specialist="metis", capabilities=["arc:decide"], ...)
+│   └── schedule_task(capability_profile="review", capabilities=["arc:decide"], ...)
 │
 ├── Code exploration/search
-│   └── schedule_task(specialist="explore", capabilities=[], run_mode="background", ...)
+│   └── schedule_task(capability_profile="search", capabilities=[], execution_mode="background", ...)
 │
 ├── Documentation/external library query
-│   └── schedule_task(specialist="librarian", capabilities=[], run_mode="background", ...)
+│   └── schedule_task(capability_profile="research", capabilities=[], execution_mode="background", ...)
 │
 ├── Simple repair / single file change
-│   └── schedule_task(workstream="quick", capabilities=[], ...)
+│   └── schedule_task(capability_profile="quick", capabilities=[], ...)
 │
 ├──Complex puzzles/highly difficult logic
-│   └── schedule_task(workstream="ultrabrain", capabilities=[], ...)
+│   └── schedule_task(capability_profile="ultrabrain", capabilities=[], ...)
 │
 └──Full stack/Hybrid/Uncertain
 └── Split into multiple schedule_task() parallels:
-├── schedule_task(workstream="deep", capabilities=[], ...) // Backend part
-└── schedule_task(workstream="visual-engineering", capabilities=["frontend-ui-ux"], ...) // Front-end part
+├── schedule_task(capability_profile="deep", capabilities=[], ...) // Backend part
+└── schedule_task(capability_profile="ui", capabilities=["frontend-ui-ux"], ...) // Front-end part
 ```
 
 ### Routing decision elements
@@ -287,11 +287,11 @@ User needs
    - The core process of the target skill must not be skipped; cross-skills are only allowed to reuse products and trigger refresh reflow through shared context indexes.
 
 4. **Agent selection is based on evidence**
-   - Backend tasks (Go, Rust, Python, database, API, algorithms) → `schedule_task(workstream="deep", capabilities=[], ...)`
-   - Front-end tasks (React, Vue, SolidJS, CSS, components, interaction) → `schedule_task(workstream="visual-engineering", capabilities=["frontend-ui-ux"], ...)`
-   - Architecture design, comprehensive analysis → `schedule_task(specialist="oracle", capabilities=["arc:decide"], ...)`
-   - Requirements ambiguity analysis → `schedule_task(specialist="prometheus", capabilities=["arc:clarify"], ...)`
-   - Program Quality Review → `schedule_task(specialist="metis", capabilities=["arc:decide"], ...)`
+   - Backend tasks (Go, Rust, Python, database, API, algorithms) → `schedule_task(capability_profile="deep", capabilities=[], ...)`
+   - Front-end tasks (React, Vue, SolidJS, CSS, components, interaction) → `schedule_task(capability_profile="ui", capabilities=["frontend-ui-ux"], ...)`
+   - Architecture design, comprehensive analysis → `schedule_task(capability_profile="architecture", capabilities=["arc:decide"], ...)`
+   - Requirements ambiguity analysis → `schedule_task(capability_profile="planning", capabilities=["arc:clarify"], ...)`
+   - Program Quality Review → `schedule_task(capability_profile="review", capabilities=["arc:decide"], ...)`
    - Full stack task → dispatch multiple schedule_task() concurrently after splitting
 
 5. **Record scheduling decisions**
@@ -376,7 +376,7 @@ Write `.arc/exec/dispatch-log.md`:
 ## routing decisions
 - **Match Skill**: <skill_name> or "direct dispatch"
 - **Match reason**: <reasoning>
-- **Dispatch Agent**: <lane/role and capabilities>
+- **Dispatch Agent**: <capability profile and capabilities>
 ```
 
 ### Phase 2.5: Execution Preview
@@ -394,7 +394,7 @@ Based on the routing results, a detailed operation preview is generated:
 
 ## Scheduling decisions
 - **Match Skill**: <skill_name> or "direct dispatch"
-- **Dispatch Agent**: <lane/role list>
+- **Dispatch Agent**: <capability profile list>
 
 ## Plan operations
 | serial number | operate | Target | Influence |
@@ -471,26 +471,26 @@ For full stack/hybrid tasks, split into independent subtasks:
 
 | Subtask type | Assign Agent | schedule_task() parameters |
 |-----------|-----------|------------|
-| Backend logic (API, database, middleware) | deep | `workstream="deep"` |
-| Front-end interface (components, pages, styles) | visual-engineering | `workstream="visual-engineering", capabilities=["frontend-ui-ux"]` |
-| Architectural design, technical solutions | oracle | `specialist="oracle"` |
-| Requirements ambiguity analysis | prometheus | `specialist="prometheus"` |
-| Plan generation and review | prometheus/metis | `specialist="prometheus"` or `specialist="metis"` |
-| Code base exploration | explore | `specialist="explore", run_mode="background"` |
-| External document query | librarian | `specialist="librarian", run_mode="background"` |
-| simple fix | quick | `workstream="quick"` |
-| Highly difficult logic | ultrabrain | `workstream="ultrabrain"` |
+| Backend logic (API, database, middleware) | deep | `capability_profile="deep"` |
+| Front-end interface (components, pages, styles) | ui | `capability_profile="ui", capabilities=["frontend-ui-ux"]` |
+| Architectural design, technical solutions | architecture | `capability_profile="architecture"` |
+| Requirements ambiguity analysis | planning | `capability_profile="planning"` |
+| Plan generation and review | planning/review | `capability_profile="planning"` or `capability_profile="review"` |
+| Code base exploration | search | `capability_profile="search", execution_mode="background"` |
+| External document query | research | `capability_profile="research", execution_mode="background"` |
+| simple fix | quick | `capability_profile="quick"` |
+| Highly difficult logic | ultrabrain | `capability_profile="ultrabrain"` |
 
 #### Step 3.2: Concurrent scheduling
 
-Initiate all independent subtasks concurrently in the same message (`run_mode="background"`).
+Initiate all independent subtasks concurrently in the same message (`execution_mode="background"`).
 
 **Backend task scheduling example**:
 ```
 schedule_task(
-  workstream="deep",
+  capability_profile="deep",
 description="Implementing backend API endpoints",
-  run_mode="background",
+  execution_mode="background",
 prompt="You are a backend engineer.
 
 Task: <Backend subtask description>
@@ -509,10 +509,10 @@ Require:
 **Front-end task scheduling example**:
 ```
 schedule_task(
-  workstream="visual-engineering",
+  capability_profile="ui",
   capabilities=["frontend-ui-ux", "playwright"],
 description="Implementing front-end UI components",
-  run_mode="background",
+  execution_mode="background",
 prompt="You are a front-end engineer.
 
 Task: <Front-end subtask description>
@@ -531,9 +531,9 @@ Require:
 **Architecture Consulting Scheduling Example**:
 ```
 schedule_task(
-  specialist="oracle",
+  capability_profile="architecture",
 description="Architectural solution evaluation",
-  run_mode="background",
+  execution_mode="background",
 prompt="You are the architect.
 
 Task: <Architecture/Design Subtask Description>
@@ -552,9 +552,9 @@ Require:
 **Code Exploration Scheduling Example**:
 ```
 schedule_task(
-  specialist="explore",
+  capability_profile="search",
 description="Search related code context",
-  run_mode="background",
+  execution_mode="background",
 prompt="Search the project for code related to <topic> to find:
 1. Related file paths
 2. Key function/class definition
@@ -564,7 +564,7 @@ prompt="Search the project for code related to <topic> to find:
 
 #### Step 3.3: Wait for completion
 
-Wait for all background tasks to be completed and collect the output results of each Agent through `session_ref`.
+Wait for all background tasks to be completed and collect the output results of each Agent through `task_ref`.
 
 ### Phase 4: Results integration
 
@@ -572,14 +572,14 @@ Wait for all background tasks to be completed and collect the output results of 
 
 #### Step 4.1: Collect output
 
-Read the output files or execution results of all Agents through the `session_ref` returned by each schedule_task().
+Read the output files or execution results of all Agents through the `task_ref` returned by each schedule_task().
 
 #### Step 4.2: Conflict detection
 
 Check for conflicts between multiple Agent outputs (such as different modifications to the same file).
 
 - **No conflict** → merge directly
-- **Conflict** → The main process decides and chooses a more reasonable solution; if necessary, call `schedule_task(specialist="momus", ...)` for code conflict review
+- **Conflict** → The main process decides and chooses a more reasonable solution; if necessary, call `schedule_task(capability_profile="review", ...)` for code conflict review
 
 #### Step 4.3: Result presentation
 
@@ -610,7 +610,7 @@ Show users:
 |------|------|
 | Agent task timeout > 10min | AskUserQuestion asks whether to continue waiting or split into smaller tasks |
 | The requirement cannot match any skill | Processed as a general development task, dispatched by field schedule_task() |
-| Multiple Agent output conflicts | The main process adjudicates, or calls `schedule_task(specialist="momus", ...)` for code conflict review |
+| Multiple Agent output conflicts | The main process adjudicates, or calls `schedule_task(capability_profile="review", ...)` for code conflict review |
 | dry-run mode | Exit directly after outputting the preview without performing any operations. |
 | User cancels confirmation | Output cancellation information and clean up the created snapshots |
 | Execution failed (snapshot mode) | Automatically roll back to snapshot state and record rollback log |
@@ -627,7 +627,7 @@ Show users:
 └── Task type: <type>
 
 === Phase 2: Skill Routing ===
-└── Match: <skill_name> / direct dispatch schedule_task(<lane/role>)
+└── Match: <skill_name> / direct dispatch schedule_task(<capability profile>)
 
 === Phase 2.5: Execution Preview ===
 ├── Generate operation list... [Complete]
@@ -636,9 +636,9 @@ Show users:
 └── dry-run mode... [No/Yes-Exit]
 
 === Phase 3: Execution ===
-├── schedule_task(workstream="deep") backend task... [Complete]
-├── schedule_task(workstream="visual-engineering") Front-end task... [Complete]
-└── schedule_task(specialist="oracle") Architecture task... [Complete]
+├── schedule_task(capability_profile="deep") backend task... [Complete]
+├── schedule_task(capability_profile="ui") Front-end task... [Complete]
+└── schedule_task(capability_profile="architecture") Architecture task... [Complete]
 
 === Phase 4: Results Integration ===
 └── Output: <summary>
@@ -658,15 +658,15 @@ Show users:
 
 | scene | schedule_task() calling method | Concurrency support |
 |------|---------------|---------|
-| backend development | `schedule_task(workstream="deep", run_mode="background", ...)` | Background concurrency |
-| Front-end development | `schedule_task(workstream="visual-engineering", capabilities=["frontend-ui-ux"], run_mode="background", ...)` | Background concurrency |
-| Architecture consulting | `schedule_task(specialist="oracle", run_mode="background", ...)` | Background concurrency |
-| Requirements clarification | `schedule_task(specialist="prometheus", ...)` | synchronous |
-| plan review | `schedule_task(specialist="metis", ...)` | synchronous |
-| Code exploration | `schedule_task(specialist="explore", run_mode="background", ...)` | Background concurrency |
-| Document query | `schedule_task(specialist="librarian", run_mode="background", ...)` | Background concurrency |
-| simple fix | `schedule_task(workstream="quick", run_mode="background", ...)` | Background concurrency |
-| complex puzzle | `schedule_task(workstream="ultrabrain", run_mode="background", ...)` | Background concurrency |
+| backend development | `schedule_task(capability_profile="deep", execution_mode="background", ...)` | Background concurrency |
+| Front-end development | `schedule_task(capability_profile="ui", capabilities=["frontend-ui-ux"], execution_mode="background", ...)` | Background concurrency |
+| Architecture consulting | `schedule_task(capability_profile="architecture", execution_mode="background", ...)` | Background concurrency |
+| Requirements clarification | `schedule_task(capability_profile="planning", ...)` | synchronous |
+| plan review | `schedule_task(capability_profile="review", ...)` | synchronous |
+| Code exploration | `schedule_task(capability_profile="search", execution_mode="background", ...)` | Background concurrency |
+| Document query | `schedule_task(capability_profile="research", execution_mode="background", ...)` | Background concurrency |
+| simple fix | `schedule_task(capability_profile="quick", execution_mode="background", ...)` | Background concurrency |
+| complex puzzle | `schedule_task(capability_profile="ultrabrain", execution_mode="background", ...)` | Background concurrency |
 | Results integration/adjudication | The main process handles it directly | — |
 ## Anti-Patterns
 
@@ -675,15 +675,15 @@ Show users:
 ### Dispatcher Anti-Patterns
 
 - **Shotgun Dispatch**: Spawning 5+ agents without clear task boundaries — causes context thrashing and duplicated work
-- **Blocking on Explore**: Using `run_mode="foreground"` with explore/librarian agents — always use background mode
+- **Blocking on Search**: Using `execution_mode="foreground"` with search/research agents — always use background mode
 - **Sequential Spawning**: Launching agents one-by-one when tasks are independent — parallelize aggressively
-- **Orphaned Sessions**: Failing to continue with `session_ref` after delegation — wastes prior context
+- **Orphaned Sessions**: Failing to continue with `task_ref` after delegation — wastes prior context
 
 ### Routing Anti-Patterns
 
-- **Category Mismatch**: Sending UI work to `deep` instead of `visual-engineering` — wrong model for the task
+- **Category Mismatch**: Sending UI work to `deep` instead of `ui` — wrong model for the task
 - **Skill Ommission**: Using `capabilities=[]` when relevant skills exist — always check available skills first
-- **Oracle Skip**: Delivering final answer before collecting Oracle result when Oracle was launched — MUST collect first
+- **Architecture Skip**: Delivering final answer before collecting Architecture result when Architecture was launched — MUST collect first
 
 ### Context Anti-Patterns
 

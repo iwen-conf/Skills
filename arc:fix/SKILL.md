@@ -323,4 +323,4 @@ Note: arc:e2e allows clear text recording of account numbers/passwords; therefor
 - **Premature PASS**: Declaring fix complete before re-running failed test — must verify
 - **Partial Verification**: Only testing the fixed path, not related paths — regression risk
 - **Context Skip**: Not reading `.arc/arc:e2e/` failure report before triage — missing context
-- **Session Waste**: Starting fresh instead of continuing with `session_ref` — loses diagnosis progress
+- **Session Waste**: Starting fresh instead of continuing with `task_ref` — loses diagnosis progress

@@ -99,7 +99,7 @@ No incremental writes are allowed without evidence of fingerprint differences.
 
 * **Organization Contract**: Required. Following `docs/orchestration-contract.md`, scheduling is implemented through the runtime adaptation layer.
 * **ace-tool (MCP)**: Required. Semantic search project code structure.
-* **Unified scheduling interface**: Required. Schedule oracle/deep/visual-engineering Agent.
+* **Unified scheduling interface**: Required. Schedule architecture/deep/ui Agent.
 * **Git**: required. Change detection relies on git commands.
 
 ## Critical Rules
@@ -119,7 +119,7 @@ No incremental writes are allowed without evidence of fingerprint differences.
 
 4. **Agent reduction**
  - ADDED Module: Complete 3 Agent Analysis
- - MODIFIED (key_files changes): 2 Agent (deep + visual-engineering)
+ - MODIFIED (key_files changes): 2 Agent (deep + ui)
  - MODIFIED (source changes only): 1 Agent (deep)
  - DELETED/RENAMED：0 Agent
 
@@ -201,8 +201,8 @@ Output `context/updates/update-<timestamp>.md`:
 
 | module | Change type | Agent analysis | CLAUDE.md operations |
 |------|----------|------------|----------------|
-| src/new-feature/ | ADDED | oracle+deep+visual-engineering | New |
-| src/auth/ | MODIFIED_KEY | deep+visual-engineering | Merge updates |
+| src/new-feature/ | ADDED | architecture+deep+ui | New |
+| src/auth/ | MODIFIED_KEY | deep+ui | Merge updates |
 | src/utils/ | MODIFIED_SOURCE | deep | Merge updates |
 | src/legacy/ | DELETED | — | delete |
 | src/ | STALE_PARENT | — | Index update |
@@ -231,7 +231,7 @@ Full analysis required (3 Agents):
  - All ADDED modules
 
 Partial analysis required (2 Agent):
- - All MODIFIED_KEY modules (deep + visual-engineering, skip oracle)
+ - All MODIFIED_KEY modules (deep + ui, skip architecture)
 
 Minimum analysis required (1 Agent):
  - All MODIFIED_SOURCE modules (deep only)
@@ -245,34 +245,34 @@ No analysis required:
 **ADDED module analysis** (same as `arc:init:full`):
 
 ```typescript
-// oracle analysis
+// architecture analysis
 schedule_task(
- specialist: "oracle",
+ capability_profile: "architecture",
  capabilities: ["arc:init:update"],
- run_mode: "background",
-description: "oracle architecture analysis - new module",
+ execution_mode: "background",
+description: "architecture architecture analysis - new module",
 prompt: `Analyze the architecture of the following new modules...
 
 Module list: <added_modules>
 Project path: <project_path>
-Output to: <output_dir>/agents/oracle/analysis-update.md`
+Output to: <output_dir>/agents/architecture/analysis-update.md`
 )
 
 // deep analysis
 schedule_task(
- workstream: "deep",
+ capability_profile: "deep",
  capabilities: ["arc:init:update"],
- run_mode: "background",
+ execution_mode: "background",
 description: "deep engineering analysis",
  prompt: `...`
 )
 
-// visual-engineering analysis
+// ui analysis
 schedule_task(
- workstream: "visual-engineering",
+ capability_profile: "ui",
  capabilities: ["arc:init:update", "frontend-ui-ux"],
- run_mode: "background",
-description: "visual-engineering DX analysis",
+ execution_mode: "background",
+description: "ui DX analysis",
  prompt: `...`
 )
 ```
@@ -280,9 +280,9 @@ description: "visual-engineering DX analysis",
 **MODIFIED_KEY module analysis** (2 Agent):
 
 ```typescript
-// only deep + visual-engineering, skip oracle
-schedule_task(workstream: "deep", ...),
-schedule_task(workstream: "visual-engineering", ...)
+// only deep + ui, skip architecture
+schedule_task(capability_profile: "deep", ...),
+schedule_task(capability_profile: "ui", ...)
 ```
 
 **MODIFIED_SOURCE module analysis** (1 Agent):
@@ -290,9 +290,9 @@ schedule_task(workstream: "visual-engineering", ...)
 ```typescript
 // only deep, shallow depth
 schedule_task(
- workstream: "deep",
+ capability_profile: "deep",
  capabilities: ["arc:init:update"],
- run_mode: "background",
+ execution_mode: "background",
 description: "deep shallow analysis - source code changes",
 prompt: `The following modules only have source code changes, for shallow analysis...
 
@@ -472,11 +472,11 @@ Update `summary.md`:
 │ └── updates/ # Add new directory
 │ └── update-<timestamp>.md # Incremental report
 ├── agents/
-│ ├── oracle/
+│ ├── architecture/
 │ │ └── analysis-update.md # New: this analysis
 │ ├── deep/
 │ │ └── analysis-update.md
-│ └── visual-engineering/
+│ └── ui/
 │ └── analysis-update.md
 └── summary.md # Update
 ```
@@ -487,10 +487,10 @@ Update `summary.md`:
 
 | Change type | Agent analysis | CLAUDE.md operations | Ancestry update |
 |----------|------------|----------------|----------|
-| `ADDED` | oracle + deep + visual-engineering | Create new complete file | index + mermaid |
+| `ADDED` | architecture + deep + ui | Create new complete file | index + mermaid |
 | `DELETED` | — | Delete files | index + mermaid |
 | `RENAMED` | — | Move + path update | index + mermaid |
-| `MODIFIED_KEY` | deep + visual-engineering | Merge updates | may be needed |
+| `MODIFIED_KEY` | deep + ui | Merge updates | may be needed |
 | `MODIFIED_SOURCE` | deep (shallow) | Merge updates | Usually not required |
 | `MODIFIED_CLAUDE_MD` | — | jump over | unnecessary |
 | `STALE_PARENT` | — | index + mermaid update | — |

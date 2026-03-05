@@ -7,7 +7,7 @@ description: "项目或关键 PR 体检时使用：输出七维度评审、业�
 
 ## Overview
 
-Give Agent the ability to be an “enterprise-level software review expert”. Through the three professional agents of oracle, deep, deep (engineering), and deep (business), each independently evaluates the project or key PR according to seven dimensions, and then refutes each other's scores and findings, and finally converges on a deliverable diagnostic report and improvement roadmap.
+Give Agent the ability to be an “enterprise-level software review expert”. Through the three professional agents of architecture, deep, deep (engineering), and deep (business), each independently evaluates the project or key PR according to seven dimensions, and then refutes each other's scores and findings, and finally converges on a deliverable diagnostic report and improvement roadmap.
 
 In addition to the seven-dimensional total score, the review must add two new special scores: **Business Maturity Score** (focusing on business link opening rate/broken link rate) and **Dependency Health Score** (focusing on outdated dependencies/vulnerable dependencies/discontinued maintenance dependencies).
 
@@ -110,7 +110,7 @@ No ratings can be given without evidence, and no suggestions can be given withou
 
 | judging panel | focus | Output directory |
 |------|---------|------|
-| **Architecture Group** | architecture/security/tech-debt | `oracle/` |
+| **Architecture Group** | architecture/security/tech-debt | `architecture/` |
 | **Engineering Team** | code-quality/devops | `deep/` |
 | **Business Group** | business/team | `deep-business/` |
 
@@ -296,7 +296,7 @@ Concurrent execution requirements (runtime independent):
 
 1. **Architecture Group Assessment** (focusing on architecture/security/tech-debt)
    - Input: `context/project-snapshot.md` + project code evidence
-   - Output: `oracle/dim-N-<name>.md`
+   - Output: `architecture/dim-N-<name>.md`
 2. **Engineering team evaluation** (focusing on code-quality/devops)
    - Input: `context/project-snapshot.md` + project code evidence
    - Output: `deep/dim-N-<name>.md`
@@ -329,15 +329,15 @@ Each Agent must:
 **Architecture team refutes engineering team + business team**:
 - Read `deep/dim-*.md` and `deep-business/dim-*.md`
 - Refutation from an architectural perspective
-- Output `oracle/critique.md`
+- Output `architecture/critique.md`
 
 **Engineering team refutes architecture team + business team**:
-- Read `oracle/dim-*.md` and `deep-business/dim-*.md`
+- Read `architecture/dim-*.md` and `deep-business/dim-*.md`
 - Rebuttal from an engineering/code quality/security perspective
 - Output `deep/critique.md`
 
 **Business Group refutes Architecture Group + Engineering Group**:
-- Read `oracle/dim-*.md` and `deep/dim-*.md`
+- Read `architecture/dim-*.md` and `deep/dim-*.md`
 - Refutation from the quality/UX/operation and maintenance perspective
 - Output `deep-business/critique.md`
 
@@ -351,9 +351,9 @@ Each Agent must:
 
 Read each party’s dimensional analysis + rebuttal report, for each dimension:
 1. Take the **professional weighted average** of the ratings from all parties:
-   - architecture/security/tech-debt: oracle 50%, deep 25%, deep(business) 25%
-   - code-quality/devops: deep 50%, oracle 25%, deep (business) 25%
-   - business/team: deep(business) 50%, oracle 25%, deep 25%
+   - architecture/security/tech-debt: architecture 50%, deep 25%, deep(business) 25%
+   - code-quality/devops: deep 50%, architecture 25%, deep (business) 25%
+   - business/team: deep(business) 50%, architecture 25%, deep 25%
 2. Adjust according to the rebuttal report (if a certain party's score is strongly refuted by the other two parties, its weight will be reduced)
 3. Generate final score and basis
 4. Aggregate two special points separately:
@@ -416,7 +416,7 @@ Output `scorecard.md`:
 
 ## Seven Dimensions Score
 
-| Dimensions | oracle | deep | deep(business) | final | Rating |
+| Dimensions | architecture | deep | deep(business) | final | Rating |
 |------|--------|------|-------|------|------|
 | Architecture design | 7 | 8 | 7 | 7.3 | good |
 | Security Compliance | 6 | 5 | 6 | 5.6 | qualified |
@@ -484,7 +484,7 @@ If the `.arc/score/<project-name>/` quantification input is missing, you must fi
 <workdir>/.arc/arc:audit/<project-name>/
 ├── context/
 │ └── project-snapshot.md # Snapshot of basic project information
-├── oracle/
+├── architecture/
 │ ├── dim-1-architecture.md # Dimension 1 Analysis
 │   ├── dim-2-security.md
 │   ├── dim-3-code-quality.md
@@ -495,11 +495,11 @@ If the `.arc/score/<project-name>/` quantification input is missing, you must fi
 │ └── critique.md # Cross rebuttal
 ├── deep/
 │   ├── dim-1-architecture.md
-│ ├── ...(same as oracle)
+│ ├── ...(same as architecture)
 │   └── critique.md
 ├── deep-business/
 │   ├── dim-1-architecture.md
-│ ├── ...(same as oracle)
+│ ├── ...(same as architecture)
 │   └── critique.md
 ├── diagnostic-report.md # Final diagnostic report
 ├── scorecard.md # scorecard
@@ -536,9 +536,9 @@ If the `.arc/score/<project-name>/` quantification input is missing, you must fi
 └── Business Group 7 Dimensions... [Complete]
 
 === Stage 3: Cross-rebuttal ===
-├── oracle rebuttal deep+deep(business)... [Complete]
-├── deep rebuttal oracle+deep(business)... [Complete]
-└── deep(business) rebuttal oracle+deep... [Complete]
+├── architecture rebuttal deep+deep(business)... [Complete]
+├── deep rebuttal architecture+deep(business)... [Complete]
+└── deep(business) rebuttal architecture+deep... [Complete]
 
 === Phase 4: Convergence Report ===
 ├── Aggregated Rating... [Complete]
@@ -575,8 +575,8 @@ If the `.arc/score/<project-name>/` quantification input is missing, you must fi
 | stage | step | Output path |
 |------|------|---------|
 | Project Scouting | MCP Scan → Snapshot | `context/project-snapshot.md` |
-| independent assessment | Multi-Agent×7 dimensions | `(oracle|deep|deep-business)/dim-N-<name>.md` |
-| cross rebuttal | Agents refute each other | `(oracle|deep|deep-business)/critique.md` |
+| independent assessment | Multi-Agent×7 dimensions | `(architecture|deep|deep-business)/dim-N-<name>.md` |
+| cross rebuttal | Agents refute each other | `(architecture|deep|deep-business)/critique.md` |
 
 ## Quick check on collaboration and division of labor
 

@@ -7,14 +7,14 @@ description: "方案有争议或风险高时使用：让多 Agent 独立提案�
 
 ## Overview
 
-By using the shared file system as a communication bus, multiple professional Agents (oracle/deep/visual-engineering) are coordinated for iterative collaborative deliberation. **In each stage, each Agent must refute each other and review each other's opinions**.
+By using the shared file system as a communication bus, multiple professional Agents (architecture/deep/ui) are coordinated for iterative collaborative deliberation. **In each stage, each Agent must refute each other and review each other's opinions**.
 
 The process is divided into four stages:
 
 1. **Ambiguity Checking Phase**: Multi-Agent analysis requirements → Identify ambiguities → Refute each other → User clarification → Until there is no ambiguity
 2. **Deliberation stage**: Multi-Agent independent proposals → Cross-review → Mutual refutation → Iterative convergence → Synthetic consensus report
 3. **Plan generation phase**: OpenSpec generates structured plan → Multi-Agent review and rebuttal → Finalize executable plan
-4. **Execution phase**: Use schedule_task(workstream="deep") to execute code implementation
+4. **Execution phase**: Use schedule_task(capability_profile="deep") to execute code implementation
 
 ## Quick Contract
 
@@ -71,21 +71,21 @@ There should be no claim that "consensus has been reached" without cross-rebutta
 
 | Agent role | Calling method | use |
 |------|---------|------|
-| **oracle** | `schedule_task(specialist="oracle", capabilities=["arc:decide"], ...)` | Architecture analysis, design review (read-only high-quality reasoning) |
-| **deep** | `schedule_task(workstream="deep", capabilities=[...], ...)` | In-depth engineering analysis, solution proposal, code execution |
-| **visual-engineering** | `schedule_task(workstream="visual-engineering", capabilities=["arc:decide", "frontend-ui-ux"], ...)` | Front-end and DX perspective, UI/UX design, interactive experience |
-| **metis** | `schedule_task(specialist="metis", capabilities=["arc:clarify"], ...)` | Requirements pre-analysis, ambiguity detection |
-| **explore** | `schedule_task(specialist="explore", capabilities=[], run_mode="background", ...)` | Code base search (cheap, backend) |
-| **librarian** | `schedule_task(specialist="librarian", capabilities=[], run_mode="background", ...)` | External document search (cheap, backend) |
+| **architecture** | `schedule_task(capability_profile="architecture", capabilities=["arc:decide"], ...)` | Architecture analysis, design review (read-only high-quality reasoning) |
+| **deep** | `schedule_task(capability_profile="deep", capabilities=[...], ...)` | In-depth engineering analysis, solution proposal, code execution |
+| **ui** | `schedule_task(capability_profile="ui", capabilities=["arc:decide", "frontend-ui-ux"], ...)` | Front-end and DX perspective, UI/UX design, interactive experience |
+| **review** | `schedule_task(capability_profile="review", capabilities=["arc:clarify"], ...)` | Requirements pre-analysis, ambiguity detection |
+| **search** | `schedule_task(capability_profile="search", capabilities=[], execution_mode="background", ...)` | Code base search (cheap, backend) |
+| **research** | `schedule_task(capability_profile="research", capabilities=[], execution_mode="background", ...)` | External document search (cheap, backend) |
 
 Generic `schedule_task` calling template:
 ```
 schedule_task(
-workstream: "<lane>", // or specialist: "<agent>"
+capability_profile: "<lane>", // or capability_profile: "<agent>"
 capabilities: ["arc:decide", ...], // Equipment related skills
 description: "<short description>",
 prompt: "<Specific task instructions, including read and write file paths>",
-run_mode: "background" // Concurrent execution
+execution_mode: "background" // Concurrent execution
 )
 ```
 
@@ -130,7 +130,7 @@ Use **ace-tool MCP** for semantic search:
 ├── context/
 │ └── enhanced-prompt.md # arc:clarify output
 ├── agents/
-│ ├── oracle/ # oracle Agent output in all stages (architectural perspective)
+│ ├── architecture/ # architecture Agent output in all stages (architectural perspective)
 │ │ ├── ambiguity-round-1.md # Ambiguity analysis (Phase 1)
 │ │ ├── proposal-round-1.md # Proposal (Phase 2)
 │ │ ├── critique-round-1.md # Review rebuttal (Phase 2)
@@ -140,7 +140,7 @@ Use **ace-tool MCP** for semantic search:
 │   │   ├── proposal-round-1.md
 │   │   ├── critique-round-1.md
 │   │   └── plan-review.md
-│ └── visual-engineering/ # visual-engineering All stages of output (front-end and DX perspective)
+│ └── ui/ # ui All stages of output (front-end and DX perspective)
 │       ├── ambiguity-round-1.md
 │       ├── proposal-round-1.md
 │       ├── critique-round-1.md
@@ -172,29 +172,29 @@ Use **ace-tool MCP** for semantic search:
 2. **Search external information**: Search the Internet using `Exa MCP`'s `web_search_exa` or `company_research_exa`
 3. **Analysis**: Call multiple Agents concurrently, analyze the enhanced prompt, and identify potential ambiguities
 
-**Multiple Agent concurrent calls** (initiated in the same message, `run_mode: "background"`):
+**Multiple Agent concurrent calls** (initiated in the same message, `execution_mode: "background"`):
 
-**oracle analysis** (architectural perspective):
+**architecture analysis** (architectural perspective):
 ```
 schedule_task(
-  specialist: "oracle",
+  capability_profile: "architecture",
   capabilities: ["arc:decide"],
-  run_mode: "background",
-description: "oracle ambiguity analysis",
+  execution_mode: "background",
+description: "architecture ambiguity analysis",
 prompt: "You are an architect. Analyze the ambiguities of the following requirements.
 Contextual information: <MCP search results>
 Read <workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md.
 List all possible ambiguities, including: undefined boundary conditions, unclear constraints, possible different understandings of terminology, unstated assumptions, etc.
-Write the analysis results to <workdir>/.arc/arc:decide/<task-name>/agents/oracle/ambiguity-round-N.md. "
+Write the analysis results to <workdir>/.arc/arc:decide/<task-name>/agents/architecture/ambiguity-round-N.md. "
 )
 ```
 
 **deep analysis** (engineering perspective):
 ```
 schedule_task(
-  workstream: "deep",
+  capability_profile: "deep",
   capabilities: ["arc:decide"],
-  run_mode: "background",
+  execution_mode: "background",
 description: "deep ambiguity analysis",
 prompt: "You are a back-end architect. Analyze the ambiguities of the following requirements.
 Contextual information (from MCP search): <MCP search results>
@@ -204,18 +204,18 @@ Write to <workdir>/.arc/arc:decide/<task-name>/agents/deep/ambiguity-round-N.md.
 )
 ```
 
-**visual-engineering analysis** (front-end and DX perspective):
+**ui analysis** (front-end and DX perspective):
 ```
 schedule_task(
-  workstream: "visual-engineering",
+  capability_profile: "ui",
   capabilities: ["arc:decide", "frontend-ui-ux"],
-  run_mode: "background",
-description: "visual-engineering ambiguity analysis",
+  execution_mode: "background",
+description: "ui ambiguity analysis",
 prompt: "You are a front-end and DX engineer. Analyze the ambiguities of the following requirements.
 Contextual information (from MCP search): <MCP search results>
 Read <workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md.
 List possible ambiguities from the perspectives of user experience, completeness, maintainability, etc.
-Write to <workdir>/.arc/arc:decide/<task-name>/agents/visual-engineering/ambiguity-round-N.md. "
+Write to <workdir>/.arc/arc:decide/<task-name>/agents/ui/ambiguity-round-N.md. "
 )
 ```
 
@@ -224,12 +224,12 @@ Write to <workdir>/.arc/arc:decide/<task-name>/agents/visual-engineering/ambigui
 **CRITICAL**: Each Agent must **refute each other's ambiguities** identified by the other party.
 
 Each model must:
-1. Read ambiguity analysis of other Agents (such as oracle reads `agents/deep/ambiguity-round-N.md` and `agents/visual-engineering/ambiguity-round-N.md`)
+1. Read ambiguity analysis of other Agents (such as architecture reads `agents/deep/ambiguity-round-N.md` and `agents/ui/ambiguity-round-N.md`)
 2. Refute the "ambiguity" perceived by the other party (it may not be an ambiguity)
 3. Fill in the ambiguities missed by the other party
 4. Append the rebuttal content to your own `ambiguity-round-N.md`
 
-The calling method is the same as Step 1.1 (oracle uses `schedule_task(specialist="oracle")`, deep uses `schedule_task(workstream="deep")`, visual-engineering uses `schedule_task(workstream="visual-engineering")`).
+The calling method is the same as Step 1.1 (architecture uses `schedule_task(capability_profile="architecture")`, deep uses `schedule_task(capability_profile="deep")`, ui uses `schedule_task(capability_profile="ui")`).
 
 ### Step 1.3: Aggregation ambiguity
 
@@ -283,32 +283,32 @@ Before proceeding, please clarify the following:
 
 ### Step 2.1: Directory scaffolding
 
-Make sure the `agents/oracle/`, `agents/deep/`, `agents/visual-engineering/`, `convergence/` directories are created.
+Make sure the `agents/architecture/`, `agents/deep/`, `agents/ui/`, `convergence/` directories are created.
 
 ### Step 2.2: Distribute proposals concurrently (each round)
 
-**CRITICAL**: Each Agent must initiate concurrently in the same message (`run_mode: "background"`).
+**CRITICAL**: Each Agent must initiate concurrently in the same message (`execution_mode: "background"`).
 
-**oracle proposal** (architectural perspective):
+**architecture proposal** (architectural perspective):
 ```
 schedule_task(
-  specialist: "oracle",
+  capability_profile: "architecture",
   capabilities: ["arc:decide"],
-  run_mode: "background",
-description: "oracle proposal Round N",
+  execution_mode: "background",
+description: "architecture proposal Round N",
 prompt: "You are the architect (overall perspective, architectural design, technology selection).
 Read <workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md.
 Give a complete solution proposal, in plain text Markdown format only, code blocks are prohibited.
-Write the proposal to <workdir>/.arc/arc:decide/<task-name>/agents/oracle/proposal-round-N.md. "
+Write the proposal to <workdir>/.arc/arc:decide/<task-name>/agents/architecture/proposal-round-N.md. "
 )
 ```
 
 **deep proposal** (engineering perspective):
 ```
 schedule_task(
-  workstream: "deep",
+  capability_profile: "deep",
   capabilities: ["arc:decide"],
-  run_mode: "background",
+  execution_mode: "background",
 description: "deep proposal Round N",
 prompt: "You are a backend architect (backend architecture, performance optimization, database, security).
 Read <workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md.
@@ -317,17 +317,17 @@ Write to <workdir>/.arc/arc:decide/<task-name>/agents/deep/proposal-round-N.md. 
 )
 ```
 
-**visual-engineering proposal** (front-end and DX perspective):
+**ui proposal** (front-end and DX perspective):
 ```
 schedule_task(
-  workstream: "visual-engineering",
+  capability_profile: "ui",
   capabilities: ["arc:decide", "frontend-ui-ux"],
-  run_mode: "background",
-description: "visual-engineering proposal Round N",
+  execution_mode: "background",
+description: "ui proposal Round N",
 prompt: "You are a front-end and DX engineer (UI/UX, user experience, responsive design, maintainability).
 Read <workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md.
 Give a complete solution proposal, in plain text Markdown format only, code blocks are prohibited.
-Write to <workdir>/.arc/arc:decide/<task-name>/agents/visual-engineering/proposal-round-N.md. "
+Write to <workdir>/.arc/arc:decide/<task-name>/agents/ui/proposal-round-N.md. "
 )
 ```
 
@@ -345,20 +345,20 @@ Each Agent must:
 3. **Use arguments to refute the opponent’s technical choices**
 4. Come up with your own alternatives
 
-**oracle review deep + visual-engineering** (using `schedule_task(specialist="oracle", session_ref="<reuse previous session>", ...)`):
-- Read `agents/deep/proposal-round-N.md` and `agents/visual-engineering/proposal-round-N.md`
-- Refute deep's engineering choices and visual-engineering's front-end design from an architectural perspective
-- Output: `agents/oracle/critique-round-N.md`
+**architecture review deep + ui** (using `schedule_task(capability_profile="architecture", task_ref="<reuse previous session>", ...)`):
+- Read `agents/deep/proposal-round-N.md` and `agents/ui/proposal-round-N.md`
+- Refute deep's engineering choices and ui's front-end design from an architectural perspective
+- Output: `agents/architecture/critique-round-N.md`
 
-**deep review oracle + visual-engineering** (using `schedule_task(workstream="deep", session_ref="<reuse previous session>", ...)`):
-- Read `agents/oracle/proposal-round-N.md` and `agents/visual-engineering/proposal-round-N.md`
-- Refute Oracle's architecture design and visual-engineering experience requirements from an engineering perspective
+**deep review architecture + ui** (using `schedule_task(capability_profile="deep", task_ref="<reuse previous session>", ...)`):
+- Read `agents/architecture/proposal-round-N.md` and `agents/ui/proposal-round-N.md`
+- Refute Architecture's architecture design and ui experience requirements from an engineering perspective
 - Output: `agents/deep/critique-round-N.md`
 
-**visual-engineering review oracle + deep** (using `schedule_task(workstream="visual-engineering", session_ref="<reuse previous session>", ...)`):
-- Read `agents/oracle/proposal-round-N.md` and `agents/deep/proposal-round-N.md`
-- Refute Oracle's abstract design and deep engineering implementation from a quality perspective
-- Output:`agents/visual-engineering/critique-round-N.md`
+**ui review architecture + deep** (using `schedule_task(capability_profile="ui", task_ref="<reuse previous session>", ...)`):
+- Read `agents/architecture/proposal-round-N.md` and `agents/deep/proposal-round-N.md`
+- Refute Architecture's abstract design and deep engineering implementation from a quality perspective
+- Output:`agents/ui/critique-round-N.md`
 
 ### Step 2.5: Convergence determination
 
@@ -432,14 +432,14 @@ openspec instructions <artifact> --change <task-name>
 ```
 The `openspec instructions` output contains `<instruction>` (writing guide), `<template>` (structural template), and `<output>` (target write path).
 
-2. **Execution sub-Agent writing**: Send the content of the OpenSpec instruction + `convergence/final-consensus.md` to the execution sub-Agent (`specialist: "general-purpose"`), which will fill in the template and write it to the specified path.
+2. **Execution sub-Agent writing**: Send the content of the OpenSpec instruction + `convergence/final-consensus.md` to the execution sub-Agent (`capability_profile: "general-purpose"`), which will fill in the template and write it to the specified path.
 
 **Execute sub-Agent to generate proposal** (role scheduling, each artifact is called separately):
 ```
 schedule_task({
 description: "OpenSpec proposal generation",
-  specialist: "general-purpose",
-  run_mode: "background",
+  capability_profile: "general-purpose",
+  execution_mode: "background",
   mode: "bypassPermissions",
 prompt: "Generate OpenSpec proposal based on consensus report.
 Read the following files:
@@ -484,17 +484,17 @@ openspec status --change <task-name>
 
 ### Step 3.3: Multi-Agent concurrent review plan
 
-After OpenSpec generates the plan, **Multi-Agent concurrent independent review** (same message, `run_mode: "background"`).
+After OpenSpec generates the plan, **Multi-Agent concurrent independent review** (same message, `execution_mode: "background"`).
 
 > The following path abbreviation `$CHANGE` stands for `<workdir>/.arc/arc:decide/<task-name>/openspec/changes/<task-name>`.
 
-**oracle review plan** (architectural perspective):
+**architecture review plan** (architectural perspective):
 ```
 schedule_task(
-  specialist: "oracle",
+  capability_profile: "architecture",
   capabilities: ["arc:decide"],
-  run_mode: "background",
-description: "oracle review plan",
+  execution_mode: "background",
+description: "architecture review plan",
 prompt: "You are the architect. Review the following OpenSpec plan document and review and refute it from the perspective of global architecture, overall consistency, and reasonable task sequencing.
 Read the following files:
 - $CHANGE/proposal.md
@@ -506,16 +506,16 @@ Review requirements:
 2. Refute unreasonable task ordering or dependencies
 3. Check plan for consistency with consensus reporting
 4. Give suggestions for modifications
-Write the review results to <workdir>/.arc/arc:decide/<task-name>/agents/oracle/plan-review.md. "
+Write the review results to <workdir>/.arc/arc:decide/<task-name>/agents/architecture/plan-review.md. "
 )
 ```
 
 **deep review plan** (engineering perspective):
 ```
 schedule_task(
-  workstream: "deep",
+  capability_profile: "deep",
   capabilities: ["arc:decide"],
-  run_mode: "background",
+  execution_mode: "background",
 description: "deep review plan",
 prompt: "You are a backend architect. Review the following OpenSpec plan document and review and refute it from the perspectives of backend architecture, performance, security, and feasibility.
 Read the following files:
@@ -532,13 +532,13 @@ Write to <workdir>/.arc/arc:decide/<task-name>/agents/deep/plan-review.md. "
 )
 ```
 
-**visual-engineering review plan** (front-end and DX perspective):
+**ui review plan** (front-end and DX perspective):
 ```
 schedule_task(
-  workstream: "visual-engineering",
+  capability_profile: "ui",
   capabilities: ["arc:decide", "frontend-ui-ux"],
-  run_mode: "background",
-description: "visual-engineering review plan",
+  execution_mode: "background",
+description: "ui review plan",
 prompt: "You are a front-end and interaction designer. Review the following OpenSpec plan documents and review and refute them from the perspectives of front-end interaction, UI/UX, component architecture, and user experience.
 Read the following files:
 - $CHANGE/proposal.md
@@ -550,7 +550,7 @@ Review requirements:
 2. Refute unreasonable design choices
 3. Supplement missing front-end related tasks
 4. Give suggestions for modifications
-Write to <workdir>/.arc/arc:decide/<task-name>/agents/visual-engineering/plan-review.md. "
+Write to <workdir>/.arc/arc:decide/<task-name>/agents/ui/plan-review.md. "
 )
 ```
 
@@ -558,7 +558,7 @@ Write to <workdir>/.arc/arc:decide/<task-name>/agents/visual-engineering/plan-re
 
 **CRITICAL**: Each Agent refutes each other's plan review opinions. Each Agent reads the `plan-review.md` of the other two, refutes the unreasonable points, and makes up for the omissions.
 
-Calling method: oracle uses `schedule_task(specialist="oracle", session_ref="<reuse>")`, deep uses `schedule_task(workstream="deep", session_ref="<reuse>")`, visual-engineering uses `schedule_task(workstream="visual-engineering", session_ref="<reuse>")`, and the three run concurrently.
+Calling method: architecture uses `schedule_task(capability_profile="architecture", task_ref="<reuse>")`, deep uses `schedule_task(capability_profile="deep", task_ref="<reuse>")`, ui uses `schedule_task(capability_profile="ui", task_ref="<reuse>")`, and the three run concurrently.
 
 Each Agent output overwrites (updates) its own `plan-review.md` and adds a rebuttal paragraph.
 
@@ -566,7 +566,7 @@ Each Agent output overwrites (updates) its own `plan-review.md` and adds a rebut
 
 The main process handles it directly, integrates various review reports, and revise the OpenSpec artifact file:
 
-1. Read `agents/oracle/plan-review.md`, `agents/deep/plan-review.md`, `agents/visual-engineering/plan-review.md`
+1. Read `agents/architecture/plan-review.md`, `agents/deep/plan-review.md`, `agents/ui/plan-review.md`
 2. Revise `openspec/changes/<task-name>/tasks.md` based on review by all parties (to ensure that tasks are orderly, dependent, and executable)
 3. Synchronously update the spec files under `design.md` and `specs/` (if necessary)
 
@@ -601,7 +601,7 @@ openspec archive <task-name>
 
 ## Phase 4: Execution
 
-**CRITICAL**: After the plan is finalized, use `schedule_task(workstream="deep")` to execute the code implementation.
+**CRITICAL**: After the plan is finalized, use `schedule_task(capability_profile="deep")` to execute the code implementation.
 
 ### Step 4.1: Agent execution plan
 
@@ -609,7 +609,7 @@ According to the final plan, use deep Agent to execute step by step according to
 
 ```
 schedule_task(
-  workstream: "deep",
+  capability_profile: "deep",
   capabilities: ["arc:decide"],
 description: "Execution Review Plan",
 prompt: "According to the task list in .arc/arc:decide/<task-name>/openspec/changes/<task-name>/tasks.md, execute the code implementation in sequence.
@@ -652,17 +652,17 @@ openspec archive <task-name>
 
 === Phase 1: Ambiguity Checking ===
 Round 1/3:
-├── oracle(role) analysis... [Complete]
+├── architecture(role) analysis... [Complete]
 ├── deep(lane) analysis... [Complete]
-├── visual-engineering(lane) analysis... [Complete]
+├── ui(lane) analysis... [Complete]
 ├── Aggregate ambiguities... [N ambiguities]
 └── User clarification... [In Progress]
 
 === Phase 2: Deliberation ===
 Round 1/3:
-├── oracle proposal... [Completed]
+├── architecture proposal... [Completed]
 ├── deep proposal... [Complete]
-├── visual-engineering proposal... [Completed]
+├── ui proposal... [Completed]
 ├── Cross-review... [Complete]
 └── Convergence judgment... [Convergence]
 
@@ -670,9 +670,9 @@ Round 1/3:
 ├── openspec init + new change... [Complete]
 ├── Generate artifact (proposal→specs→design→tasks)... [Complete]
 ├── openspec validate... [pass]
-├── oracle review... [Completed]
+├── architecture review... [Completed]
 ├── deep review... [Completed]
-├── visual-engineering review... [Complete]
+├── ui review... [Complete]
 ├── Multi-Agent cross-rebuttal... [Complete]
 └── Plan finalized... [Complete]
 
@@ -685,8 +685,8 @@ Round 1/3:
 
 | stage | step | Output path |
 |------|------|---------|
-| Ambiguity checking | Multi-Agent analysis → aggregation → user clarification → judgment | `agents/(oracle\|deep\|visual-engineering)/ambiguity-round-N.md` |
-| review | Proposal → Review → Convergence Determination → Consensus Report | `agents/(oracle\|deep\|visual-engineering)/proposal-round-N.md`, `convergence/final-consensus.md` |
+| Ambiguity checking | Multi-Agent analysis → aggregation → user clarification → judgment | `agents/(architecture\|deep\|ui)/ambiguity-round-N.md` |
+| review | Proposal → Review → Convergence Determination → Consensus Report | `agents/(architecture\|deep\|ui)/proposal-round-N.md`, `convergence/final-consensus.md` |
 | Plan generation | OpenSpec init → generate artifact → verification → multi-agent review → cross-refutation → finalization | `openspec/changes/<task-name>/(proposal\|design\|tasks).md`, `openspec/changes/<task-name>/specs/` |
 | implement | deep Agent implementation code according to tasks.md → Archive | Project code + `openspec archive` |
 
@@ -716,7 +716,7 @@ Round 1/3:
 
 | Role | Calling method | Concurrency support |
 |------|---------|---------|
-| oracle | `schedule_task(specialist="oracle", capabilities=["arc:decide"], run_mode="background", ...)` | Background asynchronous |
-| deep | `schedule_task(workstream="deep", capabilities=["arc:decide"], run_mode="background", ...)` | Background asynchronous |
-| visual-engineering | `schedule_task(workstream="visual-engineering", capabilities=["arc:decide", "frontend-ui-ux"], run_mode="background", ...)` | Background asynchronous |
+| architecture | `schedule_task(capability_profile="architecture", capabilities=["arc:decide"], execution_mode="background", ...)` | Background asynchronous |
+| deep | `schedule_task(capability_profile="deep", capabilities=["arc:decide"], execution_mode="background", ...)` | Background asynchronous |
+| ui | `schedule_task(capability_profile="ui", capabilities=["arc:decide", "frontend-ui-ux"], execution_mode="background", ...)` | Background asynchronous |
 | Aggregation/finalization | The main process handles it directly | — |

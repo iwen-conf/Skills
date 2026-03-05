@@ -9,25 +9,25 @@
 
 ```text
 schedule_task(
-  lane?: string,                 # 领域路由（如 deep / visual-engineering / writing）
-  role?: string,                 # 专家角色路由（如 oracle / explore / librarian）
+  lane?: string,                 # 领域路由（如 deep / ui / writing）
+  role?: string,                 # 专家角色路由（如 architecture / search / research）
   capabilities?: string[],       # 执行时注入的技能/能力上下文
   description: string,           # 短描述
   prompt: string,                # 详细执行指令
-  run_mode: "background" | "foreground",
-  session_ref?: string       # 复用历史会话
+  execution_mode: "background" | "foreground",
+  task_ref?: string       # 复用历史会话
 )
 ```
 
 约束：
-- `lane` 与 `role` 至少提供一个，推荐二选一。
-- `run_mode="background"` 用于可并发任务。
-- 调度返回 `session_ref`（或平台等价字段）用于后续追问/反驳轮。
+- `capability_profile` 与 `capability_profile` 至少提供一个，推荐二选一。
+- `execution_mode="background"` 用于可并发任务。
+- 调度返回 `task_ref`（或平台等价字段）用于后续追问/反驳轮。
 
 ## 2) 结果收集语义
 
 ```text
-collect_task(session_ref)
+collect_task(task_ref)
 ```
 
 要求：
@@ -38,11 +38,11 @@ collect_task(session_ref)
 
 以下映射由“运行时适配层”负责，Skill 不直接耦合：
 
-- `lane` → 平台的“领域模型路由”字段
-- `role` → 平台的“专家子代理路由”字段
+- `capability_profile` → 平台的“领域模型路由”字段
+- `capability_profile` → 平台的“专家子代理路由”字段
 - `capabilities` → 平台的“技能装载/工具预置”字段
-- `run_mode` → 平台的“同步/异步或后台执行”字段
-- `session_ref` → 平台的“会话 ID / task ID / thread ID”
+- `execution_mode` → 平台的“同步/异步或后台执行”字段
+- `task_ref` → 平台的“会话 ID / task ID / thread ID”
 
 ## 4) 写作规范（Skill 作者）
 

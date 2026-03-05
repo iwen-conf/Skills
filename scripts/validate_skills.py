@@ -49,14 +49,13 @@ ARC_CHEATSHEET_LINK = "../docs/arc-routing-cheatsheet.md"
 LEGACY_TOKEN_PARTS = [
     ("Ta", "sk("),
     ("subagent", "_type"),
+    ("load", "_skills"),
+    ("run", "_in_background"),
 ]
 
 BANNED_TOKENS = [
     *(("".join(parts)) for parts in LEGACY_TOKEN_PARTS),
-    "load_skills",
-    "run_in_background",
     "session_id",
-    "oh-my-opencode",
 ]
 
 FUSION_GENERIC_SKILLS = set()

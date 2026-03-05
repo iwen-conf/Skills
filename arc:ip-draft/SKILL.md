@@ -10,7 +10,7 @@ description: "拿到 arc:ip-check 交接后使用：起草结构化软著/专利
 `arc:ip-draft` adopts the **multi-Agent collaboration model** to focus on document writing and does not make feasibility decisions. It consumes the review results of `arc:ip-check` and outputs an editable application document draft combined with the project code context.
 
 **Core Competencies**:
-- Three Agents draft concurrently and independently (oracle technical solution/deep implementation details/writing user documentation)
+- Three Agents draft concurrently and independently (architecture technical solution/deep implementation details/writing user documentation)
 - Cross-review mechanism ensures terminology consistency and technical accuracy
 - Evidence-driven documentation writing (each technical description can be traced back to the code)
 - Structured draft output (software/patent separate output)
@@ -95,7 +95,7 @@ High-confidence technical document drafts should not be output without review ha
 - **arc:ip-check** (strongly recommended): as the main input.
 - **ace-tool MCP** (required): Correct technical details and code evidence in the documentation.
 - **arc:init** (recommended): Reuse module index to reduce repeated scanning.
-- **Scheduling API** (required): Dispatch `oracle` / `deep` / `writing` three Agent collaboration.
+- **Scheduling API** (required): Dispatch `architecture` / `deep` / `writing` three Agent collaboration.
 
 ## Context Priority (mandatory)
 
@@ -111,7 +111,7 @@ High-confidence technical document drafts should not be output without review ha
 3. **Complete structure**: The disclosure document, claims, and documentation must be completely output according to the template chapters.
 4. **Draft Positioning**: The output is an "editable application draft" and may not be claimed to be the final legal text.
 5. **Double-track splitting**: Soft-coated materials and patented materials are produced in separate catalogs, without mixing.
-6. **Multi-Agent collaboration**: Oracle/deep/writing three agents must be used and draft + cross-review initiated.
+6. **Multi-Agent collaboration**: Architecture/deep/writing three agents must be used and draft + cross-review initiated.
 
 ## Multi-Agent Architecture
 
@@ -119,7 +119,7 @@ High-confidence technical document drafts should not be output without review ha
 
 | Agent | role positioning | Draft content | output file |
 |-------|---------|---------|---------|
-| **oracle** (role) | Technical solution description expert | Architectural design, technical solutions, system processes, core parts of patent technology briefing documents | `agents/oracle/technical-description.md` |
+| **architecture** (role) | Technical solution description expert | Architectural design, technical solutions, system processes, core parts of patent technology briefing documents | `agents/architecture/technical-description.md` |
 | **deep** (lane) | Implementation details expert | Code implementation, algorithm details, performance optimization, quantification of technical effects, soft technical explanation | `agents/deep/implementation-details.md` |
 | **writing** (lane) | User documentation writing expert | User manual, operating instructions, functional description, soft copy application abstract, claims | `agents/writing/user-documentation.md` |
 
@@ -135,7 +135,7 @@ High-confidence technical document drafts should not be output without review ha
 │ ├── doc-context.md (shared input)
 │ └── handoff-input.json (arc:ip-check handover)
 ├── agents/
-│   ├── oracle/
+│   ├── architecture/
 │ │ ├── technical-description.md (independently drafted)
 │ │ └── review.md (review other Agents)
 │   ├── deep/
@@ -193,17 +193,17 @@ python arc:ip-draft/scripts/scaffold_drafting_case.py \
 **Start three Agents concurrently** (in the same message):
 
 ```typescript
-// Oracle: Technical solution description
+// Architecture: Technical solution description
 schedule_task(
-  specialist="oracle",
+  capability_profile="architecture",
   capabilities=["arc:ip-draft"],
-  run_mode="background",
-description="Oracle drafting technical solution description",
+  execution_mode="background",
+description="Architecture drafting technical solution description",
   prompt=`
 [TASK]: Draft technical solution description and the core part of the patent technology briefing document
 
 [EXPECTED OUTCOME]:
-- Generate agents/oracle/technical-description.md, including:
+- Generate agents/architecture/technical-description.md, including:
   1. Technical background and existing technical issues
   2. Overall architecture of technical solution (Mermaid diagram + text description)
   3. System process and data flow (flow chart + text description)
@@ -213,7 +213,7 @@ description="Oracle drafting technical solution description",
   7. Program product claim skeleton (method + system/device + computer program product + storage medium)
   8. OA possibility list (object/creative patchwork/out of scope)
 
-[REQUIRED TOOLS]: ace-tool (code search), Read (read context/), Write (write agents/oracle/)
+[REQUIRED TOOLS]: ace-tool (code search), Read (read context/), Write (write agents/architecture/)
 
 [MUST DO]:
 - Read context/doc-context.md and context/handoff-input.json
@@ -236,9 +236,9 @@ description="Oracle drafting technical solution description",
 
 // Deep: Implementation details and technical effects
 schedule_task(
-  workstream="deep",
+  capability_profile="deep",
   capabilities=["arc:ip-draft"],
-  run_mode="background",
+  execution_mode="background",
 description="Deep drafting implementation details and technical effects",
   prompt=`
 [TASK]: Draft code implementation details, algorithm description and technical effect quantification
@@ -277,9 +277,9 @@ description="Deep drafting implementation details and technical effects",
 
 // Writing: User documentation and function description
 schedule_task(
-  workstream="writing",
+  capability_profile="writing",
   capabilities=["arc:ip-draft"],
-  run_mode="background",
+  execution_mode="background",
 description="Writing drafting user documentation and function description",
   prompt=`
 [TASK]: Drafting user manuals, operating instructions and software application abstracts
@@ -326,17 +326,17 @@ description="Writing drafting user documentation and function description",
 **Mandatory review mechanism** (each Agent must review the other two Agents):
 
 ```typescript
-// Oracle reviews Deep and Writing
+// Architecture reviews Deep and Writing
 schedule_task(
-session_ref="<oracle_session_ref>", // Reuse Phase 2 session
+task_ref="<architecture_task_ref>", // Reuse Phase 2 session
   capabilities=["arc:ip-draft"],
-  run_mode="foreground",
-description="Oracle cross-review Deep and Writing",
+  execution_mode="foreground",
+description="Architecture cross-review Deep and Writing",
   prompt=`
 [TASK]: Review Deep and Writing documents to ensure technical accuracy and terminology consistency
 
 [EXPECTED OUTCOME]:
-- Generate agents/oracle/review.md, including:
+- Generate agents/architecture/review.md, including:
   1. Review of Deep implementation details (technical accuracy, architectural consistency)
   2. Review of Writing user documentation (functional description accuracy, terminology consistency)
   3. Terminology conflict list (different names for the same object)
@@ -361,8 +361,8 @@ description="Oracle cross-review Deep and Writing",
 `
 )
 
-// Deep reviews Oracle and Writing (same reason)
-// Writing review Oracle and Deep (same reason)
+// Deep reviews Architecture and Writing (same reason)
+// Writing review Architecture and Deep (same reason)
 ```
 
 **Collect review results**, generate `convergence/terminology-alignment.md` and `convergence/final-review.md`.
@@ -373,7 +373,7 @@ description="Oracle cross-review Deep and Writing",
 
 Based on the review report, `convergence/terminology-alignment.md` is generated:
 
-| object | Oracle title | Deep title | Writing title | unified terminology |
+| object | Architecture title | Deep title | Writing title | unified terminology |
 |------|-----------|---------|----------|---------|
 | Core algorithm | Intelligent scheduling algorithm | task allocation algorithm | Automatic scheduling function | Intelligent task scheduling algorithm |
 
@@ -388,9 +388,9 @@ python arc:ip-draft/scripts/render_ip_documents.py \
 ```
 
 Generate files:
-- `copyright/software-summary.md` (software application abstract, integrated Writing drafting + Oracle/Deep review)
+- `copyright/software-summary.md` (software application abstract, integrated Writing drafting + Architecture/Deep review)
 - `copyright/manual-outline.md` (outline of operating instructions, integrated writing drafting + terminology unification)
-- `copyright/source-code-package-notes.md` (code material description, integrated Deep drafting + Oracle review)
+- `copyright/source-code-package-notes.md` (code material description, integrated Deep drafting + Architecture review)
   - The full name/abbreviation/version of the software needs to be explicitly recorded, and the name consistency has been checked in the writing log.
 
 **Step 4.3: Generate patent document** (such as `target_docs` contains `patent`)
@@ -403,10 +403,10 @@ python arc:ip-draft/scripts/render_ip_documents.py \
 ```
 
 Generate files:
-- `patent/disclosure-draft.md` (Technical communication document, integration of Oracle technical solutions + Deep implementation details + terminology unification)
-- `patent/claims-draft.md` (draft claims, integrated writing drafting + Oracle/Deep review)
+- `patent/disclosure-draft.md` (Technical communication document, integration of Architecture technical solutions + Deep implementation details + terminology unification)
+- `patent/claims-draft.md` (draft claims, integrated writing drafting + Architecture/Deep review)
   - Default includes: 1 independent method + 1 system/device + 1 computer program product + 1 storage medium; dependent claims cite differences in performance/data flow/module parameters
-- `patent/drawings-description.md` (Chart description, integrated Oracle architecture diagram + Deep data flow diagram + Writing UI screenshot)
+- `patent/drawings-description.md` (Chart description, integrated Architecture architecture diagram + Deep data flow diagram + Writing UI screenshot)
 
 **Step 4.4: Generate writing log**
 
@@ -440,8 +440,8 @@ Default output directory:`<project_path>/.arc/arc:ip-draft/<project-name>/`
 
 - `context/doc-context.md` (document context)
 - `context/handoff-input.json` (arc:ip-check handover)
-- `agents/oracle/technical-description.md` (drafted independently by Oracle)
-- `agents/oracle/review.md` (Oracle review)
+- `agents/architecture/technical-description.md` (drafted independently by Architecture)
+- `agents/architecture/review.md` (Architecture review)
 - `agents/deep/implementation-details.md` (Drafted independently by Deep)
 - `agents/deep/review.md` (Deep review)
 - `agents/writing/user-documentation.md` (Writing independently drafted)

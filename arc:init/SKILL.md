@@ -167,7 +167,7 @@ Use **Scheduling API** to dispatch the corresponding sub-Skill:
 ```typescript
 // Schedule arc:init:full
 schedule_task(
-  workstream: "unspecified-high",
+  capability_profile: "unspecified-high",
   capabilities: ["arc:init:full"],
 prompt: `Perform full initialization...
 
@@ -175,12 +175,12 @@ Project path: <project_path>
 Depth level: <depth_level>
 Language: <language>
   ...`,
-  run_mode: "foreground"
+  execution_mode: "foreground"
 )
 
 // Or schedule arc:init:update
 schedule_task(
-  workstream: "unspecified-high",
+  capability_profile: "unspecified-high",
   capabilities: ["arc:init:update"],
 prompt: `Perform incremental update...
 
@@ -188,7 +188,7 @@ Project path: <project_path>
 Depth level: <depth_level>
 Language: <language>
   ...`,
-  run_mode: "foreground"
+  execution_mode: "foreground"
 )
 ```
 
@@ -211,7 +211,7 @@ Full initialization mode. Applies to:
 
 **Execution content**:
 - Deep scan project structure
-- Multi-Agent collaborative analysis (oracle + deep + momus)
+- Multi-Agent collaborative analysis (architecture + deep + review)
 - cross review
 - Generate CLAUDE.md in full
 - Generate fingerprint baseline

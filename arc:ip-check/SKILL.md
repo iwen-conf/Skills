@@ -10,7 +10,7 @@ description: "准备申请软著/专利前使用：评估可行性、风险、�
 `arc:ip-check` adopts the **Multi-Agent collaboration model** and evaluates the feasibility, risk and priority of applying for **software copyright** and **invention patent** for the project based on the real code and architectural context of the project.
 
 **Core Competencies**:
-- Three-Agent concurrent independent assessment (oracle architecture perspective/deep engineering perspective/writing document and compliance perspective)
+- Three-Agent concurrent independent assessment (architecture architecture perspective/deep engineering perspective/writing document and compliance perspective)
 - Cross-rebuttal mechanism eliminates blind spots and overly optimistic/pessimistic assessments
 - Evidence-driven feasibility scoring and risk matrix
 - Structured handover document output to `arc:ip-draft`
@@ -98,7 +98,7 @@ Must follow the link below to collaborate:
 * **Organization Contract**: Required. Following `docs/orchestration-contract.md`, scheduling is implemented through the runtime adaptation layer.
 - **ace-tool MCP** (required): Search project code and implementation evidence.
 - **Exa MCP** (recommended): Supplement existing technology/policy basis.
-- **Scheduling API** (required): Dispatch `oracle` / `deep` / `writing` three Agent collaboration.
+- **Scheduling API** (required): Dispatch `architecture` / `deep` / `writing` three Agent collaboration.
 - **arc:init** (strongly recommended): Read the `CLAUDE.md` level index.
 - **arc:audit** (optional): Reuse existing review report.
 
@@ -122,7 +122,7 @@ If the first three levels of information are insufficient, the scan must be down
 4. **Risk Explicit**: Rejectable risks, corrective risks, time risks and material gaps must be listed.
 5. **Handover standardization**: `handoff/ip-drafting-input.json` must be generated to `arc:ip-draft`.
 6. **Legal Boundary**: The output is engineering and process suggestions and does not replace the legal advice of a practicing lawyer/patent agent.
-7. **Multi-Agent collaboration**: Oracle/deep/writing three-Agent concurrent analysis + cross-refutation must be used.
+7. **Multi-Agent collaboration**: Architecture/deep/writing three-Agent concurrent analysis + cross-refutation must be used.
 
 ## Multi-Agent Architecture
 
@@ -130,7 +130,7 @@ If the first three levels of information are insufficient, the scan must be down
 
 | Agent | role positioning | Assessment Dimensions | output file |
 |-------|---------|---------|---------|
-| **oracle** (role) | Architecture and Innovation Expert | Originality of technical solutions, novelty of architectural design, differentiation of existing technologies, and feasibility of patent application | `agents/oracle/innovation-analysis.md` |
+| **architecture** (role) | Architecture and Innovation Expert | Originality of technical solutions, novelty of architectural design, differentiation of existing technologies, and feasibility of patent application | `agents/architecture/innovation-analysis.md` |
 | **deep** (lane) | Engineering implementation expert | Code integrity, implementation adequacy, quantifiable technical effects, feasibility of software application | `agents/deep/implementation-analysis.md` |
 | **writing** (lane) | Documentation and Compliance Analysis Expert | Document completeness, material readiness, application process risks, intellectual property compliance | `agents/writing/compliance-analysis.md` |
 
@@ -146,7 +146,7 @@ If the first three levels of information are insufficient, the scan must be down
 │ ├── project-ip-snapshot.md (shared input)
 │ └── external-references.md (Exa search results)
 ├── agents/
-│   ├── oracle/
+│   ├── architecture/
 │ │ ├── innovation-analysis.md (independent evaluation)
 │ │ └── critique.md (refute other Agents)
 │   ├── deep/
@@ -204,17 +204,17 @@ python arc:ip-check/scripts/scaffold_audit_case.py \
 **Start three Agents concurrently** (in the same message):
 
 ```typescript
-// Oracle: Architecture and Innovation Assessment
+// Architecture: Architecture and Innovation Assessment
 schedule_task(
-  specialist="oracle",
+  capability_profile="architecture",
   capabilities=["arc:ip-check"],
-  run_mode="background",
-description="Oracle evaluates technological innovation and patent feasibility",
+  execution_mode="background",
+description="Architecture evaluates technological innovation and patent feasibility",
   prompt=`
 [TASK]: Evaluate the technological innovation and patent application feasibility of the project
 
 [EXPECTED OUTCOME]:
-- Generate agents/oracle/innovation-analysis.md, including:
+- Generate agents/architecture/innovation-analysis.md, including:
   1. Technical solution originality score (1-10 points)
   2. Architectural design novelty score (1-10 points)
   3. Difference analysis of existing technologies (reference context/external-references.md)
@@ -224,7 +224,7 @@ description="Oracle evaluates technological innovation and patent feasibility",
   7. Determination of the patentability of program products (yes/no + basis)
   8. Suggested claim combination (method + system/device + computer program product + storage medium)
 
-[REQUIRED TOOLS]: ace-tool (code search), Read (read context/), Write (write agents/oracle/)
+[REQUIRED TOOLS]: ace-tool (code search), Read (read context/), Write (write agents/architecture/)
 
 [MUST DO]:
 - Read context/project-ip-snapshot.md and context/external-references.md
@@ -246,9 +246,9 @@ description="Oracle evaluates technological innovation and patent feasibility",
 
 // Deep: Project implementation evaluation
 schedule_task(
-  workstream="deep",
+  capability_profile="deep",
   capabilities=["arc:ip-check"],
-  run_mode="background",
+  execution_mode="background",
 description="Deep evaluates code integrity and software feasibility",
   prompt=`
 [TASK]: Evaluate the code integrity of the project and the feasibility of software application
@@ -287,9 +287,9 @@ description="Deep evaluates code integrity and software feasibility",
 
 // Writing: Documentation and Compliance Analysis
 schedule_task(
-  workstream="writing",
+  capability_profile="writing",
   capabilities=["arc:ip-check"],
-  run_mode="background",
+  execution_mode="background",
 description="Writing evaluates document completeness and application readiness",
   prompt=`
 [TASK]: Evaluate the project’s document completeness and readiness for intellectual property application
@@ -334,17 +334,17 @@ description="Writing evaluates document completeness and application readiness",
 **Mandatory rebuttal mechanism** (each Agent must challenge the other two Agents):
 
 ```typescript
-// Oracle refutes Deep and Writing
+// Architecture refutes Deep and Writing
 schedule_task(
-session_ref="<oracle_session_ref>", // Reuse Phase 2 session
+task_ref="<architecture_task_ref>", // Reuse Phase 2 session
   capabilities=["arc:ip-check"],
-  run_mode="foreground",
-description="Oracle Cross Refutation Deep and Writing",
+  execution_mode="foreground",
+description="Architecture Cross Refutation Deep and Writing",
   prompt=`
 [TASK]: Refute Deep and Writing’s assessment and point out overly optimistic/pessimistic aspects
 
 [EXPECTED OUTCOME]:
-- Generate agents/oracle/critique.md, including:
+- Generate agents/architecture/critique.md, including:
   1. Refutation of Deep implementation evaluation (cite specific scoring points)
   2. Rebuttal to Writing Compliance Assessment
   3. Each rebuttal must be accompanied by arguments (file path/code snippet/external reference)
@@ -365,8 +365,8 @@ description="Oracle Cross Refutation Deep and Writing",
 `
 )
 
-// Deep refutes Oracle and Writing (same reason)
-// Writing refutes Oracle and Deep (same reason)
+// Deep refutes Architecture and Writing (same reason)
+// Writing refutes Architecture and Deep (same reason)
 ```
 
 **Collect refutation results** and generate `convergence/round-1-summary.md`.
@@ -376,8 +376,8 @@ description="Oracle Cross Refutation Deep and Writing",
 **Step 4.1: Weighted comprehensive score**
 
 Dynamically adjust weights based on rebuttal reports:
-- **Patent feasibility**: oracle 60% + deep 30% + writing 10%
-- **Soft writing feasibility**: deep 60% + writing 30% + oracle 10%
+- **Patent feasibility**: architecture 60% + deep 30% + writing 10%
+- **Soft writing feasibility**: deep 60% + writing 30% + architecture 10%
 
 If an Agent is strongly refuted (2+ strong arguments), its weight will be reduced by 10%.
 
@@ -460,8 +460,8 @@ Default output directory:`<project_path>/.arc/arc:ip-check/<project-name>/`
 
 - `context/project-ip-snapshot.md` (project snapshot)
 - `context/external-references.md` (external reference)
-- `agents/oracle/innovation-analysis.md` (Oracle independent evaluation)
-- `agents/oracle/critique.md` (Oracle rebuttal)
+- `agents/architecture/innovation-analysis.md` (Architecture independent evaluation)
+- `agents/architecture/critique.md` (Architecture rebuttal)
 - `agents/deep/implementation-analysis.md` (Deep independent evaluation)
 - `agents/deep/critique.md` (Deep rebuttal)
 - `agents/writing/compliance-analysis.md` (Writing independent evaluation)

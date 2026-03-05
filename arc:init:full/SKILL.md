@@ -85,7 +85,7 @@ Without clear read-only boundaries and evidence chains, full reconstruction must
 * **Organization Contract**: Required. Following `docs/orchestration-contract.md`, scheduling is implemented through the runtime adaptation layer.
 * **ace-tool (MCP)**: Required. Semantic search project code structure, architectural patterns, and entry files.
 * **Exa MCP**: Recommended. Search framework best practices and technology stack documentation.
-* **Unified scheduling interface**: Required. Scheduling the oracle/deep/visual-engineering Agent via `schedule_task()`.
+* **Unified scheduling interface**: Required. Scheduling the architecture/deep/ui Agent via `schedule_task()`.
 
 ## Critical Rules
 
@@ -239,17 +239,17 @@ Generate `context/module-fingerprints.json`, providing a baseline for subsequent
 
 #### Step 2.1: Multi-Agent concurrent analysis
 
-**CRITICAL**: Each Agent must initiate concurrently in the same message (`run_mode: "background"`).
+**CRITICAL**: Each Agent must initiate concurrently in the same message (`execution_mode: "background"`).
 
 Each Agent reads `context/project-snapshot.md` and `context/generation-plan.md`, analyzing each directory in the build plan.
 
-**oracle analysis** (architectural perspective):
+**architecture analysis** (architectural perspective):
 ```
 schedule_task(
- specialist: "oracle",
+ capability_profile: "architecture",
  capabilities: ["arc:init:full"],
- run_mode: "background",
-description: "oracle architecture analysis",
+ execution_mode: "background",
+description: "architecture architecture analysis",
 prompt: "You are the project document architect.
 Read <output_dir>/context/project-snapshot.md and <output_dir>/context/generation-plan.md.
 Use ace-tool MCP to deeply analyze the project code structure.
@@ -263,7 +263,7 @@ For each directory to be generated in generation-plan.md, analyze:
 6. Cross-project dependencies
 
 Reference CLAUDE.md structure specification: <skills_dir>/arc:init:full/references/claude-md-schema.md
-Write analysis to <output_dir>/agents/oracle/analysis.md.
+Write analysis to <output_dir>/agents/architecture/analysis.md.
 Project path: <project_path>"
 )
 ```
@@ -271,9 +271,9 @@ Project path: <project_path>"
 **deep analysis** (engineering perspective):
 ```
 schedule_task(
- workstream: "deep",
+ capability_profile: "deep",
  capabilities: ["arc:init:full"],
- run_mode: "background",
+ execution_mode: "background",
 description: "deep engineering analysis",
 prompt: "You are a backend engineering analyst.
 Read <output_dir>/context/project-snapshot.md and <output_dir>/context/generation-plan.md.
@@ -290,13 +290,13 @@ Write to <output_dir>/agents/deep/analysis.md. "
 )
 ```
 
-**visual-engineering analysis** (DX/experience perspective):
+**ui analysis** (DX/experience perspective):
 ```
 schedule_task(
- workstream: "visual-engineering",
+ capability_profile: "ui",
  capabilities: ["arc:init:full", "frontend-ui-ux"],
- run_mode: "background",
-description: "visual-engineering DX analysis",
+ execution_mode: "background",
+description: "ui DX analysis",
 prompt: "You are a front-end and developer experience analyst.
 Read <output_dir>/context/project-snapshot.md and <output_dir>/context/generation-plan.md.
 
@@ -308,7 +308,7 @@ For each directory to be generated, analyze:
 5. Data models and relationships
 6. Project maturity judgment
 
-Write to <output_dir>/agents/visual-engineering/analysis.md. "
+Write to <output_dir>/agents/ui/analysis.md. "
 )
 ```
 
@@ -335,19 +335,19 @@ Each Agent must:
 4. **Challenge Maturity Judgment** (Attached is file path evidence)
 5. **Suggest corrections**
 
-**oracle rebuttal deep + visual-engineering** (using `schedule_task(specialist="oracle", session_ref="<reuse>", ...)`):
-- Read `agents/deep/analysis.md` and `agents/visual-engineering/analysis.md`
-- Output `agents/oracle/critique.md`
+**architecture rebuttal deep + ui** (using `schedule_task(capability_profile="architecture", task_ref="<reuse>", ...)`):
+- Read `agents/deep/analysis.md` and `agents/ui/analysis.md`
+- Output `agents/architecture/critique.md`
 
-**deep rebuttal to oracle + visual-engineering** (using `schedule_task(workstream="deep", session_ref="<reuse>", ...)`):
-- Read `agents/oracle/analysis.md` and `agents/visual-engineering/analysis.md`
+**deep rebuttal to architecture + ui** (using `schedule_task(capability_profile="deep", task_ref="<reuse>", ...)`):
+- Read `agents/architecture/analysis.md` and `agents/ui/analysis.md`
 - Rebuttal from an engineering/build/test perspective
 - Output `agents/deep/critique.md`
 
-**visual-engineering rebuttal to oracle + deep** (using `schedule_task(workstream="visual-engineering", session_ref="<reuse>", ...)`):
-- Read `agents/oracle/analysis.md` and `agents/deep/analysis.md`
+**ui rebuttal to architecture + deep** (using `schedule_task(capability_profile="ui", task_ref="<reuse>", ...)`):
+- Read `agents/architecture/analysis.md` and `agents/deep/analysis.md`
 - Refutation from the front-end/DX/document perspective
-- Output `agents/visual-engineering/critique.md`
+- Output `agents/ui/critique.md`
 
 ---
 
@@ -357,9 +357,9 @@ Each Agent must:
 
 #### Step 4.1: Comprehensive analysis
 
-Read all Agent outputs (analysis.md + critique.md under agents/oracle/, agents/deep/, agents/visual-engineering/), and for each directory to be generated:
+Read all Agent outputs (analysis.md + critique.md under agents/architecture/, agents/deep/, agents/ui/), and for each directory to be generated:
 1. Resolve differences between parties (such as version number conflicts, the manifest file shall prevail)
-2. Merge contributions from all parties (architecture from oracle, engineering from deep, maturity from visual-engineering)
+2. Merge contributions from all parties (architecture from architecture, engineering from deep, maturity from ui)
 3. Determine the contents of each CLAUDE.md section
 
 #### Step 4.2: Leaves are generated first
@@ -445,13 +445,13 @@ If any problems are found, fix them immediately and re-check until everything pa
 │ ├── generation-plan.md # Phase 1: Generation plan
 │ └── module-fingerprints.json # Phase 1&4: Module fingerprints (incremental update baseline)
 ├── agents/
-│ ├── oracle/
+│ ├── architecture/
 │ │ ├── analysis.md # Phase 2: Architecture Analysis
 │ │ └── critique.md # Phase 3: Cross-review
 │ ├── deep/
 │ │ ├── analysis.md # Phase 2: Engineering Analysis
 │ │ └── critique.md # Phase 3: Cross-review
-│ └── visual-engineering/
+│ └── ui/
 │ ├── analysis.md # Phase 2: DX Analysis
 │ └── critique.md # Phase 3: Cross-review
 └── summary.md # Phase 4: Generate summary

@@ -94,7 +94,7 @@
 
 | 检查项 | 评估要点 | 代码证据来源 |
 |--------|---------|-------------|
-| 可观测性三支柱 | 结构化日志？分布式链路追踪(OpenTelemetry)？指标监控(Prometheus+Grafana)？告警？ | 日志库配置、tracing 中间件、metrics 端点 |
+| 可观测性三支柱 | 结构化日志？分布式链路追踪(OpenTelemetry)？指标监控(Planning+Grafana)？告警？ | 日志库配置、tracing 中间件、metrics 端点 |
 | CI/CD 流水线 | 是否全自动化？滚动更新/蓝绿/金丝雀？ | .github/workflows、Dockerfile、Makefile |
 | 资源调度 | 容器化(Docker/K8s)？资源调度是否最优？是否有单点瓶颈或严重浪费？ | docker-compose.yml、k8s manifests、资源配额 |
 
