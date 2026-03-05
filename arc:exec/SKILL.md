@@ -1,6 +1,6 @@
 ---
 name: "arc:exec"
-description: "不知道该用哪个 skill 时先用它：自动理解需求、路由到合适技能，并可编排多 Agent 协同执行；支持一句话入口“拉一个团队做这个任务”。"
+description: "统一任务入口：理解需求、路由技能并编排执行。"
 ---
 
 # Intelligent scheduling Exec (demand analysis + skill routing + multi-agent scheduling)
@@ -218,7 +218,7 @@ User needs
 │   └── arc:fix
 │
 ├── Service startup + regression testing closed loop
-│   └── arc:retest
+│   └── arc:fix --mode retest-loop
 │
 ├── Pure back-end development tasks (API, database, algorithm, CLI)
 │   └── schedule_task(capability_profile="deep", capabilities=[], ...)
@@ -267,7 +267,7 @@ User needs
 | Users mentioned "implementation", "coding", "development", "refactoring" and "implementation" | arc:build |
 | Users mentioned "test", "E2E", "simulate" and "browser" | arc:e2e |
 | Users mentioned "fix", "triage", "bug" and "failure" | arc:fix |
-| Users mentioned "return", "loop" and "retest" | arc:retest |
+| Users mentioned "return", "loop" and "retest" | arc:fix --mode retest-loop |
 | Users mentioned "pulling a team", "forming a team" and "team parallelism" | arc:exec |
 | User description is vague and lacks details | arc:clarify |
 | Users directly give clear development tasks | Dispatch by realm schedule_task() |
@@ -324,7 +324,7 @@ User needs
 
 1. Read `.arc/context-hub/index.json` to retrieve artifacts that match the current task (`CLAUDE.md`, `codemap.md`, `handoff/*.json`, arc:audit/scoring reports).
 2. Build `context_pack`: Records `path`, `generated_at`, `expires_at`, `content_hash`.
-3. If the product is expired or inconsistent, the reflow update is triggered according to `refresh_skill` in the index (for example, `arc:init:update`, `arc:cartography`, `score` module refresh (triggered by `arc:release` orchestration)).
+3. If the product is expired or inconsistent, the reflow update is triggered according to `refresh_skill` in the index (for example, `arc:init --mode update`, `arc:cartography`, `score` module refresh (triggered by `arc:release` orchestration)).
 4. Inject `context_pack` in subsequent Task scheduling, requiring downstream skills to consume these products first.
 
 #### Step 1.1: Project context search

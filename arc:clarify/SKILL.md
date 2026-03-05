@@ -1,6 +1,6 @@
 ---
 name: "arc:clarify"
-description: "需求模糊或约束不全时使用：补齐上下文并生成可直接执行的高质量提示。"
+description: "需求澄清：补齐上下文并产出可执行提示。"
 ---
 
 # Question Refiner
@@ -181,7 +181,7 @@ Write the complete enhanced prompt to the shared directory:
 After this Skill is completed, it is recommended to continue calling `arc:decide` Skill for multi-Agent deliberation.
 
 If the shared product is found to be invalid during the refinement process:
-- CLAUDE index invalidation → trigger `arc:init:update` (`arc:init:full` if necessary)
+- CLAUDE index invalidation → trigger `arc:init --mode update` (`arc:init --mode full` if necessary)
 - codemap invalid → trigger `arc:cartography` update
 - score/review data invalidation → trigger `score` module refresh (triggered by `arc:release` arrangement) / `arc:audit` update
 

@@ -1,6 +1,6 @@
 ---
 name: "arc:ip-draft"
-description: "拿到 arc:ip-check 交接后使用：起草结构化软著/专利申请材料与文档草稿。"
+description: "知产起草：根据审查结果生成申请文档草稿。"
 ---
 
 # arc:ip-draft — patent/software document writing

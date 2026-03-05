@@ -1,6 +1,6 @@
 ---
 name: "arc:model"
-description: "需要基于项目实际代码与配置输出 UML 图时使用：按适用性产出 14 类 UML 图；如需 E-R 图，必须使用陈氏画法。"
+description: "UML 建模：基于代码生成标准 UML 与陈氏 E-R。"
 ---
 
 # arc:model — Project UML diagram generation

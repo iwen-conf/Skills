@@ -1,6 +1,6 @@
 ---
 name: "arc:audit"
-description: "项目或关键 PR 体检时使用：输出七维度评审、业务成熟度、依赖健康度与风险路线图。"
+description: "项目体检：七维评审并输出风险与改进路线。"
 ---
 
 # Enterprise-level project review (multi-agent confrontational)
@@ -196,7 +196,7 @@ Before entering Step 1.1, you must first try to reuse the upstream product:
 3. If valid, it will be loaded directly into the review context to reduce the scope of repeated scanning.
 4. If it is invalid, a reflow update will be triggered:
    - score invalid → `score` module refresh (triggered by `arc:release` orchestration)
-   - codemap/CLAUDE metadata invalid → `arc:init:update` / `arc:cartography`
+   - codemap/CLAUDE metadata invalid → `arc:init --mode update` / `arc:cartography`
 5. Write the reused product path into `context/project-snapshot.md` metadata.
 
 ---

@@ -1,6 +1,6 @@
 ---
 name: arc:cartography
-description: "首次接手仓库或结构变化后使用：快速生成/刷新分层 codemap，帮助后续实现、评审与排障。"
+description: "仓库地图：生成或刷新分层 codemap。"
 ---
 
 # arc:cartography Skill

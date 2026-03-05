@@ -1,6 +1,6 @@
 ---
 name: "arc:ip-check"
-description: "准备申请软著/专利前使用：评估可行性、风险、优先级和证据充分性。"
+description: "知产审查：评估软著/专利可行性与风险。"
 ---
 
 # arc:ip-check — project patent/software review report

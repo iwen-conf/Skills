@@ -204,9 +204,9 @@ implement → test → [pass?] → done
 2. **Step Estimation**: Add time/resource estimates per step
 3. **Dependency Graph**: Visual representation of dependencies
 
-### arc:retest as Iterator
+### arc:fix --mode retest-loop as Iterator
 
-`arc:retest` already implements the loop pattern. Enhance with:
+`arc:fix --mode retest-loop` already implements the loop pattern. Enhance with:
 
 1. **Conductor Integration**: Accept workflow definition
 2. **State Machine**: Track workflow state across iterations
@@ -280,7 +280,7 @@ for step in conductor.steps(run.id):
 
 ### Phase 3: Integration
 - [ ] arc:exec workflow templates
-- [ ] arc:retest conductor mode
+- [ ] arc:fix --mode retest-loop conductor mode
 - [ ] arc:decide workflow export
 
 ### Phase 4: Monitoring

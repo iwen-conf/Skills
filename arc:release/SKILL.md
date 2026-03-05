@@ -1,6 +1,6 @@
 ---
 name: "arc:release"
-description: "合并或上线前使用：执行质量门禁与发布准备度检查，给出 Go/No-Go 判定并可阻断风险变更。"
+description: "发布门禁：执行质量阈值检查并给出 Go/No-Go。"
 ---
 
 # arc:release -- CI quality gate control

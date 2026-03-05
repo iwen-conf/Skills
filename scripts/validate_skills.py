@@ -56,6 +56,10 @@ LEGACY_TOKEN_PARTS = [
 BANNED_TOKENS = [
     *(("".join(parts)) for parts in LEGACY_TOKEN_PARTS),
     "session_id",
+    "arc:estimate",
+    "arc:retest",
+    "arc:init:full",
+    "arc:init:update",
 ]
 
 FUSION_GENERIC_SKILLS = set()
@@ -64,15 +68,11 @@ ARC_ROUTED_SKILLS = {
     "arc:exec",
     "arc:cartography",
     "arc:decide",
-    "arc:estimate",
     "arc:release",
     "arc:build",
     "arc:init",
-    "arc:init:full",
-    "arc:init:update",
     "arc:ip-check",
     "arc:ip-draft",
-    "arc:retest",
     "arc:clarify",
     "arc:audit",
     "arc:e2e",

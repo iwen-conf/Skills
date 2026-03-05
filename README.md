@@ -1,7 +1,7 @@
 # Arc Skills
 
 跨运行时、可解耦的技能（Skill）仓库。  
-本仓库统一采用 `arc:xxx` 命名空间，当前保留 17 个核心编排技能。
+本仓库统一采用 `arc:xxx` 命名空间，对外主技能收敛为 13 个。
 
 ## 当前状态
 
@@ -10,27 +10,29 @@
 - 路由文档已形成三层：矩阵、决策树、阶段视图 + 单页速查。
 - 所有 `SKILL.md` 的 frontmatter `description` 已统一为中文。
 
-## Arc 技能清单（17）
+## 命名规则（唯一口径）
 
-| Skill | 目录 | 作用 |
+- 对外与对内统一只使用一套 Skill ID：`arc:*`
+- Skill 只按“能力边界”命名，不再同时维护另一套“人类别名”
+- 模式参数统一放在 Skill 内部（如 `--mode`），不再把每个模式都当成一级入口
+
+## 对外主技能（13）
+
+| 分组 | Skill ID | 一句话用途 |
 |---|---|---|
-| `arc:exec` | `arc:exec/` | 统一入口，做需求理解、Skill 路由与多 Agent 调度 |
-| `arc:clarify` | `arc:clarify/` | 需求澄清与上下文补齐，输出可执行提示 |
-| `arc:decide` | `arc:decide/` | 多视角审议与反驳收敛，用于高风险决策 |
-| `arc:estimate` | `arc:estimate/` | round 模型估算、风险校准与并行波次规划 |
-| `arc:build` | `arc:build/` | 方案落地为代码变更，附验证与交接产物 |
-| `arc:audit` | `arc:audit/` | 企业级多维诊断与改进路线图 |
-| `arc:release` | `arc:release/` | CI/CD 质量门禁判定（阈值 + 豁免） |
-| `arc:e2e` | `arc:e2e/` | 用户路径 E2E 验证与 UI 证据沉淀 |
-| `arc:fix` | `arc:fix/` | 基于失败工件做根因定位、修复与复验 |
-| `arc:retest` | `arc:retest/` | 重启服务 + 多轮 fail-fix-retest 闭环 |
-| `arc:cartography` | `arc:cartography/` | 分层 codemap 生成与增量刷新 |
-| `arc:model` | `arc:model/` | 基于项目证据生成 14 类 UML 图谱（需 E-R 时按陈氏画法） |
-| `arc:init` | `arc:init/` | CLAUDE 索引维护自动路由（full/update） |
-| `arc:init:full` | `arc:init:full/` | CLAUDE 索引全量重建 |
-| `arc:init:update` | `arc:init:update/` | CLAUDE 索引增量更新 |
-| `arc:ip-check` | `arc:ip-check/` | 软著/专利可行性审查与风险评估 |
-| `arc:ip-draft` | `arc:ip-draft/` | 基于审查交接起草 IP 申请材料 |
+| 总控 | `arc:exec` | 一句话入口，自动路由与编排 |
+| 方案 | `arc:clarify` | 把模糊需求补全为可执行输入 |
+| 方案 | `arc:decide` | 高风险方案收敛（可含估算模式） |
+| 交付 | `arc:build` | 按方案实施改动并交付验证 |
+| 交付 | `arc:cartography` | 生成/刷新 codemap 结构视图 |
+| 交付 | `arc:model` | 生成标准 UML（E-R 用陈氏画法） |
+| 索引 | `arc:init` | 自动维护索引（full/update 模式内聚） |
+| 质量 | `arc:e2e` | 按真实路径执行 E2E 验证 |
+| 质量 | `arc:fix` | 基于失败证据定位并修复（可含 retest 模式） |
+| 治理 | `arc:audit` | 七维评审 + 业务/依赖成熟度 |
+| 治理 | `arc:release` | 质量阈值判定与 Go/No-Go |
+| 知产 | `arc:ip-check` | 软著/专利可行性与风险评估 |
+| 知产 | `arc:ip-draft` | 依据审查结果起草申请材料 |
 
 ## 我该用哪个 Skill？
 
@@ -45,20 +47,24 @@
 | 准备合并或发布，做门禁 | `arc:release` |
 | 需要真实用户路径 E2E 验证 | `arc:e2e` |
 | E2E 失败或线上故障排查 | `arc:fix` |
-| 修复后必须重启并多轮回归 | `arc:retest` |
+| 修复后必须重启并多轮回归 | `arc:fix --mode retest-loop` |
 | 刚接手陌生仓库，先看结构 | `arc:cartography` |
 | 需要系统建模图（类图/时序图/部署图等） | `arc:model` |
-| 要维护 CLAUDE 索引（不想判断 full/update） | `arc:init` |
+| 要维护索引（不想判断 full/update） | `arc:init` |
+
+## 最简记忆（只记 5 个）
+
+- 不知道用什么：`arc:exec`
+- 要改代码交付：`arc:build`
+- 要项目体检打分：`arc:audit`
+- 要发布门禁：`arc:release`
+- 要画 UML：`arc:model`
 
 ## 收敛结果
 
-- 已取消独立“能力子技能”，全部能力并入核心流程，避免重复入口与职责分散。
-- `arc:score` 对外入口已收敛到 `arc:release`；内部保留 `score/` 模块负责量化评分，`arc:release` 负责门禁判定。
-- `arc:exec`：统一承接仓库摸底与任务拆解路由。
-- `arc:build`：统一承接契约先行、迁移、重构与文档同步交付。
-- `arc:audit`：统一承接测试策略、性能回归、安全基线与 PR 评审结论。
-- `arc:fix`：统一承接 simulate 失败、flaky 与恢复闭环。
-- `arc:release`：统一承接发布前 Go/No-Go 与门禁判定。
+- 入口从 17 个收敛为 13 个主技能，减少重复选择成本。
+- `arc:score` 对外入口收敛到 `arc:release`；内部 `score/` 负责量化评分，`arc:release` 负责门禁判定。
+- 路由、矩阵、速查与 README 统一采用同一套 Skill ID 口径。
 
 ## 路由文档
 
@@ -93,8 +99,8 @@ python3 scripts/validate_skills.py
 ```bash
 # 命名到命令映射
 # arc:exec -> arc exec
-# arc:init:full -> arc init full
-# arc:init:update -> arc init update
+# arc:init --mode full -> arc init --mode full
+# arc:init --mode update -> arc init --mode update
 
 # 推荐入口
 arc exec
@@ -113,12 +119,12 @@ arc audit
 # E2E 链路
 arc e2e
 arc fix
-arc retest
+arc fix --mode retest-loop
 
 # 初始化链路
 arc init
-arc init full
-arc init update
+arc init --mode full
+arc init --mode update
 ```
 
 ## 约定

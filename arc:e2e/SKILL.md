@@ -1,6 +1,6 @@
 ---
 name: "arc:e2e"
-description: "需要按真实用户路径做 E2E 验证时使用：自动执行流程并输出截图与证据工件。"
+description: "E2E 验证：按真实路径执行并沉淀证据。"
 ---
 # **UI/UX Simulation & E2E Testing**
 
@@ -184,7 +184,7 @@ The following constraints must be strictly adhered to when executing tests, any 
    * `arc:build` handoff (range of changes in this round)
 2. Verify product freshness: `expires_at` + `content_hash`.
 3. If the product is available, load it directly without repeating the full scan.
-4. If the product fails, it will be updated according to `refresh_skill` reflow (`arc:init:update` / `arc:cartography` / `score` module refresh (triggered by `arc:release` arrangement) / `arc:audit`).
+4. If the product fails, it will be updated according to `refresh_skill` reflow (`arc:init --mode update` / `arc:cartography` / `score` module refresh (triggered by `arc:release` arrangement) / `arc:audit`).
 
 **Priority 1: Read project CLAUDE.md level index**
 
@@ -197,7 +197,7 @@ The following constraints must be strictly adhered to when executing tests, any 
      - "Coding Conventions" chapter: Selector naming convention (such as `button[data-testid="{action}-{component}"]`)
      - "Architecture Diagram" Chapter: Page Structure and Component Hierarchy
 3. **Verify index freshness**: Check the "Change History" section of CLAUDE.md to confirm that the generation time is < 7 days.
-4. **If the index is missing or out of date**: trigger `arc:init:update` (`arc:init:full` if necessary) before continuing.
+4. **If the index is missing or out of date**: trigger `arc:init --mode update` (`arc:init --mode full` if necessary) before continuing.
 
 **Priority 2: Use ace-tool to add details**
 
@@ -215,7 +215,7 @@ During the test execution, if the information in CLAUDE.md is found to be inaccu
 2. **Return to ace-tool**: Use source code scanning to obtain correct information and continue testing.
 3. **Generate error report**: Generate a cache verification failure report in the `<run_dir>/context-errors/` directory (see template below).
 4. **Reflow update suggestions**:
-   - CLAUDE index problem → `arc:init:update`
+   - CLAUDE index problem → `arc:init --mode update`
    - codemap issues → `arc:cartography` updated
    - Rating/review product issues → `score` module refresh (triggered by `arc:release` arrangement) / `arc:audit` update
 

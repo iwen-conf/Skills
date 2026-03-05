@@ -1,6 +1,6 @@
 ---
 name: "arc:build"
-description: "方案已明确时使用：按契约落地代码变更（含重构/迁移），并同步验证证据与交接文档。"
+description: "代码交付：按方案实施变更并输出验证与交接。"
 ---
 
 # arc:build — implementation of the solution
@@ -108,7 +108,7 @@ Code changes must not be implemented without clear plans, verification evidence,
 6. `Exa` external documentation
 
 Failure reflow rules:
-- CLAUDE index invalid: trigger `arc:init:update`
+- CLAUDE index invalid: trigger `arc:init --mode update`
 - codemap invalid: trigger `arc:cartography` update
 - score/review product failure: trigger `score` module refresh (triggered by `arc:release` arrangement) / `arc:audit` update
 

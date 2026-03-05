@@ -1,6 +1,6 @@
 ---
 name: "arc:decide"
-description: "方案有争议或风险高时使用：让多 Agent 独立提案并互相反驳，最终收敛到可执行决策。"
+description: "方案决策：多视角评审并收敛可执行方案。"
 ---
 
 # Multi-Agent Deliberation
@@ -15,6 +15,9 @@ The process is divided into four stages:
 2. **Deliberation stage**: Multi-Agent independent proposals → Cross-review → Mutual refutation → Iterative convergence → Synthetic consensus report
 3. **Plan generation phase**: OpenSpec generates structured plan → Multi-Agent review and rebuttal → Finalize executable plan
 4. **Execution phase**: Use schedule_task(capability_profile="deep") to execute code implementation
+
+Unified mode:
+- Use `arc:decide --mode estimate` when the primary goal is effort/risk estimation.
 
 ## Quick Contract
 
