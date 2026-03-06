@@ -77,10 +77,13 @@ No ratings can be given without evidence, and no suggestions can be given withou
 - Business maturity must be quantified `Link continuity rate / link disconnection rate / key scenario pass rate / business abnormality signal`.
 - Dependency health must cover `EOL status/CVE exposure/Upgrade blocking/Maintenance activity` four types of indicators.
 - The report must output `Governance Roadmap` (P0/P1/P2) and mark the owner, time limit, and acceptance criteria.
-- The HTML report must comply with the SPA market standard (`references/spa-dashboard-spec.md`) and adopt the **9 Tab hierarchical architecture**:
-  - **1 Global Overview**: Seven-dimensional radar chart + Apdex index + KPI card (including Sparkline trend)
-  - **4 Business in-depth analysis**: business completion status (sunburst chart/Gantt chart), business connection status (force-directed topology map), business connectivity rate (Sankey chart/cellular heat map), business logic smoothness (process mining DAG/funnel chart)
-  - **4 Technical Performance Dimensions**: Architecture health (dependency matrix/polar histogram), performance and stability (timing line chart/flame chart), security governance and compliance (threat landscape chart/rose chart), resource utilization and cost (rectangular tree chart/stacked area chart)
+- The HTML report must follow the design of `templates/dashboard-template.html` and adopt the **9 Tab hierarchical architecture**:
+  - **1 Global Overview**: Seven-dimensional radar chart + Gauge + KPI cards + priority distribution
+  - **4 Business in-depth analysis**: business completion (chain assessment table with status/maturity/evidence), business connection (force-directed topology), business connectivity (Sankey/chain bar), business logic fluency (funnel/process DAG)
+  - **4 Technical Performance Dimensions**: Architecture health (dependency matrix/polar histogram), performance and stability (bar chart), security governance and compliance (rose chart + gate check table), resource utilization and cost (treemap)
+- The HTML must be **generated directly by the LLM** using actual review findings — NOT from external scripts that may produce incomplete data
+- **ZERO-VALUE PROHIBITION**: No score, metric, or evidence field may be 0 or empty. Use "N/A (reason)" if data is unavailable.
+- **EVIDENCE MANDATE**: Every finding in the HTML must include `<code>file_path:line_number</code>` evidence
 - Each Tab has built-in `Expert Review Card` (Conclusion/Gate Suggestion/Risk Level/Correction Time Limit/Key Evidence)
   - All charts are powered by ECharts CDN and support interactive drill-down
   - Semantic palette: Success #52C41A, Warning #FAAD14, Danger #F5222D, Offline #BFBFBF
@@ -88,9 +91,9 @@ No ratings can be given without evidence, and no suggestions can be given withou
 ## Scripts & Commands
 
 - Runtime main command: `arc audit`
-- Quantitative integration (automatic selection of topics + 9 Tab): `python3 arc:audit/scripts/integrate_score.py --project-path <project_path> --review-dir <project_path>/.arc/arc:audit/<project_name>`
-- Specify score directory: `python3 arc:audit/scripts/integrate_score.py --score-dir <score_dir> --review-dir <project_path>/.arc/arc:audit/<project_name>`
-- If the score input is missing, execute first: `arc gate`
+- HTML dashboard template: `arc:audit/templates/dashboard-template.html` (design reference for LLM-generated HTML)
+- Supplementary quantitative integration (optional, when arc:score data exists): `python3 arc:audit/scripts/integrate_score.py --project-path <project_path> --review-dir <project_path>/.arc/arc:audit/<project_name>`
+- If the score input is missing, the primary dashboard is generated directly by the LLM; optionally execute `arc gate` first for supplementary quantitative data
 
 ## Red Flags
 
@@ -485,35 +488,38 @@ Output `recommendations.md`:
 - [ ] <suggestion> — Dimension: <dimension name>
 ```
 
-#### Step 4.5: Generate quantitative visualization HTML (mandatory)
+#### Step 4.5: Generate visualization HTML dashboard (mandatory)
 
-Must be performed at the end of Phase 4:
+Must be performed at the end of Phase 4. **You generate the HTML directly** using the review data already in your context — do NOT depend on external scripts or JSON files.
 
-```bash
-python3 <skills_root>/arc:audit/scripts/integrate_score.py \
-  --project-path <project_path> \
-  --review-dir <project_path>/.arc/arc:audit/<project-name>
-```
+**Data Source**: Use the actual review findings from Phase 2-4 (dimensional scores, code evidence, business chain assessments, issue details). This ensures accurate data — no zeros, no missing evidence.
 
-The generated dashboard follows the SPA 9-Tab Standard (`references/spa-dashboard-spec.md`):
+**Reference Template**: Read `templates/dashboard-template.html` for the design specification and HTML structure. Fill in ALL `{{PLACEHOLDER}}` sections with real review data.
 
-**Tab Layout (1 + 4 + 4)**:
-1. **Executive Overview**: ECharts Radar Chart (seven-dimensional normalization 0-100) + Donut Gauge (total progress) + KPI Sparkline Cards
-2. **Business Completion**: demand delivery rate + burndown rate + business maturity assessment
-3. **Business Connection**: Node in-degree/out-degree + Dependency level depth + Architecture topology
-4. **Business Connectivity**: Interface success rate + message delivery rate + Sankey traffic funnel
-5. **Business Logic Fluency**: Main process conversion rate + exception fallback rate + process mining
-6. **Architecture Health**: Cyclomatic Complexity + Module Coupling + Dependency Matrix Heat Map
-7. **Performance & Stability**: P95/P99 latency + throughput QPS/TPS
-8. **Security & Governance**: Authentication interception rate + high-risk API exposure rate + security incident classification
-9. **Resource & FinOps**: Resource utilization + idle cost + zombie service detection
+**Critical Rules for HTML Generation**:
+1. **NO ZERO VALUES**: Every score, every metric must reflect the actual review findings. If a dimension was not assessable, write "N/A (reason)" instead of 0.
+2. **EVERY FINDING MUST HAVE `file:line` EVIDENCE**: Use `<code>path/to/file.ext:123</code>` format. Never leave evidence cells empty.
+3. **ACCURATE SCORES**: Radar chart values, gauge values, and KPI cards must match the scores from `scorecard.md` and `diagnostic-report.md`.
+4. **BUSINESS CHAIN TABLE**: Each business chain must show status (pass/partial/blocked), maturity score, specific issues, and exact file paths with line numbers.
+5. **EXPERT REVIEW CARD per Tab**: Every tab must include the styled expert card with Verdict/Gate/Risk/SLA/Evidence.
+6. **PRIORITY PILLS**: Use `<span class="pill p0">P0</span>`, `<span class="pill p1">P1</span>`, `<span class="pill p2">P2</span>`, `<span class="pill pass">Pass</span>`, `<span class="pill fail">Fail</span>`.
 
-**Mandatory per-tab components**: Expert review card (Conclusion/Gate Recommendation/Risk Level/Correction Time Limit/Key Evidence), ECharts chart, detail tables.
+**Tab Layout (1 + 4 + 4)** — each tab must have: KPI metrics + Expert Review Card + ECharts chart + detail table:
+1. **Executive Overview**: Seven-dimension radar chart + gauge + KPI summary cards + priority distribution
+2. **Business Completion**: Business chain assessment table (chain name, status pill, maturity, issues, evidence files)
+3. **Business Connection**: Module dependency topology + architecture analysis
+4. **Business Connectivity**: Flow-through rate + chain segment assessment + Sankey chart
+5. **Business Logic Fluency**: Logic issue details with evidence + funnel chart
+6. **Architecture Health**: Dependency matrix heatmap + polar bar + architecture findings
+7. **Performance & Stability**: Performance findings + bar chart
+8. **Security & Governance**: Security issues table with priority pills + gate check results (pass/fail) + rose chart
+9. **Resource & FinOps**: Resource/debt findings + treemap
 
-At least the following products should exist after execution:
-- `quantitative-dashboard.html` (single output; 9 Tabs per SPA standard; ECharts CDN; theme selected by `time now()` at generation time)
+**ECharts**: Use CDN `https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js`. Initialize charts with actual data, not placeholder values.
 
-If the `.arc/score/<project-name>/` quantification input is missing, you must first trigger `arc:gate` to refresh the score product, and then retry this step.
+**Output**: Write the complete HTML to `quantitative-dashboard.html`.
+
+**Fallback**: If `arc:score` data exists at `.arc/score/<project-name>/`, you may additionally run `python3 <skills_root>/arc:audit/scripts/integrate_score.py` to generate supplementary `quantitative-input.json`, but the primary HTML dashboard MUST be generated directly by you with accurate review data.
 
 ---
 
@@ -542,7 +548,7 @@ If the `.arc/score/<project-name>/` quantification input is missing, you must fi
 │   └── critique.md
 ├── diagnostic-report.md # Final diagnostic report
 ├── scorecard.md # scorecard
-├── quantitative-dashboard.html # SPA 9-Tab Visualization Dashboard (ECharts; 1 global + 4 business + 4 technology; theme from time now())
+├── quantitative-dashboard.html # SPA 9-Tab Visualization Dashboard (LLM-generated with actual review data; ECharts CDN; 1 global + 4 business + 4 technology)
 ├── business-maturity.md # Business maturity special score
 ├── dependency-health.md # Dependency health special score
 └── recommendations.md # Improvement recommendations (by priority)
@@ -595,7 +601,9 @@ If the `.arc/score/<project-name>/` quantification input is missing, you must fi
 - **Dependency Blind Spot**: Not quantifying outdated/vulnerable/unmaintained dependencies in dimension 7
 - **Rubber Stamp**: Marking PASS without thorough analysis — each finding requires evidence
 - **Score Skipping**: Not preparing score artifacts first (typically via arc:gate) — quantitative data required before qualitative review
-- **Dashboard Skipping**: Not running `arc:audit/scripts/integrate_score.py` in Phase 4 — HTML dashboard artifacts are mandatory
+- **Dashboard Skipping**: Not generating `quantitative-dashboard.html` in Phase 4 — HTML dashboard is mandatory
+- **Script-Only Dashboard**: Relying solely on `integrate_score.py` without verifying data completeness — LLM must generate the primary HTML with accurate review data
+- **Zero-Value Dashboard**: Generating HTML with 0 scores, empty evidence, or placeholder data — every value must reflect actual findings
 
 ### Finding Anti-Patterns
 

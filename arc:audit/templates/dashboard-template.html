@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{PROJECT_NAME}} - 项目评审可视化报告</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1f2d3d;
+      --muted: #6b7280;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --ok: #10b981;
+      --primary: #3b82f6;
+      --border: #e5e7eb;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    .header {
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      color: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .header h1 { margin: 0 0 8px; font-size: 28px; }
+    .header .meta { opacity: 0.95; font-size: 14px; }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+
+    .metric-title { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .metric-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .metric-note { font-size: 13px; color: var(--muted); }
+
+    .danger { color: var(--danger); }
+    .warn { color: var(--warn); }
+    .ok { color: var(--ok); }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .chart { width: 100%; height: 360px; }
+
+    h2 { margin: 4px 0 12px; font-size: 20px; }
+    h3 { margin: 14px 0 8px; font-size: 16px; font-weight: 600; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      font-size: 13px;
+    }
+    thead { background: #f8fafc; }
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: #f3f4f6;
+      border-radius: 4px;
+      padding: 1px 4px;
+      word-break: break-all;
+      font-size: 12px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .p0 { background: #fee2e2; color: #b91c1c; }
+    .p1 { background: #fef3c7; color: #92400e; }
+    .p2 { background: #dbeafe; color: #1d4ed8; }
+    .pass { background: #dcfce7; color: #166534; }
+    .fail { background: #fee2e2; color: #b91c1c; }
+    .concern { background: #fef3c7; color: #92400e; }
+
+    .footer-note { margin-top: 12px; color: var(--muted); font-size: 12px; }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 12px;
+    }
+    .tab-btn {
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .tab-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .tab-btn.active {
+      background: #dbeafe;
+      border-color: #93c5fd;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Expert Review Card */
+    .expert-card {
+      background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+      border: 1px solid #bae6fd;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 14px 0;
+    }
+    .expert-card h3 { margin: 0 0 10px; color: #0369a1; }
+    .expert-card .row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .expert-card .field { flex: 1; min-width: 140px; }
+    .expert-card .field-label { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+    .expert-card .field-value { font-size: 14px; font-weight: 600; }
+    .expert-card .evidence { margin-top: 10px; font-size: 12px; color: #475569; }
+    .expert-card .evidence code { font-size: 11px; }
+
+    @media (max-width: 1000px) {
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      .tabs { display: none !important; }
+      .tab-panel { display: block !important; page-break-inside: avoid; margin-bottom: 24px; }
+      .header { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- ==================== HEADER ==================== -->
+    <div class="header">
+      <h1>{{PROJECT_NAME}} 项目评审可视化报告</h1>
+      <div class="meta">
+        评审对象：{{REVIEW_TARGET}}｜评审日期：{{REVIEW_DATE}}｜结论：<b>{{OVERALL_VERDICT}}</b>
+      </div>
+    </div>
+
+    <!-- ==================== KPI SUMMARY CARDS ==================== -->
+    <!--
+      Rules for KPI cards:
+      - Use class="danger" for scores below threshold (e.g. < 5/10 or < 50/100)
+      - Use class="warn" for borderline scores
+      - Use class="ok" for passing scores
+      - NEVER leave a value as 0 — if data is unavailable, write "N/A (原因)"
+    -->
+    <div class="summary-grid">
+      {{KPI_CARDS}}
+      <!--
+        Example KPI card:
+        <div class="card">
+          <div class="metric-title">综合评分（七维度）</div>
+          <div class="metric-value warn">4.4 / 10</div>
+          <div class="metric-note">基本可用但短板明显</div>
+        </div>
+      -->
+    </div>
+
+    <!-- ==================== OVERVIEW CHARTS ==================== -->
+    <div class="charts-grid">
+      <div class="card">
+        <h2>七维度评分雷达图</h2>
+        <div id="radarChart" class="chart"></div>
+      </div>
+      <div class="card">
+        <h2>综合评分仪表盘</h2>
+        <div id="gaugeChart" class="chart"></div>
+      </div>
+    </div>
+
+    <!-- ==================== 9-TAB SECTION ==================== -->
+    <div class="card" style="margin-bottom: 14px;">
+      <h2>多维度评估（1 全局 + 4 业务 + 4 技术）</h2>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="0">全局总览</button>
+        <button class="tab-btn" data-tab="1">业务完成度</button>
+        <button class="tab-btn" data-tab="2">业务连接</button>
+        <button class="tab-btn" data-tab="3">业务连通率</button>
+        <button class="tab-btn" data-tab="4">业务逻辑通顺性</button>
+        <button class="tab-btn" data-tab="5">架构健康度</button>
+        <button class="tab-btn" data-tab="6">性能与稳定性</button>
+        <button class="tab-btn" data-tab="7">安全治理与合规</button>
+        <button class="tab-btn" data-tab="8">资源与成本</button>
+      </div>
+
+      <!-- ===== Tab 0: Executive Overview ===== -->
+      <div class="tab-panel active" data-panel="0">
+        {{TAB0_OVERVIEW}}
+        <!--
+          MUST include:
+          1. Seven-dimension summary table with scores + key findings (NOT zeros)
+          2. Expert Review Card (see template below)
+          3. Priority distribution chart (P0/P1/P2 counts)
+
+          Expert Review Card template:
+          <div class="expert-card">
+            <h3>专家总评卡</h3>
+            <div class="row">
+              <div class="field">
+                <div class="field-label">审核结论</div>
+                <div class="field-value">Concern</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Gate 建议</div>
+                <div class="field-value">Conditional Go</div>
+              </div>
+              <div class="field">
+                <div class="field-label">风险等级</div>
+                <div class="field-value">中</div>
+              </div>
+              <div class="field">
+                <div class="field-label">整改时限</div>
+                <div class="field-value">P1（72h）</div>
+              </div>
+            </div>
+            <div class="evidence">
+              关键证据：
+              <code>src/auth/handler.go:45</code>，
+              <code>pkg/db/conn.go:112</code>，
+              <code>internal/api/router.go:78</code>
+            </div>
+          </div>
+        -->
+      </div>
+
+      <!-- ===== Tab 1: Business Completion ===== -->
+      <div class="tab-panel" data-panel="1">
+        {{TAB1_BUSINESS_COMPLETION}}
+        <!--
+          MUST include:
+          1. Business chain assessment table (like the reference file)
+             - Each chain: name, status pill (pass/p1/p0), maturity score, key issues, evidence files
+          2. Expert Review Card
+          3. Chart: business completion bar or sunburst
+        -->
+      </div>
+
+      <!-- ===== Tab 2: Business Connection ===== -->
+      <div class="tab-panel" data-panel="2">
+        {{TAB2_BUSINESS_CONNECTION}}
+        <!--
+          MUST include:
+          1. Module dependency analysis with evidence
+          2. Expert Review Card
+          3. Chart: force-directed topology or dependency matrix
+        -->
+      </div>
+
+      <!-- ===== Tab 3: Business Connectivity ===== -->
+      <div class="tab-panel" data-panel="3">
+        {{TAB3_BUSINESS_CONNECTIVITY}}
+        <!--
+          MUST include:
+          1. Flow-through rate assessment with specific chains
+          2. Expert Review Card
+          3. Chart: Sankey or chain bar chart
+        -->
+      </div>
+
+      <!-- ===== Tab 4: Business Logic Fluency ===== -->
+      <div class="tab-panel" data-panel="4">
+        {{TAB4_BUSINESS_LOGIC}}
+        <!--
+          MUST include:
+          1. Logic issue details with file:line evidence
+          2. Expert Review Card
+          3. Chart: funnel or process DAG
+        -->
+      </div>
+
+      <!-- ===== Tab 5: Architecture Health ===== -->
+      <div class="tab-panel" data-panel="5">
+        {{TAB5_ARCHITECTURE}}
+        <!--
+          MUST include:
+          1. Architecture findings with code evidence
+          2. Dependency health assessment
+          3. Expert Review Card
+          4. Chart: heatmap or polar bar
+        -->
+      </div>
+
+      <!-- ===== Tab 6: Performance & Stability ===== -->
+      <div class="tab-panel" data-panel="6">
+        {{TAB6_PERFORMANCE}}
+        <!--
+          MUST include:
+          1. Performance findings with evidence
+          2. Expert Review Card
+          3. Chart: bar or line chart
+        -->
+      </div>
+
+      <!-- ===== Tab 7: Security & Governance ===== -->
+      <div class="tab-panel" data-panel="7">
+        {{TAB7_SECURITY}}
+        <!--
+          MUST include:
+          1. Security issue table with priority pills and file:line evidence
+          2. Gate check results table (pass/fail per item)
+          3. Expert Review Card
+          4. Chart: rose chart or bar
+        -->
+      </div>
+
+      <!-- ===== Tab 8: Resource & FinOps ===== -->
+      <div class="tab-panel" data-panel="8">
+        {{TAB8_RESOURCE}}
+        <!--
+          MUST include:
+          1. Resource/debt findings with evidence
+          2. Expert Review Card
+          3. Chart: treemap or stacked area
+        -->
+      </div>
+    </div>
+
+    <!-- ==================== EVIDENCE TABLE ==================== -->
+    <!--
+      This is the KEY section that must be accurate.
+      Every row MUST have:
+      - Priority pill (P0/P1/P2)
+      - Category
+      - Specific problem description
+      - EXACT file path with code tag
+      - EXACT line numbers
+
+      NEVER leave evidence cells empty.
+      If a finding has no code location, explain why in the cell.
+    -->
+    <div class="card" style="margin-bottom: 14px;">
+      <h2>关键证据（具体文件信息）</h2>
+      {{EVIDENCE_TABLE}}
+    </div>
+
+    <!-- ==================== ROADMAP ==================== -->
+    <div class="card">
+      <h2>建议的改进路线</h2>
+      {{ROADMAP_TABLE}}
+    </div>
+  </div>
+
+  <!-- ==================== CHARTS SCRIPT ==================== -->
+  <script>
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelector(`[data-panel="${btn.dataset.tab}"]`).classList.add('active');
+        // Resize charts in new panel
+        document.querySelectorAll('[data-panel="' + btn.dataset.tab + '"] [id]').forEach(el => {
+          const c = echarts.getInstanceByDom(el);
+          if (c) c.resize();
+        });
+      });
+    });
+
+    {{ECHARTS_INIT_SCRIPT}}
+    <!--
+      MUST initialize at minimum:
+      1. radarChart - seven-dimension radar with ACTUAL scores (NOT all zeros)
+      2. gaugeChart - overall score gauge
+      3. Any per-tab charts referenced above
+
+      Example radar init:
+      const radar = echarts.init(document.getElementById('radarChart'));
+      radar.setOption({
+        tooltip: {},
+        radar: {
+          indicator: [
+            { name: '架构', max: 10 },
+            { name: '安全', max: 10 },
+            { name: '代码质量', max: 10 },
+            { name: '业务契合', max: 10 },
+            { name: 'DevOps', max: 10 },
+            { name: '团队协作', max: 10 },
+            { name: '技术债', max: 10 }
+          ],
+          axisName: { color: '#374151' },
+          splitArea: { areaStyle: { color: ['#f8fafc', '#eef2ff'] } }
+        },
+        series: [{
+          type: 'radar',
+          data: [{
+            value: [5.8, 3.2, 4.7, 6.8, 2.6, 3.5, 3.9],
+            name: '项目评分',
+            areaStyle: { color: 'rgba(59,130,246,0.25)' },
+            lineStyle: { width: 2, color: '#2563eb' },
+            itemStyle: { color: '#1d4ed8' }
+          }]
+        }]
+      });
+    -->
+
+    window.addEventListener('resize', () => {
+      document.querySelectorAll('[id$="Chart"]').forEach(el => {
+        const c = echarts.getInstanceByDom(el);
+        if (c) c.resize();
+      });
+    });
+  </script>
+</body>
+</html>

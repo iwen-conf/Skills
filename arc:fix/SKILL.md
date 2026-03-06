@@ -61,7 +61,7 @@ Without the evidence chain of "failure→repair→pass", it is not allowed to cl
 
 ## Expert Standards
 
-Error 500 (Server Error)!!1500.That's an error.There was an error. Please try again later.That's all we know.
+- Fault severity classification must follow `SEV-1/SEV-2/SEV-3` grading with defined response SLAs.
 - Root cause analysis needs to be combined with `5 Whys + Fault Tree` to avoid staying at the superficial causes.
 - Repair verification must quantify `MTTA/MTTR` with post-recovery stability window (e.g. 24h/72h).
 - It is recommended to use `canary/feature flag` first and bind the rollback threshold for online repair.

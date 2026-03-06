@@ -31,10 +31,16 @@ ARC_FUSION_REQUIRED_HEADINGS = [
     "## Red Flags",
 ]
 
-ARC_WHEN_TO_USE_MARKERS = [
+ARC_WHEN_TO_USE_MARKERS_ZH = [
     "**首选触发**",
     "**典型场景**",
     "**边界提示**",
+]
+
+ARC_WHEN_TO_USE_MARKERS_EN = [
+    ["**Preferred Trigger**", "**Preferred trigger**", "**Primary Trigger**", "**Primary trigger**"],
+    ["**Typical scenario**", "**Typical Scenario**", "**Typical scenarios**", "**Typical Scenarios**"],
+    ["**Boundary Tip**", "**Boundary Tips**", "**Boundary Note**", "**Border Tip**"],
 ]
 
 GENERIC_WHEN_TO_USE_MARKERS = [
@@ -50,18 +56,18 @@ ARC_CHEATSHEET_LINK = "../docs/arc-routing-cheatsheet.md"
 
 ARC_EXPERT_KEYWORDS = {
     "arc:build": ["DoD", "SemVer", "Contract Test", "RTO/RPO", "SBOM"],
-    "arc:cartography": ["C4", "ISO/IEC 42010", "churn", "增量差异清单"],
+    "arc:cartography": ["C4", "ISO/IEC 42010", "churn", ["增量差异清单", "incremental diff"]],
     "arc:clarify": ["IEEE 29148", "INVEST", "Given-When-Then"],
     "arc:decide": ["ADR", "Pre-Mortem", "Fitness Function"],
     "arc:e2e": ["ISTQB", "OWASP ASVS", "WCAG 2.2 AA"],
-    "arc:exec": ["RACI", "关键路径(CPM)", "冲突仲裁规则"],
-    "arc:fix": ["SEV", "5 Whys", "Fault Tree", "Blameless Postmortem"],
+    "arc:exec": ["RACI", ["关键路径(CPM)", "Critical Path", "CPM"], ["冲突仲裁规则", "conflict arbitration", "Conflict Arbitration"]],
+    "arc:fix": [["SEV", "Severity Level", "severity level", "severity"], "5 Whys", "Fault Tree", "Blameless Postmortem"],
     "arc:gate": ["Policy-as-Code", "OWASP", "SBOM", "OPA/Rego"],
-    "arc:init": ["schema_version", "原子更新", "上一个稳定索引回滚"],
-    "arc:ip-check": ["新颖性", "创造性", "实用性", "FTO"],
-    "arc:ip-draft": ["宽-中-窄", "权利要求", "待法务复核清单"],
-    "arc:uml": ["UML 2.5.1 / ISO 19505", "Chen", "建模假设"],
-    "arc:audit": ["业务成熟度", "依赖健康度", "9 Tab", "专家评审卡"],
+    "arc:init": ["schema_version", ["原子更新", "atomic update", "Atomic Update"], ["上一个稳定索引回滚", "stable index rollback", "rollback"]],
+    "arc:ip-check": [["新颖性", "novelty", "Novelty"], ["创造性", "inventiveness", "Inventiveness", "creativity", "creativeness"], ["实用性", "utility", "Utility", "practicality", "practicability"], "FTO"],
+    "arc:ip-draft": [["宽-中-窄", "broad-medium-narrow", "Broad-Medium-Narrow", "wide-medium-narrow"], ["权利要求", "claims", "Claims"], ["待法务复核清单", "legal review checklist", "Legal Review", "to be reviewed by legal"]],
+    "arc:uml": ["UML 2.5.1 / ISO 19505", "Chen", ["建模假设", "modeling assumption", "Modeling Assumption"]],
+    "arc:audit": [["业务成熟度", "Business Maturity", "business maturity"], ["依赖健康度", "Dependency Health", "dependency health"], ["专家评审卡", "Expert Review Card", "expert review card"], "9 Tab"],
 }
 
 LEGACY_TOKEN_PARTS = [
@@ -183,9 +189,10 @@ def validate_file(path: Path):
         for heading in ARC_FUSION_REQUIRED_HEADINGS:
             if heading not in text:
                 errors.append(f"{path}: missing heading {heading}")
-        for marker in ARC_WHEN_TO_USE_MARKERS:
-            if marker not in text:
-                errors.append(f"{path}: arc when-to-use missing marker {marker}")
+        for i, zh_marker in enumerate(ARC_WHEN_TO_USE_MARKERS_ZH):
+            en_variants = ARC_WHEN_TO_USE_MARKERS_EN[i]
+            if zh_marker not in text and not any(v in text for v in en_variants):
+                errors.append(f"{path}: arc when-to-use missing marker {zh_marker} (or English equivalent)")
         if ARC_ROUTING_MATRIX_LINK not in text:
             errors.append(f"{path}: missing routing matrix link {ARC_ROUTING_MATRIX_LINK}")
         if ARC_DECISION_TREE_LINK not in text:
@@ -199,9 +206,15 @@ def validate_file(path: Path):
             errors.append(f"{path}: missing expert standards section body")
         else:
             required_keywords = ARC_EXPERT_KEYWORDS.get(skill_name, [])
-            missing_keywords = [
-                kw for kw in required_keywords if kw not in expert_section
-            ]
+            missing_keywords = []
+            expert_lower = expert_section.lower()
+            for kw in required_keywords:
+                if isinstance(kw, list):
+                    if not any(variant.lower() in expert_lower for variant in kw):
+                        missing_keywords.append(kw[0])
+                else:
+                    if kw.lower() not in expert_lower:
+                        missing_keywords.append(kw)
             if missing_keywords:
                 errors.append(
                     f"{path}: expert standards missing skill-specific keywords: {', '.join(missing_keywords)}"
