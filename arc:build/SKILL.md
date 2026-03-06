@@ -60,14 +60,14 @@ Code changes must not be implemented without clear plans, verification evidence,
 - `implementation-plan.md` must be generated first and then encoded.
 - Every critical change must have verification commands and results.
 - The handover summary must cover impact modules and regression concerns.
-- Failure scenarios must be reversible and irreversible operations are not allowed.
+- Failure scenarios must include rollback or mitigation handling, and any irreversible operation must be explicitly called out before handover.
 
 ## Expert Standards
 
 - Adopt `DoD` delivery baseline: Delivery can only be made after the build passes, key tests pass, documents are updated, and the rollback path is complete.
 - Execute `SemVer + Contract Test` on interfaces and data contracts, prohibiting undeclared destructive changes.
-- Changes to critical links must provide `RTO/RPO` impact assessment and rollback drill records.
-- Delivery packages must contain `SBOM` with build provenance information (aligning supply chain traceability practices).
+- Changes to operationally critical links should provide `RTO/RPO`-style impact notes or an equivalent recovery assessment when those concerns are material.
+- When build artifacts or dependency manifests are part of the delivery surface, include available `SBOM`/provenance references instead of inventing them for minor changes.
 - Handoff must quantify the risk of change: impact area, regression scope, launch window, and observation indicators.
 
 ## Scripts & Commands

@@ -3,14 +3,14 @@ name: arc:fix
 description: "故障修复闭环：定位根因、实施修复并回归验证；当用户说“线上故障/bug 修复/incident triage/fix broken flow”时触发。"
 ---
 
-# UI/UX defect troubleshooting and repair (based on arc:e2e, industrialization)
+# arc:fix — evidence-based fault repair loop
 
 ## Overview
 
-Convert arc:e2e failure artifacts or online fault clues into: minimum recurrence/stop loss → root cause location → repair and recovery → passing evidence.
+`arc:fix` turns failure artifacts or online fault clues into a closed repair loop: reproduce or stabilize the failure, locate the root cause, implement the minimum safe fix, and return fail-to-pass evidence.
 
-Unified mode:
-- Use `arc:fix --mode retest-loop` when the service must be restarted and validated in multiple fail-fix-retest rounds.
+Mode note:
+- Use `arc:fix --mode retest-loop` when the service must be restarted and validated through multiple fail-fix-retest rounds.
 
 ## Quick Contract
 
@@ -61,11 +61,11 @@ Without the evidence chain of "failure→repair→pass", it is not allowed to cl
 
 ## Expert Standards
 
-- Fault severity classification must follow `SEV-1/SEV-2/SEV-3` grading with defined response SLAs.
+- For online incidents, fault severity classification should follow `SEV-1/SEV-2/SEV-3` grading with the team's defined response expectations.
 - Root cause analysis needs to be combined with `5 Whys + Fault Tree` to avoid staying at the superficial causes.
-- Repair verification must quantify `MTTA/MTTR` with post-recovery stability window (e.g. 24h/72h).
-- It is recommended to use `canary/feature flag` first and bind the rollback threshold for online repair.
-- Case closing must produce `Blameless Postmortem` and CAPA (Corrective/Preventive Action) items.
+- For online recovery, verification should record `MTTA/MTTR` and the agreed post-recovery stability window.
+- For online repairs, it is recommended to use `canary/feature flag` first and bind the rollback threshold.
+- High-impact incident closure should produce `Blameless Postmortem` and CAPA (Corrective/Preventive Action) items.
 
 ## Scripts & Commands
 
@@ -128,7 +128,7 @@ All evidence is rooted in `run_dir` of arc:e2e:
 
 - **Failing run**:`reports/<fail_run_id>/`
 - **Passing run**:`reports/<pass_run_id>/`
-- **Accounts file (unified account management)**: `<run_dir>/accounts.jsonc` (plain text account/password/Token; not allowed to be submitted to the database)
+- **Accounts file (unified account management)**: `<run_dir>/accounts.jsonc` (store the credential set used for reproduction; keep secrets redacted outside this file and do not commit it to the repository)
 
 It is recommended to put "Analyze/Repair Deliverables" in `run_dir/analysis/` (does not affect `check_artifacts.py --strict`):
 
@@ -317,12 +317,12 @@ python arc:e2e/scripts/new_defect.py \
   --role buyer \
   --url "http://localhost:5173/order/new" \
   --user "buyer_01" \
-  --password "secret123" \
+  --password "<store-in-accounts-jsonc-only>" \
   --screenshot "screenshots/s0007_after-submit.png" \
   --severity S1
 ```
 
-Note: arc:e2e allows clear text recording of account numbers/passwords; therefore `reports/` should not be submitted to the warehouse.
+Note: arc:e2e may store reusable credentials in `accounts.jsonc`; therefore `reports/` should not be submitted to the repository.
 ## Anti-Patterns
 
 **CRITICAL: The following behaviors are FORBIDDEN in arc:fix execution:**

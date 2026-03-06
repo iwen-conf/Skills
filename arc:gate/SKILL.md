@@ -89,7 +89,7 @@ No build/release is green without explicit gate evidence.
 
 - **Preferred Trigger**: A clear access decision (Go/No-Go) is required before merging or going online.
 - **Typical scenario**: Blocking based on score threshold and exemption policy; unified verification of rollback/monitoring/duty/announcement readiness in the release window.
-- **Boundary Tip**: `arc:gate` is only responsible for access control determination, not deployment and execution; please use `arc:audit` first for root cause analysis and improvement routes.
+- **Boundary Tip**: `arc:gate` is only responsible for Go/No-Go gate decisions, not deployment, implementation, or root-cause analysis. Use `arc:audit` when you need diagnosis and improvement routes.
 
 ## Dependencies
 
@@ -112,9 +112,10 @@ No build/release is green without explicit gate evidence.
 | parameter | type | Required | illustrate |
 |------|------|------|------|
 | `project_path` | string | yes | Project root directory |
-| `score_dir` | string | no | score product directory, default `.arc/score/<project>` |
+| `score_dir` | string | no | Score product directory; default `.arc/score/<project>` when a direct path is needed after shared-index lookup |
 | `config` | string | no | Access control configuration file path |
 | `mode` | string | no | Access control mode: warn/strict/strict_dangerous, default strict |
+| `waiver_list` | string | no | Waiver file path when not provided by the gate config |
 
 ### Directory structure
 

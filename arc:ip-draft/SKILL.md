@@ -17,9 +17,9 @@ description: "知识产权申请文档起草：基于审查结论生成软著/�
 
 ## Quick Contract
 
-- **Trigger**: The review handover is ready and a draft of soft copy/patent application materials needs to be generated.
-- **Inputs**: Project path, `ip-audit` handover directory, target document scope and application subject information.
-- **Outputs**: Track drafts (`copyright/`, `patent/`), term alignment results, and writing logs.
+- **Trigger**: The review handover is ready and a draft of software-copyright and/or patent application materials needs to be generated.
+- **Inputs**: Project path, `arc:ip-check` handover directory, target document scope and application subject information.
+- **Outputs**: Requested track drafts (`copyright/`, `patent/`, or both according to `target_docs`), term alignment results, and writing logs.
 - **Quality Gate**: The evidence traceability and terminology consistency check of `## Quality Gates` must be passed before delivery.
 - **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
 
@@ -53,12 +53,12 @@ High-confidence technical document drafts should not be output without review ha
 1. Read the `arc:ip-check` handover file and establish the writing context.
 2. Multi-Agent and initiate draft technical solutions, implementation details and documentation chapters.
 3. Cross-review and harmonize terminology, boundaries and evidence references.
-4. Output soft works and patent drafts and writing logs in sub-directories.
+4. Output the requested software-copyright and/or patent drafts plus writing logs in separate sub-directories.
 
 ## Quality Gates
 
 - Each key technical description should be traceable back to code or review handoff.
-- Soft copy and patented materials must be physically separated and exported.
+- Requested copyright and patent materials must stay separated by track when they are both produced.
 - The glossary must be consistent throughout the text.
 - The draft must be marked with an "editable draft" position to avoid being misled into the final legal text.
 
@@ -66,7 +66,7 @@ High-confidence technical document drafts should not be output without review ha
 
 - The patent draft must follow the structure of `Abstract-Background-Content of the Invention-Description of Drawings-Detailed Embodiments-Claims'.
 - Claims must adopt a `wide-medium-narrow` gradient layout, and check the basic consistency of previous and later references.
-- The soft copy materials must cover functional description, architecture description, key source code evidence and version information consistency.
+- The software-copyright materials must cover functional description, architecture description, key source code evidence and version information consistency.
 - Full-text implementation of `Term Control`: single naming of the same object to avoid claim scope drift.
 - The delivery must be accompanied by a "list to be reviewed by legal affairs", which clearly identifies high-risk statements that need to be confirmed by a lawyer.
 
@@ -81,7 +81,7 @@ High-confidence technical document drafts should not be output without review ha
 ## Red Flags
 
 - Skip the handover documents and go straight to speculating on the technical details.
-- Mixing soft works and patent content leads to structural confusion.
+- Mixing software-copyright and patent content leads to structural confusion.
 - Term drift, multiple names for the same object.
 - Outputs a conclusive conclusion without citing evidence.
 
@@ -95,7 +95,7 @@ High-confidence technical document drafts should not be output without review ha
 ## When to Use
 
 - **Primary Trigger**: `arc:ip-check` has been handed over, and an editable draft of application materials needs to be generated.
-- **Typical Scenario**: Writing of soft copy description, patent disclosure document, claims and accompanying drawing description.
+- **Typical Scenario**: Writing software-copyright descriptions, patent disclosure documents, claims, and accompanying drawing descriptions.
 - **Boundary Note**: If the feasibility review has not been completed, execute `arc:ip-check` first.
 
 ## Input Arguments
@@ -129,10 +129,10 @@ High-confidence technical document drafts should not be output without review ha
 
 1. **Don't make it up**: Any technical details must be traceable back to code or review handoff information.
 2. **Consistent terminology**: The same object is called uniformly throughout the text, and synonyms are not allowed to be freely substituted.
-3. **Complete structure**: The disclosure document, claims, and documentation must be completely output according to the template chapters.
+3. **Complete structure**: Each requested track must be output completely according to its template chapters.
 4. **Draft Positioning**: The output is an "editable application draft" and may not be claimed to be the final legal text.
-5. **Double-track splitting**: Soft-coated materials and patented materials are produced in separate catalogs, without mixing.
-6. **Multi-Agent collaboration**: Architecture/deep/writing three agents must be used and draft + cross-review initiated.
+5. **Double-track splitting**: Software-copyright materials and patent materials are produced in separate catalogs, without mixing.
+6. **Multi-Agent collaboration**: The default path uses architecture/deep/writing three agents plus cross-review; only the explicitly requested minimal-draft fallback may downgrade this path, and it must be labeled accordingly.
 
 ## Multi-Agent Architecture
 
@@ -141,8 +141,8 @@ High-confidence technical document drafts should not be output without review ha
 | Agent | role positioning | Draft content | output file |
 |-------|---------|---------|---------|
 | **architecture** (role) | Technical solution description expert | Architectural design, technical solutions, system processes, core parts of patent technology briefing documents | `agents/architecture/technical-description.md` |
-| **deep** (lane) | Implementation details expert | Code implementation, algorithm details, performance optimization, quantification of technical effects, soft technical explanation | `agents/deep/implementation-details.md` |
-| **writing** (lane) | User documentation writing expert | User manual, operating instructions, functional description, soft copy application abstract, claims | `agents/writing/user-documentation.md` |
+| **deep** (lane) | Implementation details expert | Code implementation, algorithm details, performance optimization, quantification of technical effects, software technical explanation | `agents/deep/implementation-details.md` |
+| **writing** (lane) | User documentation writing expert | User manual, operating instructions, functional description, software-copyright application abstract, claims | `agents/writing/user-documentation.md` |
 
 ### Collaboration process
 
@@ -168,11 +168,11 @@ High-confidence technical document drafts should not be output without review ha
 ├── convergence/
 │ ├── terminology-alignment.md (terminology unification)
 │ └── final-review.md (final review)
-├── copyright/
+├── copyright/                  # Optional: when `target_docs` includes `copyright`
 │ ├── software-summary.md (software summary)
 │ ├── manual-outline.md (operating manual)
 │ └── source-code-package-notes.md (code material description)
-├── patent/
+├── patent/                     # Optional: when `target_docs` includes `patent`
 │ ├── disclosure-draft.md (technical disclosure document)
 │ ├── claims-draft.md (draft claims)
 │ └── drawings-description.md (with drawing description)
@@ -188,7 +188,7 @@ High-confidence technical document drafts should not be output without review ha
 1. Read `<audit_case_dir>/handoff/ip-drafting-input.json`.
 2. extract:
    - Target asset list (IPA-001, IPA-002...)
-   - Soft work/patent feasibility score
+   - Software-copyright and patent feasibility score
    - Priority recommendations
    - Risk warning
    - Key technical points and evidence paths
@@ -270,7 +270,7 @@ description="Deep drafting implementation details and technical effects",
   2. Data structure design (class diagram + field description)
   3. Performance optimization measures (specific implementation + effect comparison)
   4. Quantification of technical effects (performance indicators, test data, comparison tables)
-  5. Description of soft copy code materials (recommended code sections to submit)
+  5. Description of software-copyright code materials (recommended code sections to submit)
   6. List of code samples that can be submitted (file + starting and ending lines, estimated number of pages, desensitization requirements)
   7. Performance/comparison data table template, if missing, a list of "indicators that need to be supplemented" will be output.
 
@@ -309,7 +309,7 @@ description="Writing drafting user documentation and function description",
 - Generate agents/writing/user-documentation.md, including:
   1. Overview of software functions (list of user-oriented functions)
   2. Outline of operating instructions (installation, configuration, use, troubleshooting)
-  3. Abstract of soft copy application (300-500 words, for Copyright Office examiners)
+  3. Software-copyright application abstract (300-500 words, for Copyright Office examiners)
   4. Draft patent claims (independent claims + dependent claims)
   5. User interface description (UI screenshot + operation process)
   6. Header/footer/naming consistency check hints (referencing the format baseline)
@@ -323,7 +323,7 @@ description="Writing drafting user documentation and function description",
 - Use ace-tool to search project documentation (README/docs/)
 - Function description must be oriented to non-technical users (clear and understandable)
 - The operating instructions must be complete (covering the entire process from installation to use)
-- The abstract of the soft work must comply with the format requirements of the Copyright Office
+- The software-copyright application abstract must comply with the format requirements of the Copyright Office
 - Claims must comply with the patent law format (one sentence, clear hierarchy)
 - Verify the consistency of software name and version and mark it in the document
 - Insert screenshot placeholder description (must be consistent with the software name)
@@ -333,7 +333,7 @@ description="Writing drafting user documentation and function description",
 - No technical jargon (for users)
 - No fabricated functions are allowed (must be supported by code)
 - No other Agent output may be read at this stage
-- Do not confuse soft copy abstracts with patent abstracts
+- Do not confuse software-copyright abstracts with patent abstracts
 
 [CONTEXT]: Project path <project_path>, working directory .arc/arc:ip-draft/<project-name>/
 `
@@ -398,7 +398,7 @@ Based on the review report, `convergence/terminology-alignment.md` is generated:
 |------|-----------|---------|----------|---------|
 | Core algorithm | Intelligent scheduling algorithm | task allocation algorithm | Automatic scheduling function | Intelligent task scheduling algorithm |
 
-**Step 4.2: Generate soft copy document** (such as `target_docs` contains `copyright`)
+**Step 4.2: Generate software-copyright documents** (such as `target_docs` contains `copyright`)
 
 Use a script to generate standardized documentation:
 ```bash
@@ -433,7 +433,7 @@ Generate files:
 
 Generate `reports/doc-writing-log.md`:
 - Input source (handoff file path, CLAUDE.md path)
-- Assumptions and inferences (things not found in the code but reasonably inferred)
+- Assumptions and editorial placeholders (record only non-technical gaps to be confirmed later; do not infer unverified technical facts)
 - Items to be added manually (information provided by the applicant is required)
 - Agent collaboration records (drafting content, review comments, and terminology unified decision-making by each agent)
 - Fee reduction materials list, electronic copyright options, format compliance check results, missing performance data/screenshot list
@@ -469,12 +469,12 @@ Default output directory:`<project_path>/.arc/arc:ip-draft/<project-name>/`
 - `agents/writing/review.md` (Writing review)
 - `convergence/terminology-alignment.md` (terminology unification)
 - `convergence/final-review.md` (final review)
-- `copyright/software-summary.md` (soft abstract)
-- `copyright/manual-outline.md` (operating instructions)
-- `copyright/source-code-package-notes.md` (code material description)
-- `patent/disclosure-draft.md` (technical communication document)
-- `patent/claims-draft.md` (draft claims)
-- `patent/drawings-description.md` (picture description)
+- `copyright/software-summary.md` (software-copyright abstract; only when `target_docs` includes `copyright`)
+- `copyright/manual-outline.md` (operating instructions; only when `target_docs` includes `copyright`)
+- `copyright/source-code-package-notes.md` (software-copyright code material description; only when `target_docs` includes `copyright`)
+- `patent/disclosure-draft.md` (technical communication document; only when `target_docs` includes `patent`)
+- `patent/claims-draft.md` (draft claims; only when `target_docs` includes `patent`)
+- `patent/drawings-description.md` (picture description; only when `target_docs` includes `patent`)
 - `reports/doc-writing-log.md` (writing log)
 
 ## Quick Reference
@@ -483,9 +483,9 @@ Default output directory:`<project_path>/.arc/arc:ip-draft/<project-name>/`
 |------|------|
 | `disclosure-draft.md` | Patent technology disclosure draft |
 | `claims-draft.md` | Draft claims |
-| `software-summary.md` | Soft copy application summary |
-| `manual-outline.md` | Soft operating instructions outline |
-| `source-code-package-notes.md` | Soft code material description |
+| `software-summary.md` | Software-copyright application summary |
+| `manual-outline.md` | Software operating instructions outline |
+| `source-code-package-notes.md` | Software-copyright code material description |
 | `doc-writing-log.md` | Writing journal (record assumptions and items to be added) |
 
 ## Failure Recovery

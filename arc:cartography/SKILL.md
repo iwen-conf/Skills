@@ -11,8 +11,8 @@ Generates an incrementally maintainable layer `codemap.md` that provides stable 
 
 ## Quick Contract
 
-- **Trigger**: Need to quickly understand an unfamiliar warehouse, or downstream skills require the latest structured context.
-- **Inputs**: Warehouse root path, inclusion/exclusion rules, whether to initialize for the first time.
+- **Trigger**: Need to quickly understand an unfamiliar repository, or downstream skills require the latest structured context.
+- **Inputs**: Repository root path; optional inclusion/exclusion rules and first-run initialization hint.
 - **Outputs**: tier `codemap.md`, optional tier JSON, `.arc/context-hub/index.json` metadata.
 - **Quality Gate**: Must pass `## Quality Gates`'s incremental accuracy and index consistency check before publishing.
 - **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
@@ -49,15 +49,15 @@ Before making key structural changes, the latest codemap must be available as a 
 
 ## When to Use
 
-- **Preferred trigger**: The warehouse structure map (`codemap.md`) needs to be built or refreshed.
-- **Typical scenario**: Taking over an unfamiliar warehouse for the first time and synchronizing the context after a major change in the directory structure.
+- **Preferred trigger**: The repository structure map (`codemap.md`) needs to be built or refreshed.
+- **Typical scenario**: Taking over an unfamiliar repository for the first time and synchronizing the context after a major change in the directory structure.
 - **Boundary Tip**: Use `arc:clarify` for requirement clarification and `arc:build` for code implementation.
 
 ## Workflow
 
 ### Step 1: Check status
 
-Prioritize checking the warehouse root directory `.slim/cartography.json`:
+Prioritize checking the repository root directory `.slim/cartography.json`:
 - Exists: Entering the change detection process
 - Does not exist: execute initialization process
 
@@ -104,9 +104,9 @@ Tier schema and examples:
 
 ### Step 5: Directory concurrency analysis and root graph summary
 
-1. Each directory analysis task is dispatched concurrently through `schedule_task(...)` (by `docs/orchestration-contract.md`).
+1. For medium or large repositories, directory analysis tasks can be dispatched concurrently through `schedule_task(...)` (by `docs/orchestration-contract.md`).
 2. Each directory outputs/updates this directory `codemap.md`.
-3. Finally, the root level `codemap.md` is aggregated to form the warehouse Atlas entrance.
+3. Finally, the root level `codemap.md` is aggregated as the repository entry map.
 
 ### Step 6: Publish shared context metadata
 
@@ -153,7 +153,7 @@ Write the root-level and directory-level `codemap` products into `.arc/context-h
 
 - Skip change detection and directly rewrite all codemaps in full
 - No distinction is made between affected directories and unchanged directories
-- The root-level atlas is not updated, causing the downstream entry to expire.
+- The root-level map is not updated, causing the downstream entry to expire.
 - Publishing without shared index results in the inability of downstream products to be reused.
 
 Example (directory level):
@@ -162,7 +162,7 @@ Example (directory level):
 # src/services/
 
 ## Responsibility
-Encapsulate the business service layer and combine the warehousing layer and external gateway.
+Encapsulate the business service layer and connect the repository layer and external gateways.
 
 ## Design
 - Adopt Service + Repository layering

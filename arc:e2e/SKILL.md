@@ -2,17 +2,17 @@
 name: "arc:e2e"
 description: "真实路径 E2E 验证与证据沉淀；当用户说“端到端测试/用户流程回归/e2e test/browser journey”时触发。"
 ---
-# **UI/UX Simulation & E2E Testing**
+# arc:e2e — evidence-based E2E validation
 
 ## Overview
 
-This Skill gives Agent the ability of "Senior Automation Test Engineer". Agent will use the agent-browser binary tool to simulate the thinking logic and operating habits of real human users, and perform high-fidelity business flow closed-loop testing.
+`arc:e2e` validates real user journeys through the UI and preserves auditable evidence. It uses the `agent-browser` CLI to follow the actual interaction path, capture screenshots and action logs, and produce a reproducible PASS/FAIL report without bypassing the UI.
 
 ## Quick Contract
 
 - **Trigger**: It is necessary to verify the end-to-end business flow according to the real user path and retain UI evidence.
 - **Inputs**: `test_objective`, `personas`, `target_url`, optional validation and output parameters.
-- **Outputs**: `report.md`, `action-log`, `screenshot-manifest`, `screenshots/` and account files.
+- **Outputs**: `report.md`, `action-log.md`, `screenshot-manifest.md`, `screenshots/`, and account files.
 - **Quality Gate**: The artifact integrity and format check of `## Quality Gates` must be passed before the result is declared.
 - **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
 
@@ -60,8 +60,8 @@ Without UI evidence and artifact integrity verification, it shall not be declare
 - Scenario design aligns `ISTQB` terminology and test levels, covering the main path, exception path, and boundary path.
 - Key business flows must define the `E2E assertion golden thread` (the four categories of status, event, UI, and log are consistent).
 - Authentication and permission flows need to be aligned with `OWASP ASVS` key control points for verification.
-- Accessibility related pages need to check at least `WCAG 2.2 AA` basics (focus, contrast, semantics).
-- The report must give `flaky rate` and stability judgment to distinguish product defects from test noise.
+- Accessibility related pages should check the applicable `WCAG 2.2 AA` basics (focus, contrast, semantics) when those pages are in scope.
+- When stability is under review, the report must include flaky-rate observations and the resulting judgment.
 
 ## Scripts & Commands
 
@@ -116,8 +116,8 @@ When calling this Skill, the following parameters must be explicit in the contex
 1. **test_objective** (string, required)  
    * Description: The macro business goal of this test.
    * Example: "Verify the complete process from ordinary user submission of purchase requisition to manager approval"
-2. **personas** (array, required)  
-   * Description: List of user roles involved in the test. The account number and password must be included in **clear text** so that the Agent can simulate a real login.
+2. **personas** (array, required)
+   * Description: List of user roles involved in the test. Credentials may be supplied here so the Agent can complete a real login, but they should be copied only into `accounts.jsonc` for controlled reuse and must not be echoed back into reports/logs without redaction.
    * Format: [{"role": "buyer", "user": "u1", "pass": "p1"}, ...]
 3. **target_url** (string, required)  
    * Description: Entry URL of the test environment.
@@ -138,7 +138,7 @@ When calling this Skill, the following parameters must be explicit in the contex
    * Default: `true`
 9. **accounts_file** (string, optional but recommended)  
    * Description: Unified account management file path (suggestion: `<report_output_dir>/<run_id>/accounts.jsonc`).
-   * Constraints: Even if `personas` is provided, the final account/password must be written to the file synchronously and listed in clear text in `report.md`.
+   * Constraints: Even if `personas` is provided, the final credentials used for execution should be written to the file synchronously. `report.md` should identify the role/account used, while secrets and tokens stay redacted outside `accounts.jsonc`.
    * Auxiliary: `python scripts/accounts_to_personas.py --accounts-file <...>` can be used to generate `personas` JSON for reruns.
 
 ## **Dependencies (environment dependencies)**
@@ -171,11 +171,11 @@ The following constraints must be strictly adhered to when executing tests, any 
    * **BANNED** "Hand-fake data" via SQL INSERT/UPDATE/DELETE to make tests pass.
    * **Allow** to use SQL SELECT to validate the results of UI operations.
    * If you really need to perform database migration/DDL/DML (for example, application repair requires upgrading the schema or executing the official migration script): you must first obtain the user's explicit consent, and write the consent and execution evidence into `<run_dir>/db/`; without consent, it will be regarded as blocked and may not be executed without authorization.
-3. **Plain Text Logging**
-   * **Mandatory**: All sensitive information (password, Token, SessionID) in the debugging log **must be recorded in plain text** and desensitization is strictly prohibited so that developers can reproduce it directly.
+3. **Protected Credential Handling**
+   * **Mandatory**: Sensitive values such as passwords, tokens, and session identifiers may be stored in `accounts.jsonc` when required for reproducible reruns, but they must be redacted in delivery-facing logs, reports, and failure summaries.
 
 4. **Accounts File (must be generated by unified account management file)**
-   * **Mandatory**: The account/password/Token actually used in this test must be recorded in `<report_output_dir>/<run_id>/accounts.jsonc`.
+   * **Mandatory**: The account/credential set actually used in this test must be recorded in `<report_output_dir>/<run_id>/accounts.jsonc`.
    * **Mandatory**: If you must create a new account to verify the repair, you must mark `created_for_verification=true` in `accounts.jsonc` and indicate the reason and time, and explain it in the `Account Changes` section of `report.md`.
 
 5. **Report Artifacts (report artifacts must be produced)**
@@ -183,7 +183,7 @@ The following constraints must be strictly adhered to when executing tests, any 
    * **Mandatory**: All screenshots in the report must give **exact path + file name + image description** (see Screenshot Manifest).
 
 6. **Do Not Commit Secrets**
-   * Since this Skill requires clear text recording of account number/password/Token, the generated `reports/` (or the output directory you specify) must not be submitted to the code repository**.
+   * Since this Skill may require credentials to be stored in `accounts.jsonc` for reruns, the generated `reports/` (or the output directory you specify) must not be submitted to the code repository.
    * `.gitignore` already in this Skill directory will ignore output directories such as `reports/` by default (but still subject to team constraints and review).
 
 7. **Resource Control & Cleanup (resource control and timely shutdown)**
@@ -210,7 +210,7 @@ The following constraints must be strictly adhered to when executing tests, any 
 
 **Priority 1: Read project CLAUDE.md level index**
 
-1. **Scan CLAUDE.md**: Use `find . -name "CLAUDE.md" -type f` to scan the hierarchical index of the project.
+1. **Scan CLAUDE.md**: Use `Glob` to locate the hierarchical `CLAUDE.md` index files of the project.
 2. **Extract key information**:
    * **Root level CLAUDE.md**: project technology stack, running command, front-end entry path
    * **Module-level CLAUDE.md** (such as `frontend/CLAUDE.md`):
@@ -345,7 +345,7 @@ If `run_id` is not provided, the Agent must generate and print it explicitly in 
 
 **Account management (required)**:
 
-- The account/password/Token used in this test must be written in `accounts.jsonc` (unified source) and listed in clear text in the `Accounts & Secrets (PLAIN TEXT)` section of `report.md`.
+- The account/credential set used in this test must be written in `accounts.jsonc` (unified source). In `report.md`, list the role and account identifier used, but keep passwords/tokens/session identifiers redacted.
 - If you "must create a new account" for verification and repair (such as verifying first login, permission boundaries, new tenant isolation), you must:
   - Mark the account with `created_for_verification=true` in `accounts.jsonc` and write `why/created_at`
   - Explain "Why a new account is generated" in the `Account Changes` section of `report.md`
@@ -398,10 +398,10 @@ The standardized Schema and templates are given below.
 * **End Time**: `YYYY-MM-DD HH:MM:SS`
 * **Result**: `PASS|FAIL`
 
-## Personas & Secrets (PLAIN TEXT)
-> According to the iron law, the following information must be recorded clearly for development and reproduction.
-* **buyer**: user=`buyer_01` pass=`secret123` token=`<access_token>`
-* **manager**: user=`manager_01` pass=`secret456` token=`<access_token>`
+## Accounts Used (redacted in report)
+> Record the actual role/account identifiers used for this run. Keep passwords, tokens, and session identifiers only in `accounts.jsonc`.
+* **buyer**: user=`buyer_01` pass=`[redacted]` token=`[redacted]`
+* **manager**: user=`manager_01` pass=`[redacted]` token=`[redacted]`
 
 ## Scenario Outline
 1. Login buyer -> create request
@@ -434,9 +434,9 @@ See: `screenshot-manifest.md`
 ```markdown
 [ANALYSIS] Use ace-tool to read src/pages/Login.tsx and confirm that the login button ID is #btn-submit-v2
 [PLAN] Switch to the approval manager account
-[THOUGHT] Currently logged out, you need to enter your manager account password.
-[EXEC] agent-browser type "#username" "manager_01"  
-[EXEC] agent-browser type "#password" "secret123"  
+[THOUGHT] Currently logged out, you need to enter the manager account credentials.
+[EXEC] agent-browser type "#username" "manager_01"
+[EXEC] agent-browser type "#password" "<redacted-at-report-time>"
 [VERIFY] Login successful, Dashboard displays "Pending approval: 1" -> PASS
 ```
 
@@ -473,9 +473,10 @@ If the test fails, the following Markdown block must be output:
 * **Task**: [Current subtask name]
 * **Time**: [YYYY-MM-DD HH:MM:SS]
 
-## Debug Artifacts (PLAIN TEXT)  
-* **User**: `[plaintext_account]` / `[plaintext_password]`
-* **Token**: `[plaintext_access_token]`
+## Debug Artifacts (sanitized for report)
+* **User**: `[account_identifier]`
+* **Credential Ref**: `accounts.jsonc`
+* **Token**: `[redacted]`
 * **URL**: `[current_url]`
 
 ## Screenshot Evidence
@@ -509,14 +510,14 @@ When `report_formats` contains `"jsonl"`, each step must append a line of JSON c
 
 ### Test Execution Anti-Patterns
 
-- **Screenshot Skipping**: Failing to capture screenshots at each step — reports are incomplete without visual evidence
+- **Screenshot Skipping**: Failing to capture screenshots at required key steps — reports are incomplete without visual evidence
 - **Selector Guessing**: Using guessed selectors without verification — causes flaky tests
 - **Happy Path Only**: Testing only success scenarios — must include error cases and edge conditions
 - **State Blindness**: Ignoring page state before actions — causes cascade failures
 
 ### Evidence Anti-Patterns
 
-- **Missing Manifest**: Not updating `screenshot-manifest.compiled.md` — breaks report traceability
+- **Missing Manifest**: Missing `screenshot-manifest.md` or any compiled manifest used for delivery — breaks report traceability
 - **Broken References**: Screenshot filenames not matching manifest entries — orphaned evidence
 - **JSONL Corruption**: Malformed `events.jsonl` entries — breaks compilation
 

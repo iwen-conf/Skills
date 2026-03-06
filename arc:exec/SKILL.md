@@ -17,7 +17,7 @@ description: "统一任务编排入口：理解需求、路由到 arc:* 或多 A
 ## Quick Contract
 
 - **Trigger**: The requirements are vague, span multiple skills, or the user only gives the target without specifying the execution path.
-- **Inputs**: `task_description`, `workdir`; optional `preferred_skill`, `dry_run`, `confirm`, `snapshot`.
+- **Inputs**: `task_description`, `workdir`; optional `task_name`, `preferred_skill`, `dry_run`, `confirm`, `snapshot`.
 - **Outputs**: routing decisions, scheduling records, execution preview, aggregation conclusions and follow-up actions.
 - **Quality Gate**: Passes the "Explainable Routing + Traceable Scheduling + Convergent Aggregation" check of `## Quality Gates`.
 - **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
@@ -96,6 +96,7 @@ No scheduling is allowed before routing and capability verification is completed
 | parameter | type | required | description |
 |-----------|------|----------|-------------|
 | `task_description` | string | yes | User task description |
+| `task_name` | string | no | Task name used for orchestration workspace naming |
 | `workdir` | string | yes | Absolute path to the working directory |
 | `preferred_skill` | string | no | User-specified skill (skip routing if hit) |
 | `dry_run` | boolean | no | Only output execution preview, not actual execution |
@@ -105,7 +106,7 @@ No scheduling is allowed before routing and capability verification is completed
 ## Dependencies
 
 - **Organization Contract**: Required. Follow `docs/orchestration-contract.md`.
-- **ace-tool (MCP)**: Required. Used for warehouse semantic retrieval and influence surface positioning.
+- **ace-tool (MCP)**: Required. Used for repository semantic retrieval and influence surface positioning.
 - **Exa MCP**: Optional. Used for external data supplement and standard verification.
 - **All arc: skills**: Routing to the corresponding skill must follow its `SKILL.md`.
 
@@ -183,7 +184,7 @@ SKILL The main text only retains the decision-making process to avoid being too 
 
 | condition | handling |
 |-----------|----------|
-| Single task timeout (>10min) | Try again; if still fails, downgrade to a smaller subtask |
+| Single task timeout (>10min) | Mark timeout, report the blocker, and either wait for user direction or re-scope into a smaller subtask |
 | Partial failure of concurrent tasks | Mark `partial` and trigger compensation scheduling |
 | Uncertain routing | Downgrade to `arc:clarify` and reroute after obtaining constraints |
 | Context invalidation/cache expiration | Trigger refresh first, then enter scheduling |

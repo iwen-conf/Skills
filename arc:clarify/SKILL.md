@@ -12,7 +12,7 @@ Systematically supplement user questions with contextual information. By scannin
 ## Quick Contract
 
 - **Trigger**: User needs are vaguely expressed, context is insufficient, and acceptance criteria are missing.
-- **Inputs**: Original question, item index context, clarification Q&A results.
+- **Inputs**: Original question, `task_name`, `workdir`; optional item index context and clarification Q&A results.
 - **Outputs**: Structured enhanced prompt (Context/Task/Constraints/Success Criteria).
 - **Quality Gate**: The executability check of `## Quality Gates` must pass before downstream execution.
 - **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
@@ -46,7 +46,7 @@ The execution phase must not be entered before the context, constraints and acce
 
 1. Prioritize reads from shared indexes and CLAUDE/codemap contexts.
 2. Compare the user's original problem with gap analysis.
-3. Clarify uncertainties with key questions.
+3. Clarify execution-affecting uncertainties with key questions when the context scan still leaves gaps.
 4. Generate a structured enhanced prompt and write to the shared directory.
 
 ## Quality Gates
@@ -96,9 +96,8 @@ Read the shared context index first, then downgrade according to priority:
    - Recent arc:audit/score/implementation handoff
 2. **If the index is missing or invalid**, scan the project root directory and subdirectories to collect CLAUDE.md:
 
-```bash
-# Scan all CLAUDE.md of the current project
-find . -name "CLAUDE.md" -type f
+```text
+Use `Glob` to locate `**/CLAUDE.md` within the current project.
 ```
 
 3. **If it is still not enough**, finally fall back to ace-tool source code semantic search.
@@ -112,7 +111,7 @@ First extract from the shared index product, and then add CLAUDE.md level inform
 - **codemap.md**: Directory responsibilities, module boundaries, cross-directory calling relationships
 - **arc:audit/score/handoff**: Identified risk points, quality bottlenecks, and change context
 
-Use Grep/Read to read relevant content and build a project context portrait.
+Use `Read`/`Glob` to read relevant content and build a project context portrait.
 
 ### Step 3: Gap analysis
 
@@ -127,7 +126,7 @@ Compare the user's original question with the project context to identify missin
 
 ### Step 4: Interactive refinement
 
-Use `AskUserQuestion` to ask the user 1-4 key questions. Each question should:
+If gap analysis still leaves execution-affecting ambiguity, use `AskUserQuestion` to ask the user 1-4 key questions. Each question should:
 
 - Findings based on gap analysis
 - Offers 2-4 options and allows users to customize supplements
@@ -155,7 +154,7 @@ Assemble a structured enhanced prompt, consisting of four parts:
 
 Write the complete enhanced prompt to the shared directory:
 
-```
+```text
 <workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md
 ```
 
@@ -163,7 +162,7 @@ Write the complete enhanced prompt to the shared directory:
 
 | stage | tool | output |
 |------|------|------|
-| scanning | Read + Glob/Find + ace-tool | Shared index/CLAUDE.md/source context |
+| scanning | Read + Glob + ace-tool | Shared index/CLAUDE.md/source context |
 | extract | Read | Project context summary |
 | analyze | Artificial | gap list |
 | Ask a question | AskUserQuestion | User answers |

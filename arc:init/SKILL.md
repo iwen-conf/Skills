@@ -3,16 +3,16 @@ name: "arc:init"
 description: "项目索引与上下文中枢维护：初始化或更新共享索引产物；当用户说“初始化项目索引/bootstrap context/update index”时触发。"
 ---
 
-# arc:init — Intelligent scheduler
+# arc:init — index mode router
 
 ## Overview
 
-This Skill is the **intelligent scheduling portal** of the `arc:init` subsystem, which automatically selects the optimal working mode based on the project status:
+This skill is the entrypoint of the `arc:init` subsystem. It chooses between full and incremental index maintenance based on the current project status:
 
 - **Full Mode** (`arc:init --mode full`): First initialization or forced full refresh
-- **Incremental Mode** (`arc:init --mode update`): Based on fingerprint detection, intelligent incremental update
+- **Incremental Mode** (`arc:init --mode update`): Based on fingerprint detection, incremental refresh of changed index products
 
-**Users don't need to care about selection**: For daily use, you only need to call this entrance, and the system will automatically judge.
+**Users don't need to care about selection**: For daily use, you only need to call this entrypoint, and the system will automatically decide.
 
 Unified mode:
 - Use `arc:init --mode full` for forced full rebuild.
@@ -99,7 +99,7 @@ Index writing must not be started until mode decision and baseline verification 
 User input → fingerprint detection → routing decision
 
 ┌─────────────────────────────────────────┐
-│ arc:init (intelligent scheduling) │
+│ arc:init (mode routing)                 │
 └────────────────┬────────────────────────┘
                  │
                  ▼
@@ -123,7 +123,7 @@ Exist + Fresh Absent/Expired
 |------|--------|------|
 | `module-fingerprints.json` does not exist | `arc:init --mode full` | First initialization |
 | `module-fingerprints.json` exists but git_ref does not match | `arc:init --mode update` | git changes detected |
-| `module-fingerprints.json` exists but expired (>7 days) | `arc:init --mode update` | Regularly updated |
+| `module-fingerprints.json` exists but expired | `arc:init --mode update` | Snapshot expired; refresh incrementally |
 | User explicitly specifies `mode=full` | `arc:init --mode full` | Force full amount |
 | User explicitly specifies `mode=update` | `arc:init --mode update` | forced increment |
 
@@ -141,6 +141,7 @@ The user can specify the mode via prompt:
 | parameter | type | Required | illustrate |
 |------|------|------|------|
 | `project_path` | string | yes | Absolute path to project root directory |
+| `mode` | string | no | Routing override: `full` / `update` |
 | `project_name` | string | no | Project name |
 | `depth_level` | string | no | Scan depth: `shallow` / `standard` / `deep` |
 | `max_module_depth` | number | no | Maximum module depth, default 3 |
@@ -177,11 +178,11 @@ if user_force_mode == "full":
 elif user_force_mode == "update":
     route_to("arc:init --mode update")
 elif not fingerprints_exist:
-route_to("arc:init --mode full") # first time
+    route_to("arc:init --mode full")  # first time
 elif fingerprints_stale or git_changed:
-route_to("arc:init --mode update") # increment
+    route_to("arc:init --mode update")  # incremental refresh
 else:
-route_to("arc:init --mode update") #Default increment
+    route_to("arc:init --mode update")  # default incremental refresh
 ```
 
 ### Step 2: Execute scheduling
@@ -292,7 +293,7 @@ A total of 10 CLAUDE.md files were updated.
 ## Relationship to other Skills
 
 ```
-arc:init (this Skill - Intelligent Scheduling)
+arc:init (this skill - mode routing)
 ├── arc:init --mode full (full initialization)
 └── arc:init --mode update (incremental update)
 

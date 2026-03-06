@@ -15,7 +15,7 @@ All UML diagrams must conform to UML standard notation (it is recommended to ali
 
 - **Trigger**: A traceable system modeling diagram needs to be established to assist communication, review, handover or architecture evolution.
 - **Inputs**: project path, attention graph, business scenario, deployment environment, output format.
-- **Outputs**: Diagram applicability matrix, UML diagram file (fixed Mermaid `.mmd`), diagram directory and evidence mapping; additionally output Chen's E-R diagram if applicable.
+- **Outputs**: Requested-diagram applicability judgment, UML diagram file (fixed Mermaid `.mmd`), diagram directory and evidence mapping; additionally output Chen's E-R diagram when data modeling is in scope.
 - **Quality Gate**: Must pass `## Quality Gates`'s evidence consistency and inter-figure consistency check before delivery.
 - **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
 
@@ -48,7 +48,7 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 ## Workflow
 
 1. Scan project context (code structure, configuration, API, business processes, deployment information).
-2. Output 14 graphical applicability matrix (output/suspended/not applicable + justification + evidence).
+2. Output the 14-diagram applicability matrix (`required` / `recommended` / `not-applicable` + justification + evidence).
 3. Generate UML files and index directories for applicable diagrams (add Chen's E-R diagram when data modeling is required).
 4. Perform consistency check between graphs and output delivery instructions.
 
@@ -86,7 +86,7 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 
 ## Context Budget (avoid Request too large)
 
-- Only key directories, key configurations, and key processes are extracted, and the entire warehouse code is not pasted.
+- Only key directories, key configurations, and key processes are extracted, and the entire repository code is not pasted.
 - The evidence fragments of each picture are controlled to 5-20 lines of key fragments.
 - Complex systems are output in separate domains to avoid overloading a single image.
 
@@ -94,7 +94,7 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 
 - **Primary Trigger**: Systematic UML diagrams are required to illustrate architecture, interactions, deployment, or business processes.
 - **Typical Scenario**: new member onboarding, architecture review, technical due diligence, pre-release knowledge accumulation, and cross-team alignment.
-- **Boundary Note**: Only the warehouse structure needs to use `arc:cartography` first; only quality diagnosis needs to use `arc:audit` first.
+- **Boundary Note**: Use `arc:cartography` first when repository structure context is missing; use `arc:audit` first when the need is quality diagnosis rather than modeling.
 
 ## Input Arguments
 
@@ -176,7 +176,7 @@ order_total((property: total_amount))
 
 ### Phase 2: Determination of graphic applicability
 
-1. Determine the 14 patterns one by one: `required` / `recommended` / `not-applicable`.
+1. Determine the requested diagram types one by one; when no `diagram_types` are specified, evaluate all 14 categories as `required` / `recommended` / `not-applicable`.
 2. Determine whether an E-R diagram is required (data modeling scenarios typically `required`).
 3. The output `diagram-plan.md` includes graphics, judgment results, reasons, and evidence sources.
 
@@ -209,22 +209,10 @@ order_total((property: total_amount))
 ├── diagram-plan.md
 ├── diagram-index.md
 ├── validation-summary.md
-└── diagrams/
-    ├── class.mmd
-    ├── object.mmd
-    ├── component.mmd
-    ├── deployment.mmd
-    ├── package.mmd
-    ├── composite-structure.mmd
-    ├── configuration.mmd
-    ├── use-case.mmd
-    ├── activity.mmd
-    ├── state-machine.mmd
-    ├── sequence.mmd
-    ├── communication.mmd
-    ├── interaction-overview.mmd
-    ├── timing.mmd
-└── er-chen.mmd # Optional: Chen's E-R diagram
+├── diagrams/                      # Only create files for diagrams marked `required` or `recommended`
+│   ├── <diagram-type>.mmd
+│   └── ...
+└── er-chen.mmd                    # Optional: only when Chen E-R output is required
 ```
 
 ## Anti-Patterns

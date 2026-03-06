@@ -19,7 +19,7 @@ This skill does not directly produce formal application documents. The review co
 
 ## Quick Contract
 
-- **Trigger**: Prepare for pre-application assessment, due diligence or compliance review, and need to determine the feasibility of the soft copy/patent.
+- **Trigger**: Prepare for pre-application assessment, due diligence or compliance review, and need to determine the feasibility of software copyright and patent filing.
 - **Inputs**: Project path, application subject information, software name and business goals (optional).
 - **Outputs**: Feasibility report, risk matrix, priority recommendations and `ip-drafting-input.json`.
 - **Quality Gate**: Must pass the evidence binding and dual-track scoring check of `## Quality Gates` before output.
@@ -53,22 +53,23 @@ Without code evidence and risk matrix, no "applicable" conclusion should be give
 ## Workflow
 
 1. Summarize project context and historical review products to establish a review baseline.
-2. Multiple agents can concurrently complete soft/patent dual-track independent evaluation.
+2. Multiple agents can concurrently complete software-copyright and patent dual-track independent evaluation.
 3. Perform cross-rebuttal, convergence scoring and key points of dispute.
 4. Output feasibility report and `ip-drafting-input.json` handover document.
 
 ## Quality Gates
 
-- Soft works and patents must be scored separately, and conclusions cannot be mixed.
+- Software copyright and patents must be scored separately, and conclusions cannot be mixed.
 - Each risk must be labeled with probability, impact and mitigation recommendations.
 - Conclusions must cite specific module/documentary evidence.
+- When a scoring dimension lacks direct evidence, use `N/A` and explain the missing evidence instead of forcing a number.
 - The handover file fields must be complete and can be consumed by `arc:ip-draft`.
 
 ## Expert Standards
 
 - Patent review needs to separately evaluate `novelty/creativeness/practicability' and give a grade of evidence strength.
 - Added `FTO` (freedom to implement) risk perspective, marking potential infringements and avoidance strategies.
-- The evaluation of soft works requires attention to `original expression` and a provable author/version chain.
+- The evaluation of software copyright readiness requires attention to `original expression` and a provable author/version chain.
 - Evidence first, then conclusion: Every innovation claim must be bound to code, process, documents or experimental records.
 - The output should distinguish between technical assessment and legal conclusions, and it is prohibited to give deterministic legal commitments.
 
@@ -83,7 +84,7 @@ Without code evidence and risk matrix, no "applicable" conclusion should be give
 ## Red Flags
 
 - Write the review opinions into legal conclusions or guarantee commitments.
-- The evaluation dimensions of soft works and patents are not distinguished.
+- The evaluation dimensions of software copyright and patents are not distinguished.
 - High-risk items are missing mitigation paths.
 - There is no handover document but it is claimed that it can enter the paperwork stage.
 
@@ -99,7 +100,7 @@ Must follow the link below to collaborate:
 
 ## When to Use
 
-- **Primary Trigger**: It is necessary to evaluate the feasibility, risks and priorities of soft works/patents before applying.
+- **Primary Trigger**: It is necessary to evaluate the feasibility, risks and priorities of software copyright and patent filing before applying.
 - **Typical Scenario**: Financing, bidding, and intellectual property due diligence before listing.
 - **Boundary Note**: Please refer to `arc:ip-draft` for drafting formal application documents.
 
@@ -139,7 +140,7 @@ If the first three levels of information are insufficient, the scan must be down
 
 1. **Read-only review**: User source code may not be modified.
 2. **Evidence-driven**: Each conclusion must be bound to a file path or module evidence.
-3. **Dual-track independent scoring**: Soft copy feasibility and patent feasibility are scored separately and are not allowed to be mixed into a single conclusion.
+3. **Dual-track independent scoring**: Software-copyright feasibility and patent feasibility are scored separately; use bounded scores or `N/A` rather than forcing unsupported precision.
 4. **Risk Explicit**: Rejectable risks, corrective risks, time risks and material gaps must be listed.
 5. **Handover standardization**: `handoff/ip-drafting-input.json` must be generated to `arc:ip-draft`.
 6. **Legal Boundary**: The output is engineering and process suggestions and does not replace the legal advice of a practicing lawyer/patent agent.
@@ -201,7 +202,7 @@ If the first three levels of information are insufficient, the scan must be down
 Use `ace-tool` to search for the following and generate `context/project-ip-snapshot.md`:
 - Core algorithm and performance optimization implementation
 - Key module boundaries and system interaction
-- Code snippets that can be submitted as soft copy samples
+- Code snippets that can be submitted as software-copyright samples
 - Technical solution description (architecture diagram, flow chart, data flow)
 - Comparison of existing technologies (if included in project documents)
 - Format/naming consistency baseline: software full name/abbreviation/version, header and footer examples, screenshot naming consistency check entry (for writing use)
@@ -209,7 +210,7 @@ Use `ace-tool` to search for the following and generate `context/project-ip-snap
 **Step 1.3: External reference search**
 Use `Exa` to search and generate `context/external-references.md`:
 - Patent search for similar products (keywords: project core technology + field)
-- Soft publication application policy and review standards
+- Software copyright filing policy and review standards
 - Patent application thresholds and common reasons for rejection
 - Policy anchors (marked with date/source): Paperless real-name rules, code/description format requirements, App electronic copyright process, 2024 "computer program product" terms, 2025 fee reduction threshold and ratio
 
@@ -236,10 +237,10 @@ description="Architecture evaluates technological innovation and patent feasibil
 
 [EXPECTED OUTCOME]:
 - Generate agents/architecture/innovation-analysis.md, including:
-  1. Technical solution originality score (1-10 points)
-  2. Architectural design novelty score (1-10 points)
+  1. Technical solution originality score (`1-10` or `N/A` when evidence is insufficient)
+  2. Architectural design novelty score (`1-10` or `N/A` when evidence is insufficient)
   3. Difference analysis of existing technologies (reference context/external-references.md)
-  4. Patent application feasibility score (high/medium/low)
+  4. Patent application feasibility score (high/medium/low or `N/A` when evidence is insufficient)
   5. Each rating must be accompanied by file path evidence
   6. Mapping table of three elements of technology (technical issues/technical means/technical effects)
   7. Determination of the patentability of program products (yes/no + basis)
@@ -252,7 +253,7 @@ description="Architecture evaluates technological innovation and patent feasibil
 - Use ace-tool to deeply analyze the core algorithm implementation
 - Compare existing technologies and identify technical differences
 - Each innovation point must reference a specific file path (file:line)
-- Ratings must be quantitatively based
+- Ratings must be bounded by evidence; use `N/A` when evidence is insufficient.
 - Mark potential OA risks (object/creativity/out-of-scope) and cite policy anchors
 
 [MUST NOT DO]:
@@ -276,10 +277,10 @@ description="Deep evaluates code integrity and software feasibility",
 
 [EXPECTED OUTCOME]:
 - Generate agents/deep/implementation-analysis.md, including:
-  1. Code integrity score (1-10 points)
-  2. Implementation adequacy score (1-10 points)
-  3. Technical effect quantifiable score (1-10 points)
-  4. Soft copy application feasibility score (high/medium/low)
+  1. Code integrity score (`1-10` or `N/A` when evidence is insufficient)
+  2. Implementation adequacy score (`1-10` or `N/A` when evidence is insufficient)
+  3. Technical effect quantifiability score (`1-10` or `N/A` when evidence is insufficient)
+  4. Software-copyright feasibility score (high/medium/low or `N/A` when evidence is insufficient)
   5. Each rating must be accompanied by code evidence
   6. Software authors can submit a code sample list (file + starting and ending lines, estimated number of pages that meet ≥50 lines/page, desensitization/deletion of comments suggestions)
   7. Technical effect quantification data table (including benchmarks/comparisons, if missing, mark the indicators that need to be supplemented)
@@ -291,7 +292,7 @@ description="Deep evaluates code integrity and software feasibility",
 - Use ace-tool to analyze code structural integrity
 - Evaluate the adequacy of core function implementation (whether there are TODO/FIXME/not implemented)
 - Check whether the technical effect is quantifiable (performance indicators, test coverage)
-- Identify code sections that can be submitted as soft copies (3000-5000 lines recommended)
+- Identify code sections that can be submitted as software-copyright samples (3000-5000 lines recommended)
 - Each conclusion must reference a specific file path
 - Record the file/line number of the first and last sample pages, and prompt whether desensitization/deletion of comments is required
 - If there is a lack of performance/comparison data, output the "supplementary test indicators" list
@@ -317,9 +318,9 @@ description="Writing evaluates document completeness and application readiness",
 
 [EXPECTED OUTCOME]:
 - Generate agents/writing/compliance-analysis.md, including:
-  1. Document completeness score (1-10 points)
-  2. Material readiness score (1-10 points)
-  3. Application process risk assessment (high/medium/low)
+  1. Document completeness score (`1-10` or `N/A` when evidence is insufficient)
+  2. Material readiness score (`1-10` or `N/A` when evidence is insufficient)
+  3. Application process risk assessment (high/medium/low or `N/A` when evidence is insufficient)
   4. Intellectual property compliance check (open source protocol conflicts, third-party dependencies)
   5. Each rating must be accompanied by evidence
   6. Naming/real name consistency, header and footer format check results
@@ -336,7 +337,7 @@ description="Writing evaluates document completeness and application readiness",
 - Assess application material gaps (user manuals, technical documents, test reports)
 - Identify application process risks (naming conflicts, similar software, review cycles)
 - Mitigation recommendations must be given for each risk
-- Check paperless real-name, format compliance, fee reduction conditions, and electronic copyright fungibility based on policy anchor points
+- Check paperless real-name, format compliance, fee reduction conditions, and App electronic copyright channel readiness based on policy anchor points
 
 [MUST NOT DO]:
 - Project source code must not be modified
@@ -396,17 +397,17 @@ description="Architecture Cross Refutation Deep and Writing",
 
 **Step 4.1: Weighted comprehensive score**
 
-Dynamically adjust weights based on rebuttal reports:
-- **Patent feasibility**: architecture 60% + deep 30% + writing 10%
-- **Soft writing feasibility**: deep 60% + writing 30% + architecture 10%
+Use rebuttal results to synthesize a final judgment, but treat weighting as a calibration guide rather than a fixed formula:
+- **Patent feasibility**: architecture evidence should usually carry the most weight, followed by deep, with writing acting mainly as a compliance and risk modifier.
+- **Software copyright feasibility**: deep evidence should usually carry the most weight, followed by writing, with architecture acting mainly as a boundary and context modifier.
 
-If an Agent is strongly refuted (2+ strong arguments), its weight will be reduced by 10%.
+If an Agent is strongly refuted, reduce its influence only with an explicit explanation in `convergence/final-consensus.md`; do not apply a mechanical percentage shift.
 
 **Step 4.2: Generate asset list**
 
 Generate `analysis/ip-assets.md`:
 
-| Asset number | Asset type | evidence path | soft cover feasibility | patent feasibility | preliminary risk |
+| Asset number | Asset type | evidence path | software-copyright feasibility | patent feasibility | preliminary risk |
 |---------|---------|---------|-----------|-----------|---------|
 | IPA-001 | Core algorithm | src/core/algorithm.ts:45-120 | high | middle | Similarity of existing technology to be confirmed |
 | IPA-002 | System architecture | docs/architecture.md + src/server/ | middle | high | Novel architecture but conventional implementation |
@@ -426,27 +427,28 @@ Generate files:
 - `handoff/ip-drafting-input.json` (handover to arc:ip-draft)
 
 `ip-feasibility-report.md` needs to add a new section:
-- Soft copy material compliance (page format ≥50 lines/page, naming consistency, code sample coverage, description document screenshot consistency, signature page/guarantee status)
+- Software-copyright material compliance (page format ≥50 lines/page, naming consistency, code sample coverage, description document screenshot consistency, signature page/guarantee status)
 - Patent object compliance (integrity of three technical elements, feasibility of program product, adequacy of drawings/pseudocode)
 - Fee reduction qualifications and economics (qualification judgment + original/fee reduction comparison)
-- App electronic copyright fungibility (whether recommended, required materials)
+- App electronic copyright channel readiness (whether recommended, required materials)
 
-`filing-readiness-checklist.md` Added: format check, naming consistency, fee reduction filing materials, signature page/non-job guarantee, and electronic copyright options.
+`filing-readiness-checklist.md` Added: format check, naming consistency, fee reduction filing materials, signature page/non-job guarantee, and App electronic copyright options.
 
 **Step 4.4: handoff JSON extension fields**
 
-`handoff/ip-drafting-input.json` New/extended fields (maintain backward compatibility, mark to be added if missing):
-- `format_compliance`: {`code_pages_ok`, `doc_lines_ok`, `name_consistency`, `signature_page_ready`}
-- `program_product_recommended`: boolean
-- `fee_reduction`: {`eligible`: boolean, `basis`: string, `required_proofs`: []}
-- `app_e_copyright`: {`recommended`: boolean, `materials`: []}
+`handoff/ip-drafting-input.json` New/extended fields (always include the keys; use explicit `null` values when evidence is insufficient):
+- `format_compliance`: {`code_pages_ok`: boolean|null, `doc_lines_ok`: boolean|null, `name_consistency`: boolean|null, `signature_page_ready`: boolean|null}
+- `program_product_recommended`: boolean|null
+- `fee_reduction`: {`eligible`: boolean|null, `basis`: string, `required_proofs`: []}
+- `app_e_copyright`: {`recommended`: boolean|null, `materials`: []}
 
 **Step 4.5: Give application suggestions**
 
 Clear recommendations at the end of the report:
-- **Soft work first**: complete code, complete documentation, insufficient patent threshold
+- **Software copyright first**: complete code, complete documentation, insufficient patent threshold
 - **Patent First**: Significant technological innovation, large differences in existing technologies, and limited software value
 - **Parallel advancement**: High feasibility of both tracks, tight time limit, and sufficient budget
+- **Defer filing / collect evidence first**: material readiness or evidence strength is insufficient for a bounded recommendation
 
 ## Scripts
 
