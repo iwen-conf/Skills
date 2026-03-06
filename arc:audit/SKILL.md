@@ -98,6 +98,8 @@ The tripartite pattern (architecture / engineering / business perspectives) and 
 - `Dependency Health Score` should describe outdated versions, known vulnerabilities, maintenance activity, and upgrade automation signals.
 - Recommendations should be prioritized (`P0`-`P3`) and explain expected value, delivery cost, and migration risk when material.
 - `quantitative-dashboard.html` is optional. If produced, it should follow `references/spa-dashboard-spec.md` and `templates/dashboard-template.html`, but it must not redefine the default audit contract.
+- If a dashboard is produced, it may read final audit artifacts such as `scorecard.md`, `diagnostic-report.md`, and `recommendations.md` in addition to quantitative inputs.
+- Dashboard KPI cards and charts must explicitly degrade to `Derived`, `Heuristic`, or `N/A` when direct evidence is insufficient; do not present fabricated precision.
 - If the user needs a merge/release decision, hand off to `arc:gate`. If the user needs implementation work, hand off to `arc:build`.
 
 ## Scripts & Commands

@@ -163,6 +163,29 @@
     .expert-card .evidence { margin-top: 10px; font-size: 12px; color: #475569; }
     .expert-card .evidence code { font-size: 11px; }
 
+    .prov-badge {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-style: normal;
+      font-weight: 600;
+    }
+    .prov-observed { background: #ccfbf1; color: #0f766e; }
+    .prov-derived { background: #dbeafe; color: #1d4ed8; }
+    .prov-heuristic { background: #fef3c7; color: #92400e; }
+    .prov-na { background: #e5e7eb; color: #4b5563; }
+
+    .note-card {
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fafcff;
+    }
+    .note-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .note-body { color: var(--muted); font-size: 13px; }
+
     @media (max-width: 1000px) {
       .summary-grid { grid-template-columns: 1fr 1fr; }
       .charts-grid { grid-template-columns: 1fr; }
@@ -241,6 +264,7 @@
           1. Seven-dimension summary table with scores + key findings (NOT zeros)
           2. Expert Review Card (see template below)
           3. Priority distribution chart (P0/P1/P2 counts)
+          4. Data provenance badges for KPI/chart/table blocks: Observed / Derived / Heuristic / N/A
 
           Expert Review Card template:
           <div class="expert-card">
@@ -282,6 +306,7 @@
              - Each chain: name, status pill (pass/p1/p0), maturity score, key issues, evidence files
           2. Expert Review Card
           3. Chart: business completion bar or sunburst
+          4. If no runtime business funnel evidence exists, replace funnel claims with an explicit note card and mark proxy metrics as Derived/Heuristic
         -->
       </div>
 
@@ -338,6 +363,7 @@
           1. Performance findings with evidence
           2. Expert Review Card
           3. Chart: bar or line chart
+          4. If no runtime telemetry exists, rename/describe this tab as an engineering stability proxy view and mark unavailable metrics as N/A
         -->
       </div>
 
@@ -361,6 +387,7 @@
           1. Resource/debt findings with evidence
           2. Expert Review Card
           3. Chart: treemap or stacked area
+          4. If no billing/utilization artifacts exist, treat this as an engineering resource proxy view and mark FinOps metrics as N/A
         -->
       </div>
     </div>

@@ -79,6 +79,33 @@ Rigid schema enforcement for JSON payloads interfacing between the analytical en
 To guarantee accountability, **EVERY SINGLE TAB** must inject an immovable Expert Review Card block detailing qualitative, advisory outcomes.
 These fields are dashboard summaries only and must not be interpreted as formal merge/release gate decisions; use `arc:gate` for explicit Go/No-Go decisions.
 
+In addition to the expert card, **every tab must include**:
+- At least **one primary visualization**.
+- At least **one detailed explanatory table**.
+- A visible **data provenance marker** for KPI/chart/table blocks when the source is not purely direct observation.
+- An explicit degradation path: if evidence is insufficient, show `N/A` or a note card instead of inventing precision.
+
+### Data Provenance Badges
+
+Use the following labels consistently across KPI cards, chart titles, and note cards:
+- `Observed`: directly supported by audit artifacts, code evidence, or validated quantitative outputs.
+- `Derived`: deterministic aggregation or transformation of observed inputs.
+- `Heuristic`: proxy or inference based on issue patterns, severity counts, or keyword signals.
+- `N/A`: unsupported by current evidence surface.
+
+### Anti-Fabrication Rules
+
+The dashboard must not present the following as direct truth unless matching evidence exists:
+- Runtime latency / throughput / SLO telemetry.
+- Real business conversion funnels or user journey drop-off curves.
+- Real dependency topology graphs built from non-existent graph data.
+- Real FinOps/billing/utilization metrics without billing or utilization artifacts.
+
+When such evidence is absent, replace the chart with:
+1. a proxy view clearly labeled `Derived` / `Heuristic`, or
+2. an explanatory note card plus a detailed table, or
+3. `N/A`.
+
 | Contract Field | Evaluation State Description |
 |---|---|
 | **Architectural Verdict** | Pass (Nominal) / Concern (Degraded) / Fail (Critical) |
