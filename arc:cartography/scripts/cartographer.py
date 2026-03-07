@@ -20,8 +20,8 @@ import os
 import re
 import sys
 from datetime import datetime, timezone
-from pathlib import Path, PurePath
-from typing import Dict, List, Optional, Set, Tuple
+from pathlib import Path
+from typing import Dict, List, Optional, Set
 
 VERSION = "1.0.0"
 STATE_DIR = ".slim"
@@ -650,4 +650,5 @@ def main() -> int:
         return 1
 
 
-sys.exit(main())
+if __name__ == "__main__":
+    sys.exit(main())

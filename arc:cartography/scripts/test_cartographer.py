@@ -1,11 +1,25 @@
-import unittest
-import os
-import shutil
-import json
-import tempfile
 import hashlib
+import importlib.util
+import os
+import tempfile
+import unittest
 from pathlib import Path
-from cartographer import PatternMatcher, compute_file_hash, compute_folder_hash, select_files
+
+CARTOGRAPHER_PATH = Path(__file__).resolve().with_name("cartographer.py")
+CARTOGRAPHER_SPEC = importlib.util.spec_from_file_location(
+    "cartographer_under_test",
+    CARTOGRAPHER_PATH,
+)
+if CARTOGRAPHER_SPEC is None or CARTOGRAPHER_SPEC.loader is None:
+    raise RuntimeError(f"Unable to load cartographer module from {CARTOGRAPHER_PATH}")
+
+cartographer = importlib.util.module_from_spec(CARTOGRAPHER_SPEC)
+CARTOGRAPHER_SPEC.loader.exec_module(cartographer)
+
+PatternMatcher = cartographer.PatternMatcher
+compute_file_hash = cartographer.compute_file_hash
+compute_folder_hash = cartographer.compute_folder_hash
+select_files = cartographer.select_files
 
 class TestCartographer(unittest.TestCase):
     def test_pattern_matcher(self):
