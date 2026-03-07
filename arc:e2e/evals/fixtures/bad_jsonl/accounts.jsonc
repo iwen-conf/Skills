@@ -1,0 +1,9 @@
+{
+  "accounts": [
+    {
+      "role": "buyer",
+      "username": "buyer_01",
+      "password": "secret123"
+    }
+  ]
+}

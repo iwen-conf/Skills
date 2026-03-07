@@ -1,0 +1,11 @@
+{
+  "accounts": [
+    {
+      "role": "buyer",
+      "username": "buyer_01",
+      "password": "secret123",
+      "created_for_verification": false,
+      "notes": "Fixture account for compile report eval"
+    }
+  ]
+}

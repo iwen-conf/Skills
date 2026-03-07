@@ -43,7 +43,7 @@
         {
           "type": "file_contains",
           "path": "reports/minimal_run/action-log.compiled.md",
-          "pattern": "## Action Log"
+          "pattern": "# Action Log \\(Compiled\\)"
         },
         {
           "type": "run_validator",

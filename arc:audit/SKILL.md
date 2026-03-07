@@ -96,6 +96,7 @@ The tripartite pattern (architecture / engineering / business perspectives) and 
 - Scores are bounded judgments, not exact truth claims; say explicitly when the repository surface is incomplete.
 - `Business Maturity Index` should describe observed flow coverage, breakpoints, manual fallback signs, and operating-loop evidence.
 - `Dependency Health Score` should describe outdated versions, known vulnerabilities, maintenance activity, and upgrade automation signals.
+- If an audit needs an executive surface, keep a compact `专家评审卡` and ensure the `9 Tab` view maps back to findings, evidence, and score boundaries.
 - Recommendations should be prioritized (`P0`-`P3`) and explain expected value, delivery cost, and migration risk when material.
 - `quantitative-dashboard.html` is optional. If produced, it should follow `references/spa-dashboard-spec.md` and `templates/dashboard-template.html`, but it must not redefine the default audit contract.
 - If a dashboard is produced, it may read final audit artifacts such as `scorecard.md`, `diagnostic-report.md`, and `recommendations.md` in addition to quantitative inputs.
