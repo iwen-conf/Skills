@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arc-skills.dev/schemas/skills.index.schema.json",
+  "title": "Arc Skills Registry Index",
+  "description": "Repository-level registry for structured skill contracts",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "skill_count", "skills"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "generated_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "skill_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/skill_entry"
+      }
+    }
+  },
+  "$defs": {
+    "section": {
+      "type": "object",
+      "required": ["heading", "title", "body"],
+      "additionalProperties": false,
+      "properties": {
+        "heading": {"type": "string"},
+        "title": {"type": "string"},
+        "body": {"type": "string"}
+      }
+    },
+    "quick_contract": {
+      "type": "object",
+      "required": ["trigger", "inputs", "outputs", "quality_gate", "decision_tree"],
+      "additionalProperties": false,
+      "properties": {
+        "trigger": {"type": "string"},
+        "inputs": {"type": "string"},
+        "outputs": {"type": "string"},
+        "quality_gate": {"type": "string"},
+        "decision_tree": {"type": "string"}
+      }
+    },
+    "input_argument": {
+      "type": "object",
+      "required": ["parameter", "type", "required", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "parameter": {"type": "string"},
+        "type": {"type": "string"},
+        "required": {"type": "string"},
+        "description": {"type": "string"}
+      }
+    },
+    "outputs_section": {
+      "type": "object",
+      "required": ["format", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "format": {"type": "string"},
+        "content": {"type": "string"}
+      }
+    },
+    "skill_entry": {
+      "type": "object",
+      "required": ["name", "description", "source_path", "sections"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "source_path": {"type": "string"},
+        "sections": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/section"}
+        },
+        "quick_contract": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/quick_contract"}
+          ]
+        },
+        "input_arguments": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "array",
+              "items": {"$ref": "#/$defs/input_argument"}
+            }
+          ]
+        },
+        "outputs_section": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/outputs_section"}
+          ]
+        }
+      }
+    }
+  }
+}

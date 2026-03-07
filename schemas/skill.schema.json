@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://arc-skills.dev/schemas/skill.schema.json",
+  "title": "Arc Skill Document Contract",
+  "description": "Minimal structured contract for SKILL.md documents",
+  "type": "object",
+  "required": ["frontmatter", "sections"],
+  "properties": {
+    "frontmatter": {
+      "type": "object",
+      "required": ["name", "description"],
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9:-]+$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/section"
+      }
+    },
+    "section_index": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/section"
+      }
+    },
+    "quick_contract": {
+      "$ref": "#/$defs/quick_contract"
+    },
+    "input_arguments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/input_argument"
+      }
+    },
+    "outputs_section": {
+      "$ref": "#/$defs/outputs_section"
+    }
+  },
+  "$defs": {
+    "section": {
+      "type": "object",
+      "required": ["heading", "title", "body"],
+      "additionalProperties": false,
+      "properties": {
+        "heading": {
+          "type": "string",
+          "pattern": "^##\\s+.+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "body": {
+          "type": "string"
+        }
+      }
+    },
+    "quick_contract": {
+      "type": "object",
+      "required": ["trigger", "inputs", "outputs", "quality_gate", "decision_tree"],
+      "additionalProperties": false,
+      "properties": {
+        "trigger": {"type": "string", "minLength": 1},
+        "inputs": {"type": "string", "minLength": 1},
+        "outputs": {"type": "string", "minLength": 1},
+        "quality_gate": {"type": "string", "minLength": 1},
+        "decision_tree": {"type": "string", "minLength": 1}
+      }
+    },
+    "input_argument": {
+      "type": "object",
+      "required": ["parameter", "type", "required", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "parameter": {"type": "string", "minLength": 1},
+        "type": {"type": "string", "minLength": 1},
+        "required": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1}
+      }
+    },
+    "outputs_section": {
+      "type": "object",
+      "required": ["format", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "format": {"type": "string", "minLength": 1},
+        "content": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

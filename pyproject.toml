@@ -1,0 +1,69 @@
+[project]
+name = "skills-scripts"
+version = "0.1.0"
+description = "Script-first tooling for the Skills repository"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "PyYAML>=6.0.2",
+]
+
+[dependency-groups]
+dev = [
+    "jsonschema>=4.23.0",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "ruff>=0.8",
+]
+e2e = [
+    "mdformat>=0.7.22",
+    "pandas>=2.2.3",
+    "py-markdown-table>=1.3.0",
+    "tabulate>=0.9.0",
+]
+evals = [
+    "jsonschema>=4.23.0",
+]
+contracts = [
+    "jsonschema>=4.23.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+exclude = [
+    ".arc",
+]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
+files = [
+    "scripts/arc_privacy.py",
+    "scripts/build_skills_index.py",
+    "scripts/run_evals.py",
+    "scripts/validate_skills.py",
+    "src/arc_core",
+    "tests/test_skill_validation.py",
+    "tests/test_eval_runner.py",
+    "tests/test_skill_registry.py",
+]
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = ["jsonschema"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+pythonpath = [
+    ".",
+    "src",
+]
+testpaths = [
+    "tests",
+    "arc:cartography/scripts/test_cartographer.py",
+]
