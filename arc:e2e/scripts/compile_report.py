@@ -503,6 +503,39 @@ def _generate_failure_summary_md(*, run_dir: Path, events: list[dict[str, Any]])
     return "- _No failures recorded._"
 
 
+def _generate_visual_diff_md(*, run_dir: Path) -> str:
+    """Generate visual diff summary section from visual-diff-summary.json."""
+    summary_path = run_dir / "visual-diffs" / "visual-diff-summary.json"
+    if not summary_path.exists():
+        return "- _No visual regression data available._"
+
+    try:
+        data = json.loads(summary_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return "- _visual-diff-summary.json could not be parsed._"
+
+    results = data.get("results", [])
+    if not results:
+        return "- _No visual comparisons performed._"
+
+    threshold = data.get("threshold", 0.95)
+    overall = "PASS" if data.get("overall_passed", False) else "FAIL"
+    lines = [
+        f"**Overall**: {overall} (threshold: {threshold})",
+        "",
+        "| File | Similarity | Result | Diff Image |",
+        "| :--- | :--- | :--- | :--- |",
+    ]
+    for r in results:
+        sim = r.get("similarity", 0)
+        status = "PASS" if r.get("passed", False) else "FAIL"
+        diff_img = r.get("diff_image", "-")
+        if diff_img and diff_img != "-":
+            diff_img = f"`{Path(diff_img).name}`"
+        lines.append(f"| {r.get('file', '?')} | {sim:.4f} | {status} | {diff_img} |")
+    return "\n".join(lines)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Compile ui-ux-simulation reports from events.jsonl")
     parser.add_argument("--run-dir", required=True, help="Run directory (e.g. reports/<run_id>/)")
@@ -600,6 +633,13 @@ def main() -> None:
                 start_marker="<!-- AUTO_FAILURE_SUMMARY_START -->",
                 end_marker="<!-- AUTO_FAILURE_SUMMARY_END -->",
                 new_block=_generate_failure_summary_md(run_dir=run_dir, events=events),
+            )
+        if "<!-- AUTO_VISUAL_DIFF_START -->" in report_text:
+            report_text = _replace_auto_block(
+                report_text,
+                start_marker="<!-- AUTO_VISUAL_DIFF_START -->",
+                end_marker="<!-- AUTO_VISUAL_DIFF_END -->",
+                new_block=_generate_visual_diff_md(run_dir=run_dir),
             )
         if args.in_place:
             report_path.write_text(report_text, encoding="utf-8")

@@ -167,10 +167,45 @@ def _validate_markdown_tables(path: Path) -> list[str]:
     return errors
 
 
+def _check_visual_baselines(run_dir: Path, *, strict: bool) -> list[str]:
+    """Validate visual-diff-summary.json if present."""
+    problems: list[str] = []
+    diffs_dir = run_dir / "visual-diffs"
+    summary_path = diffs_dir / "visual-diff-summary.json"
+
+    if not diffs_dir.exists() or not summary_path.exists():
+        return problems  # visual diffs are optional
+
+    try:
+        data = json.loads(summary_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        problems.append(f"visual-diff-summary.json: invalid JSON ({e})")
+        return problems
+
+    if not isinstance(data, dict) or "results" not in data:
+        problems.append("visual-diff-summary.json: missing 'results' key")
+        return problems
+
+    if strict:
+        for entry in data["results"]:
+            if not entry.get("passed", False):
+                problems.append(
+                    f"visual regression: {entry.get('file', '?')} "
+                    f"similarity={entry.get('similarity', '?')} FAIL"
+                )
+
+    return problems
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Validate ui-ux-simulation run artifacts")
     parser.add_argument("--run-dir", required=True, help="Run directory (e.g. reports/<run_id>/)")
     parser.add_argument("--strict", action="store_true", help="Fail on missing optional artifacts and JSONL errors")
+    parser.add_argument(
+        "--check-baselines",
+        action="store_true",
+        help="Also validate visual-diffs/visual-diff-summary.json if present",
+    )
     args = parser.parse_args()
 
     run_dir = Path(args.run_dir)
@@ -216,6 +251,10 @@ def main() -> None:
     jsonl_errors = _read_jsonl(run_dir / "events.jsonl")
     if jsonl_errors and args.strict:
         problems.extend([f"events.jsonl: {e}" for e in jsonl_errors])
+
+    # Optional: visual baseline checks
+    if args.check_baselines:
+        problems.extend(_check_visual_baselines(run_dir, strict=args.strict))
 
     # Validate Markdown table format in key files
     md_files_to_check = [

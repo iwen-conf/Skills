@@ -54,6 +54,11 @@
 - _No failures recorded._
 <!-- AUTO_FAILURE_SUMMARY_END -->
 
+## Visual Regression
+<!-- AUTO_VISUAL_DIFF_START -->
+- _No visual regression data available._
+<!-- AUTO_VISUAL_DIFF_END -->
+
 ## Notes
 - Generated at: {{GENERATED_AT}}
 - Report pack(s): {{PACKS}}

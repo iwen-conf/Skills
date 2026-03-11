@@ -68,8 +68,14 @@ Without UI evidence and artifact integrity verification, it shall not be declare
 - Run directory scaffolding: `python3 arc:e2e/scripts/scaffold_run.py --run-id <run_id> --target-url <url>`
 - Convert accounts to personas: `python3 arc:e2e/scripts/accounts_to_personas.py --accounts-file <accounts.jsonc> --out <personas.json>`
 - Artifact check: `python3 arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`
+- Artifact check (with visual baselines): `python3 arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --check-baselines --strict`
 - Report compilation: `python3 arc:e2e/scripts/compile_report.py --run-dir <run_dir> --in-place --beautify-md`
 - Defect registration: `python3 arc:e2e/scripts/new_defect.py --run-dir <run_dir> --title \"<defect_title>\"`
+- Visual diff (single file): `python3 arc:e2e/scripts/visual_diff.py --baseline <base.png> --current <curr.png> --json --fail-on-diff`
+- Baseline init: `python3 arc:e2e/scripts/baseline_manager.py init --run-dir <run_dir> --baseline-dir baselines/<proj>`
+- Baseline compare: `python3 arc:e2e/scripts/baseline_manager.py compare --run-dir <run_dir> --baseline-dir baselines/<proj> --fail-on-diff`
+- Baseline update: `python3 arc:e2e/scripts/baseline_manager.py update --run-dir <run_dir> --baseline-dir baselines/<proj> --files <file1,file2> --reason "<reason>"`
+- Contrast check: `python3 arc:e2e/scripts/contrast_check.py --input <screenshot.png> --json`
 - Runtime main command: `arc e2e`
 
 ## Red Flags
@@ -101,6 +107,10 @@ Without UI evidence and artifact integrity verification, it shall not be declare
 - `scripts/check_artifacts.py`: Quality access control (required files/directories, screenshot reference existence, accounts.jsonc parsable, JSONL parsable, etc.)
 - `scripts/beautify_md.py`: Beautify existing Markdown with one click (based on `mdformat`, can fully format the run dir)
 - `scripts/accounts_to_personas.py`: Generate `personas` JSON (role/user/pass/token) from `accounts.jsonc` to facilitate repeated regression runs
+- `scripts/visual_diff.py`: Pixel-level screenshot comparison with diff visualization (Pillow-based, supports mask regions)
+- `scripts/baseline_manager.py`: Baseline lifecycle management (init / compare / update / status)
+- `scripts/contrast_check.py`: WCAG contrast ratio batch scanning on screenshots (Pillow-based)
+- `scripts/js/interactability_checks.js`: Browser-injectable JS for DOM interactability and contrast verification
 
 ## Reference Files
 
@@ -305,8 +315,14 @@ Execute the following loop for each subtask:
    * Command: agent-browser open|click|type|wait|screenshot ...
 3. **Wait**: Wait for UI response (Loading ends, Toast appears).
 4. **Verify (UI)**: Check page text or element status.
-5. **Capture Evidence (Mandatory if capture_screenshots=true)**:  
+5. **Capture Evidence (Mandatory if capture_screenshots=true)**:
    * Key nodes must be screenshotted and recorded **immediately**: screenshot absolute/relative path, file name, image description, current URL, and corresponding step number.
+6. **Interactability Verification (before critical click/submit actions)**:
+   * Inject `arc:e2e/scripts/js/interactability_checks.js` and call `checkInteractability(selector)` on the target element **before** performing the click.
+   * If `not_obscured` fails → record as **high-priority defect** (the element is visually present but cannot be clicked due to overlay/z-index issues).
+   * If `meets_min_target_size` fails → record as **a11y finding** (WCAG 2.5.8 Target Size, non-blocking but tracked).
+   * Log the check result to `events.jsonl` with `kind: "interactability_check"`.
+   * Optionally call `checkContrast(selector)` on text elements; record WCAG AA/AAA pass/fail in the event log.
 
 ### **Phase 3: Deep Verification (Conditional)**
 

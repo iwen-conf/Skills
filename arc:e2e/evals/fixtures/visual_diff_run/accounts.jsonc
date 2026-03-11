@@ -1,0 +1,9 @@
+{
+  "_comment": "Fixture accounts for visual diff eval test. Do NOT commit real credentials.",
+  "schema_version": 1,
+  "run_id": "visual_diff_run",
+  "generated_at": "2026-03-11T00:00:00Z",
+  "accounts": [
+    {"role": "buyer", "user": "buyer_01", "pass": "fixture_pass", "token": ""}
+  ]
+}

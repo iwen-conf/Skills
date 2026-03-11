@@ -89,6 +89,88 @@
           "expect_exit_code": 1
         }
       ]
+    },
+    {
+      "id": "visual_diff_identical_images",
+      "title": "Visual diff PASS for identical screenshots",
+      "description": "Verifies that visual_diff.py returns PASS (similarity=1.0) when comparing identical images",
+      "tags": ["visual", "ci"],
+      "inputs": {
+        "fixtures": [
+          {
+            "src": "arc:e2e/evals/fixtures/visual_diff_run",
+            "dest": "reports/visual_diff_run"
+          }
+        ]
+      },
+      "workflow": {
+        "steps": [
+          {
+            "name": "visual_diff_identical",
+            "run": "python3 arc:e2e/scripts/visual_diff.py --baseline reports/visual_diff_run/baselines/s0001_login-page.png --current reports/visual_diff_run/screenshots/s0001_login-page.png --output reports/visual_diff_run/visual-diffs/s0001_login-page.diff.png --threshold 0.95 --json --fail-on-diff"
+          }
+        ]
+      },
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "reports/visual_diff_run/visual-diffs/s0001_login-page.diff.png"
+        },
+        {
+          "type": "run_validator",
+          "command": "python3 arc:e2e/scripts/visual_diff.py --baseline reports/visual_diff_run/baselines/s0001_login-page.png --current reports/visual_diff_run/screenshots/s0001_login-page.png --threshold 0.95 --fail-on-diff",
+          "expect_exit_code": 0
+        }
+      ]
+    },
+    {
+      "id": "baseline_init_and_compare",
+      "title": "Baseline init + compare + gate pipeline",
+      "description": "Tests baseline_manager.py init from fixture run, then compare, then check_artifacts with --check-baselines",
+      "tags": ["visual", "baseline", "ci"],
+      "inputs": {
+        "fixtures": [
+          {
+            "src": "arc:e2e/evals/fixtures/visual_diff_run",
+            "dest": "reports/visual_diff_run"
+          }
+        ]
+      },
+      "workflow": {
+        "steps": [
+          {
+            "name": "init_baselines",
+            "run": "python3 arc:e2e/scripts/baseline_manager.py init --run-dir reports/visual_diff_run --baseline-dir reports/visual_diff_run/baselines_test"
+          },
+          {
+            "name": "compare_baselines",
+            "run": "python3 arc:e2e/scripts/baseline_manager.py compare --run-dir reports/visual_diff_run --baseline-dir reports/visual_diff_run/baselines_test --threshold 0.90 --output-dir reports/visual_diff_run/visual-diffs --fail-on-diff"
+          },
+          {
+            "name": "compile_report",
+            "run": "python3 scripts/compile_report.py --run-dir reports/visual_diff_run --table-backend native --in-place"
+          },
+          {
+            "name": "check_gate",
+            "run": "python3 scripts/check_artifacts.py --run-dir reports/visual_diff_run --check-baselines --strict"
+          }
+        ]
+      },
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "reports/visual_diff_run/baselines_test/baseline-manifest.json"
+        },
+        {
+          "type": "file_exists",
+          "path": "reports/visual_diff_run/visual-diffs/visual-diff-summary.json"
+        },
+        {
+          "type": "run_validator",
+          "command": "python3 scripts/check_artifacts.py --run-dir reports/visual_diff_run --check-baselines --strict",
+          "expect_exit_code": 0
+        }
+      ]
     }
   ]
 }
