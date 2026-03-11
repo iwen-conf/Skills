@@ -179,6 +179,9 @@ python arc:build/scripts/scaffold_implement_case.py \
 2. Generate delivery documents:
 - `reports/execution-report.md`
 - `handoff/change-summary.md`
+- `handoff/pr-description.md` (A ready-to-use Pull Request Description with "What", "Why", and "Testing done")
+- `handoff/commit-messages.txt` (Suggested Conventional Commit messages)
+- `handoff/ADR-XXX.md` (If a new library was introduced or architectural boundary crossed, generate a lightweight Architecture Decision Record here)
 3. Use a script to render the final report:
 
 ```bash

@@ -192,6 +192,10 @@ python arc:fix/scripts/triage_run.py <run_dir> \
    - Running "unlimited" retry/regression loops is prohibited; must have `max_iterations`/timeout.
    - If additional tools (browser recording, long-term tail, temporary container, tmux session, etc.) are started for troubleshooting, close them promptly after obtaining the evidence to avoid resource leakage and long-term occupation.
 
+8. **Proactive Extrapolation (举一反三) & Anti-NPC Debugging (强制要求)**
+   - **No blind retries**: If a fix fails 2 times, you MUST stop tweaking parameters and perform a 7-step check: read full logs, search codebase, read 50 lines of context, verify assumptions, reverse assumptions, isolate, and change approach.
+   - **Fix Extension**: When the immediate bug is fixed, you MUST check if the same problematic pattern exists elsewhere in the project. The final Fix Packet MUST include a "Proactive Extension" section documenting these checks and additional preventative fixes.
+
 ## Workflow (recommended to execute in order)
 
 ### 0) If run_dir is missing: run arc:e2e first to produce failure artifacts

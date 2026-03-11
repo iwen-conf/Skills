@@ -96,8 +96,10 @@ The tripartite pattern (architecture / engineering / business perspectives) and 
 - Scores are bounded judgments, not exact truth claims; say explicitly when the repository surface is incomplete.
 - `Business Maturity Index` should describe observed flow coverage, breakpoints, manual fallback signs, and operating-loop evidence.
 - `Dependency Health Score` should describe outdated versions, known vulnerabilities, maintenance activity, and upgrade automation signals.
+- **Dependency License Risk Analysis (依赖开源合规风险分析)**: You MUST scan all dependency manifests (e.g., package.json, requirements.txt, go.mod, etc.) and generate a dedicated analysis. Explicitly identify any libraries with restrictive licenses, especially those that **prohibit commercial use** (e.g., CC-BY-NC, certain Commons Clause variants) or **viral copyleft licenses** that force the commercial project to be open-sourced (e.g., GPL, AGPL). Detail the risk level and mitigation plan for each.
 - If an audit needs an executive surface, keep a compact `专家评审卡` and ensure the `9 Tab` view maps back to findings, evidence, and score boundaries.
 - Recommendations should be prioritized (`P0`-`P3`) and explain expected value, delivery cost, and migration risk when material.
+- **Actionable Remediation (闭环修复)**: For every recommendation, you MUST provide actionable remediation. For simple issues (e.g. linting, deprecated APIs, unused variables), provide a **Quick Fix** script (bash/python snippet). For complex issues (e.g. refactoring, architecture), provide a **Dispatch Command** (e.g., `arc build ...` or `arc fix ...` with precise parameters) so the user can copy-paste it to trigger the fix immediately.
 - `quantitative-dashboard.html` is optional. If produced, it should follow `references/spa-dashboard-spec.md` and `templates/dashboard-template.html`, but it must not redefine the default audit contract.
 - If a dashboard is produced, it may read final audit artifacts such as `scorecard.md`, `diagnostic-report.md`, and `recommendations.md` in addition to quantitative inputs.
 - Dashboard KPI cards and charts must explicitly degrade to `Derived`, `Heuristic`, or `N/A` when direct evidence is insufficient; do not present fabricated precision.
@@ -177,6 +179,7 @@ Refer to `references/dimensions.md` for dimension criteria and specialist index 
 ├── scorecard.md                     # Required: dimension scores or N/A
 ├── recommendations.md               # Required: prioritized actions
 ├── evidence-registry.md             # Required: evidence index and trace map
+├── license-risk-analysis.md         # Required: dependency license compliance, viral/non-commercial risk analysis
 ├── business-maturity.md             # Optional: only when evidence supports specialist scoring
 ├── dependency-health.md             # Optional: only when evidence supports specialist scoring
 ├── quantitative-dashboard.html      # Optional: presentation deliverable only
