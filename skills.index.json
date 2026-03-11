@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-07T07:45:05.566730Z",
-  "skill_count": 13,
+  "generated_at": "2026-03-11T08:08:55.102548Z",
+  "skill_count": 14,
   "skills": [
     {
       "name": "arc:audit",
@@ -678,7 +678,7 @@
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "- Run directory scaffolding: `python3 arc:e2e/scripts/scaffold_run.py --run-id <run_id> --target-url <url>`\n- Convert accounts to personas: `python3 arc:e2e/scripts/accounts_to_personas.py --accounts-file <accounts.jsonc> --out <personas.json>`\n- Artifact check: `python3 arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`\n- Report compilation: `python3 arc:e2e/scripts/compile_report.py --run-dir <run_dir> --in-place --beautify-md`\n- Defect registration: `python3 arc:e2e/scripts/new_defect.py --run-dir <run_dir> --title \\\"<defect_title>\\\"`\n- Runtime main command: `arc e2e`"
+          "body": "- Run directory scaffolding: `python3 arc:e2e/scripts/scaffold_run.py --run-id <run_id> --target-url <url>`\n- Convert accounts to personas: `python3 arc:e2e/scripts/accounts_to_personas.py --accounts-file <accounts.jsonc> --out <personas.json>`\n- Artifact check: `python3 arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`\n- Artifact check (with visual baselines): `python3 arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --check-baselines --strict`\n- Report compilation: `python3 arc:e2e/scripts/compile_report.py --run-dir <run_dir> --in-place --beautify-md`\n- Defect registration: `python3 arc:e2e/scripts/new_defect.py --run-dir <run_dir> --title \\\"<defect_title>\\\"`\n- Visual diff (single file): `python3 arc:e2e/scripts/visual_diff.py --baseline <base.png> --current <curr.png> --json --fail-on-diff`\n- Baseline init: `python3 arc:e2e/scripts/baseline_manager.py init --run-dir <run_dir> --baseline-dir baselines/<proj>`\n- Baseline compare: `python3 arc:e2e/scripts/baseline_manager.py compare --run-dir <run_dir> --baseline-dir baselines/<proj> --fail-on-diff`\n- Baseline update: `python3 arc:e2e/scripts/baseline_manager.py update --run-dir <run_dir> --baseline-dir baselines/<proj> --files <file1,file2> --reason \"<reason>\"`\n- Contrast check: `python3 arc:e2e/scripts/contrast_check.py --input <screenshot.png> --json`\n- Runtime main command: `arc e2e`"
         },
         {
           "heading": "## Red Flags",
@@ -698,7 +698,7 @@
         {
           "heading": "## Helper Scripts Available",
           "title": "Helper Scripts Available",
-          "body": "> Follow the pattern of `webapp-testing/`: first call `scripts/` directly as a black box; run `--help` first and then decide whether you need to read the source code.\n\n- `scripts/scaffold_run.py`: One-click generation of `<report_output_dir>/<run_id>/` directory skeleton + report/artifact template (supports pack: `e2e` / `full-process`)\n- `scripts/compile_report.py`: Compile and output `action-log.compiled.md` / `screenshot-manifest.compiled.md` from `events.jsonl`; supports table backends and column width control such as `tabulate`/`py-markdown-table`/`pandas(df.to_markdown)`; can update the step table (auto markers) of `report.md`\n- `scripts/new_defect.py`: generates `failures/failure-XXXX.md` and can be appended to `execution/defect-log.md`\n- `scripts/check_artifacts.py`: Quality access control (required files/directories, screenshot reference existence, accounts.jsonc parsable, JSONL parsable, etc.)\n- `scripts/beautify_md.py`: Beautify existing Markdown with one click (based on `mdformat`, can fully format the run dir)\n- `scripts/accounts_to_personas.py`: Generate `personas` JSON (role/user/pass/token) from `accounts.jsonc` to facilitate repeated regression runs"
+          "body": "> Follow the pattern of `webapp-testing/`: first call `scripts/` directly as a black box; run `--help` first and then decide whether you need to read the source code.\n\n- `scripts/scaffold_run.py`: One-click generation of `<report_output_dir>/<run_id>/` directory skeleton + report/artifact template (supports pack: `e2e` / `full-process`)\n- `scripts/compile_report.py`: Compile and output `action-log.compiled.md` / `screenshot-manifest.compiled.md` from `events.jsonl`; supports table backends and column width control such as `tabulate`/`py-markdown-table`/`pandas(df.to_markdown)`; can update the step table (auto markers) of `report.md`\n- `scripts/new_defect.py`: generates `failures/failure-XXXX.md` and can be appended to `execution/defect-log.md`\n- `scripts/check_artifacts.py`: Quality access control (required files/directories, screenshot reference existence, accounts.jsonc parsable, JSONL parsable, etc.)\n- `scripts/beautify_md.py`: Beautify existing Markdown with one click (based on `mdformat`, can fully format the run dir)\n- `scripts/accounts_to_personas.py`: Generate `personas` JSON (role/user/pass/token) from `accounts.jsonc` to facilitate repeated regression runs\n- `scripts/visual_diff.py`: Pixel-level screenshot comparison with diff visualization (Pillow-based, supports mask regions)\n- `scripts/baseline_manager.py`: Baseline lifecycle management (init / compare / update / status)\n- `scripts/contrast_check.py`: WCAG contrast ratio batch scanning on screenshots (Pillow-based)\n- `scripts/js/interactability_checks.js`: Browser-injectable JS for DOM interactability and contrast verification"
         },
         {
           "heading": "## Reference Files",
@@ -743,7 +743,7 @@
         {
           "heading": "## temporary patch",
           "title": "temporary patch",
-          "body": "Already used ace-tool to get the correct information:\n```\n<ace-tool search result summary>\n```\n```\n\n### **Phase 1: Strategy & Planning**\n\n1. Based on the analysis of Phase 0, test_objective is disassembled into ordered sub-task queues (Sub-tasks).\n2. Plan the complete user path: Login A -> Action -> Logout -> Login B -> Verify.\n\n3. Evidence Plan:\n   * Key nodes that must be screenshotted: after logging in, before and after clicking the key submit button, when a Toast/error pop-up window appears, and on the final results page.\n   * Validation that must be done: UI validation text/element status; DB SELECT results if necessary.\n\n### **Phase 2: Execution Loop**\n\nExecute the following loop for each subtask:\n\n1. **Check**: Confirm the current page status.\n2. **Action**: Use agent-browser to perform atomic operations.\n   * Command: agent-browser open|click|type|wait|screenshot ...\n3. **Wait**: Wait for UI response (Loading ends, Toast appears).\n4. **Verify (UI)**: Check page text or element status.\n5. **Capture Evidence (Mandatory if capture_screenshots=true)**:  \n   * Key nodes must be screenshotted and recorded **immediately**: screenshot absolute/relative path, file name, image description, current URL, and corresponding step number.\n\n### **Phase 3: Deep Verification (Conditional)**\n\nWhen UI feedback is unclear or data consistency needs to be confirmed:\n\n* Execution: docker exec -t <container> <db_cmd> -e \"SELECT ...\"\n* Verify that database fields are as expected.\n\n### **Phase 4: Report & Artifacts (Mandatory)**\n\nAfter each business flow test is completed (even if it fails midway), a test report and artifact directory must be generated.\n\n**Output root directory**: `<report_output_dir>/<run_id>/`\nIf `run_id` is not provided, the Agent must generate and print it explicitly in the report.\n\n**Directory structure (REQUIRED)**:\n\n```text\n<report_output_dir>/<run_id>/\n  accounts.jsonc\n  report.md\n  action-log.md\n  screenshot-manifest.md\n  screenshots/\n    s0001_login-page.png\n    s0002_filled-form.png\n  failures/\n    failure-0001.md\n  db/\n    query-0001.txt\n    result-0001.txt\n  events.jsonl        (optional; when report_formats includes \"jsonl\")\n```\n\n> Note: The `db/` directory is recommended to always exist (even if it is empty) so that `scripts/check_artifacts.py --strict` can pass; the empty directory can be kept when no DB verification is done.\n\n**Account management (required)**:\n\n- The account/credential set used in this test must be written in `accounts.jsonc` (unified source). In `report.md`, list the role and account identifier used, but keep passwords/tokens/session identifiers redacted.\n- If you \"must create a new account\" for verification and repair (such as verifying first login, permission boundaries, new tenant isolation), you must:\n  - Mark the account with `created_for_verification=true` in `accounts.jsonc` and write `why/created_at`\n  - Explain \"Why a new account is generated\" in the `Account Changes` section of `report.md`\n\n**Derived artifacts (generated by scripts, recommended to be retained)**:\n\n- `scripts/scaffold_run.py`: Create `<report_output_dir>/<run_id>/` and `screenshots/`, `failures/`, `db/` (optional creation of `events.jsonl`)\n- `scripts/compile_report.py`:\n  - Output: `action-log.compiled.md`, `screenshot-manifest.compiled.md`\n  - Report: `report.generated.md` is generated by default; if `--in-place` is used, the auto blocks of `report.md` are updated\n- `scripts/beautify_md.py`: Format run_dir under Markdown (optional)\n\n**Path specification (to avoid tool misjudgment)**:\n\n- When referencing screenshots in `report.md` / `screenshot-manifest.md` / `failures/*.md`, the path must use the relative path `screenshots/...` and wrap it in backticks, for example: `screenshots/s0007_after-submit.png` (`check_artifacts.py` will parse and verify these paths).\n\n**Screenshot naming rules (REQUIRED)**:\n\n* Filename must be traceable to step number: `s<step_id>_<slug>.png`\n  - `step_id` is a 4-digit number, such as `0007`\n  - `slug` is short English/number/hyphen, for example `after-submit`\n* Example: `screenshots/s0007_after-submit.png`\n\n**Image Description Required (REQUIRED)**:\n\nEach screenshot must contain in `screenshot-manifest.md`:\n`step_id` / `path` / `captured_at` / `url` / `description` / `expectation` / `result(PASS/FAIL)`."
+          "body": "Already used ace-tool to get the correct information:\n```\n<ace-tool search result summary>\n```\n```\n\n### **Phase 1: Strategy & Planning**\n\n1. Based on the analysis of Phase 0, test_objective is disassembled into ordered sub-task queues (Sub-tasks).\n2. Plan the complete user path: Login A -> Action -> Logout -> Login B -> Verify.\n\n3. Evidence Plan:\n   * Key nodes that must be screenshotted: after logging in, before and after clicking the key submit button, when a Toast/error pop-up window appears, and on the final results page.\n   * Validation that must be done: UI validation text/element status; DB SELECT results if necessary.\n\n### **Phase 2: Execution Loop**\n\nExecute the following loop for each subtask:\n\n1. **Check**: Confirm the current page status.\n2. **Action**: Use agent-browser to perform atomic operations.\n   * Command: agent-browser open|click|type|wait|screenshot ...\n3. **Wait**: Wait for UI response (Loading ends, Toast appears).\n4. **Verify (UI)**: Check page text or element status.\n5. **Capture Evidence (Mandatory if capture_screenshots=true)**:\n   * Key nodes must be screenshotted and recorded **immediately**: screenshot absolute/relative path, file name, image description, current URL, and corresponding step number.\n6. **Interactability Verification (before critical click/submit actions)**:\n   * Inject `arc:e2e/scripts/js/interactability_checks.js` and call `checkInteractability(selector)` on the target element **before** performing the click.\n   * If `not_obscured` fails → record as **high-priority defect** (the element is visually present but cannot be clicked due to overlay/z-index issues).\n   * If `meets_min_target_size` fails → record as **a11y finding** (WCAG 2.5.8 Target Size, non-blocking but tracked).\n   * Log the check result to `events.jsonl` with `kind: \"interactability_check\"`.\n   * Optionally call `checkContrast(selector)` on text elements; record WCAG AA/AAA pass/fail in the event log.\n\n### **Phase 3: Deep Verification (Conditional)**\n\nWhen UI feedback is unclear or data consistency needs to be confirmed:\n\n* Execution: docker exec -t <container> <db_cmd> -e \"SELECT ...\"\n* Verify that database fields are as expected.\n\n### **Phase 4: Report & Artifacts (Mandatory)**\n\nAfter each business flow test is completed (even if it fails midway), a test report and artifact directory must be generated.\n\n**Output root directory**: `<report_output_dir>/<run_id>/`\nIf `run_id` is not provided, the Agent must generate and print it explicitly in the report.\n\n**Directory structure (REQUIRED)**:\n\n```text\n<report_output_dir>/<run_id>/\n  accounts.jsonc\n  report.md\n  action-log.md\n  screenshot-manifest.md\n  screenshots/\n    s0001_login-page.png\n    s0002_filled-form.png\n  failures/\n    failure-0001.md\n  db/\n    query-0001.txt\n    result-0001.txt\n  events.jsonl        (optional; when report_formats includes \"jsonl\")\n```\n\n> Note: The `db/` directory is recommended to always exist (even if it is empty) so that `scripts/check_artifacts.py --strict` can pass; the empty directory can be kept when no DB verification is done.\n\n**Account management (required)**:\n\n- The account/credential set used in this test must be written in `accounts.jsonc` (unified source). In `report.md`, list the role and account identifier used, but keep passwords/tokens/session identifiers redacted.\n- If you \"must create a new account\" for verification and repair (such as verifying first login, permission boundaries, new tenant isolation), you must:\n  - Mark the account with `created_for_verification=true` in `accounts.jsonc` and write `why/created_at`\n  - Explain \"Why a new account is generated\" in the `Account Changes` section of `report.md`\n\n**Derived artifacts (generated by scripts, recommended to be retained)**:\n\n- `scripts/scaffold_run.py`: Create `<report_output_dir>/<run_id>/` and `screenshots/`, `failures/`, `db/` (optional creation of `events.jsonl`)\n- `scripts/compile_report.py`:\n  - Output: `action-log.compiled.md`, `screenshot-manifest.compiled.md`\n  - Report: `report.generated.md` is generated by default; if `--in-place` is used, the auto blocks of `report.md` are updated\n- `scripts/beautify_md.py`: Format run_dir under Markdown (optional)\n\n**Path specification (to avoid tool misjudgment)**:\n\n- When referencing screenshots in `report.md` / `screenshot-manifest.md` / `failures/*.md`, the path must use the relative path `screenshots/...` and wrap it in backticks, for example: `screenshots/s0007_after-submit.png` (`check_artifacts.py` will parse and verify these paths).\n\n**Screenshot naming rules (REQUIRED)**:\n\n* Filename must be traceable to step number: `s<step_id>_<slug>.png`\n  - `step_id` is a 4-digit number, such as `0007`\n  - `slug` is short English/number/hyphen, for example `after-submit`\n* Example: `screenshots/s0007_after-submit.png`\n\n**Image Description Required (REQUIRED)**:\n\nEach screenshot must contain in `screenshot-manifest.md`:\n`step_id` / `path` / `captured_at` / `url` / `description` / `expectation` / `result(PASS/FAIL)`."
         },
         {
           "heading": "## **Output Schema (log specification)**",
@@ -1800,6 +1800,133 @@
         }
       ],
       "outputs_section": null
+    },
+    {
+      "name": "arc:test",
+      "description": "代码级测试生成：为函数/模块自动生成单测、边界、表驱动、benchmark 和 fuzz 测试。",
+      "source_path": "arc:test/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "`arc:test` generates function-level tests for Go, Rust, Python, TypeScript and Swift projects. It detects the language ecosystem, scaffolds test files from templates, fills test logic guided by ISTQB techniques (boundary value analysis, equivalence partitioning, error path), and validates that every generated test compiles and passes."
+        },
+        {
+          "heading": "## Quick Contract",
+          "title": "Quick Contract",
+          "body": "- **Trigger**: Source code needs test coverage — new modules, refactored functions, coverage gaps.\n- **Inputs**: `project_path`, `target` (file or directory), `test_types` (unit/boundary/table/benchmark/fuzz).\n- **Outputs**: Generated test files + `test-report.md` with compile/pass evidence.\n- **Quality Gate**: All generated tests must compile and pass; `test-report.md` must contain evidence.\n- **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
+        },
+        {
+          "heading": "## Routing Matrix",
+          "title": "Routing Matrix",
+          "body": "- For unified routing comparison, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md).\n- A phased getting started view is available at [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view).\n- For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md).\n- If there is a conflict, the **Boundary Note** of this skill `## When to Use` shall prevail."
+        },
+        {
+          "heading": "## Announce",
+          "title": "Announce",
+          "body": "Begin by stating clearly:\n\"I'm using `arc:test`, which will analyze source code and generate code-level tests with compile-and-pass evidence.\""
+        },
+        {
+          "heading": "## The Iron Law",
+          "title": "The Iron Law",
+          "body": "```\nNO TEST CLAIM WITHOUT COMPILE AND PASS EVIDENCE\n```\n\nNo test may be declared generated unless it compiles and passes in the target project."
+        },
+        {
+          "heading": "## Workflow",
+          "title": "Workflow",
+          "body": "1. **Phase 0 — Detect ecosystem**: Run `detect_lang.py --project-path <path> --json` to identify language, framework, test command, and existing test files.\n2. **Phase 1 — Analyze source**: Read target files, extract function/method/type signatures, identify public API surface and edge-case-prone logic.\n3. **Phase 2 — Design test cases**: Apply ISTQB techniques — boundary value analysis for numeric/string limits, equivalence partitioning for input domains, error path coverage for failure modes. Produce a case list before writing code.\n4. **Phase 3 — Scaffold and fill**: Run `scaffold_tests.py` to generate test file skeletons from templates, then fill in assertions and test logic using the case list.\n5. **Phase 4 — Validate**: Run `validate_tests.py` to compile and execute all generated tests. Output `test-report.md` with pass/fail evidence per file."
+        },
+        {
+          "heading": "## Quality Gates",
+          "title": "Quality Gates",
+          "body": "- Every generated test file must compile without errors.\n- Every generated test must pass (or be explicitly marked as expected-failure with justification).\n- `test-report.md` must contain: language detected, files generated, test command used, exit code, and stdout/stderr excerpt.\n- Benchmark tests must include at least one `b.ReportAllocs()` (Go) or equivalent metric collection.\n- Fuzz tests must define a valid corpus entry."
+        },
+        {
+          "heading": "## Expert Standards",
+          "title": "Expert Standards",
+          "body": "- Test case design follows `ISTQB` terminology and techniques at the component testing level.\n- Numeric inputs must include `boundary value analysis` (边界值分析): min, min+1, nominal, max-1, max, and off-boundary values.\n- Input domains must apply `equivalence partitioning` (等价类划分): valid classes, invalid classes, and empty/nil/zero classes.\n- Generated tests should improve `code coverage` (代码覆盖率) — target statement coverage for new code, branch coverage for complex logic.\n- Test strategy respects the `test pyramid` (测试金字塔): unit tests are the foundation, integration tests are selective, E2E is delegated to `arc:e2e`.\n- Error paths must be tested: invalid input, permission denied, timeout, resource exhaustion.\n- Table-driven / parameterized tests are preferred over duplicated test functions."
+        },
+        {
+          "heading": "## Scripts & Commands",
+          "title": "Scripts & Commands",
+          "body": "- Language detection: `python3 arc:test/scripts/detect_lang.py --project-path <path> --json`\n- Test scaffolding: `python3 arc:test/scripts/scaffold_tests.py --project-path <path> --target <file_or_dir> --test-types unit,boundary,benchmark [--lang auto] [--output-dir <dir>] [--force] [--dry-run]`\n- Test validation: `python3 arc:test/scripts/validate_tests.py --project-path <path> --test-files <file1,file2> [--report-out test-report.md] [--timeout 120]`"
+        },
+        {
+          "heading": "## Red Flags",
+          "title": "Red Flags",
+          "body": "- Generating tests that import non-existent modules or reference undefined symbols.\n- Claiming test coverage without running the tests.\n- Writing only happy-path tests and ignoring error/boundary cases.\n- Generating benchmark tests without metric collection calls.\n- Overwriting existing test files without `--force` flag."
+        },
+        {
+          "heading": "## When to Use",
+          "title": "When to Use",
+          "body": "- **Primary Trigger**: Source code needs test coverage — new modules, refactored functions, coverage gaps identified by `arc:gate` or `arc:audit`.\n- **Typical Scenario**: After `arc:build` delivers code, generate unit/boundary/benchmark tests; before `arc:gate`, raise coverage to meet thresholds.\n- **Boundary Note**: Browser E2E testing uses `arc:e2e`; fixing failing tests uses `arc:fix`; `arc:test` focuses exclusively on generating new code-level tests."
+        },
+        {
+          "heading": "## Input Arguments",
+          "title": "Input Arguments",
+          "body": "| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `project_path` | `string` | required | Root path of the target project (must contain language marker file) |\n| `target` | `string` | required | File or directory to generate tests for |\n| `test_types` | `string` | optional | Comma-separated test types: unit, boundary, table, benchmark, fuzz (default: unit,boundary) |\n| `lang` | `string` | optional | Language override: go, rust, python, typescript, swift (default: auto-detect) |\n| `output_dir` | `string` | optional | Output directory for generated test files (default: language convention) |\n| `force` | `boolean` | optional | Overwrite existing test files (default: false) |\n| `dry_run` | `boolean` | optional | Print planned files without writing (default: false) |"
+        },
+        {
+          "heading": "## Outputs",
+          "title": "Outputs",
+          "body": "```text\narc:test/\n  test-report.md          # Compile/pass evidence for all generated tests\n  <generated test files>  # Placed according to language convention\n```"
+        }
+      ],
+      "quick_contract": {
+        "trigger": "Source code needs test coverage — new modules, refactored functions, coverage gaps.",
+        "inputs": "`project_path`, `target` (file or directory), `test_types` (unit/boundary/table/benchmark/fuzz).",
+        "outputs": "Generated test files + `test-report.md` with compile/pass evidence.",
+        "quality_gate": "All generated tests must compile and pass; `test-report.md` must contain evidence.",
+        "decision_tree": "For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
+      },
+      "input_arguments": [
+        {
+          "parameter": "project_path",
+          "type": "string",
+          "required": "required",
+          "description": "Root path of the target project (must contain language marker file)"
+        },
+        {
+          "parameter": "target",
+          "type": "string",
+          "required": "required",
+          "description": "File or directory to generate tests for"
+        },
+        {
+          "parameter": "test_types",
+          "type": "string",
+          "required": "optional",
+          "description": "Comma-separated test types: unit, boundary, table, benchmark, fuzz (default: unit,boundary)"
+        },
+        {
+          "parameter": "lang",
+          "type": "string",
+          "required": "optional",
+          "description": "Language override: go, rust, python, typescript, swift (default: auto-detect)"
+        },
+        {
+          "parameter": "output_dir",
+          "type": "string",
+          "required": "optional",
+          "description": "Output directory for generated test files (default: language convention)"
+        },
+        {
+          "parameter": "force",
+          "type": "boolean",
+          "required": "optional",
+          "description": "Overwrite existing test files (default: false)"
+        },
+        {
+          "parameter": "dry_run",
+          "type": "boolean",
+          "required": "optional",
+          "description": "Print planned files without writing (default: false)"
+        }
+      ],
+      "outputs_section": {
+        "format": "text",
+        "content": "arc:test/\n  test-report.md          # Compile/pass evidence for all generated tests\n  <generated test files>  # Placed according to language convention"
+      }
     },
     {
       "name": "arc:uml",

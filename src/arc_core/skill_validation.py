@@ -74,6 +74,13 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
     "arc:ip-draft": [["宽-中-窄", "broad-medium-narrow", "Broad-Medium-Narrow", "wide-medium-narrow"], ["权利要求", "claims", "Claims"], ["待法务复核清单", "legal review checklist", "Legal Review", "to be reviewed by legal"]],
     "arc:uml": ["UML 2.5.1 / ISO 19505", "Chen", ["建模假设", "modeling assumption", "Modeling Assumption"]],
     "arc:audit": [["业务成熟度", "Business Maturity", "business maturity"], ["依赖健康度", "Dependency Health", "dependency health"], ["专家评审卡", "Expert Review Card", "expert review card"], "9 Tab"],
+    "arc:test": [
+        "ISTQB",
+        ["boundary value analysis", "边界值分析"],
+        ["equivalence partitioning", "等价类划分"],
+        ["code coverage", "代码覆盖率"],
+        ["test pyramid", "测试金字塔"],
+    ],
 }
 
 LEGACY_TOKEN_PARTS = [
@@ -108,6 +115,7 @@ ARC_ROUTED_SKILLS = {
     "arc:e2e",
     "arc:fix",
     "arc:uml",
+    "arc:test",
 }
 
 QUICK_CONTRACT_KEY_MAP = {

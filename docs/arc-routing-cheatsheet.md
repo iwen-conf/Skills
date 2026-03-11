@@ -16,6 +16,7 @@
 - 需求到落地：`arc:clarify` → `arc:decide`（可含 `--mode estimate`）→ `arc:build`
 - 质量治理：`arc:gate`（先触发 `score/`，并联 `arc:audit`）
 - E2E 修复：`arc:e2e` → `arc:fix`（多轮用 `arc:fix --mode retest-loop`）
+- 代码测试：`arc:test`（单测/边界/benchmark/fuzz 生成）
 - 索引维护：`arc:init`（自动）/ `arc:init --mode full` / `arc:init --mode update`
 - 结构地图：`arc:cartography`
 - UML 图谱：`arc:uml`
