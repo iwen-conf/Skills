@@ -327,6 +327,11 @@ description="Writing evaluates document completeness and application readiness",
   7. Signature page, non-professional development guarantee, and open source statement readiness status
   8. Feasibility of App electronic copyright channel (if the target is to put it on the application market)
   9. Pre-evaluation of fee reduction eligibility and list of required supporting documents
+  10. 极具实操性的提交策略建议（Practical submission strategies）：
+      - 软著申请拆分建议：根据代码结构，明确建议是前后端合并申请，还是前端和后端分别独立申请软著（通常独立申请能更好保护，且避免代码量过大审查被拒）。
+      - 申请顺序规划：明确建议先交专利还是先交软著（例如：若专利涉及核心首发创新，务必先交专利以保新颖性；软著则可在发布前提交）。
+      - 软件名称定名建议：结合代码实际情况给出3个以上符合规范的软件名称候选项（格式建议：品牌/企业简称 + 核心功能描述 + 软件系统/平台/App V1.0），并说明定名理由。
+      - 避坑与注意事项：软著UI截图与文档中名称必须严格一致、代码中绝不能出现竞品名称或开源未授权声明等。
 
 [REQUIRED TOOLS]: ace-tool (search documents), Read (read context/), Write (write agents/writing/)
 
@@ -431,6 +436,11 @@ Generate files:
 - Patent object compliance (integrity of three technical elements, feasibility of program product, adequacy of drawings/pseudocode)
 - Fee reduction qualifications and economics (qualification judgment + original/fee reduction comparison)
 - App electronic copyright channel readiness (whether recommended, required materials)
+- **Practical Application Guide (实操申请指南)**: 
+  - **软件名称建议 (Software Naming Suggestions)**: 结合项目实际功能和代码库名称，给出符合软著局规范的具体名称建议（如 [品牌] [功能] [系统/平台/App] V1.0）。
+  - **拆分与组合策略 (Submission Strategy)**: 明确指出针对当前项目，前后端是否应该分开独立申请软著（基于前后端解耦程度、代码量大小），以及专利是否需要拆分多个等。
+  - **申报先后顺序 (Submission Order)**: 强烈建议先申请发明专利（保护新颖性），再申请软件著作权，并给出时间线规划。
+  - **提交注意事项与避坑指南 (Common Pitfalls & Tips)**: 详细列出：代码中不能有TODO或无关注释、说明书截图名称必须与申请表完全一致、哪些核心文件在系统中先传、软著申请平台的实操建议等。
 
 `filing-readiness-checklist.md` Added: format check, naming consistency, fee reduction filing materials, signature page/non-job guarantee, and App electronic copyright options.
 

@@ -315,6 +315,11 @@ description="Writing drafting user documentation and function description",
   6. Header/footer/naming consistency check hints (referencing the format baseline)
   7. Signature page, non-professional development guarantee, open source statement placeholder reminder
   8. Four-piece set of claims (method + system/device + computer program product + storage medium) sentence placeholder
+  9. 撰写一份“保姆级”软著与专利提交操作指南（Step-by-step submission guide），详细说明：
+     - 应该先登录哪个官方平台。
+     - 软著应该先填报哪些信息，前后端如果分开交应该怎么填软件名称。
+     - 文件上传的顺序和注意事项（代码文档前30页后30页的整理要求，UI截图的要求）。
+     - 申请过程中的避坑要点，例如保证所有的名称（文档、截图、申请表）一字不差，代码不能有大段空行等。
 
 [REQUIRED TOOLS]: ace-tool (search documents), Read (read context/), Write (write agents/writing/)
 
@@ -429,7 +434,7 @@ Generate files:
   - Default includes: 1 independent method + 1 system/device + 1 computer program product + 1 storage medium; dependent claims cite differences in performance/data flow/module parameters
 - `patent/drawings-description.md` (Chart description, integrated Architecture architecture diagram + Deep data flow diagram + Writing UI screenshot)
 
-**Step 4.4: Generate writing log**
+**Step 4.4: Generate writing log and Submission Guide**
 
 Generate `reports/doc-writing-log.md`:
 - Input source (handoff file path, CLAUDE.md path)
@@ -437,6 +442,14 @@ Generate `reports/doc-writing-log.md`:
 - Items to be added manually (information provided by the applicant is required)
 - Agent collaboration records (drafting content, review comments, and terminology unified decision-making by each agent)
 - Fee reduction materials list, electronic copyright options, format compliance check results, missing performance data/screenshot list
+
+Generate `reports/submission-guide.md` (保姆级实操提交指南):
+- 提炼一份完全面向小白用户的操作文档。
+- **软件定名与版本**：明确告诉你该用什么名字去填表。
+- **前后端申请策略**：明确指出需要提交几次软著，前后端各叫什么名字，如何区分代码交集。
+- **提交顺序**：明确专利与软著的先后顺序，避免破坏专利新颖性。
+- **材料准备清单**：精确到哪个文件用于填哪一项，截图需要多少张。
+- **官方平台填报避坑**：名称一致性死命令、文档页眉页脚要求、代码格式要求（不可有大段空行、不可有乱码、必须包含关键版权头部）。
 
 ## Scripts
 
@@ -476,6 +489,7 @@ Default output directory:`<project_path>/.arc/arc:ip-draft/<project-name>/`
 - `patent/claims-draft.md` (draft claims; only when `target_docs` includes `patent`)
 - `patent/drawings-description.md` (picture description; only when `target_docs` includes `patent`)
 - `reports/doc-writing-log.md` (writing log)
+- `reports/submission-guide.md` (保姆级实操提交指南)
 
 ## Quick Reference
 
@@ -487,6 +501,7 @@ Default output directory:`<project_path>/.arc/arc:ip-draft/<project-name>/`
 | `manual-outline.md` | Software operating instructions outline |
 | `source-code-package-notes.md` | Software-copyright code material description |
 | `doc-writing-log.md` | Writing journal (record assumptions and items to be added) |
+| `submission-guide.md` | 保姆级实操提交指南（含命名、前后端拆分、提交顺序及避坑）|
 
 ## Failure Recovery
 
