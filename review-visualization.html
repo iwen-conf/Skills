@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>毕设项目评审可视化报告</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1f2d3d;
+      --muted: #6b7280;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --ok: #10b981;
+      --primary: #3b82f6;
+      --border: #e5e7eb;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      color: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    .header .meta {
+      opacity: 0.95;
+      font-size: 14px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+
+    .metric-title {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .metric-note {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .danger { color: var(--danger); }
+    .warn { color: var(--warn); }
+    .ok { color: var(--ok); }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .chart {
+      width: 100%;
+      height: 360px;
+    }
+
+    h2 {
+      margin: 4px 0 12px;
+      font-size: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      font-size: 13px;
+    }
+
+    thead {
+      background: #f8fafc;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--border);
+      padding: 10px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: #f3f4f6;
+      border-radius: 4px;
+      padding: 1px 4px;
+      word-break: break-all;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .p0 { background: #fee2e2; color: #b91c1c; }
+    .p1 { background: #fef3c7; color: #92400e; }
+    .p2 { background: #dbeafe; color: #1d4ed8; }
+    .pass { background: #dcfce7; color: #166534; }
+    .fail { background: #fee2e2; color: #b91c1c; }
+
+    .footer-note {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 1000px) {
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>毕设项目评审可视化报告</h1>
+      <div class="meta">
+        评审对象：`Bishe`（后端） + `my-graduation-project`（前端）｜评审日期：2026-03-05｜结论：<b>No-Go（暂不建议直接生产）</b>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="card">
+        <div class="metric-title">综合评分（七维度）</div>
+        <div class="metric-value warn">4.4 / 10</div>
+        <div class="metric-note">基本可用但短板明显</div>
+      </div>
+      <div class="card">
+        <div class="metric-title">生产准备度</div>
+        <div class="metric-value danger">38 / 100</div>
+        <div class="metric-note">未达到企业上线门槛</div>
+      </div>
+      <div class="card">
+        <div class="metric-title">工程师能力等级</div>
+        <div class="metric-value warn">初中级~中级</div>
+        <div class="metric-note">具备完整交付能力，工程化不足</div>
+      </div>
+      <div class="card">
+        <div class="metric-title">高优先级问题</div>
+        <div class="metric-value danger">P0: 6 项</div>
+        <div class="metric-note">安全、构建、配置治理为主</div>
+      </div>
+      <div class="card">
+        <div class="metric-title">业务需求满足度</div>
+        <div class="metric-value warn">76 / 100</div>
+        <div class="metric-note">核心功能基本齐全，部分链路细节断点</div>
+      </div>
+      <div class="card">
+        <div class="metric-title">业务成熟度</div>
+        <div class="metric-value danger">42 / 100</div>
+        <div class="metric-note">规则收口、链路一致性、运营化能力不足</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="card">
+        <h2>七维度评分雷达图</h2>
+        <div id="radarChart" class="chart"></div>
+      </div>
+      <div class="card">
+        <h2>生产准备度仪表盘</h2>
+        <div id="gaugeChart" class="chart"></div>
+      </div>
+      <div class="card">
+        <h2>问题优先级分布</h2>
+        <div id="riskChart" class="chart"></div>
+      </div>
+      <div class="card">
+        <h2>工程师能力画像</h2>
+        <div id="capChart" class="chart"></div>
+      </div>
+      <div class="card">
+        <h2>业务需求满足度分布</h2>
+        <div id="bizFitChart" class="chart"></div>
+      </div>
+      <div class="card">
+        <h2>业务链路打通度</h2>
+        <div id="chainChart" class="chart"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 14px;">
+      <h2>业务成熟度与链路评估</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 16%;">业务链路</th>
+            <th style="width: 11%;">打通状态</th>
+            <th style="width: 9%;">成熟度</th>
+            <th style="width: 34%;">关键问题</th>
+            <th style="width: 30%;">证据文件</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>注册→激活→登录→个人信息</td>
+            <td><span class="pill pass">已打通</span></td>
+            <td>3.5 / 5</td>
+            <td>主流程完整，可完成用户冷启动。</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/views/register/index.vue:148</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/views/activate/index.vue:135</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/controller/UserController.java:53</code></td>
+          </tr>
+          <tr>
+            <td>教材发布→审核→列表→详情→留言</td>
+            <td><span class="pill p1">部分打通</span></td>
+            <td>2.8 / 5</td>
+            <td>管理员识别与筛选参数存在断点；后端未在发布接口强约束学生角色。</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/views/textbook/TextbookList.vue:260</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/views/textbook/TextbookList.vue:267</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/entity/dto/TextbookQueryDTO.java:11</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/controller/TextbookController.java:26</code></td>
+          </tr>
+          <tr>
+            <td>笔记发布→审核→列表/详情→收藏评分下载</td>
+            <td><span class="pill p1">部分打通</span></td>
+            <td>2.7 / 5</td>
+            <td>标签字段协议不一致，关键词链路弱；管理员识别逻辑错误影响部分审核入口。</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/views/note/NotePublish.vue:352</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/entity/dto/NotePublishDTO.java:20</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/service/impl/NoteServiceImpl.java:123</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/views/note/NoteList.vue:241</code></td>
+          </tr>
+          <tr>
+            <td>知识点检索</td>
+            <td><span class="pill p0">关键断点</span></td>
+            <td>2.1 / 5</td>
+            <td>前端分页组件事件/参数不匹配；路由鉴权标记拼写错误；依赖关键词入库链路稳定性。</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/views/search/index.vue:73</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/components/Pagination.vue:26</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/router/index.js:128</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/service/impl/SearchServiceImpl.java:37</code></td>
+          </tr>
+          <tr>
+            <td>个人中心（发布记录/留言/统计）</td>
+            <td><span class="pill p1">部分打通</span></td>
+            <td>2.6 / 5</td>
+            <td>查询参数与后端DTO不一致，管理员“全部”状态逻辑偏差，合并分页策略不稳定。</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/views/profile/index.vue:417</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/views/profile/index.vue:464</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/entity/dto/NoteListDTO.java:24</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/entity/dto/TextbookQueryDTO.java:11</code></td>
+          </tr>
+          <tr>
+            <td>留言互动</td>
+            <td><span class="pill pass">已打通</span></td>
+            <td>3.2 / 5</td>
+            <td>发送/回复/已读闭环可用，但列表接口无服务端分页，数据量大时风险上升。</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/views/textbook/TextbookDetail.vue:245</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/controller/MessageController.java:49</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/dao/MessageMapper.java:45</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="footer-note">结论：核心业务“能跑通”，但“业务成熟度”和“链路一致性”不足，距离生产标准仍有明显差距。</div>
+    </div>
+
+    <div class="card" style="margin-bottom: 14px;">
+      <h2>关键证据（具体文件信息）</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 8%;">优先级</th>
+            <th style="width: 14%;">类别</th>
+            <th style="width: 28%;">问题</th>
+            <th style="width: 34%;">证据文件</th>
+            <th style="width: 16%;">定位</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="pill p0">P0</span></td>
+            <td>安全</td>
+            <td>密码加密仍为MD5（不满足生产安全基线）</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/config/SecurityConfig.java</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/util/Md5Util.java</code></td>
+            <td>49-61, 12-33</td>
+          </tr>
+          <tr>
+            <td><span class="pill p0">P0</span></td>
+            <td>安全</td>
+            <td>数据库密码/JWT密钥明文写在配置文件</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/resources/application.yml</code></td>
+            <td>6, 30</td>
+          </tr>
+          <tr>
+            <td><span class="pill p0">P0</span></td>
+            <td>安全</td>
+            <td>登录流程打印密码摘要与数据库密文</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/service/impl/UserServiceImpl.java</code></td>
+            <td>136-137</td>
+          </tr>
+          <tr>
+            <td><span class="pill p0">P0</span></td>
+            <td>安全</td>
+            <td>跨域放开全部来源（生产不应默认全开放）</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/config/WebConfig.java</code></td>
+            <td>29</td>
+          </tr>
+          <tr>
+            <td><span class="pill p0">P0</span></td>
+            <td>可部署性</td>
+            <td>后端编译链不稳定：Java版本声明与编译目标不一致</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/pom.xml</code></td>
+            <td>19, 194-195</td>
+          </tr>
+          <tr>
+            <td><span class="pill p0">P0</span></td>
+            <td>依赖安全</td>
+            <td>存在高危依赖（axios / rollup）</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/package-lock.json</code></td>
+            <td>1770, 2747</td>
+          </tr>
+
+          <tr>
+            <td><span class="pill p1">P1</span></td>
+            <td>可移植性</td>
+            <td>硬编码Windows路径，跨环境部署风险高</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/service/impl/NoteServiceImpl.java</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/service/impl/AuditServiceImpl.java</code></td>
+            <td>307, 41</td>
+          </tr>
+          <tr>
+            <td><span class="pill p1">P1</span></td>
+            <td>代码质量</td>
+            <td>审核逻辑重复执行（同一流程重复块）</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/service/impl/AuditServiceImpl.java</code></td>
+            <td>36-72</td>
+          </tr>
+          <tr>
+            <td><span class="pill p1">P1</span></td>
+            <td>功能正确性</td>
+            <td>keywords 判空逻辑反向，可能导致标签存储异常</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/service/impl/NoteServiceImpl.java</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/main/java/com/text1/bishe/entity/dto/NotePublishDTO.java</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/views/note/NotePublish.vue</code></td>
+            <td>123-128, 20, 352</td>
+          </tr>
+          <tr>
+            <td><span class="pill p1">P1</span></td>
+            <td>前端架构</td>
+            <td>请求拦截器里重复 createPinia，Store生命周期使用不规范</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/api/index.js</code></td>
+            <td>21-22</td>
+          </tr>
+          <tr>
+            <td><span class="pill p1">P1</span></td>
+            <td>前端鉴权</td>
+            <td>路由元字段拼写不一致，存在绕过守卫风险</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/router/index.js</code></td>
+            <td>128</td>
+          </tr>
+          <tr>
+            <td><span class="pill p1">P1</span></td>
+            <td>前端安全</td>
+            <td>Token 长期存 localStorage，XSS 场景下风险较高</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/src/stores/user.js</code></td>
+            <td>6-16, 40-45</td>
+          </tr>
+
+          <tr>
+            <td><span class="pill p2">P2</span></td>
+            <td>测试</td>
+            <td>后端仅有 contextLoads，缺少业务自动化测试</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/src/test/java/com/text1/bishe/BisheApplicationTests.java</code></td>
+            <td>9-10</td>
+          </tr>
+          <tr>
+            <td><span class="pill p2">P2</span></td>
+            <td>文档</td>
+            <td>README/HELP 仍以模板内容为主，运维与部署文档不足</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/README.md</code><br><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/Bishe/HELP.md</code></td>
+            <td>3, 1</td>
+          </tr>
+          <tr>
+            <td><span class="pill p2">P2</span></td>
+            <td>性能</td>
+            <td>前端生产包存在超大 chunk 告警，首屏与缓存策略需优化</td>
+            <td><code>/Users/iluwen/Documents/Code/HBuilderProjects/毕设/my-graduation-project/package.json</code></td>
+            <td>6-9</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="footer-note">说明：行号基于本次评审快照；建议在整改时同步建立 CI 校验（lint/test/build/security）。</div>
+    </div>
+
+    <div class="card" style="margin-bottom: 14px;">
+      <h2>门禁检查结果（生产环境）</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>门禁项</th>
+            <th>结果</th>
+            <th>说明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>身份认证与密码存储</td>
+            <td><span class="pill fail">Fail</span></td>
+            <td>仍使用 MD5，且存在敏感日志输出。</td>
+          </tr>
+          <tr>
+            <td>密钥与配置治理</td>
+            <td><span class="pill fail">Fail</span></td>
+            <td>明文配置数据库密码和 JWT secret。</td>
+          </tr>
+          <tr>
+            <td>构建稳定性</td>
+            <td><span class="pill fail">Fail</span></td>
+            <td>后端在当前 JDK21 环境下编译失败。</td>
+          </tr>
+          <tr>
+            <td>自动化测试</td>
+            <td><span class="pill fail">Fail</span></td>
+            <td>测试覆盖不足，仅存在最基础启动测试。</td>
+          </tr>
+          <tr>
+            <td>前端生产构建</td>
+            <td><span class="pill pass">Pass</span></td>
+            <td>可构建，但存在大包与高危依赖告警。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>建议的上线路线</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>阶段</th>
+            <th>目标</th>
+            <th>关键动作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>第1周（P0）</td>
+            <td>安全兜底</td>
+            <td>替换 MD5 为 BCrypt；移除明文密钥；删除敏感日志；收敛 CORS；修复高危依赖。</td>
+          </tr>
+          <tr>
+            <td>第2周（P1）</td>
+            <td>稳定性与可维护性</td>
+            <td>修复构建链（统一 JDK）；去硬编码路径；消除重复逻辑；修复 keywords 流程问题。</td>
+          </tr>
+          <tr>
+            <td>第3-4周（P2）</td>
+            <td>工程化与准生产</td>
+            <td>补核心 API 自动化测试、接入 CI、补部署与回滚文档、优化前端 chunk 拆分。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const dimLabels = ['架构', '安全', '代码质量', '业务契合', 'DevOps', '团队协作', '技术债'];
+    const dimScores = [5.8, 3.2, 4.7, 6.8, 2.6, 3.5, 3.9];
+
+    const radar = echarts.init(document.getElementById('radarChart'));
+    radar.setOption({
+      tooltip: {},
+      radar: {
+        indicator: dimLabels.map(name => ({ name, max: 10 })),
+        axisName: { color: '#374151' },
+        splitArea: { areaStyle: { color: ['#f8fafc', '#eef2ff'] } }
+      },
+      series: [{
+        type: 'radar',
+        data: [{
+          value: dimScores,
+          name: '项目评分',
+          areaStyle: { color: 'rgba(59,130,246,0.25)' },
+          lineStyle: { width: 2, color: '#2563eb' },
+          itemStyle: { color: '#1d4ed8' }
+        }]
+      }]
+    });
+
+    const gauge = echarts.init(document.getElementById('gaugeChart'));
+    gauge.setOption({
+      series: [{
+        type: 'gauge',
+        min: 0,
+        max: 100,
+        progress: { show: true, width: 18 },
+        axisLine: { lineStyle: { width: 18 } },
+        detail: { valueAnimation: true, formatter: '{value} / 100', fontSize: 24, offsetCenter: [0, '65%'] },
+        title: { offsetCenter: [0, '92%'], fontSize: 14 },
+        data: [{ value: 38, name: '生产准备度' }]
+      }]
+    });
+
+    const risk = echarts.init(document.getElementById('riskChart'));
+    risk.setOption({
+      tooltip: { trigger: 'axis' },
+      xAxis: {
+        type: 'category',
+        data: ['安全', '构建/部署', '代码正确性', '可维护性', '文档/流程']
+      },
+      yAxis: { type: 'value', minInterval: 1 },
+      series: [
+        { name: 'P0', type: 'bar', stack: 'total', itemStyle: { color: '#ef4444' }, data: [4, 1, 0, 0, 1] },
+        { name: 'P1', type: 'bar', stack: 'total', itemStyle: { color: '#f59e0b' }, data: [2, 2, 2, 2, 0] },
+        { name: 'P2', type: 'bar', stack: 'total', itemStyle: { color: '#3b82f6' }, data: [0, 1, 1, 2, 1] }
+      ],
+      legend: { top: 0 }
+    });
+
+    const cap = echarts.init(document.getElementById('capChart'));
+    cap.setOption({
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'value', max: 10 },
+      yAxis: {
+        type: 'category',
+        data: ['业务交付', '全栈联调', '安全工程', '质量保障', '架构演进', 'DevOps/上线']
+      },
+      series: [{
+        type: 'bar',
+        data: [7.2, 7.0, 3.0, 3.5, 4.8, 2.8],
+        itemStyle: {
+          color: function (params) {
+            const v = params.value;
+            if (v >= 7) return '#10b981';
+            if (v >= 5) return '#3b82f6';
+            if (v >= 3) return '#f59e0b';
+            return '#ef4444';
+          }
+        },
+        label: { show: true, position: 'right' }
+      }]
+    });
+
+    const bizFit = echarts.init(document.getElementById('bizFitChart'));
+    bizFit.setOption({
+      tooltip: { trigger: 'axis' },
+      xAxis: {
+        type: 'category',
+        data: ['账号体系', '教材业务', '笔记业务', '留言互动', '知识点检索', '个人中心']
+      },
+      yAxis: { type: 'value', max: 100 },
+      series: [{
+        type: 'bar',
+        data: [88, 74, 72, 81, 56, 67],
+        itemStyle: {
+          color: function (params) {
+            const v = params.value;
+            if (v >= 80) return '#10b981';
+            if (v >= 70) return '#3b82f6';
+            if (v >= 60) return '#f59e0b';
+            return '#ef4444';
+          }
+        },
+        label: { show: true, position: 'top', formatter: '{c}%' }
+      }]
+    });
+
+    const chain = echarts.init(document.getElementById('chainChart'));
+    chain.setOption({
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'value', max: 100 },
+      yAxis: {
+        type: 'category',
+        data: ['注册激活登录', '教材主链', '笔记主链', '检索链路', '个人中心', '留言链路']
+      },
+      series: [{
+        type: 'bar',
+        data: [90, 68, 64, 52, 61, 78],
+        itemStyle: {
+          color: function (params) {
+            const v = params.value;
+            if (v >= 80) return '#10b981';
+            if (v >= 70) return '#3b82f6';
+            if (v >= 60) return '#f59e0b';
+            return '#ef4444';
+          }
+        },
+        label: { show: true, position: 'right', formatter: '{c}%' }
+      }]
+    });
+
+    window.addEventListener('resize', () => {
+      radar.resize();
+      gauge.resize();
+      risk.resize();
+      cap.resize();
+      bizFit.resize();
+      chain.resize();
+    });
+  </script>
+</body>
+</html>
