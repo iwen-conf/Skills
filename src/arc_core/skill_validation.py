@@ -81,6 +81,14 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
         ["code coverage", "代码覆盖率"],
         ["test pyramid", "测试金字塔"],
     ],
+    "arc:aigc": [
+        ["chunked rewrite", "chunked polish", "分段重写"],
+        ["citation fidelity", "引用保真"],
+        ["two-stage polish", "two-stage rewrite", "两阶段润色", "双阶段润色"],
+        ["semantic drift", "语义漂移"],
+        ["authorial voice", "作者声音"],
+        ["human review", "人工复核"],
+    ],
 }
 
 LEGACY_TOKEN_PARTS = [
@@ -116,6 +124,7 @@ ARC_ROUTED_SKILLS = {
     "arc:fix",
     "arc:uml",
     "arc:test",
+    "arc:aigc",
 }
 
 QUICK_CONTRACT_KEY_MAP = {

@@ -165,3 +165,54 @@ project/.arc/example/
     errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
     assert errors == []
     assert warnings == []
+
+
+def test_validate_text_accepts_arc_aigc_keywords() -> None:
+    text = """---
+name: "arc:aigc"
+description: "包含中文描述"
+---
+# Skill
+## Overview
+overview body
+## Quick Contract
+- **Trigger**: aigc trigger
+- **Inputs**: input summary
+- **Outputs**: output summary
+- **Quality Gate**: gate summary
+- **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
+## Routing Matrix
+- For unified routing comparison, see [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md).
+- A phased getting started view is available at [`docs/arc-routing-matrix.md`](../docs/arc-routing-matrix.md#phase-routing-view).
+- For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../docs/arc-routing-cheatsheet.md).
+## Announce
+announce body
+## The Iron Law
+rule body
+## Workflow
+workflow body
+## Quality Gates
+quality body
+## Expert Standards
+chunked rewrite citation fidelity two-stage polish semantic drift authorial voice human review
+## Scripts & Commands
+scripts body
+## Red Flags
+flags body
+## When to Use
+- **Preferred Trigger**: preferred trigger body
+- **Typical Scenario**: typical scenario body
+- **Boundary Tip**: boundary tip body
+## Input Arguments
+| parameter | type | Required | illustrate |
+|------|------|------|------|
+| `target_text` | string | yes | draft path |
+## Outputs
+```text
+project/.arc/aigc/session/
+└── polished-text.md
+```
+"""
+    errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
+    assert errors == []
+    assert warnings == []

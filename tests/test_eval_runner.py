@@ -18,6 +18,12 @@ def test_find_evals_locates_arc_namespaced_skill_file() -> None:
     assert evals_path == ROOT / "arc:e2e/evals.json"
 
 
+def test_find_evals_locates_arc_aigc_file() -> None:
+    runner = EvalRunner(ROOT)
+    evals_path = runner.find_evals("arc:aigc")
+    assert evals_path == ROOT / "arc:aigc/evals.json"
+
+
 def test_stage_eval_workspace_copies_existing_fixture_tree() -> None:
     runner = EvalRunner(ROOT)
     skill_dir = ROOT / "arc:e2e"
@@ -47,3 +53,10 @@ def test_stage_eval_workspace_copies_existing_fixture_tree() -> None:
 
         if workspace_root.exists():
             shutil.rmtree(workspace_root)
+
+
+def test_run_arc_aigc_static_evals_pass() -> None:
+    runner = EvalRunner(ROOT)
+    result = runner.run("arc:aigc")
+    assert result.total == 2
+    assert result.failed == 0
