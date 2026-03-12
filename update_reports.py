@@ -1,7 +1,7 @@
 import os
 import json
 
-base_dir = "/Users/iluwen/Documents/Code/Skills/.arc/arc:audit/Skills"
+base_dir = "/Users/iluwen/Documents/Code/Skills/.arc/audit/Skills"
 
 business_content = """# 业务成熟度：Skills
 

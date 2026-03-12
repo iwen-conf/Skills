@@ -17,7 +17,7 @@ SUBDIRS = [
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Create ip-docs workspace")
+    parser = argparse.ArgumentParser(description="Create arc:ip-draft workspace")
     parser.add_argument("--project-path", required=True, help="Absolute path of target project")
     parser.add_argument("--project-name", help="Project name override")
     parser.add_argument("--output-dir", help="Case output directory override")
@@ -31,7 +31,7 @@ def main() -> int:
     case_dir = (
         Path(args.output_dir).expanduser().resolve()
         if args.output_dir
-        else project_path / ".arc" / "ip-docs" / project_name
+        else project_path / ".arc" / "ip-draft" / project_name
     )
 
     for sub in SUBDIRS:
@@ -71,7 +71,7 @@ def main() -> int:
             encoding="utf-8",
         )
 
-    print(f"Created ip-docs case: {case_dir}")
+    print(f"Created arc:ip-draft case: {case_dir}")
     return 0
 
 

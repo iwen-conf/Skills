@@ -108,7 +108,7 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 | `render_format` | string | no | Fixed to `mermaid` (mandatory) |
 | `include_er` | boolean | no | Whether to output the E-R diagram (it must be Chen's drawing method when outputting), automatically determined by default |
 | `depth_level` | string | no | `quick` / `standard` / `deep`, default `standard` |
-| `output_dir` | string | no | Default `<project_path>/.arc/arc:uml/` |
+| `output_dir` | string | no | Default `<project_path>/.arc/uml/` |
 
 ## Diagram Catalog (14 categories)
 
@@ -203,7 +203,7 @@ order_total((property: total_amount))
 ## Outputs
 
 ```text
-<project_path>/.arc/arc:uml/<project-name>/
+<project_path>/.arc/uml/<project-name>/
 ├── context/
 │   └── project-snapshot.md
 ├── diagram-plan.md

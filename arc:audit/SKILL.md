@@ -137,7 +137,7 @@ The tripartite pattern (architecture / engineering / business perspectives) and 
 | `depth_level` | string | NO | `quick` / `standard` / `deep`, default `standard` |
 | `focus_areas` | array | NO | Areas to inspect more deeply, such as `security` or `tech-debt` |
 | `business_flow_catalog` | array | NO | Known core business flows used to evaluate business observability |
-| `output_dir` | string | NO | Default: `<project_path>/.arc/arc:audit/` |
+| `output_dir` | string | NO | Default: `<project_path>/.arc/audit/` |
 | `require_dashboard` | boolean | NO | Force dashboard generation when presentation output is explicitly needed |
 
 ## Dependencies
@@ -172,7 +172,7 @@ Refer to `references/dimensions.md` for dimension criteria and specialist index 
 ## Output Artifact Topology
 
 ```text
-<workdir>/.arc/arc:audit/<project-name>/
+<workdir>/.arc/audit/<project-name>/
 ├── context/
 │   └── project-snapshot.md          # Optional context snapshot
 ├── diagnostic-report.md             # Required: findings and boundaries

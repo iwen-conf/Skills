@@ -3,10 +3,10 @@
 integrate_score.py - 将 arc:score 量化数据集成到 arc:audit
 
 用法:
-    python integrate_score.py --score-dir .arc/score/<project> --review-dir .arc/arc:audit/<project>
+    python integrate_score.py --score-dir .arc/score/<project> --review-dir .arc/audit/<project>
 
 或（未传 --score-dir 时尝试从 context-hub 自动发现）:
-    python integrate_score.py --project-path <project_root> --review-dir .arc/arc:audit/<project>
+    python integrate_score.py --project-path <project_root> --review-dir .arc/audit/<project>
 """
 
 import argparse
@@ -39,7 +39,7 @@ def _artifact_is_expired(artifact: dict) -> bool:
 def _infer_project_root_from_review_dir(review_dir: Path) -> Path | None:
     try:
         if (
-            review_dir.parent.name == "review"
+            review_dir.parent.name == "audit"
             and review_dir.parent.parent.name == ".arc"
         ):
             return review_dir.parent.parent.parent

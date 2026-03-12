@@ -25,7 +25,7 @@ def main() -> int:
     case_dir = (
         Path(args.output_dir).expanduser().resolve()
         if args.output_dir
-        else project_path / ".arc" / "implement" / args.task_name
+        else project_path / ".arc" / "build" / args.task_name
     )
 
     for subdir in SUBDIRS:
@@ -81,7 +81,7 @@ def main() -> int:
             encoding="utf-8",
         )
 
-    print(f"Created implement case: {case_dir}")
+    print(f"Created build case: {case_dir}")
     return 0
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render ip-docs drafting artifacts from handoff and templates."""
+"""Render arc:ip-draft artifacts from handoff and templates."""
 
 from __future__ import annotations
 
@@ -10,9 +10,9 @@ from pathlib import Path
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Render ip-docs draft files")
+    parser = argparse.ArgumentParser(description="Render arc:ip-draft files")
     parser.add_argument("--case-dir", required=True)
-    parser.add_argument("--handoff-json", help="Path to ip-audit handoff json")
+    parser.add_argument("--handoff-json", help="Path to arc:ip-check handoff json")
     parser.add_argument("--software-name")
     parser.add_argument("--software-version", default="V1.0")
     parser.add_argument("--applicant-name", default="待补充申请主体")
@@ -138,7 +138,7 @@ def main() -> int:
         ),
     )
 
-    print(f"Rendered ip-docs drafts in: {case_dir}")
+    print(f"Rendered arc:ip-draft outputs in: {case_dir}")
     return 0
 
 
