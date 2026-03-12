@@ -1,6 +1,6 @@
 import os
 
-base_dir = "/Users/iluwen/Documents/Code/Skills/.arc/arc:audit/Skills"
+base_dir = "/Users/iluwen/Documents/Code/Skills/.arc/audit/Skills"
 
 recommendations_content = """# 改进路线：Skills
 

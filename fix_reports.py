@@ -1,6 +1,6 @@
 import os
 
-base_dir = "/Users/iluwen/Documents/Code/Skills/.arc/arc:audit/Skills"
+base_dir = "/Users/iluwen/Documents/Code/Skills/.arc/audit/Skills"
 
 evidence_index_content = """# 证据索引
 
