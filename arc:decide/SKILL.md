@@ -103,14 +103,14 @@ Use **ace-tool MCP** for semantic retrieval of code structure, dependencies, and
 |-----------|------|----------|-------------|
 | `task_name` | string | yes | Task name (used for working directory naming) |
 | `workdir` | string | yes | Absolute path to the working directory |
-| `enhanced_prompt_path` | string | no | Default `.arc/arc:decide/<task-name>/context/enhanced-prompt.md` |
+| `enhanced_prompt_path` | string | no | Default `.arc/decide/<task-name>/context/enhanced-prompt.md` |
 | `max_rounds` | number | no | Maximum rounds of plan debate, default 3 |
 | `max_ambiguity_rounds` | number | no | Maximum rounds for ambiguity checking, default 3 |
 
 ### Directory Structure
 
 ```text
-<workdir>/.arc/arc:decide/<task-name>/
+<workdir>/.arc/decide/<task-name>/
 ├── context/
 │   └── enhanced-prompt.md
 ├── agents/

@@ -105,7 +105,7 @@ User input → fingerprint detection → routing decision
                  ▼
         ┌────────────────┐
 │ Check fingerprints │
-        │ (.arc/arc:init/... ) │
+        │ (.arc/init/... ) │
         └────────┬────────┘
                  │
         ┌────────┴────────┐
@@ -155,7 +155,7 @@ The user can specify the mode via prompt:
 ### Step 0: Pattern detection
 
 1. **Check if `module-fingerprints.json` exists**
-   - Path: `<project_path>/.arc/arc:init/context/module-fingerprints.json`
+   - Path: `<project_path>/.arc/init/context/module-fingerprints.json`
    
 2. **Check Snapshot Freshness**
    - Generation time < 7 days: considered as valid baseline
@@ -315,7 +315,7 @@ arc:init must publish this generated/updated CLAUDE.md metadata to the shared in
 | Fingerprint file does not exist | Prompt to run `arc:init` or `arc:init --mode full` |
 | Fingerprint file is damaged | Prompt to run `arc:init --mode full` Rebuild |
 | Git repository does not exist | Only supports git repository |
-| Sub-Skill execution failed | View `.arc/arc:init/` working directory log |
+| Sub-Skill execution failed | View `.arc/init/` working directory log |
 
 ## Call example
 

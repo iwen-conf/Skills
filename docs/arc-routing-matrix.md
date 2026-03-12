@@ -9,6 +9,7 @@
 | `arc:clarify` | 需求不清、上下文缺失 | 方案已清晰可直接执行 | `arc:decide` / `arc:build` |
 | `arc:decide` | 高风险决策需多视角论证 | 仅需单路径快速执行 | `arc:build` / `arc:audit` |
 | `arc:build` | 方案已定，开始代码落地 | 需求与边界尚未澄清 | `arc:audit` / `arc:e2e` |
+| `arc:aigc` | 学术/专业文本去模板化润色、降低机器腔并保持引用/公式/数据不漂移 | 需要规避检测、冒充原创作者、捏造事实或补造引用 | `arc:clarify` / `arc:audit` |
 | `arc:audit` | 企业级多维诊断与路线图 | 仅需门禁阻断判定 | `arc:gate` / `arc:build` |
 | `arc:gate` | 合并/上线门禁判定（Go/No-Go） | 尚未生成可用评分产物 | `score 产物刷新（由 gate 编排）` |
 | `arc:e2e` | 真实用户路径 E2E 验证 | 没有测试入口或账号上下文 | `arc:fix` |
@@ -50,6 +51,9 @@ flowchart TD
     H -- "否" --> I{"是知识产权链路?"}
     I -- "可行性审查" --> IA["arc:ip-check"]
     I -- "文书起草" --> ID["arc:ip-draft"]
+    I -- "否" --> J{"是学术/专业文本润色链路?"}
+    J -- "是" --> AI["arc:aigc"]
+    J -- "否" --> AG2["arc:exec"]
 ```
 
 ## Phase Routing View
@@ -59,6 +63,7 @@ flowchart TD
 | 澄清（Clarify） | 从模糊输入转为可执行需求 | `arc:exec` / `arc:clarify` | `arc:cartography` | `refined prompt` → 决策/落地 |
 | 决策（Decide） | 处理高风险方案分歧 | `arc:decide` | `arc:decide --mode estimate` | `consensus plan` → 实施 |
 | 落地（Build） | 产出可提交代码变更 | `arc:build` | `arc:init` / `arc:cartography` | `change handoff` → 验证 |
+| 写作（Writing） | 学术/专业文本去模板化润色并统一作者声线 | `arc:aigc` | `arc:clarify` / `arc:audit` | `rewritten draft` → 人工复核/交付 |
 | 建模（Modeling） | 输出结构/行为/部署 UML 图谱 | `arc:uml` | `arc:cartography` / `arc:audit` | `uml pack` → 评审/交接 |
 | 验证（Validate） | 验证行为、定位失败、闭环修复 | `arc:e2e` / `arc:test` / `arc:fix` | `arc:fix --mode retest-loop` / `arc:build` | `pass/fail evidence` → 治理 |
 | 治理（Govern） | 门禁阻断、改进路线与治理闭环 | `arc:gate` / `arc:audit` | `arc:build` | `arc:gate/review outputs` |
@@ -70,6 +75,7 @@ flowchart TD
 - 先判定“是否已明确需求边界”：未明确优先 `arc:clarify`。
 - 先判定“是否争议高风险”：高风险优先 `arc:decide`。
 - 先判定“是否进入落地阶段”：已明确直接 `arc:build`。
+- 先判定“是否需要学术/专业文本去模板化润色”：需要则优先 `arc:aigc`。
 - 先判定“是否需要系统建模图”：需要 UML 图谱优先 `arc:uml`。
 - 质量链路默认：`arc:gate`（先触发 `score/`），必要时并联 `arc:audit`。
 - E2E 修复链路默认：`arc:e2e` → `arc:fix`（循环则 `arc:fix --mode retest-loop`）。

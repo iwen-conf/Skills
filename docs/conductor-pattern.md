@@ -67,37 +67,37 @@ workflow:
       input:
         prompt: "${user_request}"
       output:
-        enhanced_prompt: ".arc/arc:clarify/enhanced-prompt.md"
+        enhanced_prompt: ".arc/clarify/enhanced-prompt.md"
         
     - id: deliberate
       skill: arc:decide
       depends_on: [refine]
       input:
-        prompt_file: ".arc/arc:clarify/enhanced-prompt.md"
+        prompt_file: ".arc/clarify/enhanced-prompt.md"
       output:
-        plan: ".arc/arc:decide/consensus.md"
+        plan: ".arc/decide/consensus.md"
         
     - id: implement
       skill: arc:build
       depends_on: [deliberate]
       input:
-        plan_file: ".arc/arc:decide/consensus.md"
+        plan_file: ".arc/decide/consensus.md"
       output:
-        changes: ".arc/arc:build/changes/"
+        changes: ".arc/build/changes/"
         
     - id: review
       skill: arc:audit
       depends_on: [implement]
       input:
-        changes_dir: ".arc/arc:build/changes/"
+        changes_dir: ".arc/build/changes/"
       output:
-        report: ".arc/arc:audit/report.md"
+        report: ".arc/audit/report.md"
         
     - id: test
       skill: arc:e2e
       depends_on: [implement]
       input:
-        changes_dir: ".arc/arc:build/changes/"
+        changes_dir: ".arc/build/changes/"
       output:
         results: "reports/"
         

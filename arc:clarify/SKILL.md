@@ -155,7 +155,7 @@ Assemble a structured enhanced prompt, consisting of four parts:
 Write the complete enhanced prompt to the shared directory:
 
 ```text
-<workdir>/.arc/arc:decide/<task-name>/context/enhanced-prompt.md
+<workdir>/.arc/decide/<task-name>/context/enhanced-prompt.md
 ```
 
 ## Quick Reference
@@ -194,10 +194,15 @@ Write the complete enhanced prompt to the shared directory:
 ### Output Anti-Patterns
 
 - **Missing Success Criteria**: Enhanced prompt without verification checklist — how to know it's done?
-- **Orphaned Output**: Not writing enhanced-prompt.md to `.arc/arc:decide/` — breaks arc:decide consumption
+- **Orphaned Output**: Not writing enhanced-prompt.md to `.arc/decide/` — breaks arc:decide consumption
 ## Integration
 
-After this Skill is completed, it is recommended to continue calling `arc:decide` Skill for multi-Agent deliberation.
+After this Skill is completed, choose the downstream skill by task type instead of defaulting blindly:
+
+- If the clarified task is still multi-skill or needs orchestration, continue with `arc:exec`.
+- If the clarified task is academic/professional prose polishing with citation-preservation constraints, continue with `arc:aigc`.
+- If the clarified task is a disputed or high-risk technical route, continue with `arc:decide`.
+- If the clarified task is already implementation-ready, continue with `arc:build`.
 
 If the shared product is found to be invalid during the refinement process:
 - CLAUDE index invalidation → trigger `arc:init --mode update` (`arc:init --mode full` if necessary)
@@ -206,7 +211,7 @@ If the shared product is found to be invalid during the refinement process:
 
 ```
 Problem refinement completed. Enhanced prompt has been written:
-.arc/arc:decide/<task-name>/context/enhanced-prompt.md
+.arc/decide/<task-name>/context/enhanced-prompt.md
 
-You can continue to call `arc decide` for multi-Agent deliberation.
+You can now route to `arc:exec`, `arc:aigc`, `arc:decide`, or `arc:build` according to the clarified task boundary.
 ```

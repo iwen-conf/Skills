@@ -10,10 +10,13 @@
 - 方案争议/高风险 → `arc:decide`
 - 已有方案要落地 → `arc:build`
 - 需要系统建模图谱 → `arc:uml`
+- 学术文本需要分段、双阶段润色 → `arc:aigc`
 
 ## 2) 常用链路
 
 - 需求到落地：`arc:clarify` → `arc:decide`（可含 `--mode estimate`）→ `arc:build`
+- 需求澄清后进入写作链：`arc:clarify` → `arc:aigc` → `arc:audit`
+- 学术润色：`arc:aigc`（分段重写 → 全文统稿 → 引用/公式保真复核）
 - 质量治理：`arc:gate`（先触发 `score/`，并联 `arc:audit`）
 - E2E 修复：`arc:e2e` → `arc:fix`（多轮用 `arc:fix --mode retest-loop`）
 - 代码测试：`arc:test`（单测/边界/benchmark/fuzz 生成）

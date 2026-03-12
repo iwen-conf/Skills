@@ -88,7 +88,7 @@ No scheduling is allowed before routing and capability verification is completed
 ## When to Use
 
 - **Preferred Trigger**: User expresses "Help me arrange/pull the team to execute", or is not sure which `arc:*` should be called.
-- **Typical scenario**: Requirements span multiple stages (clarification→decision→implementation→verification) or full-stack concurrent task decomposition.
+- **Typical scenario**: Requirements span multiple stages (clarification→decision→implementation→verification), writing/review chains such as `arc:clarify → arc:aigc → arc:audit`, or full-stack concurrent task decomposition.
 - **Boundary Tip**: If the target skill has been identified and the boundary is clear, call the target skill directly without going through `arc:exec`.
 
 ## Input Arguments
@@ -131,8 +131,9 @@ SKILL The main text only retains the decision-making process to avoid being too 
 
 1. If `preferred_skill` is available, route the skill directly.
 2. Otherwise, press `docs/arc-routing-matrix.md` for skill matching.
-3. When there is no hit skill, it will switch to "universal multi-agent scheduling" mode (Phase 3).
-4. Write the routing record: `routing/dispatch-log.md` (reason, evidence, confidence, downgrade path).
+3. Writing tasks that are primarily about academic/professional prose polishing, citation-preserving rewrite, or multi-pass draft cleanup should route to `arc:aigc`.
+4. When there is no hit skill, it will switch to "universal multi-agent scheduling" mode (Phase 3).
+5. Write the routing record: `routing/dispatch-log.md` (reason, evidence, confidence, downgrade path).
 
 ### Phase 2.5: Preview & Safety
 
