@@ -353,7 +353,6 @@ class EvalRunner:
             [
                 self.skills_root / skill,
                 self.skills_root / skill.replace("arc:", ""),
-                self.skills_root / skill.replace("lazycat:", ""),
             ]
         )
         for candidate in candidates:

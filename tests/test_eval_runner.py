@@ -23,13 +23,6 @@ def test_find_evals_locates_arc_aigc_file() -> None:
     evals_path = runner.find_evals("arc:aigc")
     assert evals_path == ROOT / "Arc" / "arc:aigc" / "evals.json"
 
-
-def test_resolve_skill_dir_supports_lazycat_namespace() -> None:
-    runner = EvalRunner(ROOT)
-    resolved = runner.resolve_skill_dir("lazycat:ship-app")
-    assert resolved == ROOT / "Lazycat" / "lazycat:ship-app"
-
-
 def test_stage_eval_workspace_copies_existing_fixture_tree() -> None:
     runner = EvalRunner(ROOT)
     skill_dir = ROOT / "Arc" / "arc:e2e"

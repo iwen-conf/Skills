@@ -19,27 +19,24 @@ def test_build_registry_includes_structured_skill_fields() -> None:
     assert registry["skill_count"] >= 1
     build_entry = next(item for item in registry["skills"] if item["name"] == "arc:build")
     context_entry = next(item for item in registry["skills"] if item["name"] == "arc:context")
-    lazycat_entry = next(item for item in registry["skills"] if item["name"] == "lazycat:ship-app")
     assert build_entry["source_path"] == "Arc/arc:build/SKILL.md"
     assert build_entry["quick_contract"]["trigger"]
     assert build_entry["input_arguments"][0]["parameter"] == "project_path"
     assert context_entry["source_path"] == "Arc/arc:context/SKILL.md"
     assert context_entry["quick_contract"]["trigger"]
     assert context_entry["outputs_section"]["format"] == "text"
-    assert lazycat_entry["source_path"] == "Lazycat/lazycat:ship-app/SKILL.md"
 
 
 def test_validate_registry_accepts_generated_registry() -> None:
     registry = build_registry(ROOT)
     assert validate_registry(registry, ROOT) == []
-    assert all(item["name"].startswith(("arc:", "lazycat:")) for item in registry["skills"])
+    assert all(item["name"].startswith("arc:") for item in registry["skills"])
 
 
 def test_collect_skill_files_indexes_supported_namespaces_only() -> None:
     files = collect_skill_files(ROOT)
     assert ROOT / "Arc" / "arc:context" / "SKILL.md" in files
-    assert ROOT / "Lazycat" / "lazycat:ship-app" / "SKILL.md" in files
-    assert ROOT / "Lazycat" / "pua-debugging" / "SKILL.md" not in files
+    assert all("/Arc/" in str(path) for path in files)
 
 
 def test_update_context_hub_registers_skills_registry_artifact() -> None:

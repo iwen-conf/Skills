@@ -60,10 +60,9 @@ ARC_DECISION_TREE_LINK = "../../docs/arc-routing-matrix.md#signal-to-skill-decis
 ARC_PHASE_VIEW_LINK = "../../docs/arc-routing-matrix.md#phase-routing-view"
 ARC_CHEATSHEET_LINK = "../../docs/arc-routing-cheatsheet.md"
 
-SUPPORTED_SKILL_PREFIXES = ("arc:", "lazycat:")
+SUPPORTED_SKILL_PREFIXES = ("arc:",)
 SKILL_NAMESPACE_DIRS = {
     "arc": "Arc",
-    "lazycat": "Lazycat",
 }
 
 ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
@@ -192,12 +191,6 @@ def parse_frontmatter(text: str) -> tuple[dict[str, str], str | None]:
 
 def is_arc_skill(name: str) -> bool:
     return name.startswith("arc:")
-
-
-def is_lazycat_skill(name: str) -> bool:
-    return name.startswith("lazycat:")
-
-
 def is_supported_skill(name: str) -> bool:
     return any(name.startswith(prefix) for prefix in SUPPORTED_SKILL_PREFIXES)
 
@@ -423,7 +416,7 @@ def validate_text(text: str, path_label: str, root: Path | None = None) -> tuple
     if "name" in fm and not re.fullmatch(r"[a-z0-9:-]+", fm["name"]):
         errors.append(f"{path_label}: name contains unsupported characters")
     if "name" in fm and fm["name"] and not is_supported_skill(fm["name"]) and fm["name"] not in FUSION_GENERIC_SKILLS:
-        errors.append(f"{path_label}: skill name must use arc:xxx or lazycat:xxx namespace")
+        errors.append(f"{path_label}: skill name must use arc:xxx namespace")
     description = fm.get("description", "")
     if description and not contains_cjk(description):
         errors.append(f"{path_label}: description must contain Chinese text")
