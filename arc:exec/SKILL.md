@@ -1,6 +1,6 @@
 ---
 name: "arc:exec"
-description: "统一任务编排入口：理解需求、路由到 arc:* 或多 Agent 协同执行；当用户说“帮我拉团队/不知道用哪个技能/split task/orchestrate this work”时触发。"
+description: "统一任务编排入口：理解需求、路由到 arc:* 或多 Agent 协同执行；当用户说“帮我拉团队/不知道用哪个技能/split task/orchestrate this work/先收敛大输出分析路径”时触发。"
 ---
 
 # arc:exec — unified orchestration entry
@@ -88,7 +88,7 @@ No scheduling is allowed before routing and capability verification is completed
 ## When to Use
 
 - **Preferred Trigger**: User expresses "Help me arrange/pull the team to execute", or is not sure which `arc:*` should be called.
-- **Typical scenario**: Requirements span multiple stages (clarification→decision→implementation→verification), writing/review chains such as `arc:clarify → arc:aigc → arc:audit`, or full-stack concurrent task decomposition.
+- **Typical scenario**: Requirements span multiple stages (clarification→decision→implementation→verification), data-heavy chains such as `arc:context → arc:build`, writing/review chains such as `arc:clarify → arc:aigc → arc:audit`, or full-stack concurrent task decomposition.
 - **Boundary Tip**: If the target skill has been identified and the boundary is clear, call the target skill directly without going through `arc:exec`.
 
 ## Input Arguments
@@ -131,9 +131,10 @@ SKILL The main text only retains the decision-making process to avoid being too 
 
 1. If `preferred_skill` is available, route the skill directly.
 2. Otherwise, press `docs/arc-routing-matrix.md` for skill matching.
-3. Writing tasks that are primarily about academic/professional prose polishing, citation-preserving rewrite, or multi-pass draft cleanup should route to `arc:aigc`.
-4. When there is no hit skill, it will switch to "universal multi-agent scheduling" mode (Phase 3).
-5. Write the routing record: `routing/dispatch-log.md` (reason, evidence, confidence, downgrade path).
+3. Tasks dominated by logs, browser artifacts, fetched docs, large files, or context-overflow risk should route to `arc:context`.
+4. Writing tasks that are primarily about academic/professional prose polishing, citation-preserving rewrite, or multi-pass draft cleanup should route to `arc:aigc`.
+5. When there is no hit skill, it will switch to "universal multi-agent scheduling" mode (Phase 3).
+6. Write the routing record: `routing/dispatch-log.md` (reason, evidence, confidence, downgrade path).
 
 ### Phase 2.5: Preview & Safety
 

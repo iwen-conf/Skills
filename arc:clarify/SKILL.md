@@ -200,6 +200,7 @@ Write the complete enhanced prompt to the shared directory:
 After this Skill is completed, choose the downstream skill by task type instead of defaulting blindly:
 
 - If the clarified task is still multi-skill or needs orchestration, continue with `arc:exec`.
+- If the clarified task is dominated by logs, snapshots, large files, or context-budget risk, continue with `arc:context`.
 - If the clarified task is academic/professional prose polishing with citation-preservation constraints, continue with `arc:aigc`.
 - If the clarified task is a disputed or high-risk technical route, continue with `arc:decide`.
 - If the clarified task is already implementation-ready, continue with `arc:build`.
@@ -213,5 +214,5 @@ If the shared product is found to be invalid during the refinement process:
 Problem refinement completed. Enhanced prompt has been written:
 .arc/decide/<task-name>/context/enhanced-prompt.md
 
-You can now route to `arc:exec`, `arc:aigc`, `arc:decide`, or `arc:build` according to the clarified task boundary.
+You can now route to `arc:exec`, `arc:context`, `arc:aigc`, `arc:decide`, or `arc:build` according to the clarified task boundary.
 ```

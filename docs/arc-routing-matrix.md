@@ -12,6 +12,7 @@
 | `arc:aigc` | 学术/专业文本去模板化润色、降低机器腔并保持引用/公式/数据不漂移 | 需要规避检测、冒充原创作者、捏造事实或补造引用 | `arc:clarify` / `arc:audit` |
 | `arc:audit` | 企业级多维诊断与路线图 | 仅需门禁阻断判定 | `arc:gate` / `arc:build` |
 | `arc:gate` | 合并/上线门禁判定（Go/No-Go） | 尚未生成可用评分产物 | `score 产物刷新（由 gate 编排）` |
+| `arc:context` | 上下文过长、切会话、需要恢复任务状态或跨 agent 交接 | 只需要仓库索引，或已经可以直接进入编码/修复 | `arc:init` / `arc:build` / `arc:fix` |
 | `arc:e2e` | 真实用户路径 E2E 验证 | 没有测试入口或账号上下文 | `arc:fix` |
 | `arc:test` | 代码级测试生成（单测/边界/benchmark/fuzz） | 浏览器 E2E 验证或修复已有失败测试 | `arc:e2e` / `arc:fix` |
 | `arc:fix` | 基于 FAIL 工件做定位修复 | 尚无可复现失败证据 | `arc:e2e`（先产证据） / `arc:fix --mode retest-loop` |
@@ -43,11 +44,12 @@ flowchart TD
     G -- "代码级测试" --> UT["arc:test"]
     G -- "失败修复" --> TR["arc:fix"]
     G -- "多轮闭环" --> LP["arc:fix --mode retest-loop"]
-    G -- "否" --> H{"是索引/地图链路?"}
+    G -- "否" --> H{"是索引/地图/上下文链路?"}
     H -- "codemap" --> CT["arc:cartography"]
     H -- "索引自动路由" --> IN["arc:init"]
     H -- "强制全量" --> IF["arc:init --mode full"]
     H -- "仅增量" --> IU["arc:init --mode update"]
+    H -- "上下文恢复/切会话" --> CX["arc:context"]
     H -- "否" --> I{"是知识产权链路?"}
     I -- "可行性审查" --> IA["arc:ip-check"]
     I -- "文书起草" --> ID["arc:ip-draft"]
@@ -61,6 +63,7 @@ flowchart TD
 | 阶段 | 目标 | 主技能（Primary） | 辅助技能（Support） | 典型交接 |
 |---|---|---|---|---|
 | 澄清（Clarify） | 从模糊输入转为可执行需求 | `arc:exec` / `arc:clarify` | `arc:cartography` | `refined prompt` → 决策/落地 |
+| 上下文（Context） | 生成/恢复任务工作集、恢复清单与交接包 | `arc:context` | `arc:init` / `arc:cartography` / `arc:build` | `restore packet` → 落地/修复/验证 |
 | 决策（Decide） | 处理高风险方案分歧 | `arc:decide` | `arc:decide --mode estimate` | `consensus plan` → 实施 |
 | 落地（Build） | 产出可提交代码变更 | `arc:build` | `arc:init` / `arc:cartography` | `change handoff` → 验证 |
 | 写作（Writing） | 学术/专业文本去模板化润色并统一作者声线 | `arc:aigc` | `arc:clarify` / `arc:audit` | `rewritten draft` → 人工复核/交付 |
@@ -74,6 +77,7 @@ flowchart TD
 - 先判定“是否已明确技能边界”：不明确优先 `arc:exec`。
 - 先判定“是否已明确需求边界”：未明确优先 `arc:clarify`。
 - 先判定“是否争议高风险”：高风险优先 `arc:decide`。
+- 先判定“是否需要压缩或恢复任务上下文”：需要则优先 `arc:context`。
 - 先判定“是否进入落地阶段”：已明确直接 `arc:build`。
 - 先判定“是否需要学术/专业文本去模板化润色”：需要则优先 `arc:aigc`。
 - 先判定“是否需要系统建模图”：需要 UML 图谱优先 `arc:uml`。

@@ -1,7 +1,7 @@
 # Arc Skills
 
 跨运行时、可解耦的技能（Skill）仓库。  
-本仓库统一采用 `arc:xxx` 命名空间，对外主技能现为 14 个。
+本仓库统一采用 `arc:xxx` 命名空间，对外主技能现为 16 个。
 
 ## 当前状态
 
@@ -16,7 +16,7 @@
 - Skill 只按“能力边界”命名，不再同时维护另一套“人类别名”
 - 模式参数统一放在 Skill 内部（如 `--mode`），不再把每个模式都当成一级入口
 
-## 对外主技能（14）
+## 对外主技能（16）
 
 | 分组 | Skill ID | 一句话用途 |
 |---|---|---|
@@ -27,7 +27,9 @@
 | 交付 | `arc:cartography` | 生成/刷新 codemap 结构视图 |
 | 交付 | `arc:uml` | 生成标准 UML（E-R 用陈氏画法） |
 | 索引 | `arc:init` | 自动维护索引（full/update 模式内聚） |
+| 上下文 | `arc:context` | 生成/恢复任务上下文包与恢复清单 |
 | 质量 | `arc:e2e` | 按真实路径执行 E2E 验证 |
+| 质量 | `arc:test` | 代码级测试生成（单测/集成/边界/benchmark/fuzz） |
 | 质量 | `arc:fix` | 基于失败证据定位并修复（可含 retest 模式） |
 | 写作 | `arc:aigc` | 学术/专业文本去模板化润色与作者声线统一 |
 | 治理 | `arc:audit` | 七维评审 + HTML 可视化报告 + 业务/依赖成熟度 |
@@ -47,7 +49,9 @@
 | 想评估项目健康度/PR 风险 | `arc:audit` |
 | 准备合并或发布，做门禁 | `arc:gate` |
 | 论文/报告太像模板或机器写的，想在保留事实与引用前提下润色 | `arc:aigc` |
+| 上下文太长、要切会话或换一个 agent 继续任务 | `arc:context` |
 | 需要真实用户路径 E2E 验证 | `arc:e2e` |
+| 需要给模块自动生成单测/边界/benchmark/fuzz | `arc:test` |
 | E2E 失败或线上故障排查 | `arc:fix` |
 | 修复后必须重启并多轮回归 | `arc:fix --mode retest-loop` |
 | 刚接手陌生仓库，先看结构 | `arc:cartography` |
@@ -64,8 +68,9 @@
 
 ## 收敛结果
 
-- 对外主技能现为 14 个，能力边界覆盖总控、方案、交付、质量、治理、写作与知产。
+- 对外主技能现为 16 个，能力边界覆盖总控、方案、交付、上下文、质量、治理、写作与知产。
 - 新增 `arc:aigc`，承接学术/专业文本的去模板化润色、两阶段改写与引用保真检查。
+- 新增 `arc:context`，承接长任务的上下文压缩、恢复与跨会话交接。
 - `arc:score` 对外入口收敛到 `arc:gate`；内部 `score/` 负责量化评分，`arc:gate` 负责门禁判定。
 - 路由、矩阵、速查与 README 统一采用同一套 Skill ID 口径。
 
@@ -112,6 +117,7 @@ arc exec
 arc clarify
 arc decide
 arc build
+arc context
 arc aigc
 arc uml
 
@@ -119,6 +125,7 @@ arc uml
 # `arc gate` 会编排触发 `score/` 评分模块
 arc gate
 arc audit
+arc test
 
 # E2E 链路
 arc e2e

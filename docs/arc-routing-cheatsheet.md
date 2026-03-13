@@ -8,6 +8,7 @@
 - 技能边界不清 → `arc:exec`
 - 需求上下文不清 → `arc:clarify`
 - 方案争议/高风险 → `arc:decide`
+- 上下文过长/切新会话/需要恢复任务状态 → `arc:context`
 - 已有方案要落地 → `arc:build`
 - 需要系统建模图谱 → `arc:uml`
 - 学术文本需要分段、双阶段润色 → `arc:aigc`
@@ -15,6 +16,7 @@
 ## 2) 常用链路
 
 - 需求到落地：`arc:clarify` → `arc:decide`（可含 `--mode estimate`）→ `arc:build`
+- 会话恢复：`arc:context` → `arc:build` / `arc:fix` / `arc:e2e`
 - 需求澄清后进入写作链：`arc:clarify` → `arc:aigc` → `arc:audit`
 - 学术润色：`arc:aigc`（分段重写 → 全文统稿 → 引用/公式保真复核）
 - 质量治理：`arc:gate`（先触发 `score/`，并联 `arc:audit`）

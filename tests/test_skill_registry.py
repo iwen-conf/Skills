@@ -8,6 +8,7 @@ from arc_core.skill_registry import (
     write_registry,
     write_registry_and_context,
 )
+from arc_core.skill_validation import collect_skill_files
 
 ROOT = Path("/Users/iluwen/Documents/Code/Skills")
 
@@ -17,14 +18,25 @@ def test_build_registry_includes_structured_skill_fields() -> None:
     assert registry["schema_version"] == "1.0.0"
     assert registry["skill_count"] >= 1
     build_entry = next(item for item in registry["skills"] if item["name"] == "arc:build")
+    context_entry = next(item for item in registry["skills"] if item["name"] == "arc:context")
     assert build_entry["source_path"] == "arc:build/SKILL.md"
     assert build_entry["quick_contract"]["trigger"]
     assert build_entry["input_arguments"][0]["parameter"] == "project_path"
+    assert context_entry["source_path"] == "arc:context/SKILL.md"
+    assert context_entry["quick_contract"]["trigger"]
+    assert context_entry["outputs_section"]["format"] == "text"
 
 
 def test_validate_registry_accepts_generated_registry() -> None:
     registry = build_registry(ROOT)
     assert validate_registry(registry, ROOT) == []
+    assert all(item["name"].startswith("arc:") for item in registry["skills"])
+
+
+def test_collect_skill_files_only_indexes_arc_namespace() -> None:
+    files = collect_skill_files(ROOT)
+    assert ROOT / "arc:context" / "SKILL.md" in files
+    assert ROOT / "pua-debugging" / "SKILL.md" not in files
 
 
 def test_update_context_hub_registers_skills_registry_artifact() -> None:

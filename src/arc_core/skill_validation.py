@@ -64,6 +64,13 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
     "arc:build": ["DoD", "SemVer", "Contract Test", "RTO/RPO", "SBOM"],
     "arc:cartography": ["C4", "ISO/IEC 42010", "churn", ["增量差异清单", "incremental diff"]],
     "arc:clarify": ["IEEE 29148", "INVEST", "Given-When-Then"],
+    "arc:context": [
+        ["tool-backed context", "工具驱动上下文"],
+        ["working set", "工作集"],
+        ["recovery manifest", "恢复清单"],
+        ["lazy restore", "按需恢复"],
+        ["token budget", "上下文预算"],
+    ],
     "arc:decide": ["ADR", "Pre-Mortem", "Fitness Function"],
     "arc:e2e": ["ISTQB", "OWASP ASVS", "WCAG 2.2 AA"],
     "arc:exec": ["RACI", ["关键路径(CPM)", "Critical Path", "CPM"], ["冲突仲裁规则", "conflict arbitration", "Conflict Arbitration"]],
@@ -80,6 +87,13 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
         ["equivalence partitioning", "等价类划分"],
         ["code coverage", "代码覆盖率"],
         ["test pyramid", "测试金字塔"],
+    ],
+    "arc:context": [
+        "FTS5",
+        "BM25",
+        ["context budget", "上下文预算"],
+        ["compaction", "压缩恢复"],
+        ["sandbox", "沙箱"],
     ],
     "arc:aigc": [
         ["chunked rewrite", "chunked polish", "分段重写"],
@@ -115,6 +129,7 @@ ARC_ROUTED_SKILLS = {
     "arc:decide",
     "arc:gate",
     "arc:build",
+    "arc:context",
     "arc:init",
     "arc:ip-check",
     "arc:ip-draft",
@@ -124,6 +139,7 @@ ARC_ROUTED_SKILLS = {
     "arc:fix",
     "arc:uml",
     "arc:test",
+    "arc:context",
     "arc:aigc",
 }
 
@@ -470,7 +486,16 @@ def validate_file(path: Path, root: Path | None = None) -> tuple[list[str], list
 
 
 def collect_skill_files(root: Path) -> list[Path]:
-    return sorted(root.rglob("SKILL.md"))
+    collected: list[Path] = []
+    for path in sorted(root.rglob("SKILL.md")):
+        text = path.read_text(encoding="utf-8")
+        frontmatter, error = parse_frontmatter(text)
+        if error:
+            continue
+        skill_name = frontmatter.get("name", "")
+        if is_arc_skill(skill_name) or skill_name in FUSION_GENERIC_SKILLS:
+            collected.append(path)
+    return collected
 
 
 
