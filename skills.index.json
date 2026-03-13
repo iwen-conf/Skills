@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-13T06:10:39.898769Z",
+  "generated_at": "2026-03-13T06:20:08.546250Z",
   "skill_count": 22,
   "skills": [
     {
@@ -2618,53 +2618,53 @@
     },
     {
       "name": "lazycat:port-app",
-      "description": "面向 Lazycat 应用移植选型与落地的 skill。只要用户提到移植应用、移植开源项目、从 GitHub 选项目、查重、避免重复移植、看 App Store 里是否已有、移植激励、上游仓库、build.sh、Makefile、lpk 打包、file_handler、OIDC 等请求，就必须使用此 skill。负责从 GitHub 搜索候选项目、在 Lazycat App Store 查重、判断是否还有激励空间，并把移植项目收敛到可打包、可安装、可提审的状态。",
+      "description": "面向 Lazycat 应用移植选型与落地的 skill。只要用户提到移植应用、移植开源项目、从 GitHub 选项目、查重、避免重复移植、看 App Store 里是否已有、移植激励、上游仓库、build.sh、Makefile、lpk 打包、file_handler、OIDC、商店登录、lazycat_account、lazycat_password 等请求，就必须使用此 skill。负责从 GitHub 搜索候选项目、在 Lazycat App Store 查重、判断是否还有激励空间，并把移植项目收敛到可打包、可安装、可提审的状态。",
       "source_path": "Lazycat/lazycat:port-app/SKILL.md",
       "sections": [
         {
           "heading": "## Overview",
           "title": "Overview",
-          "body": "这个 skill 用于移植开源或自托管软件到 Lazycat。默认要求：\n\n- 先搜 GitHub，确定上游项目、许可证、活跃度和功能边界\n- 再搜 Lazycat App Store，确认是否已有相关移植产品\n- 如果已存在同类移植且没有新增价值，不走重复移植路径\n- 项目落地后必须提供 `build.sh`、`Makefile`、`make build`、`make install`\n- 必须保留上游地址、许可证和移植说明\n\n如果项目是工具类或需要统一登录，还要额外评估 `file_handler` 和微服 OIDC。"
+          "body": "这个 skill 用于移植开源或自托管软件到 Lazycat。默认要求：\n\n- 先搜 GitHub，确定上游项目、许可证、活跃度和功能边界\n- 再搜 Lazycat App Store，确认是否已有相关移植产品\n- 如果本机存在 `lazycat_account` 和 `lazycat_password`，优先用它们登录 App Store 后再查重\n- 如果已存在同类移植且没有新增价值，不走重复移植路径\n- 项目落地后必须提供 `build.sh`、`Makefile`、`make build`、`make install`\n- 必须保留上游地址、许可证和移植说明\n\n如果项目是工具类或需要统一登录，还要额外评估 `file_handler` 和微服 OIDC。"
         },
         {
           "heading": "## Quick Contract",
           "title": "Quick Contract",
-          "body": "- **Trigger**: 用户提到移植、port、从 GitHub 找项目、查重、避免重复移植、移植激励、上游仓库、Makefile、build.sh、file_handler、OIDC\n- **Inputs**: 候选项目关键词、目标品类、激励目标、GitHub 上游信息、App Store 可访问状态、是否需要登录或文件关联\n- **Outputs**: 候选项目清单、去重结论、激励判断、移植落地要求、脚本入口要求、后续交给 `lazycat:ship-app` 的发布入口\n- **Quality Gate**: 必须完成 GitHub 搜索和 App Store 查重；如果查到重复移植且没有明显差异化，不继续按激励路径推进；落地方案必须包含 `build.sh` 和 `Makefile`\n- **Decision Tree**: 先判断要移植什么，再做 GitHub 搜索、App Store 查重、激励判断、集成机会判断，最后决定继续移植还是换项目"
+          "body": "- **Trigger**: 用户提到移植、port、从 GitHub 找项目、查重、避免重复移植、移植激励、上游仓库、Makefile、build.sh、file_handler、OIDC、商店登录、lazycat_account、lazycat_password\n- **Inputs**: 候选项目关键词、目标品类、激励目标、GitHub 上游信息、App Store 可访问状态、本机商店登录凭证状态、是否需要登录或文件关联\n- **Outputs**: 候选项目清单、去重结论、激励判断、移植落地要求、脚本入口要求、后续交给 `lazycat:ship-app` 的发布入口\n- **Quality Gate**: 必须完成 GitHub 搜索和 App Store 查重；如果本机已有 `lazycat_account` / `lazycat_password`，优先真实登录后再查重；如果查到重复移植且没有明显差异化，不继续按激励路径推进；落地方案必须包含 `build.sh` 和 `Makefile`\n- **Decision Tree**: 先判断要移植什么，再做 GitHub 搜索、App Store 查重、激励判断、集成机会判断，最后决定继续移植还是换项目"
         },
         {
           "heading": "## When to Use",
           "title": "When to Use",
-          "body": "**首选触发**\n\n- 用户要把某个 GitHub 项目移植到 Lazycat\n- 用户要你帮忙找值得移植的项目\n- 用户明确说“先查有没有重复移植”\n- 用户希望按移植激励规则来选项目\n\n**典型场景**\n\n- 从 GitHub 搜一批自托管应用，筛选适合移植到 Lazycat 的候选\n- 移植工具类应用，并评估网盘右键菜单\n- 移植需要登录的应用，并评估微服 OIDC\n- 已有上游仓库，但不确定 App Store 里是否已经有同类移植\n\n**边界提示**\n\n- 如果用户要的是原创应用，不要误用本 skill，优先走 `lazycat:create-app`\n- 如果用户只要写攻略文章，不要误用本 skill，优先走 `lazycat:write-guide`\n- 如果 App Store 查重没有完成，不要对“值得移植”下结论"
+          "body": "**首选触发**\n\n- 用户要把某个 GitHub 项目移植到 Lazycat\n- 用户要你帮忙找值得移植的项目\n- 用户明确说“先查有没有重复移植”\n- 用户希望按移植激励规则来选项目\n- 用户已经提供商店登录方式，希望直接进入 App Store 查重\n\n**典型场景**\n\n- 从 GitHub 搜一批自托管应用，筛选适合移植到 Lazycat 的候选\n- 移植工具类应用，并评估网盘右键菜单\n- 移植需要登录的应用，并评估微服 OIDC\n- 已有上游仓库，但不确定 App Store 里是否已经有同类移植\n\n**边界提示**\n\n- 如果用户要的是原创应用，不要误用本 skill，优先走 `lazycat:create-app`\n- 如果用户只要写攻略文章，不要误用本 skill，优先走 `lazycat:write-guide`\n- 如果 App Store 查重没有完成，不要对“值得移植”下结论"
         },
         {
           "heading": "## Announce",
           "title": "Announce",
-          "body": "开始执行后，先给用户一个短摘要：\n\n- 你将搜哪些 GitHub 关键词\n- 是否已经具备 App Store 搜索条件\n- 当前最关键的 blocker 是上游质量、重复移植，还是激励空间"
+          "body": "开始执行后，先给用户一个短摘要：\n\n- 你将搜哪些 GitHub 关键词\n- 是否已经具备 App Store 搜索条件，以及是否可用本机环境变量登录\n- 当前最关键的 blocker 是上游质量、重复移植，还是激励空间"
         },
         {
           "heading": "## Input Arguments",
           "title": "Input Arguments",
-          "body": "| Parameter | Type | Required | Description |\n| --- | --- | --- | --- |\n| `candidate_keywords` | string | 推荐 | GitHub 搜索关键词，可含品类、协议、技术方向 |\n| `reward_target` | enum(`普通移植`/`现金激励优先`) | 推荐 | 如果目标是激励，重复移植和不奖励类型要尽早排除 |\n| `appstore_access` | enum(`已登录可搜索`/`未登录`/`未知`) | 推荐 | App Store 查重在当前站点通常需要登录会话；没有会话时不要跳过 |\n| `upstream_state` | enum(`已指定仓库`/`仅有方向`/`还未搜索`) | 推荐 | 用于判断是直接评估，还是先做 GitHub 搜索 |\n| `integration_hint` | enum(`OIDC`/`file_handler`/`两者都评估`/`无`) | 可选 | 判断是否适合接微服账户系统或网盘文件关联 |"
+          "body": "| Parameter | Type | Required | Description |\n| --- | --- | --- | --- |\n| `candidate_keywords` | string | 推荐 | GitHub 搜索关键词，可含品类、协议、技术方向 |\n| `reward_target` | enum(`普通移植`/`现金激励优先`) | 推荐 | 如果目标是激励，重复移植和不奖励类型要尽早排除 |\n| `appstore_access` | enum(`已登录可搜索`/`可用环境变量登录`/`未登录`/`未知`) | 推荐 | App Store 查重在当前站点通常需要登录会话；若本机有 `lazycat_account` / `lazycat_password`，优先用环境变量登录 |\n| `upstream_state` | enum(`已指定仓库`/`仅有方向`/`还未搜索`) | 推荐 | 用于判断是直接评估，还是先做 GitHub 搜索 |\n| `integration_hint` | enum(`OIDC`/`file_handler`/`两者都评估`/`无`) | 可选 | 判断是否适合接微服账户系统或网盘文件关联 |"
         },
         {
           "heading": "## The Iron Law",
           "title": "The Iron Law",
-          "body": "1. 移植前必须先做 GitHub 搜索和 App Store 查重；不要先写适配代码再回头看是否重复。\n2. 如果 App Store 已经存在同类移植，且你没有明确差异化理由，不要继续按激励路径推进。\n3. 每个移植项目都必须带上上游地址、许可证和移植说明。\n4. 每个移植项目都必须提供 `build.sh`、`Makefile`、`make build`、`make install`。\n5. 如果项目适合 OIDC 或 `file_handler`，优先评估并记录，因为这会影响激励空间和使用体验。"
+          "body": "1. 移植前必须先做 GitHub 搜索和 App Store 查重；不要先写适配代码再回头看是否重复。\n2. 如果本机已有 `lazycat_account` 和 `lazycat_password`，优先用交互式 `zsh` 读取环境变量并登录 App Store 后再查重；不要明明有凭证还停在“未登录”。\n3. 如果 App Store 已经存在同类移植，且你没有明确差异化理由，不要继续按激励路径推进。\n4. 每个移植项目都必须带上上游地址、许可证和移植说明。\n5. 每个移植项目都必须提供 `build.sh`、`Makefile`、`make build`、`make install`。\n6. 如果项目适合 OIDC 或 `file_handler`，优先评估并记录，因为这会影响激励空间和使用体验。"
         },
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "### 1. 搜 GitHub 候选\n\n- 使用 GitHub 搜索候选项目\n- 看许可证是否允许分发和修改\n- 看活跃度、issue 状态、README 完整度、部署复杂度\n- 记录候选仓库名、上游地址、许可证、核心功能\n\n### 2. 查 Lazycat App Store 是否重复\n\n- 在 `https://appstore.ezer.heiyu.space/#/shop` 中搜索候选项目名、中文译名、英文别名、核心关键词\n- 当前 App Store 搜索通常需要登录态；如果未登录，不要假装已完成查重\n- 如果搜索到已有同类移植，记录商品名、功能重叠度和差异点\n- 如果重叠度高且无明显差异化，不继续按激励移植\n\n### 3. 判断激励与可行性\n\n- 是否属于官方不奖励类型\n- 是否属于原创、首发移植，还是重复移植\n- 是否有额外激励机会，例如 OIDC 或 `file_handler`\n- 是否能让普通用户获得凭证\n\n### 4. 固化移植仓库入口\n\n移植仓库至少补齐：\n\n- `docs/requirements/`\n- `docs/api-design/`\n- `docs/architecture/`\n- `docs/release-prep/`\n- `build.sh`\n- `Makefile`\n\n命令基线至少包括：\n\n- `make build`\n- `make install`\n\n### 5. 规划 Lazycat 适配点\n\n- `lzc-build.yml`\n- `lzc-manifest.yml`\n- `build.sh`\n- `Makefile`\n- 如果适合，补 `application.oidc_redirect_path`\n- 如果是工具类，补 `application.file_handler`\n\n### 6. 交回发布链路\n\n确定“值得移植”后，再交回 `lazycat:ship-app` 做打包、资料、提审和发布。\n\n复杂任务先读 [references/market-research.md](./references/market-research.md)、[references/porting-checklist.md](./references/porting-checklist.md) 和 [references/command-conventions.md](./references/command-conventions.md)。"
+          "body": "### 1. 搜 GitHub 候选\n\n- 使用 GitHub 搜索候选项目\n- 看许可证是否允许分发和修改\n- 看活跃度、issue 状态、README 完整度、部署复杂度\n- 记录候选仓库名、上游地址、许可证、核心功能\n\n### 2. 查 Lazycat App Store 是否重复\n\n- 在 `https://appstore.ezer.heiyu.space/#/shop` 中搜索候选项目名、中文译名、英文别名、核心关键词\n- 当前 App Store 搜索通常需要登录态；如果本机有 `lazycat_account` / `lazycat_password`，优先用环境变量登录\n- 若这两个变量来自 `~/.zshrc`，使用交互式 `zsh -ic` 读取；不要误以为非交互 shell 里缺失就代表本机没有凭证\n- 如果既没有已登录会话，也没有可用环境变量，不要假装已完成查重\n- 如果搜索到已有同类移植，记录商品名、功能重叠度和差异点\n- 如果重叠度高且无明显差异化，不继续按激励移植\n\n### 3. 判断激励与可行性\n\n- 是否属于官方不奖励类型\n- 是否属于原创、首发移植，还是重复移植\n- 是否有额外激励机会，例如 OIDC 或 `file_handler`\n- 是否能让普通用户获得凭证\n\n### 4. 固化移植仓库入口\n\n移植仓库至少补齐：\n\n- `docs/requirements/`\n- `docs/api-design/`\n- `docs/architecture/`\n- `docs/release-prep/`\n- `build.sh`\n- `Makefile`\n\n命令基线至少包括：\n\n- `make build`\n- `make install`\n\n### 5. 规划 Lazycat 适配点\n\n- `lzc-build.yml`\n- `lzc-manifest.yml`\n- `build.sh`\n- `Makefile`\n- 如果适合，补 `application.oidc_redirect_path`\n- 如果是工具类，补 `application.file_handler`\n\n### 6. 交回发布链路\n\n确定“值得移植”后，再交回 `lazycat:ship-app` 做打包、资料、提审和发布。\n\n复杂任务先读 [references/market-research.md](./references/market-research.md)、[references/porting-checklist.md](./references/porting-checklist.md) 和 [references/command-conventions.md](./references/command-conventions.md)。"
         },
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- GitHub 搜索已完成\n- App Store 查重已完成，且不是凭空假设\n- 如有重复移植，已明确差异化或已终止激励路径\n- 上游地址、许可证、仓库状态已记录\n- 已规划 `build.sh`、`Makefile`、`make build`、`make install`\n- 已评估 OIDC 或 `file_handler`"
+          "body": "- GitHub 搜索已完成\n- App Store 查重已完成，且不是凭空假设\n- 若本机存在商店环境变量，已优先使用真实登录态完成查重\n- 如有重复移植，已明确差异化或已终止激励路径\n- 上游地址、许可证、仓库状态已记录\n- 已规划 `build.sh`、`Makefile`、`make build`、`make install`\n- 已评估 OIDC 或 `file_handler`"
         },
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- 只看 GitHub，不查 App Store\n- App Store 未登录，却假装完成了查重\n- 已有重复移植，还继续按激励路径推进\n- 不保留上游地址和许可证\n- 没有 `build.sh` 或 `Makefile`\n- 明明是工具类，却没评估文件关联"
+          "body": "- 只看 GitHub，不查 App Store\n- App Store 未登录，却假装完成了查重\n- 本机明明有 `lazycat_account` / `lazycat_password`，却没有尝试登录就宣称无法查重\n- 已有重复移植，还继续按激励路径推进\n- 不保留上游地址和许可证\n- 没有 `build.sh` 或 `Makefile`\n- 明明是工具类，却没评估文件关联"
         },
         {
           "heading": "## Bundled References",
@@ -2678,10 +2678,10 @@
         }
       ],
       "quick_contract": {
-        "trigger": "用户提到移植、port、从 GitHub 找项目、查重、避免重复移植、移植激励、上游仓库、Makefile、build.sh、file_handler、OIDC",
-        "inputs": "候选项目关键词、目标品类、激励目标、GitHub 上游信息、App Store 可访问状态、是否需要登录或文件关联",
+        "trigger": "用户提到移植、port、从 GitHub 找项目、查重、避免重复移植、移植激励、上游仓库、Makefile、build.sh、file_handler、OIDC、商店登录、lazycat_account、lazycat_password",
+        "inputs": "候选项目关键词、目标品类、激励目标、GitHub 上游信息、App Store 可访问状态、本机商店登录凭证状态、是否需要登录或文件关联",
         "outputs": "候选项目清单、去重结论、激励判断、移植落地要求、脚本入口要求、后续交给 `lazycat:ship-app` 的发布入口",
-        "quality_gate": "必须完成 GitHub 搜索和 App Store 查重；如果查到重复移植且没有明显差异化，不继续按激励路径推进；落地方案必须包含 `build.sh` 和 `Makefile`",
+        "quality_gate": "必须完成 GitHub 搜索和 App Store 查重；如果本机已有 `lazycat_account` / `lazycat_password`，优先真实登录后再查重；如果查到重复移植且没有明显差异化，不继续按激励路径推进；落地方案必须包含 `build.sh` 和 `Makefile`",
         "decision_tree": "先判断要移植什么，再做 GitHub 搜索、App Store 查重、激励判断、集成机会判断，最后决定继续移植还是换项目"
       },
       "input_arguments": [
@@ -2699,9 +2699,9 @@
         },
         {
           "parameter": "appstore_access",
-          "type": "enum(`已登录可搜索`/`未登录`/`未知`)",
+          "type": "enum(`已登录可搜索`/`可用环境变量登录`/`未登录`/`未知`)",
           "required": "推荐",
-          "description": "App Store 查重在当前站点通常需要登录会话；没有会话时不要跳过"
+          "description": "App Store 查重在当前站点通常需要登录会话；若本机有 `lazycat_account` / `lazycat_password`，优先用环境变量登录"
         },
         {
           "parameter": "upstream_state",
