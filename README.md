@@ -67,7 +67,7 @@ Skills/
 
 | 分组 | Skill ID | 一句话用途 |
 |---|---|---|
-| 创建 | `lazycat:create-app` | 在新项目阶段统一 Go + Vue + Element Plus 与登录 / 注册 / 双 token / 无感刷新基线，并优先满足现金激励门槛 |
+| 创建 | `lazycat:create-app` | 在新项目阶段先建立 docs 文档树，再统一 Go + Vue + Element Plus 与登录 / 注册 / 双 token / 无感刷新基线，并优先满足现金激励门槛 |
 | 素材 | `lazycat:prepare-icon` | 在资料阶段输出可直接交给外部图像模型的 App Icon prompt |
 | 发布 | `lazycat:ship-app` | 覆盖懒猫应用从构思、打包、截图、提审到发布后核验的端到端流程 |
 
