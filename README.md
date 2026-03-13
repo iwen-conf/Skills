@@ -16,8 +16,7 @@ Skills/
 │   ├── arc:build/
 │   └── ...
 ├── Lazycat/
-│   ├── lazycat:ship-app/
-│   └── pua-debugging/
+│   └── lazycat:ship-app/
 ├── docs/
 ├── schemas/
 ├── scripts/
@@ -38,6 +37,7 @@ Skills/
 
 - `Arc/` 下技能统一使用 `arc:*`
 - `Lazycat/` 下技能统一使用 `lazycat:*`
+- 通用辅助或调试 skill 不进入 `Lazycat/` 子模块，避免污染 Lazycat 领域边界
 - Skill 只按“能力边界”命名，不再同时维护另一套“人类别名”
 - 模式参数统一放在 Skill 内部（如 `--mode`），不再把每个模式都当成一级入口
 
