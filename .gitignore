@@ -42,3 +42,8 @@ Temporary Items
 # Python
 __pycache__/
 *.py[cod]
+
+# Local caches and transient locks
+.cocoindex_code/
+node-compile-cache/
+uv-*.lock
