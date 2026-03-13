@@ -5,7 +5,7 @@
 当前仓库按命名空间分为两组：
 
 - `Arc/`：通用工程编排技能，主命名空间为 `arc:*`
-- `Lazycat/`：Lazycat 相关发布与运营技能，主命名空间为 `lazycat:*`，由独立仓库 `git@gitea.ezer.heiyu.space:iwen-conf/Lazycat-Skills.git` 作为子模块维护
+- `Lazycat/`：Lazycat 相关发布与运营技能，主命名空间为 `lazycat:*`，由独立仓库 `git@github.com:iwen-conf/lazycat-skills.git` 作为子模块维护
 
 ## 目录结构
 
