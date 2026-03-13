@@ -58,6 +58,7 @@ Without the evidence chain of "failure→repair→pass", it is not allowed to cl
 - The root cause must be specific to a module, condition, or timing point.
 - Remediation instructions must include impact surfaces and regression commands.
 - DEBUG clues and artifact paths need to be retained throughout the process.
+- Medium/High-risk repairs must record a recoverable boundary before code changes: pushed remote branch, snapshot, or explicit blocker.
 
 ## Expert Standards
 
@@ -192,7 +193,12 @@ python Arc/arc:fix/scripts/triage_run.py <run_dir> \
    - Running "unlimited" retry/regression loops is prohibited; must have `max_iterations`/timeout.
    - If additional tools (browser recording, long-term tail, temporary container, tmux session, etc.) are started for troubleshooting, close them promptly after obtaining the evidence to avoid resource leakage and long-term occupation.
 
-8. **Proactive Extrapolation (举一反三) & Anti-NPC Debugging (强制要求)**
+8. **Checkpoint before risky repairs**
+   - Before Medium/High-risk hotfixes, confirm the recoverable boundary first: pushed remote branch, local snapshot, or a clearly documented blocker.
+   - If the repository has no safe remote and the target host is Gitea, coordinate with `agent-browser` to create a repository at `https://gitea.ezer.heiyu.space/`, using `lazycat_gitea_account` and `lazycat_gitea_password`, choose visibility according to user intent or existing policy, then backfill the SSH URL into local `.git` remote and push the current branch.
+   - For scans, polling, or browser glue during triage, follow a CLI-first ladder: `rg/git/sed/awk/fd/find` → `jq` and shell pipelines → `agent-browser` → `gh` / `just` when applicable → JS tools such as `bun` → `tmux` for long-running sessions → repo-native scripts → Python only when nothing lighter fits.
+
+9. **Proactive Extrapolation (举一反三) & Anti-NPC Debugging (强制要求)**
    - **No blind retries**: If a fix fails 2 times, you MUST stop tweaking parameters and perform a 7-step check: read full logs, search codebase, read 50 lines of context, verify assumptions, reverse assumptions, isolate, and change approach.
    - **Fix Extension**: When the immediate bug is fixed, you MUST check if the same problematic pattern exists elsewhere in the project. The final Fix Packet MUST include a "Proactive Extension" section documenting these checks and additional preventative fixes.
 

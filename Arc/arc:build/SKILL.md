@@ -61,6 +61,7 @@ Code changes must not be implemented without clear plans, verification evidence,
 - Every critical change must have verification commands and results.
 - The handover summary must cover impact modules and regression concerns.
 - Failure scenarios must include rollback or mitigation handling, and any irreversible operation must be explicitly called out before handover.
+- Medium/High-risk implementation must identify a recoverable boundary before coding: pushed remote branch, local snapshot, or explicit blocker.
 
 ## Expert Standards
 
@@ -138,7 +139,9 @@ Failure reflow rules:
 3. **Evidence verification**: There must be verification records (commands/results/conclusions) after implementation.
 4. **Impact Transparency**: Affected modules and regression concerns must be listed.
 5. **Failure to rollback**: Retain the rollback idea and do not allow "non-recoverable" changes.
-6. **No execution beyond authority**: Do not touch directories and files unrelated to the task.
+6. **Checkpoint before risky work**: When large local deltas or destructive operations are expected, confirm the remote checkpoint or snapshot path before implementation starts.
+7. **Use low-overhead tooling first**: For scans, polling, or browser glue on this machine, prefer `rg`, shell, or JS tooling before Python.
+8. **No execution beyond authority**: Do not touch directories and files unrelated to the task.
 
 ## Instructions
 
@@ -162,6 +165,7 @@ python Arc/arc:build/scripts/scaffold_implement_case.py \
 - Change steps
 - Risks and Fallback Plans
 - Verification plan
+ - Recovery boundary (remote branch / snapshot / blocker)
 2. If there are major technical differences, return to the `arc:decide` argument first.
 
 ### Phase 3: Coding implementation

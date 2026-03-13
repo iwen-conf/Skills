@@ -50,10 +50,11 @@ No scheduling is allowed before routing and capability verification is completed
 ## Workflow
 
 1. Scan the context and understand the requirements (goals, scope, risks, dependencies).
-2. Decision execution path: single skill, skill link, or general multi-agent concurrency.
-3. Generate execution preview (optional snapshot, confirmation, dry-run).
-4. Schedule and collect results according to waves, and perform conflict arbitration and downgrade processing.
-5. Output aggregate summary, risk and next action.
+2. Check whether the workspace already has a safe remote checkpoint before any high-impact operation.
+3. Decision execution path: single skill, skill link, or general multi-agent concurrency.
+4. Generate execution preview (optional snapshot, confirmation, dry-run).
+5. Schedule and collect results according to waves, and perform conflict arbitration and downgrade processing.
+6. Output aggregate summary, risk and next action.
 
 ## Quality Gates
 
@@ -61,6 +62,7 @@ No scheduling is allowed before routing and capability verification is completed
 - Each schedule must contain `capability_profile`, `description`, `prompt`.
 - Concurrent tasks must have collection points (`collect_task(...)`) and failure handling strategies.
 - Aggregation conclusions must contain responsibility, risk, and tracking identifiers (`task_ref` or equivalent fields).
+- Repository-affecting high-risk tasks must state the chosen rollback surface: local snapshot, pushed remote branch, or explicit blocker.
 
 ## Expert Standards
 
@@ -141,7 +143,10 @@ SKILL The main text only retains the decision-making process to avoid being too 
 1. Output execution preview: planned actions, impact areas, and risk levels.
 2. If `snapshot=true`, create a snapshot and record the rollback command.
 3. If `confirm=true` or a high-impact operation is detected, obtain user confirmation first.
-4. If `dry_run=true`, exit after this stage and return the preview results.
+4. If the task may create large local deltas and the repository has no safe remote checkpoint, establish one before dispatching implementation work.
+5. When the target host is Gitea, coordinate with `agent-browser` to open `https://gitea.ezer.heiyu.space/`, read `lazycat_gitea_account` and `lazycat_gitea_password` from environment variables, create a repository on that server, choose visibility according to user intent or existing policy, copy the SSH URL, write it back to local `.git` remote, and push the current branch.
+6. For scanning, polling, or browser-glue subtasks, follow a CLI-first ladder: `rg/git/sed/awk/fd/find` → `jq` and shell pipelines → `agent-browser` for web tasks → `gh` / `just` when the repo flow fits them → JS-based tooling such as `bun` → repo-native scripts → Python only when nothing lighter fits.
+7. If `dry_run=true`, exit after this stage and return the preview results.
 
 ### Phase 3: Dispatch
 
