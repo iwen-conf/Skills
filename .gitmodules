@@ -1,0 +1,3 @@
+[submodule "Lazycat"]
+	path = Lazycat
+	url = git@gitea.ezer.heiyu.space:iwen-conf/Lazycat-Skills.git

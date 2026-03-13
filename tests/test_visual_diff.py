@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-# Allow importing from arc:e2e/scripts
-_SCRIPTS = Path(__file__).resolve().parent.parent / "arc:e2e" / "scripts"
+# Allow importing from Arc/arc:e2e/scripts
+_SCRIPTS = Path(__file__).resolve().parent.parent / "Arc" / "arc:e2e" / "scripts"
 sys.path.insert(0, str(_SCRIPTS))
 
 from visual_diff import (  # noqa: E402

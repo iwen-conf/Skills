@@ -1,7 +1,29 @@
-# Arc Skills
+# Skills
 
-跨运行时、可解耦的技能（Skill）仓库。  
-本仓库统一采用 `arc:xxx` 命名空间，对外主技能现为 16 个。
+跨运行时、可解耦的技能（Skill）仓库。
+
+当前仓库按命名空间分为两组：
+
+- `Arc/`：通用工程编排技能，主命名空间为 `arc:*`
+- `Lazycat/`：Lazycat 相关发布与运营技能，主命名空间为 `lazycat:*`，由独立仓库 `git@gitea.ezer.heiyu.space:iwen-conf/Lazycat-Skills.git` 作为子模块维护
+
+## 目录结构
+
+```text
+Skills/
+├── Arc/
+│   ├── arc:exec/
+│   ├── arc:build/
+│   └── ...
+├── Lazycat/
+│   ├── lazycat:ship-app/
+│   └── pua-debugging/
+├── docs/
+├── schemas/
+├── scripts/
+├── src/
+└── tests/
+```
 
 ## 当前状态
 
@@ -9,14 +31,17 @@
 - 所有 `arc:*` 技能已统一融合结构：`Quick Contract` / `Announce` / `The Iron Law` / `Workflow` / `Quality Gates` / `Red Flags`。
 - 路由文档已形成三层：矩阵、决策树、阶段视图 + 单页速查。
 - 所有 `SKILL.md` 的 frontmatter `description` 已统一为中文。
+- 新增 `lazycat:*` 命名空间，用于封装 Lazycat 开发者中心、`lpk`、提审与发布闭环。
+- `Lazycat/` 已拆分为独立 git 仓库，并通过 `.gitmodules` 挂回当前仓库。
 
 ## 命名规则（唯一口径）
 
-- 对外与对内统一只使用一套 Skill ID：`arc:*`
+- `Arc/` 下技能统一使用 `arc:*`
+- `Lazycat/` 下技能统一使用 `lazycat:*`
 - Skill 只按“能力边界”命名，不再同时维护另一套“人类别名”
 - 模式参数统一放在 Skill 内部（如 `--mode`），不再把每个模式都当成一级入口
 
-## 对外主技能（16）
+## Arc 主技能（16）
 
 | 分组 | Skill ID | 一句话用途 |
 |---|---|---|
@@ -37,12 +62,19 @@
 | 知产 | `arc:ip-check` | 软著/专利可行性与风险评估 |
 | 知产 | `arc:ip-draft` | 依据审查结果起草申请材料 |
 
+## Lazycat 技能
+
+| 分组 | Skill ID | 一句话用途 |
+|---|---|---|
+| 发布 | `lazycat:ship-app` | 覆盖懒猫应用从构思、打包、截图、提审到发布后核验的端到端流程 |
+
 ## 我该用哪个 Skill？
 
 | 你现在的情况 | 直接用 |
 |---|---|
 | 只想一句话开工：“拉一个团队做这个任务” | `arc:exec` |
 | 不知道该选哪个 | `arc:exec` |
+| 要把应用上架到懒猫开发者中心 | `lazycat:ship-app` |
 | 需求说不清、约束不完整 | `arc:clarify` |
 | 方案有争议、风险高 | `arc:decide` |
 | 方案已定，开始改代码 | `arc:build` |
@@ -65,6 +97,7 @@
 - 要项目体检打分：`arc:audit`
 - 要发布门禁：`arc:gate`
 - 要画 UML：`arc:uml`
+- 要走懒猫上架链路：`lazycat:ship-app`
 
 ## 收敛结果
 
@@ -96,7 +129,7 @@ python3 scripts/validate_skills.py
 当前校验会检查（节选）：
 
 - `arc:*` frontmatter 仅允许 `name` + `description`
-- 所有 skill 名称必须为 `arc:xxx`
+- 所有被主校验器索引的 skill 名称必须为 `arc:xxx` 或 `lazycat:xxx`
 - `description` 必须包含中文
 - `arc:*` 必须包含统一结构段落与路由链接
 - `When to Use` 必须包含：`首选触发 / 典型场景 / 边界提示`

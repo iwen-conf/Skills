@@ -70,5 +70,5 @@ pythonpath = [
 ]
 testpaths = [
     "tests",
-    "arc:cartography/scripts/test_cartographer.py",
+    "Arc/arc:cartography/scripts/test_cartographer.py",
 ]

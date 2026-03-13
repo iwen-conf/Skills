@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path("/Users/iluwen/Documents/Code/Skills")
-SCRIPT = ROOT / "arc:context" / "scripts" / "scaffold_context_session.py"
+SCRIPT = ROOT / "Arc" / "arc:context" / "scripts" / "scaffold_context_session.py"
 
 
 def test_scaffold_context_session_creates_expected_artifacts(tmp_path: Path) -> None:

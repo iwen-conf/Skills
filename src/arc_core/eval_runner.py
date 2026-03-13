@@ -13,6 +13,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Sequence
 
+from .skill_validation import find_skill_file, get_namespace_dir
+
 try:
     from jsonschema import ValidationError, validate
 
@@ -339,10 +341,21 @@ class EvalRunner:
         self.skills_root = (skills_root or Path(__file__).resolve().parents[2]).resolve()
 
     def resolve_skill_dir(self, skill: str) -> Path:
-        candidates = [
-            self.skills_root / skill,
-            self.skills_root / skill.replace("arc:", ""),
-        ]
+        skill_file = find_skill_file(self.skills_root, skill)
+        if skill_file is not None:
+            return skill_file.parent
+
+        candidates: list[Path] = []
+        namespace_dir = get_namespace_dir(skill)
+        if namespace_dir:
+            candidates.append(self.skills_root / namespace_dir / skill)
+        candidates.extend(
+            [
+                self.skills_root / skill,
+                self.skills_root / skill.replace("arc:", ""),
+                self.skills_root / skill.replace("lazycat:", ""),
+            ]
+        )
         for candidate in candidates:
             if candidate.exists():
                 return candidate

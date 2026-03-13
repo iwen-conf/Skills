@@ -55,10 +55,16 @@ GENERIC_WHEN_TO_USE_MARKERS = [
     "**边界提示**",
 ]
 
-ARC_ROUTING_MATRIX_LINK = "../docs/arc-routing-matrix.md"
-ARC_DECISION_TREE_LINK = "../docs/arc-routing-matrix.md#signal-to-skill-decision-tree"
-ARC_PHASE_VIEW_LINK = "../docs/arc-routing-matrix.md#phase-routing-view"
-ARC_CHEATSHEET_LINK = "../docs/arc-routing-cheatsheet.md"
+ARC_ROUTING_MATRIX_LINK = "../../docs/arc-routing-matrix.md"
+ARC_DECISION_TREE_LINK = "../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree"
+ARC_PHASE_VIEW_LINK = "../../docs/arc-routing-matrix.md#phase-routing-view"
+ARC_CHEATSHEET_LINK = "../../docs/arc-routing-cheatsheet.md"
+
+SUPPORTED_SKILL_PREFIXES = ("arc:", "lazycat:")
+SKILL_NAMESPACE_DIRS = {
+    "arc": "Arc",
+    "lazycat": "Lazycat",
+}
 
 ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
     "arc:build": ["DoD", "SemVer", "Contract Test", "RTO/RPO", "SBOM"],
@@ -186,6 +192,19 @@ def parse_frontmatter(text: str) -> tuple[dict[str, str], str | None]:
 
 def is_arc_skill(name: str) -> bool:
     return name.startswith("arc:")
+
+
+def is_lazycat_skill(name: str) -> bool:
+    return name.startswith("lazycat:")
+
+
+def is_supported_skill(name: str) -> bool:
+    return any(name.startswith(prefix) for prefix in SUPPORTED_SKILL_PREFIXES)
+
+
+def get_namespace_dir(name: str) -> str | None:
+    namespace, _, _ = name.partition(":")
+    return SKILL_NAMESPACE_DIRS.get(namespace)
 
 
 
@@ -403,8 +422,8 @@ def validate_text(text: str, path_label: str, root: Path | None = None) -> tuple
         errors.append(f"{path_label}: missing frontmatter description")
     if "name" in fm and not re.fullmatch(r"[a-z0-9:-]+", fm["name"]):
         errors.append(f"{path_label}: name contains unsupported characters")
-    if "name" in fm and fm["name"] and not is_arc_skill(fm["name"]):
-        errors.append(f"{path_label}: skill name must use arc:xxx namespace")
+    if "name" in fm and fm["name"] and not is_supported_skill(fm["name"]) and fm["name"] not in FUSION_GENERIC_SKILLS:
+        errors.append(f"{path_label}: skill name must use arc:xxx or lazycat:xxx namespace")
     description = fm.get("description", "")
     if description and not contains_cjk(description):
         errors.append(f"{path_label}: description must contain Chinese text")
@@ -493,9 +512,34 @@ def collect_skill_files(root: Path) -> list[Path]:
         if error:
             continue
         skill_name = frontmatter.get("name", "")
-        if is_arc_skill(skill_name) or skill_name in FUSION_GENERIC_SKILLS:
+        if is_supported_skill(skill_name) or skill_name in FUSION_GENERIC_SKILLS:
             collected.append(path)
     return collected
+
+
+def find_skill_file(root: Path, skill_name: str) -> Path | None:
+    namespace_dir = get_namespace_dir(skill_name)
+    candidates: list[Path] = []
+    if namespace_dir:
+        candidates.append(root / namespace_dir / skill_name / "SKILL.md")
+    candidates.append(root / skill_name / "SKILL.md")
+
+    seen: set[Path] = set()
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        if candidate.exists():
+            return candidate
+
+    for path in collect_skill_files(root):
+        text = path.read_text(encoding="utf-8")
+        frontmatter, error = parse_frontmatter(text)
+        if error:
+            continue
+        if frontmatter.get("name", "") == skill_name:
+            return path
+    return None
 
 
 
