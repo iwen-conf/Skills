@@ -16,6 +16,7 @@ Skills/
 │   ├── arc:build/
 │   └── ...
 ├── Lazycat/
+│   ├── lazycat:prepare-icon/
 │   └── lazycat:ship-app/
 ├── docs/
 ├── schemas/
@@ -66,6 +67,7 @@ Skills/
 
 | 分组 | Skill ID | 一句话用途 |
 |---|---|---|
+| 素材 | `lazycat:prepare-icon` | 在资料阶段输出可直接交给外部图像模型的 App Icon prompt |
 | 发布 | `lazycat:ship-app` | 覆盖懒猫应用从构思、打包、截图、提审到发布后核验的端到端流程 |
 
 ## 我该用哪个 Skill？
@@ -74,6 +76,7 @@ Skills/
 |---|---|
 | 只想一句话开工：“拉一个团队做这个任务” | `arc:exec` |
 | 不知道该选哪个 | `arc:exec` |
+| 要给懒猫项目准备 App Icon prompt，再交给别的 AI 生成 PNG | `lazycat:prepare-icon` |
 | 要把应用上架到懒猫开发者中心 | `lazycat:ship-app` |
 | 需求说不清、约束不完整 | `arc:clarify` |
 | 方案有争议、风险高 | `arc:decide` |
