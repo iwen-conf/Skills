@@ -68,7 +68,9 @@ Skills/
 | 分组 | Skill ID | 一句话用途 |
 |---|---|---|
 | 创建 | `lazycat:create-app` | 在新项目阶段先建立 docs 文档树，再统一 Go + Vue + Element Plus 与登录 / 注册 / 双 token / 无感刷新基线，并优先满足现金激励门槛 |
+| 选型 | `lazycat:port-app` | 做 GitHub 选型、App Store 查重、避免重复移植，并固化 build.sh / Makefile 命令入口 |
 | 素材 | `lazycat:prepare-icon` | 在资料阶段输出可直接交给外部图像模型的 App Icon prompt |
+| 创作 | `lazycat:write-guide` | 按官方激励口径撰写高质量应用攻略与 Lazycat 对接文章 |
 | 发布 | `lazycat:ship-app` | 覆盖懒猫应用从构思、打包、截图、提审到发布后核验的端到端流程 |
 
 ## 我该用哪个 Skill？
@@ -78,7 +80,9 @@ Skills/
 | 只想一句话开工：“拉一个团队做这个任务” | `arc:exec` |
 | 不知道该选哪个 | `arc:exec` |
 | 要从 0 创建懒猫项目，统一 Go + Vue + Element Plus 和认证基线 | `lazycat:create-app` |
+| 要从 GitHub 找可移植项目，并确认 App Store 里没有重复移植 | `lazycat:port-app` |
 | 要给懒猫项目准备 App Icon prompt，再交给别的 AI 生成 PNG | `lazycat:prepare-icon` |
+| 要写应用攻略、移植复盘或 Lazycat 能力对接文章 | `lazycat:write-guide` |
 | 要把应用上架到懒猫开发者中心 | `lazycat:ship-app` |
 | 需求说不清、约束不完整 | `arc:clarify` |
 | 方案有争议、风险高 | `arc:decide` |
