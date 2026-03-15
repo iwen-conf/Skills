@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-13T17:35:24.140205Z",
-  "skill_count": 16,
+  "generated_at": "2026-03-15T06:10:16.942930Z",
+  "skill_count": 17,
   "skills": [
     {
       "name": "arc:aigc",
@@ -456,7 +456,7 @@
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "### Step 1: Check status\n\nPrioritize checking the repository root directory `.slim/cartography.json`:\n- Exists: Entering the change detection process\n- Does not exist: execute initialization process\n\n### Step 2: Initialization (first time only)\n\n```bash\npython3 <skills_root>/arc:cartography/scripts/cartographer.py init \\\n  --root ./ \\\n  --include \"src/**/*.ts\" \\\n  --exclude \"**/*.test.ts\" --exclude \"dist/**\" --exclude \"node_modules/**\"\n```\n\nAfter initialization it will generate:\n- `.slim/cartography.json` (change detection baseline)\n- `codemap.md` placeholder file in the relevant directory\n\n### Step 3: Incremental detection and update\n\n```bash\npython3 <skills_root>/arc:cartography/scripts/cartographer.py changes --root ./\npython3 <skills_root>/arc:cartography/scripts/cartographer.py update  --root ./\n```\n\nrule:\n- Only update `codemap.md` of affected directories\n- Unaffected directories are not rewritten\n\n### Step 4: Optional export of hierarchical JSON\n\n```bash\npython3 <skills_root>/arc:cartography/scripts/cartographer.py export --root ./ --tier 1 --output codemap/index.json\npython3 <skills_root>/arc:cartography/scripts/cartographer.py export --root ./ --tier 2 --output codemap/context.json\npython3 <skills_root>/arc:cartography/scripts/cartographer.py export --root ./ --tier 3 --output codemap/full.json\n```\n\nsuggestion:\n- Tier 1: Quick search entrance\n- Tier 2: Module relationship analysis\n- Tier 3: Deep Implementation Context\n\nTier schema and examples:\n- Canonical schema: [`../../schemas/codemap.schema.json`](../../schemas/codemap.schema.json)\n- Tier 1/2/3 examples: [`references/tiered-json-examples.md`](references/tiered-json-examples.md)\n\n### Step 5: Directory concurrency analysis and root graph summary\n\n1. For medium or large repositories, directory analysis tasks can be dispatched concurrently through `schedule_task(...)` (by `docs/orchestration-contract.md`).\n2. Each directory outputs/updates this directory `codemap.md`.\n3. Finally, the root level `codemap.md` is aggregated as the repository entry map.\n\n### Step 6: Publish shared context metadata\n\nWrite the root-level and directory-level `codemap` products into `.arc/context-hub/index.json`. Each record contains at least:\n- `path`\n- `content_hash`\n- `generated_at`\n- `ttl_seconds`\n- `expires_at`\n- `producer_skill=arc:cartography`\n- `refresh_skill=arc:cartography`"
+          "body": "### Step 1: Check status\n\nPrioritize checking the repository root directory `.slim/cartography.json`:\n- Exists: Entering the change detection process\n- Does not exist: execute initialization process\n\n### Step 2: Initialization (first time only)\n\n```bash\npython3 <skills_root>/arc:cartography/scripts/cartographer.py init \\\n  --root ./ \\\n  --include \"src/**/*.ts\" \\\n  --exclude \"**/*.test.ts\" \\\n  --exclude \".git/**\" \\\n  --exclude \"dist/**\" \\\n  --exclude \"build/**\" \\\n  --exclude \".next/**\" \\\n  --exclude \"coverage/**\" \\\n  --exclude \"node_modules/**\" \\\n  --exclude \"vendor/**\" \\\n  --exclude \".venv/**\" \\\n  --exclude \"tmp/**\" \\\n  --exclude \"artifacts/**\"\n```\n\nAfter initialization it will generate:\n- `.slim/cartography.json` (change detection baseline)\n- `codemap.md` placeholder file in the relevant directory\n\n### Step 3: Incremental detection and update\n\n```bash\npython3 <skills_root>/arc:cartography/scripts/cartographer.py changes --root ./\npython3 <skills_root>/arc:cartography/scripts/cartographer.py update  --root ./\n```\n\nrule:\n- Only update `codemap.md` of affected directories\n- Unaffected directories are not rewritten\n\n### Load-safety defaults\n\n1. Run `arc:cartography` against the real git root, not against a parent workspace that only groups multiple repositories.\n2. Prefer `changes` or a tightly scoped `update` before `init`; reserve full initialization for first run or damaged state.\n3. Always exclude generated, vendored, cache, and package-manager directories unless the user explicitly asks to map them.\n4. Treat `cartographer.py` as a batch command. Do not wrap it in a background watcher, polling loop, or persistent Python service.\n5. When downstream work only needs a small structure answer, prefer `rg`, `fd`, `git`, and existing `.arc/context-hub` artifacts instead of rebuilding the whole codemap.\n\n### Step 4: Optional export of hierarchical JSON\n\n```bash\npython3 <skills_root>/arc:cartography/scripts/cartographer.py export --root ./ --tier 1 --output codemap/index.json\npython3 <skills_root>/arc:cartography/scripts/cartographer.py export --root ./ --tier 2 --output codemap/context.json\npython3 <skills_root>/arc:cartography/scripts/cartographer.py export --root ./ --tier 3 --output codemap/full.json\n```\n\nsuggestion:\n- Tier 1: Quick search entrance\n- Tier 2: Module relationship analysis\n- Tier 3: Deep Implementation Context\n\nTier schema and examples:\n- Canonical schema: [`../../schemas/codemap.schema.json`](../../schemas/codemap.schema.json)\n- Tier 1/2/3 examples: [`references/tiered-json-examples.md`](references/tiered-json-examples.md)\n\n### Step 5: Directory concurrency analysis and root graph summary\n\n1. For medium or large repositories, directory analysis tasks can be dispatched concurrently through `schedule_task(...)` (by `docs/orchestration-contract.md`).\n2. Each directory outputs/updates this directory `codemap.md`.\n3. Finally, the root level `codemap.md` is aggregated as the repository entry map.\n\n### Step 6: Publish shared context metadata\n\nWrite the root-level and directory-level `codemap` products into `.arc/context-hub/index.json`. Each record contains at least:\n- `path`\n- `content_hash`\n- `generated_at`\n- `ttl_seconds`\n- `expires_at`\n- `producer_skill=arc:cartography`\n- `refresh_skill=arc:cartography`"
         },
         {
           "heading": "## Codemap writing requirements",
@@ -481,7 +481,7 @@
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Skip change detection and directly rewrite all codemaps in full\n- No distinction is made between affected directories and unchanged directories\n- The root-level map is not updated, causing the downstream entry to expire.\n- Publishing without shared index results in the inability of downstream products to be reused.\n\nExample (directory level):\n\n```markdown\n# src/services/"
+          "body": "- Skip change detection and directly rewrite all codemaps in full\n- No distinction is made between affected directories and unchanged directories\n- The root-level map is not updated, causing the downstream entry to expire.\n- Publishing without shared index results in the inability of downstream products to be reused.\n- Running full mapping on `node_modules`, build outputs, vendored trees, or cache directories by default.\n- Leaving long-lived Python helper processes behind after codemap generation.\n\nExample (directory level):\n\n```markdown\n# src/services/"
         },
         {
           "heading": "## Responsibility",
@@ -1620,6 +1620,11 @@
           "body": "- Schema selection must be based on `fingerprint difference` and `schema version`, and the judgment evidence should be retained.\n- Index writing uses `atomic update` (temporary file + replace) to avoid interruption artifacts.\n- Incremental refresh needs to output a `hit/miss list` to prove that the principle of minimal impact has been implemented.\n- Metadata must include `schema_version`, generator version, and hash algorithm to ensure compatibility with evolution.\n- Failure recovery must support `last stable index rollback` and consistency self-check reconstruction."
         },
         {
+          "heading": "## Load Control",
+          "title": "Load Control",
+          "body": "- Pin `project_path` to the smallest valid git-backed root. Do not scan a workspace wrapper when the real target is a nested repository.\n- Reuse `.arc/init/...` and `.arc/context-hub/index.json` before starting any new scan or structural refresh.\n- For baseline checks, JSON inspection, hashing, and metadata publishing, prefer `git`, `jq`, `rg`, `find`, `shasum`, and lightweight JS/Bun helpers. Do not default to Python for simple file walking or JSON merge work.\n- `arc:init` is a foreground, one-shot workflow. Do not spawn Python watchers, notebook kernels, polling loops, or background daemons as part of index maintenance.\n- If a semantic indexer or MCP-backed search service is not required for the current decision, skip it and stay on local CLI primitives."
+        },
+        {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
           "body": "- Automatic mode entry: `arc init`\n- Force full mode: `arc init --mode full`\n- Explicit incremental mode: `arc init --mode update`\n- Note: `arc:init` currently does not have independent `scripts/`, and full/update is unified and arranged through runtime commands."
@@ -1627,7 +1632,7 @@
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Forcing incremental updates without checking fingerprints.\n- The reason for full/incremental judgment is missing.\n- Sub-Skills are still marked initialized as complete after failure.\n- The output is missing key index files but the downstream process continues."
+          "body": "- Forcing incremental updates without checking fingerprints.\n- The reason for full/incremental judgment is missing.\n- Sub-Skills are still marked initialized as complete after failure.\n- The output is missing key index files but the downstream process continues.\n- Running index maintenance against an umbrella directory instead of the actual git boundary.\n- Spawning extra background helpers for what should be a short, bounded metadata refresh."
         },
         {
           "heading": "## When to Use",
@@ -2074,6 +2079,144 @@
         }
       ],
       "outputs_section": null
+    },
+    {
+      "name": "arc:serve",
+      "description": "本地服务启动与 tmux 会话托管：当用户说“启动前后端/启动 dev server/重启本地服务/重跑端口服务”时触发；用于用 tmux 启停本地长时服务、维护 sessions.json，并在重启前先检查并关闭同名 session，避免重复占用 CPU、内存和端口。",
+      "source_path": "Arc/arc:serve/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "`arc:serve` is responsible for starting, restarting, stopping, and checking local long-running project services through `tmux`.\n\nThe skill is intentionally strict:\n\n- Treat `tmux` as the control plane for local frontend/backend/dev servers.\n- Persist service metadata into `<project_path>/.arc/serve/tmux-sessions.json`.\n- Reconcile JSON state with `tmux ls` before each action.\n- Use a cached Go binary launcher so the first call builds once and later calls reuse the same one-shot controller without paying `go run` compile cost every time.\n- Prevent duplicate CPU, memory, and port consumption by enforcing one managed session per project/service pair."
+        },
+        {
+          "heading": "## Quick Contract",
+          "title": "Quick Contract",
+          "body": "- **Trigger**: The user asks to start, restart, stop, or inspect a local frontend/backend/dev server or another long-running project service.\n- **Inputs**: `project_path`, `service_name`, `action`, and for start/restart a `command`; optional `working_directory`, `ports`, and `session_name`.\n- **Outputs**: Managed tmux session state plus refreshed `<project_path>/.arc/serve/tmux-sessions.json`.\n- **Quality Gate**: The same service must not end up with duplicate running tmux sessions; restart must kill the old session before launching the new one.\n- **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
+        },
+        {
+          "heading": "## Routing Matrix",
+          "title": "Routing Matrix",
+          "body": "- For unified routing comparison, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).\n- A phased getting started view is available at [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#phase-routing-view).\n- For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../../docs/arc-routing-cheatsheet.md).\n- If there is a conflict, the **Boundary Note** of this skill `## When to Use` shall prevail."
+        },
+        {
+          "heading": "## Announce",
+          "title": "Announce",
+          "body": "Begin by stating clearly:\n\"I am using `arc:serve` to reconcile the existing tmux session first, and then start/restart the local service without duplicates.\""
+        },
+        {
+          "heading": "## The Iron Law",
+          "title": "The Iron Law",
+          "body": "```text\nNO DUPLICATE LOCAL SERVICE SESSION\n```\n\nBefore launching any long-running local service, check the project-local registry and live `tmux` state first."
+        },
+        {
+          "heading": "## Workflow",
+          "title": "Workflow",
+          "body": "1. Normalize the request into one action: `start`, `restart`, `stop`, `status`, or `cleanup`.\n2. Choose a stable `service_name` such as `frontend`, `backend`, `api`, or `worker`, then resolve the registry path `<project_path>/.arc/serve/tmux-sessions.json`.\n3. Run `tmux ls` / `tmux has-session` and reconcile the target registry entry before changing anything.\n4. For `start`, reuse the existing live session instead of launching a duplicate; for `restart`, kill the existing session first and only then create a new one.\n5. Update JSON state with `session_name`, `cwd`, `command`, declared `ports`, timestamps, and last action so future turns can reuse the same session contract.\n6. After `start` or `restart`, verify the tmux session still exists and report the exact session name back to the user."
+        },
+        {
+          "heading": "## Quality Gates",
+          "title": "Quality Gates",
+          "body": "- The managed service must have a stable `service_name` and deterministic `session_name`.\n- `restart` must prove the old session has been terminated before the replacement is launched.\n- `tmux-sessions.json` must be updated after each action and stale entries must be reconciled against live tmux state.\n- If the user supplied ports, the registry must preserve those `ports` for later conflict checks and follow-up turns.\n- Long-running project services must not be left in the raw foreground shell when `tmux` is available."
+        },
+        {
+          "heading": "## Expert Standards",
+          "title": "Expert Standards",
+          "body": "- Treat `tmux` as the authoritative runtime wrapper for local long-running services and keep the session name deterministic across turns.\n- Enforce `single-instance` service ownership for each project/service pair; do not blindly launch a second frontend or backend process.\n- Maintain a JSON `registry` and reconcile it with live tmux state before every action; the registry is memory, tmux is liveness.\n- Record declared `port` values with the service metadata so later turns can detect likely conflicts and reuse the right session.\n- Prefer `graceful shutdown` when feasible, but if the user explicitly asks for restart, the previous tmux session must be stopped before replacement."
+        },
+        {
+          "heading": "## Scripts & Commands",
+          "title": "Scripts & Commands",
+          "body": "- Start service: `Arc/arc:serve/scripts/tmux_service_ctl start --project-root <project_path> --service frontend --cwd <cwd> --ports 3000,5173 --command \"pnpm dev --host 0.0.0.0\"`\n- Restart service: `Arc/arc:serve/scripts/tmux_service_ctl restart --project-root <project_path> --service backend --cwd <cwd> --ports 8080 --command \"go run ./cmd/server\"`\n- Stop service: `Arc/arc:serve/scripts/tmux_service_ctl stop --project-root <project_path> --service frontend`\n- Check one service: `Arc/arc:serve/scripts/tmux_service_ctl status --project-root <project_path> --service frontend`\n- Reconcile all remembered sessions: `Arc/arc:serve/scripts/tmux_service_ctl cleanup --project-root <project_path>`\n- Inspect live sessions directly: `tmux ls`\n- Inspect recent logs: `tmux capture-pane -p -t <session_name>`"
+        },
+        {
+          "heading": "## Red Flags",
+          "title": "Red Flags",
+          "body": "- Starting frontend/backend dev servers directly in the foreground shell and leaving them orphaned.\n- Restarting a service without checking `tmux ls` and the JSON registry first.\n- Using a random session name every turn so the same service cannot be matched and reused.\n- Writing `tmux-sessions.json` optimistically without reconciling actual tmux liveness.\n- Launching duplicate services for the same project/service/port tuple and wasting CPU or memory."
+        },
+        {
+          "heading": "## When to Use",
+          "title": "When to Use",
+          "body": "- **Primary Trigger**: The user asks to start, restart, stop, or inspect a local frontend, backend, worker, API server, or other long-running project service.\n- **Typical Scenario**: Local development commands such as `pnpm dev`, `npm run dev`, `vite`, `next dev`, `go run`, `air`, `uvicorn`, `cargo run`, or paired frontend/backend services that should stay alive across turns.\n- **Boundary Note**: Do not use `arc:serve` for production deployment, Docker Compose/Kubernetes orchestration, or one-shot commands like build/test/lint that should exit immediately."
+        },
+        {
+          "heading": "## Input Arguments",
+          "title": "Input Arguments",
+          "body": "| parameter | type | Required | illustrate |\n|------|------|------|------|\n| `project_path` | string | yes | Absolute path to the target project root |\n| `service_name` | string | yes | Stable logical service label, for example `frontend` or `backend` |\n| `action` | enum | yes | `start` / `restart` / `stop` / `status` / `cleanup` |\n| `working_directory` | string | no | Working directory for the service command; defaults to `project_path` |\n| `command` | string | no | Required for `start` and `restart` |\n| `ports` | string | no | Comma-separated port list, for example `3000,5173` |\n| `registry_path` | string | no | Override the default registry path `<project_path>/.arc/serve/tmux-sessions.json` |\n| `session_name` | string | no | Optional exact tmux session name override |"
+        },
+        {
+          "heading": "## Instructions",
+          "title": "Instructions",
+          "body": "### Phase 1: Resolve the service contract\n\n1. Detect whether the user means frontend, backend, API, worker, or another long-running local service.\n2. Choose a stable `service_name` and reuse it on later turns so the same tmux session can be found again.\n3. Derive `working_directory` and `command` from the project structure, and keep the command string explicit in the registry.\n\n### Phase 2: Reconcile state before action\n\n1. Read `<project_path>/.arc/serve/tmux-sessions.json` if it exists.\n2. Run `tmux ls` and `tmux has-session -t <session_name>`.\n3. If the registry says `running` but tmux no longer has the session, mark the entry stale or missing before proceeding.\n4. If the user said `restart`, stop the existing session before starting the replacement.\n\n### Phase 3: Execute through tmux\n\n1. Start with `tmux new-session -d -s <session_name> -c <cwd> \"<command>\"`.\n2. Stop with `tmux kill-session -t <session_name>`.\n3. Never create a duplicate live session for the same logical service.\n4. Prefer the bundled launcher so it can reuse a cached Go binary, keep the JSON registry consistent, and still exit immediately after the control action:\n\n```bash\nArc/arc:serve/scripts/tmux_service_ctl start \\\n  --project-root <project_path> \\\n  --service frontend \\\n  --cwd <cwd> \\\n  --ports 3000 \\\n  --command \"pnpm dev\"\n```\n\nThe launcher builds `tmux_service_ctl.go` into `${XDG_CACHE_HOME:-$HOME/.cache}/arc-serve/...` on first use or after the source changes, then reuses that binary on later calls.\n\n### Phase 4: Persist and report\n\n1. Refresh `<project_path>/.arc/serve/tmux-sessions.json`.\n2. Report the exact `session_name`, `service_name`, `cwd`, `command`, and recorded `ports`.\n3. On the next related turn, check the registry first and confirm whether the same session is still live before launching anything."
+        },
+        {
+          "heading": "## Outputs",
+          "title": "Outputs",
+          "body": "```text\n<project_path>/.arc/serve/\n├── tmux-sessions.json\n└── (managed tmux sessions referenced by name in the registry)\n```"
+        }
+      ],
+      "quick_contract": {
+        "trigger": "The user asks to start, restart, stop, or inspect a local frontend/backend/dev server or another long-running project service.",
+        "inputs": "`project_path`, `service_name`, `action`, and for start/restart a `command`; optional `working_directory`, `ports`, and `session_name`.",
+        "outputs": "Managed tmux session state plus refreshed `<project_path>/.arc/serve/tmux-sessions.json`.",
+        "quality_gate": "The same service must not end up with duplicate running tmux sessions; restart must kill the old session before launching the new one.",
+        "decision_tree": "For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
+      },
+      "input_arguments": [
+        {
+          "parameter": "project_path",
+          "type": "string",
+          "required": "yes",
+          "description": "Absolute path to the target project root"
+        },
+        {
+          "parameter": "service_name",
+          "type": "string",
+          "required": "yes",
+          "description": "Stable logical service label, for example `frontend` or `backend`"
+        },
+        {
+          "parameter": "action",
+          "type": "enum",
+          "required": "yes",
+          "description": "start` / `restart` / `stop` / `status` / `cleanup"
+        },
+        {
+          "parameter": "working_directory",
+          "type": "string",
+          "required": "no",
+          "description": "Working directory for the service command; defaults to `project_path`"
+        },
+        {
+          "parameter": "command",
+          "type": "string",
+          "required": "no",
+          "description": "Required for `start` and `restart`"
+        },
+        {
+          "parameter": "ports",
+          "type": "string",
+          "required": "no",
+          "description": "Comma-separated port list, for example `3000,5173`"
+        },
+        {
+          "parameter": "registry_path",
+          "type": "string",
+          "required": "no",
+          "description": "Override the default registry path `<project_path>/.arc/serve/tmux-sessions.json`"
+        },
+        {
+          "parameter": "session_name",
+          "type": "string",
+          "required": "no",
+          "description": "Optional exact tmux session name override"
+        }
+      ],
+      "outputs_section": {
+        "format": "text",
+        "content": "<project_path>/.arc/serve/\n├── tmux-sessions.json\n└── (managed tmux sessions referenced by name in the registry)"
+      }
     },
     {
       "name": "arc:test",
