@@ -75,7 +75,7 @@ diagnostic_content = """# 诊断报告：Skills
 - **项目健康度**: 优秀 (7.5/10)
 - **核心优势**: 极佳的架构解耦、高度统一的规范模板、清晰的边界定义以及良好的安全意识（自带隐私擦除）。
 - **主要风险**: 测试覆盖率极低（仅2个测试脚本），缺乏系统性的 CI/CD 流水线，完全依赖开发者手工和 `validate_skills.py` 进行检查。
-- **演进建议**: 建立完整的 GitHub Actions 测试矩阵，为所有的 Python 脚本补充单元测试。
+- **演进建议**: 建立完整的 CI 测试矩阵，为所有的 Python 脚本补充单元测试。
 
 ## 七维评估详情
 
@@ -96,7 +96,7 @@ diagnostic_content = """# 诊断报告：Skills
 - **推断**: 作为 AI Native 的生产力中枢，能极大地提升研发团队效能。
 
 ### 5. DevOps (3.0/10)
-- **事实**: 根目录下未发现 `.github/workflows`。
+- **事实**: 根目录下未发现现成的 CI 配置入口。
 - **推断**: 缺少自动化的持续集成流水线。
 
 ### 6. Team Collaboration (8.0/10)
@@ -136,7 +136,7 @@ recommendations_content = """# 改进路线：Skills
 
 1. **建立自动化 CI/CD 流水线**
    - **收益**: 自动验证 `validate_skills.py`，避免破窗。
-   - **成本**: 低（配置 `.github/workflows/ci.yml` 即可）。
+   - **成本**: 低（补充一份仓库级 CI 配置即可）。
    - **方案**: 引入 Python Ruff/Black 检查和 skill validator 拦截。
 
 ## P1 优化建议

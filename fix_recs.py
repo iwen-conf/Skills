@@ -7,7 +7,7 @@ recommendations_content = """# 改进路线：Skills
 ## P0 风险与修复计划
 
 ### 1. 建立 CI/CD 流水线
-建议动作：配置 `.github/workflows/ci.yml` 以实现流水线。问题事实：没有自动化流水线。收益：自动验证 `validate_skills.py` 从而避免破窗。成本：极低。风险：基本无风险，仅增加 CI 运行时间。证据：`README.md:1`。
+建议动作：补齐仓库级 CI 配置以实现流水线。问题事实：没有自动化流水线。收益：自动验证 `validate_skills.py` 从而避免破窗。成本：极低。风险：基本无风险，仅增加 CI 运行时间。证据：`README.md:1`。
 
 ## P1 优化建议
 
