@@ -45,7 +45,7 @@
 | 源文件数 > 10 | +1 | Bash `find ... \| wc -l` |
 | 有 README.md 或 docs/ 目录 | +1 | Glob |
 | 有测试文件 (*_test.go, *.test.ts, test_*.py, *_spec.rb 等) | +1 | Glob |
-| 有 CI 配置 (.github/workflows/, .gitlab-ci.yml, Jenkinsfile) | +1 | Glob |
+| 有 CI 配置 (ci/, .gitlab-ci.yml, Jenkinsfile, azure-pipelines.yml 等) | +1 | Glob |
 | 被父级 workspace/manifest 显式引用 | +2 | Read 父级 manifest |
 
 ### 阈值
@@ -89,7 +89,7 @@
 |------|---------|
 | `Makefile` | make targets（build, test, lint, dev, run） |
 | `package.json` → `scripts` | npm/pnpm 脚本 |
-| `.github/workflows/*.yml` | CI steps 中的命令 |
+| `ci/**/*.yml`, `.gitlab-ci.yml`, `Jenkinsfile` | CI steps 中的命令 |
 | `Dockerfile` | 构建和入口命令 |
 | `docker-compose.yml` | 服务启动方式 |
 

@@ -321,59 +321,16 @@ ci:
 
 ## CI integration example
 
-### GitHub Actions
+Use your existing CI runner to execute the gate command and archive the generated reports on failure.
 
-```yaml
-# .github/workflows/gate.yml
+```sh
+export GATE_MODE=strict
+export GATE_FAIL_ON_DANGEROUS=true
 
-name: Quality Gate
+arc gate --project . --mode strict --exit-code
 
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-
-jobs:
-  gate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup ARC Adapter
-        run: |
-          # Install the runtime adaptation layer you use (example placeholder)
-          echo "install your arc adapter here"
-          
-      - name: Run arc:gate
-        env:
-          GATE_MODE: strict
-          GATE_FAIL_ON_DANGEROUS: true
-        run: |
-          arc gate --project . --mode strict --exit-code
-          
-      - name: Upload Reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gate-reports
-          path: .arc/gate-reports/
-```
-
-### GitLab CI
-
-```yaml
-# .gitlab-ci.yml
-
-quality_gate:
-  stage: test
-  script:
-    - arc gate --project . --mode strict --exit-code
-  artifacts:
-    when: always
-    paths:
-      - .arc/gate-reports/
-    expire_in: 1 week
-  allow_failure: false
+# Persist reports when your runner supports artifacts.
+tar -czf gate-reports.tgz .arc/gate-reports/
 ```
 
 ---
