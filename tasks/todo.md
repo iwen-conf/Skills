@@ -69,3 +69,17 @@
 
 - `arc:serve` now avoids repetitive `go run` compile overhead while still using a short-lived Go controller for each action.
 - The launcher only builds when the controller source hash changes, then `exec`s the cached binary directly on later runs.
+
+## 2026-03-15 remove vendor-specific CI references
+
+- [x] Confirm the repository does not contain actual vendor CI workflow files.
+- [x] Locate source files that still mention vendor-specific CI paths or runner assumptions.
+- [x] Remove vendor-specific CI examples from skill docs and reference material.
+- [x] Rewrite report generator text to use generic CI wording instead of host-specific paths and permissions.
+- [x] Rebuild generated indexes and audit artifacts.
+- [x] Verify there are no remaining vendor-specific CI references in tracked repository files.
+
+## Review
+
+- No real vendor-specific workflow files existed in this repository; the cleanup scope is residual documentation, reference heuristics, and generated report text.
+- The cleanup keeps generic CI guidance where it still adds value, but removes host-specific filenames, actions, and permission assumptions.

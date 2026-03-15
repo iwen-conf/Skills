@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-15T06:10:16.942930Z",
+  "generated_at": "2026-03-15T06:24:00.572492Z",
   "skill_count": 17,
   "skills": [
     {
@@ -1546,7 +1546,7 @@
         {
           "heading": "## CI integration example",
           "title": "CI integration example",
-          "body": "### GitHub Actions\n\n```yaml\n# .github/workflows/gate.yml\n\nname: Quality Gate\n\non:\n  push:\n    branches: [main, develop]\n  pull_request:\n\njobs:\n  gate:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      \n      - name: Setup ARC Adapter\n        run: |\n          # Install the runtime adaptation layer you use (example placeholder)\n          echo \"install your arc adapter here\"\n          \n      - name: Run arc:gate\n        env:\n          GATE_MODE: strict\n          GATE_FAIL_ON_DANGEROUS: true\n        run: |\n          arc gate --project . --mode strict --exit-code\n          \n      - name: Upload Reports\n        if: always()\n        uses: actions/upload-artifact@v4\n        with:\n          name: gate-reports\n          path: .arc/gate-reports/\n```\n\n### GitLab CI\n\n```yaml\n# .gitlab-ci.yml\n\nquality_gate:\n  stage: test\n  script:\n    - arc gate --project . --mode strict --exit-code\n  artifacts:\n    when: always\n    paths:\n      - .arc/gate-reports/\n    expire_in: 1 week\n  allow_failure: false\n```\n\n---"
+          "body": "Use your existing CI runner to execute the gate command and archive the generated reports on failure.\n\n```sh\nexport GATE_MODE=strict\nexport GATE_FAIL_ON_DANGEROUS=true\n\narc gate --project . --mode strict --exit-code\n\n# Persist reports when your runner supports artifacts.\ntar -czf gate-reports.tgz .arc/gate-reports/\n```\n\n---"
         },
         {
           "heading": "## Timeouts and downgrades",
