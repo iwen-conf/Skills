@@ -73,6 +73,14 @@ Index writing must not be started until mode decision and baseline verification 
 - Metadata must include `schema_version`, generator version, and hash algorithm to ensure compatibility with evolution.
 - Failure recovery must support `last stable index rollback` and consistency self-check reconstruction.
 
+## Load Control
+
+- Pin `project_path` to the smallest valid git-backed root. Do not scan a workspace wrapper when the real target is a nested repository.
+- Reuse `.arc/init/...` and `.arc/context-hub/index.json` before starting any new scan or structural refresh.
+- For baseline checks, JSON inspection, hashing, and metadata publishing, prefer `git`, `jq`, `rg`, `find`, `shasum`, and lightweight JS/Bun helpers. Do not default to Python for simple file walking or JSON merge work.
+- `arc:init` is a foreground, one-shot workflow. Do not spawn Python watchers, notebook kernels, polling loops, or background daemons as part of index maintenance.
+- If a semantic indexer or MCP-backed search service is not required for the current decision, skip it and stay on local CLI primitives.
+
 ## Scripts & Commands
 
 - Automatic mode entry: `arc init`
@@ -86,6 +94,8 @@ Index writing must not be started until mode decision and baseline verification 
 - The reason for full/incremental judgment is missing.
 - Sub-Skills are still marked initialized as complete after failure.
 - The output is missing key index files but the downstream process continues.
+- Running index maintenance against an umbrella directory instead of the actual git boundary.
+- Spawning extra background helpers for what should be a short, bounded metadata refresh.
 
 ## When to Use
 

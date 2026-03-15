@@ -67,7 +67,17 @@ Prioritize checking the repository root directory `.slim/cartography.json`:
 python3 <skills_root>/arc:cartography/scripts/cartographer.py init \
   --root ./ \
   --include "src/**/*.ts" \
-  --exclude "**/*.test.ts" --exclude "dist/**" --exclude "node_modules/**"
+  --exclude "**/*.test.ts" \
+  --exclude ".git/**" \
+  --exclude "dist/**" \
+  --exclude "build/**" \
+  --exclude ".next/**" \
+  --exclude "coverage/**" \
+  --exclude "node_modules/**" \
+  --exclude "vendor/**" \
+  --exclude ".venv/**" \
+  --exclude "tmp/**" \
+  --exclude "artifacts/**"
 ```
 
 After initialization it will generate:
@@ -84,6 +94,14 @@ python3 <skills_root>/arc:cartography/scripts/cartographer.py update  --root ./
 rule:
 - Only update `codemap.md` of affected directories
 - Unaffected directories are not rewritten
+
+### Load-safety defaults
+
+1. Run `arc:cartography` against the real git root, not against a parent workspace that only groups multiple repositories.
+2. Prefer `changes` or a tightly scoped `update` before `init`; reserve full initialization for first run or damaged state.
+3. Always exclude generated, vendored, cache, and package-manager directories unless the user explicitly asks to map them.
+4. Treat `cartographer.py` as a batch command. Do not wrap it in a background watcher, polling loop, or persistent Python service.
+5. When downstream work only needs a small structure answer, prefer `rg`, `fd`, `git`, and existing `.arc/context-hub` artifacts instead of rebuilding the whole codemap.
 
 ### Step 4: Optional export of hierarchical JSON
 
@@ -155,6 +173,8 @@ Write the root-level and directory-level `codemap` products into `.arc/context-h
 - No distinction is made between affected directories and unchanged directories
 - The root-level map is not updated, causing the downstream entry to expire.
 - Publishing without shared index results in the inability of downstream products to be reused.
+- Running full mapping on `node_modules`, build outputs, vendored trees, or cache directories by default.
+- Leaving long-lived Python helper processes behind after codemap generation.
 
 Example (directory level):
 
