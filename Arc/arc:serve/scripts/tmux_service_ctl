@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v go >/dev/null 2>&1; then
+  echo "missing required command: go" >&2
+  exit 1
+fi
+
+if ! command -v shasum >/dev/null 2>&1; then
+  echo "missing required command: shasum" >&2
+  exit 1
+fi
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+SOURCE_PATH="$SCRIPT_DIR/tmux_service_ctl.go"
+CACHE_ROOT="${XDG_CACHE_HOME:-$HOME/.cache}/arc-serve"
+SOURCE_HASH=$(shasum -a 256 "$SOURCE_PATH" | awk '{print substr($1, 1, 16)}')
+GOOS=$(go env GOOS)
+GOARCH=$(go env GOARCH)
+CACHE_DIR="$CACHE_ROOT/${GOOS}-${GOARCH}-${SOURCE_HASH}"
+BIN_PATH="$CACHE_DIR/tmux_service_ctl"
+LOCK_DIR="${CACHE_DIR}.lock"
+
+if [ ! -x "$BIN_PATH" ]; then
+  mkdir -p "$CACHE_ROOT"
+
+  while ! mkdir "$LOCK_DIR" 2>/dev/null; do
+    if [ -x "$BIN_PATH" ]; then
+      exec "$BIN_PATH" "$@"
+    fi
+    sleep 0.1
+  done
+
+  cleanup_lock() {
+    rmdir "$LOCK_DIR" 2>/dev/null || true
+  }
+  trap cleanup_lock EXIT
+
+  if [ ! -x "$BIN_PATH" ]; then
+    mkdir -p "$CACHE_DIR"
+    TMP_BIN="$CACHE_DIR/.tmux_service_ctl.tmp.$$"
+    go build -trimpath -ldflags="-s -w" -o "$TMP_BIN" "$SOURCE_PATH"
+    chmod +x "$TMP_BIN"
+    mv "$TMP_BIN" "$BIN_PATH"
+  fi
+fi
+
+exec "$BIN_PATH" "$@"

@@ -46,6 +46,7 @@ Skills/
 | 交付 | `arc:cartography` | 生成/刷新 codemap 结构视图 |
 | 交付 | `arc:uml` | 生成标准 UML |
 | 索引 | `arc:init` | 自动维护索引 |
+| 运行 | `arc:serve` | 用 `tmux` 托管本地前后端 / dev server，避免重复会话 |
 | 上下文 | `arc:context` | 生成/恢复任务上下文包与恢复清单 |
 | 质量 | `arc:e2e` | 按真实路径执行 E2E 验证 |
 | 质量 | `arc:test` | 代码级测试生成 |
@@ -69,6 +70,7 @@ Skills/
 | 准备合并或发布，做门禁 | `arc:gate` |
 | 论文或报告太像模板，想在保留事实与引用前提下润色 | `arc:aigc` |
 | 上下文太长、要切会话或换一个 agent 继续任务 | `arc:context` |
+| 要启动、重启或停止本地前后端 / dev server | `arc:serve` |
 | 需要真实用户路径 E2E 验证 | `arc:e2e` |
 | 需要给模块自动生成单测/边界/benchmark/fuzz | `arc:test` |
 | E2E 失败或线上故障排查 | `arc:fix` |
@@ -83,6 +85,7 @@ Skills/
 - 要改代码交付：`arc:build`
 - 要项目体检打分：`arc:audit`
 - 要发布门禁：`arc:gate`
+- 要托管本地服务：`arc:serve`
 - 要画 UML：`arc:uml`
 
 ## 收敛结果
@@ -136,6 +139,7 @@ arc exec
 arc clarify
 arc decide
 arc build
+arc serve
 arc context
 arc aigc
 arc uml

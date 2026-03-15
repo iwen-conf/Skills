@@ -82,6 +82,7 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
     "arc:fix": [["SEV", "Severity Level", "severity level", "severity"], "5 Whys", "Fault Tree", "Blameless Postmortem"],
     "arc:gate": ["Policy-as-Code", "OWASP", "SBOM", "OPA/Rego"],
     "arc:init": ["schema_version", ["原子更新", "atomic update", "Atomic Update"], ["上一个稳定索引回滚", "stable index rollback", "rollback"]],
+    "arc:serve": ["tmux", "single-instance", ["JSON registry", "registry"], ["port", "ports"], ["graceful shutdown", "graceful"]],
     "arc:ip-check": [["新颖性", "novelty", "Novelty"], ["创造性", "inventiveness", "Inventiveness", "creativity", "creativeness"], ["实用性", "utility", "Utility", "practicality", "practicability"], "FTO"],
     "arc:ip-draft": [["宽-中-窄", "broad-medium-narrow", "Broad-Medium-Narrow", "wide-medium-narrow"], ["权利要求", "claims", "Claims"], ["待法务复核清单", "legal review checklist", "Legal Review", "to be reviewed by legal"]],
     "arc:uml": ["UML 2.5.1 / ISO 19505", "Chen", ["建模假设", "modeling assumption", "Modeling Assumption"]],
@@ -144,6 +145,7 @@ ARC_ROUTED_SKILLS = {
     "arc:fix",
     "arc:uml",
     "arc:test",
+    "arc:serve",
     "arc:context",
     "arc:aigc",
 }

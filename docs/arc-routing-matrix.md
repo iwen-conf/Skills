@@ -19,6 +19,7 @@
 | `arc:cartography` | 需生成或刷新 `codemap` | 仅做需求澄清或编码落地 | `arc:clarify` / `arc:build` / `arc:audit` |
 | `arc:uml` | 需要按项目实际情况输出 UML 图谱 | 仅需仓库目录概览或单点评审结论 | `arc:cartography` / `arc:audit` / `arc:build` |
 | `arc:init` | 自动选择 full/update 维护索引 | 与索引无关的普通开发任务 | `arc:init --mode full` / `arc:init --mode update` |
+| `arc:serve` | 启动/重启/停止本地前后端或 dev server，并避免重复 `tmux` 会话 | 生产部署、Docker/K8s 编排、一次性 build/test/lint 命令 | `arc:build` / `arc:fix` / `arc:context` |
 | `arc:ip-check` | 申请前 IP 可行性与风险评估 | 已进入正式文书撰写阶段 | `arc:ip-draft` |
 | `arc:ip-draft` | 基于审查交接起草申请材料 | 尚未完成可行性审查 | `arc:ip-check` |
 
@@ -49,6 +50,7 @@ flowchart TD
     H -- "索引自动路由" --> IN["arc:init"]
     H -- "强制全量" --> IF["arc:init --mode full"]
     H -- "仅增量" --> IU["arc:init --mode update"]
+    H -- "本地服务启停" --> SV["arc:serve"]
     H -- "上下文恢复/切会话" --> CX["arc:context"]
     H -- "否" --> I{"是知识产权链路?"}
     I -- "可行性审查" --> IA["arc:ip-check"]
@@ -66,6 +68,7 @@ flowchart TD
 | 上下文（Context） | 生成/恢复任务工作集、恢复清单与交接包 | `arc:context` | `arc:init` / `arc:cartography` / `arc:build` | `restore packet` → 落地/修复/验证 |
 | 决策（Decide） | 处理高风险方案分歧 | `arc:decide` | `arc:decide --mode estimate` | `consensus plan` → 实施 |
 | 落地（Build） | 产出可提交代码变更 | `arc:build` | `arc:init` / `arc:cartography` | `change handoff` → 验证 |
+| 运行（Serve） | 启停本地长时前后端服务并维持单实例 `tmux` 会话 | `arc:serve` | `arc:build` / `arc:fix` / `arc:context` | `tmux session handoff` → 调试/回归 |
 | 写作（Writing） | 学术/专业文本去模板化润色并统一作者声线 | `arc:aigc` | `arc:clarify` / `arc:audit` | `rewritten draft` → 人工复核/交付 |
 | 建模（Modeling） | 输出结构/行为/部署 UML 图谱 | `arc:uml` | `arc:cartography` / `arc:audit` | `uml pack` → 评审/交接 |
 | 验证（Validate） | 验证行为、定位失败、闭环修复 | `arc:e2e` / `arc:test` / `arc:fix` | `arc:fix --mode retest-loop` / `arc:build` | `pass/fail evidence` → 治理 |
@@ -78,6 +81,7 @@ flowchart TD
 - 先判定“是否已明确需求边界”：未明确优先 `arc:clarify`。
 - 先判定“是否争议高风险”：高风险优先 `arc:decide`。
 - 先判定“是否需要压缩或恢复任务上下文”：需要则优先 `arc:context`。
+- 先判定“是否需要启停本地长时服务”：需要则优先 `arc:serve`。
 - 先判定“是否进入落地阶段”：已明确直接 `arc:build`。
 - 先判定“是否需要学术/专业文本去模板化润色”：需要则优先 `arc:aigc`。
 - 先判定“是否需要系统建模图”：需要 UML 图谱优先 `arc:uml`。
