@@ -1,4 +1,4 @@
-{"run_id":"visual_diff_run","step":1,"role":"buyer","kind":"exec","cmd":"agent-browser open \"http://localhost:5173/login\"","ts":"2026-03-11T10:00:00","result":"PASS"}
+{"run_id":"visual_diff_run","step":1,"role":"buyer","kind":"exec","cmd":"mcp_chrome-devtools_navigate_page url=\"http://localhost:5173/login\"","ts":"2026-03-11T10:00:00","result":"PASS"}
 {"run_id":"visual_diff_run","step":1,"role":"buyer","kind":"screenshot","path":"screenshots/s0001_login-page.png","description":"Login page initial state","expectation":"Login form visible","url":"http://localhost:5173/login","ts":"2026-03-11T10:00:01","result":"PASS"}
-{"run_id":"visual_diff_run","step":2,"role":"buyer","kind":"exec","cmd":"agent-browser click \"#btn-dashboard\"","ts":"2026-03-11T10:00:10","result":"PASS"}
+{"run_id":"visual_diff_run","step":2,"role":"buyer","kind":"exec","cmd":"mcp_chrome-devtools_click uid=\"#btn-dashboard\"","ts":"2026-03-11T10:00:10","result":"PASS"}
 {"run_id":"visual_diff_run","step":2,"role":"buyer","kind":"screenshot","path":"screenshots/s0002_dashboard.png","description":"Dashboard after login","expectation":"Dashboard visible","url":"http://localhost:5173/dashboard","ts":"2026-03-11T10:00:11","result":"PASS"}

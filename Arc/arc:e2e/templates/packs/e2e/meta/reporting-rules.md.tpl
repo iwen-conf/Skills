@@ -17,9 +17,9 @@
 ```text
 [STEP 0001][OBS] 当前 URL=...；页面存在 <element>; 未登录
 [STEP 0001][THOUGHT] 需要登录 buyer，预期跳转 /dashboard 并出现 Toast "登录成功"
-[STEP 0001][EXEC] agent-browser type "#username" "buyer_01"
-[STEP 0001][EXEC] agent-browser type "#password" "secret123"
-[STEP 0001][EXEC] agent-browser click "#btn-submit"
-[STEP 0001][EXEC] agent-browser screenshot "screenshots/s0001_after-login.png"
+[STEP 0001][EXEC] mcp_chrome-devtools_fill "#username" "buyer_01"
+[STEP 0001][EXEC] mcp_chrome-devtools_fill "#password" "secret123"
+[STEP 0001][EXEC] mcp_chrome-devtools_click "#btn-submit"
+[STEP 0001][EXEC] mcp_chrome-devtools_take_screenshot "screenshots/s0001_after-login.png"
 [STEP 0001][VERIFY] URL=/dashboard 且页面文本包含 "待审批: 1" -> PASS
 ```

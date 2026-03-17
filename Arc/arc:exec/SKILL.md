@@ -145,7 +145,7 @@ SKILL The main text only retains the decision-making process to avoid being too 
 3. If `confirm=true` or a high-impact operation is detected, obtain user confirmation first.
 4. If the task may create large local deltas and the repository has no safe remote checkpoint, establish one before dispatching implementation work.
 5. When the target host is Gitea, coordinate with `agent-browser` to open `https://gitea.ezer.heiyu.space/`, read `lazycat_gitea_account` and `lazycat_gitea_password` from environment variables, create a repository on that server, choose visibility according to user intent or existing policy, copy the SSH URL, write it back to local `.git` remote, and push the current branch.
-6. For scanning, polling, or browser-glue subtasks, follow a CLI-first ladder: `rg/git/sed/awk/fd/find` → `jq` and shell pipelines → `agent-browser` for web tasks → `gh` / `just` when the repo flow fits them → **Go** (`go run`) for high-performance/CPU-intensive tasks to prevent crashes and deadlocks → JS-based tooling such as `bun` (must avoid busy loops and unbatched Promise.all) → repo-native scripts → Python only when nothing lighter fits.
+6. For scanning, polling, or browser-glue subtasks, follow a CLI-first ladder: `rg/git/sed/awk/fd/find` → `jq` and shell pipelines → `mcp_chrome-devtools_*` tools → `gh` / `just` when the repo flow fits them → **Go** (`go run`) for high-performance/CPU-intensive tasks to prevent crashes and deadlocks → JS-based tooling such as `bun` (must avoid busy loops and unbatched Promise.all) → repo-native scripts → Python only when nothing lighter fits.
 7. If `dry_run=true`, exit after this stage and return the preview results.
 
 ### Phase 3: Dispatch

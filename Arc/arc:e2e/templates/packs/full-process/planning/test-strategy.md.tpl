@@ -56,7 +56,7 @@
 | Base URL | `{{TARGET_URL}}` |
 | Validation Container | {{VALIDATION_CONTAINER}} |
 | Browser | chromium (headless) |
-| Automation | agent-browser + ui-ux-simulation |
+| Automation | mcp_chrome-devtools + ui-ux-simulation |
 
 ## 6. Entry / Exit Criteria
 ### Entry Criteria

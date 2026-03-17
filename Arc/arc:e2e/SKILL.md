@@ -6,7 +6,11 @@ description: "真实路径 E2E 验证与证据沉淀；当用户说“端到端�
 
 ## Overview
 
-`arc:e2e` validates real user journeys through the UI and preserves auditable evidence. It uses the `agent-browser` CLI to follow the actual interaction path, capture screenshots and action logs, and produce a reproducible PASS/FAIL report without bypassing the UI.
+`arc:e2e` validates real user journeys through the UI and preserves auditable evidence. It is capable of intelligently selecting the most appropriate browser automation tool based on task requirements:
+- **`chrome-cdp` (`mcp_chrome-devtools_*`)**: A lightweight local debugging tool that connects via WebSocket to an existing Chrome browser. Best for single-point validation, debugging already-open pages, and reusing existing login states.
+- **`agent-browser` (Skill)**: A full-featured AI agent browser framework that manages its own browser lifecycle and session isolation. Best for complex end-to-end automation, multi-step flows (like login), and independent environments.
+
+By choosing the right tool, it follows the actual interaction path, captures screenshots and action logs, and produces a reproducible PASS/FAIL report without bypassing the UI.
 
 ## Quick Contract
 
@@ -154,7 +158,9 @@ When calling this Skill, the following parameters must be explicit in the contex
 ## **Dependencies (environment dependencies)**
 
 * **ace-tool (MCP)**: Required tool. Used to read project source code, API definitions and requirements documents before testing to accurately obtain page selectors (Selectors) and business logic.
-* agent-browser: For browser automation (CLI).
+* **Browser Automation Tools** (choose based on task):
+  * **chrome-cdp** (`mcp_chrome-devtools_*`): For native, lightweight local browser automation, attaching to an already-running session.
+  * **agent-browser** (Skill): For full-featured AI agent browser automation, handling isolated sessions and complex multi-step navigation.
 * docker: for database read-only authentication (CLI).
 
 ## **Critical Rules**
@@ -301,8 +307,10 @@ Already used ace-tool to get the correct information:
 
 1. Based on the analysis of Phase 0, test_objective is disassembled into ordered sub-task queues (Sub-tasks).
 2. Plan the complete user path: Login A -> Action -> Logout -> Login B -> Verify.
-
-3. Evidence Plan:
+3. **Select the Browser Automation Tool**:
+   * If the task involves complex flows (multi-step form submissions, full end-to-end regression, requires isolated session, or heavy interactions), choose **`agent-browser` (Skill)**.
+   * If the task is a simple single-point verification, debugging a specific page already open in your browser, or reusing an existing session/login, choose **`chrome-cdp` (`mcp_chrome-devtools_*`)**.
+4. Evidence Plan:
    * Key nodes that must be screenshotted: after logging in, before and after clicking the key submit button, when a Toast/error pop-up window appears, and on the final results page.
    * Validation that must be done: UI validation text/element status; DB SELECT results if necessary.
 
@@ -311,8 +319,9 @@ Already used ace-tool to get the correct information:
 Execute the following loop for each subtask:
 
 1. **Check**: Confirm the current page status.
-2. **Action**: Use agent-browser to perform atomic operations.
-   * Command: agent-browser open|click|type|wait|screenshot ...
+2. **Action**: Use the selected browser automation tool to perform operations:
+   * If using **`chrome-cdp`**: Use `mcp_chrome-devtools_navigate_page` | `click` | `fill` | `wait_for` | `take_screenshot` etc.
+   * If using **`agent-browser`**: Delegate to the skill to navigate, take snapshots to extract `@ref` identifiers, and interact with the page using those references.
 3. **Wait**: Wait for UI response (Loading ends, Toast appears).
 4. **Verify (UI)**: Check page text or element status.
 5. **Capture Evidence (Mandatory if capture_screenshots=true)**:
@@ -451,8 +460,8 @@ See: `screenshot-manifest.md`
 [ANALYSIS] Use ace-tool to read src/pages/Login.tsx and confirm that the login button ID is #btn-submit-v2
 [PLAN] Switch to the approval manager account
 [THOUGHT] Currently logged out, you need to enter the manager account credentials.
-[EXEC] agent-browser type "#username" "manager_01"
-[EXEC] agent-browser type "#password" "<redacted-at-report-time>"
+[EXEC] mcp_chrome-devtools_fill "#username" "manager_01"
+[EXEC] mcp_chrome-devtools_fill "#password" "<redacted-at-report-time>"
 [VERIFY] Login successful, Dashboard displays "Pending approval: 1" -> PASS
 ```
 
@@ -460,9 +469,9 @@ To ensure traceability, it is recommended to introduce step numbers and screensh
 
 ```markdown
 [STEP 0007][THOUGHT] Prepare to click the submit button. A successful Toast is expected to appear and jump to the list page.
-[STEP 0007][EXEC] agent-browser click "#btn-submit"
-[STEP 0007][EXEC] agent-browser wait "text=Submission successful" 5000
-[STEP 0007][EXEC] agent-browser screenshot "<report_output_dir>/<run_id>/screenshots/s0007_after-submit.png"
+[STEP 0007][EXEC] mcp_chrome-devtools_click "#btn-submit"
+[STEP 0007][EXEC] mcp_chrome-devtools_wait_for "Submission successful" 5000
+[STEP 0007][EXEC] mcp_chrome-devtools_take_screenshot "<report_output_dir>/<run_id>/screenshots/s0007_after-submit.png"
 [STEP 0007][VERIFY] Toast appears and the page jumps to /requests -> PASS
 ```
 
@@ -517,7 +526,7 @@ If the test fails, the following Markdown block must be output:
 When `report_formats` contains `"jsonl"`, each step must append a line of JSON containing at least these fields:
 
 ```json
-{"run_id":"<run_id>","step":1,"role":"buyer","kind":"exec","cmd":"agent-browser open \"<target_url>/login\"","ts":"YYYY-MM-DDTHH:MM:SS","result":"PASS"}
+{"run_id":"<run_id>","step":1,"role":"buyer","kind":"exec","cmd":"mcp_chrome-devtools_navigate_page \"<target_url>/login\"","ts":"YYYY-MM-DDTHH:MM:SS","result":"PASS"}
 {"run_id":"<run_id>","step":1,"role":"buyer","kind":"screenshot","path":"screenshots/s0001_login-page.png","description":"Login page initial state","ts":"YYYY-MM-DDTHH:MM:SS"}
 ```
 ## Anti-Patterns

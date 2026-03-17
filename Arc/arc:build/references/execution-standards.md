@@ -59,7 +59,7 @@
   1. 搜索与读取：`rg`、`rg --files`、`fd`、`git diff`、`git status`、`find`、`sed`
   2. 过滤与聚合：`awk`、`sort`、`uniq`、`cut`、`xargs`
   3. JSON/接口结果处理：`jq`
-  4. 浏览器自动化：`agent-browser`
+  4. 浏览器自动化：`mcp_chrome-devtools_*` 工具（用于单点验证/原生集成）或 `agent-browser`（用于复杂流程/多步交互）
   5. 平台/仓库协作：`gh`、`just`
   6. 高性能结构化逻辑/并发处理：**Go** 语言（若需要编写一次性的高并发扫盘、复杂 AST 解析或 CPU 密集型任务，直接用 `go run` 运行单文件脚本，性能远超 Node/Python，且不会出现死锁吃满内存的问题）
   7. 轻量结构化逻辑：JS/Node，优先 `bun`（用于处理网络请求、JSON 转换等轻量 I/O 密集型任务）
@@ -69,7 +69,7 @@
 - 常见替代策略：
   - 仓库找文件/找文本：优先 `rg` / `fd`，不要写 Python 遍历目录
   - 状态轮询/等待：优先 shell 循环或现成 CLI `wait` 能力，不要写 Python busy loop
-  - 浏览器胶水：优先 `agent-browser` 命令链，不要再包一层 Python
+  - 浏览器胶水：优先 `mcp_chrome-devtools_*` 工具或 `agent-browser` 视复杂程度而定，不要再包一层 Python
   - Git 信息采样：优先 `git status`、`git diff --stat`、`git log --oneline`
   - GitHub 操作：优先 `gh`，不要为了 PR / issue / repo 信息再开浏览器
   - 项目标准命令：若存在 `justfile`，优先 `just <task>`，避免重复拼命令

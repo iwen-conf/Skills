@@ -23,6 +23,17 @@
 | `arc:ip-check` | 申请前 IP 可行性与风险评估 | 已进入正式文书撰写阶段 | `arc:ip-draft` |
 | `arc:ip-draft` | 基于审查交接起草申请材料 | 尚未完成可行性审查 | `arc:ip-check` |
 
+## Browser Automation Strategy
+
+选择最适合当前任务的浏览器自动化工具：
+
+| 场景类型 | 推荐工具 | 核心优势 | 典型任务 |
+|---|---|---|---|
+| **单点验证 / 证据沉淀** | `mcp_chrome-devtools_*` | 原生集成，极速，无需外部依赖 | 截图存证、简单元素状态检查、执行单行 JS |
+| **复杂流程 / 多步交互** | `agent-browser` (Skill) | 自动等待、Ref 引用、Session 隔离 | 完整登录流程、多级表单提交、跨页面跳转 |
+| **UI/UX 审计** | `arc:audit` + DevTools | 深度分析性能与无障碍 | 核心指标 (LCP/CLS) 审计、WCAG 语义检查 |
+| **端到端回归** | `arc:e2e` | 完整报告、证据闭环、Persona 模拟 | 冒烟测试、关键业务路径回归 |
+
 ## Signal-to-Skill Decision Tree
 
 ```mermaid

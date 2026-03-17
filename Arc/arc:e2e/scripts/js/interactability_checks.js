@@ -1,7 +1,7 @@
 /**
- * Interactability & contrast verification snippets for agent-browser injection.
+ * Interactability & contrast verification snippets for Chrome DevTools injection.
  *
- * Usage: inject this script into the page via agent-browser, then call the
+ * Usage: inject this script into the page via mcp_chrome-devtools_evaluate_script, then call the
  * exported functions from the console. Results are JSON objects suitable for
  * logging to events.jsonl (kind: "interactability_check").
  */

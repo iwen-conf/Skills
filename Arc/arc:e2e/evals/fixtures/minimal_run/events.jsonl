@@ -1,3 +1,3 @@
-{"run_id":"minimal_run","step":1,"role":"buyer","kind":"exec","cmd":"agent-browser open \"http://localhost:5173/login\"","ts":"2026-02-01T14:30:00","result":"PASS"}
+{"run_id":"minimal_run","step":1,"role":"buyer","kind":"exec","cmd":"mcp_chrome-devtools_navigate_page url=\"http://localhost:5173/login\"","ts":"2026-02-01T14:30:00","result":"PASS"}
 {"run_id":"minimal_run","step":1,"role":"buyer","kind":"verify","expected":"Login form visible","actual":"Login form visible","ts":"2026-02-01T14:30:01","result":"PASS"}
 {"run_id":"minimal_run","step":1,"role":"buyer","kind":"screenshot","path":"screenshots/s0001_login-page.png","description":"登录页初始状态","expectation":"显示登录表单","url":"http://localhost:5173/login","ts":"2026-02-01T14:30:02","result":"PASS"}

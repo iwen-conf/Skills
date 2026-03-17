@@ -203,7 +203,7 @@ python Arc/arc:fix/scripts/triage_run.py <run_dir> \
 9. **Checkpoint before risky repairs**
    - Before Medium/High-risk hotfixes, confirm the recoverable boundary first: pushed remote branch, local snapshot, or a clearly documented blocker.
    - If the repository has no safe remote and the target host is Gitea, coordinate with `agent-browser` to create a repository at `https://gitea.ezer.heiyu.space/`, using `lazycat_gitea_account` and `lazycat_gitea_password`, choose visibility according to user intent or existing policy, then backfill the SSH URL into local `.git` remote and push the current branch.
-   - For scans, polling, or browser glue during triage, follow a CLI-first ladder: `rg/git/sed/awk/fd/find` → `jq` and shell pipelines → `agent-browser` → `gh` / `just` when applicable → **Go** (`go run`) for high-performance/CPU-intensive tasks to prevent crashes → JS tools such as `bun` (with batching) → `tmux` for long-running sessions → repo-native scripts → Python only when nothing lighter fits.
+   - For scans, polling, or browser glue during triage, follow a CLI-first ladder: `rg/git/sed/awk/fd/find` → `jq` and shell pipelines → `mcp_chrome-devtools_*` tools or `agent-browser` → `gh` / `just` when applicable → **Go** (`go run`) for high-performance/CPU-intensive tasks to prevent crashes → JS tools such as `bun` (with batching) → `tmux` for long-running sessions → repo-native scripts → Python only when nothing lighter fits.
 
 10. **Proactive Extrapolation (举一反三) & Anti-NPC Debugging (强制要求)**
    - **No blind retries**: If a fix fails 2 times, you MUST stop tweaking parameters and perform a 7-step check: read full logs, search codebase, read 50 lines of context, verify assumptions, reverse assumptions, isolate, and change approach.

@@ -1,0 +1,1686 @@
+{
+  "files": [
+    {
+      "path": "Arc/README.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 254,
+      "lines": 9
+    },
+    {
+      "path": "Arc/arc:aigc/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 9859,
+      "lines": 110
+    },
+    {
+      "path": "Arc/arc:aigc/evals.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 3283,
+      "lines": 117
+    },
+    {
+      "path": "Arc/arc:aigc/references/bypassaigc-adaptation.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 3050,
+      "lines": 72
+    },
+    {
+      "path": "Arc/arc:audit/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 14222,
+      "lines": 211
+    },
+    {
+      "path": "Arc/arc:audit/references/dimensions.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 9021,
+      "lines": 134
+    },
+    {
+      "path": "Arc/arc:audit/references/scoring-weights.yaml",
+      "type": "source",
+      "language": "YAML",
+      "size": 5808,
+      "lines": 173
+    },
+    {
+      "path": "Arc/arc:audit/references/spa-dashboard-spec.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 6624,
+      "lines": 115
+    },
+    {
+      "path": "Arc/arc:audit/scripts/integrate_score.py",
+      "type": "source",
+      "size": 125687,
+      "lines": 2554
+    },
+    {
+      "path": "Arc/arc:build/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 12604,
+      "lines": 247
+    },
+    {
+      "path": "Arc/arc:build/references/execution-standards.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 7047,
+      "lines": 142
+    },
+    {
+      "path": "Arc/arc:build/references/handoff-contract.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 204,
+      "lines": 9
+    },
+    {
+      "path": "Arc/arc:build/scripts/render_implementation_report.py",
+      "type": "source",
+      "size": 2715,
+      "lines": 78
+    },
+    {
+      "path": "Arc/arc:build/scripts/scaffold_implement_case.py",
+      "type": "source",
+      "size": 2585,
+      "lines": 89
+    },
+    {
+      "path": "Arc/arc:cartography/README.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1408,
+      "lines": 57
+    },
+    {
+      "path": "Arc/arc:cartography/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 8971,
+      "lines": 199
+    },
+    {
+      "path": "Arc/arc:cartography/references/tiered-json-examples.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 3115,
+      "lines": 139
+    },
+    {
+      "path": "Arc/arc:cartography/scripts/cartographer.py",
+      "type": "source",
+      "size": 21138,
+      "lines": 654
+    },
+    {
+      "path": "Arc/arc:cartography/scripts/test_cartographer.py",
+      "type": "source",
+      "size": 3803,
+      "lines": 101
+    },
+    {
+      "path": "Arc/arc:clarify/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 10216,
+      "lines": 218
+    },
+    {
+      "path": "Arc/arc:context/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 11635,
+      "lines": 145
+    },
+    {
+      "path": "Arc/arc:context/references/context-mode-adaptation.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4891,
+      "lines": 84
+    },
+    {
+      "path": "Arc/arc:context/references/data-handling-playbook.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 2677,
+      "lines": 42
+    },
+    {
+      "path": "Arc/arc:context/scripts/scaffold_context_session.py",
+      "type": "source",
+      "size": 10578,
+      "lines": 333
+    },
+    {
+      "path": "Arc/arc:decide/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 10786,
+      "lines": 225
+    },
+    {
+      "path": "Arc/arc:decide/references/schedule-task-playbook.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 3585,
+      "lines": 127
+    },
+    {
+      "path": "Arc/arc:decide/scripts/generate_bdd_seed.py",
+      "type": "source",
+      "size": 5689,
+      "lines": 187
+    },
+    {
+      "path": "Arc/arc:e2e/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 31992,
+      "lines": 544
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/bad_jsonl/action-log.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 25,
+      "lines": 3
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/bad_jsonl/report.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 804,
+      "lines": 21
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/bad_jsonl/screenshot-manifest.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 23,
+      "lines": 2
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/minimal_run/action-log.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 25,
+      "lines": 3
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/minimal_run/report.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1323,
+      "lines": 37
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/minimal_run/screenshot-manifest.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 23,
+      "lines": 2
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/visual_diff_run/action-log.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 19,
+      "lines": 1
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/visual_diff_run/report.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1048,
+      "lines": 39
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/visual_diff_run/screenshot-manifest.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 22,
+      "lines": 1
+    },
+    {
+      "path": "Arc/arc:e2e/evals.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 6031,
+      "lines": 176
+    },
+    {
+      "path": "Arc/arc:e2e/examples/README.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1669,
+      "lines": 66
+    },
+    {
+      "path": "Arc/arc:e2e/examples/personas.sample.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 136,
+      "lines": 5
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-20_11-13-46_dashboard-login/action-log.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 74,
+      "lines": 1
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-20_11-13-46_dashboard-login/db/README.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 667,
+      "lines": 3
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-20_11-13-46_dashboard-login/failures/_failure_template.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 625,
+      "lines": 17
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-20_11-13-46_dashboard-login/meta/packs/e2e.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 266,
+      "lines": 4
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-20_11-13-46_dashboard-login/meta/reporting-rules.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1744,
+      "lines": 19
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-20_11-13-46_dashboard-login/report.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 3061,
+      "lines": 42
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-20_11-13-46_dashboard-login/screenshot-manifest.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 892,
+      "lines": 5
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-25_updates-activate_check/action-log.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 74,
+      "lines": 1
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-25_updates-activate_check/db/README.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 667,
+      "lines": 3
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-25_updates-activate_check/failures/_failure_template.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 625,
+      "lines": 17
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-25_updates-activate_check/meta/packs/e2e.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 312,
+      "lines": 4
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-25_updates-activate_check/meta/reporting-rules.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1744,
+      "lines": 19
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-25_updates-activate_check/report.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1986,
+      "lines": 37
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-25_updates-activate_check/screenshot-manifest.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 340,
+      "lines": 3
+    },
+    {
+      "path": "Arc/arc:e2e/scripts/accounts_to_personas.py",
+      "type": "source",
+      "size": 3726,
+      "lines": 136
+    },
+    {
+      "path": "Arc/arc:e2e/scripts/baseline_manager.py",
+      "type": "source",
+      "size": 8950,
+      "lines": 261
+    },
+    {
+      "path": "Arc/arc:e2e/scripts/beautify_md.py",
+      "type": "source",
+      "size": 3310,
+      "lines": 106
+    },
+    {
+      "path": "Arc/arc:e2e/scripts/check_artifacts.py",
+      "type": "source",
+      "size": 9196,
+      "lines": 285
+    },
+    {
+      "path": "Arc/arc:e2e/scripts/compile_report.py",
+      "type": "source",
+      "size": 23699,
+      "lines": 678
+    },
+    {
+      "path": "Arc/arc:e2e/scripts/contrast_check.py",
+      "type": "source",
+      "size": 6601,
+      "lines": 203
+    },
+    {
+      "path": "Arc/arc:e2e/scripts/js/interactability_checks.js",
+      "type": "source",
+      "language": "JavaScript",
+      "size": 6612,
+      "lines": 227
+    },
+    {
+      "path": "Arc/arc:e2e/scripts/new_defect.py",
+      "type": "source",
+      "size": 4284,
+      "lines": 130
+    },
+    {
+      "path": "Arc/arc:e2e/scripts/scaffold_run.py",
+      "type": "source",
+      "size": 8687,
+      "lines": 262
+    },
+    {
+      "path": "Arc/arc:e2e/scripts/visual_diff.py",
+      "type": "source",
+      "size": 8448,
+      "lines": 253
+    },
+    {
+      "path": "Arc/arc:e2e/templates/README.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 680,
+      "lines": 13
+    },
+    {
+      "path": "Arc/arc:exec/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 12522,
+      "lines": 227
+    },
+    {
+      "path": "Arc/arc:exec/references/schedule-task-playbook.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 2753,
+      "lines": 98
+    },
+    {
+      "path": "Arc/arc:exec/scripts/render_dispatch_report.py",
+      "type": "source",
+      "size": 4051,
+      "lines": 124
+    },
+    {
+      "path": "Arc/arc:exec/scripts/scaffold_exec_case.py",
+      "type": "source",
+      "size": 4062,
+      "lines": 146
+    },
+    {
+      "path": "Arc/arc:fix/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 23990,
+      "lines": 366
+    },
+    {
+      "path": "Arc/arc:fix/references/fix-packet.template.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 2600,
+      "lines": 76
+    },
+    {
+      "path": "Arc/arc:fix/references/triage-decision-tree.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1530,
+      "lines": 32
+    },
+    {
+      "path": "Arc/arc:fix/scripts/triage_run.py",
+      "type": "source",
+      "size": 15874,
+      "lines": 431
+    },
+    {
+      "path": "Arc/arc:gate/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 11341,
+      "lines": 351
+    },
+    {
+      "path": "Arc/arc:gate/references/gate-config.yaml",
+      "type": "source",
+      "language": "YAML",
+      "size": 2494,
+      "lines": 110
+    },
+    {
+      "path": "Arc/arc:gate/scripts/check_gate.py",
+      "type": "source",
+      "size": 17404,
+      "lines": 568
+    },
+    {
+      "path": "Arc/arc:init/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 13494,
+      "lines": 344
+    },
+    {
+      "path": "Arc/arc:init/references/claude-md-schema.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 6213,
+      "lines": 254
+    },
+    {
+      "path": "Arc/arc:init/references/scan-heuristics.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4860,
+      "lines": 148
+    },
+    {
+      "path": "Arc/arc:ip-check/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 29015,
+      "lines": 526
+    },
+    {
+      "path": "Arc/arc:ip-check/references/cn-ip-evaluation-criteria.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 811,
+      "lines": 21
+    },
+    {
+      "path": "Arc/arc:ip-check/references/feasibility-framework.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 10997,
+      "lines": 272
+    },
+    {
+      "path": "Arc/arc:ip-check/references/policy-anchors-2024-2025.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 29,
+      "lines": 1
+    },
+    {
+      "path": "Arc/arc:ip-check/references/report-scoring-model.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 544,
+      "lines": 21
+    },
+    {
+      "path": "Arc/arc:ip-check/references/soft-copyright-material-checklist.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 8039,
+      "lines": 260
+    },
+    {
+      "path": "Arc/arc:ip-check/scripts/fee_reduction_check.py",
+      "type": "source",
+      "size": 3768,
+      "lines": 113
+    },
+    {
+      "path": "Arc/arc:ip-check/scripts/format_compliance_checker.py",
+      "type": "source",
+      "size": 2370,
+      "lines": 76
+    },
+    {
+      "path": "Arc/arc:ip-check/scripts/scaffold_audit_case.py",
+      "type": "source",
+      "size": 3503,
+      "lines": 113
+    },
+    {
+      "path": "Arc/arc:ip-draft/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 27860,
+      "lines": 511
+    },
+    {
+      "path": "Arc/arc:ip-draft/references/cn-copyright-doc-structure.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 402,
+      "lines": 16
+    },
+    {
+      "path": "Arc/arc:ip-draft/references/cn-patent-doc-structure.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 373,
+      "lines": 17
+    },
+    {
+      "path": "Arc/arc:ip-draft/references/document-schema.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 17539,
+      "lines": 764
+    },
+    {
+      "path": "Arc/arc:ip-draft/scripts/render_ip_documents.py",
+      "type": "source",
+      "size": 5853,
+      "lines": 146
+    },
+    {
+      "path": "Arc/arc:ip-draft/scripts/scaffold_drafting_case.py",
+      "type": "source",
+      "size": 2268,
+      "lines": 79
+    },
+    {
+      "path": "Arc/arc:ip-draft/templates/claims-program-product.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 80,
+      "lines": 1
+    },
+    {
+      "path": "Arc/arc:ip-draft/templates/format-baseline.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 47,
+      "lines": 1
+    },
+    {
+      "path": "Arc/arc:ip-draft/templates/oa-response-playbook.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 23,
+      "lines": 1
+    },
+    {
+      "path": "Arc/arc:serve/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 9344,
+      "lines": 155
+    },
+    {
+      "path": "Arc/arc:serve/scripts/tmux_service_ctl.go",
+      "type": "source",
+      "size": 17210,
+      "lines": 658
+    },
+    {
+      "path": "Arc/arc:test/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 7307,
+      "lines": 107
+    },
+    {
+      "path": "Arc/arc:test/evals/fixtures/go_project/calc.go",
+      "type": "test",
+      "size": 240,
+      "lines": 17
+    },
+    {
+      "path": "Arc/arc:test/evals/fixtures/go_project/calc_test.go",
+      "type": "test",
+      "size": 296,
+      "lines": 18
+    },
+    {
+      "path": "Arc/arc:test/evals/fixtures/python_project/src/app.py",
+      "type": "test",
+      "size": 296,
+      "lines": 15
+    },
+    {
+      "path": "Arc/arc:test/evals.json",
+      "type": "test",
+      "language": "JSON",
+      "size": 4301,
+      "lines": 147
+    },
+    {
+      "path": "Arc/arc:test/scripts/detect_lang.py",
+      "type": "test",
+      "size": 4904,
+      "lines": 151
+    },
+    {
+      "path": "Arc/arc:test/scripts/scaffold_tests.py",
+      "type": "test",
+      "size": 8506,
+      "lines": 243
+    },
+    {
+      "path": "Arc/arc:test/scripts/validate_tests.py",
+      "type": "test",
+      "size": 5275,
+      "lines": 176
+    },
+    {
+      "path": "Arc/arc:uml/SKILL.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 11880,
+      "lines": 224
+    },
+    {
+      "path": "Arc/arc:uml/references/diagram-catalog.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 2637,
+      "lines": 43
+    },
+    {
+      "path": "Arc/arc:uml/references/notation-standards.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1462,
+      "lines": 48
+    },
+    {
+      "path": "Arc/arc:uml/scripts/scaffold_uml_pack.py",
+      "type": "source",
+      "size": 5292,
+      "lines": 173
+    },
+    {
+      "path": "README.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 5451,
+      "lines": 165
+    },
+    {
+      "path": "SPA项目评估大盘需求规格说明书.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 18000,
+      "lines": 141
+    },
+    {
+      "path": "docs/arc-routing-cheatsheet.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1673,
+      "lines": 38
+    },
+    {
+      "path": "docs/arc-routing-matrix.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 7615,
+      "lines": 100
+    },
+    {
+      "path": "docs/conductor-pattern.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 9619,
+      "lines": 319
+    },
+    {
+      "path": "docs/fusion-guide.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 1509,
+      "lines": 57
+    },
+    {
+      "path": "docs/orchestration-contract.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 3997,
+      "lines": 94
+    },
+    {
+      "path": "fix_recs.py",
+      "type": "source",
+      "size": 949,
+      "lines": 19
+    },
+    {
+      "path": "fix_recs_count.py",
+      "type": "source",
+      "size": 1460,
+      "lines": 24
+    },
+    {
+      "path": "fix_recs_final.py",
+      "type": "source",
+      "size": 1111,
+      "lines": 16
+    },
+    {
+      "path": "fix_recs_validator.py",
+      "type": "source",
+      "size": 1235,
+      "lines": 20
+    },
+    {
+      "path": "fix_reports.py",
+      "type": "source",
+      "size": 5797,
+      "lines": 170
+    },
+    {
+      "path": "question.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 4258,
+      "lines": 84
+    },
+    {
+      "path": "read_val.py",
+      "type": "source",
+      "size": 130,
+      "lines": 2
+    },
+    {
+      "path": "schemas/artifact-manifest.schema.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 1785,
+      "lines": 62
+    },
+    {
+      "path": "schemas/codemap.schema.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 3777,
+      "lines": 139
+    },
+    {
+      "path": "schemas/evals.schema.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 5708,
+      "lines": 201
+    },
+    {
+      "path": "schemas/skill.schema.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 2773,
+      "lines": 102
+    },
+    {
+      "path": "schemas/skills.index.schema.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 2960,
+      "lines": 108
+    },
+    {
+      "path": "score/references/bugfix-grades.yaml",
+      "type": "source",
+      "language": "YAML",
+      "size": 3832,
+      "lines": 229
+    },
+    {
+      "path": "score/references/smell-rules.yaml",
+      "type": "source",
+      "language": "YAML",
+      "size": 8672,
+      "lines": 286
+    },
+    {
+      "path": "score/scripts/aggregate_score.py",
+      "type": "source",
+      "size": 8793,
+      "lines": 311
+    },
+    {
+      "path": "score/scripts/detect_smell.py",
+      "type": "source",
+      "size": 12445,
+      "lines": 398
+    },
+    {
+      "path": "score/scripts/generate_review_handoff.py",
+      "type": "source",
+      "size": 5905,
+      "lines": 195
+    },
+    {
+      "path": "score/scripts/grade_bugfix.py",
+      "type": "source",
+      "size": 8862,
+      "lines": 354
+    },
+    {
+      "path": "score/scripts/scaffold_score_case.py",
+      "type": "source",
+      "size": 4686,
+      "lines": 183
+    },
+    {
+      "path": "score/scripts/smoke_test_integration.py",
+      "type": "source",
+      "size": 7280,
+      "lines": 233
+    },
+    {
+      "path": "score/scripts/validate_score_artifacts.py",
+      "type": "source",
+      "size": 10481,
+      "lines": 279
+    },
+    {
+      "path": "scripts/arc_privacy.py",
+      "type": "source",
+      "size": 662,
+      "lines": 36
+    },
+    {
+      "path": "scripts/build_skills_index.py",
+      "type": "source",
+      "size": 557,
+      "lines": 24
+    },
+    {
+      "path": "scripts/run_evals.py",
+      "type": "source",
+      "size": 652,
+      "lines": 36
+    },
+    {
+      "path": "scripts/validate_skills.py",
+      "type": "source",
+      "size": 883,
+      "lines": 35
+    },
+    {
+      "path": "skills.index.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 328987,
+      "lines": 2523
+    },
+    {
+      "path": "src/arc_core/__init__.py",
+      "type": "source",
+      "size": 1521,
+      "lines": 71
+    },
+    {
+      "path": "src/arc_core/artifact_manifest.py",
+      "type": "source",
+      "size": 1292,
+      "lines": 39
+    },
+    {
+      "path": "src/arc_core/eval_runner.py",
+      "type": "source",
+      "size": 21624,
+      "lines": 575
+    },
+    {
+      "path": "src/arc_core/privacy.py",
+      "type": "source",
+      "size": 4464,
+      "lines": 151
+    },
+    {
+      "path": "src/arc_core/skill_registry.py",
+      "type": "source",
+      "size": 5090,
+      "lines": 137
+    },
+    {
+      "path": "src/arc_core/skill_validation.py",
+      "type": "source",
+      "size": 19958,
+      "lines": 545
+    },
+    {
+      "path": "tasks/lessons.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 646,
+      "lines": 7
+    },
+    {
+      "path": "tasks/todo.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 5646,
+      "lines": 85
+    },
+    {
+      "path": "templates/privacy.json",
+      "type": "source",
+      "language": "JSON",
+      "size": 698,
+      "lines": 35
+    },
+    {
+      "path": "tests/test_arc_privacy.py",
+      "type": "test",
+      "size": 1230,
+      "lines": 32
+    },
+    {
+      "path": "tests/test_context_scaffold.py",
+      "type": "test",
+      "size": 2214,
+      "lines": 65
+    },
+    {
+      "path": "tests/test_eval_runner.py",
+      "type": "test",
+      "size": 1902,
+      "lines": 61
+    },
+    {
+      "path": "tests/test_skill_registry.py",
+      "type": "test",
+      "size": 3399,
+      "lines": 88
+    },
+    {
+      "path": "tests/test_skill_validation.py",
+      "type": "test",
+      "size": 9574,
+      "lines": 322
+    },
+    {
+      "path": "tests/test_visual_diff.py",
+      "type": "test",
+      "size": 5442,
+      "lines": 160
+    },
+    {
+      "path": "update_reports.py",
+      "type": "source",
+      "size": 6202,
+      "lines": 161
+    },
+    {
+      "path": "所有测试.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 3116,
+      "lines": 46
+    },
+    {
+      "path": "软件知识产权保护指南.md",
+      "type": "doc",
+      "language": "Markdown",
+      "size": 61470,
+      "lines": 195
+    }
+  ],
+  "directories": [
+    {
+      "path": "Arc",
+      "fileCount": 1,
+      "subdirCount": 17
+    },
+    {
+      "path": "Arc/arc:aigc",
+      "fileCount": 2,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:aigc/references",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:audit",
+      "fileCount": 1,
+      "subdirCount": 3
+    },
+    {
+      "path": "Arc/arc:audit/references",
+      "fileCount": 3,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:audit/scripts",
+      "fileCount": 1,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:audit/templates",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:build",
+      "fileCount": 1,
+      "subdirCount": 3
+    },
+    {
+      "path": "Arc/arc:build/references",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:build/scripts",
+      "fileCount": 2,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:build/templates",
+      "fileCount": 3,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:cartography",
+      "fileCount": 2,
+      "subdirCount": 2
+    },
+    {
+      "path": "Arc/arc:cartography/references",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:cartography/scripts",
+      "fileCount": 2,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:clarify",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:context",
+      "fileCount": 1,
+      "subdirCount": 2
+    },
+    {
+      "path": "Arc/arc:context/references",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:context/scripts",
+      "fileCount": 1,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:decide",
+      "fileCount": 1,
+      "subdirCount": 2
+    },
+    {
+      "path": "Arc/arc:decide/references",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:decide/scripts",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e",
+      "fileCount": 4,
+      "subdirCount": 6
+    },
+    {
+      "path": "Arc/arc:e2e/evals",
+      "fileCount": 0,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures",
+      "fileCount": 0,
+      "subdirCount": 3
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/bad_jsonl",
+      "fileCount": 5,
+      "subdirCount": 3
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/bad_jsonl/db",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/bad_jsonl/failures",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/bad_jsonl/screenshots",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/minimal_run",
+      "fileCount": 5,
+      "subdirCount": 3
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/minimal_run/db",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/minimal_run/failures",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/minimal_run/screenshots",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/visual_diff_run",
+      "fileCount": 5,
+      "subdirCount": 4
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/visual_diff_run/baselines",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/visual_diff_run/db",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/visual_diff_run/failures",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/evals/fixtures/visual_diff_run/screenshots",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/examples",
+      "fileCount": 3,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/reports",
+      "fileCount": 0,
+      "subdirCount": 2
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-20_11-13-46_dashboard-login",
+      "fileCount": 4,
+      "subdirCount": 4
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-20_11-13-46_dashboard-login/db",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-20_11-13-46_dashboard-login/failures",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-20_11-13-46_dashboard-login/meta",
+      "fileCount": 1,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-20_11-13-46_dashboard-login/meta/packs",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-20_11-13-46_dashboard-login/screenshots",
+      "fileCount": 3,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-25_updates-activate_check",
+      "fileCount": 5,
+      "subdirCount": 4
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-25_updates-activate_check/db",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-25_updates-activate_check/failures",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-25_updates-activate_check/meta",
+      "fileCount": 1,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-25_updates-activate_check/meta/packs",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/reports/2026-02-25_updates-activate_check/screenshots",
+      "fileCount": 0,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/scripts",
+      "fileCount": 9,
+      "subdirCount": 2
+    },
+    {
+      "path": "Arc/arc:e2e/scripts/js",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/templates",
+      "fileCount": 1,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs",
+      "fileCount": 0,
+      "subdirCount": 2
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/e2e",
+      "fileCount": 4,
+      "subdirCount": 3
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/e2e/db",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/e2e/failures",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/e2e/meta",
+      "fileCount": 1,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/e2e/meta/packs",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/full-process",
+      "fileCount": 0,
+      "subdirCount": 8
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/full-process/a11y",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/full-process/compatibility",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/full-process/execution",
+      "fileCount": 3,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/full-process/meta",
+      "fileCount": 0,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/full-process/meta/packs",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/full-process/performance",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/full-process/planning",
+      "fileCount": 6,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/full-process/ux",
+      "fileCount": 3,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:e2e/templates/packs/full-process/visual",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:exec",
+      "fileCount": 1,
+      "subdirCount": 2
+    },
+    {
+      "path": "Arc/arc:exec/references",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:exec/scripts",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:fix",
+      "fileCount": 1,
+      "subdirCount": 2
+    },
+    {
+      "path": "Arc/arc:fix/references",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:fix/scripts",
+      "fileCount": 1,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:gate",
+      "fileCount": 1,
+      "subdirCount": 2
+    },
+    {
+      "path": "Arc/arc:gate/references",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:gate/scripts",
+      "fileCount": 1,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:init",
+      "fileCount": 1,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:init/references",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:ip-check",
+      "fileCount": 1,
+      "subdirCount": 3
+    },
+    {
+      "path": "Arc/arc:ip-check/references",
+      "fileCount": 5,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:ip-check/scripts",
+      "fileCount": 3,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:ip-check/templates",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:ip-draft",
+      "fileCount": 1,
+      "subdirCount": 3
+    },
+    {
+      "path": "Arc/arc:ip-draft/references",
+      "fileCount": 3,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:ip-draft/scripts",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:ip-draft/templates",
+      "fileCount": 8,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:serve",
+      "fileCount": 1,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:serve/scripts",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:test",
+      "fileCount": 2,
+      "subdirCount": 3
+    },
+    {
+      "path": "Arc/arc:test/evals",
+      "fileCount": 0,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:test/evals/fixtures",
+      "fileCount": 0,
+      "subdirCount": 2
+    },
+    {
+      "path": "Arc/arc:test/evals/fixtures/go_project",
+      "fileCount": 3,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:test/evals/fixtures/python_project",
+      "fileCount": 1,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:test/evals/fixtures/python_project/src",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:test/scripts",
+      "fileCount": 3,
+      "subdirCount": 1
+    },
+    {
+      "path": "Arc/arc:test/templates",
+      "fileCount": 0,
+      "subdirCount": 5
+    },
+    {
+      "path": "Arc/arc:test/templates/go",
+      "fileCount": 5,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:test/templates/python",
+      "fileCount": 3,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:test/templates/rust",
+      "fileCount": 3,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:test/templates/swift",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:test/templates/typescript",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:uml",
+      "fileCount": 1,
+      "subdirCount": 2
+    },
+    {
+      "path": "Arc/arc:uml/references",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "Arc/arc:uml/scripts",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "docs",
+      "fileCount": 5,
+      "subdirCount": 0
+    },
+    {
+      "path": "schemas",
+      "fileCount": 5,
+      "subdirCount": 0
+    },
+    {
+      "path": "score",
+      "fileCount": 0,
+      "subdirCount": 3
+    },
+    {
+      "path": "score/references",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "score/scripts",
+      "fileCount": 7,
+      "subdirCount": 1
+    },
+    {
+      "path": "score/templates",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "scripts",
+      "fileCount": 4,
+      "subdirCount": 1
+    },
+    {
+      "path": "src",
+      "fileCount": 0,
+      "subdirCount": 1
+    },
+    {
+      "path": "src/arc_core",
+      "fileCount": 6,
+      "subdirCount": 1
+    },
+    {
+      "path": "tasks",
+      "fileCount": 2,
+      "subdirCount": 0
+    },
+    {
+      "path": "templates",
+      "fileCount": 1,
+      "subdirCount": 0
+    },
+    {
+      "path": "tests",
+      "fileCount": 6,
+      "subdirCount": 1
+    }
+  ],
+  "techStack": {
+    "languages": [
+      "Python"
+    ],
+    "frameworks": [],
+    "buildTools": [],
+    "testFrameworks": []
+  },
+  "dependencies": {
+    "dependencies": {},
+    "devDependencies": {}
+  },
+  "entryPoints": [],
+  "lastIndexed": 1773739661533
+}
