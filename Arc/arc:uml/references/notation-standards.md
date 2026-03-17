@@ -8,6 +8,13 @@
 - 行为图必须体现控制流与条件，不得用文本段落替代关系线。
 - 图内元素命名需与代码实体保持可追溯一致。
 
+## SVG 交付要求
+
+- 默认交付同时包含 Mermaid 源文件（`.mmd`）与渲染后的 SVG（`.svg`）。
+- `beautiful-mermaid` 是默认 SVG 渲染器；执行入口为 `scripts/render_beautiful_mermaid_svg.mjs`。
+- 当前渲染器支持的 Mermaid 方言以 `flowchart/graph`、`stateDiagram-v2`、`sequenceDiagram`、`classDiagram`、`erDiagram`、`xychart-beta` 为准。
+- 若图型使用当前渲染器不支持的 Mermaid 头部（例如 `timeline`），必须保留 `.mmd` 源文件，并在交付说明里明确标注 `svg-skipped` 与原因。
+
 ## E-R 图标准要求（陈氏画法）
 
 输出 E-R 图时，必须基于真实的**数据库表设计**作为数据来源，并采用公认最标准的陈氏画法（Chen Notation）。陈氏图为概念数据模型，切忌将其画成物理模型。

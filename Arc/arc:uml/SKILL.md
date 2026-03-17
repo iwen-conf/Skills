@@ -15,7 +15,7 @@ All UML diagrams must conform to UML standard notation (it is recommended to ali
 
 - **Trigger**: A traceable system modeling diagram needs to be established to assist communication, review, handover or architecture evolution.
 - **Inputs**: project path, attention graph, business scenario, deployment environment, output format.
-- **Outputs**: Requested-diagram applicability judgment, UML diagram file (fixed Mermaid `.mmd`), diagram directory and evidence mapping; additionally output Chen's E-R diagram when data modeling is in scope.
+- **Outputs**: Requested-diagram applicability judgment, UML Mermaid source (`.mmd`), rendered SVG (`.svg`) when supported by the default renderer, diagram directory and evidence mapping; additionally output Chen's E-R diagram when data modeling is in scope.
 - **Quality Gate**: Must pass `## Quality Gates`'s evidence consistency and inter-figure consistency check before delivery.
 - **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
 
@@ -60,6 +60,7 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 - The relationships between deployment, component, and configuration diagrams must be mappable to each other.
 - The semantics and notation of UML diagrams must conform to standards (relationship types, visibility, and life cycle semantics cannot be mixed).
 - If you want to output an E-R diagram, you must use Chen's drawing method (entity rectangle, contact rhombus, attribute ellipse, multi-valued double ellipse, weak entity double rectangle).
+- Mermaid sources that are supported by `beautiful-mermaid` must also be delivered as `.svg`; unsupported Mermaid dialects must be explicitly marked as `svg-skipped`.
 
 ## Expert Standards
 
@@ -74,6 +75,8 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 - Generate UML skeleton (by diagram): `python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types class,sequence,deployment`
 - Generate full UML skeleton: `python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all`
 - Generate Chen's E-R skeleton at the same time: `python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all --include-er-chen`
+- Render one Mermaid source to SVG: `node Arc/arc:uml/scripts/render_beautiful_mermaid_svg.mjs --input <uml_dir>/diagrams/<diagram>.mmd --output <uml_dir>/diagrams/<diagram>.svg`
+- Batch render a UML directory to SVG: `node Arc/arc:uml/scripts/render_beautiful_mermaid_svg.mjs --input-dir <uml_dir>/diagrams --skip-unsupported`
 - Runtime main command: `arc uml`
 
 ## Red Flags
@@ -105,7 +108,7 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 | `diagram_types` | array | no | Specify a list of graphics; automatically selected by suitability by default |
 | `business_scenarios` | array | no | Key business scenarios (for use case/activity/sequence modeling) |
 | `deployment_targets` | array | no | Deployment target (such as k8s/ecs/vm/on-prem) |
-| `render_format` | string | no | Fixed to `mermaid` (mandatory) |
+| `render_format` | string | no | Source DSL fixed to `mermaid`; default delivery must include rendered `.svg` when supported by `beautiful-mermaid` |
 | `include_er` | boolean | no | Whether to output the E-R diagram (it must be Chen's drawing method when outputting), automatically determined by default |
 | `depth_level` | string | no | `quick` / `standard` / `deep`, default `standard` |
 | `output_dir` | string | no | Default `<project_path>/.arc/uml/` |
@@ -133,6 +136,7 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 
 - UML diagrams: follow UML standard semantics and are expressed using Mermaid syntax (recommended semantic baseline UML 2.5.1).
 - E-R diagram: Use Mermaid syntax to express Chen's drawing method; use of Crow's Foot / IDEF1X instead is prohibited.
+- SVG delivery: render Mermaid sources through `beautiful-mermaid` by default; unsupported Mermaid dialects must be explicitly marked as skipped.
 - See `references/notation-standards.md` for the determination details.
 
 ### Mermaid Chen E-R Example
@@ -165,7 +169,8 @@ order_total((property: total_amount))
 * **ace-tool (MCP)**: Required. Used to scan code structure, module dependencies, interfaces and implementation evidence.
 * **Exa MCP**: Optional. Used to supplement UML modeling conventions or framework conventions.
 * **Mermaid**: Required. All plots must be output using Mermaid syntax.
-* **Auxiliary script**: `scripts/scaffold_uml_pack.py`, used to initialize the graph file skeleton.
+* **beautiful-mermaid**: Required for default SVG delivery. Render Mermaid sources through `scripts/render_beautiful_mermaid_svg.mjs`.
+* **Auxiliary scripts**: `scripts/scaffold_uml_pack.py` initializes the graph file skeleton; `scripts/render_beautiful_mermaid_svg.mjs` renders Mermaid to SVG.
 
 ## Instructions (execution process)
 
@@ -191,7 +196,11 @@ order_total((property: total_amount))
    python3 scripts/scaffold_uml_pack.py --output-dir <output_dir> --types all --include-er-chen
    ```
 3. Write complete relationships and comments to the `required` and `recommended` graphics.
-4. Generate `diagram-index.md` as the delivery directory.
+4. Render supported Mermaid sources into SVG:
+   ```bash
+   node scripts/render_beautiful_mermaid_svg.mjs --input-dir <output_dir>/diagrams --skip-unsupported
+   ```
+5. Generate `diagram-index.md` as the delivery directory and mark any unsupported Mermaid dialect as `svg-skipped`.
 
 ### Phase 4: Consistency Verification
 
@@ -211,8 +220,10 @@ order_total((property: total_amount))
 ├── validation-summary.md
 ├── diagrams/                      # Only create files for diagrams marked `required` or `recommended`
 │   ├── <diagram-type>.mmd
+│   ├── <diagram-type>.svg
+│   ├── er-chen.mmd                # Optional: only when Chen E-R output is required
+│   ├── er-chen.svg                # Optional: when the Mermaid source is renderable by the default SVG renderer
 │   └── ...
-└── er-chen.mmd                    # Optional: only when Chen E-R output is required
 ```
 
 ## Anti-Patterns

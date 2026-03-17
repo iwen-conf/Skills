@@ -83,3 +83,16 @@
 
 - No real vendor-specific workflow files existed in this repository; the cleanup scope is residual documentation, reference heuristics, and generated report text.
 - The cleanup keeps generic CI guidance where it still adds value, but removes host-specific filenames, actions, and permission assumptions.
+
+## 2026-03-18 arc:uml beautiful-mermaid SVG rendering
+
+- [x] Confirm the actual `beautiful-mermaid` package API and renderer coverage.
+- [x] Add a local `arc:uml` render script that turns Mermaid `.mmd` files into `.svg`.
+- [x] Update the `arc:uml` skill contract so rendered SVG becomes the default delivery.
+- [x] Rebuild generated registry artifacts and verify the new render path with a smoke run.
+
+## Review
+
+- `arc:uml` now defaults to Mermaid source plus SVG delivery, with `beautiful-mermaid` called out as the standard renderer and `timeline`-style unsupported headers explicitly marked `svg-skipped`.
+- The new `render_beautiful_mermaid_svg.mjs` script caches `beautiful-mermaid@1.1.3` under the local user cache on first run, then renders single files or whole diagram directories without adding a repo-level Node dependency.
+- Validation passed through `uv run --group dev python scripts/validate_skills.py`, the skill registry artifacts were rebuilt, and a smoke run rendered valid `classDiagram` + `sequenceDiagram` samples while correctly skipping a `timeline` sample.
