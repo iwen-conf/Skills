@@ -74,7 +74,11 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
         ["working set", "工作集"],
         ["recovery manifest", "恢复清单"],
         ["lazy restore", "按需恢复"],
-        ["token budget", "上下文预算"],
+        ["token budget", "上下文预算", "context budget"],
+        "FTS5",
+        "BM25",
+        ["compaction", "压缩恢复"],
+        ["sandbox", "沙箱"],
     ],
     "arc:decide": ["ADR", "Pre-Mortem", "Fitness Function"],
     "arc:e2e": ["ISTQB", "OWASP ASVS", "WCAG 2.2 AA"],
@@ -93,13 +97,6 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
         ["equivalence partitioning", "等价类划分"],
         ["code coverage", "代码覆盖率"],
         ["test pyramid", "测试金字塔"],
-    ],
-    "arc:context": [
-        "FTS5",
-        "BM25",
-        ["context budget", "上下文预算"],
-        ["compaction", "压缩恢复"],
-        ["sandbox", "沙箱"],
     ],
     "arc:aigc": [
         ["chunked rewrite", "chunked polish", "分段重写"],
@@ -146,7 +143,6 @@ ARC_ROUTED_SKILLS = {
     "arc:uml",
     "arc:test",
     "arc:serve",
-    "arc:context",
     "arc:aigc",
 }
 

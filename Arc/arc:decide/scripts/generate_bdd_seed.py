@@ -43,7 +43,7 @@ def extract_scenarios_from_report(report_content: str) -> list[dict]:
         scenarios.append(
             {
                 "scenario": f"条件验证: {condition}",
-                "given": f"系统处于正常状态",
+                "given": "系统处于正常状态",
                 "when": condition,
                 "then": action,
                 "priority": "medium",
@@ -99,7 +99,7 @@ def statement_to_scenario(statement: str) -> Optional[dict]:
     scenario = {
         "scenario": statement[:100],  # 截断过长描述
         "given": "系统处于正常状态",
-        "when": f"执行相关操作",
+        "when": "执行相关操作",
         "then": statement,
         "category": category,
         "priority": "medium",

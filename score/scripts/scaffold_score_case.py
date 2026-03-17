@@ -8,7 +8,6 @@ scaffold_score_case.py - 创建 arc:score 工作目录结构
 
 import argparse
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 
@@ -138,7 +137,7 @@ def generate_project_snapshot(project_path: Path) -> str:
     for ext, count in sorted(file_counts.items(), key=lambda x: -x[1]):
         content += f"| {ext} | {count} |\n"
 
-    content += f"""
+    content += """
 ## 语言分布
 
 | 语言 | 文件数 |

@@ -239,7 +239,7 @@ def generate_scorecard(score_data: dict) -> str:
     for dim, dim_score in score_data["dimension_scores"].items():
         content += f"| {dim} | {dim_score:.1f} |\n"
 
-    content += f"""
+    content += """
 ## 类别分布
 
 | 类别 | 扣分 |

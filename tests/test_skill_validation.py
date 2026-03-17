@@ -245,7 +245,7 @@ workflow body
 ## Quality Gates
 quality body
 ## Expert Standards
-tool-backed context working set recovery manifest lazy restore token budget
+tool-backed context working set recovery manifest lazy restore token budget FTS5 BM25 compaction sandbox
 ## Scripts & Commands
 scripts body
 ## Red Flags
@@ -315,57 +315,6 @@ flags body
 ```text
 project/.arc/serve/
 └── tmux-sessions.json
-```
-"""
-    errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
-    assert errors == []
-    assert warnings == []
-
-
-def test_validate_text_accepts_arc_context_keywords() -> None:
-    text = """---
-name: "arc:context"
-description: "包含中文描述"
----
-# Skill
-## Overview
-overview body
-## Quick Contract
-- **Trigger**: context trigger
-- **Inputs**: input summary
-- **Outputs**: output summary
-- **Quality Gate**: gate summary
-- **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
-## Routing Matrix
-- For unified routing comparison, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
-- A phased getting started view is available at [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#phase-routing-view).
-- For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../../docs/arc-routing-cheatsheet.md).
-## Announce
-announce body
-## The Iron Law
-rule body
-## Workflow
-workflow body
-## Quality Gates
-quality body
-## Expert Standards
-FTS5 BM25 context budget compaction sandbox
-## Scripts & Commands
-scripts body
-## Red Flags
-flags body
-## When to Use
-- **Preferred Trigger**: preferred trigger body
-- **Typical Scenario**: typical scenario body
-- **Boundary Tip**: boundary tip body
-## Input Arguments
-| parameter | type | Required | illustrate |
-|------|------|------|------|
-| `project_path` | string | yes | root path |
-## Outputs
-```text
-project/.arc/context/session/
-└── compact-findings.md
 ```
 """
     errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)

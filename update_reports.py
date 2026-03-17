@@ -1,5 +1,4 @@
 import os
-import json
 
 base_dir = "/Users/iluwen/Documents/Code/Skills/.arc/audit/Skills"
 

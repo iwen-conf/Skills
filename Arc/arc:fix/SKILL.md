@@ -166,39 +166,46 @@ python Arc/arc:fix/scripts/triage_run.py <run_dir> \
 
 1. **It is prohibited to bypass permission (authentication/authorization) verification to "repair"**
    - The "permissions" here refer to **business permissions/authentication/authorization** (not file system chmod/chown).
-   - It is forbidden to comment/delete/short-circuit permission verification in the code (for example, change "no permission should fail" to directly return success, or remove the judgment that roles/ACLs are required).
+   - It is forbidden to comment/delete/short-circuit permission/auth middleware or verification in the code (for example, change "no permission should fail" to directly return success, or remove the judgment that roles/ACLs are required).
+   - **Diagnosis over Bypass**: When facing an error in a permission-protected route or encountering a bug, you MUST NOT bypass the permission/auth logic to "make it work" or "test inner logic". Instead, you must use extensive logging, console printing, and error collection solutions to diagnose the root cause *within the context of the real business logic*.
    - If the problem is indeed a defect in permission rules/role mapping/policy configuration: Fix it to **in line with business expectations**, and make it back to cover both sides of the "should be allowed/should be denied" boundary.
 
-2. **Lots of DEBUG output (forced)**
+2. **It is strictly prohibited to bypass type safety or business logic to "repair" (Type & Logic Bypass is FORBIDDEN)**
+   - **Type Suppression**: Do NOT change types to `any`, use `@ts-ignore`, `# type: ignore`, or use explicit type casting just to silence compiler errors. This hides the root cause and leads to instability and unmaintainability.
+   - **Logic Bypass**: Do NOT comment out throwing errors, delete assertions, or forcefully return a mock value just to make a test pass or an error disappear. This violates the original intent of the business logic.
+   - **Root Cause Focus**: You MUST understand and fix the underlying issue. The code should remain maintainable, strictly typed, and logically sound after the fix.
+
+3. **Lots of DEBUG output (forced)**
    - During the troubleshooting process, a large number of logs starting with `DEBUG:` must be output to the terminal, covering: input, key branches, key variables, external request/response summary, and exception stack.
    - Prioritize adding **controllable** DEBUG logs to your code (it is recommended to use environment variables/configuration switches, such as `DEBUG_UI_UX_FIX=1`) to avoid permanently contaminating normal logs.
 
-3. **Evidence driven**
+4. **Evidence driven**
    - "Feeling fixed" is not allowed: evidence must be given for each fix (at least one failed reproduction run + one regression via the run_id/report path of the run).
 
-4. **Comply with arc:e2e's log and artifact specifications**
+5. **Comply with arc:e2e's log and artifact specifications**
    - If you need to generate/update a report, give priority to using the script under `Arc/arc:e2e/scripts/` instead of creating your own format.
 
-5. **DB Migration/DDL/DML Change Control**
+6. **DB Migration/DDL/DML Change Control**
    - Any database migration/DDL/DML (including but not limited to migrate, ALTER, INSERT/UPDATE/DELETE, backfill data) must first obtain the user's explicit consent.
    - Before agreeing: only read-only verification (SELECT) and code troubleshooting can be done; "migrate first and then add tickets" is not allowed.
    - After consent: Write the consent and implementation evidence into `run_dir/db/` (see suggestion document above) and clearly state it in the final Fix Packet.
 
-6. **New accounts (used to verify repairs) must be auditable**
+7. **New accounts (used to verify repairs) must be auditable**
    - If a new account must be created in order to verify the repair (such as verifying first login, permission boundaries, new tenant isolation), you must write:
      - `accounts.jsonc`: Mark the account with `created_for_verification=true` and write `why/created_at`
      - `report.md`: `Account Changes` Chapter explains "Why a new account is generated"
 
-7. **Resource Control & Cleanup (resource control and timely shutdown)**
-   - Running "unlimited" retry/regression loops is prohibited; must have `max_iterations`/timeout.
+8. **Resource Control & Cleanup (resource control and timely shutdown)**
+   - Running "unlimited" retry/regression loops or zero-delay polling (Busy Loop) is **strictly prohibited**; must have `max_iterations`/timeout and explicit delays (e.g., `sleep`).
+   - Whether using Python or Node/Bun, you MUST prevent CPU/Memory crashes by avoiding unbatched mass-concurrency (e.g., thousands of uncontrolled Promises or excessive multi-processing) and avoiding scripted deep-directory traversal (use `rg`/`fd` instead).
    - If additional tools (browser recording, long-term tail, temporary container, tmux session, etc.) are started for troubleshooting, close them promptly after obtaining the evidence to avoid resource leakage and long-term occupation.
 
-8. **Checkpoint before risky repairs**
+9. **Checkpoint before risky repairs**
    - Before Medium/High-risk hotfixes, confirm the recoverable boundary first: pushed remote branch, local snapshot, or a clearly documented blocker.
    - If the repository has no safe remote and the target host is Gitea, coordinate with `agent-browser` to create a repository at `https://gitea.ezer.heiyu.space/`, using `lazycat_gitea_account` and `lazycat_gitea_password`, choose visibility according to user intent or existing policy, then backfill the SSH URL into local `.git` remote and push the current branch.
-   - For scans, polling, or browser glue during triage, follow a CLI-first ladder: `rg/git/sed/awk/fd/find` → `jq` and shell pipelines → `agent-browser` → `gh` / `just` when applicable → JS tools such as `bun` → `tmux` for long-running sessions → repo-native scripts → Python only when nothing lighter fits.
+   - For scans, polling, or browser glue during triage, follow a CLI-first ladder: `rg/git/sed/awk/fd/find` → `jq` and shell pipelines → `agent-browser` → `gh` / `just` when applicable → **Go** (`go run`) for high-performance/CPU-intensive tasks to prevent crashes → JS tools such as `bun` (with batching) → `tmux` for long-running sessions → repo-native scripts → Python only when nothing lighter fits.
 
-9. **Proactive Extrapolation (举一反三) & Anti-NPC Debugging (强制要求)**
+10. **Proactive Extrapolation (举一反三) & Anti-NPC Debugging (强制要求)**
    - **No blind retries**: If a fix fails 2 times, you MUST stop tweaking parameters and perform a 7-step check: read full logs, search codebase, read 50 lines of context, verify assumptions, reverse assumptions, isolate, and change approach.
    - **Fix Extension**: When the immediate bug is fixed, you MUST check if the same problematic pattern exists elsewhere in the project. The final Fix Packet MUST include a "Proactive Extension" section documenting these checks and additional preventative fixes.
 

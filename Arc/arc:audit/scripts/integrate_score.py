@@ -2531,19 +2531,19 @@ def main():
     html_auto_content = generate_html_dashboard(review_input)
     html_auto_path.write_text(html_auto_content, encoding="utf-8")
 
-    print(f"✓ 量化数据已集成")
+    print("✓ 量化数据已集成")
     print(f"  JSON: {output_path}")
     print(f"  Markdown: {md_path}")
     print(f"  HTML Dashboard: {html_auto_path}")
 
     # 打印摘要
-    print(f"\n评分摘要:")
+    print("\n评分摘要:")
     print(
         f"  综合评分: {display_summary['overall_score']:.1f} / 100（{_display_rating(display_summary['overall_rating'])}）"
     )
     print(f"  推进建议: {_display_gate(display_summary['gate'])}")
     print(f"  风险等级: {display_summary['risk']} | 整改时限: {display_summary['sla']}")
-    print(f"  维度评分:")
+    print("  维度评分:")
     for dim in ["architecture", "security", "code-quality", "business", "devops", "team", "tech-debt"]:
         score = display_summary["dimension_scores"].get(dim, 0)
         issues = len(review_input.get("dimension_issues", {}).get(dim, []))

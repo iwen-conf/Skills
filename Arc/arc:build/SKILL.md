@@ -233,7 +233,8 @@ Default directory: `<project_path>/.arc/build/<task-name>/`
 
 ### Implementation Anti-Patterns
 
-- **Type Safety Violation**: Using `as any`, `@ts-ignore`, `@ts-expect-error` — forbidden without explicit exception approval
+- **Type Safety Violation**: Using `as any`, `@ts-ignore`, `@ts-expect-error` — forbidden without explicit exception approval. Do not bypass type errors to achieve the goal.
+- **Logic Bypass**: Modifying, deleting, or bypassing core business logic or assertions just to make a test pass or silence an error — strictly forbidden. You must address the root cause.
 - **Empty Catch Blocks**: `catch(e) {}` — must handle or re-throw errors
 - **Magic Values**: Hardcoding configuration values — use constants/config files
 - **Commented Code**: Leaving commented-out code blocks — delete or implement

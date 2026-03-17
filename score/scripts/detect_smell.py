@@ -8,12 +8,10 @@ detect_smell.py - Code Smell 检测脚本
 
 import argparse
 import json
-import os
 import re
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -285,7 +283,7 @@ def detect_smell(
                                         suggestion=rule["suggestion"],
                                     )
                                 )
-        except Exception as e:
+        except Exception:
             continue
 
     # 汇总结果

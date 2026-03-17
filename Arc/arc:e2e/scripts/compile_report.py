@@ -659,8 +659,8 @@ def main() -> None:
             steps_table_md,
             "",
             "## Artifacts",
-            f"- `action-log.compiled.md`",
-            f"- `screenshot-manifest.compiled.md`",
+            "- `action-log.compiled.md`",
+            "- `screenshot-manifest.compiled.md`",
             "",
         ]
         (run_dir / args.out_report).write_text("\n".join(minimal), encoding="utf-8")
