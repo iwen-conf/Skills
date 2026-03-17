@@ -66,7 +66,7 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 - UML output needs to be aligned to `UML 2.5.1 / ISO 19505` Semantics, relationships and visibility are not allowed to be mixed.
 - Behavioral class diagrams (sequences/activities/states) must be named consistently with static class diagram entities and can be mutually verified.
 - Architectural class diagrams (components/deployments/packages) need to align with runtime environment evidence (configuration, topology, interface boundaries).
-- If E-R is output, the `Chen` notation must be strictly used (complete expression of entity/relationship/attribute semantics), and its data source MUST be the database table design (数据库表设计).
+- If E-R is output, the `Chen` notation must be strictly used (complete expression of entity/relationship/attribute semantics), and its data source MUST be the database table design (数据库表设计). **Do NOT draw foreign keys as attributes (use relationship diamonds instead) and do NOT draw physical characteristics like data types or lengths.**
 - Each picture is accompanied by `Modeling Assumptions + Evidence Location + Applicable Boundaries` to avoid beautiful pictures but unfeasible results.
 
 ## Scripts & Commands
@@ -221,4 +221,5 @@ order_total((property: total_amount))
 - Treat the configuration file diagram as a pure screenshot and do not express the relationship between configurations.
 - In the sequence diagram, only the happy path is written, and exceptions and timeout branches are ignored.
 - The E-R diagram does not use Chen's drawing symbols, or its data source is not based on the actual database table design (数据库表设计).
+- **In Chen's E-R diagrams, drawing foreign keys as attributes or including physical table characteristics (like varchar, length, constraints, etc.) is strictly forbidden.** They must be represented strictly as conceptual models.
 - The output map has no maintenance strategy, causing it to expire quickly.
