@@ -62,6 +62,7 @@ No build/release is green without explicit gate evidence.
 - Waivers must include `reason`, `approved_by`, `expires_at`.
 - Missing/expired score artifacts must be refreshed before judging.
 - Output must include pass/fail decision plus violation details.
+- Changes to the Go-backed gate runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release.
 
 ## Expert Standards
 
@@ -73,9 +74,9 @@ No build/release is green without explicit gate evidence.
 
 ## Scripts & Commands
 
-- Script gate (strict): `python3 Arc/arc:gate/scripts/check_gate.py --project <project_path> --mode strict --exit-code`
-- Script gate (dangerous interception): `python3 Arc/arc:gate/scripts/check_gate.py --project <project_path> --mode strict_dangerous --exit-code`
-- Custom configuration: `python3 Arc/arc:gate/scripts/check_gate.py --project <project_path> --config <gate-config.yaml> --output-dir <output_dir>`
+- Script gate (strict): `Arc/arc:gate/scripts/check_gate --project <project_path> --mode strict --exit-code`
+- Script gate (dangerous interception): `Arc/arc:gate/scripts/check_gate --project <project_path> --mode strict_dangerous --exit-code`
+- Custom configuration: `Arc/arc:gate/scripts/check_gate --project <project_path> --config <gate-config.yaml> --output-dir <output_dir>`
 - Runtime main command: `arc gate`
 
 ## Red Flags

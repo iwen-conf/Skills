@@ -46,3 +46,40 @@ jobs:
 
       - name: Pytest
         run: uv run --no-sync pytest tests "Arc/arc:cartography/scripts/test_cartographer.py"
+
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: arcgocore/go.mod
+
+      - name: Download Go modules
+        run: go mod download
+        working-directory: arcgocore
+
+      - name: Go vet
+        run: go vet ./...
+        working-directory: arcgocore
+
+      - name: Staticcheck
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          "$(go env GOPATH)/bin/staticcheck" ./...
+        working-directory: arcgocore
+
+      - name: Go tests
+        run: go test ./...
+        working-directory: arcgocore
+
+      - name: Go race tests
+        run: go test -race ./...
+        working-directory: arcgocore
+
+      - name: Go benchmark memory checks
+        run: go test -bench=. -benchmem ./...
+        working-directory: arcgocore

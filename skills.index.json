@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-17T16:31:44.145923Z",
+  "generated_at": "2026-03-18T19:37:41.760316Z",
   "skill_count": 17,
   "skills": [
     {
@@ -298,7 +298,12 @@
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "- Work area scaffolding: `python3 Arc/arc:build/scripts/scaffold_implement_case.py --project-path <project_path> --task-name <task_name>`\n- Delivery report rendering: `python3 Arc/arc:build/scripts/render_implementation_report.py --case-dir <project_path>/.arc/build/<task_name> --task-name <task_name> --result pass`\n- Runtime main command: `arc build`"
+          "body": "- Work area scaffolding: `Arc/arc:build/scripts/scaffold_implement_case --project-path <project_path> --task-name <task_name>`\n- Delivery report rendering: `Arc/arc:build/scripts/render_implementation_report --case-dir <project_path>/.arc/build/<task_name> --task-name <task_name> --result pass`\n- Runtime main command: `arc build`"
+        },
+        {
+          "heading": "## Runtime Verification Gate",
+          "title": "Runtime Verification Gate",
+          "body": "- Changes to the Go-backed build scaffold/report runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release."
         },
         {
           "heading": "## Red Flags",
@@ -338,12 +343,12 @@
         {
           "heading": "## Instructions",
           "title": "Instructions",
-          "body": "### Phase 1: Contextual archiving\n\n1. Read the upstream product and project index.\n2. Identify implementation entries, affected modules, and constraints.\n3. Generate `context/implementation-brief.md`.\n4. Execute the scaffolding command:\n\n```bash\npython Arc/arc:build/scripts/scaffold_implement_case.py \\\n  --project-path <project_path> \\\n  --task-name <task_name>\n```\n\n### Phase 2: Implementing the plan\n\n1. Output `plan/implementation-plan.md`:\n- Goals and Scope\n- Change steps\n- Risks and Fallback Plans\n- Verification plan\n - Recovery boundary (remote branch / snapshot / blocker)\n2. If there are major technical differences, return to the `arc:decide` argument first.\n\n### Phase 3: Coding implementation\n\n1. Implemented step by step as planned.\n2. Each step is logged to `execution/execution-log.md`:\n- Modification point\n- reason\n- risk\n- Verification status\n\n### Phase 4: Verification and Handover\n\n1. Perform minimum necessary verification (compile/test/static checks).\n2. Generate delivery documents:\n- `reports/execution-report.md`\n- `handoff/change-summary.md`\n- `handoff/pr-description.md` (A ready-to-use Pull Request Description with \"What\", \"Why\", and \"Testing done\")\n- `handoff/commit-messages.txt` (Suggested Conventional Commit messages)\n- `handoff/ADR-XXX.md` (If a new library was introduced or architectural boundary crossed, generate a lightweight Architecture Decision Record here)\n3. Use a script to render the final report:\n\n```bash\npython Arc/arc:build/scripts/render_implementation_report.py \\\n  --case-dir <output_dir> \\\n  --task-name <task_name> \\\n  --result pass\n```"
+          "body": "### Phase 1: Contextual archiving\n\n1. Read the upstream product and project index.\n2. Identify implementation entries, affected modules, and constraints.\n3. Generate `context/implementation-brief.md`.\n4. Execute the scaffolding command:\n\n```bash\nArc/arc:build/scripts/scaffold_implement_case \\\n  --project-path <project_path> \\\n  --task-name <task_name>\n```\n\n### Phase 2: Implementing the plan\n\n1. Output `plan/implementation-plan.md`:\n- Goals and Scope\n- Change steps\n- Risks and Fallback Plans\n- Verification plan\n - Recovery boundary (remote branch / snapshot / blocker)\n2. If there are major technical differences, return to the `arc:decide` argument first.\n\n### Phase 3: Coding implementation\n\n1. Implemented step by step as planned.\n2. Each step is logged to `execution/execution-log.md`:\n- Modification point\n- reason\n- risk\n- Verification status\n\n### Phase 4: Verification and Handover\n\n1. Perform minimum necessary verification (compile/test/static checks).\n2. Generate delivery documents:\n- `reports/execution-report.md`\n- `handoff/change-summary.md`\n- `handoff/pr-description.md` (A ready-to-use Pull Request Description with \"What\", \"Why\", and \"Testing done\")\n- `handoff/commit-messages.txt` (Suggested Conventional Commit messages)\n- `handoff/ADR-XXX.md` (If a new library was introduced or architectural boundary crossed, generate a lightweight Architecture Decision Record here)\n3. Use a script to render the final report:\n\n```bash\nArc/arc:build/scripts/render_implementation_report \\\n  --case-dir <output_dir> \\\n  --task-name <task_name> \\\n  --result pass\n```"
         },
         {
           "heading": "## Scripts",
           "title": "Scripts",
-          "body": "```bash\npython Arc/arc:build/scripts/scaffold_implement_case.py --project-path <project_path> --task-name <task_name>\npython Arc/arc:build/scripts/render_implementation_report.py --case-dir <output_dir> --task-name <task_name> --result pass\n```"
+          "body": "```bash\nArc/arc:build/scripts/scaffold_implement_case --project-path <project_path> --task-name <task_name>\nArc/arc:build/scripts/render_implementation_report --case-dir <output_dir> --task-name <task_name> --result pass\n```"
         },
         {
           "heading": "## Artifacts",
@@ -446,7 +451,7 @@
         {
           "heading": "## Dependencies",
           "title": "Dependencies",
-          "body": "- **Organization Contract**: Required. Following `docs/orchestration-contract.md`, catalog analysis tasks are dispatched concurrently through the runtime adaptation layer.\n- **cartographer.py**: required. The path is `<skills_root>/arc:cartography/scripts/cartographer.py`."
+          "body": "- **Organization Contract**: Required. Following `docs/orchestration-contract.md`, catalog analysis tasks are dispatched concurrently through the runtime adaptation layer.\n- **cartographer** launcher: required. The path is `<skills_root>/arc:cartography/scripts/cartographer`."
         },
         {
           "heading": "## When to Use",
@@ -456,7 +461,7 @@
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "### Step 1: Check status\n\nPrioritize checking the repository root directory `.slim/cartography.json`:\n- Exists: Entering the change detection process\n- Does not exist: execute initialization process\n\n### Step 2: Initialization (first time only)\n\n```bash\npython3 <skills_root>/arc:cartography/scripts/cartographer.py init \\\n  --root ./ \\\n  --include \"src/**/*.ts\" \\\n  --exclude \"**/*.test.ts\" \\\n  --exclude \".git/**\" \\\n  --exclude \"dist/**\" \\\n  --exclude \"build/**\" \\\n  --exclude \".next/**\" \\\n  --exclude \"coverage/**\" \\\n  --exclude \"node_modules/**\" \\\n  --exclude \"vendor/**\" \\\n  --exclude \".venv/**\" \\\n  --exclude \"tmp/**\" \\\n  --exclude \"artifacts/**\"\n```\n\nAfter initialization it will generate:\n- `.slim/cartography.json` (change detection baseline)\n- `codemap.md` placeholder file in the relevant directory\n\n### Step 3: Incremental detection and update\n\n```bash\npython3 <skills_root>/arc:cartography/scripts/cartographer.py changes --root ./\npython3 <skills_root>/arc:cartography/scripts/cartographer.py update  --root ./\n```\n\nrule:\n- Only update `codemap.md` of affected directories\n- Unaffected directories are not rewritten\n\n### Load-safety defaults\n\n1. Run `arc:cartography` against the real git root, not against a parent workspace that only groups multiple repositories.\n2. Prefer `changes` or a tightly scoped `update` before `init`; reserve full initialization for first run or damaged state.\n3. Always exclude generated, vendored, cache, and package-manager directories unless the user explicitly asks to map them.\n4. Treat `cartographer.py` as a batch command. Do not wrap it in a background watcher, polling loop, or persistent Python service.\n5. When downstream work only needs a small structure answer, prefer `rg`, `fd`, `git`, and existing `.arc/context-hub` artifacts instead of rebuilding the whole codemap.\n\n### Step 4: Optional export of hierarchical JSON\n\n```bash\npython3 <skills_root>/arc:cartography/scripts/cartographer.py export --root ./ --tier 1 --output codemap/index.json\npython3 <skills_root>/arc:cartography/scripts/cartographer.py export --root ./ --tier 2 --output codemap/context.json\npython3 <skills_root>/arc:cartography/scripts/cartographer.py export --root ./ --tier 3 --output codemap/full.json\n```\n\nsuggestion:\n- Tier 1: Quick search entrance\n- Tier 2: Module relationship analysis\n- Tier 3: Deep Implementation Context\n\nTier schema and examples:\n- Canonical schema: [`../../schemas/codemap.schema.json`](../../schemas/codemap.schema.json)\n- Tier 1/2/3 examples: [`references/tiered-json-examples.md`](references/tiered-json-examples.md)\n\n### Step 5: Directory concurrency analysis and root graph summary\n\n1. For medium or large repositories, directory analysis tasks can be dispatched concurrently through `schedule_task(...)` (by `docs/orchestration-contract.md`).\n2. Each directory outputs/updates this directory `codemap.md`.\n3. Finally, the root level `codemap.md` is aggregated as the repository entry map.\n\n### Step 6: Publish shared context metadata\n\nWrite the root-level and directory-level `codemap` products into `.arc/context-hub/index.json`. Each record contains at least:\n- `path`\n- `content_hash`\n- `generated_at`\n- `ttl_seconds`\n- `expires_at`\n- `producer_skill=arc:cartography`\n- `refresh_skill=arc:cartography`"
+          "body": "### Step 1: Check status\n\nPrioritize checking the repository root directory `.slim/cartography.json`:\n- Exists: Entering the change detection process\n- Does not exist: execute initialization process\n\n### Step 2: Initialization (first time only)\n\n```bash\n<skills_root>/arc:cartography/scripts/cartographer init \\\n  --root ./ \\\n  --include \"src/**/*.ts\" \\\n  --exclude \"**/*.test.ts\" \\\n  --exclude \".git/**\" \\\n  --exclude \"dist/**\" \\\n  --exclude \"build/**\" \\\n  --exclude \".next/**\" \\\n  --exclude \"coverage/**\" \\\n  --exclude \"node_modules/**\" \\\n  --exclude \"vendor/**\" \\\n  --exclude \".venv/**\" \\\n  --exclude \"tmp/**\" \\\n  --exclude \"artifacts/**\"\n```\n\nAfter initialization it will generate:\n- `.slim/cartography.json` (change detection baseline)\n- `codemap.md` placeholder file in the relevant directory\n\n### Step 3: Incremental detection and update\n\n```bash\n<skills_root>/arc:cartography/scripts/cartographer changes --root ./\n<skills_root>/arc:cartography/scripts/cartographer update  --root ./\n```\n\nrule:\n- Only update `codemap.md` of affected directories\n- Unaffected directories are not rewritten\n\n### Load-safety defaults\n\n1. Run `arc:cartography` against the real git root, not against a parent workspace that only groups multiple repositories.\n2. Prefer `changes` or a tightly scoped `update` before `init`; reserve full initialization for first run or damaged state.\n3. Always exclude generated, vendored, cache, and package-manager directories unless the user explicitly asks to map them.\n4. Treat `cartographer` as a batch command. Do not wrap it in a background watcher, polling loop, or persistent helper service.\n5. When downstream work only needs a small structure answer, prefer `rg`, `fd`, `git`, and existing `.arc/context-hub` artifacts instead of rebuilding the whole codemap.\n\n### Step 4: Optional export of hierarchical JSON\n\n```bash\n<skills_root>/arc:cartography/scripts/cartographer export --root ./ --tier 1 --output codemap/index.json\n<skills_root>/arc:cartography/scripts/cartographer export --root ./ --tier 2 --output codemap/context.json\n<skills_root>/arc:cartography/scripts/cartographer export --root ./ --tier 3 --output codemap/full.json\n```\n\nsuggestion:\n- Tier 1: Quick search entrance\n- Tier 2: Module relationship analysis\n- Tier 3: Deep Implementation Context\n\nTier schema and examples:\n- Canonical schema: [`../../schemas/codemap.schema.json`](../../schemas/codemap.schema.json)\n- Tier 1/2/3 examples: [`references/tiered-json-examples.md`](references/tiered-json-examples.md)\n\n### Step 5: Directory concurrency analysis and root graph summary\n\n1. For medium or large repositories, directory analysis tasks can be dispatched concurrently through `schedule_task(...)` (by `docs/orchestration-contract.md`).\n2. Each directory outputs/updates this directory `codemap.md`.\n3. Finally, the root level `codemap.md` is aggregated as the repository entry map.\n\n### Step 6: Publish shared context metadata\n\nWrite the root-level and directory-level `codemap` products into `.arc/context-hub/index.json`. Each record contains at least:\n- `path`\n- `content_hash`\n- `generated_at`\n- `ttl_seconds`\n- `expires_at`\n- `producer_skill=arc:cartography`\n- `refresh_skill=arc:cartography`"
         },
         {
           "heading": "## Codemap writing requirements",
@@ -466,7 +471,7 @@
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- The incremental process must update only the affected directories.\n- Root-level and directory-level codemaps must remain reachable.\n- `.arc/context-hub/index.json` Metadata must be refreshed synchronously.\n- The tier derived product must be consistent with the actual structure and consumable."
+          "body": "- The incremental process must update only the affected directories.\n- Root-level and directory-level codemaps must remain reachable.\n- `.arc/context-hub/index.json` Metadata must be refreshed synchronously.\n- The tier derived product must be consistent with the actual structure and consumable.\n- Changes to the Go-backed cartography runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release."
         },
         {
           "heading": "## Expert Standards",
@@ -476,12 +481,12 @@
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "- Initialization codemap: `python3 Arc/arc:cartography/scripts/cartographer.py init --root <project_path>`\n- Detect changes: `python3 Arc/arc:cartography/scripts/cartographer.py changes --root <project_path>`\n- Incremental update: `python3 Arc/arc:cartography/scripts/cartographer.py update --root <project_path>`\n- Export layered JSON: `python3 Arc/arc:cartography/scripts/cartographer.py export --root <project_path> --tier 2 --output codemap.tier2.json`\n- Runtime main command: `arc cartography`"
+          "body": "- Initialization codemap: `Arc/arc:cartography/scripts/cartographer init --root <project_path>`\n- Detect changes: `Arc/arc:cartography/scripts/cartographer changes --root <project_path>`\n- Incremental update: `Arc/arc:cartography/scripts/cartographer update --root <project_path>`\n- Export layered JSON: `Arc/arc:cartography/scripts/cartographer export --root <project_path> --tier 2 --output codemap.tier2.json`\n- Runtime main command: `arc cartography`"
         },
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Skip change detection and directly rewrite all codemaps in full\n- No distinction is made between affected directories and unchanged directories\n- The root-level map is not updated, causing the downstream entry to expire.\n- Publishing without shared index results in the inability of downstream products to be reused.\n- Running full mapping on `node_modules`, build outputs, vendored trees, or cache directories by default.\n- Leaving long-lived Python helper processes behind after codemap generation.\n\nExample (directory level):\n\n```markdown\n# src/services/"
+          "body": "- Skip change detection and directly rewrite all codemaps in full\n- No distinction is made between affected directories and unchanged directories\n- The root-level map is not updated, causing the downstream entry to expire.\n- Publishing without shared index results in the inability of downstream products to be reused.\n- Running full mapping on `node_modules`, build outputs, vendored trees, or cache directories by default.\n- Leaving long-lived helper processes behind after codemap generation.\n\nExample (directory level):\n\n```markdown\n# src/services/"
         },
         {
           "heading": "## Responsibility",
@@ -683,7 +688,12 @@
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "- Runtime main command: `arc context`\n- Workspace scaffolding: `python3 Arc/arc:context/scripts/scaffold_context_session.py --project-path <project_path> --task-name <task_name> --mode <prime|analyze|snapshot|restore>`\n- Upstream adaptation notes: `Arc/arc:context/references/context-mode-adaptation.md`\n- Data-source playbook: `Arc/arc:context/references/data-handling-playbook.md`\n- Recommended restore flow: reopen `restore/recovery-manifest.json`, then `context/working-set.md`, then the listed entrypoints and artifact paths."
+          "body": "- Runtime main command: `arc context`\n- Workspace scaffolding: `Arc/arc:context/scripts/scaffold_context_session --project-path <project_path> --task-name <task_name> --mode <prime|analyze|snapshot|restore>`\n- Upstream adaptation notes: `Arc/arc:context/references/context-mode-adaptation.md`\n- Data-source playbook: `Arc/arc:context/references/data-handling-playbook.md`\n- Recommended restore flow: reopen `restore/recovery-manifest.json`, then `context/working-set.md`, then the listed entrypoints and artifact paths."
+        },
+        {
+          "heading": "## Runtime Verification Gate",
+          "title": "Runtime Verification Gate",
+          "body": "- Changes to the Go-backed context scaffold runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release."
         },
         {
           "heading": "## Red Flags",
@@ -1208,7 +1218,12 @@
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "- Runtime main command: `arc exec`\n- Initialize the orchestration workspace: `python3 Arc/arc:exec/scripts/scaffold_exec_case.py --workdir <workdir> --task-name <task-name>`\n- Rendering scheduling and summary products: `python3 Arc/arc:exec/scripts/render_dispatch_report.py --case-dir <case_dir> --task-name <task-name> --dispatch \"deep|[arc:build]|implement backend interface|done|execution/backend.md\"`\n- Scheduling example manual: `Arc/arc:exec/references/schedule-task-playbook.md`"
+          "body": "- Runtime main command: `arc exec`\n- Initialize the orchestration workspace: `Arc/arc:exec/scripts/scaffold_exec_case --workdir <workdir> --task-name <task-name>`\n- Rendering scheduling and summary products: `Arc/arc:exec/scripts/render_dispatch_report --case-dir <case_dir> --task-name <task-name> --dispatch \"deep|[arc:build]|implement backend interface|done|execution/backend.md\"`\n- Scheduling example manual: `Arc/arc:exec/references/schedule-task-playbook.md`"
+        },
+        {
+          "heading": "## Runtime Verification Gate",
+          "title": "Runtime Verification Gate",
+          "body": "- Changes to the Go-backed exec scaffold/report runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release."
         },
         {
           "heading": "## Red Flags",
@@ -1486,7 +1501,7 @@
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Decision basis must map to explicit thresholds and evidence.\n- Waivers must include `reason`, `approved_by`, `expires_at`.\n- Missing/expired score artifacts must be refreshed before judging.\n- Output must include pass/fail decision plus violation details."
+          "body": "- Decision basis must map to explicit thresholds and evidence.\n- Waivers must include `reason`, `approved_by`, `expires_at`.\n- Missing/expired score artifacts must be refreshed before judging.\n- Output must include pass/fail decision plus violation details.\n- Changes to the Go-backed gate runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release."
         },
         {
           "heading": "## Expert Standards",
@@ -1496,7 +1511,7 @@
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "- Script gate (strict): `python3 Arc/arc:gate/scripts/check_gate.py --project <project_path> --mode strict --exit-code`\n- Script gate (dangerous interception): `python3 Arc/arc:gate/scripts/check_gate.py --project <project_path> --mode strict_dangerous --exit-code`\n- Custom configuration: `python3 Arc/arc:gate/scripts/check_gate.py --project <project_path> --config <gate-config.yaml> --output-dir <output_dir>`\n- Runtime main command: `arc gate`"
+          "body": "- Script gate (strict): `Arc/arc:gate/scripts/check_gate --project <project_path> --mode strict --exit-code`\n- Script gate (dangerous interception): `Arc/arc:gate/scripts/check_gate --project <project_path> --mode strict_dangerous --exit-code`\n- Custom configuration: `Arc/arc:gate/scripts/check_gate --project <project_path> --config <gate-config.yaml> --output-dir <output_dir>`\n- Runtime main command: `arc gate`"
         },
         {
           "heading": "## Red Flags",

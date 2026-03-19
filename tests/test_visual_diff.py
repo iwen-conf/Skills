@@ -3,21 +3,27 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import sys
 from pathlib import Path
 
 import pytest
 
-# Allow importing from Arc/arc:e2e/scripts
 _SCRIPTS = Path(__file__).resolve().parent.parent / "Arc" / "arc:e2e" / "scripts"
-sys.path.insert(0, str(_SCRIPTS))
-
-from visual_diff import (  # noqa: E402
-    _parse_mask_regions,
-    compute_diff,
-    generate_diff_image,
-    sha256_file,
+_VISUAL_DIFF_SPEC = importlib.util.spec_from_file_location(
+    "visual_diff_under_test",
+    _SCRIPTS / "visual_diff.py",
 )
+if _VISUAL_DIFF_SPEC is None or _VISUAL_DIFF_SPEC.loader is None:
+    raise RuntimeError("Unable to load visual_diff.py")
+
+_visual_diff = importlib.util.module_from_spec(_VISUAL_DIFF_SPEC)
+_VISUAL_DIFF_SPEC.loader.exec_module(_visual_diff)
+
+_parse_mask_regions = _visual_diff._parse_mask_regions
+compute_diff = _visual_diff.compute_diff
+generate_diff_image = _visual_diff.generate_diff_image
+sha256_file = _visual_diff.sha256_file
 
 PIL = pytest.importorskip("PIL", reason="Pillow required for visual_diff tests")
 from PIL import Image, ImageDraw  # noqa: E402

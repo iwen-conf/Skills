@@ -53,7 +53,7 @@ def test_scaffold_context_session_creates_expected_artifacts(tmp_path: Path) -> 
         check=False,
     )
 
-    assert result.returncode == 0
+    assert result.returncode == 0, result.stderr
     case_dir = project_path / ".arc" / "context" / "resume-auth"
     assert (case_dir / "context" / "context-brief.md").exists()
     assert (case_dir / "context" / "working-set.md").exists()

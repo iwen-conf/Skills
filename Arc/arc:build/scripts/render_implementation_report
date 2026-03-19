@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+set -eu
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../../.." && pwd)
+export ARC_REPO_ROOT="$REPO_ROOT"
+exec "$REPO_ROOT/arcgocore/launcher.sh" buildrender "$@"

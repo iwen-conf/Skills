@@ -75,9 +75,13 @@ No scheduling is allowed before routing and capability verification is completed
 ## Scripts & Commands
 
 - Runtime main command: `arc exec`
-- Initialize the orchestration workspace: `python3 Arc/arc:exec/scripts/scaffold_exec_case.py --workdir <workdir> --task-name <task-name>`
-- Rendering scheduling and summary products: `python3 Arc/arc:exec/scripts/render_dispatch_report.py --case-dir <case_dir> --task-name <task-name> --dispatch "deep|[arc:build]|implement backend interface|done|execution/backend.md"`
+- Initialize the orchestration workspace: `Arc/arc:exec/scripts/scaffold_exec_case --workdir <workdir> --task-name <task-name>`
+- Rendering scheduling and summary products: `Arc/arc:exec/scripts/render_dispatch_report --case-dir <case_dir> --task-name <task-name> --dispatch "deep|[arc:build]|implement backend interface|done|execution/backend.md"`
 - Scheduling example manual: `Arc/arc:exec/references/schedule-task-playbook.md`
+
+## Runtime Verification Gate
+
+- Changes to the Go-backed exec scaffold/report runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release.
 
 ## Red Flags
 

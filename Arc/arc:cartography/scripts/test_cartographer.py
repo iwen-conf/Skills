@@ -1,101 +1,55 @@
-import hashlib
-import importlib.util
-import os
-import tempfile
-import unittest
+import json
+import subprocess
+import sys
 from pathlib import Path
 
-CARTOGRAPHER_PATH = Path(__file__).resolve().with_name("cartographer.py")
-CARTOGRAPHER_SPEC = importlib.util.spec_from_file_location(
-    "cartographer_under_test",
-    CARTOGRAPHER_PATH,
-)
-if CARTOGRAPHER_SPEC is None or CARTOGRAPHER_SPEC.loader is None:
-    raise RuntimeError(f"Unable to load cartographer module from {CARTOGRAPHER_PATH}")
 
-cartographer = importlib.util.module_from_spec(CARTOGRAPHER_SPEC)
-CARTOGRAPHER_SPEC.loader.exec_module(cartographer)
+ROOT = Path("/Users/iluwen/Documents/Code/Skills")
+SCRIPT = ROOT / "Arc" / "arc:cartography" / "scripts" / "cartographer.py"
 
-PatternMatcher = cartographer.PatternMatcher
-compute_file_hash = cartographer.compute_file_hash
-compute_folder_hash = cartographer.compute_folder_hash
-select_files = cartographer.select_files
 
-class TestCartographer(unittest.TestCase):
-    def test_pattern_matcher(self):
-        patterns = ["node_modules/", "dist/", "*.log", "src/**/*.ts"]
-        matcher = PatternMatcher(patterns)
-        
-        # Directory patterns
-        self.assertTrue(matcher.matches("node_modules/foo.js"))
-        self.assertTrue(matcher.matches("vendor/node_modules/bar.js"))
-        self.assertTrue(matcher.matches("dist/main.js"))
-        self.assertTrue(matcher.matches("src/dist/output.js"))
-        
-        # Glob patterns
-        self.assertTrue(matcher.matches("error.log"))
-        self.assertTrue(matcher.matches("logs/access.log"))
-        
-        # Recursive glob patterns
-        self.assertTrue(matcher.matches("src/index.ts"))
-        self.assertTrue(matcher.matches("src/utils/helper.ts"))
-        
-        # Non-matches
-        self.assertFalse(matcher.matches("README.md"))
-        self.assertFalse(matcher.matches("tests/test.py"))
+def run_script(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(SCRIPT), *args],
+        cwd=str(cwd) if cwd else None,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
-    def test_compute_file_hash(self):
-        # Use binary mode to avoid any newline translation issues
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
-            f.write(b"test content")
-            f_path = f.name
-        
-        try:
-            h1 = compute_file_hash(Path(f_path))
-            # md5 of b"test content" is 9473fdd0d880a43c21b7778d34872157
-            expected = hashlib.md5(b"test content").hexdigest()
-            self.assertEqual(h1, expected)
-            self.assertEqual(h1, "9473fdd0d880a43c21b7778d34872157")
-        finally:
-            if os.path.exists(f_path):
-                os.unlink(f_path)
 
-    def test_compute_folder_hash(self):
-        file_hashes = {
-            "src/a.ts": "hash-a",
-            "src/b.ts": "hash-b",
-            "tests/test.ts": "hash-test"
-        }
-        
-        h1 = compute_folder_hash("src", file_hashes)
-        h2 = compute_folder_hash("src", file_hashes)
-        self.assertEqual(h1, h2)
-        
-        file_hashes_alt = {
-            "src/a.ts": "hash-a-modified",
-            "src/b.ts": "hash-b"
-        }
-        h3 = compute_folder_hash("src", file_hashes_alt)
-        self.assertNotEqual(h1, h3)
+def test_cartographer_init_changes_update_and_export(tmp_path: Path) -> None:
+    project = tmp_path / "repo"
+    (project / "src").mkdir(parents=True)
+    (project / "src" / "main.ts").write_text("export const ok = true;\n", encoding="utf-8")
+    (project / "src" / "main.test.ts").write_text("test('ok', () => {});\n", encoding="utf-8")
+    (project / ".gitignore").write_text("node_modules/\n", encoding="utf-8")
 
-    def test_select_files(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            root = Path(tmpdir)
-            (root / "src").mkdir()
-            (root / "node_modules").mkdir()
-            (root / "src" / "index.ts").write_text("code")
-            (root / "src" / "index.test.ts").write_text("test")
-            (root / "node_modules" / "foo.js").write_text("dep")
-            (root / "package.json").write_text("{}")
-            
-            includes = ["src/**/*.ts", "package.json"]
-            excludes = ["**/*.test.ts", "node_modules/"]
-            exceptions = []
-            
-            selected = select_files(root, includes, excludes, exceptions, [])
-            
-            rel_selected = sorted([os.path.relpath(f, root) for f in selected])
-            self.assertEqual(rel_selected, ["package.json", "src/index.ts"])
+    init = run_script(
+        "init",
+        "--root",
+        str(project),
+        "--include",
+        "src/**/*.ts",
+        "--exclude",
+        "**/*.test.ts",
+    )
+    assert init.returncode == 0, init.stderr
+    assert (project / ".slim" / "cartography.json").exists()
+    assert (project / "src" / "codemap.md").exists()
 
-if __name__ == "__main__":
-    unittest.main()
+    (project / "src" / "main.ts").write_text("export const ok = false;\n", encoding="utf-8")
+    changes = run_script("changes", "--root", str(project))
+    assert changes.returncode == 0, changes.stderr
+    assert "modified" in changes.stdout
+    assert "src/main.ts" in changes.stdout
+
+    update = run_script("update", "--root", str(project))
+    assert update.returncode == 0, update.stderr
+
+    export_path = project / "codemap.json"
+    export = run_script("export", "--root", str(project), "--tier", "2", "--output", str(export_path))
+    assert export.returncode == 0, export.stderr
+    payload = json.loads(export_path.read_text(encoding="utf-8"))
+    assert payload["tier"] == 2
+    assert any(entry["path"] == "src/main.ts" for entry in payload["entries"])

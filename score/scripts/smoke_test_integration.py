@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from __future__ import annotations
 
 import json
 import subprocess
@@ -6,60 +6,34 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 
 def _utc_iso() -> str:
-    return (
-        datetime.now(timezone.utc)
-        .replace(microsecond=0)
-        .isoformat()
-        .replace("+00:00", "Z")
-    )
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def _write_json(path: Path, data: Any) -> None:
+def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _run(cmd: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
-    p = subprocess.run(
-        cmd,
-        cwd=str(cwd) if cwd else None,
-        text=True,
-        capture_output=True,
-    )
+def _run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
+    p = subprocess.run(cmd, text=True, capture_output=True, check=False)
     if p.returncode != 0:
-        joined = " ".join(cmd)
         raise RuntimeError(
-            "command failed\n"
-            f"cmd: {joined}\n"
-            f"cwd: {cwd}\n"
-            f"returncode: {p.returncode}\n"
-            f"stdout:\n{p.stdout}\n"
-            f"stderr:\n{p.stderr}\n"
+            f"command failed: {' '.join(cmd)}\nstdout:\n{p.stdout}\nstderr:\n{p.stderr}\n"
         )
     return p
 
 
 def main() -> int:
     repo_root = Path(__file__).resolve().parents[2]
-    generate_review_handoff = (
-        repo_root / "score" / "scripts" / "generate_review_handoff.py"
-    )
-    validate_score_artifacts = (
-        repo_root / "score" / "scripts" / "validate_score_artifacts.py"
-    )
+    generate_review_handoff = repo_root / "score" / "scripts" / "generate_review_handoff.py"
+    validate_score_artifacts = repo_root / "score" / "scripts" / "validate_score_artifacts.py"
     integrate_score = repo_root / "review" / "scripts" / "integrate_score.py"
-    check_gate = repo_root / "gate" / "scripts" / "check_gate.py"
+    check_gate = repo_root / "Arc" / "arc:gate" / "scripts" / "check_gate.py"
 
-    for p in [
-        generate_review_handoff,
-        validate_score_artifacts,
-        integrate_score,
-        check_gate,
-    ]:
+    for p in [generate_review_handoff, validate_score_artifacts, integrate_score, check_gate]:
         if not p.exists():
             raise RuntimeError(f"missing script: {p}")
 
@@ -86,11 +60,8 @@ def main() -> int:
                 "score": 95.0,
                 "weighted_score": 92.0,
                 "grade": "A",
-                "dimension_scores": {
-                    "security": 100,
-                    "code_quality": 95,
-                    "tech_debt": 80,
-                },
+                "dimension_scores": {"security": 100, "code_quality": 95, "tech_debt": 80},
+                "by_severity": {"critical": 0, "high": 0},
                 "critical_issues": [],
                 "calculated_at": now_iso,
                 "violation_count": 1,
@@ -144,14 +115,7 @@ def main() -> int:
             },
         )
 
-        _run(
-            [
-                sys.executable,
-                str(generate_review_handoff),
-                "--score-dir",
-                str(score_dir),
-            ]
-        )
+        _run([sys.executable, str(generate_review_handoff), "--score-dir", str(score_dir)])
 
         handoff_path = score_dir / "handoff" / "review-input.json"
         if not handoff_path.exists():
@@ -172,27 +136,9 @@ def main() -> int:
             },
         )
 
-        _run(
-            [
-                sys.executable,
-                str(validate_score_artifacts),
-                "--score-dir",
-                str(score_dir),
-                "--require-bugfix",
-                "--require-review-handoff",
-            ]
-        )
+        _run([sys.executable, str(validate_score_artifacts), "--score-dir", str(score_dir), "--require-bugfix", "--require-review-handoff"])
 
-        _run(
-            [
-                sys.executable,
-                str(integrate_score),
-                "--project-path",
-                str(project_root),
-                "--review-dir",
-                str(review_dir),
-            ]
-        )
+        _run([sys.executable, str(integrate_score), "--project-path", str(project_root), "--review-dir", str(review_dir)])
 
         quantitative_input_path = review_dir / "quantitative-input.json"
         quantitative_section_path = review_dir / "quantitative-section.md"
@@ -201,23 +147,13 @@ def main() -> int:
         if not quantitative_section_path.exists():
             raise RuntimeError("expected quantitative-section.md")
 
-        quantitative_input = json.loads(
-            quantitative_input_path.read_text(encoding="utf-8")
-        )
+        quantitative_input = json.loads(quantitative_input_path.read_text(encoding="utf-8"))
         if quantitative_input.get("integration_version") != "1.0.0":
             raise RuntimeError("unexpected integration_version")
         if quantitative_input.get("quantitative_grade") != "A":
             raise RuntimeError("unexpected quantitative_grade")
 
-        _run(
-            [
-                sys.executable,
-                str(check_gate),
-                "--project",
-                str(project_root),
-                "--exit-code",
-            ]
-        )
+        _run([sys.executable, str(check_gate), "--project", str(project_root), "--exit-code"])
 
         gate_report_dir = project_root / ".arc" / "gate-reports"
         if not (gate_report_dir / "gate-result.json").exists():

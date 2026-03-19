@@ -73,9 +73,13 @@ Code changes must not be implemented without clear plans, verification evidence,
 
 ## Scripts & Commands
 
-- Work area scaffolding: `python3 Arc/arc:build/scripts/scaffold_implement_case.py --project-path <project_path> --task-name <task_name>`
-- Delivery report rendering: `python3 Arc/arc:build/scripts/render_implementation_report.py --case-dir <project_path>/.arc/build/<task_name> --task-name <task_name> --result pass`
+- Work area scaffolding: `Arc/arc:build/scripts/scaffold_implement_case --project-path <project_path> --task-name <task_name>`
+- Delivery report rendering: `Arc/arc:build/scripts/render_implementation_report --case-dir <project_path>/.arc/build/<task_name> --task-name <task_name> --result pass`
 - Runtime main command: `arc build`
+
+## Runtime Verification Gate
+
+- Changes to the Go-backed build scaffold/report runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release.
 
 ## Red Flags
 
@@ -153,7 +157,7 @@ Failure reflow rules:
 4. Execute the scaffolding command:
 
 ```bash
-python Arc/arc:build/scripts/scaffold_implement_case.py \
+Arc/arc:build/scripts/scaffold_implement_case \
   --project-path <project_path> \
   --task-name <task_name>
 ```
@@ -189,7 +193,7 @@ python Arc/arc:build/scripts/scaffold_implement_case.py \
 3. Use a script to render the final report:
 
 ```bash
-python Arc/arc:build/scripts/render_implementation_report.py \
+Arc/arc:build/scripts/render_implementation_report \
   --case-dir <output_dir> \
   --task-name <task_name> \
   --result pass
@@ -198,8 +202,8 @@ python Arc/arc:build/scripts/render_implementation_report.py \
 ## Scripts
 
 ```bash
-python Arc/arc:build/scripts/scaffold_implement_case.py --project-path <project_path> --task-name <task_name>
-python Arc/arc:build/scripts/render_implementation_report.py --case-dir <output_dir> --task-name <task_name> --result pass
+Arc/arc:build/scripts/scaffold_implement_case --project-path <project_path> --task-name <task_name>
+Arc/arc:build/scripts/render_implementation_report --case-dir <output_dir> --task-name <task_name> --result pass
 ```
 
 ## Artifacts

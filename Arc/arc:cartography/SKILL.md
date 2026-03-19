@@ -45,7 +45,7 @@ Before making key structural changes, the latest codemap must be available as a 
 ## Dependencies
 
 - **Organization Contract**: Required. Following `docs/orchestration-contract.md`, catalog analysis tasks are dispatched concurrently through the runtime adaptation layer.
-- **cartographer.py**: required. The path is `<skills_root>/arc:cartography/scripts/cartographer.py`.
+- **cartographer** launcher: required. The path is `<skills_root>/arc:cartography/scripts/cartographer`.
 
 ## When to Use
 
@@ -64,7 +64,7 @@ Prioritize checking the repository root directory `.slim/cartography.json`:
 ### Step 2: Initialization (first time only)
 
 ```bash
-python3 <skills_root>/arc:cartography/scripts/cartographer.py init \
+<skills_root>/arc:cartography/scripts/cartographer init \
   --root ./ \
   --include "src/**/*.ts" \
   --exclude "**/*.test.ts" \
@@ -87,8 +87,8 @@ After initialization it will generate:
 ### Step 3: Incremental detection and update
 
 ```bash
-python3 <skills_root>/arc:cartography/scripts/cartographer.py changes --root ./
-python3 <skills_root>/arc:cartography/scripts/cartographer.py update  --root ./
+<skills_root>/arc:cartography/scripts/cartographer changes --root ./
+<skills_root>/arc:cartography/scripts/cartographer update  --root ./
 ```
 
 rule:
@@ -100,15 +100,15 @@ rule:
 1. Run `arc:cartography` against the real git root, not against a parent workspace that only groups multiple repositories.
 2. Prefer `changes` or a tightly scoped `update` before `init`; reserve full initialization for first run or damaged state.
 3. Always exclude generated, vendored, cache, and package-manager directories unless the user explicitly asks to map them.
-4. Treat `cartographer.py` as a batch command. Do not wrap it in a background watcher, polling loop, or persistent Python service.
+4. Treat `cartographer` as a batch command. Do not wrap it in a background watcher, polling loop, or persistent helper service.
 5. When downstream work only needs a small structure answer, prefer `rg`, `fd`, `git`, and existing `.arc/context-hub` artifacts instead of rebuilding the whole codemap.
 
 ### Step 4: Optional export of hierarchical JSON
 
 ```bash
-python3 <skills_root>/arc:cartography/scripts/cartographer.py export --root ./ --tier 1 --output codemap/index.json
-python3 <skills_root>/arc:cartography/scripts/cartographer.py export --root ./ --tier 2 --output codemap/context.json
-python3 <skills_root>/arc:cartography/scripts/cartographer.py export --root ./ --tier 3 --output codemap/full.json
+<skills_root>/arc:cartography/scripts/cartographer export --root ./ --tier 1 --output codemap/index.json
+<skills_root>/arc:cartography/scripts/cartographer export --root ./ --tier 2 --output codemap/context.json
+<skills_root>/arc:cartography/scripts/cartographer export --root ./ --tier 3 --output codemap/full.json
 ```
 
 suggestion:
@@ -150,6 +150,7 @@ Write the root-level and directory-level `codemap` products into `.arc/context-h
 - Root-level and directory-level codemaps must remain reachable.
 - `.arc/context-hub/index.json` Metadata must be refreshed synchronously.
 - The tier derived product must be consistent with the actual structure and consumable.
+- Changes to the Go-backed cartography runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release.
 
 ## Expert Standards
 
@@ -161,10 +162,10 @@ Write the root-level and directory-level `codemap` products into `.arc/context-h
 
 ## Scripts & Commands
 
-- Initialization codemap: `python3 Arc/arc:cartography/scripts/cartographer.py init --root <project_path>`
-- Detect changes: `python3 Arc/arc:cartography/scripts/cartographer.py changes --root <project_path>`
-- Incremental update: `python3 Arc/arc:cartography/scripts/cartographer.py update --root <project_path>`
-- Export layered JSON: `python3 Arc/arc:cartography/scripts/cartographer.py export --root <project_path> --tier 2 --output codemap.tier2.json`
+- Initialization codemap: `Arc/arc:cartography/scripts/cartographer init --root <project_path>`
+- Detect changes: `Arc/arc:cartography/scripts/cartographer changes --root <project_path>`
+- Incremental update: `Arc/arc:cartography/scripts/cartographer update --root <project_path>`
+- Export layered JSON: `Arc/arc:cartography/scripts/cartographer export --root <project_path> --tier 2 --output codemap.tier2.json`
 - Runtime main command: `arc cartography`
 
 ## Red Flags
@@ -174,7 +175,7 @@ Write the root-level and directory-level `codemap` products into `.arc/context-h
 - The root-level map is not updated, causing the downstream entry to expire.
 - Publishing without shared index results in the inability of downstream products to be reused.
 - Running full mapping on `node_modules`, build outputs, vendored trees, or cache directories by default.
-- Leaving long-lived Python helper processes behind after codemap generation.
+- Leaving long-lived helper processes behind after codemap generation.
 
 Example (directory level):
 

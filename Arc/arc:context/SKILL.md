@@ -86,10 +86,14 @@ NO SNAPSHOT WITHOUT A RESUME PATH.
 
 ## Scripts & Commands
 - Runtime main command: `arc context`
-- Workspace scaffolding: `python3 Arc/arc:context/scripts/scaffold_context_session.py --project-path <project_path> --task-name <task_name> --mode <prime|analyze|snapshot|restore>`
+- Workspace scaffolding: `Arc/arc:context/scripts/scaffold_context_session --project-path <project_path> --task-name <task_name> --mode <prime|analyze|snapshot|restore>`
 - Upstream adaptation notes: `Arc/arc:context/references/context-mode-adaptation.md`
 - Data-source playbook: `Arc/arc:context/references/data-handling-playbook.md`
 - Recommended restore flow: reopen `restore/recovery-manifest.json`, then `context/working-set.md`, then the listed entrypoints and artifact paths.
+
+## Runtime Verification Gate
+
+- Changes to the Go-backed context scaffold runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release.
 
 ## Red Flags
 - Treating `arc:context` as a generic note dump instead of a bounded recovery packet.
