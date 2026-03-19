@@ -79,6 +79,7 @@ Without the evidence chain of "failure→repair→pass", it is not allowed to cl
 
 - Only a "repaired" description is given, with no evidence of recurrence.
 - Avoid failures by deleting authentication/authorization logic.
+- Temporarily switching OTA/update targets, writable directories, feed URLs, or local config just to make a user-facing update path appear healthy.
 - Treat test false positives as product defects and directly modify the code.
 - The ticket will be closed without retesting.
 
@@ -169,6 +170,7 @@ python Arc/arc:fix/scripts/triage_run.py <run_dir> \
    - It is forbidden to comment/delete/short-circuit permission/auth middleware or verification in the code (for example, change "no permission should fail" to directly return success, or remove the judgment that roles/ACLs are required).
    - **Diagnosis over Bypass**: When facing an error in a permission-protected route or encountering a bug, you MUST NOT bypass the permission/auth logic to "make it work" or "test inner logic". Instead, you must use extensive logging, console printing, and error collection solutions to diagnose the root cause *within the context of the real business logic*.
    - If the problem is indeed a defect in permission rules/role mapping/policy configuration: Fix it to **in line with business expectations**, and make it back to cover both sides of the "should be allowed/should be denied" boundary.
+   - For OTA/update/install defects, do not mutate the underlying target directory, package source, local config, or feature flag just to let the page button succeed. If the real user path fails, fix that path instead of rewriting the environment underneath it.
 
 2. **It is strictly prohibited to bypass type safety or business logic to "repair" (Type & Logic Bypass is FORBIDDEN)**
    - **Type Suppression**: Do NOT change types to `any`, use `@ts-ignore`, `# type: ignore`, or use explicit type casting just to silence compiler errors. This hides the root cause and leads to instability and unmaintainability.
@@ -189,6 +191,7 @@ python Arc/arc:fix/scripts/triage_run.py <run_dir> \
    - Any database migration/DDL/DML (including but not limited to migrate, ALTER, INSERT/UPDATE/DELETE, backfill data) must first obtain the user's explicit consent.
    - Before agreeing: only read-only verification (SELECT) and code troubleshooting can be done; "migrate first and then add tickets" is not allowed.
    - After consent: Write the consent and implementation evidence into `run_dir/db/` (see suggestion document above) and clearly state it in the final Fix Packet.
+   - This same rule applies to update channels, writable targets, local OTA directories, and other runtime configuration: do not change them as a hidden shortcut during verification unless the user explicitly approves that infrastructure change as part of the real fix.
 
 7. **New accounts (used to verify repairs) must be auditable**
    - If a new account must be created in order to verify the repair (such as verifying first login, permission boundaries, new tenant isolation), you must write:
