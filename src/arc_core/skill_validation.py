@@ -89,6 +89,13 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
     "arc:serve": ["tmux", "single-instance", ["JSON registry", "registry"], ["port", "ports"], ["graceful shutdown", "graceful"]],
     "arc:ip-check": [["新颖性", "novelty", "Novelty"], ["创造性", "inventiveness", "Inventiveness", "creativity", "creativeness"], ["实用性", "utility", "Utility", "practicality", "practicability"], "FTO"],
     "arc:ip-draft": [["宽-中-窄", "broad-medium-narrow", "Broad-Medium-Narrow", "wide-medium-narrow"], ["权利要求", "claims", "Claims"], ["待法务复核清单", "legal review checklist", "Legal Review", "to be reviewed by legal"]],
+    "arc:microcopy": [
+        ["plain language", "人话", "通俗表达"],
+        ["user mental model", "用户心智模型"],
+        ["actionable guidance", "可执行指引"],
+        ["avoid jargon", "避免术语", "避免技术术语"],
+        ["blame-free", "非责怪式", "责怪式"],
+    ],
     "arc:uml": ["UML 2.5.1 / ISO 19505", "Chen", ["建模假设", "modeling assumption", "Modeling Assumption"]],
     "arc:audit": [["业务成熟度", "Business Maturity", "business maturity"], ["依赖健康度", "Dependency Health", "dependency health"], ["专家评审卡", "Expert Review Card", "expert review card"], "9 Tab"],
     "arc:test": [
@@ -144,6 +151,7 @@ ARC_ROUTED_SKILLS = {
     "arc:test",
     "arc:serve",
     "arc:aigc",
+    "arc:microcopy",
 }
 
 QUICK_CONTRACT_KEY_MAP = {
