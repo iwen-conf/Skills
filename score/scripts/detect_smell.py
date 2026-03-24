@@ -29,7 +29,7 @@ class SmellViolation:
 
 
 SCHEMA_VERSION = "1.0.0"
-PRODUCER_SKILL = "arc:score"
+PRODUCER_SKILL = "arc-score"
 
 
 # 内置检测规则 (简化版，无需 AST)

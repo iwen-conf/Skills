@@ -17,7 +17,7 @@ from pathlib import Path
 SEVERITY_PENALTY = {"critical": 20, "high": 10, "medium": 5, "low": 2}
 
 SCHEMA_VERSION = "1.0.0"
-PRODUCER_SKILL = "arc:score"
+PRODUCER_SKILL = "arc-score"
 
 # 维度映射 (Code Smell 类别 -> 评审维度)
 CATEGORY_TO_DIMENSION = {

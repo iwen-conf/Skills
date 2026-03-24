@@ -12,7 +12,7 @@ func main() {
 	opts := gate.Options{}
 	exitCode := false
 	flag.StringVar(&opts.ProjectPath, "project", "", "项目根目录")
-	flag.StringVar(&opts.ScoreDir, "score-dir", "", "arc:score 输出目录")
+	flag.StringVar(&opts.ScoreDir, "score-dir", "", "arc-score 输出目录")
 	flag.StringVar(&opts.Mode, "mode", "", "门禁模式")
 	flag.StringVar(&opts.ConfigPath, "config", "", "配置文件路径")
 	flag.StringVar(&opts.OutputDir, "output-dir", ".arc/gate-reports", "输出目录")

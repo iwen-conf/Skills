@@ -547,7 +547,7 @@ class EvalRunner:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run arc: skill evaluations")
-    parser.add_argument("--skill", "-s", required=True, help="Skill to evaluate (e.g., arc:e2e)")
+    parser.add_argument("--skill", "-s", required=True, help="Skill to evaluate (e.g., arc-e2e)")
     parser.add_argument("--id", help="Run specific eval by ID")
     parser.add_argument("--trigger", help="Filter by trigger type")
     parser.add_argument("--tag", "-t", action="append", help="Filter by tag (can repeat)")

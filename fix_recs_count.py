@@ -15,10 +15,10 @@ recommendations_content = """# 改进路线：Skills
 ## P1 优化建议
 
 ### 3. 补齐自动化测试矩阵
-建议动作：针对核心工具补齐 `pytest`。问题事实：测试文件过少。收益：确保编排脚本不会回归。成本：中等，需要开发人员投入时间。风险：可能短期内延缓业务特性开发进度。证据：`arc:cartography/scripts/test_cartographer.py:1`。
+建议动作：针对核心工具补齐 `pytest`。问题事实：测试文件过少。收益：确保编排脚本不会回归。成本：中等，需要开发人员投入时间。风险：可能短期内延缓业务特性开发进度。证据：`arc-cartography/scripts/test_cartographer.py:1`。
 
 ### 4. 建立监控指标看板
-建议动作：增加 `arc:audit` 产物的定期推送机制。问题事实：缺乏可观测性的长期基线追踪。收益：提升项目演进可视度。成本：中等。风险：无。证据：`README.md:2`。
+建议动作：增加 `arc-audit` 产物的定期推送机制。问题事实：缺乏可观测性的长期基线追踪。收益：提升项目演进可视度。成本：中等。风险：无。证据：`README.md:2`。
 """
 
 with open(os.path.join(base_dir, "recommendations.md"), "w") as f: f.write(recommendations_content)

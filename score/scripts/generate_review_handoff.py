@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""generate_review_handoff.py - Generate handoff/review-input.json from arc:score outputs.
+"""generate_review_handoff.py - Generate handoff/review-input.json from arc-score outputs.
 
 Usage:
     python generate_review_handoff.py --score-dir .arc/score/<project-name>
@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 SCHEMA_VERSION = "1.0.0"
-PRODUCER_SKILL = "arc:score"
+PRODUCER_SKILL = "arc-score"
 
 
 _SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -89,7 +89,7 @@ def build_artifact_ref(score_dir: Path, artifact_path: Path) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="生成 arc:score 交接产物 handoff/review-input.json"
+        description="生成 arc-score 交接产物 handoff/review-input.json"
     )
     parser.add_argument(
         "--score-dir", required=True, help=".arc/score/<project-name> 目录"

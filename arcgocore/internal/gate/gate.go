@@ -352,7 +352,7 @@ func findScoreDirFromContextHub(projectRoot string) string {
 	bestPath := ""
 	for _, item := range items {
 		candidate, ok := item.(map[string]any)
-		if !ok || asString(candidate["producer_skill"]) != "arc:score" {
+		if !ok || asString(candidate["producer_skill"]) != "arc-score" {
 			continue
 		}
 		if artifactExpired(candidate) {

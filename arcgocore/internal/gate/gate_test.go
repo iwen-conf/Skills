@@ -56,7 +56,7 @@ func TestFindScoreDirFromContextHub(t *testing.T) {
 	mustJSON(t, filepath.Join(scoreDir, "score", "overall-score.json"), map[string]any{"score": 91})
 	mustJSON(t, filepath.Join(project, ".arc", "context-hub", "index.json"), map[string]any{
 		"artifacts": []map[string]any{{
-			"producer_skill": "arc:score",
+			"producer_skill": "arc-score",
 			"path":           filepath.ToSlash(strings.TrimPrefix(handoffPath, project+string(filepath.Separator))),
 			"expires_at":     "2099-01-01T00:00:00Z",
 		}},

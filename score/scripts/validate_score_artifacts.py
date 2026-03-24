@@ -149,7 +149,7 @@ def validate_review_handoff(obj: Any, errors: list[str]) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate arc:score output artifacts")
+    parser = argparse.ArgumentParser(description="Validate arc-score output artifacts")
     parser.add_argument(
         "--score-dir", required=True, help="Path to .arc/score/<project>"
     )
@@ -241,8 +241,8 @@ def main() -> int:
 
     for k, v in meta.items():
         producer = v.get("producer_skill")
-        if producer and producer != "arc:score":
-            errors.append(f"{k}.producer_skill expected arc:score, got {producer}")
+        if producer and producer != "arc-score":
+            errors.append(f"{k}.producer_skill expected arc-score, got {producer}")
 
     if "review_handoff" not in loaded and paths["review_handoff"].exists() is False:
         warnings.append("review handoff not present (handoff/review-input.json)")
@@ -266,10 +266,10 @@ def main() -> int:
         out_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
 
     if ok:
-        print("OK: arc:score artifacts valid")
+        print("OK: arc-score artifacts valid")
         return 0
 
-    print("FAIL: arc:score artifacts invalid")
+    print("FAIL: arc-score artifacts invalid")
     for e in errors:
         print(f"- {e}")
     return 1

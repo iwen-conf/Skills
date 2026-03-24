@@ -99,7 +99,7 @@ def load_context_hub_index(root: Path) -> ContextHubDocument:
 def build_registry_artifact(root: Path, registry_path: Path) -> dict[str, Any]:
     return {
         "name": "skills.index",
-        "producer_skill": "arc:registry",
+        "producer_skill": "arc-registry",
         "path": str(registry_path.relative_to(root)),
         "content_hash": _sha256_file(registry_path),
         "generated_at": _iso_now(),
@@ -108,7 +108,7 @@ def build_registry_artifact(root: Path, registry_path: Path) -> dict[str, Any]:
         "refresh_skill": "scripts/build_skills_index.py",
         "refresh_command_hint": "uv run python scripts/build_skills_index.py",
         "artifact_type": "skills-registry",
-        "consumers": ["arc:exec", "arc:build", "arc:audit", "arc:cartography"],
+        "consumers": ["arc-exec", "arc-build", "arc-audit", "arc-cartography"],
     }
 
 
@@ -129,7 +129,7 @@ def write_registry_and_context(root: Path, output_path: Path | None = None) -> t
     index_path = update_context_hub(root, registry_path)
     manifest = {
         "schema_version": "1.0.0",
-        "producer_skill": "arc:registry",
+        "producer_skill": "arc-registry",
         "generated_at": _iso_now(),
         "artifacts": [build_registry_artifact(root, registry_path)],
     }

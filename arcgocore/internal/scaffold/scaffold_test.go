@@ -20,7 +20,7 @@ func TestRunContextScaffold(t *testing.T) {
 			"name":           "skills.index",
 			"path":           "skills.index.json",
 			"artifact_type":  "skills-registry",
-			"producer_skill": "arc:registry",
+			"producer_skill": "arc-registry",
 			"generated_at":   "2026-03-13T00:00:00Z",
 			"expires_at":     "2099-01-01T00:00:00Z",
 		}},
@@ -71,7 +71,7 @@ func TestBuildAndExecScaffolds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunExecScaffold: %v", err)
 	}
-	if _, err := RunExecRender(ExecRenderOptions{CaseDir: execDir, TaskName: "dispatch-work", DispatchRows: []string{"deep|[arc:build]|implement backend interface|done|execution/backend.md"}}); err != nil {
+	if _, err := RunExecRender(ExecRenderOptions{CaseDir: execDir, TaskName: "dispatch-work", DispatchRows: []string{"deep|[arc-build]|implement backend interface|done|execution/backend.md"}}); err != nil {
 		t.Fatalf("RunExecRender: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(execDir, "aggregation", "final-summary.md")); err != nil {
@@ -80,7 +80,7 @@ func TestBuildAndExecScaffolds(t *testing.T) {
 }
 
 func BenchmarkRenderDispatchTable(b *testing.B) {
-	rows := []dispatchRow{{Profile: "deep", Capabilities: "[arc:build]", Description: "implement backend interface", Status: "done", Output: "execution/backend.md"}}
+	rows := []dispatchRow{{Profile: "deep", Capabilities: "[arc-build]", Description: "implement backend interface", Status: "done", Output: "execution/backend.md"}}
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		_ = renderDispatchTable(rows)

@@ -57,7 +57,7 @@ func RunExecScaffold(opts ExecScaffoldOptions) (string, error) {
 		"task_name":   opts.TaskName,
 		"created_at":  now,
 		"workdir":     workdir,
-		"owner_skill": "arc:exec",
+		"owner_skill": "arc-exec",
 		"status":      "initialized",
 	}
 	if err := writeJSONIfMissing(filepath.Join(caseDir, "manifest.json"), manifest); err != nil {

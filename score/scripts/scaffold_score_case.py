@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-scaffold_score_case.py - 创建 arc:score 工作目录结构
+scaffold_score_case.py - 创建 arc-score 工作目录结构
 
 用法:
     python scaffold_score_case.py --project /path/to/project [--output /output/dir]
@@ -14,7 +14,7 @@ from pathlib import Path
 
 def scaffold_score_case(project_path: str, output_dir: str | None = None) -> dict:
     """
-    创建 arc:score 工作目录结构
+    创建 arc-score 工作目录结构
 
     Args:
         project_path: 项目根目录
@@ -162,7 +162,7 @@ def generate_project_snapshot(project_path: Path) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="创建 arc:score 工作目录结构")
+    parser = argparse.ArgumentParser(description="创建 arc-score 工作目录结构")
     parser.add_argument("--project", required=True, help="项目根目录路径")
     parser.add_argument("--output", help="输出目录路径 (可选)")
     parser.add_argument("--json", action="store_true", help="以 JSON 格式输出")

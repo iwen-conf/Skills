@@ -31,7 +31,7 @@ def main() -> int:
     generate_review_handoff = repo_root / "score" / "scripts" / "generate_review_handoff.py"
     validate_score_artifacts = repo_root / "score" / "scripts" / "validate_score_artifacts.py"
     integrate_score = repo_root / "review" / "scripts" / "integrate_score.py"
-    check_gate = repo_root / "Arc" / "arc:gate" / "scripts" / "check_gate.py"
+    check_gate = repo_root / "Arc" / "arc-gate" / "scripts" / "check_gate.py"
 
     for p in [generate_review_handoff, validate_score_artifacts, integrate_score, check_gate]:
         if not p.exists():
@@ -56,7 +56,7 @@ def main() -> int:
             overall_path,
             {
                 "schema_version": "1.0.0",
-                "producer_skill": "arc:score",
+                "producer_skill": "arc-score",
                 "score": 95.0,
                 "weighted_score": 92.0,
                 "grade": "A",
@@ -73,7 +73,7 @@ def main() -> int:
             smell_path,
             {
                 "schema_version": "1.0.0",
-                "producer_skill": "arc:score",
+                "producer_skill": "arc-score",
                 "summary": {
                     "total_violations": 1,
                     "by_severity": {"low": 1},
@@ -101,7 +101,7 @@ def main() -> int:
             bugfix_path,
             {
                 "schema_version": "1.0.0",
-                "producer_skill": "arc:score",
+                "producer_skill": "arc-score",
                 "summary": {
                     "total_commits": 0,
                     "by_grade": {"A": 0, "B": 0, "C": 0},
@@ -128,7 +128,7 @@ def main() -> int:
                 "generated_at": now_iso,
                 "artifacts": [
                     {
-                        "producer_skill": "arc:score",
+                        "producer_skill": "arc-score",
                         "path": str(handoff_path.relative_to(project_root)),
                         "expires_at": "2099-01-01T00:00:00Z",
                     }

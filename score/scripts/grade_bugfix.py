@@ -34,7 +34,7 @@ class BugfixCommit:
 
 
 SCHEMA_VERSION = "1.0.0"
-PRODUCER_SKILL = "arc:score"
+PRODUCER_SKILL = "arc-score"
 
 
 # 分级阈值
