@@ -59,6 +59,7 @@ Without the evidence chain of "failure→repair→pass", it is not allowed to cl
 - Remediation instructions must include impact surfaces and regression commands.
 - DEBUG clues and artifact paths need to be retained throughout the process.
 - Medium/High-risk repairs must record a recoverable boundary before code changes: pushed remote branch, snapshot, or explicit blocker.
+- Fail/pass snapshots, impact summaries, and regression checklists delivered in chat should prefer `terminal-table-output` when the content stays compact; the Fix Packet files stay in their native Markdown form.
 
 ## Expert Standards
 

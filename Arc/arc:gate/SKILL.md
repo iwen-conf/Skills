@@ -63,6 +63,7 @@ No build/release is green without explicit gate evidence.
 - Missing/expired score artifacts must be refreshed before judging.
 - Output must include pass/fail decision plus violation details.
 - Changes to the Go-backed gate runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release.
+- Gate mode summaries, threshold matrices, and violation snapshots delivered in chat should prefer `terminal-table-output` when the content is compact and alignable.
 
 ## Expert Standards
 

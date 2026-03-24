@@ -56,6 +56,7 @@ NO CONSENSUS CLAIM WITHOUT CROSS-CRITIQUE EVIDENCE
 - The final consensus must give reasons for reservation of disagreements and decisions.
 - The plan must include executable tasks, risk lists, and fallback strategies.
 - References to external information need to indicate the source and timeliness.
+- Decision comparison matrices, role boards, and convergence snapshots delivered in chat should prefer `terminal-table-output` when the content stays compact.
 
 ## Expert Standards
 

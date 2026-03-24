@@ -64,6 +64,7 @@ Without code evidence and risk matrix, no "applicable" conclusion should be give
 - Conclusions must cite specific module/documentary evidence.
 - When a scoring dimension lacks direct evidence, use `N/A` and explain the missing evidence instead of forcing a number.
 - The handover file fields must be complete and can be consumed by `arc:ip-draft`.
+- Feasibility scorecards, risk matrices, and priority summaries delivered in chat should prefer `terminal-table-output` when the content is compact and alignable.
 
 ## Expert Standards
 

@@ -92,3 +92,12 @@ collect_task(
 2. 所有并发任务均可被 `collect_task(...)` 收集。
 3. 失败分支具备重试/降级/中止中的至少一种。
 4. 最终报告包含 `task_ref` 或等价追踪标识。
+
+## 7) 输出范式复用（聊天表现层）
+
+- `arc:*` 技能可以复用融合型 generic skill 作为**聊天输出范式**，但不得因此篡改磁盘工件的原生格式。
+- 当最终回答天然是紧凑的二维结构（如状态矩阵、对比表、短清单汇总）时，优先组合 `terminal-table-output`，在 fenced `text` 代码块中输出 Unicode 盒线表，而不是 Markdown 表。
+- 当内容包含长段解释、文件路径、URL、代码、JSON、日志、长注释时，不得为了“表格化”而强行入格；应降级为列表、分组块或正文。
+- Skill 作者在 `SKILL.md` 中引用这类输出范式时，必须明确区分：
+  - **聊天摘要**：可使用 `terminal-table-output`
+  - **落盘工件**：保持 Markdown / JSON / text / HTML 等原约定格式

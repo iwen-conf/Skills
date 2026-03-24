@@ -89,6 +89,7 @@ The tripartite pattern (architecture / engineering / business perspectives) and 
 - `Dependency Health Score` must state which version, vulnerability, and maintenance signals were inspected.
 - `diagnostic-report.md` must separate **Observed Facts** from **Recommendations**.
 - The audit must remain read-only outside the local audit artifact directory.
+- Scorecards, short risk matrices, and compact status summaries delivered in chat should prefer `terminal-table-output`; the audit artifact set on disk keeps its native Markdown/HTML formats.
 
 ## Expert Standards
 

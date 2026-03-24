@@ -2,9 +2,10 @@
 
 面向通用工程编排的 Skill 仓库。
 
-当前主命名空间只有一组：
+当前主要有两类 Skill：
 
 - `Arc/`：通用工程编排技能，主命名空间为 `arc:*`
+- 根目录 generic/fusion skills：跨领域复用的共享输出范式或表现层能力，例如 `terminal-table-output`
 
 ## 目录结构
 
@@ -14,6 +15,7 @@ Skills/
 │   ├── arc:exec/
 │   ├── arc:build/
 │   └── ...
+├── terminal-table-output/
 ├── docs/
 ├── schemas/
 ├── scripts/
@@ -28,12 +30,20 @@ Skills/
 - 所有 `arc:*` 技能已统一融合结构：`Quick Contract` / `Announce` / `The Iron Law` / `Workflow` / `Quality Gates` / `Red Flags`。
 - 路由文档已形成三层：矩阵、决策树、阶段视图 + 单页速查。
 - 所有 `SKILL.md` 的 frontmatter `description` 已统一为中文。
+- 已支持少量 allowlist 的 generic/fusion skill，用于共享输出范式，不替代 `arc:*` 的领域边界。
 
 ## 命名规则
 
 - `Arc/` 下技能统一使用 `arc:*`
 - Skill 只按“能力边界”命名，不再同时维护另一套“人类别名”
 - 模式参数统一放在 Skill 内部（如 `--mode`），不再把每个模式都当成一级入口
+- generic/fusion skill 仅用于跨领域复用的共享能力，需显式进入 allowlist 才会被主校验器索引
+
+## 共享输出范式
+
+| 名称 | 用途 | 组合方式 |
+|---|---|---|
+| `terminal-table-output` | 将聊天中的紧凑二维摘要渲染为终端盒线表 | 作为表现层范式与 `arc:*` 组合，工件落盘格式保持原样 |
 
 ## Arc 主技能
 
@@ -118,11 +128,12 @@ python3 scripts/validate_skills.py
 当前校验会检查：
 
 - `arc:*` frontmatter 仅允许 `name` + `description`
-- 所有被主校验器索引的 skill 名称必须为 `arc:xxx`
+- 所有被主校验器索引的 skill 名称必须为 `arc:xxx`，或属于 allowlist generic/fusion skill
 - `description` 必须包含中文
 - `arc:*` 必须包含统一结构段落与路由链接
 - `When to Use` 必须包含：`首选触发 / 典型场景 / 边界提示`
 - 禁止遗留旧调度关键字
+- 仓库禁止出现 `.github/workflows/`；Skills 仓库不承载 GitHub Actions
 
 ## 快速开始
 

@@ -131,7 +131,9 @@ BANNED_TOKENS = [
     "arc:init:update",
 ]
 
-FUSION_GENERIC_SKILLS: set[str] = set()
+FUSION_GENERIC_SKILLS: set[str] = {
+    "terminal-table-output",
+}
 
 ARC_ROUTED_SKILLS = {
     "arc:exec",
@@ -502,6 +504,30 @@ def validate_file(path: Path, root: Path | None = None) -> tuple[list[str], list
     return validate_text(text, str(path), root=root)
 
 
+def validate_repo_policies(root: Path) -> list[str]:
+    errors: list[str] = []
+    workflows_dir = root / ".github" / "workflows"
+    if workflows_dir.exists():
+        workflow_files = sorted(
+            path.relative_to(root)
+            for path in workflows_dir.rglob("*")
+            if path.is_file()
+        )
+        if workflow_files:
+            listed = ", ".join(str(path) for path in workflow_files[:5])
+            if len(workflow_files) > 5:
+                listed += ", ..."
+            errors.append(
+                "repository policy violation: GitHub Actions workflows are not allowed in this skills repository; "
+                f"remove {listed}"
+            )
+        else:
+            errors.append(
+                "repository policy violation: empty .github/workflows directory is not allowed in this skills repository"
+            )
+    return errors
+
+
 
 def collect_skill_files(root: Path) -> list[Path]:
     collected: list[Path] = []
@@ -544,7 +570,7 @@ def find_skill_file(root: Path, skill_name: str) -> Path | None:
 
 def run_validation(root: Path) -> tuple[list[str], list[str], int]:
     skill_files = collect_skill_files(root)
-    all_errors: list[str] = []
+    all_errors: list[str] = validate_repo_policies(root)
     all_warnings: list[str] = []
     for path in skill_files:
         errors, warnings = validate_file(path, root=root)

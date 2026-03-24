@@ -63,6 +63,7 @@ No scheduling is allowed before routing and capability verification is completed
 - Concurrent tasks must have collection points (`collect_task(...)`) and failure handling strategies.
 - Aggregation conclusions must contain responsibility, risk, and tracking identifiers (`task_ref` or equivalent fields).
 - Repository-affecting high-risk tasks must state the chosen rollback surface: local snapshot, pushed remote branch, or explicit blocker.
+- When the final chat answer is naturally a compact status matrix or short inventory, compose with `terminal-table-output`; keep disk artifacts in their original formats.
 
 ## Expert Standards
 

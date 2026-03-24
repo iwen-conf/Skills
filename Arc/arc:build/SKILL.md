@@ -62,6 +62,7 @@ Code changes must not be implemented without clear plans, verification evidence,
 - The handover summary must cover impact modules and regression concerns.
 - Failure scenarios must include rollback or mitigation handling, and any irreversible operation must be explicitly called out before handover.
 - Medium/High-risk implementation must identify a recoverable boundary before coding: pushed remote branch, local snapshot, or explicit blocker.
+- If the final chat handoff includes a compact matrix such as verification status or change inventory, prefer `terminal-table-output`; do not rewrite file artifacts just to match chat styling.
 
 ## Expert Standards
 

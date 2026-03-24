@@ -30,6 +30,11 @@
    - 输出明确、可追溯、可被下游消费
    - 强调证据与结论分离
 
+6. **输出范式可复用**
+   - 领域 Skill 与表现层 Skill 分离
+   - 允许把“怎么展示”收敛为可组合的 generic skill，而不是把同一套排版规则复制到每个 Skill
+   - 当前仓库示例：`terminal-table-output`，用于把聊天中的紧凑二维摘要渲染为终端盒线表
+
 ## 适配到本仓库后的约束
 
 - 编排统一使用 `docs/orchestration-contract.md`
@@ -44,6 +49,14 @@
 4. `arc:build`
 5. `arc:fix`
 
+## 共享输出范式
+
+- `terminal-table-output`
+  - 角色：共享聊天输出范式，不承担领域决策
+  - 适用：比较、状态汇总、矩阵、短库存表
+  - 不适用：长解释、代码、URL、文件路径、JSON、长日志
+  - 组合原则：只改变聊天表现层，不改变工件落盘格式
+
 ## 持续演进建议
 
 - 新建 Skill 时，优先复用本指南结构：
@@ -55,3 +68,4 @@
   - `Workflow`
   - `Quality Gates`
   - `Red Flags`
+- 若 Skill 主要提供输出风格而不是领域能力，优先做成 generic/fusion skill，并通过共享文档或关键领域 Skill 进行组合接入。

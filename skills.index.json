@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-19T16:36:11.965964Z",
-  "skill_count": 18,
+  "generated_at": "2026-03-24T16:21:02.330049Z",
+  "skill_count": 19,
   "skills": [
     {
       "name": "arc:aigc",
@@ -177,7 +177,7 @@
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Every finding must anchor to a verifiable source such as `file:line`, config path, dependency manifest, CI artifact, or documented process artifact.\n- A score is allowed only when the supporting evidence is direct enough to justify a bounded judgment.\n- When evidence is missing, conflicting, or outside the audit surface, use `N/A` instead of forced precision.\n- Every `N/A` entry must include `missing_reason`, `missing_evidence_type`, and `how_to_collect_more_evidence`.\n- `Business Maturity Index` must state which business flows or operating artifacts were inspected.\n- `Dependency Health Score` must state which version, vulnerability, and maintenance signals were inspected.\n- `diagnostic-report.md` must separate **Observed Facts** from **Recommendations**.\n- The audit must remain read-only outside the local audit artifact directory."
+          "body": "- Every finding must anchor to a verifiable source such as `file:line`, config path, dependency manifest, CI artifact, or documented process artifact.\n- A score is allowed only when the supporting evidence is direct enough to justify a bounded judgment.\n- When evidence is missing, conflicting, or outside the audit surface, use `N/A` instead of forced precision.\n- Every `N/A` entry must include `missing_reason`, `missing_evidence_type`, and `how_to_collect_more_evidence`.\n- `Business Maturity Index` must state which business flows or operating artifacts were inspected.\n- `Dependency Health Score` must state which version, vulnerability, and maintenance signals were inspected.\n- `diagnostic-report.md` must separate **Observed Facts** from **Recommendations**.\n- The audit must remain read-only outside the local audit artifact directory.\n- Scorecards, short risk matrices, and compact status summaries delivered in chat should prefer `terminal-table-output`; the audit artifact set on disk keeps its native Markdown/HTML formats."
         },
         {
           "heading": "## Expert Standards",
@@ -288,7 +288,7 @@
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- `implementation-plan.md` must be generated first and then encoded.\n- Every critical change must have verification commands and results.\n- The handover summary must cover impact modules and regression concerns.\n- Failure scenarios must include rollback or mitigation handling, and any irreversible operation must be explicitly called out before handover.\n- Medium/High-risk implementation must identify a recoverable boundary before coding: pushed remote branch, local snapshot, or explicit blocker."
+          "body": "- `implementation-plan.md` must be generated first and then encoded.\n- Every critical change must have verification commands and results.\n- The handover summary must cover impact modules and regression concerns.\n- Failure scenarios must include rollback or mitigation handling, and any irreversible operation must be explicitly called out before handover.\n- Medium/High-risk implementation must identify a recoverable boundary before coding: pushed remote branch, local snapshot, or explicit blocker.\n- If the final chat handoff includes a compact matrix such as verification status or change inventory, prefer `terminal-table-output`; do not rewrite file artifacts just to match chat styling."
         },
         {
           "heading": "## Expert Standards",
@@ -562,7 +562,7 @@
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Enhanced prompt must contain Context/Task/Constraints/Success Criteria.\n- Key terms must be unified and reusable downstream.\n- Clarification questions should be minimal and of high value to avoid noisy questioning.\n- Clearly label contextual sources and freshness."
+          "body": "- Enhanced prompt must contain Context/Task/Constraints/Success Criteria.\n- Key terms must be unified and reusable downstream.\n- Clarification questions should be minimal and of high value to avoid noisy questioning.\n- Clearly label contextual sources and freshness.\n- When gap summaries or quick status snapshots are delivered in chat as compact matrices, prefer `terminal-table-output` over Markdown tables; the written artifact remains Markdown."
         },
         {
           "heading": "## Expert Standards",
@@ -826,7 +826,7 @@
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Each round must have three types of evidence: \"proposal + refutation + convergence judgment\".\n- The final consensus must give reasons for reservation of disagreements and decisions.\n- The plan must include executable tasks, risk lists, and fallback strategies.\n- References to external information need to indicate the source and timeliness."
+          "body": "- Each round must have three types of evidence: \"proposal + refutation + convergence judgment\".\n- The final consensus must give reasons for reservation of disagreements and decisions.\n- The plan must include executable tasks, risk lists, and fallback strategies.\n- References to external information need to indicate the source and timeliness.\n- Decision comparison matrices, role boards, and convergence snapshots delivered in chat should prefer `terminal-table-output` when the content stays compact."
         },
         {
           "heading": "## Expert Standards",
@@ -952,7 +952,7 @@
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Each run must produce `run_id` and a directory of standardized artifacts.\n- The failed steps in the report must be mapped to screenshot/log evidence.\n- Account and session switching must comply with session isolation rules.\n- All Markdown products must pass format verification."
+          "body": "- Each run must produce `run_id` and a directory of standardized artifacts.\n- The failed steps in the report must be mapped to screenshot/log evidence.\n- Account and session switching must comply with session isolation rules.\n- All Markdown products must pass format verification.\n- Chat delivery should keep only compact FAIL/PASS snapshots, step summaries, or artifact inventories; when these are naturally tabular, prefer `terminal-table-output` instead of Markdown tables."
         },
         {
           "heading": "## Expert Standards",
@@ -1208,7 +1208,7 @@
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- The routing conclusion must be explainable (why this Skill/profile was selected).\n- Each schedule must contain `capability_profile`, `description`, `prompt`.\n- Concurrent tasks must have collection points (`collect_task(...)`) and failure handling strategies.\n- Aggregation conclusions must contain responsibility, risk, and tracking identifiers (`task_ref` or equivalent fields).\n- Repository-affecting high-risk tasks must state the chosen rollback surface: local snapshot, pushed remote branch, or explicit blocker."
+          "body": "- The routing conclusion must be explainable (why this Skill/profile was selected).\n- Each schedule must contain `capability_profile`, `description`, `prompt`.\n- Concurrent tasks must have collection points (`collect_task(...)`) and failure handling strategies.\n- Aggregation conclusions must contain responsibility, risk, and tracking identifiers (`task_ref` or equivalent fields).\n- Repository-affecting high-risk tasks must state the chosen rollback surface: local snapshot, pushed remote branch, or explicit blocker.\n- When the final chat answer is naturally a compact status matrix or short inventory, compose with `terminal-table-output`; keep disk artifacts in their original formats."
         },
         {
           "heading": "## Expert Standards",
@@ -1380,7 +1380,7 @@
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Both failing and passing run evidence must be provided.\n- The root cause must be specific to a module, condition, or timing point.\n- Remediation instructions must include impact surfaces and regression commands.\n- DEBUG clues and artifact paths need to be retained throughout the process.\n- Medium/High-risk repairs must record a recoverable boundary before code changes: pushed remote branch, snapshot, or explicit blocker."
+          "body": "- Both failing and passing run evidence must be provided.\n- The root cause must be specific to a module, condition, or timing point.\n- Remediation instructions must include impact surfaces and regression commands.\n- DEBUG clues and artifact paths need to be retained throughout the process.\n- Medium/High-risk repairs must record a recoverable boundary before code changes: pushed remote branch, snapshot, or explicit blocker.\n- Fail/pass snapshots, impact summaries, and regression checklists delivered in chat should prefer `terminal-table-output` when the content stays compact; the Fix Packet files stay in their native Markdown form."
         },
         {
           "heading": "## Expert Standards",
@@ -1501,7 +1501,7 @@
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Decision basis must map to explicit thresholds and evidence.\n- Waivers must include `reason`, `approved_by`, `expires_at`.\n- Missing/expired score artifacts must be refreshed before judging.\n- Output must include pass/fail decision plus violation details.\n- Changes to the Go-backed gate runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release."
+          "body": "- Decision basis must map to explicit thresholds and evidence.\n- Waivers must include `reason`, `approved_by`, `expires_at`.\n- Missing/expired score artifacts must be refreshed before judging.\n- Output must include pass/fail decision plus violation details.\n- Changes to the Go-backed gate runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release.\n- Gate mode summaries, threshold matrices, and violation snapshots delivered in chat should prefer `terminal-table-output` when the content is compact and alignable."
         },
         {
           "heading": "## Expert Standards",
@@ -1796,7 +1796,7 @@
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Software copyright and patents must be scored separately, and conclusions cannot be mixed.\n- Each risk must be labeled with probability, impact and mitigation recommendations.\n- Conclusions must cite specific module/documentary evidence.\n- When a scoring dimension lacks direct evidence, use `N/A` and explain the missing evidence instead of forcing a number.\n- The handover file fields must be complete and can be consumed by `arc:ip-draft`."
+          "body": "- Software copyright and patents must be scored separately, and conclusions cannot be mixed.\n- Each risk must be labeled with probability, impact and mitigation recommendations.\n- Conclusions must cite specific module/documentary evidence.\n- When a scoring dimension lacks direct evidence, use `N/A` and explain the missing evidence instead of forcing a number.\n- The handover file fields must be complete and can be consumed by `arc:ip-draft`.\n- Feasibility scorecards, risk matrices, and priority summaries delivered in chat should prefer `terminal-table-output` when the content is compact and alignable."
         },
         {
           "heading": "## Expert Standards",
@@ -2397,7 +2397,7 @@
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Every generated test file must compile without errors.\n- Every generated test must pass (or be explicitly marked as expected-failure with justification).\n- `test-report.md` must contain: language detected, files generated, test command used, exit code, and stdout/stderr excerpt.\n- Benchmark tests must include at least one `b.ReportAllocs()` (Go) or equivalent metric collection.\n- Fuzz tests must define a valid corpus entry."
+          "body": "- Every generated test file must compile without errors.\n- Every generated test must pass (or be explicitly marked as expected-failure with justification).\n- `test-report.md` must contain: language detected, files generated, test command used, exit code, and stdout/stderr excerpt.\n- Benchmark tests must include at least one `b.ReportAllocs()` (Go) or equivalent metric collection.\n- Fuzz tests must define a valid corpus entry.\n- If the chat handoff includes a compact matrix such as generated files, test types, or pass/fail status, prefer `terminal-table-output`; keep `test-report.md` as the canonical file artifact."
         },
         {
           "heading": "## Expert Standards",
@@ -2658,6 +2658,111 @@
       "outputs_section": {
         "format": "text",
         "content": "<project_path>/.arc/uml/<project-name>/\n├── context/\n│   └── project-snapshot.md\n├── diagram-plan.md\n├── diagram-index.md\n├── validation-summary.md\n├── diagrams/                      # Only create files for diagrams marked `required` or `recommended`\n│   ├── <diagram-type>.mmd\n│   ├── <diagram-type>.svg\n│   ├── er-chen.mmd                # Optional: only when Chen E-R output is required\n│   ├── er-chen.svg                # Optional: when the Mermaid source is renderable by the default SVG renderer\n│   └── ..."
+      }
+    },
+    {
+      "name": "terminal-table-output",
+      "description": "终端盒线表输出范式：当用户要求表格、比较表、矩阵或状态汇总，且内容足够紧凑时，用 Unicode 盒线表替代 Markdown 表。",
+      "source_path": "terminal-table-output/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "`terminal-table-output` 是一个 generic/fusion skill，负责把**聊天里的紧凑二维信息**渲染为终端风格盒线表，而不是 Markdown 表。\n\n它只负责表现层，不负责领域判断。本 skill 不应改变磁盘工件的原生格式；Markdown、JSON、HTML、日志与代码文件仍保持各自原约定。\n\n详细渲染规则见 [`references/render-rules.md`](references/render-rules.md)。"
+        },
+        {
+          "heading": "## Quick Contract",
+          "title": "Quick Contract",
+          "body": "- **Trigger**: 用户明确要求表格/对比表/矩阵/汇总表，或当前输出天然是短字段重复的二维结构。\n- **Inputs**: 行列结构明确的紧凑数据；可选列宽约束、截断策略和补充说明。\n- **Outputs**: 一个 fenced `text` 代码块中的 Unicode 盒线表；若有溢出说明，可在表格后附短列表。\n- **Quality Gate**: 只有在内容能保持紧凑、对齐稳定、边界闭合时才允许输出表格；否则必须降级为非表格结构。\n- **Decision Tree**: 先判断“是否天然二维且短字段重复”；若否，直接不用表格。"
+        },
+        {
+          "heading": "## Announce",
+          "title": "Announce",
+          "body": "Begin by stating clearly:\n\"I am using `terminal-table-output` to render a compact box-drawing table for chat delivery.\""
+        },
+        {
+          "heading": "## The Iron Law",
+          "title": "The Iron Law",
+          "body": "```text\nNO TABLE UNLESS THE CONTENT IS NATURALLY TWO-DIMENSIONAL, COMPACT, AND ALIGNABLE.\n```\n\n如果内容不是天然二维、不能保持紧凑，或对齐稳定性存疑，就不要输出表格。"
+        },
+        {
+          "heading": "## Workflow",
+          "title": "Workflow",
+          "body": "1. 判断内容是否天然适合二维呈现，而不是为了“看起来像表格”强行入格。\n2. 精简列数、缩短表头，并把长解释、路径、URL、代码、JSON 挪到表格外。\n3. 逐列计算显示宽度：\n   - 中文和其他全角字符按宽度 `2`\n   - 英文、数字、半角符号按宽度 `1`\n4. 在 fenced `text` 代码块中用 Unicode 盒线字符渲染完整外框与分隔线。\n5. 逐行复核总宽度是否一致；若不一致，继续缩短或放弃表格。"
+        },
+        {
+          "heading": "## Quality Gates",
+          "title": "Quality Gates",
+          "body": "- 仅当信息天然是紧凑二维结构时才使用表格。\n- 只能在 fenced code block with `text` 中输出，不使用 Markdown table syntax，除非用户明确要求。\n- 每一行都必须左右闭合，且总宽度一致。\n- 单元格右侧只能用空格补齐，不能使用 tab。\n- 若内容过宽，优先减列、缩短表头、手动换行或显式截断为 `...`。\n- 文件路径、URL、代码、JSON、长段解释、错误细节不应被强行塞进表格。\n- 当稳定对齐无法保证时，必须降级为列表、分组块或正文。"
+        },
+        {
+          "heading": "## Red Flags",
+          "title": "Red Flags",
+          "body": "- 为了“形式统一”把长解释硬塞进表格。\n- 混用 Markdown 表和盒线表。\n- 行宽不一致、边框未闭合、全角宽度未处理。\n- 表格过宽，超出默认聊天区域仍继续堆列。\n- 本该用列表或正文，却为了视觉密度误用表格。"
+        },
+        {
+          "heading": "## When to Use",
+          "title": "When to Use",
+          "body": "- **首选触发**：用户要求表格、比较表、矩阵、状态汇总，或当前答案天然就是短字段重复的二维信息。\n- **典型场景**：方案对比、状态盘点、短清单汇总、风险矩阵、紧凑型 inventory。\n- **边界提示**：若内容包含长解释、代码、日志、路径、URL、JSON 或稳定对齐存疑，应直接改用列表、分组块或正文。"
+        },
+        {
+          "heading": "## Input Arguments",
+          "title": "Input Arguments",
+          "body": "| parameter | type | required | description |\n|-----------|------|----------|-------------|\n| `headers` | array | yes | 列标题，需保持简短 |\n| `rows` | array | yes | 行数据，单元格应尽量短小 |\n| `max_width_hint` | integer | no | 目标总宽度提示，默认尽量控制在约 80 半角列以内 |\n| `wrap_or_truncate` | enum | no | `wrap` / `truncate`，默认按可读性择优 |\n| `notes` | array | no | 不适合入表的补充说明，放在表格后 |"
+        },
+        {
+          "heading": "## Outputs",
+          "title": "Outputs",
+          "body": "```text\n┌──────────┬──────────────┬──────────────┐\n│ 维度     │ 选择         │ 说明         │\n├──────────┼──────────────┼──────────────┤\n│ 输出形式 │ 盒线表       │ 聊天摘要用   │\n│ 工件格式 │ 原格式保留   │ 不改落盘结果 │\n└──────────┴──────────────┴──────────────┘\n```"
+        },
+        {
+          "heading": "## Integration",
+          "title": "Integration",
+          "body": "- 与 `arc:*` 组合时，只接管聊天总结、对比与状态盘点的表现层。\n- 磁盘工件继续保持原始约定，例如 Markdown、JSON、HTML、text。\n- 共享组合规则见 [`../docs/orchestration-contract.md`](../docs/orchestration-contract.md) 与 [`../docs/fusion-guide.md`](../docs/fusion-guide.md)。"
+        }
+      ],
+      "quick_contract": {
+        "trigger": "用户明确要求表格/对比表/矩阵/汇总表，或当前输出天然是短字段重复的二维结构。",
+        "inputs": "行列结构明确的紧凑数据；可选列宽约束、截断策略和补充说明。",
+        "outputs": "一个 fenced `text` 代码块中的 Unicode 盒线表；若有溢出说明，可在表格后附短列表。",
+        "quality_gate": "只有在内容能保持紧凑、对齐稳定、边界闭合时才允许输出表格；否则必须降级为非表格结构。",
+        "decision_tree": "先判断“是否天然二维且短字段重复”；若否，直接不用表格。"
+      },
+      "input_arguments": [
+        {
+          "parameter": "headers",
+          "type": "array",
+          "required": "yes",
+          "description": "列标题，需保持简短"
+        },
+        {
+          "parameter": "rows",
+          "type": "array",
+          "required": "yes",
+          "description": "行数据，单元格应尽量短小"
+        },
+        {
+          "parameter": "max_width_hint",
+          "type": "integer",
+          "required": "no",
+          "description": "目标总宽度提示，默认尽量控制在约 80 半角列以内"
+        },
+        {
+          "parameter": "wrap_or_truncate",
+          "type": "enum",
+          "required": "no",
+          "description": "`wrap` / `truncate`，默认按可读性择优"
+        },
+        {
+          "parameter": "notes",
+          "type": "array",
+          "required": "no",
+          "description": "不适合入表的补充说明，放在表格后"
+        }
+      ],
+      "outputs_section": {
+        "format": "text",
+        "content": "┌──────────┬──────────────┬──────────────┐\n│ 维度     │ 选择         │ 说明         │\n├──────────┼──────────────┼──────────────┤\n│ 输出形式 │ 盒线表       │ 聊天摘要用   │\n│ 工件格式 │ 原格式保留   │ 不改落盘结果 │\n└──────────┴──────────────┴──────────────┘"
       }
     }
   ]

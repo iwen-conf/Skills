@@ -58,6 +58,7 @@ Without UI evidence and artifact integrity verification, it shall not be declare
 - The failed steps in the report must be mapped to screenshot/log evidence.
 - Account and session switching must comply with session isolation rules.
 - All Markdown products must pass format verification.
+- Chat delivery should keep only compact FAIL/PASS snapshots, step summaries, or artifact inventories; when these are naturally tabular, prefer `terminal-table-output` instead of Markdown tables.
 
 ## Expert Standards
 

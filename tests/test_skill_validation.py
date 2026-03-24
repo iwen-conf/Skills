@@ -3,6 +3,7 @@ from pathlib import Path
 from arc_core.skill_validation import (
     build_skill_document,
     parse_frontmatter,
+    run_validation,
     validate_skill_schema,
     validate_text,
 )
@@ -268,6 +269,64 @@ project/.arc/microcopy/example/
     errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
     assert errors == []
     assert warnings == []
+
+
+def test_validate_text_accepts_fusion_terminal_table_skill() -> None:
+    text = """---
+name: "terminal-table-output"
+description: "包含中文描述，用于终端盒线表输出"
+---
+# Skill
+## Overview
+overview body
+## Quick Contract
+- **Trigger**: table trigger
+- **Inputs**: compact table data
+- **Outputs**: box-drawing table
+- **Quality Gate**: alignment gate
+- **Decision Tree**: use a table only when compact
+## Announce
+announce body
+## Input Arguments
+| parameter | type | required | description |
+|-----------|------|----------|-------------|
+| `headers` | array | yes | column titles |
+| `rows` | array | yes | row data |
+## The Iron Law
+rule body
+## Workflow
+workflow body
+## Quality Gates
+quality body
+## Red Flags
+flags body
+## When to Use
+- **首选触发**：需要紧凑表格
+- **典型场景**：状态汇总、比较矩阵
+- **边界提示**：长文本不用表格
+## Outputs
+```text
+┌──┬──┐
+│A │B │
+└──┴──┘
+```
+"""
+    errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
+    assert errors == []
+    assert warnings == []
+
+
+def test_run_validation_rejects_github_workflows_directory(tmp_path: Path) -> None:
+    workflows_dir = tmp_path / ".github" / "workflows"
+    workflows_dir.mkdir(parents=True)
+    (workflows_dir / "ci.yml").write_text("name: CI\n", encoding="utf-8")
+
+    errors, warnings, count = run_validation(tmp_path)
+
+    assert count == 0
+    assert warnings == []
+    assert len(errors) == 1
+    assert "GitHub Actions workflows are not allowed" in errors[0]
 
 
 def test_validate_text_accepts_arc_context_keywords() -> None:

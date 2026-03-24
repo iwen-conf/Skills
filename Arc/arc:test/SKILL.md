@@ -51,6 +51,7 @@ No test may be declared generated unless it compiles and passes in the target pr
 - `test-report.md` must contain: language detected, files generated, test command used, exit code, and stdout/stderr excerpt.
 - Benchmark tests must include at least one `b.ReportAllocs()` (Go) or equivalent metric collection.
 - Fuzz tests must define a valid corpus entry.
+- If the chat handoff includes a compact matrix such as generated files, test types, or pass/fail status, prefer `terminal-table-output`; keep `test-report.md` as the canonical file artifact.
 
 ## Expert Standards
 

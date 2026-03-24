@@ -96,3 +96,24 @@
 - `arc:uml` now defaults to Mermaid source plus SVG delivery, with `beautiful-mermaid` called out as the standard renderer and `timeline`-style unsupported headers explicitly marked `svg-skipped`.
 - The new `render_beautiful_mermaid_svg.mjs` script caches `beautiful-mermaid@1.1.3` under the local user cache on first run, then renders single files or whole diagram directories without adding a repo-level Node dependency.
 - Validation passed through `uv run --group dev python scripts/validate_skills.py`, the skill registry artifacts were rebuilt, and a smoke run rendered valid `classDiagram` + `sequenceDiagram` samples while correctly skipping a `timeline` sample.
+
+## 2026-03-25 terminal-table-output fusion skill
+
+- [x] Confirm how the repository recognizes non-`arc:*` fusion/generic skills.
+- [x] Add a reusable `terminal-table-output` skill for compact chat tables with box-drawing borders.
+- [x] Wire the generic skill into validation, discovery, and registry generation.
+- [x] Document the output-paradigm composition rule in the shared orchestration/fusion guidance.
+- [x] Reference the new output paradigm from key table-heavy Arc skills.
+- [x] Expand the explicit composition hint to more output-heavy skills (`arc:e2e`, `arc:fix`, `arc:test`, `arc:ip-check`).
+- [x] Run skill validation, targeted tests, and rebuild generated registry artifacts.
+- [x] Add a repository-level guard that rejects `.github/workflows/` so GitHub Actions cannot be reintroduced silently.
+- [x] Verify the remote repository has Actions disabled and purge historical workflow runs from GitHub.
+
+## Review
+
+- `terminal-table-output` is introduced as a fusion-style generic skill for chat presentation only; it does not replace Markdown/JSON/text artifacts written to disk by existing Arc workflows.
+- Shared guidance is updated so Arc skills can compose this output profile when a final answer is naturally a compact two-dimensional summary.
+- The explicit composition hint now also covers evidence-heavy delivery skills where final chat output frequently collapses to short PASS/FAIL tables, risk matrices, or generated-file inventories.
+- `uv run python scripts/validate_skills.py` passed for 19 indexed skills, `uv run pytest tests/test_skill_validation.py tests/test_skill_registry.py -q` passed with 18 tests, and `uv run python scripts/build_skills_index.py` refreshed the generated registry artifacts.
+- `validate_skills.py` now also enforces a repository policy: `.github/workflows/` is forbidden in this Skills repository, so accidental GitHub Actions reintroduction fails validation immediately.
+- Remote GitHub state was also cleaned up: the repository Actions permission is `enabled=false`, there is only one branch (`main`), and historical workflow runs were deleted until the Actions runs count returned `0`.

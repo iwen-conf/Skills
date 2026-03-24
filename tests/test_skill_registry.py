@@ -8,7 +8,7 @@ from arc_core.skill_registry import (
     write_registry,
     write_registry_and_context,
 )
-from arc_core.skill_validation import collect_skill_files
+from arc_core.skill_validation import FUSION_GENERIC_SKILLS, collect_skill_files
 
 ROOT = Path("/Users/iluwen/Documents/Code/Skills")
 
@@ -30,13 +30,20 @@ def test_build_registry_includes_structured_skill_fields() -> None:
 def test_validate_registry_accepts_generated_registry() -> None:
     registry = build_registry(ROOT)
     assert validate_registry(registry, ROOT) == []
-    assert all(item["name"].startswith("arc:") for item in registry["skills"])
+    names = {item["name"] for item in registry["skills"]}
+    assert "arc:build" in names
+    assert "terminal-table-output" in names
 
 
-def test_collect_skill_files_indexes_supported_namespaces_only() -> None:
+def test_collect_skill_files_indexes_supported_namespaces_and_fusion_skills() -> None:
     files = collect_skill_files(ROOT)
     assert ROOT / "Arc" / "arc:context" / "SKILL.md" in files
-    assert all("/Arc/" in str(path) for path in files)
+    assert ROOT / "terminal-table-output" / "SKILL.md" in files
+    allowed_roots = [ROOT / "Arc", *(ROOT / name for name in FUSION_GENERIC_SKILLS)]
+    assert all(
+        any(path.is_relative_to(root) for root in allowed_roots)
+        for path in files
+    )
 
 
 def test_update_context_hub_registers_skills_registry_artifact() -> None:

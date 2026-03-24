@@ -55,6 +55,7 @@ The execution phase must not be entered before the context, constraints and acce
 - Key terms must be unified and reusable downstream.
 - Clarification questions should be minimal and of high value to avoid noisy questioning.
 - Clearly label contextual sources and freshness.
+- When gap summaries or quick status snapshots are delivered in chat as compact matrices, prefer `terminal-table-output` over Markdown tables; the written artifact remains Markdown.
 
 ## Expert Standards
 
