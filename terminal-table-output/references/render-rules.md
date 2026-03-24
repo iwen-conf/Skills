@@ -37,5 +37,5 @@
 ## Composition Rule
 
 - 这是**输出范式**，不是领域技能。
-- 它可以与 `arc:exec`、`arc:decide`、`arc:audit`、`arc:gate`、`arc:build` 等技能组合使用。
+- 它可以与 `arc-exec`、`arc-decide`、`arc-audit`、`arc-gate`、`arc-build` 等技能组合使用。
 - 组合时仅影响聊天呈现；磁盘工件、报告文件和程序输出格式保持原样。
