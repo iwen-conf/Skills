@@ -8,30 +8,30 @@ ROOT = Path("/Users/iluwen/Documents/Code/Skills")
 
 def test_resolve_skill_dir_prefers_real_arc_namespace_path() -> None:
     runner = EvalRunner(ROOT)
-    resolved = runner.resolve_skill_dir("arc:e2e")
-    assert resolved == ROOT / "Arc" / "arc:e2e"
+    resolved = runner.resolve_skill_dir("arc-e2e")
+    assert resolved == ROOT / "Arc" / "arc-e2e"
 
 
 def test_find_evals_locates_arc_namespaced_skill_file() -> None:
     runner = EvalRunner(ROOT)
-    evals_path = runner.find_evals("arc:e2e")
-    assert evals_path == ROOT / "Arc" / "arc:e2e" / "evals.json"
+    evals_path = runner.find_evals("arc-e2e")
+    assert evals_path == ROOT / "Arc" / "arc-e2e" / "evals.json"
 
 
 def test_find_evals_locates_arc_aigc_file() -> None:
     runner = EvalRunner(ROOT)
-    evals_path = runner.find_evals("arc:aigc")
-    assert evals_path == ROOT / "Arc" / "arc:aigc" / "evals.json"
+    evals_path = runner.find_evals("arc-aigc")
+    assert evals_path == ROOT / "Arc" / "arc-aigc" / "evals.json"
 
 def test_stage_eval_workspace_copies_existing_fixture_tree() -> None:
     runner = EvalRunner(ROOT)
-    skill_dir = ROOT / "Arc" / "arc:e2e"
+    skill_dir = ROOT / "Arc" / "arc-e2e"
     eval_def = {
         "id": "compile_then_gate_minimal_run",
         "inputs": {
             "fixtures": [
                 {
-                    "src": "Arc/arc:e2e/evals/fixtures/minimal_run",
+                    "src": "Arc/arc-e2e/evals/fixtures/minimal_run",
                     "dest": "reports/minimal_run",
                 }
             ]
@@ -56,6 +56,6 @@ def test_stage_eval_workspace_copies_existing_fixture_tree() -> None:
 
 def test_run_arc_aigc_static_evals_pass() -> None:
     runner = EvalRunner(ROOT)
-    result = runner.run("arc:aigc")
+    result = runner.run("arc-aigc")
     assert result.total == 2
     assert result.failed == 0

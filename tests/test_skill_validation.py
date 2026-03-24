@@ -13,20 +13,20 @@ ROOT = Path("/Users/iluwen/Documents/Code/Skills")
 
 def test_parse_frontmatter_extracts_core_fields() -> None:
     text = """---
-name: \"arc:test\"
+name: \"arc-test\"
 description: \"包含中文描述\"
 ---
 # Title
 """
     frontmatter, error = parse_frontmatter(text)
     assert error is None
-    assert frontmatter["name"] == "arc:test"
+    assert frontmatter["name"] == "arc-test"
     assert frontmatter["description"] == "包含中文描述"
 
 
 def test_validate_text_reports_missing_required_heading_for_routed_skill() -> None:
     text = """---
-name: \"arc:build\"
+name: \"arc-build\"
 description: \"包含中文描述\"
 ---
 # Skill
@@ -38,7 +38,7 @@ description: \"包含中文描述\"
 
 def test_build_skill_document_extracts_sections() -> None:
     text = """---
-name: \"arc:build\"
+name: \"arc-build\"
 description: \"包含中文描述\"
 ---
 # Skill
@@ -48,14 +48,14 @@ overview body
 workflow body
 """
     document = build_skill_document(text)
-    assert document["frontmatter"]["name"] == "arc:build"
+    assert document["frontmatter"]["name"] == "arc-build"
     assert document["sections"][0]["heading"] == "## Overview"
     assert document["section_index"]["## Workflow"]["body"] == "workflow body"
 
 
 def test_validate_skill_schema_accepts_minimal_structured_document() -> None:
     text = """---
-name: \"arc:build\"
+name: \"arc-build\"
 description: \"包含中文描述\"
 ---
 # Skill
@@ -70,7 +70,7 @@ when-to-use body
 
 def test_build_skill_document_extracts_quick_contract_and_inputs() -> None:
     text = """---
-name: \"arc:build\"
+name: \"arc-build\"
 description: \"包含中文描述\"
 ---
 # Skill
@@ -99,7 +99,7 @@ project/.arc/example/
 
 def test_build_skill_document_extracts_numbered_input_arguments() -> None:
     text = """---
-name: \"arc:e2e\"
+name: \"arc-e2e\"
 description: \"包含中文描述\"
 ---
 # Skill
@@ -118,7 +118,7 @@ description: \"包含中文描述\"
 
 def test_validate_text_accepts_structured_sections_for_real_patterns() -> None:
     text = """---
-name: \"arc:build\"
+name: \"arc-build\"
 description: \"包含中文描述\"
 ---
 # Skill
@@ -170,7 +170,7 @@ project/.arc/example/
 
 def test_validate_text_accepts_arc_aigc_keywords() -> None:
     text = """---
-name: "arc:aigc"
+name: arc-aigc
 description: "包含中文描述"
 ---
 # Skill
@@ -221,7 +221,7 @@ project/.arc/aigc/session/
 
 def test_validate_text_accepts_arc_microcopy_keywords() -> None:
     text = """---
-name: "arc:microcopy"
+name: arc-microcopy
 description: "包含中文描述"
 ---
 # Skill
@@ -331,7 +331,7 @@ def test_run_validation_rejects_github_workflows_directory(tmp_path: Path) -> No
 
 def test_validate_text_accepts_arc_context_keywords() -> None:
     text = """---
-name: "arc:context"
+name: arc-context
 description: "包含中文描述"
 ---
 # Skill
@@ -383,7 +383,7 @@ project/.arc/context/example/
 
 def test_validate_text_accepts_arc_serve_keywords() -> None:
     text = """---
-name: "arc:serve"
+name: arc-serve
 description: "包含中文描述"
 ---
 # Skill

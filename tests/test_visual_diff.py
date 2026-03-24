@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-_SCRIPTS = Path(__file__).resolve().parent.parent / "Arc" / "arc:e2e" / "scripts"
+_SCRIPTS = Path(__file__).resolve().parent.parent / "Arc" / "arc-e2e" / "scripts"
 _VISUAL_DIFF_SPEC = importlib.util.spec_from_file_location(
     "visual_diff_under_test",
     _SCRIPTS / "visual_diff.py",

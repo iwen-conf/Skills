@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path("/Users/iluwen/Documents/Code/Skills")
-SCRIPT = ROOT / "Arc" / "arc:context" / "scripts" / "scaffold_context_session.py"
+SCRIPT = ROOT / "Arc" / "arc-context" / "scripts" / "scaffold_context_session.py"
 
 
 def test_scaffold_context_session_creates_expected_artifacts(tmp_path: Path) -> None:
@@ -21,7 +21,7 @@ def test_scaffold_context_session_creates_expected_artifacts(tmp_path: Path) -> 
                         "name": "skills.index",
                         "path": "skills.index.json",
                         "artifact_type": "skills-registry",
-                        "producer_skill": "arc:registry",
+                        "producer_skill": "arc-registry",
                         "generated_at": "2026-03-13T00:00:00Z",
                         "expires_at": "2099-01-01T00:00:00Z",
                     }
