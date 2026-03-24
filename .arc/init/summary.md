@@ -86,7 +86,7 @@
 1. **依赖锁定**：为 simulate/requirements.txt 添加版本约束或 lock 文件
 2. **测试补充**：为核心脚本添加基础的 pytest 测试
 3. **CI 配置**：添加 GitHub Actions 进行 Markdown 校验和脚本语法检查
-4. **文档一致性**：定期运行 arc:init 更新 CLAUDE.md
+4. **文档一致性**：定期运行 arc-init 更新 CLAUDE.md
 
 ## 工作目录文件
 

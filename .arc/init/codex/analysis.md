@@ -141,7 +141,7 @@
 
 ### 4. 测试策略
 
-- 采用“重启服务 -> arc:simulate -> PASS/FAIL 判定 -> triage 修复”的迭代回归。
+- 采用“重启服务 -> arc-simulate -> PASS/FAIL 判定 -> triage 修复”的迭代回归。
 - 无 loop 脚本自身单测、无覆盖率文件。
 - 测试类型偏系统联调与可运维性验证（ready_check: http/tcp/cmd）。
 
@@ -175,7 +175,7 @@
 ### 3. 构建系统与启动命令
 
 - 无构建系统。
-- 执行入口是 skill 调用 `/arc:review`，内部通过 `Task` + `codex exec` + `gemini -p` 并发。
+- 执行入口是 skill 调用 `/arc-review`，内部通过 `Task` + `codex exec` + `gemini -p` 并发。
 
 ### 4. 测试策略
 

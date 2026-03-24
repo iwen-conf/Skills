@@ -6,23 +6,23 @@
 ## 目录树
 ```
 Skills/
-├── agent/           # arc:agent 智能调度
-├── deliberate/      # arc:deliberate 三模型审议
-├── init/            # arc:init CLAUDE.md 生成
+├── agent/           # arc-agent 智能调度
+├── deliberate/      # arc-deliberate 三模型审议
+├── init/            # arc-init CLAUDE.md 生成
 │   └── references/  # schema + 扫描启发式
-├── loop/            # arc:loop tmux 回归闭环
+├── loop/            # arc-loop tmux 回归闭环
 │   ├── assets/      # 配置示例
 │   ├── references/  # tmux runbook
 │   └── scripts/     # uxloop_tmux.py, uxloop_cleanup.py
-├── refine/          # arc:refine 问题细化
-├── review/          # arc:review 企业级评审
+├── refine/          # arc-refine 问题细化
+├── review/          # arc-review 企业级评审
 │   └── references/  # dimensions.md 七维度框架
-├── simulate/        # arc:simulate E2E 测试
+├── simulate/        # arc-simulate E2E 测试
 │   ├── examples/    # 脚手架示例
 │   ├── reports/     # 测试报告输出
 │   ├── scripts/     # 6 个 Python 脚本
 │   └── templates/   # 报告模板
-└── triage/          # arc:triage 缺陷修复
+└── triage/          # arc-triage 缺陷修复
     ├── references/  # decision tree + fix-packet template
     └── scripts/     # triage_run.py
 ```
