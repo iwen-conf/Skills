@@ -1,13 +1,13 @@
 ---
-name: "arc:exec"
+name: arc-exec
 description: "统一任务编排入口：理解需求、路由到 arc:* 或多 Agent 协同执行；当用户说“帮我拉团队/不知道用哪个技能/split task/orchestrate this work/先收敛大输出分析路径”时触发。"
 ---
 
-# arc:exec — unified orchestration entry
+# arc-exec — unified orchestration entry
 
 ## Overview
 
-`arc:exec` is a scheduling Meta-Skill that does not directly produce business solutions, but is responsible for:
+`arc-exec` is a scheduling Meta-Skill that does not directly produce business solutions, but is responsible for:
 
 1. Identify user goals and constraints;
 2. Route between `arc:*` skills and general multi-Agent execution;
@@ -32,7 +32,7 @@ description: "统一任务编排入口：理解需求、路由到 arc:* 或多 A
 ## Announce
 
 Begin by stating clearly:  
-"I am using `arc:exec` to complete requirement understanding, skill routing, and orchestration planning first."
+"I am using `arc-exec` to complete requirement understanding, skill routing, and orchestration planning first."
 
 ## Teaming Requirement
 
@@ -76,9 +76,9 @@ No scheduling is allowed before routing and capability verification is completed
 ## Scripts & Commands
 
 - Runtime main command: `arc exec`
-- Initialize the orchestration workspace: `Arc/arc:exec/scripts/scaffold_exec_case --workdir <workdir> --task-name <task-name>`
-- Rendering scheduling and summary products: `Arc/arc:exec/scripts/render_dispatch_report --case-dir <case_dir> --task-name <task-name> --dispatch "deep|[arc:build]|implement backend interface|done|execution/backend.md"`
-- Scheduling example manual: `Arc/arc:exec/references/schedule-task-playbook.md`
+- Initialize the orchestration workspace: `Arc/arc-exec/scripts/scaffold_exec_case --workdir <workdir> --task-name <task-name>`
+- Rendering scheduling and summary products: `Arc/arc-exec/scripts/render_dispatch_report --case-dir <case_dir> --task-name <task-name> --dispatch "deep|[arc-build]|implement backend interface|done|execution/backend.md"`
+- Scheduling example manual: `Arc/arc-exec/references/schedule-task-playbook.md`
 
 ## Runtime Verification Gate
 
@@ -95,8 +95,8 @@ No scheduling is allowed before routing and capability verification is completed
 ## When to Use
 
 - **Preferred Trigger**: User expresses "Help me arrange/pull the team to execute", or is not sure which `arc:*` should be called.
-- **Typical scenario**: Requirements span multiple stages (clarification→decision→implementation→verification), data-heavy chains such as `arc:context → arc:build`, writing/review chains such as `arc:clarify → arc:aigc → arc:audit`, or full-stack concurrent task decomposition.
-- **Boundary Tip**: If the target skill has been identified and the boundary is clear, call the target skill directly without going through `arc:exec`.
+- **Typical scenario**: Requirements span multiple stages (clarification→decision→implementation→verification), data-heavy chains such as `arc-context → arc-build`, writing/review chains such as `arc-clarify → arc-aigc → arc-audit`, or full-stack concurrent task decomposition.
+- **Boundary Tip**: If the target skill has been identified and the boundary is clear, call the target skill directly without going through `arc-exec`.
 
 ## Input Arguments
 
@@ -119,9 +119,9 @@ No scheduling is allowed before routing and capability verification is completed
 
 ## Scheduling Playbook
 
-The complete `schedule_task(...)` example of `arc:exec`, parameter combinations, and concurrent collection templates have been extracted to:
+The complete `schedule_task(...)` example of `arc-exec`, parameter combinations, and concurrent collection templates have been extracted to:
 
-- `Arc/arc:exec/references/schedule-task-playbook.md`
+- `Arc/arc-exec/references/schedule-task-playbook.md`
 
 SKILL The main text only retains the decision-making process to avoid being too long and repetitive.
 
@@ -138,8 +138,8 @@ SKILL The main text only retains the decision-making process to avoid being too 
 
 1. If `preferred_skill` is available, route the skill directly.
 2. Otherwise, press `docs/arc-routing-matrix.md` for skill matching.
-3. Tasks dominated by logs, browser artifacts, fetched docs, large files, or context-overflow risk should route to `arc:context`.
-4. Writing tasks that are primarily about academic/professional prose polishing, citation-preserving rewrite, or multi-pass draft cleanup should route to `arc:aigc`.
+3. Tasks dominated by logs, browser artifacts, fetched docs, large files, or context-overflow risk should route to `arc-context`.
+4. Writing tasks that are primarily about academic/professional prose polishing, citation-preserving rewrite, or multi-pass draft cleanup should route to `arc-aigc`.
 5. When there is no hit skill, it will switch to "universal multi-agent scheduling" mode (Phase 3).
 6. Write the routing record: `routing/dispatch-log.md` (reason, evidence, confidence, downgrade path).
 
@@ -198,7 +198,7 @@ SKILL The main text only retains the decision-making process to avoid being too 
 |-----------|----------|
 | Single task timeout (>10min) | Mark timeout, report the blocker, and either wait for user direction or re-scope into a smaller subtask |
 | Partial failure of concurrent tasks | Mark `partial` and trigger compensation scheduling |
-| Uncertain routing | Downgrade to `arc:clarify` and reroute after obtaining constraints |
+| Uncertain routing | Downgrade to `arc-clarify` and reroute after obtaining constraints |
 | Context invalidation/cache expiration | Trigger refresh first, then enter scheduling |
 
 ## Quick Reference

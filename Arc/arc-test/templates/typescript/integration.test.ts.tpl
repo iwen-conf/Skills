@@ -6,12 +6,12 @@ describe("{{FUNCTION_NAME}} — integration", () => {
   let connection: unknown;
 
   beforeAll(async () => {
-    // TODO: setup — initialize DB, HTTP client, service connections
+    // FILL_IN: setup — initialize DB, HTTP client, service connections
     connection = undefined;
   });
 
   afterAll(async () => {
-    // TODO: teardown — close connections, clean state
+    // FILL_IN: teardown — close connections, clean state
     connection = undefined;
   });
 

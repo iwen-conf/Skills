@@ -66,14 +66,14 @@ def render_template(diagram_id: str, label: str) -> str:
 timeline
     title {label} ({diagram_id})
     %% 证据来源: file:line / config:path / api:route
-    %% TODO: 补充时间轴事件与状态变化
+    %% FILL_IN: 补充时间轴事件与状态变化
 """
 
     return f"""%% Mermaid syntax
 {kind}
     %% {label} ({diagram_id})
     %% 证据来源: file:line / config:path / api:route
-    %% TODO: 补充参与者、实体、关系与约束
+    %% FILL_IN: 补充参与者、实体、关系与约束
 """
 
 
@@ -95,7 +95,7 @@ flowchart LR
     Customer --- PlacesOrder
     Customer --- Name
 
-    %% TODO: 按 Chen 语义补充实体、联系、属性和基数
+    %% FILL_IN: 按 Chen 语义补充实体、联系、属性和基数
 """
 
 

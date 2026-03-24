@@ -1,4 +1,4 @@
-# Tiered JSON Schema Examples (arc:cartography)
+# Tiered JSON Schema Examples (arc-cartography)
 
 ## 1) Canonical Schema
 
@@ -15,7 +15,7 @@ All tiers share the same top-level fields:
   "version": "1.0.0",
   "tier": 1,
   "generated_at": "2026-03-06T08:00:00Z",
-  "producer_skill": "arc:cartography",
+  "producer_skill": "arc-cartography",
   "path": "/repo",
   "total_tokens_estimate": 1234,
   "entries": []
@@ -31,7 +31,7 @@ Use case: fastest repo lookup and initial entry-point scanning.
   "version": "1.0.0",
   "tier": 1,
   "generated_at": "2026-03-06T08:00:00Z",
-  "producer_skill": "arc:cartography",
+  "producer_skill": "arc-cartography",
   "path": "/repo",
   "total_tokens_estimate": 520,
   "entries": [
@@ -63,7 +63,7 @@ Use case: module relationship analysis and implementation planning.
   "version": "1.0.0",
   "tier": 2,
   "generated_at": "2026-03-06T08:00:00Z",
-  "producer_skill": "arc:cartography",
+  "producer_skill": "arc-cartography",
   "path": "/repo",
   "total_tokens_estimate": 2100,
   "entries": [
@@ -97,7 +97,7 @@ Use case: deep implementation review, code-level reasoning, and refactor plannin
   "version": "1.0.0",
   "tier": 3,
   "generated_at": "2026-03-06T08:00:00Z",
-  "producer_skill": "arc:cartography",
+  "producer_skill": "arc-cartography",
   "path": "/repo",
   "total_tokens_estimate": 6900,
   "entries": [
@@ -129,7 +129,7 @@ Tier 3 adds:
 1. Export a tier file:
 
 ```bash
-python3 Arc/arc:cartography/scripts/cartographer.py export --root <project_path> --tier 2 --output codemap.tier2.json
+python3 Arc/arc-cartography/scripts/cartographer.py export --root <project_path> --tier 2 --output codemap.tier2.json
 ```
 
 2. Validate against schema (example with `ajv`):

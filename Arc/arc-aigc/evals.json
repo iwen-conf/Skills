@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "skill": "arc:aigc",
+  "skill": "arc-aigc",
   "defaults": {
     "timeout": 120,
     "working_dir": "."
@@ -9,7 +9,7 @@
     {
       "id": "skill_contract_mentions_safe_chunked_polish",
       "title": "SKILL contract keeps chunked rewrite and safety boundary",
-      "description": "Verifies arc:aigc keeps the chunked/two-stage writing workflow and explicit anti-evasion boundary.",
+      "description": "Verifies arc-aigc keeps the chunked/two-stage writing workflow and explicit anti-evasion boundary.",
       "tags": ["ci", "static", "safety"],
       "assertions": [
         {
@@ -48,22 +48,22 @@
         {
           "type": "file_contains",
           "path": "SKILL.md",
-          "pattern": "arc:clarify"
+          "pattern": "arc-clarify"
         },
         {
           "type": "file_contains",
           "path": "SKILL.md",
-          "pattern": "arc:exec"
+          "pattern": "arc-exec"
         },
         {
           "type": "file_contains",
           "path": "SKILL.md",
-          "pattern": "arc:audit"
+          "pattern": "arc-audit"
         },
         {
           "type": "file_contains",
           "path": "SKILL.md",
-          "pattern": "arc:build"
+          "pattern": "arc-build"
         },
         {
           "type": "file_contains",

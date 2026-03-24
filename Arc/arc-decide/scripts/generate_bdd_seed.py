@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-generate_bdd_seed.py - 从 arc:decide 共识报告生成 BDD 场景种子
+generate_bdd_seed.py - 从 arc-decide 共识报告生成 BDD 场景种子
 
 用法:
     python generate_bdd_seed.py --consensus-report consensus.md --output bdd-seed.yaml

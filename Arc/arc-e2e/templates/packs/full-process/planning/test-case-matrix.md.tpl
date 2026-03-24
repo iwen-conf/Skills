@@ -4,5 +4,5 @@
 
 | TC ID | Title | Priority | Persona/Role | Preconditions | Steps (high-level) | Expected | Evidence | Status | Defect |
 |---|---|---|---|---|---|---|---|---|---|
-| TC-001 | `<title>` | P0 | `<role>` | `<pre>` | 1) ... 2) ... | `<expected>` | `screenshots/...` | TODO | - |
+| TC-001 | `<title>` | P0 | `<role>` | `<pre>` | 1) ... 2) ... | `<expected>` | `screenshots/...` | FILL_IN | - |
 

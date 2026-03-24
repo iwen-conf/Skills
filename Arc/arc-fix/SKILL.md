@@ -1,20 +1,20 @@
 ---
-name: arc:fix
+name: arc-fix
 description: "故障修复闭环：定位根因、实施修复并回归验证；当用户说“线上故障/bug 修复/incident triage/fix broken flow”时触发。"
 ---
 
-# arc:fix — evidence-based fault repair loop
+# arc-fix — evidence-based fault repair loop
 
 ## Overview
 
-`arc:fix` turns failure artifacts or online fault clues into a closed repair loop: reproduce or stabilize the failure, locate the root cause, implement the minimum safe fix, and return fail-to-pass evidence.
+`arc-fix` turns failure artifacts or online fault clues into a closed repair loop: reproduce or stabilize the failure, locate the root cause, implement the minimum safe fix, and return fail-to-pass evidence.
 
 Mode note:
-- Use `arc:fix --mode retest-loop` when the service must be restarted and validated through multiple fail-fix-retest rounds.
+- Use `arc-fix --mode retest-loop` when the service must be restarted and validated through multiple fail-fix-retest rounds.
 
 ## Quick Contract
 
-- **Trigger**: `arc:e2e` FAIL, CI test intermittent failure, or online failure requires stop loss recovery.
+- **Trigger**: `arc-e2e` FAIL, CI test intermittent failure, or online failure requires stop loss recovery.
 - **Inputs**: Failure `run_dir` or CI failure samples, logs and time series, test targets and account context if necessary.
 - **Outputs**: Root cause analysis, fix instructions, fail/pass or stability control evidence and `fix-packet`.
 - **Quality Gate**: The fail-to-pass evidence chain check of `## Quality Gates` must be passed before closing the issue.
@@ -30,7 +30,7 @@ Mode note:
 ## Announce
 
 Begin by stating clearly:
-"I'm using `arc:fix` to fix the failure evidence first, then locate the root cause and verify the fix."
+"I'm using `arc-fix` to fix the failure evidence first, then locate the root cause and verify the fix."
 
 ## Teaming Requirement
 
@@ -71,7 +71,7 @@ Without the evidence chain of "failure→repair→pass", it is not allowed to cl
 
 ## Scripts & Commands
 
-- Triage summary: `python3 Arc/arc:fix/scripts/triage_run.py <run_dir> --json-out <triage.json> --md-out <triage.md>`
+- Triage summary: `python3 Arc/arc-fix/scripts/triage_run.py <run_dir> --json-out <triage.json> --md-out <triage.md>`
 - Runtime main command: `arc fix`
 - Multiple loop regression mode: `arc fix --mode retest-loop`
 - Recommended link: `arc e2e` (produce evidence) → `arc fix` (fix closed loop)
@@ -88,7 +88,7 @@ Without the evidence chain of "failure→repair→pass", it is not allowed to cl
 
 - **Primary Trigger**: FAIL evidence or online fault signal has been obtained, and the root cause needs to be located and recovery promoted.
 - **Typical Scenario**: Intermittent failure, unstable regression, surge in online errors, repair of critical business interruptions.
-- **Boundary Note**: Execute `arc:e2e` first when there is no reproducible failed artifact; only use `arc:audit` for quality review conclusions.
+- **Boundary Note**: Execute `arc-e2e` first when there is no reproducible failed artifact; only use `arc-audit` for quality review conclusions.
 
 ## Context Budget (must be split to avoid too long context)
 
@@ -113,21 +113,21 @@ Work on the failed artifact first:
 
 - `run_dir`: e.g. `reports/2026-02-01_14-00-00_abcd/`
 - `failing_tests`: e.g. `["tests/api/test_order.py::test_retry"]`
-- Without `run_dir`, arc:e2e's core parameters are required: `test_objective`, `personas`, `target_url` (and optionally `validation_container`)
+- Without `run_dir`, arc-e2e's core parameters are required: `test_objective`, `personas`, `target_url` (and optionally `validation_container`)
 
 ## Quick Triage (recommended to run first)
 
 First use a script to do a best-effort summary (it does not replace manual analysis, but it can speed up positioning):
 
 ```bash
-python Arc/arc:fix/scripts/triage_run.py <run_dir>
+python Arc/arc-fix/scripts/triage_run.py <run_dir>
 ```
 
 Triage decision tree (for quick judgment of "product defects vs test false positives vs environment/data/flake"): see `references/triage-decision-tree.md`.
 
 ## Artifacts & Paths (where to put documents/files)
 
-All evidence is rooted in `run_dir` of arc:e2e:
+All evidence is rooted in `run_dir` of arc-e2e:
 
 - **Failing run**:`reports/<fail_run_id>/`
 - **Passing run**:`reports/<pass_run_id>/`
@@ -148,7 +148,7 @@ Example (drop triage to run_dir):
 
 ```bash
 mkdir -p <run_dir>/analysis
-python Arc/arc:fix/scripts/triage_run.py <run_dir> \
+python Arc/arc-fix/scripts/triage_run.py <run_dir> \
   --md-out <run_dir>/analysis/triage.md \
   --json-out <run_dir>/analysis/triage.json
 ```
@@ -161,7 +161,7 @@ python Arc/arc:fix/scripts/triage_run.py <run_dir> \
    - **Delimited row format**: Each column must be `---`, `:---`, `---:`, or `:---:` and cannot be empty or missing.
    - **Special Character Escape**: Cells containing `|` must be escaped to `\|`; lines containing line breaks must be replaced with `<br>`.
    - **Verification method**:
-     1. `python Arc/arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict` (recommended)
+     1. `python Arc/arc-e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict` (recommended)
      2. `mdformat --check <file.md>` (mdformat needs to be installed)
      3. Manually count the number of columns table by table
    - **Verification failure must be repaired before continuing** and cannot be skipped.
@@ -185,8 +185,8 @@ python Arc/arc:fix/scripts/triage_run.py <run_dir> \
 4. **Evidence driven**
    - "Feeling fixed" is not allowed: evidence must be given for each fix (at least one failed reproduction run + one regression via the run_id/report path of the run).
 
-5. **Comply with arc:e2e's log and artifact specifications**
-   - If you need to generate/update a report, give priority to using the script under `Arc/arc:e2e/scripts/` instead of creating your own format.
+5. **Comply with arc-e2e's log and artifact specifications**
+   - If you need to generate/update a report, give priority to using the script under `Arc/arc-e2e/scripts/` instead of creating your own format.
 
 6. **DB Migration/DDL/DML Change Control**
    - Any database migration/DDL/DML (including but not limited to migrate, ALTER, INSERT/UPDATE/DELETE, backfill data) must first obtain the user's explicit consent.
@@ -215,12 +215,12 @@ python Arc/arc:fix/scripts/triage_run.py <run_dir> \
 
 ## Workflow (recommended to execute in order)
 
-### 0) If run_dir is missing: run arc:e2e first to produce failure artifacts
+### 0) If run_dir is missing: run arc-e2e first to produce failure artifacts
 
 - Create a directory skeleton with scaffolding (recommended `--pack full-process`, at least implicitly including `e2e`):
-  - `python Arc/arc:e2e/scripts/scaffold_run.py --help`
-  - `python Arc/arc:e2e/scripts/scaffold_run.py --pack full-process --objective "<objective>" --target-url "<url>" --personas "<json-or-path>"`
-- Press `arc:e2e/SKILL.md` to execute the test to ensure disk placement:
+  - `python Arc/arc-e2e/scripts/scaffold_run.py --help`
+  - `python Arc/arc-e2e/scripts/scaffold_run.py --pack full-process --objective "<objective>" --target-url "<url>" --personas "<json-or-path>"`
+- Press `arc-e2e/SKILL.md` to execute the test to ensure disk placement:
   - `report.md`,`action-log.md`,`screenshot-manifest.md`,`screenshots/`
 -(optional)`events.jsonl`
 - After failure, use the output `run_dir` as the input of this Skill to continue with the subsequent steps.
@@ -228,8 +228,8 @@ python Arc/arc:fix/scripts/triage_run.py <run_dir> \
 ### 1) Obtain failure evidence and compile a report
 
 - If `run_dir` already exists: verify and compile first
-  - `python Arc/arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`
-  - `python Arc/arc:e2e/scripts/compile_report.py --run-dir <run_dir> --in-place` (optional: add `--beautify-md` if `mdformat` is already installed in venv)
+  - `python Arc/arc-e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`
+  - `python Arc/arc-e2e/scripts/compile_report.py --run-dir <run_dir> --in-place` (optional: add `--beautify-md` if `mdformat` is already installed in venv)
 - Extract "minimum reproducible information" from the following files:
   - `report.md` (failed step table)
   - `failures/*.md` (defect description)
@@ -247,16 +247,16 @@ python Arc/arc:fix/scripts/triage_run.py <run_dir> \
 **Get context before starting diagnostics in the following priority: **
 
 **Priority 0: Read shared context index (`.arc/context-hub/index.json`)**
-1. Retrieve reusable products: `codemap.md`, `arc:audit` snapshot, score results (generated by `score/` module), `arc:build` handoff
+1. Retrieve reusable products: `codemap.md`, `arc-audit` snapshot, score results (generated by `score/` module), `arc-build` handoff
 2. Verify `expires_at`, `content_hash`, file existence
 3. If available, load it directly and narrow down the scope of investigation.
-4. If it fails, press `refresh_skill` reflow to trigger the update (`arc:init --mode update` / `arc:cartography` / `arc:audit` / `score` module refresh (triggered by `arc:gate` orchestration))
+4. If it fails, press `refresh_skill` reflow to trigger the update (`arc-init --mode update` / `arc-cartography` / `arc-audit` / `score` module refresh (triggered by `arc-gate` orchestration))
 
 **Priority 1: Check `.arc/audit/` Architecture Analysis**
 1. Find review artifacts: Check `.arc/audit/<project-name>/` for the presence of an architectural analysis document
 2. Verify freshness: check that `project-snapshot.md` or `diagnosis-report.md` was generated < 7 days ago
 3. Extract key information: module dependencies, common defect patterns, repair strategy suggestions
-4. If the review product does not exist or has expired: trigger the `arc:audit` update first and then continue.
+4. If the review product does not exist or has expired: trigger the `arc-audit` update first and then continue.
 
 **Priority 2: Check `.arc/fix/known-patterns.md`**
 1. Find historical defect patterns: read `.arc/fix/known-patterns.md` if present
@@ -272,9 +272,9 @@ During the diagnostic process, if you discover that the information in `.arc/aud
 2. Falling back to source code search: use ace-tool to get the correct information
 3. Generate error report: Generate cache validation failure report at `<run_dir>/analysis/context-errors/`
 4. Reflow update:
-   - Review data issues → `arc:audit`
-   - CLAUDE index problem → `arc:init --mode update`
-   - Code map issue → `arc:cartography`
+   - Review data issues → `arc-audit`
+   - CLAUDE index problem → `arc-init --mode update`
+   - Code map issue → `arc-cartography`
 
 **Priority 5: Update known defect pattern library**
 After successfully fixing the defect, append the newly discovered defect pattern to `.arc/fix/known-patterns.md`.
@@ -291,7 +291,7 @@ Quickly judge by priority:
 - **Backend exception**: 500/timeout/data inconsistency
 - **Environmental issues**: service not started, port conflict, database unreachable
 
-If it is judged to be a false positive by the test script/selector: first correct the steps and selector of arc:e2e, and then go back again to confirm whether the real defect still exists.
+If it is judged to be a false positive by the test script/selector: first correct the steps and selector of arc-e2e, and then go back again to confirm whether the real defect still exists.
 
 ### 4) Enhance observability (add DEBUG to the code)
 
@@ -315,9 +315,9 @@ If it is judged to be a false positive by the test script/selector: first correc
 
 ### 6) Regression verification and production of deliverable repair solutions
 
-- Re-execute arc:e2e, generate a new `run_dir`, and again:
-  - `python Arc/arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`
-  - `python Arc/arc:e2e/scripts/compile_report.py --run-dir <run_dir> --in-place` (optional: add `--beautify-md` if `mdformat` is already installed in venv)
+- Re-execute arc-e2e, generate a new `run_dir`, and again:
+  - `python Arc/arc-e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`
+  - `python Arc/arc-e2e/scripts/compile_report.py --run-dir <run_dir> --in-place` (optional: add `--beautify-md` if `mdformat` is already installed in venv)
 - Which gives in the final output:
   - **Root Cause**
   - **Fix (repair point)**: involving files/modules/key logic
@@ -331,7 +331,7 @@ If it is judged to be a false positive by the test script/selector: first correc
 When a clear failed step is located, a defect file is generated for easy tracking:
 
 ```bash
-python Arc/arc:e2e/scripts/new_defect.py \
+python Arc/arc-e2e/scripts/new_defect.py \
   --run-dir <run_dir> \
   --step 0007 \
 --title "500 appears after clicking submit" \
@@ -343,10 +343,10 @@ python Arc/arc:e2e/scripts/new_defect.py \
   --severity S1
 ```
 
-Note: arc:e2e may store reusable credentials in `accounts.jsonc`; therefore `reports/` should not be submitted to the repository.
+Note: arc-e2e may store reusable credentials in `accounts.jsonc`; therefore `reports/` should not be submitted to the repository.
 ## Anti-Patterns
 
-**CRITICAL: The following behaviors are FORBIDDEN in arc:fix execution:**
+**CRITICAL: The following behaviors are FORBIDDEN in arc-fix execution:**
 
 ### Diagnosis Anti-Patterns
 

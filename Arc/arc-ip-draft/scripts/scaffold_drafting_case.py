@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Scaffold an arc:ip-draft case directory."""
+"""Scaffold an arc-ip-draft case directory."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ SUBDIRS = [
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Create arc:ip-draft workspace")
+    parser = argparse.ArgumentParser(description="Create arc-ip-draft workspace")
     parser.add_argument("--project-path", required=True, help="Absolute path of target project")
     parser.add_argument("--project-name", help="Project name override")
     parser.add_argument("--output-dir", help="Case output directory override")
@@ -71,7 +71,7 @@ def main() -> int:
             encoding="utf-8",
         )
 
-    print(f"Created arc:ip-draft case: {case_dir}")
+    print(f"Created arc-ip-draft case: {case_dir}")
     return 0
 
 

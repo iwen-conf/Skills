@@ -1,13 +1,13 @@
 ---
-name: arc:cartography
+name: arc-cartography
 description: "仓库地图与分层 codemap 生成/刷新；当用户说“梳理代码结构/仓库导览/repo map/codebase overview”时触发。"
 ---
 
-# arc:cartography Skill
+# arc-cartography Skill
 
 ## Overview
 
-Generates an incrementally maintainable layer `codemap.md` that provides stable context for downstream skills such as `arc:clarify`, `arc:build`, `arc:audit`, etc.
+Generates an incrementally maintainable layer `codemap.md` that provides stable context for downstream skills such as `arc-clarify`, `arc-build`, `arc-audit`, etc.
 
 ## Quick Contract
 
@@ -27,7 +27,7 @@ Generates an incrementally maintainable layer `codemap.md` that provides stable 
 ## Announce
 
 Begin by stating clearly:
-"I'm using `arc:cartography` to update the codemap baseline first and then hand it over to downstream skills for reuse."
+"I'm using `arc-cartography` to update the codemap baseline first and then hand it over to downstream skills for reuse."
 
 ## Teaming Requirement
 
@@ -45,13 +45,13 @@ Before making key structural changes, the latest codemap must be available as a 
 ## Dependencies
 
 - **Organization Contract**: Required. Following `docs/orchestration-contract.md`, catalog analysis tasks are dispatched concurrently through the runtime adaptation layer.
-- **cartographer** launcher: required. The path is `<skills_root>/arc:cartography/scripts/cartographer`.
+- **cartographer** launcher: required. The path is `<skills_root>/arc-cartography/scripts/cartographer`.
 
 ## When to Use
 
 - **Preferred trigger**: The repository structure map (`codemap.md`) needs to be built or refreshed.
 - **Typical scenario**: Taking over an unfamiliar repository for the first time and synchronizing the context after a major change in the directory structure.
-- **Boundary Tip**: Use `arc:clarify` for requirement clarification and `arc:build` for code implementation.
+- **Boundary Tip**: Use `arc-clarify` for requirement clarification and `arc-build` for code implementation.
 
 ## Workflow
 
@@ -64,7 +64,7 @@ Prioritize checking the repository root directory `.slim/cartography.json`:
 ### Step 2: Initialization (first time only)
 
 ```bash
-<skills_root>/arc:cartography/scripts/cartographer init \
+<skills_root>/arc-cartography/scripts/cartographer init \
   --root ./ \
   --include "src/**/*.ts" \
   --exclude "**/*.test.ts" \
@@ -87,8 +87,8 @@ After initialization it will generate:
 ### Step 3: Incremental detection and update
 
 ```bash
-<skills_root>/arc:cartography/scripts/cartographer changes --root ./
-<skills_root>/arc:cartography/scripts/cartographer update  --root ./
+<skills_root>/arc-cartography/scripts/cartographer changes --root ./
+<skills_root>/arc-cartography/scripts/cartographer update  --root ./
 ```
 
 rule:
@@ -97,7 +97,7 @@ rule:
 
 ### Load-safety defaults
 
-1. Run `arc:cartography` against the real git root, not against a parent workspace that only groups multiple repositories.
+1. Run `arc-cartography` against the real git root, not against a parent workspace that only groups multiple repositories.
 2. Prefer `changes` or a tightly scoped `update` before `init`; reserve full initialization for first run or damaged state.
 3. Always exclude generated, vendored, cache, and package-manager directories unless the user explicitly asks to map them.
 4. Treat `cartographer` as a batch command. Do not wrap it in a background watcher, polling loop, or persistent helper service.
@@ -106,9 +106,9 @@ rule:
 ### Step 4: Optional export of hierarchical JSON
 
 ```bash
-<skills_root>/arc:cartography/scripts/cartographer export --root ./ --tier 1 --output codemap/index.json
-<skills_root>/arc:cartography/scripts/cartographer export --root ./ --tier 2 --output codemap/context.json
-<skills_root>/arc:cartography/scripts/cartographer export --root ./ --tier 3 --output codemap/full.json
+<skills_root>/arc-cartography/scripts/cartographer export --root ./ --tier 1 --output codemap/index.json
+<skills_root>/arc-cartography/scripts/cartographer export --root ./ --tier 2 --output codemap/context.json
+<skills_root>/arc-cartography/scripts/cartographer export --root ./ --tier 3 --output codemap/full.json
 ```
 
 suggestion:
@@ -134,8 +134,8 @@ Write the root-level and directory-level `codemap` products into `.arc/context-h
 - `generated_at`
 - `ttl_seconds`
 - `expires_at`
-- `producer_skill=arc:cartography`
-- `refresh_skill=arc:cartography`
+- `producer_skill=arc-cartography`
+- `refresh_skill=arc-cartography`
 
 ## Codemap writing requirements
 
@@ -162,10 +162,10 @@ Write the root-level and directory-level `codemap` products into `.arc/context-h
 
 ## Scripts & Commands
 
-- Initialization codemap: `Arc/arc:cartography/scripts/cartographer init --root <project_path>`
-- Detect changes: `Arc/arc:cartography/scripts/cartographer changes --root <project_path>`
-- Incremental update: `Arc/arc:cartography/scripts/cartographer update --root <project_path>`
-- Export layered JSON: `Arc/arc:cartography/scripts/cartographer export --root <project_path> --tier 2 --output codemap.tier2.json`
+- Initialization codemap: `Arc/arc-cartography/scripts/cartographer init --root <project_path>`
+- Detect changes: `Arc/arc-cartography/scripts/cartographer changes --root <project_path>`
+- Incremental update: `Arc/arc-cartography/scripts/cartographer update --root <project_path>`
+- Export layered JSON: `Arc/arc-cartography/scripts/cartographer export --root <project_path> --tier 2 --output codemap.tier2.json`
 - Runtime main command: `arc cartography`
 
 ## Red Flags

@@ -1,7 +1,7 @@
 """Scaffold test file skeletons from language-specific templates.
 
 Usage:
-    python3 Arc/arc:test/scripts/scaffold_tests.py \\
+    python3 Arc/arc-test/scripts/scaffold_tests.py \\
         --project-path <path> \\
         --target <file_or_dir> \\
         --test-types unit,boundary,benchmark \\

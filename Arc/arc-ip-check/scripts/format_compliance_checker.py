@@ -14,32 +14,32 @@ TEMPLATE = """# Format Compliance Checklist
 - target pages: first 30 + last 30 (or full if <60)
 - requirement: >=50 lines per page, A4, black/white, single-side
 - samples (file:start-end lines):
-  - TODO: add entries
-- code_pages_ok: TODO
-- sensitive sections to redact: TODO
+  - FILL_IN: add entries
+- code_pages_ok: FILL_IN
+- sensitive sections to redact: FILL_IN
 
 ## Documentation Pages
 - requirement: >=35 lines per page, page header with software name/version/page no., footer with owner
 - screenshots naming == software name in header/title
-- doc_lines_ok: TODO
-- name_consistency: TODO
-- signature_page_ready: TODO (electronic sign page prepared)
-- non-duty declaration: TODO (for individuals)
+- doc_lines_ok: FILL_IN
+- name_consistency: FILL_IN
+- signature_page_ready: FILL_IN (electronic sign page prepared)
+- non-duty declaration: FILL_IN (for individuals)
 
 ## Naming Consistency
 - full name: {software_name}
 - short name: {short_name}
 - must match in: headers, footers, screenshots, application form
-- name_consistency: TODO
+- name_consistency: FILL_IN
 
 ## App E-Copyright (if targeting app stores)
-- recommended: TODO
+- recommended: FILL_IN
 - required materials: license, ID, code package hash, statements
 
 ## Fee Reduction
-- eligible: TODO
-- basis: TODO
-- required proofs: TODO
+- eligible: FILL_IN
+- basis: FILL_IN
+- required proofs: FILL_IN
 
 ## Actions
 - [ ] Update headers/footers to exact name + version

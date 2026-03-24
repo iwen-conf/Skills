@@ -1,7 +1,7 @@
 """Detect project language, test framework, and conventions.
 
 Usage:
-    python3 Arc/arc:test/scripts/detect_lang.py --project-path <path> [--json]
+    python3 Arc/arc-test/scripts/detect_lang.py --project-path <path> [--json]
 """
 
 from __future__ import annotations

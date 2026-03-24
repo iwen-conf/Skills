@@ -1,12 +1,12 @@
 ---
-name: "arc:e2e"
+name: arc-e2e
 description: "真实路径 E2E 验证与证据沉淀；当用户说“端到端测试/用户流程回归/e2e test/browser journey”时触发。"
 ---
-# arc:e2e — evidence-based E2E validation
+# arc-e2e — evidence-based E2E validation
 
 ## Overview
 
-`arc:e2e` validates real user journeys through the UI and preserves auditable evidence. It is capable of intelligently selecting the most appropriate browser automation tool based on task requirements:
+`arc-e2e` validates real user journeys through the UI and preserves auditable evidence. It is capable of intelligently selecting the most appropriate browser automation tool based on task requirements:
 - **`chrome-cdp` (`mcp_chrome-devtools_*`)**: A lightweight local debugging tool that connects via WebSocket to an existing Chrome browser. Best for single-point validation, debugging already-open pages, and reusing existing login states.
 - **`agent-browser` (Skill)**: A full-featured AI agent browser framework that manages its own browser lifecycle and session isolation. Best for complex end-to-end automation, multi-step flows (like login), and independent environments.
 
@@ -30,7 +30,7 @@ By choosing the right tool, it follows the actual interaction path, captures scr
 ## Announce
 
 Begin by stating clearly:
-"I'm using `arc:e2e`, which will perform E2E on the real user path and precipitate auditable evidence."
+"I'm using `arc-e2e`, which will perform E2E on the real user path and precipitate auditable evidence."
 
 ## Teaming Requirement
 
@@ -50,7 +50,7 @@ Without UI evidence and artifact integrity verification, it shall not be declare
 1. Obtain the test target, account role and running parameters and create a file.
 2. Execute business flow according to UI operation path and record events and screenshots.
 3. Summary reporting, verifying artifact integrity and Markdown formatting.
-4. Output PASS/FAIL evidence, reflowing `arc:fix` if necessary.
+4. Output PASS/FAIL evidence, reflowing `arc-fix` if necessary.
 
 ## Quality Gates
 
@@ -70,17 +70,17 @@ Without UI evidence and artifact integrity verification, it shall not be declare
 
 ## Scripts & Commands
 
-- Run directory scaffolding: `python3 Arc/arc:e2e/scripts/scaffold_run.py --run-id <run_id> --target-url <url>`
-- Convert accounts to personas: `python3 Arc/arc:e2e/scripts/accounts_to_personas.py --accounts-file <accounts.jsonc> --out <personas.json>`
-- Artifact check: `python3 Arc/arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`
-- Artifact check (with visual baselines): `python3 Arc/arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --check-baselines --strict`
-- Report compilation: `python3 Arc/arc:e2e/scripts/compile_report.py --run-dir <run_dir> --in-place --beautify-md`
-- Defect registration: `python3 Arc/arc:e2e/scripts/new_defect.py --run-dir <run_dir> --title \"<defect_title>\"`
-- Visual diff (single file): `python3 Arc/arc:e2e/scripts/visual_diff.py --baseline <base.png> --current <curr.png> --json --fail-on-diff`
-- Baseline init: `python3 Arc/arc:e2e/scripts/baseline_manager.py init --run-dir <run_dir> --baseline-dir baselines/<proj>`
-- Baseline compare: `python3 Arc/arc:e2e/scripts/baseline_manager.py compare --run-dir <run_dir> --baseline-dir baselines/<proj> --fail-on-diff`
-- Baseline update: `python3 Arc/arc:e2e/scripts/baseline_manager.py update --run-dir <run_dir> --baseline-dir baselines/<proj> --files <file1,file2> --reason "<reason>"`
-- Contrast check: `python3 Arc/arc:e2e/scripts/contrast_check.py --input <screenshot.png> --json`
+- Run directory scaffolding: `python3 Arc/arc-e2e/scripts/scaffold_run.py --run-id <run_id> --target-url <url>`
+- Convert accounts to personas: `python3 Arc/arc-e2e/scripts/accounts_to_personas.py --accounts-file <accounts.jsonc> --out <personas.json>`
+- Artifact check: `python3 Arc/arc-e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`
+- Artifact check (with visual baselines): `python3 Arc/arc-e2e/scripts/check_artifacts.py --run-dir <run_dir> --check-baselines --strict`
+- Report compilation: `python3 Arc/arc-e2e/scripts/compile_report.py --run-dir <run_dir> --in-place --beautify-md`
+- Defect registration: `python3 Arc/arc-e2e/scripts/new_defect.py --run-dir <run_dir> --title \"<defect_title>\"`
+- Visual diff (single file): `python3 Arc/arc-e2e/scripts/visual_diff.py --baseline <base.png> --current <curr.png> --json --fail-on-diff`
+- Baseline init: `python3 Arc/arc-e2e/scripts/baseline_manager.py init --run-dir <run_dir> --baseline-dir baselines/<proj>`
+- Baseline compare: `python3 Arc/arc-e2e/scripts/baseline_manager.py compare --run-dir <run_dir> --baseline-dir baselines/<proj> --fail-on-diff`
+- Baseline update: `python3 Arc/arc-e2e/scripts/baseline_manager.py update --run-dir <run_dir> --baseline-dir baselines/<proj> --files <file1,file2> --reason "<reason>"`
+- Contrast check: `python3 Arc/arc-e2e/scripts/contrast_check.py --input <screenshot.png> --json`
 - Runtime main command: `arc e2e`
 
 ## Red Flags
@@ -94,7 +94,7 @@ Without UI evidence and artifact integrity verification, it shall not be declare
 
 - **Primary Trigger**: E2E verification and UI evidence need to be precipitated according to the real user path.
 - **Typical scenario**: Cross-account/cross-role process, key status transfer and screenshot evidence collection.
-- **Boundary Tip**: Please refer to `arc:fix` for failure root cause location and repair.
+- **Boundary Tip**: Please refer to `arc-fix` for failure root cause location and repair.
 
 ## Context Budget (avoid Request too large)
 
@@ -214,210 +214,16 @@ The following constraints must be strictly adhered to when executing tests, any 
 
 ## **Instructions (execution process)**
 
-### **Phase 0: Context Acquisition (Requirement Analysis)**
+This section has been moved to a reference file to reduce context bloat.
 
-**Before starting any test, if you are not clear about the page structure, element selector (Selector) or specific business flow logic, you must obtain the context according to the following priorities: **
-
-**Priority 0: Read shared context index (`.arc/context-hub/index.json`)**
-
-1. Prioritize searching for the following products:
-   * `codemap.md` (catalog responsibility and critical path)
-   * `arc:audit` Snapshot/Diagnostic Report (Known Risk Points)
-   * score output (generated by `score/` module, high risk dimension)
-   * `arc:build` handoff (range of changes in this round)
-2. Verify product freshness: `expires_at` + `content_hash`.
-3. If the product is available, load it directly without repeating the full scan.
-4. If the product fails, it will be updated according to `refresh_skill` reflow (`arc:init --mode update` / `arc:cartography` / `score` module refresh (triggered by `arc:gate` arrangement) / `arc:audit`).
-
-**Priority 1: Read project CLAUDE.md level index**
-
-1. **Scan CLAUDE.md**: Use `Glob` to locate the hierarchical `CLAUDE.md` index files of the project.
-2. **Extract key information**:
-   * **Root level CLAUDE.md**: project technology stack, running command, front-end entry path
-   * **Module-level CLAUDE.md** (such as `frontend/CLAUDE.md`):
-     - "Entry and Startup" Chapter: Front-end startup command, development server port
-     - "External Interface" chapter: page routing, component selector mode, common data-testid specifications
-     - "Coding Conventions" chapter: Selector naming convention (such as `button[data-testid="{action}-{component}"]`)
-     - "Architecture Diagram" Chapter: Page Structure and Component Hierarchy
-3. **Verify index freshness**: Check the "Change History" section of CLAUDE.md to confirm that the generation time is < 7 days.
-4. **If the index is missing or out of date**: trigger `arc:init --mode update` (`arc:init --mode full` if necessary) before continuing.
-
-**Priority 2: Use ace-tool to add details**
-
-When CLAUDE.md provides insufficient information (such as lack of specific selectors and unclear page logic):
-
-1. **Call ace-tool**: Read the project code base (especially front-end routing, component definition) and requirements analysis documents.
-2. **Identify Elements**: Confirm the ID, Class or text identification of key interactive elements (buttons, input boxes) to avoid blindly guessing the selector.
-3. **Understand Logic**: Understand the pre- and post-conditions of the business (for example: order status flow rules) and ensure that the test path conforms to the real business logic.
-
-**Priority 3: Cache verification and error reporting**
-
-During the test execution, if the information in CLAUDE.md is found to be inaccurate (such as the selector does not exist, the page structure changes):
-
-1. **Flag Errors Immediately**: Document what is expected vs. what is actually happening.
-2. **Return to ace-tool**: Use source code scanning to obtain correct information and continue testing.
-3. **Generate error report**: Generate a cache verification failure report in the `<run_dir>/context-errors/` directory (see template below).
-4. **Reflow update suggestions**:
-   - CLAUDE index problem → `arc:init --mode update`
-   - codemap issues → `arc:cartography` updated
-   - Rating/review product issues → `score` module refresh (triggered by `arc:gate` arrangement) / `arc:audit` update
-
-**Cache Error Report Template** (`<run_dir>/context-errors/cache-error-YYYYMMDD-HHMMSS.md`):
-
-```markdown
-# Cache verification failure report
-
-**Generation time**: <ISO 8601 timestamp>
-**Run ID**: <run_id>
-**Test step**: Step <step_number>
-
-## Error details
-
-- **Cache Source**: `<path-to-CLAUDE.md>`
-- **Chapter**: <Chapter Name>
-- **What to expect**:
-  ```
-<selector or information extracted from CLAUDE.md>
-  ```
-- **Actual situation**:
-  - The selector does not exist in the page/The page structure has changed
-  - Actual selector: `<actual-selector>`
-  - Page URL: <current-url>
-  - Discovery time: <ISO 8601 timestamp>
-
-## Scope of influence
-
-- Current test: Fallback to ace-tool scan, test execution continues
-- Other tests: may affect all test cases that rely on this selector
-
-## Suggested fix
-
-1. **Fix Now** (Recommended):
-   ```bash
-   arc init --project-path <project-path>
-   ```
-
-2. **Manual Repair**:
-Edit `<path-to-CLAUDE.md>`, update relevant chapters
-
-## temporary patch
-
-Already used ace-tool to get the correct information:
-```
-<ace-tool search result summary>
-```
-```
-
-### **Phase 1: Strategy & Planning**
-
-1. Based on the analysis of Phase 0, test_objective is disassembled into ordered sub-task queues (Sub-tasks).
-2. Plan the complete user path: Login A -> Action -> Logout -> Login B -> Verify.
-3. **Select the Browser Automation Tool**:
-   * If the task involves complex flows (multi-step form submissions, full end-to-end regression, requires isolated session, or heavy interactions), choose **`agent-browser` (Skill)**.
-   * If the task is a simple single-point verification, debugging a specific page already open in your browser, or reusing an existing session/login, choose **`chrome-cdp` (`mcp_chrome-devtools_*`)**.
-4. Evidence Plan:
-   * Key nodes that must be screenshotted: after logging in, before and after clicking the key submit button, when a Toast/error pop-up window appears, and on the final results page.
-   * Validation that must be done: UI validation text/element status; DB SELECT results if necessary.
-
-### **Phase 2: Execution Loop**
-
-Execute the following loop for each subtask:
-
-1. **Check**: Confirm the current page status.
-2. **Action**: Use the selected browser automation tool to perform operations:
-   * If using **`chrome-cdp`**: Use `mcp_chrome-devtools_navigate_page` | `click` | `fill` | `wait_for` | `take_screenshot` etc.
-   * If using **`agent-browser`**: Delegate to the skill to navigate, take snapshots to extract `@ref` identifiers, and interact with the page using those references.
-3. **Wait**: Wait for UI response (Loading ends, Toast appears).
-4. **Verify (UI)**: Check page text or element status.
-5. **Capture Evidence (Mandatory if capture_screenshots=true)**:
-   * Key nodes must be screenshotted and recorded **immediately**: screenshot absolute/relative path, file name, image description, current URL, and corresponding step number.
-6. **Interactability Verification (before critical click/submit actions)**:
-   * Inject `Arc/arc:e2e/scripts/js/interactability_checks.js` and call `checkInteractability(selector)` on the target element **before** performing the click.
-   * If `not_obscured` fails → record as **high-priority defect** (the element is visually present but cannot be clicked due to overlay/z-index issues).
-   * If `meets_min_target_size` fails → record as **a11y finding** (WCAG 2.5.8 Target Size, non-blocking but tracked).
-   * Log the check result to `events.jsonl` with `kind: "interactability_check"`.
-   * Optionally call `checkContrast(selector)` on text elements; record WCAG AA/AAA pass/fail in the event log.
-
-### **Phase 3: Deep Verification (Conditional)**
-
-When UI feedback is unclear or data consistency needs to be confirmed:
-
-* Execution: docker exec -t <container> <db_cmd> -e "SELECT ..."
-* Verify that database fields are as expected.
-
-### **Phase 4: Report & Artifacts (Mandatory)**
-
-After each business flow test is completed (even if it fails midway), a test report and artifact directory must be generated.
-
-**Output root directory**: `<report_output_dir>/<run_id>/`
-If `run_id` is not provided, the Agent must generate and print it explicitly in the report.
-
-**Directory structure (REQUIRED)**:
-
-```text
-<report_output_dir>/<run_id>/
-  accounts.jsonc
-  report.md
-  action-log.md
-  screenshot-manifest.md
-  screenshots/
-    s0001_login-page.png
-    s0002_filled-form.png
-  failures/
-    failure-0001.md
-  db/
-    query-0001.txt
-    result-0001.txt
-  events.jsonl        (optional; when report_formats includes "jsonl")
-```
-
-> Note: The `db/` directory is recommended to always exist (even if it is empty) so that `scripts/check_artifacts.py --strict` can pass; the empty directory can be kept when no DB verification is done.
-
-**Account management (required)**:
-
-- The account/credential set used in this test must be written in `accounts.jsonc` (unified source). In `report.md`, list the role and account identifier used, but keep passwords/tokens/session identifiers redacted.
-- If you "must create a new account" for verification and repair (such as verifying first login, permission boundaries, new tenant isolation), you must:
-  - Mark the account with `created_for_verification=true` in `accounts.jsonc` and write `why/created_at`
-  - Explain "Why a new account is generated" in the `Account Changes` section of `report.md`
-
-**Derived artifacts (generated by scripts, recommended to be retained)**:
-
-- `scripts/scaffold_run.py`: Create `<report_output_dir>/<run_id>/` and `screenshots/`, `failures/`, `db/` (optional creation of `events.jsonl`)
-- `scripts/compile_report.py`:
-  - Output: `action-log.compiled.md`, `screenshot-manifest.compiled.md`
-  - Report: `report.generated.md` is generated by default; if `--in-place` is used, the auto blocks of `report.md` are updated
-- `scripts/beautify_md.py`: Format run_dir under Markdown (optional)
-
-**Path specification (to avoid tool misjudgment)**:
-
-- When referencing screenshots in `report.md` / `screenshot-manifest.md` / `failures/*.md`, the path must use the relative path `screenshots/...` and wrap it in backticks, for example: `screenshots/s0007_after-submit.png` (`check_artifacts.py` will parse and verify these paths).
-
-**Screenshot naming rules (REQUIRED)**:
-
-* Filename must be traceable to step number: `s<step_id>_<slug>.png`
-  - `step_id` is a 4-digit number, such as `0007`
-  - `slug` is short English/number/hyphen, for example `after-submit`
-* Example: `screenshots/s0007_after-submit.png`
-
-**Image Description Required (REQUIRED)**:
-
-Each screenshot must contain in `screenshot-manifest.md`:
-`step_id` / `path` / `captured_at` / `url` / `description` / `expectation` / `result(PASS/FAIL)`.
+👉 **Please see [Detailed Execution Instructions](references/execution-instructions.md) for the full details.**
 
 ## **Output Schema (log specification)**
 
-The output of this Skill is divided into two categories:
+This section has been moved to a reference file to reduce context bloat.
 
-1) **Real-time log (stdout)**: used to watch while running.
-2) **Placement report (artifacts)**: used for delivery, playback, and reproduction. **Must generate**.
+👉 **Please see [Output Schema and Log Specifications](references/output-schema.md) for the full details.**
 
-The standardized Schema and templates are given below.
-
-### **0. Run Report (Mandatory, report.md)**
-
-`report.md` must contain the following chapters (the order is recommended to be fixed to facilitate diff and machine parsing):
-
-```markdown
 # E2E UI/UX Simulation Report
 
 ## Run Metadata
@@ -536,7 +342,7 @@ When `report_formats` contains `"jsonl"`, each step must append a line of JSON c
 ```
 ## Anti-Patterns
 
-**CRITICAL: The following behaviors are FORBIDDEN in arc:e2e execution:**
+**CRITICAL: The following behaviors are FORBIDDEN in arc-e2e execution:**
 
 ### Test Execution Anti-Patterns
 

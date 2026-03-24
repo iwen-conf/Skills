@@ -9,9 +9,9 @@ import (
 // TestMain provides setup/teardown for integration tests.
 // Run with: go test -tags=integration -run TestIntegration ./...
 func TestMain(m *testing.M) {
-	// TODO: setup — initialize dependencies (DB, HTTP client, etc.)
+	// FILL_IN: setup — initialize dependencies (DB, HTTP client, etc.)
 	// code := m.Run()
-	// TODO: teardown — close connections, clean state
+	// FILL_IN: teardown — close connections, clean state
 	// os.Exit(code)
 	m.Run()
 }
@@ -25,7 +25,7 @@ func TestIntegration{{FUNCTION_NAME_PASCAL}}(t *testing.T) {
 	}{
 		{"cross-module nominal", {{NOMINAL_VALUE}}, {{NOMINAL_EXPECTED}}, false},
 		{"dependency error path", {{INVALID_INPUT}}, {{ZERO_EXPECTED}}, true},
-		// TODO: add cases that exercise real module interactions
+		// FILL_IN: add cases that exercise real module interactions
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

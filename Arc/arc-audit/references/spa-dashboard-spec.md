@@ -1,7 +1,7 @@
 # SPA Dashboard Engineering Specification (Optional 9-Tab Delivery Reference)
 
-> This document is a reference specification for cases where `arc:audit` explicitly delivers an HTML dashboard.
-> It does **not** define the default baseline contract of `arc:audit`; the default baseline remains the report, scorecard, recommendations, and evidence registry.
+> This document is a reference specification for cases where `arc-audit` explicitly delivers an HTML dashboard.
+> It does **not** define the default baseline contract of `arc-audit`; the default baseline remains the report, scorecard, recommendations, and evidence registry.
 > It may be referenced by `integrate_score.py` or by the LLM when dashboard delivery is requested.
 
 ## Global Design Ontology & UX Standards
@@ -77,7 +77,7 @@ Rigid schema enforcement for JSON payloads interfacing between the analytical en
 ## Immutable Expert Review Card Constraints
 
 To guarantee accountability, **EVERY SINGLE TAB** must inject an immovable Expert Review Card block detailing qualitative, advisory outcomes.
-These fields are dashboard summaries only and must not be interpreted as formal merge/release gate decisions; use `arc:gate` for explicit Go/No-Go decisions.
+These fields are dashboard summaries only and must not be interpreted as formal merge/release gate decisions; use `arc-gate` for explicit Go/No-Go decisions.
 
 In addition to the expert card, **every tab must include**:
 - At least **one primary visualization**.
@@ -109,7 +109,7 @@ When such evidence is absent, replace the chart with:
 | Contract Field | Evaluation State Description |
 |---|---|
 | **Architectural Verdict** | Pass (Nominal) / Concern (Degraded) / Fail (Critical) |
-| **Delivery Advisory** | Proceed Advisory / Conditional Advisory / Escalate to `arc:gate` for formal Go/No-Go |
+| **Delivery Advisory** | Proceed Advisory / Conditional Advisory / Escalate to `arc-gate` for formal Go/No-Go |
 | **Threat/Risk Posture** | Low Priority / Medium Priority / High Priority |
 | **SLA Remediation Window** | Rigid remediation compliance timelines mapped to priority (P0: Immediate / P1: Next Sprint / P2: End of Quarter) |
 | **Traceable Telemetry Evidence** | Top 3-5 structurally verifiable code issue references (Crucially formatted as `file:line`) |

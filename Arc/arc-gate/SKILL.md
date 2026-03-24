@@ -1,13 +1,13 @@
 ---
-name: "arc:gate"
+name: arc-gate
 description: "合并/上线门禁决策：基于阈值、豁免与证据给出 Go/No-Go；当用户说“是否可合并/发布门禁/release gate”时触发。"
 ---
 
-# arc:gate -- merge/release gate decision
+# arc-gate -- merge/release gate decision
 
 ## Overview
 
-`arc:gate` focuses on quality gate decisions before merge/release. It consumes `score/` outputs, applies threshold and waiver policies, and returns explicit Go/No-Go with CI-ready exit code. It does not execute deployment actions.
+`arc-gate` focuses on quality gate decisions before merge/release. It consumes `score/` outputs, applies threshold and waiver policies, and returns explicit Go/No-Go with CI-ready exit code. It does not execute deployment actions.
 
 Core competencies:
 - **Gate mode**: `warn` / `strict` / `strict_dangerous`
@@ -34,7 +34,7 @@ Core competencies:
 ## Announce
 
 Begin by stating clearly:
-"I am using `arc:gate`, loading score artifacts and policies, then outputting the Go/No-Go decision."
+"I am using `arc-gate`, loading score artifacts and policies, then outputting the Go/No-Go decision."
 
 ## Teaming Requirement
 
@@ -75,9 +75,9 @@ No build/release is green without explicit gate evidence.
 
 ## Scripts & Commands
 
-- Script gate (strict): `Arc/arc:gate/scripts/check_gate --project <project_path> --mode strict --exit-code`
-- Script gate (dangerous interception): `Arc/arc:gate/scripts/check_gate --project <project_path> --mode strict_dangerous --exit-code`
-- Custom configuration: `Arc/arc:gate/scripts/check_gate --project <project_path> --config <gate-config.yaml> --output-dir <output_dir>`
+- Script gate (strict): `Arc/arc-gate/scripts/check_gate --project <project_path> --mode strict --exit-code`
+- Script gate (dangerous interception): `Arc/arc-gate/scripts/check_gate --project <project_path> --mode strict_dangerous --exit-code`
+- Custom configuration: `Arc/arc-gate/scripts/check_gate --project <project_path> --config <gate-config.yaml> --output-dir <output_dir>`
 - Runtime main command: `arc gate`
 
 ## Red Flags
@@ -91,7 +91,7 @@ No build/release is green without explicit gate evidence.
 
 - **Preferred Trigger**: A clear access decision (Go/No-Go) is required before merging or going online.
 - **Typical scenario**: Blocking based on score threshold and exemption policy; unified verification of rollback/monitoring/duty/announcement readiness in the release window.
-- **Boundary Tip**: `arc:gate` is only responsible for Go/No-Go gate decisions, not deployment, implementation, or root-cause analysis. Use `arc:audit` when you need diagnosis and improvement routes.
+- **Boundary Tip**: `arc-gate` is only responsible for Go/No-Go gate decisions, not deployment, implementation, or root-cause analysis. Use `arc-audit` when you need diagnosis and improvement routes.
 
 ## Dependencies
 
@@ -138,7 +138,7 @@ Before loading configuration and scoring, read `.arc/context-hub/index.json`:
 1. Retrieve score products (`overall-score.json`, `smell-report.json`)
 2. Verify the existence of `expires_at` and file path (if `content_hash` is provided and is sha256, verify hash consistency)
 3. Through verification, the score product path in the index is directly reused.
-4. If missing/expired/hash is inconsistent, first reflow triggers `score/` module refresh (triggered by `arc:gate` orchestration), and then executes access control
+4. If missing/expired/hash is inconsistent, first reflow triggers `score/` module refresh (triggered by `arc-gate` orchestration), and then executes access control
 
 ### Step 1.1: Load access control configuration
 
@@ -248,7 +248,7 @@ Provide the correct exit code:
 ### upstream
 
 - `built-in score stage`: provide quantitative scoring data
-- `arc:audit`: Provide qualitative review data (optional)
+- `arc-audit`: Provide qualitative review data (optional)
 
 ### downstream
 
@@ -256,7 +256,7 @@ Provide the correct exit code:
 
 ### Shared index constraints
 
-- `arc:gate` must first discover the score product through `.arc/context-hub/index.json`
+- `arc-gate` must first discover the score product through `.arc/context-hub/index.json`
 - If it is found that the score data is expired, it must be reflowed to trigger a refresh of the scoring stage instead of directly using the old data for judgment.
 
 ### Call example
@@ -341,7 +341,7 @@ tar -czf gate-reports.tgz .arc/gate-reports/
 
 | Condition | deal with |
 |------|------|
-| score product does not exist | First generate the score product and then run arc:gate |
+| score product does not exist | First generate the score product and then run arc-gate |
 | Configuration file parsing failed | Use default configuration with warning |
 | Exemption list expired | Ignore expired exemptions |
 

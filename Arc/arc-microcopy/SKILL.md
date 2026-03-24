@@ -1,13 +1,13 @@
 ---
-name: arc:microcopy
+name: arc-microcopy
 description: "报错文案人话化改写：扫描系统中的错误提示、校验失败文案、空状态和恢复提示，识别堆栈直出、内部错误码、技术术语与责怪式表述，并改写为非技术用户也能理解、可执行、可恢复的提示；当用户说“把报错改成人话/优化错误提示/扫描错误信息/让小白也能看懂报错”时触发。"
 ---
 
-# arc:microcopy — user-friendly error copy refactoring
+# arc-microcopy — user-friendly error copy refactoring
 
 ## Overview
 
-`arc:microcopy` scans user-visible failure text across product surfaces and rewrites it in plain language for non-technical users. It separates internal diagnostics from customer-facing copy, inventories where confusing messages appear, rewrites each message to explain what happened and what to do next, and keeps debugging anchors such as support codes, structured logs, and trace IDs available to engineers.
+`arc-microcopy` scans user-visible failure text across product surfaces and rewrites it in plain language for non-technical users. It separates internal diagnostics from customer-facing copy, inventories where confusing messages appear, rewrites each message to explain what happened and what to do next, and keeps debugging anchors such as support codes, structured logs, and trace IDs available to engineers.
 
 ## Quick Contract
 
@@ -27,7 +27,7 @@ description: "报错文案人话化改写：扫描系统中的错误提示、校
 ## Announce
 
 Begin by stating clearly:
-"I'm using `arc:microcopy` to inventory user-visible error messages, separate internal diagnostics from user copy, and rewrite failure text in plain language."
+"I'm using `arc-microcopy` to inventory user-visible error messages, separate internal diagnostics from user copy, and rewrite failure text in plain language."
 
 ## Teaming Requirement
 
@@ -49,7 +49,7 @@ NO USER-FACING ERROR REWRITE WITHOUT PRESERVING DEBUGGABILITY, RECOVERY GUIDANCE
 5. Match the `user mental model`: use product terms the user already sees in the UI, keep copy `blame-free`, and `avoid jargon` such as exception names, protocol terms, SQL/database phrasing, or framework internals.
 6. Patch the true source of the message, not just one rendered location. Prefer shared translation maps, validation catalogs, or API-to-UI translation boundaries when they exist.
 7. Verify the affected flow. Re-run targeted validators and user paths so the new text is visible, consistent, and still traceable through support code, structured logging, or correlated diagnostics.
-8. If the real problem is product breakage rather than poor wording, stop polishing the symptom and route to `arc:fix` so the defect itself is repaired.
+8. If the real problem is product breakage rather than poor wording, stop polishing the symptom and route to `arc-fix` so the defect itself is repaired.
 
 ## Quality Gates
 
@@ -86,7 +86,7 @@ NO USER-FACING ERROR REWRITE WITHOUT PRESERVING DEBUGGABILITY, RECOVERY GUIDANCE
 
 - **Preferred Trigger**: The system already has user-visible technical error text that non-technical users cannot understand or recover from.
 - **Typical Scenario**: Frontend toasts, form validation messages, installer/update errors, admin console alerts, API error mapping, or support escalations caused by opaque wording.
-- **Boundary Tip**: Use `arc:fix` when the underlying flow is broken, `arc:clarify` when target audience or tone is still unclear, and `arc:build` once the rewrite scope is clear and code changes are ready to land.
+- **Boundary Tip**: Use `arc-fix` when the underlying flow is broken, `arc-clarify` when target audience or tone is still unclear, and `arc-build` once the rewrite scope is clear and code changes are ready to land.
 
 ## Input Arguments
 

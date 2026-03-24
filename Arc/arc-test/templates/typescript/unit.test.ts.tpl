@@ -17,7 +17,7 @@ describe("{{FUNCTION_NAME}}", () => {
   it.each([
     { input: {{NOMINAL_VALUE}}, expected: {{NOMINAL_EXPECTED}} },
     { input: {{ZERO_VALUE}}, expected: {{ZERO_EXPECTED}} },
-    // TODO: add equivalence partitioning cases
+    // FILL_IN: add equivalence partitioning cases
   ])("should return $expected for input $input", ({ input, expected }) => {
     expect({{FUNCTION_NAME}}(input)).toBe(expected);
   });

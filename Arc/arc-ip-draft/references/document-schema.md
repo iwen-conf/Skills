@@ -1,6 +1,6 @@
 # 知识产权申请文档结构模板
 
-本文档定义 `arc:ip-draft` 输出的软件著作权与发明专利申请文档的标准结构、章节要求与写作规范。
+本文档定义 `arc-ip-draft` 输出的软件著作权与发明专利申请文档的标准结构、章节要求与写作规范。
 
 ## 软件著作权申请文档
 
@@ -67,7 +67,7 @@
 ---
 
 **生成说明**:
-- 本摘要由 arc:ip-draft 基于项目代码与 arc:ip-check 审查结论自动生成
+- 本摘要由 arc-ip-draft 基于项目代码与 arc-ip-check 审查结论自动生成
 - 请人工核对基本信息(日期、申请人、开发者)
 - 功能概述已整合 architecture/deep/review 三Agent分析,术语已统一
 ```
@@ -209,7 +209,7 @@ A: [解决方案]
 ---
 
 **生成说明**:
-- 本说明书由 arc:ip-draft 的 review Agent 起草,经 architecture/deep 审阅
+- 本说明书由 arc-ip-draft 的 review Agent 起草,经 architecture/deep 审阅
 - 操作步骤已验证可执行性(基于项目README与代码)
 - 术语已统一(参见 convergence/terminology-alignment.md)
 ```
@@ -304,7 +304,7 @@ A: [解决方案]
 ---
 
 **生成说明**:
-- 本说明由 arc:ip-draft 的 deep Agent 起草,经 architecture 审阅
+- 本说明由 arc-ip-draft 的 deep Agent 起草,经 architecture 审阅
 - 代码区段已验证完整性与可编译性
 - 第三方依赖已通过许可证兼容性检查
 ```
@@ -474,7 +474,7 @@ A: [解决方案]
 ---
 
 **生成说明**:
-- 本交底书由 arc:ip-draft 的 architecture Agent 起草技术方案,deep Agent 补充实现细节
+- 本交底书由 arc-ip-draft 的 architecture Agent 起草技术方案,deep Agent 补充实现细节
 - 所有技术描述已回溯到项目代码(参见 context/doc-context.md)
 - 术语已统一(参见 convergence/terminology-alignment.md)
 - 本文档为草稿,需专利代理人进一步加工为正式申请文件
@@ -572,7 +572,7 @@ S4: [步骤4描述]。
 ---
 
 **生成说明**:
-- 本权利要求书由 arc:ip-draft 的 review Agent 起草,经 architecture/deep 审阅
+- 本权利要求书由 arc-ip-draft 的 review Agent 起草,经 architecture/deep 审阅
 - 权利要求层次已优化(独立权利要求宽,从属权利要求逐步限定)
 - 技术特征已与技术交底书对应
 - 本文档为草稿,需专利代理人审查并符合《专利法》格式要求
@@ -682,7 +682,7 @@ S4: [步骤4描述]。
 
 ## 附图生成说明
 
-**图1-3**: 由 arc:ip-draft 的 architecture Agent 生成(Mermaid格式),需转换为专利局要求的CAD/矢量图格式
+**图1-3**: 由 arc-ip-draft 的 architecture Agent 生成(Mermaid格式),需转换为专利局要求的CAD/矢量图格式
 
 **图4**: 由 review Agent 提供UI截图,需脱敏处理并转换为黑白线条图
 
@@ -691,7 +691,7 @@ S4: [步骤4描述]。
 ---
 
 **生成说明**:
-- 本附图说明由 arc:ip-draft 的 architecture/review Agent 协作生成
+- 本附图说明由 arc-ip-draft 的 architecture/review Agent 协作生成
 - 所有标号已与技术交底书对应
 - 图纸需由专利代理人转换为符合专利局要求的格式
 ```
@@ -761,4 +761,4 @@ S4: [步骤4描述]。
 
 **版本**: v1.0  
 **最后更新**: 2026-02-26  
-**维护者**: arc:ip-draft Skill
+**维护者**: arc-ip-draft Skill

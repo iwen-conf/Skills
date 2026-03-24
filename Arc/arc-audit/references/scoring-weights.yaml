@@ -1,4 +1,4 @@
-# Default calibration reference for `arc:audit`
+# Default calibration reference for `arc-audit`
 #
 # This file provides a heuristic weighting baseline for combining evidence that is
 # already available. It is not an authoritative truth model, and it must not be

@@ -1,13 +1,13 @@
 ---
-name: "arc:audit"
+name: arc-audit
 description: "项目体检与七维技术审计：基于证据输出诊断报告、评分边界与改进建议；当用户说“technical audit/health check/技术尽调/代码审计/架构评审”时触发。"
 ---
 
-# arc:audit -- evidence-first technical audit
+# arc-audit -- evidence-first technical audit
 
 ## Overview
 
-`arc:audit` performs evidence-first audits for repositories, subsystems, and high-risk pull requests. It reviews seven dimensions, records only what is directly observable, and returns a bounded assessment rather than a presentation-first package.
+`arc-audit` performs evidence-first audits for repositories, subsystems, and high-risk pull requests. It reviews seven dimensions, records only what is directly observable, and returns a bounded assessment rather than a presentation-first package.
 
 Default outputs stay narrow:
 - `diagnostic-report.md`
@@ -19,7 +19,7 @@ Two specialist indices stay conditional:
 - **Business Maturity Index**: score only when core business flows or operating artifacts are observable.
 - **Dependency Health Score**: score only when dependency versions, vulnerability signals, and maintenance status are observable.
 
-`arc:audit` keeps **observations** separate from **recommendations**, stays read-only by default, and hands merge/release decisions to `arc:gate` and implementation work to `arc:build`.
+`arc-audit` keeps **observations** separate from **recommendations**, stays read-only by default, and hands merge/release decisions to `arc-gate` and implementation work to `arc-build`.
 
 ## Quick Contract
 
@@ -40,7 +40,7 @@ Two specialist indices stay conditional:
 ## Announce
 
 Begin by stating clearly:
-> "I am using `arc:audit` to collect evidence first, then produce a bounded seven-dimensional audit with clear findings, score limits, and recommendations."
+> "I am using `arc-audit` to collect evidence first, then produce a bounded seven-dimensional audit with clear findings, score limits, and recommendations."
 
 ## Teaming Requirement
 
@@ -104,13 +104,13 @@ The tripartite pattern (architecture / engineering / business perspectives) and 
 - `quantitative-dashboard.html` is optional. If produced, it should follow `references/spa-dashboard-spec.md` and `templates/dashboard-template.html`, but it must not redefine the default audit contract.
 - If a dashboard is produced, it may read final audit artifacts such as `scorecard.md`, `diagnostic-report.md`, and `recommendations.md` in addition to quantitative inputs.
 - Dashboard KPI cards and charts must explicitly degrade to `Derived`, `Heuristic`, or `N/A` when direct evidence is insufficient; do not present fabricated precision.
-- If the user needs a merge/release decision, hand off to `arc:gate`. If the user needs implementation work, hand off to `arc:build`.
+- If the user needs a merge/release decision, hand off to `arc-gate`. If the user needs implementation work, hand off to `arc-build`.
 
 ## Scripts & Commands
 
 - Runtime main command: `arc audit`
-- Optional dashboard integration: `python3 Arc/arc:audit/scripts/integrate_score.py --project-path <project_path> --review-dir <review_dir>`
-- Dashboard template reference: `Arc/arc:audit/templates/dashboard-template.html`
+- Optional dashboard integration: `python3 Arc/arc-audit/scripts/integrate_score.py --project-path <project_path> --review-dir <review_dir>`
+- Dashboard template reference: `Arc/arc-audit/templates/dashboard-template.html`
 
 ## Red Flags
 
@@ -119,14 +119,14 @@ The tripartite pattern (architecture / engineering / business perspectives) and 
 - Treating the tripartite rebuttal flow as mandatory for every audit.
 - Treating `quantitative-dashboard.html` as a required baseline artifact.
 - Mixing observed facts and remediation advice in the same section.
-- Using `arc:audit` as a substitute for `arc:gate` or `arc:build`.
+- Using `arc-audit` as a substitute for `arc-gate` or `arc-build`.
 - Modifying repository source code during the audit.
 
 ## When to Use
 
 - **Preferred Trigger**: A repository, subsystem, or pull request needs a structured health check, technical due diligence, or evidence-based improvement route.
 - **Typical Scenarios**: Architecture baseline before refactoring, pre-release technical due diligence, multi-dimensional risk review, evidence-first repository health check.
-- **Boundary Note**: Use `arc:gate` for explicit Go/No-Go decisions. Use `arc:build` for code changes and implementation delivery.
+- **Boundary Note**: Use `arc-gate` for explicit Go/No-Go decisions. Use `arc-build` for code changes and implementation delivery.
 
 ## Expected Input Arguments
 
@@ -202,7 +202,7 @@ Refer to `references/dimensions.md` for dimension criteria and specialist index 
 ## Quick Status Feedback Syntax
 
 ```text
-[arc:audit] Target: <project_name>
+[arc-audit] Target: <project_name>
 
 1. Scope and evidence plan confirmed.
 2. Evidence registry collected.

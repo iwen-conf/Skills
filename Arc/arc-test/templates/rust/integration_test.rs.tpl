@@ -13,14 +13,14 @@ fn integration_{{FUNCTION_NAME}}_nominal() {
 
 #[test]
 fn integration_{{FUNCTION_NAME}}_cross_module() {
-    // TODO: test interaction between multiple public modules
+    // FILL_IN: test interaction between multiple public modules
     let result = {{FUNCTION_NAME}}({{NOMINAL_VALUE}});
     assert_eq!(result, {{NOMINAL_EXPECTED}});
 }
 
 #[test]
 fn integration_{{FUNCTION_NAME}}_error_propagation() {
-    // TODO: verify errors propagate correctly across module boundaries
+    // FILL_IN: verify errors propagate correctly across module boundaries
     let result = {{FUNCTION_NAME}}({{INVALID_INPUT}});
     assert_eq!(result, {{ZERO_EXPECTED}});
 }

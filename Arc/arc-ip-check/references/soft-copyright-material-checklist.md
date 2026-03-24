@@ -242,7 +242,7 @@
 使用 `format_compliance_checker.py` 脚本自动检查格式合规性：
 
 ```bash
-python Arc/arc:ip-check/scripts/format_compliance_checker.py \
+python Arc/arc-ip-check/scripts/format_compliance_checker.py \
   --software-full-name "智能任务调度系统" \
   --version "V1.0" \
   --copyright-holder "北京某某科技有限公司" \

@@ -1,12 +1,12 @@
 ---
-name: arc:aigc
+name: arc-aigc
 description: "学术/专业文本去模板化润色：当用户提到“AIGC 味太重/论文像机器写的/需要按段改写长文稿/保留引用公式重写表达”时触发；用于分段重写、双阶段统稿、作者声线统一与引用保真检查，不用于规避检测或学术作弊。"
 ---
 
-# arc:aigc — evidence-based academic polish
+# arc-aigc — evidence-based academic polish
 
 ## Overview
-`arc:aigc` absorbs the reusable mechanics of `BypassAIGC` into a compliance-first writing workflow: split long text into bounded chunks, protect citations/equations/numbers/named entities, perform a chunked rewrite first, then run a two-stage polish for document-level cohesion. The goal is to reduce template-like phrasing and improve readability while keeping claims, evidence, and attribution stable.
+`arc-aigc` absorbs the reusable mechanics of `BypassAIGC` into a compliance-first writing workflow: split long text into bounded chunks, protect citations/equations/numbers/named entities, perform a chunked rewrite first, then run a two-stage polish for document-level cohesion. The goal is to reduce template-like phrasing and improve readability while keeping claims, evidence, and attribution stable.
 
 For the repo-derived method and what is intentionally excluded, read [`references/bypassaigc-adaptation.md`](./references/bypassaigc-adaptation.md) only when you need the detailed pass structure or protected-span checklist.
 
@@ -25,7 +25,7 @@ For the repo-derived method and what is intentionally excluded, read [`reference
 
 ## Announce
 Begin by stating:
-> "I am using `arc:aigc` to drive a chunked, two-stage academic polish with explicit notes for each rewrite pass."
+> "I am using `arc-aigc` to drive a chunked, two-stage academic polish with explicit notes for each rewrite pass."
 
 ## Teaming Requirement
 
@@ -64,7 +64,7 @@ ALL CHANGES MUST BE TRACEABLE BACK TO ORIGINAL CLAIMS AND CITATIONS.
 
 ## Scripts & Commands
 - Runtime main command: `arc aigc`
-- Method reference: `Arc/arc:aigc/references/bypassaigc-adaptation.md`
+- Method reference: `Arc/arc-aigc/references/bypassaigc-adaptation.md`
 - Session plan: create `<project>/.arc/aigc/<session>/session-plan.md` with chunk bounds, protected spans, and pass goals.
 - Stage passes: write chunk-level changes to `revision-log.md`, then perform the document-level cohesion pass and summarize it in `stage2-summary.md`.
 - Hand-off: deliver the assembled directory with `polished-text.md`, `revision-log.md`, and explicit follow-up questions for the reviewer.
@@ -77,17 +77,17 @@ ALL CHANGES MUST BE TRACEABLE BACK TO ORIGINAL CLAIMS AND CITATIONS.
 
 ## Mandatory Linkage (cannot be fought alone)
 
-1. If the writing goal, target venue, tone, or integrity constraints are still vague, call `arc:clarify` first instead of guessing rewrite objectives.
-2. If the user is really asking for multi-stage orchestration across writing, review, and delivery, route through `arc:exec` rather than keeping all coordination inside `arc:aigc`.
-3. If the manuscript contains disputed claims, compliance-sensitive wording, or evidence-risk questions that exceed style editing, hand off to `arc:audit` for bounded review.
-4. If the request turns into implementation work, document generation from code, or repository changes, stop escalating inside prose editing and route to `arc:build`.
-5. If repository context or prior project artifacts are stale and the writing task depends on them, refresh via `arc:init` and read `arc:cartography` products before continuing.
-6. The default downstream close-out is `arc:audit` or explicit human review when the user asks for a second-pass quality gate after polishing.
+1. If the writing goal, target venue, tone, or integrity constraints are still vague, call `arc-clarify` first instead of guessing rewrite objectives.
+2. If the user is really asking for multi-stage orchestration across writing, review, and delivery, route through `arc-exec` rather than keeping all coordination inside `arc-aigc`.
+3. If the manuscript contains disputed claims, compliance-sensitive wording, or evidence-risk questions that exceed style editing, hand off to `arc-audit` for bounded review.
+4. If the request turns into implementation work, document generation from code, or repository changes, stop escalating inside prose editing and route to `arc-build`.
+5. If repository context or prior project artifacts are stale and the writing task depends on them, refresh via `arc-init` and read `arc-cartography` products before continuing.
+6. The default downstream close-out is `arc-audit` or explicit human review when the user asks for a second-pass quality gate after polishing.
 
 ## When to Use
 - **Preferred Trigger**: The user wants to polish or restructure academic or professional prose with explicit requirements around chunked processing, citation preservation, or multi-stage review.
 - **Typical Scenario**: Thesis chapters, conference papers, white papers, regulatory reports, and longform technical prose that feel too templated or too "AI-written" but must retain evidence and attribution.
-- **Boundary Tip**: Use `arc:audit` for repository/system audits, `arc:build` for implementation work, and do not use `arc:aigc` to help the user evade detectors or misrepresent authorship.
+- **Boundary Tip**: Use `arc-audit` for repository/system audits, `arc-build` for implementation work, and do not use `arc-aigc` to help the user evade detectors or misrepresent authorship.
 
 ## Input Arguments
 | Parameter | Type | Required | Description |

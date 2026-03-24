@@ -1,13 +1,13 @@
 ---
-name: "arc:serve"
+name: arc-serve
 description: "本地服务启动与 tmux 会话托管：当用户说“启动前后端/启动 dev server/重启本地服务/重跑端口服务”时触发；用于用 tmux 启停本地长时服务、维护 sessions.json，并在重启前先检查并关闭同名 session，避免重复占用 CPU、内存和端口。"
 ---
 
-# arc:serve — local service session orchestration
+# arc-serve — local service session orchestration
 
 ## Overview
 
-`arc:serve` is responsible for starting, restarting, stopping, and checking local long-running project services through `tmux`.
+`arc-serve` is responsible for starting, restarting, stopping, and checking local long-running project services through `tmux`.
 
 The skill is intentionally strict:
 
@@ -35,7 +35,7 @@ The skill is intentionally strict:
 ## Announce
 
 Begin by stating clearly:
-"I am using `arc:serve` to reconcile the existing tmux session first, and then start/restart the local service without duplicates."
+"I am using `arc-serve` to reconcile the existing tmux session first, and then start/restart the local service without duplicates."
 
 ## The Iron Law
 
@@ -72,11 +72,11 @@ Before launching any long-running local service, check the project-local registr
 
 ## Scripts & Commands
 
-- Start service: `Arc/arc:serve/scripts/tmux_service_ctl start --project-root <project_path> --service frontend --cwd <cwd> --ports 3000,5173 --command "pnpm dev --host 0.0.0.0"`
-- Restart service: `Arc/arc:serve/scripts/tmux_service_ctl restart --project-root <project_path> --service backend --cwd <cwd> --ports 8080 --command "go run ./cmd/server"`
-- Stop service: `Arc/arc:serve/scripts/tmux_service_ctl stop --project-root <project_path> --service frontend`
-- Check one service: `Arc/arc:serve/scripts/tmux_service_ctl status --project-root <project_path> --service frontend`
-- Reconcile all remembered sessions: `Arc/arc:serve/scripts/tmux_service_ctl cleanup --project-root <project_path>`
+- Start service: `Arc/arc-serve/scripts/tmux_service_ctl start --project-root <project_path> --service frontend --cwd <cwd> --ports 3000,5173 --command "pnpm dev --host 0.0.0.0"`
+- Restart service: `Arc/arc-serve/scripts/tmux_service_ctl restart --project-root <project_path> --service backend --cwd <cwd> --ports 8080 --command "go run ./cmd/server"`
+- Stop service: `Arc/arc-serve/scripts/tmux_service_ctl stop --project-root <project_path> --service frontend`
+- Check one service: `Arc/arc-serve/scripts/tmux_service_ctl status --project-root <project_path> --service frontend`
+- Reconcile all remembered sessions: `Arc/arc-serve/scripts/tmux_service_ctl cleanup --project-root <project_path>`
 - Inspect live sessions directly: `tmux ls`
 - Inspect recent logs: `tmux capture-pane -p -t <session_name>`
 
@@ -92,7 +92,7 @@ Before launching any long-running local service, check the project-local registr
 
 - **Primary Trigger**: The user asks to start, restart, stop, or inspect a local frontend, backend, worker, API server, or other long-running project service.
 - **Typical Scenario**: Local development commands such as `pnpm dev`, `npm run dev`, `vite`, `next dev`, `go run`, `air`, `uvicorn`, `cargo run`, or paired frontend/backend services that should stay alive across turns.
-- **Boundary Note**: Do not use `arc:serve` for production deployment, Docker Compose/Kubernetes orchestration, or one-shot commands like build/test/lint that should exit immediately.
+- **Boundary Note**: Do not use `arc-serve` for production deployment, Docker Compose/Kubernetes orchestration, or one-shot commands like build/test/lint that should exit immediately.
 
 ## Input Arguments
 
@@ -130,7 +130,7 @@ Before launching any long-running local service, check the project-local registr
 4. Prefer the bundled launcher so it can reuse a cached Go binary, keep the JSON registry consistent, and still exit immediately after the control action:
 
 ```bash
-Arc/arc:serve/scripts/tmux_service_ctl start \
+Arc/arc-serve/scripts/tmux_service_ctl start \
   --project-root <project_path> \
   --service frontend \
   --cwd <cwd> \

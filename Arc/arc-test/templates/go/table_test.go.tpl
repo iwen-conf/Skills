@@ -12,7 +12,7 @@ func Test{{FUNCTION_NAME}}Table(t *testing.T) {
 		{"nominal", {{NOMINAL_VALUE}}, {{NOMINAL_EXPECTED}}},
 		{"boundary min", {{MIN_VALUE}}, {{MIN_EXPECTED}}},
 		{"boundary max", {{MAX_VALUE}}, {{MAX_EXPECTED}}},
-		// TODO: add equivalence partitioning cases
+		// FILL_IN: add equivalence partitioning cases
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

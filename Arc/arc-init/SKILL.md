@@ -1,22 +1,22 @@
 ---
-name: "arc:init"
+name: arc-init
 description: "项目索引与上下文中枢维护：初始化或更新共享索引产物；当用户说“初始化项目索引/bootstrap context/update index”时触发。"
 ---
 
-# arc:init — index mode router
+# arc-init — index mode router
 
 ## Overview
 
-This skill is the entrypoint of the `arc:init` subsystem. It chooses between full and incremental index maintenance based on the current project status:
+This skill is the entrypoint of the `arc-init` subsystem. It chooses between full and incremental index maintenance based on the current project status:
 
-- **Full Mode** (`arc:init --mode full`): First initialization or forced full refresh
-- **Incremental Mode** (`arc:init --mode update`): Based on fingerprint detection, incremental refresh of changed index products
+- **Full Mode** (`arc-init --mode full`): First initialization or forced full refresh
+- **Incremental Mode** (`arc-init --mode update`): Based on fingerprint detection, incremental refresh of changed index products
 
 **Users don't need to care about selection**: For daily use, you only need to call this entrypoint, and the system will automatically decide.
 
 Unified mode:
-- Use `arc:init --mode full` for forced full rebuild.
-- Use `arc:init --mode update` for explicit incremental refresh.
+- Use `arc-init --mode full` for forced full rebuild.
+- Use `arc-init --mode update` for explicit incremental refresh.
 
 ## Quick Contract
 
@@ -36,7 +36,7 @@ Unified mode:
 ## Announce
 
 Begin by stating clearly:
-"I am using `arc:init` to determine full or incremental mode before performing index generation."
+"I am using `arc-init` to determine full or incremental mode before performing index generation."
 
 ## Teaming Requirement
 
@@ -78,7 +78,7 @@ Index writing must not be started until mode decision and baseline verification 
 - Pin `project_path` to the smallest valid git-backed root. Do not scan a workspace wrapper when the real target is a nested repository.
 - Reuse `.arc/init/...` and `.arc/context-hub/index.json` before starting any new scan or structural refresh.
 - For baseline checks, JSON inspection, hashing, and metadata publishing, prefer `git`, `jq`, `rg`, `find`, `shasum`, and lightweight JS/Bun helpers. Do not default to Python for simple file walking or JSON merge work.
-- `arc:init` is a foreground, one-shot workflow. Do not spawn Python watchers, notebook kernels, polling loops, or background daemons as part of index maintenance.
+- `arc-init` is a foreground, one-shot workflow. Do not spawn Python watchers, notebook kernels, polling loops, or background daemons as part of index maintenance.
 - If a semantic indexer or MCP-backed search service is not required for the current decision, skip it and stay on local CLI primitives.
 
 ## Scripts & Commands
@@ -86,7 +86,7 @@ Index writing must not be started until mode decision and baseline verification 
 - Automatic mode entry: `arc init`
 - Force full mode: `arc init --mode full`
 - Explicit incremental mode: `arc init --mode update`
-- Note: `arc:init` currently does not have independent `scripts/`, and full/update is unified and arranged through runtime commands.
+- Note: `arc-init` currently does not have independent `scripts/`, and full/update is unified and arranged through runtime commands.
 
 ## Red Flags
 
@@ -101,7 +101,7 @@ Index writing must not be started until mode decision and baseline verification 
 
 - **Primary Trigger**: Need to automatically select full or incremental to maintain CLAUDE index.
 - **Typical Scenario**: Daily index maintenance, but you don't want to manually judge `full/update`.
-- **Boundary Note**: Use `arc:init --mode full` when it is clear that the full amount is required, and `arc:init --mode update` when it is clear that the increment is required.
+- **Boundary Note**: Use `arc-init --mode full` when it is clear that the full amount is required, and `arc-init --mode update` when it is clear that the increment is required.
 
 ## Working mode selection
 
@@ -109,7 +109,7 @@ Index writing must not be started until mode decision and baseline verification 
 User input → fingerprint detection → routing decision
 
 ┌─────────────────────────────────────────┐
-│ arc:init (mode routing)                 │
+│ arc-init (mode routing)                 │
 └────────────────┬────────────────────────┘
                  │
                  ▼
@@ -123,7 +123,7 @@ User input → fingerprint detection → routing decision
 Exist + Fresh Absent/Expired
         │                 │
         ▼                 ▼
-   arc:init --mode update   arc:init --mode full
+   arc-init --mode update   arc-init --mode full
 (incremental mode) (full mode)
 ```
 
@@ -131,11 +131,11 @@ Exist + Fresh Absent/Expired
 
 | condition | route to | illustrate |
 |------|--------|------|
-| `module-fingerprints.json` does not exist | `arc:init --mode full` | First initialization |
-| `module-fingerprints.json` exists but git_ref does not match | `arc:init --mode update` | git changes detected |
-| `module-fingerprints.json` exists but expired | `arc:init --mode update` | Snapshot expired; refresh incrementally |
-| User explicitly specifies `mode=full` | `arc:init --mode full` | Force full amount |
-| User explicitly specifies `mode=update` | `arc:init --mode update` | forced increment |
+| `module-fingerprints.json` does not exist | `arc-init --mode full` | First initialization |
+| `module-fingerprints.json` exists but git_ref does not match | `arc-init --mode update` | git changes detected |
+| `module-fingerprints.json` exists but expired | `arc-init --mode update` | Snapshot expired; refresh incrementally |
+| User explicitly specifies `mode=full` | `arc-init --mode full` | Force full amount |
+| User explicitly specifies `mode=update` | `arc-init --mode update` | forced increment |
 
 ### Mandatory routing parameters
 
@@ -143,8 +143,8 @@ The user can specify the mode via prompt:
 
 | parameter | Behavior |
 |------|------|
-| `force full` / `full scan` / `reinitialize` | Force routing to `arc:init --mode full` |
-| `incremental` / `update` / `only changed modules` | Force routing to `arc:init --mode update` |
+| `force full` / `full scan` / `reinitialize` | Force routing to `arc-init --mode full` |
+| `incremental` / `update` / `only changed modules` | Force routing to `arc-init --mode update` |
 
 ## Input Arguments
 
@@ -184,15 +184,15 @@ Make routing decisions based on detection results:
 
 ```python
 if user_force_mode == "full":
-    route_to("arc:init --mode full")
+    route_to("arc-init --mode full")
 elif user_force_mode == "update":
-    route_to("arc:init --mode update")
+    route_to("arc-init --mode update")
 elif not fingerprints_exist:
-    route_to("arc:init --mode full")  # first time
+    route_to("arc-init --mode full")  # first time
 elif fingerprints_stale or git_changed:
-    route_to("arc:init --mode update")  # incremental refresh
+    route_to("arc-init --mode update")  # incremental refresh
 else:
-    route_to("arc:init --mode update")  # default incremental refresh
+    route_to("arc-init --mode update")  # default incremental refresh
 ```
 
 ### Step 2: Execute scheduling
@@ -200,10 +200,10 @@ else:
 Use **Scheduling API** to dispatch the corresponding sub-Skill:
 
 ```typescript
-// Schedule arc:init --mode full
+// Schedule arc-init --mode full
 schedule_task(
   capability_profile: "unspecified-high",
-  capabilities: ["arc:init --mode full"],
+  capabilities: ["arc-init --mode full"],
 prompt: `Perform full initialization...
 
 Project path: <project_path>
@@ -213,10 +213,10 @@ Language: <language>
   execution_mode: "foreground"
 )
 
-// Or schedule arc:init --mode update
+// Or schedule arc-init --mode update
 schedule_task(
   capability_profile: "unspecified-high",
-  capabilities: ["arc:init --mode update"],
+  capabilities: ["arc-init --mode update"],
 prompt: `Perform incremental update...
 
 Project path: <project_path>
@@ -237,7 +237,7 @@ Language: <language>
 
 ## Sub-Skills
 
-### arc:init --mode full
+### arc-init --mode full
 
 Full initialization mode. Applies to:
 - Initializing the project index for the first time
@@ -251,7 +251,7 @@ Full initialization mode. Applies to:
 - Generate CLAUDE.md in full
 - Generate fingerprint baseline
 
-### arc:init --mode update
+### arc-init --mode update
 
 Incremental update mode. Applies to:
 - Routine maintenance updates
@@ -281,7 +281,7 @@ Incremental update mode. Applies to:
 === Pattern Detection ===
 ├── Fingerprint file: exists (generated on 2026-02-25)
 ├── Git changes: abc1234 → def5678 (15 file changes)
-└── Routing decisions: incremental updates (arc:init --mode update)
+└── Routing decisions: incremental updates (arc-init --mode update)
 
 === Incremental update ===
 ├── Change detection... [Complete]
@@ -303,27 +303,27 @@ A total of 10 CLAUDE.md files were updated.
 ## Relationship to other Skills
 
 ```
-arc:init (this skill - mode routing)
-├── arc:init --mode full (full initialization)
-└── arc:init --mode update (incremental update)
+arc-init (this skill - mode routing)
+├── arc-init --mode full (full initialization)
+└── arc-init --mode update (incremental update)
 
 Downstream consumers:
-arc:clarify / arc:decide / arc:build / arc:e2e / arc:audit
+arc-clarify / arc-decide / arc-build / arc-e2e / arc-audit
 ↑ Read CLAUDE index product through `.arc/context-hub/index.json`
 
 Dependencies:
-arc:init --mode update requires the fingerprint baseline generated by arc:init --mode full
+arc-init --mode update requires the fingerprint baseline generated by arc-init --mode full
 
 Publishing relationship:
-arc:init must publish this generated/updated CLAUDE.md metadata to the shared index
+arc-init must publish this generated/updated CLAUDE.md metadata to the shared index
 ```
 
 ## troubleshooting
 
 | Condition | solution |
 |------|----------|
-| Fingerprint file does not exist | Prompt to run `arc:init` or `arc:init --mode full` |
-| Fingerprint file is damaged | Prompt to run `arc:init --mode full` Rebuild |
+| Fingerprint file does not exist | Prompt to run `arc-init` or `arc-init --mode full` |
+| Fingerprint file is damaged | Prompt to run `arc-init --mode full` Rebuild |
 | Git repository does not exist | Only supports git repository |
 | Sub-Skill execution failed | View `.arc/init/` working directory log |
 

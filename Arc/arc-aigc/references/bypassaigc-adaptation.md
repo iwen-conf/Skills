@@ -4,11 +4,11 @@ Source examined on 2026-03-12:
 - Repository: <https://github.com/chi111i/BypassAIGC>
 - README snapshot: <https://raw.githubusercontent.com/chi111i/BypassAIGC/master/README.md>
 
-This reference distills the parts of that project that are useful for a compliant `arc:aigc` workflow.
+This reference distills the parts of that project that are useful for a compliant `arc-aigc` workflow.
 
 ## What to reuse
 
-| Pattern | How `arc:aigc` uses it |
+| Pattern | How `arc-aigc` uses it |
 |---|---|
 | Long-text segmentation | Break manuscripts into paragraph-aligned chunks so each pass stays reviewable and traceable. |
 | Two-pass processing | First improve chunk-level clarity, then run a document-level cohesion pass. |
@@ -20,7 +20,7 @@ This reference distills the parts of that project that are useful for a complian
 
 | Excluded behavior | Reason |
 |---|---|
-| Claims about "bypassing AI detection" | This creates dishonest-use pressure and is outside the allowed purpose of `arc:aigc`. |
+| Claims about "bypassing AI detection" | This creates dishonest-use pressure and is outside the allowed purpose of `arc-aigc`. |
 | Academic cheating or authorship disguise | The skill is for honest editing, not misrepresentation. |
 | Admin/backend implementation details | The skill needs the workflow, not the original product architecture. |
 | Provider-specific marketing or pricing assumptions | Those are unstable and not core to the method. |

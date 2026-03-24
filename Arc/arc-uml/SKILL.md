@@ -1,13 +1,13 @@
 ---
-name: "arc:uml"
+name: arc-uml
 description: "UML 与 Chen E-R 建模：基于代码证据生成标准图谱；当用户说“画架构图/UML 建模/sequence diagram/ER 图”时触发。"
 ---
 
-# arc:uml — Project UML diagram generation
+# arc-uml — Project UML diagram generation
 
 ## Overview
 
-`arc:uml` is used to generate UML diagrams from real project evidence (code, configurations, interfaces, deployments and business processes).
+`arc-uml` is used to generate UML diagrams from real project evidence (code, configurations, interfaces, deployments and business processes).
 This skill emphasizes "selecting graphics according to actual conditions", rather than mechanically drawing all 14 types of graphics.
 All UML diagrams must conform to UML standard notation (it is recommended to align with UML 2.5.1); if the project requires E-R diagrams, **Chen's notation** must be used, and its data source MUST be the actual database table design (数据库表设计).
 
@@ -29,7 +29,7 @@ All UML diagrams must conform to UML standard notation (it is recommended to ali
 ## Announce
 
 Begin by stating clearly:
-"I'm using `arc:uml` to make a pattern applicability determination and then output an evidence-based UML diagram."
+"I'm using `arc-uml` to make a pattern applicability determination and then output an evidence-based UML diagram."
 
 ## Teaming Requirement
 
@@ -72,11 +72,11 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 
 ## Scripts & Commands
 
-- Generate UML skeleton (by diagram): `python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types class,sequence,deployment`
-- Generate full UML skeleton: `python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all`
-- Generate Chen's E-R skeleton at the same time: `python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all --include-er-chen`
-- Render one Mermaid source to SVG: `node Arc/arc:uml/scripts/render_beautiful_mermaid_svg.mjs --input <uml_dir>/diagrams/<diagram>.mmd --output <uml_dir>/diagrams/<diagram>.svg`
-- Batch render a UML directory to SVG: `node Arc/arc:uml/scripts/render_beautiful_mermaid_svg.mjs --input-dir <uml_dir>/diagrams --skip-unsupported`
+- Generate UML skeleton (by diagram): `python3 Arc/arc-uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types class,sequence,deployment`
+- Generate full UML skeleton: `python3 Arc/arc-uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all`
+- Generate Chen's E-R skeleton at the same time: `python3 Arc/arc-uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all --include-er-chen`
+- Render one Mermaid source to SVG: `node Arc/arc-uml/scripts/render_beautiful_mermaid_svg.mjs --input <uml_dir>/diagrams/<diagram>.mmd --output <uml_dir>/diagrams/<diagram>.svg`
+- Batch render a UML directory to SVG: `node Arc/arc-uml/scripts/render_beautiful_mermaid_svg.mjs --input-dir <uml_dir>/diagrams --skip-unsupported`
 - Runtime main command: `arc uml`
 
 ## Red Flags
@@ -97,7 +97,7 @@ Don't draw pictures without evidence, don't connect lines without traceable rela
 
 - **Primary Trigger**: Systematic UML diagrams are required to illustrate architecture, interactions, deployment, or business processes.
 - **Typical Scenario**: new member onboarding, architecture review, technical due diligence, pre-release knowledge accumulation, and cross-team alignment.
-- **Boundary Note**: Use `arc:cartography` first when repository structure context is missing; use `arc:audit` first when the need is quality diagnosis rather than modeling.
+- **Boundary Note**: Use `arc-cartography` first when repository structure context is missing; use `arc-audit` first when the need is quality diagnosis rather than modeling.
 
 ## Input Arguments
 

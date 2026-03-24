@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-integrate_score.py - 将 arc:score 量化数据集成到 arc:audit
+integrate_score.py - 将 arc-score 量化数据集成到 arc-audit
 
 用法:
     python integrate_score.py --score-dir .arc/score/<project> --review-dir .arc/audit/<project>
@@ -65,7 +65,7 @@ def find_score_dir_from_context_hub(project_root: Path) -> Path | None:
     score_artifacts: list[dict] = [
         a
         for a in artifacts
-        if isinstance(a, dict) and a.get("producer_skill") == "arc:score"
+        if isinstance(a, dict) and a.get("producer_skill") == "arc-score"
     ]
     if not score_artifacts:
         return None
@@ -108,7 +108,7 @@ def find_score_dir_from_context_hub(project_root: Path) -> Path | None:
 
 
 def load_score_data(score_dir: str) -> dict:
-    """加载 arc:score 产出数据"""
+    """加载 arc-score 产出数据"""
     score_path = Path(score_dir)
 
     data = {"overall_score": None, "smell_report": None, "bugfix_report": None}
@@ -133,11 +133,11 @@ def load_score_data(score_dir: str) -> dict:
 
 def generate_review_input(score_data: dict, project_path: str) -> dict:
     """
-    生成供 arc:audit 消费的输入数据
+    生成供 arc-audit 消费的输入数据
 
     将量化数据映射到七维度框架
     """
-    # 维度映射：Code Smell 类别 -> arc:audit 维度
+    # 维度映射：Code Smell 类别 -> arc-audit 维度
     category_to_dimension = {
         "duplication": "code-quality",
         "noise": "code-quality",
@@ -548,13 +548,13 @@ def _infer_skill_contract_row(text: str) -> dict:
         consumer = "13 个 routed skills"
     elif "context-hub" in lowered:
         domain = "上下文枢纽"
-        consumer = "arc:audit / arc:gate"
+        consumer = "arc-audit / arc-gate"
     elif "producer/consumer" in lowered or "producer_skill" in lowered:
         domain = "生产消费契约"
-        consumer = "arc:audit / arc:gate"
+        consumer = "arc-audit / arc-gate"
     elif "validate" in lowered or "schema" in lowered:
         domain = "校验契约"
-        consumer = "arc:audit / arc:gate"
+        consumer = "arc-audit / arc-gate"
     elif "skill-based architecture" in lowered or "independent skills" in lowered:
         domain = "技能结构约定"
         consumer = "所有 arc:* 技能"
@@ -2149,7 +2149,7 @@ def _generate_html_dashboard_v2(review_input: dict, theme: str | None = None) ->
         ('身份与访问控制', 'Fail' if security_issues else 'Pass', '基于 security 维度问题聚合'),
         ('依赖与供应链', 'Concern' if debt_issues else 'Pass', '依赖健康与未声明依赖检查'),
         ('日志与敏感信息', 'Pass' if not any('token' in str(issue.get('message', '')).lower() for issue in security_issues) else 'Concern', '基于审计发现'),
-        ('发布门禁', 'Escalate', '正式 Go/No-Go 仍应交给 arc:gate'),
+        ('发布门禁', 'Escalate', '正式 Go/No-Go 仍应交给 arc-gate'),
     ]
     governance_html_rows = ''.join(f'<tr><td>{escape(name)}</td><td>{escape(status)}</td><td>{escape(note)}</td></tr>' for name, status, note in governance_rows)
     tab7 = f"""
@@ -2339,7 +2339,7 @@ def _generate_html_dashboard_v2(review_input: dict, theme: str | None = None) ->
     </div>
     <div class="summary-grid">
       <div class="summary-card"><div class="metric-title">综合评分（七维度）</div><div class="metric-value {_score_css(overall_score)}">{overall_score:.1f} / 100</div><div class="metric-note">优先取 scorecard 汇总，反映最终 audit 结论</div></div>
-      <div class="summary-card"><div class="metric-title">推进建议</div><div class="metric-value {'danger' if 'No-Go' in overall_gate else 'warn' if 'Conditional' in overall_gate else 'ok'}">{escape(_display_gate(overall_gate))}</div><div class="metric-note">用于报告摘要，不替代 arc:gate 正式门禁</div></div>
+      <div class="summary-card"><div class="metric-title">推进建议</div><div class="metric-value {'danger' if 'No-Go' in overall_gate else 'warn' if 'Conditional' in overall_gate else 'ok'}">{escape(_display_gate(overall_gate))}</div><div class="metric-note">用于报告摘要，不替代 arc-gate 正式门禁</div></div>
       <div class="summary-card"><div class="metric-title">Business Maturity</div><div class="metric-value ok">{business_maturity:.1f} / 10</div><div class="metric-note">核心业务/能力链成熟度</div></div>
       <div class="summary-card"><div class="metric-title">Dependency Health</div><div class="metric-value ok">{dependency_health:.1f} / 10</div><div class="metric-note">依赖健康与供应链信号</div></div>
       <div class="summary-card"><div class="metric-title">高优先级问题</div><div class="metric-value {'danger' if priority_counts.get('P0', 0) else 'warn'}">P0: {priority_counts.get('P0', 0)} / P1: {priority_counts.get('P1', 0)}</div><div class="metric-note">来自 recommendations.md 的整改优先级</div></div>
@@ -2398,7 +2398,7 @@ def generate_quantitative_section(review_input: dict) -> str:
     dimension_scores = display["dimension_scores"]
     summary_source = "scorecard.md" if display["uses_scorecard"] else "quantitative-input.json"
 
-    content = f"""## 量化评分数据（来自 arc:score / arc:audit 汇总）
+    content = f"""## 量化评分数据（来自 arc-score / arc-audit 汇总）
 
 ### 综合摘要
 
@@ -2460,11 +2460,11 @@ def generate_quantitative_section(review_input: dict) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="集成 arc:score 数据到 arc:audit")
+    parser = argparse.ArgumentParser(description="集成 arc-score 数据到 arc-audit")
     parser.add_argument(
-        "--score-dir", help="arc:score 输出目录（可选，未提供时尝试自动发现）"
+        "--score-dir", help="arc-score 输出目录（可选，未提供时尝试自动发现）"
     )
-    parser.add_argument("--review-dir", required=True, help="arc:audit 工作目录")
+    parser.add_argument("--review-dir", required=True, help="arc-audit 工作目录")
     parser.add_argument(
         "--project-path",
         help="项目根目录（可选：用于元数据；且在未传 --score-dir 时用于 context-hub 自动发现）",

@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path("/Users/iluwen/Documents/Code/Skills")
-SCRIPT = ROOT / "Arc" / "arc:cartography" / "scripts" / "cartographer.py"
+SCRIPT = ROOT / "Arc" / "arc-cartography" / "scripts" / "cartographer.py"
 
 
 def run_script(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:

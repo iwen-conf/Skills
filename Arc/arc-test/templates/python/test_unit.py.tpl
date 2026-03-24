@@ -19,5 +19,5 @@ class TestCase{{FUNCTION_NAME_PASCAL}}:
         assert result == {{MAX_EXPECTED}}
 
     def test_error_path(self) -> None:
-        # TODO: test invalid input raises expected exception
+        # FILL_IN: test invalid input raises expected exception
         pass

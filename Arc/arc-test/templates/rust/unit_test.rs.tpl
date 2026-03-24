@@ -4,7 +4,7 @@ mod tests {
 
     #[test]
     fn test_{{FUNCTION_NAME}}() {
-        // TODO: implement test for {{FUNCTION_NAME}}
+        // FILL_IN: implement test for {{FUNCTION_NAME}}
         let result = {{FUNCTION_NAME}}({{SAMPLE_INPUT}});
         assert_eq!(result, {{EXPECTED_OUTPUT}});
     }

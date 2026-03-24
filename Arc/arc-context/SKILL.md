@@ -1,12 +1,12 @@
 ---
-name: "arc:context"
+name: arc-context
 description: "上下文预算治理与恢复：当用户提到“分析日志/看 build 输出/读大 JSON/浏览器快照/context window/context mode/恢复任务状态/resume this work”时触发；用于把大输出留在文件或检索层、生成高信号工作集，并在长会话或新会话中按需恢复。"
 ---
 
-# arc:context — context-budget governance and recovery
+# arc-context — context-budget governance and recovery
 
 ## Overview
-`arc:context` distills the durable part of the `context-mode` project into an `arc:*` workflow for coding sessions that need to survive two related failure modes:
+`arc-context` distills the durable part of the `context-mode` project into an `arc:*` workflow for coding sessions that need to survive two related failure modes:
 
 1. Large logs, snapshots, docs, and tool output flood the conversation.
 2. Long sessions lose continuity after compaction, interruption, or handoff.
@@ -32,7 +32,7 @@ Read [`references/context-mode-adaptation.md`](./references/context-mode-adaptat
 
 ## Announce
 Begin by stating:
-> "I am using `arc:context` to control context budget first, then build or restore a bounded task packet before continuing the work."
+> "I am using `arc-context` to control context budget first, then build or restore a bounded task packet before continuing the work."
 
 ## Teaming Requirement
 
@@ -86,9 +86,9 @@ NO SNAPSHOT WITHOUT A RESUME PATH.
 
 ## Scripts & Commands
 - Runtime main command: `arc context`
-- Workspace scaffolding: `Arc/arc:context/scripts/scaffold_context_session --project-path <project_path> --task-name <task_name> --mode <prime|analyze|snapshot|restore>`
-- Upstream adaptation notes: `Arc/arc:context/references/context-mode-adaptation.md`
-- Data-source playbook: `Arc/arc:context/references/data-handling-playbook.md`
+- Workspace scaffolding: `Arc/arc-context/scripts/scaffold_context_session --project-path <project_path> --task-name <task_name> --mode <prime|analyze|snapshot|restore>`
+- Upstream adaptation notes: `Arc/arc-context/references/context-mode-adaptation.md`
+- Data-source playbook: `Arc/arc-context/references/data-handling-playbook.md`
 - Recommended restore flow: reopen `restore/recovery-manifest.json`, then `context/working-set.md`, then the listed entrypoints and artifact paths.
 
 ## Runtime Verification Gate
@@ -96,25 +96,25 @@ NO SNAPSHOT WITHOUT A RESUME PATH.
 - Changes to the Go-backed context scaffold runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release.
 
 ## Red Flags
-- Treating `arc:context` as a generic note dump instead of a bounded recovery packet.
+- Treating `arc-context` as a generic note dump instead of a bounded recovery packet.
 - Reading full logs, diffs, fetched docs, or browser trees into context without first testing a bounded path.
 - Copying long transcripts into artifacts rather than pointing to files, commands, and generated products.
-- Restoring from stale context without marking it or triggering `arc:init` / `arc:cartography` refresh when needed.
-- Using this skill when the user really needs solution design (`arc:decide`), implementation (`arc:build`), or verification (`arc:e2e` / `arc:fix`) rather than context management.
+- Restoring from stale context without marking it or triggering `arc-init` / `arc-cartography` refresh when needed.
+- Using this skill when the user really needs solution design (`arc-decide`), implementation (`arc-build`), or verification (`arc-e2e` / `arc-fix`) rather than context management.
 - Hiding blockers or uncertain assumptions so the next session cannot tell what is fact versus guesswork.
 
 ## Mandatory Linkage (cannot be fought alone)
 
-1. If repository-level indexes or cached artifacts are stale or missing, refresh via `arc:init` before trusting the packet.
-2. If the task still lacks repository structure awareness, pull `arc:cartography` outputs into the working set instead of summarizing the repo from memory.
-3. When the packet is being created for implementation or debugging continuation, hand off to `arc:build`, `arc:fix`, or `arc:e2e` after the restore step rather than trying to complete those jobs inside `arc:context`.
-4. If the user only says "I need to continue this work" but the skill boundary is still unclear, let `arc:exec` orchestrate the follow-up after the packet is prepared.
-5. If the objective itself is underspecified, call `arc:clarify` before freezing a context packet around the wrong task.
+1. If repository-level indexes or cached artifacts are stale or missing, refresh via `arc-init` before trusting the packet.
+2. If the task still lacks repository structure awareness, pull `arc-cartography` outputs into the working set instead of summarizing the repo from memory.
+3. When the packet is being created for implementation or debugging continuation, hand off to `arc-build`, `arc-fix`, or `arc-e2e` after the restore step rather than trying to complete those jobs inside `arc-context`.
+4. If the user only says "I need to continue this work" but the skill boundary is still unclear, let `arc-exec` orchestrate the follow-up after the packet is prepared.
+5. If the objective itself is underspecified, call `arc-clarify` before freezing a context packet around the wrong task.
 
 ## When to Use
 - **Preferred Trigger**: The user mentions large logs, build/test output, browser snapshots, fetched docs, context overflow, session restart, task handoff, or explicitly asks for a compact context packet.
 - **Typical Scenario**: Large-output debugging, codebase/documentation mining, multi-day debugging, interrupted implementation, switching from one agent/session to another, or preserving task state before the context window gets noisy.
-- **Boundary Tip**: Use `arc:init` for repository indexing, `arc:cartography` for repository maps, and `arc:build` / `arc:fix` / `arc:e2e` for doing the actual implementation or repair work after context is ready.
+- **Boundary Tip**: Use `arc-init` for repository indexing, `arc-cartography` for repository maps, and `arc-build` / `arc-fix` / `arc-e2e` for doing the actual implementation or repair work after context is ready.
 
 ## Input Arguments
 | Parameter | Type | Required | Description |

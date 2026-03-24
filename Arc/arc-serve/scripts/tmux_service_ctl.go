@@ -16,7 +16,7 @@ import (
 
 const (
 	schemaVersion = "1.0.0"
-	managedBy     = "arc:serve"
+	managedBy     = "arc-serve"
 )
 
 type options struct {
@@ -165,16 +165,16 @@ func parseArgs(action string, args []string) (options, error) {
 
 func printUsage() {
 	fmt.Fprintln(os.Stderr, `Usage:
-  Arc/arc:serve/scripts/tmux_service_ctl start   --project-root PATH --service NAME [--cwd PATH] [--ports CSV] [--registry PATH] [--session NAME] --command "CMD"
-  Arc/arc:serve/scripts/tmux_service_ctl restart --project-root PATH --service NAME [--cwd PATH] [--ports CSV] [--registry PATH] [--session NAME] --command "CMD"
-  Arc/arc:serve/scripts/tmux_service_ctl stop    --project-root PATH --service NAME [--registry PATH] [--session NAME]
-  Arc/arc:serve/scripts/tmux_service_ctl status  --project-root PATH --service NAME [--registry PATH] [--session NAME]
-  Arc/arc:serve/scripts/tmux_service_ctl cleanup --project-root PATH [--registry PATH]
+  Arc/arc-serve/scripts/tmux_service_ctl start   --project-root PATH --service NAME [--cwd PATH] [--ports CSV] [--registry PATH] [--session NAME] --command "CMD"
+  Arc/arc-serve/scripts/tmux_service_ctl restart --project-root PATH --service NAME [--cwd PATH] [--ports CSV] [--registry PATH] [--session NAME] --command "CMD"
+  Arc/arc-serve/scripts/tmux_service_ctl stop    --project-root PATH --service NAME [--registry PATH] [--session NAME]
+  Arc/arc-serve/scripts/tmux_service_ctl status  --project-root PATH --service NAME [--registry PATH] [--session NAME]
+  Arc/arc-serve/scripts/tmux_service_ctl cleanup --project-root PATH [--registry PATH]
 
 Examples:
-  Arc/arc:serve/scripts/tmux_service_ctl start --project-root /repo --service frontend --cwd /repo/web --ports 3000,5173 --command "pnpm dev"
-  Arc/arc:serve/scripts/tmux_service_ctl restart --project-root /repo --service backend --cwd /repo/server --ports 8080 --command "go run ./cmd/server"
-  Arc/arc:serve/scripts/tmux_service_ctl stop --project-root /repo --service frontend
+  Arc/arc-serve/scripts/tmux_service_ctl start --project-root /repo --service frontend --cwd /repo/web --ports 3000,5173 --command "pnpm dev"
+  Arc/arc-serve/scripts/tmux_service_ctl restart --project-root /repo --service backend --cwd /repo/server --ports 8080 --command "go run ./cmd/server"
+  Arc/arc-serve/scripts/tmux_service_ctl stop --project-root /repo --service frontend
 
 The launcher caches a compiled Go binary under ${XDG_CACHE_HOME:-$HOME/.cache}/arc-serve/ and reuses it until the source changes.`)
 }

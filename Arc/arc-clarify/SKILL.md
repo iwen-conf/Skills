@@ -1,5 +1,5 @@
 ---
-name: "arc:clarify"
+name: arc-clarify
 description: "需求澄清与提示词增强：补齐上下文、识别歧义并产出可执行输入；当用户说“需求不清楚/clarify requirements/refine prompt”时触发。"
 ---
 
@@ -27,7 +27,7 @@ Systematically supplement user questions with contextual information. By scannin
 ## Announce
 
 Begin by stating clearly:
-"I am using `arc:clarify`, first complete the context and constraints, and then generate the executable prompt."
+"I am using `arc-clarify`, first complete the context and constraints, and then generate the executable prompt."
 
 ## Teaming Requirement
 
@@ -70,7 +70,7 @@ The execution phase must not be entered before the context, constraints and acce
 - Runtime main command: `arc clarify`
 - Linked with estimation: `arc clarify` → `arc decide --mode estimate`
 - Linked with implementation: `arc clarify` → `arc decide` → `arc build`
-- Note: `arc:clarify` currently has no independent `scripts/`, subject to interactive clarification command.
+- Note: `arc-clarify` currently has no independent `scripts/`, subject to interactive clarification command.
 
 ## Red Flags
 
@@ -83,7 +83,7 @@ The execution phase must not be entered before the context, constraints and acce
 
 - **Preferred trigger**: The requirements are vague or the context is insufficient and need to be converted into executable task descriptions.
 - **Typical scenario**: Module boundaries are unclear, constraints are missing, and acceptance criteria are undefined.
-- **Boundary Tip**: Use `arc:decide` when multiple-solution disputes need to be demonstrated. If the requirements are clear, they will be implemented directly downstream.
+- **Boundary Tip**: Use `arc-decide` when multiple-solution disputes need to be demonstrated. If the requirements are clear, they will be implemented directly downstream.
 
 ## Core Pattern
 
@@ -93,8 +93,8 @@ Read the shared context index first, then downgrade according to priority:
 
 1. **Read first** `.arc/context-hub/index.json`, find reusable products:
    - `CLAUDE.md` level index
-   - `codemap.md`(arc:cartography)
-   - Recent arc:audit/score/implementation handoff
+   - `codemap.md`(arc-cartography)
+   - Recent arc-audit/score/implementation handoff
 2. **If the index is missing or invalid**, scan the project root directory and subdirectories to collect CLAUDE.md:
 
 ```text
@@ -110,7 +110,7 @@ First extract from the shared index product, and then add CLAUDE.md level inform
 - **Root level CLAUDE.md**: project vision, technology stack overview, module relationship
 - **Module-level CLAUDE.md**: The architecture, coding specifications, and dependencies of a specific module
 - **codemap.md**: Directory responsibilities, module boundaries, cross-directory calling relationships
-- **arc:audit/score/handoff**: Identified risk points, quality bottlenecks, and change context
+- **arc-audit/score/handoff**: Identified risk points, quality bottlenecks, and change context
 
 Use `Read`/`Glob` to read relevant content and build a project context portrait.
 
@@ -171,7 +171,7 @@ Write the complete enhanced prompt to the shared directory:
 
 ## Anti-Patterns
 
-**CRITICAL: The following behaviors are FORBIDDEN in arc:clarify execution:**
+**CRITICAL: The following behaviors are FORBIDDEN in arc-clarify execution:**
 
 ### Scanning Anti-Patterns
 
@@ -195,25 +195,25 @@ Write the complete enhanced prompt to the shared directory:
 ### Output Anti-Patterns
 
 - **Missing Success Criteria**: Enhanced prompt without verification checklist — how to know it's done?
-- **Orphaned Output**: Not writing enhanced-prompt.md to `.arc/decide/` — breaks arc:decide consumption
+- **Orphaned Output**: Not writing enhanced-prompt.md to `.arc/decide/` — breaks arc-decide consumption
 ## Integration
 
 After this Skill is completed, choose the downstream skill by task type instead of defaulting blindly:
 
-- If the clarified task is still multi-skill or needs orchestration, continue with `arc:exec`.
-- If the clarified task is dominated by logs, snapshots, large files, or context-budget risk, continue with `arc:context`.
-- If the clarified task is academic/professional prose polishing with citation-preservation constraints, continue with `arc:aigc`.
-- If the clarified task is a disputed or high-risk technical route, continue with `arc:decide`.
-- If the clarified task is already implementation-ready, continue with `arc:build`.
+- If the clarified task is still multi-skill or needs orchestration, continue with `arc-exec`.
+- If the clarified task is dominated by logs, snapshots, large files, or context-budget risk, continue with `arc-context`.
+- If the clarified task is academic/professional prose polishing with citation-preservation constraints, continue with `arc-aigc`.
+- If the clarified task is a disputed or high-risk technical route, continue with `arc-decide`.
+- If the clarified task is already implementation-ready, continue with `arc-build`.
 
 If the shared product is found to be invalid during the refinement process:
-- CLAUDE index invalidation → trigger `arc:init --mode update` (`arc:init --mode full` if necessary)
-- codemap invalid → trigger `arc:cartography` update
-- score/review data invalidation → trigger `score` module refresh (triggered by `arc:gate` arrangement) / `arc:audit` update
+- CLAUDE index invalidation → trigger `arc-init --mode update` (`arc-init --mode full` if necessary)
+- codemap invalid → trigger `arc-cartography` update
+- score/review data invalidation → trigger `score` module refresh (triggered by `arc-gate` arrangement) / `arc-audit` update
 
 ```
 Problem refinement completed. Enhanced prompt has been written:
 .arc/decide/<task-name>/context/enhanced-prompt.md
 
-You can now route to `arc:exec`, `arc:context`, `arc:aigc`, `arc:decide`, or `arc:build` according to the clarified task boundary.
+You can now route to `arc-exec`, `arc-context`, `arc-aigc`, `arc-decide`, or `arc-build` according to the clarified task boundary.
 ```

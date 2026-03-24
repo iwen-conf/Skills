@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "skill": "arc:test",
+  "skill": "arc-test",
   "defaults": {
     "timeout": 120,
     "working_dir": "."
@@ -14,7 +14,7 @@
       "inputs": {
         "fixtures": [
           {
-            "src": "Arc/arc:test/evals/fixtures/go_project",
+            "src": "Arc/arc-test/evals/fixtures/go_project",
             "dest": "fixtures/go_project"
           }
         ]
@@ -56,7 +56,7 @@
       "inputs": {
         "fixtures": [
           {
-            "src": "Arc/arc:test/evals/fixtures/python_project",
+            "src": "Arc/arc-test/evals/fixtures/python_project",
             "dest": "fixtures/python_project"
           }
         ]
@@ -98,7 +98,7 @@
       "inputs": {
         "fixtures": [
           {
-            "src": "Arc/arc:test/evals/fixtures/go_project",
+            "src": "Arc/arc-test/evals/fixtures/go_project",
             "dest": "fixtures/go_project"
           }
         ]

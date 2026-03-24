@@ -8,11 +8,11 @@ final class {{CLASS_NAME}}IntegrationTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        // TODO: initialize cross-module dependencies
+        // FILL_IN: initialize cross-module dependencies
     }
 
     override func tearDown() {
-        // TODO: release shared resources
+        // FILL_IN: release shared resources
         super.tearDown()
     }
 
@@ -22,7 +22,7 @@ final class {{CLASS_NAME}}IntegrationTests: XCTestCase {
     }
 
     func testIntegration{{FUNCTION_NAME_PASCAL}}ErrorPropagation() {
-        // TODO: verify errors propagate correctly across modules
+        // FILL_IN: verify errors propagate correctly across modules
         XCTAssertThrowsError(try {{FUNCTION_NAME}}({{INVALID_INPUT}}))
     }
 

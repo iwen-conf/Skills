@@ -1,13 +1,13 @@
 ---
-name: "arc:decide"
+name: arc-decide
 description: "多视角方案决策与收敛：通过 architecture/deep/ui 辩论形成可执行计划；当用户说“技术选型/方案对比/架构决策/architecture trade-off”时触发。"
 ---
 
-# arc:decide — multi-agent deliberation
+# arc-decide — multi-agent deliberation
 
 ## Overview
 
-`arc:decide` uses a shared file system to organize multi-role debates (`architecture`, `deep`, `ui`) and turn ambiguity into a reviewable decision and executable plan.
+`arc-decide` uses a shared file system to organize multi-role debates (`architecture`, `deep`, `ui`) and turn ambiguity into a reviewable decision and executable plan.
 The core goal is not to "give answers quickly", but to output traceable, reviewable, and executable decision-making basis before implementation.
 
 ## Quick Contract
@@ -28,7 +28,7 @@ The core goal is not to "give answers quickly", but to output traceable, reviewa
 ## Announce
 
 Begin by stating clearly:  
-"I am using `arc:decide` to run multi-perspective deliberation and convergence before implementation."
+"I am using `arc-decide` to run multi-perspective deliberation and convergence before implementation."
 
 ## Teaming Requirement
 
@@ -48,7 +48,7 @@ NO CONSENSUS CLAIM WITHOUT CROSS-CRITIQUE EVIDENCE
 1. Do an ambiguity check first, and ask the user to add boundaries if necessary.
 2. Multiple roles propose solutions concurrently and conduct cross-refutations.
 3. Form a convergence conclusion and solidify it into an executable plan (OpenSpec).
-4. Only hand off to `arc:build` or delegated execution after the dispute has been resolved and execution is explicitly requested.
+4. Only hand off to `arc-build` or delegated execution after the dispute has been resolved and execution is explicitly requested.
 
 ## Quality Gates
 
@@ -70,8 +70,8 @@ NO CONSENSUS CLAIM WITHOUT CROSS-CRITIQUE EVIDENCE
 
 - Runtime main command: `arc decide`
 - Estimate mode: `arc decide --mode estimate`
-- Generate BDD seed: `python3 Arc/arc:decide/scripts/generate_bdd_seed.py --consensus-report <report.md> --output <bdd-seed.yaml>`
-- Scheduling long example: `Arc/arc:decide/references/schedule-task-playbook.md`
+- Generate BDD seed: `python3 Arc/arc-decide/scripts/generate_bdd_seed.py --consensus-report <report.md> --output <bdd-seed.yaml>`
+- Scheduling long example: `Arc/arc-decide/references/schedule-task-playbook.md`
 
 ## Red Flags
 
@@ -94,7 +94,7 @@ Use **ace-tool MCP** for semantic retrieval of code structure, dependencies, and
 
 - **Preferred Trigger**: User requirements for "technology selection, architectural solution comparison, and multiple solution choices."
 - **Typical Scenarios**: Architecture upgrades, cross-team transformations, high-risk performance/security decisions.
-- **Boundary Tip**: If the requirement itself is not clear, use `arc:clarify` first. The default output of `arc:decide` is a decision and plan; use `arc:build` when code implementation is needed.
+- **Boundary Tip**: If the requirement itself is not clear, use `arc-clarify` first. The default output of `arc-decide` is a decision and plan; use `arc-build` when code implementation is needed.
 
 ## Core Pattern
 
@@ -137,17 +137,17 @@ Use **ace-tool MCP** for semantic retrieval of code structure, dependencies, and
 - **ace-tool MCP**: Required. Responsible for repository semantic retrieval and evidence location.
 - **Exa MCP**: Recommended. Supplementary standards, specifications and external implementation basis.
 - **OpenSpec**: Required in planning phase (`proposal → specs → design → tasks`).
-- **arc:build**: Optional in execution phase when implementation is delegated.
+- **arc-build**: Optional in execution phase when implementation is delegated.
 
 ## Agent Orchestration Profiles
 
 | role | capability_profile | capabilities | output baseline |
 |------|--------------------|--------------|-----------------|
-| architecture | `architecture` | `["arc:decide"]` | Architectural trade-offs and global consistency |
-| deep | `deep` | `["arc:decide"]` | Engineering feasibility, performance and safety |
-| ui | `ui` | `["arc:decide", "frontend-ui-ux"]` | Experience, interaction and maintainability |
+| architecture | `architecture` | `["arc-decide"]` | Architectural trade-offs and global consistency |
+| deep | `deep` | `["arc-decide"]` | Engineering feasibility, performance and safety |
+| ui | `ui` | `["arc-decide", "frontend-ui-ux"]` | Experience, interaction and maintainability |
 
-For detailed `schedule_task(...)` examples, see `Arc/arc:decide/references/schedule-task-playbook.md`.
+For detailed `schedule_task(...)` examples, see `Arc/arc-decide/references/schedule-task-playbook.md`.
 
 ## Instructions
 
@@ -175,8 +175,8 @@ For detailed `schedule_task(...)` examples, see `Arc/arc:decide/references/sched
 
 ### Phase 4: Optional Execution Handoff
 
-1. If implementation is explicitly requested, hand off `tasks.md` to `arc:build` or a delegated execution role.
-2. If `arc:decide` also coordinates that execution, log the handoff or implementation evidence to `execution/implementation-log.md`.
+1. If implementation is explicitly requested, hand off `tasks.md` to `arc-build` or a delegated execution role.
+2. If `arc-decide` also coordinates that execution, log the handoff or implementation evidence to `execution/implementation-log.md`.
 3. Archive the change only after the decision product has been executed and verified (`openspec archive <task-name>`).
 
 ## Timeouts and downgrades
@@ -191,7 +191,7 @@ For detailed `schedule_task(...)` examples, see `Arc/arc:decide/references/sched
 ## status feedback
 
 ```text
-[arc:decide] <task-name>
+[arc-decide] <task-name>
 Phase 1: ambiguity check      [running/completed]
 Phase 2: deliberation         [running/completed]
 Phase 3: openspec planning    [running/completed]
@@ -220,7 +220,7 @@ Phase 4: execution            [running/completed]
 
 | role | call pattern | mode |
 |------|--------------|------|
-| architecture | `schedule_task(capability_profile="architecture", capabilities=["arc:decide"], ...)` | background |
-| deep | `schedule_task(capability_profile="deep", capabilities=["arc:decide"], ...)` | background |
-| ui | `schedule_task(capability_profile="ui", capabilities=["arc:decide", "frontend-ui-ux"], ...)` | background |
+| architecture | `schedule_task(capability_profile="architecture", capabilities=["arc-decide"], ...)` | background |
+| deep | `schedule_task(capability_profile="deep", capabilities=["arc-decide"], ...)` | background |
+| ui | `schedule_task(capability_profile="ui", capabilities=["arc-decide", "frontend-ui-ux"], ...)` | background |
 | aggregation/finalization | processed directly by the main process | foreground |

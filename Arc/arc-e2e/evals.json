@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "skill": "arc:e2e",
+  "skill": "arc-e2e",
   "defaults": {
     "timeout": 300,
     "working_dir": "reports"
@@ -14,7 +14,7 @@
       "inputs": {
         "fixtures": [
           {
-            "src": "Arc/arc:e2e/evals/fixtures/minimal_run",
+            "src": "Arc/arc-e2e/evals/fixtures/minimal_run",
             "dest": "reports/minimal_run"
           }
         ]
@@ -60,7 +60,7 @@
       "inputs": {
         "fixtures": [
           {
-            "src": "Arc/arc:e2e/evals/fixtures/bad_jsonl",
+            "src": "Arc/arc-e2e/evals/fixtures/bad_jsonl",
             "dest": "reports/bad_jsonl"
           }
         ]
@@ -98,7 +98,7 @@
       "inputs": {
         "fixtures": [
           {
-            "src": "Arc/arc:e2e/evals/fixtures/visual_diff_run",
+            "src": "Arc/arc-e2e/evals/fixtures/visual_diff_run",
             "dest": "reports/visual_diff_run"
           }
         ]
@@ -131,7 +131,7 @@
       "inputs": {
         "fixtures": [
           {
-            "src": "Arc/arc:e2e/evals/fixtures/visual_diff_run",
+            "src": "Arc/arc-e2e/evals/fixtures/visual_diff_run",
             "dest": "reports/visual_diff_run"
           }
         ]

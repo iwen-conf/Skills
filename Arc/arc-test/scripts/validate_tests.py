@@ -1,7 +1,7 @@
 """Run generated tests and produce a test-report.md with evidence.
 
 Usage:
-    python3 Arc/arc:test/scripts/validate_tests.py \\
+    python3 Arc/arc-test/scripts/validate_tests.py \\
         --project-path <path> \\
         --test-files <file1,file2> \\
         [--report-out test-report.md] [--timeout 120]
