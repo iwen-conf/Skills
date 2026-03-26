@@ -147,6 +147,7 @@ Failure reflow rules:
 6. **Checkpoint before risky work**: When large local deltas or destructive operations are expected, confirm the remote checkpoint or snapshot path before implementation starts.
 7. **Use low-overhead tooling first**: For scans, polling, or browser glue on this machine, prefer `rg`, shell, or JS tooling before Python.
 8. **No execution beyond authority**: Do not touch directories and files unrelated to the task.
+9. **Cloudflare Deployment**: When executing Cloudflare deployments, directly use the locally installed `wrangler` command exclusively. NEVER use `npx wrangler`.
 
 ## Instructions
 

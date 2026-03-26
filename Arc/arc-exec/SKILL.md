@@ -72,6 +72,7 @@ No scheduling is allowed before routing and capability verification is completed
 - The aggregation phase must follow `conflict arbitration rules` (security > correctness > consistency).
 - The result summary needs to give the confidence level, degradation conditions and rollback path.
 - Manual confirmation gates need to be clearly defined when high-risk changes are involved.
+- When orchestration involves Cloudflare CLI interactions, enforce the use of the globally installed `wrangler` command and strictly forbid `npx wrangler`.
 
 ## Scripts & Commands
 

@@ -69,6 +69,7 @@ Before launching any long-running local service, check the project-local registr
 - Maintain a JSON `registry` and reconcile it with live tmux state before every action; the registry is memory, tmux is liveness.
 - Record declared `port` values with the service metadata so later turns can detect likely conflicts and reuse the right session.
 - Prefer `graceful shutdown` when feasible, but if the user explicitly asks for restart, the previous tmux session must be stopped before replacement.
+- For Cloudflare-based services, invoke the locally installed `wrangler` command directly; NEVER use `npx wrangler`.
 
 ## Scripts & Commands
 
