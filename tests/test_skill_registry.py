@@ -17,12 +17,12 @@ def test_build_registry_includes_structured_skill_fields() -> None:
     registry = build_registry(ROOT)
     assert registry["schema_version"] == "1.0.0"
     assert registry["skill_count"] >= 1
-    build_entry = next(item for item in registry["skills"] if item["name"] == "arc-build")
-    context_entry = next(item for item in registry["skills"] if item["name"] == "arc-context")
-    assert build_entry["source_path"] == "Arc/arc-build/SKILL.md"
+    build_entry = next(item for item in registry["skills"] if item["name"] == "arc:build")
+    context_entry = next(item for item in registry["skills"] if item["name"] == "arc:context")
+    assert build_entry["source_path"] == "Arc/arc:build/SKILL.md"
     assert build_entry["quick_contract"]["trigger"]
     assert build_entry["input_arguments"][0]["parameter"] == "project_path"
-    assert context_entry["source_path"] == "Arc/arc-context/SKILL.md"
+    assert context_entry["source_path"] == "Arc/arc:context/SKILL.md"
     assert context_entry["quick_contract"]["trigger"]
     assert context_entry["outputs_section"]["format"] == "text"
 
@@ -31,13 +31,13 @@ def test_validate_registry_accepts_generated_registry() -> None:
     registry = build_registry(ROOT)
     assert validate_registry(registry, ROOT) == []
     names = {item["name"] for item in registry["skills"]}
-    assert "arc-build" in names
+    assert "arc:build" in names
     assert "terminal-table-output" in names
 
 
 def test_collect_skill_files_indexes_supported_namespaces_and_fusion_skills() -> None:
     files = collect_skill_files(ROOT)
-    assert ROOT / "Arc" / "arc-context" / "SKILL.md" in files
+    assert ROOT / "Arc" / "arc:context" / "SKILL.md" in files
     assert ROOT / "terminal-table-output" / "SKILL.md" in files
     allowed_roots = [ROOT / "Arc", *(ROOT / name for name in FUSION_GENERIC_SKILLS)]
     assert all(

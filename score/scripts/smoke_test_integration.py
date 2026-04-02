@@ -31,7 +31,7 @@ def main() -> int:
     generate_review_handoff = repo_root / "score" / "scripts" / "generate_review_handoff.py"
     validate_score_artifacts = repo_root / "score" / "scripts" / "validate_score_artifacts.py"
     integrate_score = repo_root / "review" / "scripts" / "integrate_score.py"
-    check_gate = repo_root / "Arc" / "arc-gate" / "scripts" / "check_gate.py"
+    check_gate = repo_root / "Arc" / "arc:gate" / "scripts" / "check_gate.py"
 
     for p in [generate_review_handoff, validate_score_artifacts, integrate_score, check_gate]:
         if not p.exists():

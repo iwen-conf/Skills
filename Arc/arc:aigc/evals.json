@@ -1,0 +1,117 @@
+{
+  "version": "1.0.0",
+  "skill": "arc:aigc",
+  "defaults": {
+    "timeout": 120,
+    "working_dir": "."
+  },
+  "evals": [
+    {
+      "id": "skill_contract_mentions_safe_chunked_polish",
+      "title": "SKILL contract keeps chunked rewrite and safety boundary",
+      "description": "Verifies arc:aigc keeps the chunked/two-stage writing workflow and explicit anti-evasion boundary.",
+      "tags": ["ci", "static", "safety"],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "SKILL.md"
+        },
+        {
+          "type": "markdown_tables_valid",
+          "file": "SKILL.md"
+        },
+        {
+          "type": "file_contains",
+          "path": "SKILL.md",
+          "pattern": "chunked rewrite"
+        },
+        {
+          "type": "file_contains",
+          "path": "SKILL.md",
+          "pattern": "two-stage polish"
+        },
+        {
+          "type": "file_contains",
+          "path": "SKILL.md",
+          "pattern": "citation fidelity"
+        },
+        {
+          "type": "file_contains",
+          "path": "SKILL.md",
+          "pattern": "human review"
+        },
+        {
+          "type": "file_contains",
+          "path": "SKILL.md",
+          "pattern": "## Mandatory Linkage"
+        },
+        {
+          "type": "file_contains",
+          "path": "SKILL.md",
+          "pattern": "arc:clarify"
+        },
+        {
+          "type": "file_contains",
+          "path": "SKILL.md",
+          "pattern": "arc:exec"
+        },
+        {
+          "type": "file_contains",
+          "path": "SKILL.md",
+          "pattern": "arc:audit"
+        },
+        {
+          "type": "file_contains",
+          "path": "SKILL.md",
+          "pattern": "arc:build"
+        },
+        {
+          "type": "file_contains",
+          "path": "SKILL.md",
+          "pattern": "evade detectors or misrepresent authorship"
+        }
+      ]
+    },
+    {
+      "id": "reference_explains_bypassaigc_adaptation_boundary",
+      "title": "Reference documents what is reused and excluded",
+      "description": "Verifies the adaptation note keeps reusable workflow guidance while excluding detector-evasion behavior.",
+      "tags": ["ci", "static", "reference"],
+      "assertions": [
+        {
+          "type": "file_exists",
+          "path": "references/bypassaigc-adaptation.md"
+        },
+        {
+          "type": "markdown_tables_valid",
+          "file": "references/bypassaigc-adaptation.md"
+        },
+        {
+          "type": "file_contains",
+          "path": "references/bypassaigc-adaptation.md",
+          "pattern": "What to reuse"
+        },
+        {
+          "type": "file_contains",
+          "path": "references/bypassaigc-adaptation.md",
+          "pattern": "What not to reuse"
+        },
+        {
+          "type": "file_contains",
+          "path": "references/bypassaigc-adaptation.md",
+          "pattern": "bypassing AI detection"
+        },
+        {
+          "type": "file_contains",
+          "path": "references/bypassaigc-adaptation.md",
+          "pattern": "Academic cheating or authorship disguise"
+        },
+        {
+          "type": "file_contains",
+          "path": "references/bypassaigc-adaptation.md",
+          "pattern": "Protected-span checklist"
+        }
+      ]
+    }
+  ]
+}

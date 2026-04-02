@@ -16,7 +16,7 @@
 ```text
 schedule_task(
   capability_profile: string,            # 必填；lane 或 role（如 deep/ui/architecture/search）
-  capabilities?: string[],               # 可选；注入技能上下文（如 ["arc-decide", "frontend-ui-ux"]）
+  capabilities?: string[],               # 可选；注入技能上下文（如 ["arc:decide", "frontend-ui-ux"]）
   description: string,                   # 必填；任务短描述
   prompt: string,                        # 必填；完整执行指令
   execution_mode?: "background" | "foreground",

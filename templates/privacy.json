@@ -10,19 +10,19 @@
   ],
   "placeholder": "[PRIVATE: {reason}]",
   "skills": {
-    "arc-e2e": {
+    "arc:e2e": {
       "enabled": false,
       "comment": "Reports intentionally contain test data for reproducibility"
     },
-    "arc-clarify": {
+    "arc:clarify": {
       "enabled": true,
       "mode": "mask"
     },
-    "arc-decide": {
+    "arc:decide": {
       "enabled": true,
       "mode": "mask"
     },
-    "arc-build": {
+    "arc:build": {
       "enabled": true,
       "mode": "mask"
     }

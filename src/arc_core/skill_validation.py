@@ -66,10 +66,10 @@ SKILL_NAMESPACE_DIRS = {
 }
 
 ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
-    "arc-build": ["DoD", "SemVer", "Contract Test", "RTO/RPO", "SBOM"],
-    "arc-cartography": ["C4", "ISO/IEC 42010", "churn", ["增量差异清单", "incremental diff"]],
-    "arc-clarify": ["IEEE 29148", "INVEST", "Given-When-Then"],
-    "arc-context": [
+    "arc:build": ["DoD", "SemVer", "Contract Test", "RTO/RPO", "SBOM"],
+    "arc:cartography": ["C4", "ISO/IEC 42010", "churn", ["增量差异清单", "incremental diff"]],
+    "arc:clarify": ["IEEE 29148", "INVEST", "Given-When-Then"],
+    "arc:context": [
         ["tool-backed context", "工具驱动上下文"],
         ["working set", "工作集"],
         ["recovery manifest", "恢复清单"],
@@ -80,32 +80,32 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
         ["compaction", "压缩恢复"],
         ["sandbox", "沙箱"],
     ],
-    "arc-decide": ["ADR", "Pre-Mortem", "Fitness Function"],
-    "arc-e2e": ["ISTQB", "OWASP ASVS", "WCAG 2.2 AA"],
-    "arc-exec": ["RACI", ["关键路径(CPM)", "Critical Path", "CPM"], ["冲突仲裁规则", "conflict arbitration", "Conflict Arbitration"]],
-    "arc-fix": [["SEV", "Severity Level", "severity level", "severity"], "5 Whys", "Fault Tree", "Blameless Postmortem"],
-    "arc-gate": ["Policy-as-Code", "OWASP", "SBOM", "OPA/Rego"],
-    "arc-init": ["schema_version", ["原子更新", "atomic update", "Atomic Update"], ["上一个稳定索引回滚", "stable index rollback", "rollback"]],
-    "arc-serve": ["tmux", "single-instance", ["JSON registry", "registry"], ["port", "ports"], ["graceful shutdown", "graceful"]],
-    "arc-ip-check": [["新颖性", "novelty", "Novelty"], ["创造性", "inventiveness", "Inventiveness", "creativity", "creativeness"], ["实用性", "utility", "Utility", "practicality", "practicability"], "FTO"],
-    "arc-ip-draft": [["宽-中-窄", "broad-medium-narrow", "Broad-Medium-Narrow", "wide-medium-narrow"], ["权利要求", "claims", "Claims"], ["待法务复核清单", "legal review checklist", "Legal Review", "to be reviewed by legal"]],
-    "arc-microcopy": [
+    "arc:decide": ["ADR", "Pre-Mortem", "Fitness Function"],
+    "arc:e2e": ["ISTQB", "OWASP ASVS", "WCAG 2.2 AA"],
+    "arc:exec": ["RACI", ["关键路径(CPM)", "Critical Path", "CPM"], ["冲突仲裁规则", "conflict arbitration", "Conflict Arbitration"]],
+    "arc:fix": [["SEV", "Severity Level", "severity level", "severity"], "5 Whys", "Fault Tree", "Blameless Postmortem"],
+    "arc:gate": ["Policy-as-Code", "OWASP", "SBOM", "OPA/Rego"],
+    "arc:init": ["schema_version", ["原子更新", "atomic update", "Atomic Update"], ["上一个稳定索引回滚", "stable index rollback", "rollback"]],
+    "arc:serve": ["tmux", "single-instance", ["JSON registry", "registry"], ["port", "ports"], ["graceful shutdown", "graceful"]],
+    "arc:ip-check": [["新颖性", "novelty", "Novelty"], ["创造性", "inventiveness", "Inventiveness", "creativity", "creativeness"], ["实用性", "utility", "Utility", "practicality", "practicability"], "FTO"],
+    "arc:ip-draft": [["宽-中-窄", "broad-medium-narrow", "Broad-Medium-Narrow", "wide-medium-narrow"], ["权利要求", "claims", "Claims"], ["待法务复核清单", "legal review checklist", "Legal Review", "to be reviewed by legal"]],
+    "arc:microcopy": [
         ["plain language", "人话", "通俗表达"],
         ["user mental model", "用户心智模型"],
         ["actionable guidance", "可执行指引"],
         ["avoid jargon", "避免术语", "避免技术术语"],
         ["blame-free", "非责怪式", "责怪式"],
     ],
-    "arc-uml": ["UML 2.5.1 / ISO 19505", "Chen", ["建模假设", "modeling assumption", "Modeling Assumption"]],
-    "arc-audit": [["业务成熟度", "Business Maturity", "business maturity"], ["依赖健康度", "Dependency Health", "dependency health"], ["专家评审卡", "Expert Review Card", "expert review card"], "9 Tab"],
-    "arc-test": [
+    "arc:uml": ["UML 2.5.1 / ISO 19505", "Chen", ["建模假设", "modeling assumption", "Modeling Assumption"]],
+    "arc:audit": [["业务成熟度", "Business Maturity", "business maturity"], ["依赖健康度", "Dependency Health", "dependency health"], ["专家评审卡", "Expert Review Card", "expert review card"], "9 Tab"],
+    "arc:test": [
         "ISTQB",
         ["boundary value analysis", "边界值分析"],
         ["equivalence partitioning", "等价类划分"],
         ["code coverage", "代码覆盖率"],
         ["test pyramid", "测试金字塔"],
     ],
-    "arc-aigc": [
+    "arc:aigc": [
         ["chunked rewrite", "chunked polish", "分段重写"],
         ["citation fidelity", "引用保真"],
         ["two-stage polish", "two-stage rewrite", "两阶段润色", "双阶段润色"],
@@ -127,8 +127,8 @@ BANNED_TOKENS = [
     "session_id",
     "arc-estimate",
     "arc-retest",
-    "arc-init:full",
-    "arc-init:update",
+    "arc:init:full",
+    "arc:init:update",
 ]
 
 FUSION_GENERIC_SKILLS: set[str] = {
@@ -136,24 +136,24 @@ FUSION_GENERIC_SKILLS: set[str] = {
 }
 
 ARC_ROUTED_SKILLS = {
-    "arc-exec",
-    "arc-cartography",
-    "arc-decide",
-    "arc-gate",
-    "arc-build",
-    "arc-context",
-    "arc-init",
-    "arc-ip-check",
-    "arc-ip-draft",
-    "arc-clarify",
-    "arc-audit",
-    "arc-e2e",
-    "arc-fix",
-    "arc-uml",
-    "arc-test",
-    "arc-serve",
-    "arc-aigc",
-    "arc-microcopy",
+    "arc:exec",
+    "arc:cartography",
+    "arc:decide",
+    "arc:gate",
+    "arc:build",
+    "arc:context",
+    "arc:init",
+    "arc:ip-check",
+    "arc:ip-draft",
+    "arc:clarify",
+    "arc:audit",
+    "arc:e2e",
+    "arc:fix",
+    "arc:uml",
+    "arc:test",
+    "arc:serve",
+    "arc:aigc",
+    "arc:microcopy",
 }
 
 QUICK_CONTRACT_KEY_MAP = {

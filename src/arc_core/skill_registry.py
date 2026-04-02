@@ -108,7 +108,7 @@ def build_registry_artifact(root: Path, registry_path: Path) -> dict[str, Any]:
         "refresh_skill": "scripts/build_skills_index.py",
         "refresh_command_hint": "uv run python scripts/build_skills_index.py",
         "artifact_type": "skills-registry",
-        "consumers": ["arc-exec", "arc-build", "arc-audit", "arc-cartography"],
+        "consumers": ["arc:exec", "arc:build", "arc:audit", "arc:cartography"],
     }
 
 

@@ -411,7 +411,7 @@ func Export(root string, state *State, tier int) (map[string]any, error) {
 		"version":               Version,
 		"tier":                  tier,
 		"generated_at":          time.Now().UTC().Format(time.RFC3339Nano),
-		"producer_skill":        "arc-cartography",
+		"producer_skill":        "arc:cartography",
 		"path":                  root,
 		"total_tokens_estimate": totalChars / 4,
 		"entries":               entries,

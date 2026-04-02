@@ -12,8 +12,8 @@
 ```text
 Skills/
 ├── Arc/
-│   ├── arc-exec/
-│   ├── arc-build/
+│   ├── arc:exec/
+│   ├── arc:build/
 │   └── ...
 ├── terminal-table-output/
 ├── docs/
@@ -49,61 +49,61 @@ Skills/
 
 | 分组 | Skill ID | 一句话用途 |
 |---|---|---|
-| 总控 | `arc-exec` | 一句话入口，自动路由与编排 |
-| 方案 | `arc-clarify` | 把模糊需求补全为可执行输入 |
-| 方案 | `arc-decide` | 高风险方案收敛 |
-| 交付 | `arc-build` | 按方案实施改动并交付验证 |
-| 交付 | `arc-cartography` | 生成/刷新 codemap 结构视图 |
-| 交付 | `arc-uml` | 生成标准 UML |
-| 索引 | `arc-init` | 自动维护索引 |
-| 运行 | `arc-serve` | 用 `tmux` 托管本地前后端 / dev server，避免重复会话 |
-| 上下文 | `arc-context` | 生成/恢复任务上下文包与恢复清单 |
-| 质量 | `arc-e2e` | 按真实路径执行 E2E 验证 |
-| 质量 | `arc-test` | 代码级测试生成 |
-| 质量 | `arc-fix` | 基于失败证据定位并修复 |
-| 写作 | `arc-aigc` | 学术/专业文本去模板化润色与作者声线统一 |
-| 治理 | `arc-audit` | 七维评审与可视化报告 |
-| 治理 | `arc-gate` | 合并/上线门禁判定 |
-| 知产 | `arc-ip-check` | 软著/专利可行性与风险评估 |
-| 知产 | `arc-ip-draft` | 依据审查结果起草申请材料 |
+| 总控 | `arc:exec` | 一句话入口，自动路由与编排 |
+| 方案 | `arc:clarify` | 把模糊需求补全为可执行输入 |
+| 方案 | `arc:decide` | 高风险方案收敛 |
+| 交付 | `arc:build` | 按方案实施改动并交付验证 |
+| 交付 | `arc:cartography` | 生成/刷新 codemap 结构视图 |
+| 交付 | `arc:uml` | 生成标准 UML |
+| 索引 | `arc:init` | 自动维护索引 |
+| 运行 | `arc:serve` | 用 `tmux` 托管本地前后端 / dev server，避免重复会话 |
+| 上下文 | `arc:context` | 生成/恢复任务上下文包与恢复清单 |
+| 质量 | `arc:e2e` | 按真实路径执行 E2E 验证 |
+| 质量 | `arc:test` | 代码级测试生成 |
+| 质量 | `arc:fix` | 基于失败证据定位并修复 |
+| 写作 | `arc:aigc` | 学术/专业文本去模板化润色与作者声线统一 |
+| 治理 | `arc:audit` | 七维评审与可视化报告 |
+| 治理 | `arc:gate` | 合并/上线门禁判定 |
+| 知产 | `arc:ip-check` | 软著/专利可行性与风险评估 |
+| 知产 | `arc:ip-draft` | 依据审查结果起草申请材料 |
 
 ## 我该用哪个 Skill？
 
 | 你现在的情况 | 直接用 |
 |---|---|
-| 只想一句话开工：“拉一个团队做这个任务” | `arc-exec` |
-| 不知道该选哪个 | `arc-exec` |
-| 需求说不清、约束不完整 | `arc-clarify` |
-| 方案有争议、风险高 | `arc-decide` |
-| 方案已定，开始改代码 | `arc-build` |
-| 想评估项目健康度或 PR 风险 | `arc-audit` |
-| 准备合并或发布，做门禁 | `arc-gate` |
-| 论文或报告太像模板，想在保留事实与引用前提下润色 | `arc-aigc` |
-| 上下文太长、要切会话或换一个 agent 继续任务 | `arc-context` |
-| 要启动、重启或停止本地前后端 / dev server | `arc-serve` |
-| 需要真实用户路径 E2E 验证 | `arc-e2e` |
-| 需要给模块自动生成单测/边界/benchmark/fuzz | `arc-test` |
-| E2E 失败或线上故障排查 | `arc-fix` |
-| 修复后必须重启并多轮回归 | `arc-fix --mode retest-loop` |
-| 刚接手陌生仓库，先看结构 | `arc-cartography` |
-| 需要系统建模图 | `arc-uml` |
-| 要维护索引 | `arc-init` |
+| 只想一句话开工：“拉一个团队做这个任务” | `arc:exec` |
+| 不知道该选哪个 | `arc:exec` |
+| 需求说不清、约束不完整 | `arc:clarify` |
+| 方案有争议、风险高 | `arc:decide` |
+| 方案已定，开始改代码 | `arc:build` |
+| 想评估项目健康度或 PR 风险 | `arc:audit` |
+| 准备合并或发布，做门禁 | `arc:gate` |
+| 论文或报告太像模板，想在保留事实与引用前提下润色 | `arc:aigc` |
+| 上下文太长、要切会话或换一个 agent 继续任务 | `arc:context` |
+| 要启动、重启或停止本地前后端 / dev server | `arc:serve` |
+| 需要真实用户路径 E2E 验证 | `arc:e2e` |
+| 需要给模块自动生成单测/边界/benchmark/fuzz | `arc:test` |
+| E2E 失败或线上故障排查 | `arc:fix` |
+| 修复后必须重启并多轮回归 | `arc:fix --mode retest-loop` |
+| 刚接手陌生仓库，先看结构 | `arc:cartography` |
+| 需要系统建模图 | `arc:uml` |
+| 要维护索引 | `arc:init` |
 
 ## 最简记忆
 
-- 不知道用什么：`arc-exec`
-- 要改代码交付：`arc-build`
-- 要项目体检打分：`arc-audit`
-- 要发布门禁：`arc-gate`
-- 要托管本地服务：`arc-serve`
-- 要画 UML：`arc-uml`
+- 不知道用什么：`arc:exec`
+- 要改代码交付：`arc:build`
+- 要项目体检打分：`arc:audit`
+- 要发布门禁：`arc:gate`
+- 要托管本地服务：`arc:serve`
+- 要画 UML：`arc:uml`
 
 ## 收敛结果
 
 - 对外主技能覆盖总控、方案、交付、上下文、质量、治理、写作与知产。
-- `arc-aigc` 承接学术/专业文本去模板化润色、两阶段改写与引用保真检查。
-- `arc-context` 承接长任务的上下文压缩、恢复与跨会话交接。
-- `arc-score` 对外入口收敛到 `arc-gate`；内部评分模块负责量化，`arc-gate` 负责门禁判定。
+- `arc:aigc` 承接学术/专业文本去模板化润色、两阶段改写与引用保真检查。
+- `arc:context` 承接长任务的上下文压缩、恢复与跨会话交接。
+- `arc-score` 对外入口收敛到 `arc:gate`；内部评分模块负责量化，`arc:gate` 负责门禁判定。
 - 路由、矩阵、速查与 README 统一采用同一套 Skill ID 口径。
 
 ## 路由文档
@@ -139,9 +139,9 @@ python3 scripts/validate_skills.py
 
 ```bash
 # 命名到命令映射
-# arc-exec -> arc exec
-# arc-init --mode full -> arc init --mode full
-# arc-init --mode update -> arc init --mode update
+# arc:exec -> arc exec
+# arc:init --mode full -> arc init --mode full
+# arc:init --mode update -> arc init --mode update
 
 # 推荐入口
 arc exec

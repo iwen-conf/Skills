@@ -12,11 +12,11 @@ business_content = """# 业务成熟度：Skills
 
 | 链路 | 状态 | 证据 | 备注 |
 |---|---|---|---|
-| arc-exec 总控路由 | 已打通 | `README.md` | 统一入口 |
-| arc-build 代码交付 | 已打通 | `README.md` | 核心链路 |
-| arc-audit 治理评估 | 已打通 | `README.md` | 提供7维评审和量化打分 |
-| arc-gate 质量门禁 | 已打通 | `README.md` | 阻断式发布管控 |
-| arc-fix 故障修复 | 已打通 | `README.md` | 包含闭环 retest |
+| arc:exec 总控路由 | 已打通 | `README.md` | 统一入口 |
+| arc:build 代码交付 | 已打通 | `README.md` | 核心链路 |
+| arc:audit 治理评估 | 已打通 | `README.md` | 提供7维评审和量化打分 |
+| arc:gate 质量门禁 | 已打通 | `README.md` | 阻断式发布管控 |
+| arc:fix 故障修复 | 已打通 | `README.md` | 包含闭环 retest |
 
 ## 指标
 
@@ -55,11 +55,11 @@ dependency_content = """# 依赖健康度：Skills
 |---|---|---|---|---|
 | Python Stdlib | 3.8+ | 3.8+ | 无 | `scripts/arc_privacy.py` |
 | PyYAML | N/A | N/A | 低 | 潜在未声明依赖，代码极简 |
-| playwright | N/A | N/A | 中 | `arc-e2e/requirements.txt` |
+| playwright | N/A | N/A | 中 | `arc:e2e/requirements.txt` |
 
 ## 观察事实
 
-- 除 `arc-e2e` 包含特定的 `requirements.txt` 外，主体框架大量使用 Python 标准库，减少了依赖污染。
+- 除 `arc:e2e` 包含特定的 `requirements.txt` 外，主体框架大量使用 Python 标准库，减少了依赖污染。
 - 存在隐私清洗工具 `arc_privacy.py` 保障数据不出域。
 
 ## 分析判断

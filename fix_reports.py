@@ -8,7 +8,7 @@ evidence_index_content = """# 证据索引
 |---|---|---|---|---|---|
 | E01 | code | 统一命名空间和入口 | `README.md:1` | high | architecture |
 | E02 | code | 自带隐私清洗 | `scripts/arc_privacy.py:1` | high | security |
-| E03 | metrics | 仅两个测试文件 | `arc-cartography/scripts/test_cartographer.py:1` | high | code-quality |
+| E03 | metrics | 仅两个测试文件 | `arc:cartography/scripts/test_cartographer.py:1` | high | code-quality |
 | E04 | metadata | 13个核心流闭环 | `README.md:12` | high | business-value |
 | E05 | code | 无 CI/CD 配置 | `README.md:1` | high | devops |
 | E06 | doc | 标准化编排契约 | `docs/orchestration-contract.md:1` | high | team-collaboration |
@@ -25,8 +25,8 @@ business_content = """# 业务成熟度：Skills
 
 | 链路 | 状态 | 证据 | 备注 |
 |---|---|---|---|
-| arc-exec 总控路由 | 已打通 | `README.md:10` | 统一入口 |
-| arc-build 代码交付 | 已打通 | `README.md:12` | 核心链路 |
+| arc:exec 总控路由 | 已打通 | `README.md:10` | 统一入口 |
+| arc:build 代码交付 | 已打通 | `README.md:12` | 核心链路 |
 
 ## 指标
 
@@ -87,9 +87,9 @@ diagnostic_content = """# 诊断报告：Skills
 - **建议动作**: 增加脱敏类型的覆盖面（证据：`scripts/arc_privacy.py:1`）。
 
 ### 3. code-quality (6.5/10)
-- **事实**: 仅有极少测试（证据：`arc-cartography/scripts/test_cartographer.py:1`）。
+- **事实**: 仅有极少测试（证据：`arc:cartography/scripts/test_cartographer.py:1`）。
 - **分析判断**: 质量有隐患。
-- **建议动作**: 补齐自动化测试（证据：`arc-cartography/scripts/test_cartographer.py:1`）。
+- **建议动作**: 补齐自动化测试（证据：`arc:cartography/scripts/test_cartographer.py:1`）。
 
 ### 4. business-value (9.0/10)
 - **事实**: 提供13个端到端代理能力（证据：`README.md:12`）。
@@ -150,7 +150,7 @@ recommendations_content = """# 改进路线：Skills
 ## P1 优化建议
 
 ### 1. 补齐自动化测试矩阵
-- **证据**: `arc-cartography/scripts/test_cartographer.py:1`
+- **证据**: `arc:cartography/scripts/test_cartographer.py:1`
 - **问题事实**: 测试文件过少。
 - **建议动作**: 针对核心工具补齐 `pytest`。
 - **收益**: 确保编排脚本不会回归。

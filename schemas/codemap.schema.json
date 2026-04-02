@@ -21,7 +21,7 @@
     },
     "producer_skill": {
       "type": "string",
-      "const": "arc-cartography"
+      "const": "arc:cartography"
     },
     "path": {
       "type": "string",

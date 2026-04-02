@@ -87,7 +87,7 @@ func RunBuildRender(opts BuildRenderOptions) (string, error) {
 	if repoRoot == "" {
 		return "", fmt.Errorf("ARC_REPO_ROOT is required")
 	}
-	templatesDir := filepath.Join(repoRoot, "Arc", "arc-build", "templates")
+	templatesDir := filepath.Join(repoRoot, "Arc", "arc:build", "templates")
 	execTemplate, err := os.ReadFile(filepath.Join(templatesDir, "execution-report.md.tpl"))
 	if err != nil {
 		return "", fmt.Errorf("read execution template: %w", err)
@@ -118,7 +118,7 @@ func RunBuildRender(opts BuildRenderOptions) (string, error) {
 		"what_changed":   "- 待补充关键改动文件\n- 待补充核心实现点",
 		"why":            "- 对齐实现目标与范围",
 		"validation":     fmt.Sprintf("- %s", verification),
-		"next_steps":     "1. 执行 arc-audit\n2. 执行 arc-e2e（如涉及UI流程）",
+		"next_steps":     "1. 执行 arc:audit\n2. 执行 arc:e2e（如涉及UI流程）",
 	}
 	executionReport := renderTemplate(string(execTemplate), values)
 	changeSummary := renderTemplate(string(summaryTemplate), values)

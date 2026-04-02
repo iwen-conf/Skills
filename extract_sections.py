@@ -49,12 +49,12 @@ def extract_section(file_path: Path, heading_start: str, ref_file_name: str, lin
     file_path.write_text(new_content, encoding="utf-8")
     print(f"Extracted {heading_start} from {file_path} to {ref_path}")
 
-# arc-e2e
-extract_section(Path("Arc/arc-e2e/SKILL.md"), "## **Output Schema", "output-schema.md", "Output Schema and Log Specifications")
+# arc:e2e
+extract_section(Path("Arc/arc:e2e/SKILL.md"), "## **Output Schema", "output-schema.md", "Output Schema and Log Specifications")
 
-# arc-ip-check
-extract_section(Path("Arc/arc-ip-check/SKILL.md"), "## Instructions", "execution-instructions.md", "Detailed Execution Instructions")
+# arc:ip-check
+extract_section(Path("Arc/arc:ip-check/SKILL.md"), "## Instructions", "execution-instructions.md", "Detailed Execution Instructions")
 
-# arc-ip-draft
-extract_section(Path("Arc/arc-ip-draft/SKILL.md"), "## Instructions", "execution-instructions.md", "Detailed Execution Instructions")
+# arc:ip-draft
+extract_section(Path("Arc/arc:ip-draft/SKILL.md"), "## Instructions", "execution-instructions.md", "Detailed Execution Instructions")
 

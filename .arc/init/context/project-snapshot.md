@@ -8,7 +8,7 @@
 Skills/
 ├── agent/           # arc-agent 智能调度
 ├── deliberate/      # arc-deliberate 三模型审议
-├── init/            # arc-init CLAUDE.md 生成
+├── init/            # arc:init CLAUDE.md 生成
 │   └── references/  # schema + 扫描启发式
 ├── loop/            # arc-loop tmux 回归闭环
 │   ├── assets/      # 配置示例

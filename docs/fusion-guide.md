@@ -43,11 +43,11 @@
 
 ## 已重点强化的 Skill（ROI 优先）
 
-1. `arc-exec`
-2. `arc-audit`
-3. `arc-gate`
-4. `arc-build`
-5. `arc-fix`
+1. `arc:exec`
+2. `arc:audit`
+3. `arc:gate`
+4. `arc:build`
+5. `arc:fix`
 
 ## 共享输出范式
 

@@ -11,7 +11,7 @@ The Conductor Pattern enables chained skill orchestration, where one skill (the 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      Conductor Skill                         │
-│  (arc-exec, arc-decide, or custom orchestrator)        │
+│  (arc:exec, arc:decide, or custom orchestrator)        │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  1. PLAN    ──▶  2. DELEGATE  ──▶  3. VERIFY  ──▶  4. ITERATE │
@@ -63,14 +63,14 @@ workflow:
   
   steps:
     - id: refine
-      skill: arc-clarify
+      skill: arc:clarify
       input:
         prompt: "${user_request}"
       output:
         enhanced_prompt: ".arc/clarify/enhanced-prompt.md"
         
     - id: deliberate
-      skill: arc-decide
+      skill: arc:decide
       depends_on: [refine]
       input:
         prompt_file: ".arc/clarify/enhanced-prompt.md"
@@ -78,7 +78,7 @@ workflow:
         plan: ".arc/decide/consensus.md"
         
     - id: implement
-      skill: arc-build
+      skill: arc:build
       depends_on: [deliberate]
       input:
         plan_file: ".arc/decide/consensus.md"
@@ -86,7 +86,7 @@ workflow:
         changes: ".arc/build/changes/"
         
     - id: review
-      skill: arc-audit
+      skill: arc:audit
       depends_on: [implement]
       input:
         changes_dir: ".arc/build/changes/"
@@ -94,7 +94,7 @@ workflow:
         report: ".arc/audit/report.md"
         
     - id: test
-      skill: arc-e2e
+      skill: arc:e2e
       depends_on: [implement]
       input:
         changes_dir: ".arc/build/changes/"
@@ -109,7 +109,7 @@ workflow:
       
   failure_handling:
     max_iterations: 3
-    on_failure: arc-fix
+    on_failure: arc:fix
 ```
 
 ### 4. Session Continuity
@@ -119,7 +119,7 @@ Workers maintain session continuity via `task_ref`:
 ```python
 # Step 1: Initial delegation
 result = schedule_task(
-    skill="arc-clarify",
+    skill="arc:clarify",
     prompt="...",
     execution_mode="background"
 )
@@ -133,7 +133,7 @@ result = schedule_task(
 
 # Step 3: Pass to next worker with context
 result = schedule_task(
-    skill="arc-build",
+    skill="arc:build",
     prompt=f"Based on refinement session {task_ref}..."
 )
 ```
@@ -155,9 +155,9 @@ refine → deliberate → implement → review → test
 Multiple independent workers execute in parallel:
 
 ```
-          ┌─→ arc-gate ─┐
-refine ──┼─→ arc-audit ─┼─→ aggregate
-          └─→ arc-e2e ─┘
+          ┌─→ arc:gate ─┐
+refine ──┼─→ arc:audit ─┼─→ aggregate
+          └─→ arc:e2e ─┘
 ```
 
 **Use case**: Comprehensive project assessment
@@ -167,9 +167,9 @@ refine ──┼─→ arc-audit ─┼─→ aggregate
 Workflow branches based on conditions:
 
 ```
-                ┌─→ arc-build ─→ done
+                ┌─→ arc:build ─→ done
 refine ─→ check ┤
-                └─→ arc-decide ─→ arc-build ─→ done
+                └─→ arc:decide ─→ arc:build ─→ done
 ```
 
 **Use case**: Simple vs complex task routing
@@ -188,25 +188,25 @@ implement → test → [pass?] → done
 
 ## Integration with Existing Skills
 
-### arc-exec as Conductor
+### arc:exec as Conductor
 
-`arc-exec` already acts as a conductor. Enhance with:
+`arc:exec` already acts as a conductor. Enhance with:
 
 1. **Workflow Templates**: Pre-defined workflows for common patterns
 2. **Progress Tracking**: Track workflow state across steps
 3. **Checkpoint/Resume**: Save state for long-running workflows
 
-### arc-decide as Planner
+### arc:decide as Planner
 
-`arc-decide` generates structured plans. Enhance with:
+`arc:decide` generates structured plans. Enhance with:
 
 1. **Workflow Export**: Output workflow YAML from consensus
 2. **Step Estimation**: Add time/resource estimates per step
 3. **Dependency Graph**: Visual representation of dependencies
 
-### arc-fix --mode retest-loop as Iterator
+### arc:fix --mode retest-loop as Iterator
 
-`arc-fix --mode retest-loop` already implements the loop pattern. Enhance with:
+`arc:fix --mode retest-loop` already implements the loop pattern. Enhance with:
 
 1. **Conductor Integration**: Accept workflow definition
 2. **State Machine**: Track workflow state across iterations
@@ -279,9 +279,9 @@ for step in conductor.steps(run.id):
 - [ ] Conditional branching
 
 ### Phase 3: Integration
-- [ ] arc-exec workflow templates
-- [ ] arc-fix --mode retest-loop conductor mode
-- [ ] arc-decide workflow export
+- [ ] arc:exec workflow templates
+- [ ] arc:fix --mode retest-loop conductor mode
+- [ ] arc:decide workflow export
 
 ### Phase 4: Monitoring
 - [ ] Progress tracking

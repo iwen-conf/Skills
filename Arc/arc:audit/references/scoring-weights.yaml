@@ -1,0 +1,173 @@
+# Default calibration reference for `arc:audit`
+#
+# This file provides a heuristic weighting baseline for combining evidence that is
+# already available. It is not an authoritative truth model, and it must not be
+# used to force numeric precision when the audit evidence is incomplete.
+#
+# Use these weights only when the corresponding evidence preconditions are met.
+# If evidence is missing, prefer `N/A` in the scorecard instead of estimated scores.
+
+version: "1.1.0"
+
+# Default blend between quantitative signals and qualitative review by dimension.
+# quantitative = static analysis, dependency data, test/CI artifacts, telemetry snapshots.
+# qualitative = reviewer judgment bounded by repository evidence and explicit citations.
+dimension_weights:
+  architecture:
+    quantitative: 0.3
+    qualitative: 0.7
+    description: 默认校准口径：架构维度通常需要更多结构性判断；当仓库暴露出足够的结构与依赖证据时，再按该比例融合定量与定性结果。
+
+  security:
+    quantitative: 0.5
+    qualitative: 0.5
+    description: 默认校准口径：安全维度通常同时依赖扫描结果与实现审查；仅在规则、配置与风险证据可验证时使用该比例。
+
+  code-quality:
+    quantitative: 0.6
+    qualitative: 0.4
+    description: 默认校准口径：代码质量更容易获得测试、静态分析与规范信号，因此定量权重略高。
+
+  business:
+    quantitative: 0.1
+    qualitative: 0.9
+    description: 默认校准口径：业务维度高度依赖对链路与工件的解释；若缺少业务流证据，应直接输出 `N/A`。
+
+  devops:
+    quantitative: 0.3
+    qualitative: 0.7
+    description: 默认校准口径：交付与运维既看流水线/配置，也看恢复与治理能力；适合以证据驱动的混合判断。
+
+  team:
+    quantitative: 0.1
+    qualitative: 0.9
+    description: 默认校准口径：团队协作通常更多依赖历史记录与知识流动信号，难以仅靠静态数字下结论。
+
+  tech-debt:
+    quantitative: 0.5
+    qualitative: 0.5
+    description: 默认校准口径：技术债既有依赖/规则类信号，也有结构性摩擦判断，适合在证据充分时均衡使用。
+
+# Default cross-dimension weights for the overall summary.
+# They are a reporting baseline, not a substitute for dimension-by-dimension evidence review.
+overall_weights:
+  architecture: 0.2
+  security: 0.2
+  code-quality: 0.2
+  business: 0.15
+  devops: 0.1
+  team: 0.05
+  tech-debt: 0.1
+
+# Specialist indices derived from a source dimension.
+# Keep the keys and values stable for compatibility; treat the descriptions as
+# scoring guidance rather than mandatory exact math.
+special_scores:
+  business_maturity:
+    source_dimension: business
+    weight_in_dimension: 0.35
+    description: 业务成熟度指数：用于校准核心业务链路的可观察闭环、断链控制、运营闭环与规则演进，仅在存在可验证业务工件时评分。
+    components:
+      flow_coverage: 0.4
+      breakage_control: 0.25
+      ops_closed_loop: 0.2
+      rule_evolvability: 0.15
+
+  dependency_health:
+    source_dimension: tech-debt
+    weight_in_dimension: 0.4
+    description: 依赖健康度指数：用于校准版本滞后、漏洞风险、维护状态与升级自动化，仅在存在依赖与安全证据时评分。
+    components:
+      outdated_ratio: 0.35
+      vulnerability_risk: 0.35
+      unmaintained_ratio: 0.2
+      upgrade_automation: 0.1
+
+# Default panel weights for deep reviews that actually use multiple perspectives.
+# These weights are not part of the baseline contract for quick/standard audits.
+agent_weights:
+  architecture:
+    oracle: 0.5
+    deep: 0.25
+    deep_business: 0.25
+
+  security:
+    oracle: 0.5
+    deep: 0.25
+    deep_business: 0.25
+
+  code-quality:
+    oracle: 0.25
+    deep: 0.5
+    deep_business: 0.25
+
+  devops:
+    oracle: 0.25
+    deep: 0.5
+    deep_business: 0.25
+
+  business:
+    oracle: 0.25
+    deep: 0.25
+    deep_business: 0.5
+
+  team:
+    oracle: 0.25
+    deep: 0.25
+    deep_business: 0.5
+
+  tech-debt:
+    oracle: 0.5
+    deep: 0.25
+    deep_business: 0.25
+
+# Reporting bands for score interpretation.
+# Use only after the score itself has already passed the evidence threshold.
+grade_thresholds:
+  excellent:
+    min: 9
+    max: 10
+    label: "Excellent (A+)"
+    description: "Evidence indicates mature practice with only minor follow-up items."
+
+  good:
+    min: 7
+    max: 8.9
+    label: "Good (A)"
+    description: "Evidence indicates generally solid practice with manageable weaknesses."
+
+  acceptable:
+    min: 5
+    max: 6.9
+    label: "Acceptable (B)"
+    description: "Evidence indicates baseline capability with visible gaps that should be planned and tracked."
+
+  warning:
+    min: 3
+    max: 4.9
+    label: "Warning (C)"
+    description: "Evidence indicates elevated risk or recurring weaknesses that deserve near-term attention."
+
+  critical:
+    min: 0
+    max: 2.9
+    label: "Critical (D)"
+    description: "Evidence indicates blocking or systemic risk. Keep conclusions scoped to observed evidence."
+
+# Optional adjustments for aggregation.
+# Apply them only when the review process actually produced the required evidence.
+adjustments:
+  # Reduce influence when a panel claim is directly disproved by stronger evidence in deep review.
+  rebuttal_penalty: 0.5
+
+  # Small bonus when independent reviews converge within a narrow range.
+  consistency_bonus: 0.1
+
+  # Global deduction when at least one critical issue is clearly evidenced.
+  critical_penalty: 2
+
+  # Apply only when Business Maturity evidence exists and the index is below the threshold.
+  low_business_maturity_penalty: 1
+
+  # Apply only when Dependency Health evidence exists and the index is below the threshold.
+  poor_dependency_health_penalty: 1.5

@@ -48,4 +48,4 @@ def extract_section(file_path: Path, heading_start: str, ref_file_name: str, lin
     file_path.write_text(new_content, encoding="utf-8")
     print(f"Extracted {heading_start} from {file_path} to {ref_path}")
 
-extract_section(Path("Arc/arc-e2e/SKILL.md"), "## **Instructions (execution process)**", "execution-instructions.md", "Detailed Execution Instructions")
+extract_section(Path("Arc/arc:e2e/SKILL.md"), "## **Instructions (execution process)**", "execution-instructions.md", "Detailed Execution Instructions")
