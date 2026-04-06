@@ -1,6 +1,21 @@
 ---
 name: arc:clarify
 description: "需求澄清与提示词增强：补齐上下文、识别歧义并产出可执行输入；当用户说“需求不清楚/clarify requirements/refine prompt”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # Question Refiner
@@ -169,7 +184,7 @@ Write the complete enhanced prompt to the shared directory:
 | Ask a question | AskUserQuestion | User answers |
 | synthesis | Write | enhanced-prompt.md |
 
-## Anti-Patterns
+## Gotchas
 
 **CRITICAL: The following behaviors are FORBIDDEN in arc:clarify execution:**
 
@@ -216,4 +231,14 @@ Problem refinement completed. Enhanced prompt has been written:
 .arc/decide/<task-name>/context/enhanced-prompt.md
 
 You can now route to `arc:exec`, `arc:context`, `arc:aigc`, `arc:decide`, or `arc:build` according to the clarified task boundary.
+```
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
 ```

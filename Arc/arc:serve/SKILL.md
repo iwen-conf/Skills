@@ -1,6 +1,21 @@
 ---
 name: arc:serve
 description: "本地服务启动与 tmux 会话托管：当用户说“启动前后端/启动 dev server/重启本地服务/重跑端口服务”时触发；用于用 tmux 启停本地长时服务、维护 sessions.json，并在重启前先检查并关闭同名 session，避免重复占用 CPU、内存和端口。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:serve — local service session orchestration
@@ -153,4 +168,14 @@ The launcher builds `tmux_service_ctl.go` into `${XDG_CACHE_HOME:-$HOME/.cache}/
 <project_path>/.arc/serve/
 ├── tmux-sessions.json
 └── (managed tmux sessions referenced by name in the registry)
+```
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
 ```

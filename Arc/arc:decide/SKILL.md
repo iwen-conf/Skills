@@ -1,6 +1,21 @@
 ---
 name: arc:decide
 description: "多视角方案决策与收敛：通过 architecture/deep/ui 辩论形成可执行计划；当用户说“技术选型/方案对比/架构决策/architecture trade-off”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:decide — multi-agent deliberation
@@ -208,7 +223,7 @@ Phase 4: execution            [running/completed]
 | Plan generation | `openspec/changes/<task-name>/{proposal,design,tasks}.md` |
 | Execution record | `execution/implementation-log.md` |
 
-## Anti-Patterns
+## Gotchas
 
 - **Premature Consensus**: Convergence is declared before cross-rebuttal is completed.
 - **Echo Chamber**: Character output is highly homogeneous, with no real conflicts or trade-offs.
@@ -224,3 +239,13 @@ Phase 4: execution            [running/completed]
 | deep | `schedule_task(capability_profile="deep", capabilities=["arc:decide"], ...)` | background |
 | ui | `schedule_task(capability_profile="ui", capabilities=["arc:decide", "frontend-ui-ux"], ...)` | background |
 | aggregation/finalization | processed directly by the main process | foreground |
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
+```

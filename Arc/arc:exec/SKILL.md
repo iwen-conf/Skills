@@ -1,6 +1,21 @@
 ---
 name: arc:exec
 description: "统一任务编排入口：理解需求、路由到 arc:* 或多 Agent 协同执行；当用户说“帮我拉团队/不知道用哪个技能/split task/orchestrate this work/先收敛大输出分析路径”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:exec — unified orchestration entry
@@ -212,13 +227,19 @@ SKILL The main text only retains the decision-making process to avoid being too 
 | Dispatch | split + schedule + collect | `dispatch/task-board.md` |
 | Aggregate | conflict arbitration + summary | `aggregation/final-summary.md` |
 
-## Anti-Patterns
+## Gotchas
+
+Real failures from prior sessions, in order of frequency:
 
 - **Shotgun Dispatch**: Starting multiple Agents without boundaries leads to duplication of work.
 - **Blocking Search**: Execute `search/research` serially in the foreground, slowing down the main link.
 - **Orphaned Tasks**: Not tracking `task_ref` results in unrecyclable results.
 - **Cache Blindness**: Repeating the same analysis even though there are reusable products.
 - **Unsafe Execution**: No confirmation, no snapshot, and no rollback for high-risk operations.
+- **Python-heavy orchestration assumed**: When the user pushes back on Python-heavy orchestration for local long-running services, prefer a one-shot Go or shell controller that exits immediately.
+- **Go binary startup cost ignored**: When a short-lived Go controller will be invoked repeatedly, add a tiny cached launcher to reuse the compiled binary instead of paying `go run` cost every time.
+- **Over-engineered CLI assumed**: When user says `arc` or an `arc:*` capability, first map it to the local skill set under `Arc/` before concluding a standalone CLI is required.
+- **GitHub Actions silently reintroduced**: Treat "no GitHub Actions" as a hard repository policy. Add a validator/test guard so `.github/workflows/` cannot come back silently.
 
 ## Context
 
@@ -231,3 +252,12 @@ The context is read with the following priorities before dispatching:
 5. Exa MCP (external knowledge supplement)
 
 See `docs/orchestration-contract.md` and `docs/arc-routing-matrix.md` for details.
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+dispatch:         [task list]
+verification:     [dispatch collected] → success / failure
+```

@@ -1,6 +1,21 @@
 ---
 name: arc:e2e
 description: "真实路径 E2E 验证与证据沉淀；当用户说“端到端测试/用户流程回归/e2e test/browser journey”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 # arc:e2e — evidence-based E2E validation
 
@@ -340,7 +355,7 @@ When `report_formats` contains `"jsonl"`, each step must append a line of JSON c
 {"run_id":"<run_id>","step":1,"role":"buyer","kind":"exec","cmd":"mcp_chrome-devtools_navigate_page \"<target_url>/login\"","ts":"YYYY-MM-DDTHH:MM:SS","result":"PASS"}
 {"run_id":"<run_id>","step":1,"role":"buyer","kind":"screenshot","path":"screenshots/s0001_login-page.png","description":"Login page initial state","ts":"YYYY-MM-DDTHH:MM:SS"}
 ```
-## Anti-Patterns
+## Gotchas
 
 **CRITICAL: The following behaviors are FORBIDDEN in arc:e2e execution:**
 
@@ -363,3 +378,13 @@ When `report_formats` contains `"jsonl"`, each step must append a line of JSON c
 - **Preliminary Conclusion**: Marking test PASS before `check_artifacts.py --strict` validation — premature success declaration
 - **Failure Suppression**: Skipping failed steps instead of recording them — hides real issues
 - **Context Ignorance**: Not reading CLAUDE.md for expected behavior — tests wrong things
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
+```

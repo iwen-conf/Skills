@@ -1,6 +1,21 @@
 ---
 name: arc:ip-draft
 description: "知识产权申请文档起草：基于审查结论生成软著/专利草稿；当用户说“撰写专利/起草软著材料/draft IP filing”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:ip-draft — patent/software document writing
@@ -244,3 +259,13 @@ Default output directory:`<project_path>/.arc/ip-draft/<project-name>/`
 - **Agent Drafting Missing**: Fill in with two other Agents, marked "Dual Source Drafting".
 - **Term conflict cannot be resolved**: List the conflicting terms in the document and mark "requires manual decision".
 - **The handover document is missing**: Prompt the user to execute `arc:ip-check` first, or make a minimal draft (marked "Unreviewed Evaluation") when the user explicitly requests it.
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
+```

@@ -1,6 +1,19 @@
 ---
 name: arc:audit
 description: "项目体检与七维技术审计：基于证据输出诊断报告、评分边界与改进建议；当用户说“technical audit/health check/技术尽调/代码审计/架构评审”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:audit -- evidence-first technical audit
@@ -199,14 +212,20 @@ Refer to `references/dimensions.md` for dimension criteria and specialist index 
 | Retrieval tooling unavailable | Fall back to manual repository inspection, but keep the same evidence rules |
 | Presentation not requested | Do not generate `quantitative-dashboard.html` |
 
-## Quick Status Feedback Syntax
+## Gotchas
+
+Real failures from prior sessions, in order of frequency:
+
+- **Missing evidence turned into N/A silently.** Do not just write N/A; explain the gap and how to collect evidence.
+- **Score assigned without evidence.** The Iron Law is "NO SCORE WITHOUT DIRECT EVIDENCE". Never guess scores based on vibes.
+- **Scored specialist index without business flows.** "Business Maturity Index" requires observable flows. If missing, mark N/A.
+
+## Sign-off
 
 ```text
-[arc:audit] Target: <project_name>
-
-1. Scope and evidence plan confirmed.
-2. Evidence registry collected.
-3. Seven dimensions reviewed with score/N.A. boundaries.
-4. Diagnostic report, scorecard, and recommendations produced.
-5. Optional deep-mode or dashboard artifacts added only if requested.
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [audit complete] → pass / fail
 ```

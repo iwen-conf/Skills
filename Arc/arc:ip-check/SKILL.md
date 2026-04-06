@@ -1,6 +1,21 @@
 ---
 name: arc:ip-check
 description: "知识产权可行性审查：评估软著/专利价值、风险与申报优先级；当用户说“专利评估/IP review/FTO 风险”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:ip-check — project patent/software review report
@@ -260,3 +275,13 @@ Default output directory:`<project_path>/.arc/ip-check/<project-name>/`
 - **Agent analysis is missing**: Use other two agents to fill it in and mark "dual source analysis".
 - **MCP not available**: downgrade to Grep + Read direct scan.
 - **Conflict cannot be resolved**: List the dispute points in the report and mark "requires manual decision".
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
+```

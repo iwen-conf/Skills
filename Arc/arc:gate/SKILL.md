@@ -1,6 +1,21 @@
 ---
 name: arc:gate
 description: "合并/上线门禁决策：基于阈值、豁免与证据给出 Go/No-Go；当用户说“是否可合并/发布门禁/release gate”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:gate -- merge/release gate decision
@@ -351,3 +366,13 @@ tar -czf gate-reports.tgz .arc/gate-reports/
 2. **Auditable**: All decisions have clear rules and data basis
 3. **Configurable**: Both thresholds and exemptions are configurable
 4. **CI Friendly**: Provides correct exit code and structured output
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
+```

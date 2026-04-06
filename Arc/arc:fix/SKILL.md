@@ -1,6 +1,21 @@
 ---
 name: arc:fix
 description: "故障修复闭环：定位根因、实施修复并回归验证；当用户说“线上故障/bug 修复/incident triage/fix broken flow”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:fix — evidence-based fault repair loop
@@ -315,6 +330,9 @@ If it is judged to be a false positive by the test script/selector: first correc
 
 ### 6) Regression verification and production of deliverable repair solutions
 
+- **Code Quality Check (Mandatory)**: You MUST run `bash Arc/scripts/check-placeholders.sh` to ensure no lazy placeholder code was committed to the diff.
+- **Project Verification (Mandatory)**: Before generating the final fix packet, you MUST run the standard project verification script to ensure no regressions were introduced to the type system or test suite:
+  - `bash Arc/scripts/verify-project.sh` (or the equivalent project-specific test command)
 - Re-execute arc:e2e, generate a new `run_dir`, and again:
   - `python Arc/arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`
   - `python Arc/arc:e2e/scripts/compile_report.py --run-dir <run_dir> --in-place` (optional: add `--beautify-md` if `mdformat` is already installed in venv)
@@ -344,7 +362,7 @@ python Arc/arc:e2e/scripts/new_defect.py \
 ```
 
 Note: arc:e2e may store reusable credentials in `accounts.jsonc`; therefore `reports/` should not be submitted to the repository.
-## Anti-Patterns
+## Gotchas
 
 **CRITICAL: The following behaviors are FORBIDDEN in arc:fix execution:**
 
@@ -368,3 +386,21 @@ Note: arc:e2e may store reusable credentials in `accounts.jsonc`; therefore `rep
 - **Partial Verification**: Only testing the fixed path, not related paths — regression risk
 - **Context Skip**: Not reading `.arc/e2e/` failure report before triage — missing context
 - **Session Waste**: Starting fresh instead of continuing with `task_ref` — loses diagnosis progress
+: Commenting out code or adding `if(false)` to skip logic — proper fix required
+
+### Verification Anti-Patterns
+
+- **Premature PASS**: Declaring fix complete before re-running failed test — must verify
+- **Partial Verification**: Only testing the fixed path, not related paths — regression risk
+- **Context Skip**: Not reading `.arc/e2e/` failure report before triage — missing context
+- **Session Waste**: Starting fresh instead of continuing with `task_ref` — loses diagnosis progress
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
+```

@@ -1,6 +1,19 @@
 ---
 name: arc:cartography
 description: "仓库地图与分层 codemap 生成/刷新；当用户说“梳理代码结构/仓库导览/repo map/codebase overview”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:cartography Skill
@@ -197,4 +210,14 @@ Encapsulate the business service layer and connect the repository layer and exte
 ## Integration
 - Called by `src/api/`
 - Depends on `src/repositories/` and `src/gateways/`
+```
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
 ```

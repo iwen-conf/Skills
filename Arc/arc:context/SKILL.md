@@ -1,6 +1,21 @@
 ---
 name: arc:context
 description: "上下文预算治理与恢复：当用户提到“分析日志/看 build 输出/读大 JSON/浏览器快照/context window/context mode/恢复任务状态/resume this work”时触发；用于把大输出留在文件或检索层、生成高信号工作集，并在长会话或新会话中按需恢复。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:context — context-budget governance and recovery
@@ -146,4 +161,14 @@ NO SNAPSHOT WITHOUT A RESUME PATH.
 │   └── restore-checklist.md
 └── handoff/
     └── handoff-notes.md
+```
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
 ```

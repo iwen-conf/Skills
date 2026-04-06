@@ -1,6 +1,21 @@
 ---
 name: arc:microcopy
 description: "报错文案人话化改写：扫描系统中的错误提示、校验失败文案、空状态和恢复提示，识别堆栈直出、内部错误码、技术术语与责怪式表述，并改写为非技术用户也能理解、可执行、可恢复的提示；当用户说“把报错改成人话/优化错误提示/扫描错误信息/让小白也能看懂报错”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:microcopy — user-friendly error copy refactoring
@@ -107,4 +122,14 @@ NO USER-FACING ERROR REWRITE WITHOUT PRESERVING DEBUGGABILITY, RECOVERY GUIDANCE
 ├── rewrite-rules.md
 ├── patch-notes.md
 └── verification.md
+```
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
 ```

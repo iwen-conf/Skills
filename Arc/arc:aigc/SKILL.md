@@ -1,6 +1,21 @@
 ---
 name: arc:aigc
 description: "学术/专业文本去模板化润色：当用户提到“AIGC 味太重/论文像机器写的/需要按段改写长文稿/保留引用公式重写表达”时触发；用于分段重写、双阶段统稿、作者声线统一与引用保真检查，不用于规避检测或学术作弊。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:aigc — evidence-based academic polish
@@ -107,4 +122,14 @@ ALL CHANGES MUST BE TRACEABLE BACK TO ORIGINAL CLAIMS AND CITATIONS.
 ├── stage2-summary.md     # cohesion review, transition fixes, terminology and citation gaps
 ├── polished-text.md      # final draft for author/editor review
 └── compliance-notes.md   # optional notes for disclosure, unresolved evidence gaps, or manual follow-up
+```
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
 ```

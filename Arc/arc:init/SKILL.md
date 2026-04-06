@@ -1,6 +1,21 @@
 ---
 name: arc:init
 description: "项目索引与上下文中枢维护：初始化或更新共享索引产物；当用户说“初始化项目索引/bootstrap context/update index”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:init — index mode router
@@ -341,4 +356,14 @@ arc init --mode full /path/to/project
 
 # forced increment
 arc init --mode update /path/to/project
+```
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
 ```

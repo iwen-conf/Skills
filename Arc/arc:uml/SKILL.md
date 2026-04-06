@@ -1,6 +1,21 @@
 ---
 name: arc:uml
 description: "UML 与 Chen E-R 建模：基于代码证据生成标准图谱；当用户说“画架构图/UML 建模/sequence diagram/ER 图”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:uml — Project UML diagram generation
@@ -226,7 +241,7 @@ order_total((property: total_amount))
 │   └── ...
 ```
 
-## Anti-Patterns
+## Gotchas
 
 - Draw "good-looking pictures" but don't connect them to the real code and configuration.
 - Treat the configuration file diagram as a pure screenshot and do not express the relationship between configurations.
@@ -234,3 +249,13 @@ order_total((property: total_amount))
 - The E-R diagram does not use Chen's drawing symbols, or its data source is not based on the actual database table design (数据库表设计).
 - **In Chen's E-R diagrams, drawing foreign keys as attributes or including physical table characteristics (like varchar, length, constraints, etc.) is strictly forbidden.** They must be represented strictly as conceptual models.
 - The output map has no maintenance strategy, causing it to expire quickly.
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
+```

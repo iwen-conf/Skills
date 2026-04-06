@@ -1,6 +1,21 @@
 ---
 name: arc:build
 description: "代码交付与实施落地：按既定方案改代码并给出验证与交接；当用户说“实现这个方案/落地开发/implement this plan”时触发。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 
 # arc:build — implementation of the solution
@@ -185,7 +200,9 @@ Arc/arc:build/scripts/scaffold_implement_case \
 
 ### Phase 4: Verification and Handover
 
-1. Perform minimum necessary verification (compile/test/static checks).
+1. Perform minimum necessary verification (compile/test/static checks):
+   - You MUST run `bash Arc/scripts/check-placeholders.sh` to ensure no lazy placeholder code (`// ...`, `TODO:`) was left in the git diff.
+   - You MUST run `bash Arc/scripts/verify-project.sh` (or the equivalent project-specific test command) and verify it passes.
 2. Generate delivery documents:
 - `reports/execution-report.md`
 - `handoff/change-summary.md`
@@ -227,7 +244,7 @@ Default directory: `<project_path>/.arc/build/<task-name>/`
 | `execution-report.md` | Implementation results and verification conclusions |
 | `change-summary.md` | Handover summary for downstream skills/reviews |
 
-## Anti-Patterns
+## Gotchas
 
 **CRITICAL: The following behaviors are FORBIDDEN in arc:build execution:**
 
@@ -249,5 +266,18 @@ Default directory: `<project_path>/.arc/build/<task-name>/`
 
 - **Skip Verification**: Not running LSP diagnostics after edits — must verify clean before commit
 - **Batch Completion**: Marking multiple todos complete at once — one at a time, verify each
+- **Cache Stale Usage**: Using expired codemap.md (7d+) without refresh — triggers arc:cartography
+- **Handoff Skip**: Not generating `handoff/` artifacts — breaks downstream skills
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            [expand / shape / hold / cut]: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
+```
+ multiple todos complete at once — one at a time, verify each
 - **Cache Stale Usage**: Using expired codemap.md (7d+) without refresh — triggers arc:cartography
 - **Handoff Skip**: Not generating `handoff/` artifacts — breaks downstream skills

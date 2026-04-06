@@ -1,6 +1,21 @@
 ---
 name: arc:test
 description: "代码级测试生成：为函数/模块自动生成单测、集成、边界、表驱动、benchmark 和 fuzz 测试。"
+version: 1.0.0
+allowed_tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+hooks:
+  PreToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
+          statusMessage: "Checking for destructive commands..."
 ---
 # arc:test — code-level test generation
 
@@ -105,4 +120,14 @@ No test may be declared generated unless it compiles and passes in the target pr
 arc:test/
   test-report.md          # Compile/pass evidence for all generated tests
   <generated test files>  # Placed according to language convention
+```
+
+## Sign-off
+
+```text
+files changed:    N (+X -Y)
+scope:            on target / drift: [what]
+hard stops:       N found, N fixed, N deferred
+signals:          N noted
+verification:     [command] → pass / fail
 ```
