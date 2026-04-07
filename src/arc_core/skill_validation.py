@@ -113,6 +113,12 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
         ["authorial voice", "作者声音"],
         ["human review", "人工复核"],
     ],
+    "arc:learn": [
+        ["three-layer verification", "三层交叉验证"],
+        ["intellectual genealogy", "知识谱系"],
+        ["primary sources", "第一手信源"],
+        ["contextual fidelity", "语境保真度"],
+    ],
 }
 
 LEGACY_TOKEN_PARTS = [
