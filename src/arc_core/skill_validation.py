@@ -60,7 +60,7 @@ ARC_DECISION_TREE_LINK = "../../docs/arc-routing-matrix.md#signal-to-skill-decis
 ARC_PHASE_VIEW_LINK = "../../docs/arc-routing-matrix.md#phase-routing-view"
 ARC_CHEATSHEET_LINK = "../../docs/arc-routing-cheatsheet.md"
 
-SUPPORTED_SKILL_PREFIXES = ("arc-",)
+SUPPORTED_SKILL_PREFIXES = ("arc:",)
 SKILL_NAMESPACE_DIRS = {
     "arc": "Arc",
 }
@@ -180,25 +180,25 @@ WHEN_TO_USE_MARKER_VARIANTS = [
 
 
 
-def parse_frontmatter(text: str) -> tuple[dict[str, str], str | None]:
+import yaml
+
+def parse_frontmatter(text: str) -> tuple[dict[str, Any], str | None]:
     if not text.startswith("---\n"):
         return {}, "missing frontmatter start"
     end = text.find("\n---\n", 4)
     if end == -1:
         return {}, "missing frontmatter end"
-    block = text[4:end].strip().splitlines()
-    data: dict[str, str] = {}
-    for line in block:
-        if ":" not in line:
-            continue
-        key, value = line.split(":", 1)
-        data[key.strip()] = value.strip().strip('"').strip("'")
+    block = text[4:end]
+    try:
+        data = yaml.safe_load(block) or {}
+    except yaml.YAMLError as exc:
+        return {}, f"yaml parsing error: {exc}"
     return data, None
 
 
 
 def is_arc_skill(name: str) -> bool:
-    return name.startswith("arc-")
+    return name.startswith("arc:")
 def is_supported_skill(name: str) -> bool:
     return any(name.startswith(prefix) for prefix in SUPPORTED_SKILL_PREFIXES)
 
@@ -434,7 +434,7 @@ def validate_text(text: str, path_label: str, root: Path | None = None) -> tuple
     enforce_arc_profile = skill_name in ARC_ROUTED_SKILLS
 
     if enforce_arc_profile:
-        allowed_keys = {"name", "description"}
+        allowed_keys = {"name", "description", "version", "allowed_tools", "hooks"}
         extra_keys = sorted(key for key in fm.keys() if key not in allowed_keys)
         if extra_keys:
             errors.append(
