@@ -360,6 +360,8 @@ If it is judged to be a false positive by the test script/selector: first correc
 ### 6) Regression verification and production of deliverable repair solutions
 
 - **Code Quality Check (Mandatory)**: You MUST run `bash Arc/scripts/check-placeholders.sh` to ensure no lazy placeholder code was committed to the diff.
+- **Type Safety Check (Mandatory)**: You MUST run `bash Arc/scripts/check-types.sh` to ensure no `any`, `@ts-ignore`, or `eslint-disable` was added as a shortcut.
+- **Scope Limit Check (Mandatory)**: You MUST run `bash Arc/scripts/check-scope.sh 3` (default limit: 3 files). If it fails, you must revert or seek explicit user approval for a wider refactor.
 - **Project Verification (Mandatory)**: Before generating the final fix packet, you MUST run the standard project verification script to ensure no regressions were introduced to the type system or test suite:
   - `bash Arc/scripts/verify-project.sh` (or the equivalent project-specific test command)
 - Re-execute arc:e2e, generate a new `run_dir`, and again:

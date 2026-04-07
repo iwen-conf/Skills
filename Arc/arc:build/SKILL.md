@@ -202,6 +202,8 @@ Arc/arc:build/scripts/scaffold_implement_case \
 
 1. Perform minimum necessary verification (compile/test/static checks):
    - You MUST run `bash Arc/scripts/check-placeholders.sh` to ensure no lazy placeholder code (`// ...`, `TODO:`) was left in the git diff.
+   - You MUST run `bash Arc/scripts/check-types.sh` to ensure strict typing was followed.
+   - You MUST run `bash Arc/scripts/check-scope.sh 5` (default limit: 5 files). Exceeding this requires user approval.
    - You MUST run `bash Arc/scripts/verify-project.sh` (or the equivalent project-specific test command) and verify it passes.
 2. Generate delivery documents:
 - `reports/execution-report.md`
