@@ -60,6 +60,33 @@ NO FIX CLAIM WITHOUT FAIL-TO-PASS EVIDENCE CHAIN
 
 Without the evidence chain of "failure→repair→pass", it is not allowed to claim that the problem has been solved.
 
+## Mandatory Hypothesis
+
+**Do not touch code until you can state the root cause in one sentence.**
+
+Before going further, commit to a testable claim:
+> "I believe the root cause is [X] because [evidence]."
+
+The claim must name a specific file, function, line, or condition. "A state management issue" is not testable. If you cannot be that specific, you do not have a hypothesis yet.
+
+## Rationalization Watch
+
+These phrases are diagnostic failures in disguise. When one surfaces in your thoughts, stop and re-examine:
+
+| What you're thinking | What it actually means | Rule |
+|---|---|---|
+| "I'll just try this one thing" | No hypothesis, random-walking | Stop. Write the hypothesis first. |
+| "I'm confident it's X" | Confidence is not evidence | Run an instrument that proves it. |
+| "Probably the same issue as before" | Treating a new symptom as a known pattern | Re-read the execution path from scratch. |
+| "It works on my machine" | Environment difference IS the bug | Enumerate every env difference before dismissing it. |
+| "One more restart should fix it" | Avoiding the error message | Read the last error verbatim. Never restart more than twice without new evidence. |
+
+## Hard Stops
+
+**Same symptom after a fix is a hard stop.** If the user reports the same symptom after a patch was applied, do not patch again. Treat it as a new investigation: the previous hypothesis was wrong. Re-read the execution path from scratch. Three rounds of "fixed but still broken" in the same area means the abstraction is wrong, not the specific line.
+
+**Never state environment details from memory.** Before diagnosing OS, compiler, SDK, or tool version issues, run the detection command first: `sw_vers`, `node --version`, `rustc --version`, etc. State the actual output. A diagnosis built on an assumed version is not a diagnosis.
+
 ## Workflow
 
 1. Fixed minimal reproducibility evidence and context for failed runs.
@@ -83,6 +110,8 @@ Without the evidence chain of "failure→repair→pass", it is not allowed to cl
 - For online recovery, verification should record `MTTA/MTTR` and the agreed post-recovery stability window.
 - For online repairs, it is recommended to use `canary/feature flag` first and bind the rollback threshold.
 - High-impact incident closure should produce `Blameless Postmortem` and CAPA (Corrective/Preventive Action) items.
+- Strict adherence to the `Mandatory Hypothesis` before touching any code.
+- Actively monitor internal assumptions using the `Rationalization Watch` to prevent diagnostic failures.
 
 ## Scripts & Commands
 
@@ -379,14 +408,6 @@ Note: arc:e2e may store reusable credentials in `accounts.jsonc`; therefore `rep
 - **Type Suppression**: Using `as any`, `@ts-ignore`, `@ts-expect-error` to silence errors — forbidden
 - **Test Deletion**: Deleting failing tests to make suite pass — never acceptable
 - **Skip Shortcuts**: Commenting out code or adding `if(false)` to skip logic — proper fix required
-
-### Verification Anti-Patterns
-
-- **Premature PASS**: Declaring fix complete before re-running failed test — must verify
-- **Partial Verification**: Only testing the fixed path, not related paths — regression risk
-- **Context Skip**: Not reading `.arc/e2e/` failure report before triage — missing context
-- **Session Waste**: Starting fresh instead of continuing with `task_ref` — loses diagnosis progress
-: Commenting out code or adding `if(false)` to skip logic — proper fix required
 
 ### Verification Anti-Patterns
 
