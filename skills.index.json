@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-25T17:17:55.525023Z",
-  "skill_count": 19,
+  "generated_at": "2026-04-10T15:08:00.897738Z",
+  "skill_count": 20,
   "skills": [
     {
       "name": "arc:aigc",
@@ -82,6 +82,11 @@
           "heading": "## Outputs",
           "title": "Outputs",
           "body": "```text\n<project>/.arc/aigc/<session>/\n├── session-plan.md       # chunk breakdown, protected spans, and pass goals\n├── revision-log.md       # chunk id, original text, rewrite, rationale, citation comments\n├── stage2-summary.md     # cohesion review, transition fixes, terminology and citation gaps\n├── polished-text.md      # final draft for author/editor review\n└── compliance-notes.md   # optional notes for disclosure, unresolved evidence gaps, or manual follow-up\n```"
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -230,9 +235,14 @@
           "body": "| Condition | Handling |\n|-----------|----------|\n| Missing business evidence | Mark business specialist score `N/A`, explain the gap, and provide evidence collection steps |\n| Missing dependency evidence | Mark dependency specialist score `N/A`, explain the gap, and provide evidence collection steps |\n| Tight time budget | Prefer `quick` or `standard`; skip rebuttal and dashboard generation |\n| Retrieval tooling unavailable | Fall back to manual repository inspection, but keep the same evidence rules |\n| Presentation not requested | Do not generate `quantitative-dashboard.html` |"
         },
         {
-          "heading": "## Quick Status Feedback Syntax",
-          "title": "Quick Status Feedback Syntax",
-          "body": "```text\n[arc:audit] Target: <project_name>\n\n1. Scope and evidence plan confirmed.\n2. Evidence registry collected.\n3. Seven dimensions reviewed with score/N.A. boundaries.\n4. Diagnostic report, scorecard, and recommendations produced.\n5. Optional deep-mode or dashboard artifacts added only if requested.\n```"
+          "heading": "## Gotchas",
+          "title": "Gotchas",
+          "body": "Real failures from prior sessions, in order of frequency:\n\n- **Missing evidence turned into N/A silently.** Do not just write N/A; explain the gap and how to collect evidence.\n- **Score assigned without evidence.** The Iron Law is \"NO SCORE WITHOUT DIRECT EVIDENCE\". Never guess scores based on vibes.\n- **Scored specialist index without business flows.** \"Business Maturity Index\" requires observable flows. If missing, mark N/A."
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [audit complete] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -343,7 +353,7 @@
         {
           "heading": "## Instructions",
           "title": "Instructions",
-          "body": "### Phase 1: Contextual archiving\n\n1. Read the upstream product and project index.\n2. Identify implementation entries, affected modules, and constraints.\n3. Generate `context/implementation-brief.md`.\n4. Execute the scaffolding command:\n\n```bash\nArc/arc:build/scripts/scaffold_implement_case \\\n  --project-path <project_path> \\\n  --task-name <task_name>\n```\n\n### Phase 2: Implementing the plan\n\n1. Output `plan/implementation-plan.md`:\n- Goals and Scope\n- Change steps\n- Risks and Fallback Plans\n- Verification plan\n - Recovery boundary (remote branch / snapshot / blocker)\n2. If there are major technical differences, return to the `arc:decide` argument first.\n\n### Phase 3: Coding implementation\n\n1. Implemented step by step as planned.\n2. Each step is logged to `execution/execution-log.md`:\n- Modification point\n- reason\n- risk\n- Verification status\n\n### Phase 4: Verification and Handover\n\n1. Perform minimum necessary verification (compile/test/static checks).\n2. Generate delivery documents:\n- `reports/execution-report.md`\n- `handoff/change-summary.md`\n- `handoff/pr-description.md` (A ready-to-use Pull Request Description with \"What\", \"Why\", and \"Testing done\")\n- `handoff/commit-messages.txt` (Suggested Conventional Commit messages)\n- `handoff/ADR-XXX.md` (If a new library was introduced or architectural boundary crossed, generate a lightweight Architecture Decision Record here)\n3. Use a script to render the final report:\n\n```bash\nArc/arc:build/scripts/render_implementation_report \\\n  --case-dir <output_dir> \\\n  --task-name <task_name> \\\n  --result pass\n```"
+          "body": "### Phase 1: Contextual archiving\n\n1. Read the upstream product and project index.\n2. Identify implementation entries, affected modules, and constraints.\n3. Generate `context/implementation-brief.md`.\n4. Execute the scaffolding command:\n\n```bash\nArc/arc:build/scripts/scaffold_implement_case \\\n  --project-path <project_path> \\\n  --task-name <task_name>\n```\n\n### Phase 2: Implementing the plan\n\n1. Output `plan/implementation-plan.md`:\n- Goals and Scope\n- Change steps\n- Risks and Fallback Plans\n- Verification plan\n - Recovery boundary (remote branch / snapshot / blocker)\n2. If there are major technical differences, return to the `arc:decide` argument first.\n\n### Phase 3: Coding implementation\n\n1. Implemented step by step as planned.\n2. Each step is logged to `execution/execution-log.md`:\n- Modification point\n- reason\n- risk\n- Verification status\n\n### Phase 4: Verification and Handover\n\n1. Perform minimum necessary verification (compile/test/static checks):\n   - You MUST run `bash Arc/scripts/check-placeholders.sh` to ensure no lazy placeholder code (`// ...`, `TODO:`) was left in the git diff.\n   - You MUST run `bash Arc/scripts/check-types.sh` to ensure strict typing was followed.\n   - You MUST run `bash Arc/scripts/check-scope.sh 5` (default limit: 5 files). Exceeding this requires user approval.\n   - You MUST run `bash Arc/scripts/verify-project.sh` (or the equivalent project-specific test command) and verify it passes.\n2. Generate delivery documents:\n- `reports/execution-report.md`\n- `handoff/change-summary.md`\n- `handoff/pr-description.md` (A ready-to-use Pull Request Description with \"What\", \"Why\", and \"Testing done\")\n- `handoff/commit-messages.txt` (Suggested Conventional Commit messages)\n- `handoff/ADR-XXX.md` (If a new library was introduced or architectural boundary crossed, generate a lightweight Architecture Decision Record here)\n3. Use a script to render the final report:\n\n```bash\nArc/arc:build/scripts/render_implementation_report \\\n  --case-dir <output_dir> \\\n  --task-name <task_name> \\\n  --result pass\n```"
         },
         {
           "heading": "## Scripts",
@@ -361,9 +371,14 @@
           "body": "| output | use |\n|------|------|\n| `implementation-plan.md` | Implementation steps and risk control |\n| `execution-log.md` | Execution process tracking |\n| `execution-report.md` | Implementation results and verification conclusions |\n| `change-summary.md` | Handover summary for downstream skills/reviews |"
         },
         {
-          "heading": "## Anti-Patterns",
-          "title": "Anti-Patterns",
+          "heading": "## Gotchas",
+          "title": "Gotchas",
           "body": "**CRITICAL: The following behaviors are FORBIDDEN in arc:build execution:**\n\n### Planning Anti-Patterns\n\n- **Speculation Implementation**: Writing code without reading arc:decide or arc:clarify output first — must have approved plan\n- **Scope Creep**: Adding features not in the approved plan — strict scope adherence required\n- **Pattern Ignorance**: Not reading existing code patterns before implementing — causes inconsistency\n\n### Implementation Anti-Patterns\n\n- **Type Safety Violation**: Using `as any`, `@ts-ignore`, `@ts-expect-error` — forbidden without explicit exception approval. Do not bypass type errors to achieve the goal.\n- **Logic Bypass**: Modifying, deleting, or bypassing core business logic or assertions just to make a test pass or silence an error — strictly forbidden. You must address the root cause.\n- **Empty Catch Blocks**: `catch(e) {}` — must handle or re-throw errors\n- **Magic Values**: Hardcoding configuration values — use constants/config files\n- **Commented Code**: Leaving commented-out code blocks — delete or implement\n\n### Process Anti-Patterns\n\n- **Skip Verification**: Not running LSP diagnostics after edits — must verify clean before commit\n- **Batch Completion**: Marking multiple todos complete at once — one at a time, verify each\n- **Cache Stale Usage**: Using expired codemap.md (7d+) without refresh — triggers arc:cartography\n- **Handoff Skip**: Not generating `handoff/` artifacts — breaks downstream skills"
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            [expand / shape / hold / cut]: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```\n multiple todos complete at once — one at a time, verify each\n- **Cache Stale Usage**: Using expired codemap.md (7d+) without refresh — triggers arc:cartography\n- **Handoff Skip**: Not generating `handoff/` artifacts — breaks downstream skills"
         }
       ],
       "quick_contract": {
@@ -507,6 +522,11 @@
           "heading": "## Integration",
           "title": "Integration",
           "body": "- Called by `src/api/`\n- Depends on `src/repositories/` and `src/gateways/`\n```"
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -615,14 +635,19 @@
           "body": "| stage | tool | output |\n|------|------|------|\n| scanning | Read + Glob + ace-tool | Shared index/CLAUDE.md/source context |\n| extract | Read | Project context summary |\n| analyze | Artificial | gap list |\n| Ask a question | AskUserQuestion | User answers |\n| synthesis | Write | enhanced-prompt.md |"
         },
         {
-          "heading": "## Anti-Patterns",
-          "title": "Anti-Patterns",
+          "heading": "## Gotchas",
+          "title": "Gotchas",
           "body": "**CRITICAL: The following behaviors are FORBIDDEN in arc:clarify execution:**\n\n### Scanning Anti-Patterns\n\n- **Skip-Scan-Ask**: Jumping straight to questions without reading CLAUDE.md hierarchy first — questions lack context\n- **Cache Ignorance**: Not checking `.arc/context-hub/index.json` when valid cache exists — wastes prior work\n- **Stale Context Usage**: Using expired cache (24h+) without verification — causes incorrect assumptions\n\n### Question Anti-Patterns\n\n- **Question Overload**: Asking 5+ questions at once — overwhelming, prioritize to 1-3 key questions\n- **Technical Jargon**: Using developer terms with non-technical users — use business language\n- **Leading Questions**: Phrasing questions to bias toward a specific answer — neutral phrasing required\n- **No Custom Option**: Forcing users to pick from predefined options only — always allow free-form input\n\n### Analysis Anti-Patterns\n\n- **Literal Interpretation**: Taking user's words at face value without identifying implicit assumptions\n- **Scope Skipping**: Not clarifying module boundaries when project has multiple sub-systems\n- **Constraint Blindness**: Not identifying performance, compatibility, or timeline constraints\n\n### Output Anti-Patterns\n\n- **Missing Success Criteria**: Enhanced prompt without verification checklist — how to know it's done?\n- **Orphaned Output**: Not writing enhanced-prompt.md to `.arc/decide/` — breaks arc:decide consumption"
         },
         {
           "heading": "## Integration",
           "title": "Integration",
           "body": "After this Skill is completed, choose the downstream skill by task type instead of defaulting blindly:\n\n- If the clarified task is still multi-skill or needs orchestration, continue with `arc:exec`.\n- If the clarified task is dominated by logs, snapshots, large files, or context-budget risk, continue with `arc:context`.\n- If the clarified task is academic/professional prose polishing with citation-preservation constraints, continue with `arc:aigc`.\n- If the clarified task is a disputed or high-risk technical route, continue with `arc:decide`.\n- If the clarified task is already implementation-ready, continue with `arc:build`.\n\nIf the shared product is found to be invalid during the refinement process:\n- CLAUDE index invalidation → trigger `arc:init --mode update` (`arc:init --mode full` if necessary)\n- codemap invalid → trigger `arc:cartography` update\n- score/review data invalidation → trigger `score` module refresh (triggered by `arc:gate` arrangement) / `arc:audit` update\n\n```\nProblem refinement completed. Enhanced prompt has been written:\n.arc/decide/<task-name>/context/enhanced-prompt.md\n\nYou can now route to `arc:exec`, `arc:context`, `arc:aigc`, `arc:decide`, or `arc:build` according to the clarified task boundary.\n```"
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -719,6 +744,11 @@
           "heading": "## Outputs",
           "title": "Outputs",
           "body": "```text\n<project>/.arc/context/<task_name>/\n├── plan/\n│   └── context-plan.md\n├── sources/\n├── retrieval/\n│   └── search-queries.md\n├── findings/\n│   └── compact-findings.md\n├── context/\n│   ├── context-brief.md\n│   └── working-set.md\n├── restore/\n│   ├── recovery-manifest.json\n│   └── restore-checklist.md\n└── handoff/\n    └── handoff-notes.md\n```"
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -889,14 +919,19 @@
           "body": "| stage | key outputs |\n|-------|-------------|\n| Ambiguity checking | `agents/*/ambiguity-round-N.md` |\n| Proposal debate | `agents/*/proposal-round-N.md`, `agents/*/critique-round-N.md` |\n| Convergence | `convergence/final-consensus.md` |\n| Plan generation | `openspec/changes/<task-name>/{proposal,design,tasks}.md` |\n| Execution record | `execution/implementation-log.md` |"
         },
         {
-          "heading": "## Anti-Patterns",
-          "title": "Anti-Patterns",
+          "heading": "## Gotchas",
+          "title": "Gotchas",
           "body": "- **Premature Consensus**: Convergence is declared before cross-rebuttal is completed.\n- **Echo Chamber**: Character output is highly homogeneous, with no real conflicts or trade-offs.\n- **Spec Skip**: Enter implementation directly without OpenSpec verification.\n- **Risk Blindness**: Ignore failed paths, fallback conditions and observation indicators.\n- **No Decision Trail**: There is no ADR evidence chain, and subsequent review is impossible."
         },
         {
           "heading": "## Quick call method",
           "title": "Quick call method",
           "body": "| role | call pattern | mode |\n|------|--------------|------|\n| architecture | `schedule_task(capability_profile=\"architecture\", capabilities=[\"arc:decide\"], ...)` | background |\n| deep | `schedule_task(capability_profile=\"deep\", capabilities=[\"arc:decide\"], ...)` | background |\n| ui | `schedule_task(capability_profile=\"ui\", capabilities=[\"arc:decide\", \"frontend-ui-ux\"], ...)` | background |\n| aggregation/finalization | processed directly by the main process | foreground |"
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -1075,9 +1110,14 @@
           "body": "* **UI State**: [Error message or screenshot description]\n* **DB State**:   \n  > Query: `SELECT status FROM orders ...`  \n  > Result: `[database_query_result]`\n```\n\n### **4. Optional: events.jsonl (Machine-readable)**\n\nWhen `report_formats` contains `\"jsonl\"`, each step must append a line of JSON containing at least these fields:\n\n```json\n{\"run_id\":\"<run_id>\",\"step\":1,\"role\":\"buyer\",\"kind\":\"exec\",\"cmd\":\"mcp_chrome-devtools_navigate_page \\\"<target_url>/login\\\"\",\"ts\":\"YYYY-MM-DDTHH:MM:SS\",\"result\":\"PASS\"}\n{\"run_id\":\"<run_id>\",\"step\":1,\"role\":\"buyer\",\"kind\":\"screenshot\",\"path\":\"screenshots/s0001_login-page.png\",\"description\":\"Login page initial state\",\"ts\":\"YYYY-MM-DDTHH:MM:SS\"}\n```"
         },
         {
-          "heading": "## Anti-Patterns",
-          "title": "Anti-Patterns",
+          "heading": "## Gotchas",
+          "title": "Gotchas",
           "body": "**CRITICAL: The following behaviors are FORBIDDEN in arc:e2e execution:**\n\n### Test Execution Anti-Patterns\n\n- **Screenshot Skipping**: Failing to capture screenshots at required key steps — reports are incomplete without visual evidence\n- **Selector Guessing**: Using guessed selectors without verification — causes flaky tests\n- **Happy Path Only**: Testing only success scenarios — must include error cases and edge conditions\n- **State Blindness**: Ignoring page state before actions — causes cascade failures\n\n### Evidence Anti-Patterns\n\n- **Missing Manifest**: Missing `screenshot-manifest.md` or any compiled manifest used for delivery — breaks report traceability\n- **Broken References**: Screenshot filenames not matching manifest entries — orphaned evidence\n- **JSONL Corruption**: Malformed `events.jsonl` entries — breaks compilation\n- Temporarily changing OTA/update targets, writable directories, feed URLs, or local config so the UI button can \"pass\", then restoring the original value afterward\n\n### Report Anti-Patterns\n\n- **Preliminary Conclusion**: Marking test PASS before `check_artifacts.py --strict` validation — premature success declaration\n- **Failure Suppression**: Skipping failed steps instead of recording them — hides real issues\n- **Context Ignorance**: Not reading CLAUDE.md for expected behavior — tests wrong things"
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -1251,14 +1291,19 @@
           "body": "| stage | key actions | artifacts |\n|-------|-------------|-----------|\n| Understand | context preflight + MCP scan | `context/task-brief.md` |\n| Route | skill match + confidence + fallback | `routing/dispatch-log.md` |\n| Preview | operation list + snapshot + confirm | `preview/execution-preview.md` |\n| Dispatch | split + schedule + collect | `dispatch/task-board.md` |\n| Aggregate | conflict arbitration + summary | `aggregation/final-summary.md` |"
         },
         {
-          "heading": "## Anti-Patterns",
-          "title": "Anti-Patterns",
-          "body": "- **Shotgun Dispatch**: Starting multiple Agents without boundaries leads to duplication of work.\n- **Blocking Search**: Execute `search/research` serially in the foreground, slowing down the main link.\n- **Orphaned Tasks**: Not tracking `task_ref` results in unrecyclable results.\n- **Cache Blindness**: Repeating the same analysis even though there are reusable products.\n- **Unsafe Execution**: No confirmation, no snapshot, and no rollback for high-risk operations."
+          "heading": "## Gotchas",
+          "title": "Gotchas",
+          "body": "Real failures from prior sessions, in order of frequency:\n\n- **Shotgun Dispatch**: Starting multiple Agents without boundaries leads to duplication of work.\n- **Blocking Search**: Execute `search/research` serially in the foreground, slowing down the main link.\n- **Orphaned Tasks**: Not tracking `task_ref` results in unrecyclable results.\n- **Cache Blindness**: Repeating the same analysis even though there are reusable products.\n- **Unsafe Execution**: No confirmation, no snapshot, and no rollback for high-risk operations.\n- **Python-heavy orchestration assumed**: When the user pushes back on Python-heavy orchestration for local long-running services, prefer a one-shot Go or shell controller that exits immediately.\n- **Go binary startup cost ignored**: When a short-lived Go controller will be invoked repeatedly, add a tiny cached launcher to reuse the compiled binary instead of paying `go run` cost every time.\n- **Over-engineered CLI assumed**: When user says `arc` or an `arc:*` capability, first map it to the local skill set under `Arc/` before concluding a standalone CLI is required.\n- **GitHub Actions silently reintroduced**: Treat \"no GitHub Actions\" as a hard repository policy. Add a validator/test guard so `.github/workflows/` cannot come back silently."
         },
         {
           "heading": "## Context",
           "title": "Context",
           "body": "The context is read with the following priorities before dispatching:\n\n1. `.arc/context-hub/index.json` (shared index product)\n2. `.arc/<skill>/` (skill cache product)\n3. Project-level `CLAUDE.md` (project rules/architecture description)\n4. ace-tool MCP scan results (latest code reality)\n5. Exa MCP (external knowledge supplement)\n\nSee `docs/orchestration-contract.md` and `docs/arc-routing-matrix.md` for details."
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\ndispatch:         [task list]\nverification:     [dispatch collected] → success / failure\n```"
         }
       ],
       "quick_contract": {
@@ -1353,6 +1398,21 @@
           "body": "```\nNO FIX CLAIM WITHOUT FAIL-TO-PASS EVIDENCE CHAIN\n```\n\nWithout the evidence chain of \"failure→repair→pass\", it is not allowed to claim that the problem has been solved."
         },
         {
+          "heading": "## Mandatory Hypothesis",
+          "title": "Mandatory Hypothesis",
+          "body": "**Do not touch code until you can state the root cause in one sentence.**\n\nBefore going further, commit to a testable claim:\n> \"I believe the root cause is [X] because [evidence].\"\n\nThe claim must name a specific file, function, line, or condition. \"A state management issue\" is not testable. If you cannot be that specific, you do not have a hypothesis yet."
+        },
+        {
+          "heading": "## Rationalization Watch",
+          "title": "Rationalization Watch",
+          "body": "These phrases are diagnostic failures in disguise. When one surfaces in your thoughts, stop and re-examine:\n\n| What you're thinking | What it actually means | Rule |\n|---|---|---|\n| \"I'll just try this one thing\" | No hypothesis, random-walking | Stop. Write the hypothesis first. |\n| \"I'm confident it's X\" | Confidence is not evidence | Run an instrument that proves it. |\n| \"Probably the same issue as before\" | Treating a new symptom as a known pattern | Re-read the execution path from scratch. |\n| \"It works on my machine\" | Environment difference IS the bug | Enumerate every env difference before dismissing it. |\n| \"One more restart should fix it\" | Avoiding the error message | Read the last error verbatim. Never restart more than twice without new evidence. |"
+        },
+        {
+          "heading": "## Hard Stops",
+          "title": "Hard Stops",
+          "body": "**Same symptom after a fix is a hard stop.** If the user reports the same symptom after a patch was applied, do not patch again. Treat it as a new investigation: the previous hypothesis was wrong. Re-read the execution path from scratch. Three rounds of \"fixed but still broken\" in the same area means the abstraction is wrong, not the specific line.\n\n**Never state environment details from memory.** Before diagnosing OS, compiler, SDK, or tool version issues, run the detection command first: `sw_vers`, `node --version`, `rustc --version`, etc. State the actual output. A diagnosis built on an assumed version is not a diagnosis."
+        },
+        {
           "heading": "## Workflow",
           "title": "Workflow",
           "body": "1. Fixed minimal reproducibility evidence and context for failed runs.\n2. Quickly triage and locate the root cause (product/test/environment/data).\n3. Implement minimal fixes and keep permission/authentication semantics from being bypassed.\n4. Regression verification and output deliverable Fix Packet."
@@ -1365,7 +1425,7 @@
         {
           "heading": "## Expert Standards",
           "title": "Expert Standards",
-          "body": "- For online incidents, fault severity classification should follow `SEV-1/SEV-2/SEV-3` grading with the team's defined response expectations.\n- Root cause analysis needs to be combined with `5 Whys + Fault Tree` to avoid staying at the superficial causes.\n- For online recovery, verification should record `MTTA/MTTR` and the agreed post-recovery stability window.\n- For online repairs, it is recommended to use `canary/feature flag` first and bind the rollback threshold.\n- High-impact incident closure should produce `Blameless Postmortem` and CAPA (Corrective/Preventive Action) items."
+          "body": "- For online incidents, fault severity classification should follow `SEV-1/SEV-2/SEV-3` grading with the team's defined response expectations.\n- Root cause analysis needs to be combined with `5 Whys + Fault Tree` to avoid staying at the superficial causes.\n- For online recovery, verification should record `MTTA/MTTR` and the agreed post-recovery stability window.\n- For online repairs, it is recommended to use `canary/feature flag` first and bind the rollback threshold.\n- High-impact incident closure should produce `Blameless Postmortem` and CAPA (Corrective/Preventive Action) items.\n- Strict adherence to the `Mandatory Hypothesis` before touching any code.\n- Actively monitor internal assumptions using the `Rationalization Watch` to prevent diagnostic failures."
         },
         {
           "heading": "## Scripts & Commands",
@@ -1415,7 +1475,7 @@
         {
           "heading": "## Workflow (recommended to execute in order)",
           "title": "Workflow (recommended to execute in order)",
-          "body": "### 0) If run_dir is missing: run arc:e2e first to produce failure artifacts\n\n- Create a directory skeleton with scaffolding (recommended `--pack full-process`, at least implicitly including `e2e`):\n  - `python Arc/arc:e2e/scripts/scaffold_run.py --help`\n  - `python Arc/arc:e2e/scripts/scaffold_run.py --pack full-process --objective \"<objective>\" --target-url \"<url>\" --personas \"<json-or-path>\"`\n- Press `arc:e2e/SKILL.md` to execute the test to ensure disk placement:\n  - `report.md`,`action-log.md`,`screenshot-manifest.md`,`screenshots/`\n-(optional)`events.jsonl`\n- After failure, use the output `run_dir` as the input of this Skill to continue with the subsequent steps.\n\n### 1) Obtain failure evidence and compile a report\n\n- If `run_dir` already exists: verify and compile first\n  - `python Arc/arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`\n  - `python Arc/arc:e2e/scripts/compile_report.py --run-dir <run_dir> --in-place` (optional: add `--beautify-md` if `mdformat` is already installed in venv)\n- Extract \"minimum reproducible information\" from the following files:\n  - `report.md` (failed step table)\n  - `failures/*.md` (defect description)\n  - `action-log.md` / `events.jsonl` (operation track)\n  - `screenshots/` (visual evidence)\n\n### 2) Reproduction failed (reduced to the smallest steps)\n\n- Goal: Convergence failure into \"from which page, what was clicked, what was expected, what was actual, and where did it start to deviate\".\n- Output `DEBUG:` log (contains at least):\n  - Recurrence entrance URL, account role, step number step_id, page URL\n  - Key DOM/interface request observations (e.g. toast copy, HTTP status codes, key fields)\n\n\n**Get context before starting diagnostics in the following priority: **\n\n**Priority 0: Read shared context index (`.arc/context-hub/index.json`)**\n1. Retrieve reusable products: `codemap.md`, `arc:audit` snapshot, score results (generated by `score/` module), `arc:build` handoff\n2. Verify `expires_at`, `content_hash`, file existence\n3. If available, load it directly and narrow down the scope of investigation.\n4. If it fails, press `refresh_skill` reflow to trigger the update (`arc:init --mode update` / `arc:cartography` / `arc:audit` / `score` module refresh (triggered by `arc:gate` orchestration))\n\n**Priority 1: Check `.arc/audit/` Architecture Analysis**\n1. Find review artifacts: Check `.arc/audit/<project-name>/` for the presence of an architectural analysis document\n2. Verify freshness: check that `project-snapshot.md` or `diagnosis-report.md` was generated < 7 days ago\n3. Extract key information: module dependencies, common defect patterns, repair strategy suggestions\n4. If the review product does not exist or has expired: trigger the `arc:audit` update first and then continue.\n\n**Priority 2: Check `.arc/fix/known-patterns.md`**\n1. Find historical defect patterns: read `.arc/fix/known-patterns.md` if present\n2. Match current failure: Compare current failure symptoms to known patterns\n3. Reuse repair strategy: If the match is successful, apply the verified repair solution directly\n\n**Priority 3: Use ace-tool to search source code**\nWhen the cache information is insufficient, use ace-tool to search the project source code to locate the root cause of the problem.\n\n**Priority 4: Cache Verification and Error Reporting**\nDuring the diagnostic process, if you discover that the information in `.arc/audit/` or CLAUDE.md is inaccurate:\n1. Tag cache errors: logging expected vs. actual\n2. Falling back to source code search: use ace-tool to get the correct information\n3. Generate error report: Generate cache validation failure report at `<run_dir>/analysis/context-errors/`\n4. Reflow update:\n   - Review data issues → `arc:audit`\n   - CLAUDE index problem → `arc:init --mode update`\n   - Code map issue → `arc:cartography`\n\n**Priority 5: Update known defect pattern library**\nAfter successfully fixing the defect, append the newly discovered defect pattern to `.arc/fix/known-patterns.md`.\n\n---\n\n### 3) Diversion diagnosis (prioritize the elimination of \"test false alarms\")\n\nQuickly judge by priority:\n\n- **Selector/Copy Change**: Element does not exist/role changes/text changes\n- **Timing issues**: slow loading, incorrect waiting conditions, race condition\n- **Permissions/Authentication**: Login status lost, token expired, cross-account not logged out\n- **Backend exception**: 500/timeout/data inconsistency\n- **Environmental issues**: service not started, port conflict, database unreachable\n\nIf it is judged to be a false positive by the test script/selector: first correct the steps and selector of arc:e2e, and then go back again to confirm whether the real defect still exists.\n\n### 4) Enhance observability (add DEBUG to the code)\n\n- First add the \"observation point\" and then move to the \"business logic\".\n- It is recommended to unify the format to facilitate grep:\n  - Backend: `DEBUG_UI_UX_FIX` + `run_id` + `step_id` + `request_id`\n  - Frontend: `console.debug('[DEBUG_UI_UX_FIX]', { runId, stepId, ... })`\n- Record \"Input → Intermediate → Output\" to avoid just typing \"Arrived here\".\n\n### 5) Repair (submit in small steps to avoid damaging the surface)\n\n- Prioritize root causes: state machine, verification, boundary conditions, concurrency, selector stability, etc.\n- It is forbidden to use permission modification to cover up problems (see Iron Rule 1).\n- Run the minimum recurrence path after each change; run the complete regression after confirming that the failure has disappeared.\n\n### 5.1) Engineering suggestions for UI related repairs (common industrial-grade practices)\n\n- Prioritize the introduction/use of stable selectors: `data-testid`, ARIA role + label; avoid relying on volatile copywriting and complex CSS.\n- Avoid `sleep`-style waits: use deterministic conditions such as \"element appears/can be clicked/request completed/Toast appears\".\n- Evidence is required for Flake: the same commit must be run at least 2 to 3 times and still pass stably before it can be judged as \"fixed\".\n\n### 6) Regression verification and production of deliverable repair solutions\n\n- Re-execute arc:e2e, generate a new `run_dir`, and again:\n  - `python Arc/arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`\n  - `python Arc/arc:e2e/scripts/compile_report.py --run-dir <run_dir> --in-place` (optional: add `--beautify-md` if `mdformat` is already installed in venv)\n- Which gives in the final output:\n  - **Root Cause**\n  - **Fix (repair point)**: involving files/modules/key logic\n  - **Verification**: failed run_id + passed run_id + reporting path\n  - **Risk & Follow-ups**: possible regression points, single tests/monitoring that need to be supplemented\n\n> Final delivery template: see `references/fix-packet.template.md`."
+          "body": "### 0) If run_dir is missing: run arc:e2e first to produce failure artifacts\n\n- Create a directory skeleton with scaffolding (recommended `--pack full-process`, at least implicitly including `e2e`):\n  - `python Arc/arc:e2e/scripts/scaffold_run.py --help`\n  - `python Arc/arc:e2e/scripts/scaffold_run.py --pack full-process --objective \"<objective>\" --target-url \"<url>\" --personas \"<json-or-path>\"`\n- Press `arc:e2e/SKILL.md` to execute the test to ensure disk placement:\n  - `report.md`,`action-log.md`,`screenshot-manifest.md`,`screenshots/`\n-(optional)`events.jsonl`\n- After failure, use the output `run_dir` as the input of this Skill to continue with the subsequent steps.\n\n### 1) Obtain failure evidence and compile a report\n\n- If `run_dir` already exists: verify and compile first\n  - `python Arc/arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`\n  - `python Arc/arc:e2e/scripts/compile_report.py --run-dir <run_dir> --in-place` (optional: add `--beautify-md` if `mdformat` is already installed in venv)\n- Extract \"minimum reproducible information\" from the following files:\n  - `report.md` (failed step table)\n  - `failures/*.md` (defect description)\n  - `action-log.md` / `events.jsonl` (operation track)\n  - `screenshots/` (visual evidence)\n\n### 2) Reproduction failed (reduced to the smallest steps)\n\n- Goal: Convergence failure into \"from which page, what was clicked, what was expected, what was actual, and where did it start to deviate\".\n- Output `DEBUG:` log (contains at least):\n  - Recurrence entrance URL, account role, step number step_id, page URL\n  - Key DOM/interface request observations (e.g. toast copy, HTTP status codes, key fields)\n\n\n**Get context before starting diagnostics in the following priority: **\n\n**Priority 0: Read shared context index (`.arc/context-hub/index.json`)**\n1. Retrieve reusable products: `codemap.md`, `arc:audit` snapshot, score results (generated by `score/` module), `arc:build` handoff\n2. Verify `expires_at`, `content_hash`, file existence\n3. If available, load it directly and narrow down the scope of investigation.\n4. If it fails, press `refresh_skill` reflow to trigger the update (`arc:init --mode update` / `arc:cartography` / `arc:audit` / `score` module refresh (triggered by `arc:gate` orchestration))\n\n**Priority 1: Check `.arc/audit/` Architecture Analysis**\n1. Find review artifacts: Check `.arc/audit/<project-name>/` for the presence of an architectural analysis document\n2. Verify freshness: check that `project-snapshot.md` or `diagnosis-report.md` was generated < 7 days ago\n3. Extract key information: module dependencies, common defect patterns, repair strategy suggestions\n4. If the review product does not exist or has expired: trigger the `arc:audit` update first and then continue.\n\n**Priority 2: Check `.arc/fix/known-patterns.md`**\n1. Find historical defect patterns: read `.arc/fix/known-patterns.md` if present\n2. Match current failure: Compare current failure symptoms to known patterns\n3. Reuse repair strategy: If the match is successful, apply the verified repair solution directly\n\n**Priority 3: Use ace-tool to search source code**\nWhen the cache information is insufficient, use ace-tool to search the project source code to locate the root cause of the problem.\n\n**Priority 4: Cache Verification and Error Reporting**\nDuring the diagnostic process, if you discover that the information in `.arc/audit/` or CLAUDE.md is inaccurate:\n1. Tag cache errors: logging expected vs. actual\n2. Falling back to source code search: use ace-tool to get the correct information\n3. Generate error report: Generate cache validation failure report at `<run_dir>/analysis/context-errors/`\n4. Reflow update:\n   - Review data issues → `arc:audit`\n   - CLAUDE index problem → `arc:init --mode update`\n   - Code map issue → `arc:cartography`\n\n**Priority 5: Update known defect pattern library**\nAfter successfully fixing the defect, append the newly discovered defect pattern to `.arc/fix/known-patterns.md`.\n\n---\n\n### 3) Diversion diagnosis (prioritize the elimination of \"test false alarms\")\n\nQuickly judge by priority:\n\n- **Selector/Copy Change**: Element does not exist/role changes/text changes\n- **Timing issues**: slow loading, incorrect waiting conditions, race condition\n- **Permissions/Authentication**: Login status lost, token expired, cross-account not logged out\n- **Backend exception**: 500/timeout/data inconsistency\n- **Environmental issues**: service not started, port conflict, database unreachable\n\nIf it is judged to be a false positive by the test script/selector: first correct the steps and selector of arc:e2e, and then go back again to confirm whether the real defect still exists.\n\n### 4) Enhance observability (add DEBUG to the code)\n\n- First add the \"observation point\" and then move to the \"business logic\".\n- It is recommended to unify the format to facilitate grep:\n  - Backend: `DEBUG_UI_UX_FIX` + `run_id` + `step_id` + `request_id`\n  - Frontend: `console.debug('[DEBUG_UI_UX_FIX]', { runId, stepId, ... })`\n- Record \"Input → Intermediate → Output\" to avoid just typing \"Arrived here\".\n\n### 5) Repair (submit in small steps to avoid damaging the surface)\n\n- Prioritize root causes: state machine, verification, boundary conditions, concurrency, selector stability, etc.\n- It is forbidden to use permission modification to cover up problems (see Iron Rule 1).\n- Run the minimum recurrence path after each change; run the complete regression after confirming that the failure has disappeared.\n\n### 5.1) Engineering suggestions for UI related repairs (common industrial-grade practices)\n\n- Prioritize the introduction/use of stable selectors: `data-testid`, ARIA role + label; avoid relying on volatile copywriting and complex CSS.\n- Avoid `sleep`-style waits: use deterministic conditions such as \"element appears/can be clicked/request completed/Toast appears\".\n- Evidence is required for Flake: the same commit must be run at least 2 to 3 times and still pass stably before it can be judged as \"fixed\".\n\n### 6) Regression verification and production of deliverable repair solutions\n\n- **Code Quality Check (Mandatory)**: You MUST run `bash Arc/scripts/check-placeholders.sh` to ensure no lazy placeholder code was committed to the diff.\n- **Type Safety Check (Mandatory)**: You MUST run `bash Arc/scripts/check-types.sh` to ensure no `any`, `@ts-ignore`, or `eslint-disable` was added as a shortcut.\n- **Scope Limit Check (Mandatory)**: You MUST run `bash Arc/scripts/check-scope.sh 3` (default limit: 3 files). If it fails, you must revert or seek explicit user approval for a wider refactor.\n- **Project Verification (Mandatory)**: Before generating the final fix packet, you MUST run the standard project verification script to ensure no regressions were introduced to the type system or test suite:\n  - `bash Arc/scripts/verify-project.sh` (or the equivalent project-specific test command)\n- Re-execute arc:e2e, generate a new `run_dir`, and again:\n  - `python Arc/arc:e2e/scripts/check_artifacts.py --run-dir <run_dir> --strict`\n  - `python Arc/arc:e2e/scripts/compile_report.py --run-dir <run_dir> --in-place` (optional: add `--beautify-md` if `mdformat` is already installed in venv)\n- Which gives in the final output:\n  - **Root Cause**\n  - **Fix (repair point)**: involving files/modules/key logic\n  - **Verification**: failed run_id + passed run_id + reporting path\n  - **Risk & Follow-ups**: possible regression points, single tests/monitoring that need to be supplemented\n\n> Final delivery template: see `references/fix-packet.template.md`."
         },
         {
           "heading": "## Defect file (optional but recommended)",
@@ -1423,9 +1483,14 @@
           "body": "When a clear failed step is located, a defect file is generated for easy tracking:\n\n```bash\npython Arc/arc:e2e/scripts/new_defect.py \\\n  --run-dir <run_dir> \\\n  --step 0007 \\\n--title \"500 appears after clicking submit\" \\\n  --role buyer \\\n  --url \"http://localhost:5173/order/new\" \\\n  --user \"buyer_01\" \\\n  --password \"<store-in-accounts-jsonc-only>\" \\\n  --screenshot \"screenshots/s0007_after-submit.png\" \\\n  --severity S1\n```\n\nNote: arc:e2e may store reusable credentials in `accounts.jsonc`; therefore `reports/` should not be submitted to the repository."
         },
         {
-          "heading": "## Anti-Patterns",
-          "title": "Anti-Patterns",
+          "heading": "## Gotchas",
+          "title": "Gotchas",
           "body": "**CRITICAL: The following behaviors are FORBIDDEN in arc:fix execution:**\n\n### Diagnosis Anti-Patterns\n\n- **Shotgun Debugging**: Randomly changing code hoping something works — fix root causes, not symptoms\n- **Symptom Treatment**: Patching error messages without understanding underlying cause — guarantees regression\n- **Cache Blame**: Assuming cache is wrong without verification — check timestamps and hashes first\n- **Log Ignorance**: Not reading full error context before diagnosing — missing critical clues\n\n### Fix Anti-Patterns\n\n- **Refactor-While-Fix**: Refactoring unrelated code while fixing a bug — scope creep causes new bugs\n- **Type Suppression**: Using `as any`, `@ts-ignore`, `@ts-expect-error` to silence errors — forbidden\n- **Test Deletion**: Deleting failing tests to make suite pass — never acceptable\n- **Skip Shortcuts**: Commenting out code or adding `if(false)` to skip logic — proper fix required\n\n### Verification Anti-Patterns\n\n- **Premature PASS**: Declaring fix complete before re-running failed test — must verify\n- **Partial Verification**: Only testing the fixed path, not related paths — regression risk\n- **Context Skip**: Not reading `.arc/e2e/` failure report before triage — missing context\n- **Session Waste**: Starting fresh instead of continuing with `task_ref` — loses diagnosis progress"
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -1552,6 +1617,11 @@
           "heading": "## quality constraints",
           "title": "quality constraints",
           "body": "1. **Determinism**: The same input always produces the same output\n2. **Auditable**: All decisions have clear rules and data basis\n3. **Configurable**: Both thresholds and exemptions are configurable\n4. **CI Friendly**: Provides correct exit code and structured output"
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -1602,7 +1672,7 @@
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. Check fingerprint and snapshot status to determine full/update routing.\n2. Assemble the input parameters and deliver them to the corresponding sub-skill.\n3. Track execution results and verify product integrity.\n4. Output mode selection basis and subsequent maintenance recommendations."
+          "body": "1. Check fingerprint and snapshot status to determine full/update routing.\n2. If `mode=full` or initializing a blank project, inject standard \"Passive Coaching Templates\" from `Arc/templates/` (e.g., `strict-typescript.md` or `git-commit-convention.md`) into the project's `CLAUDE.md` or `GEMINI.md` to establish global engineering habits.\n3. Assemble the input parameters and deliver them to the corresponding sub-skill.\n4. Track execution results and verify product integrity.\n5. Output mode selection basis and subsequent maintenance recommendations."
         },
         {
           "heading": "## Quality Gates",
@@ -1678,6 +1748,11 @@
           "heading": "## Call example",
           "title": "Call example",
           "body": "```bash\n# First initialization (automatically routed to full)\narc init /path/to/new-project\n\n# Daily updates (automatically routed to update)\narc init /path/to/existing-project\n\n# Force full amount\narc init --mode full /path/to/project\n\n# forced increment\narc init --mode update /path/to/project\n```"
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -1852,6 +1927,11 @@
           "heading": "## Failure Recovery",
           "title": "Failure Recovery",
           "body": "- **Agent timeout (>10min)**: Ask the user whether to continue waiting or downgrade to dual-Agent analysis.\n- **Agent analysis is missing**: Use other two agents to fill it in and mark \"dual source analysis\".\n- **MCP not available**: downgrade to Grep + Read direct scan.\n- **Conflict cannot be resolved**: List the dispute points in the report and mark \"requires manual decision\"."
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -2020,6 +2100,11 @@
           "heading": "## Failure Recovery",
           "title": "Failure Recovery",
           "body": "- **Agent timeout (>10min)**: Ask the user whether to continue waiting or downgrade to dual-Agent drafting.\n- **Agent Drafting Missing**: Fill in with two other Agents, marked \"Dual Source Drafting\".\n- **Term conflict cannot be resolved**: List the conflicting terms in the document and mark \"requires manual decision\".\n- **The handover document is missing**: Prompt the user to execute `arc:ip-check` first, or make a minimal draft (marked \"Unreviewed Evaluation\") when the user explicitly requests it."
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -2073,6 +2158,92 @@
           "description": "Default `<project_path>/.arc/ip-draft/<project-name>/`"
         }
       ],
+      "outputs_section": null
+    },
+    {
+      "name": "arc:learn",
+      "description": "深度技术研究与知识内化：执行收集、消化、大纲、填充、提炼的六阶段工作流；当用户说“深入研究/deep research/learn this domain/整理资料并输出文章”时触发。",
+      "source_path": "Arc/arc:learn/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "`arc:learn` is designed for diving deep into unfamiliar technical domains, evaluating complex new libraries, or turning collected sources into structured, publishable output (like architecture whitepapers or RFCs).\n\nIt runs a strict six-phase workflow: Collect, Digest, Outline, Fill In, Refine, and Publish. It explicitly prevents \"lazy AI summarization\" by forcing the verification of sources and building a genuine mental model."
+        },
+        {
+          "heading": "## Quick Contract",
+          "title": "Quick Contract",
+          "body": "- **Trigger**: The user needs to deeply understand a new domain, research a technology, or synthesize raw materials into a comprehensive article.\n- **Inputs**: Target domain/topic, raw source URLs or documents, `mode` (Deep Research / Quick Reference / Write to Learn).\n- **Outputs**: Organized raw materials, verified outlines, and refined publishable documents.\n- **Quality Gate**: Must pass the three-layer verification check (cross-domain recurrence, generative power, distinctiveness) in `## Quality Gates` before outlining.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
+        },
+        {
+          "heading": "## Routing Matrix",
+          "title": "Routing Matrix",
+          "body": "- For unified routing comparison, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).\n- A phased getting started view is available at [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#phase-routing-view).\n- For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../../docs/arc-routing-cheatsheet.md).\n- If there is a conflict, the **Boundary Note** of this skill `## When to Use` shall prevail."
+        },
+        {
+          "heading": "## Announce",
+          "title": "Announce",
+          "body": "Begin by stating clearly:\n\"I am using `arc:learn` to run a deep research workflow. I will collect primary sources, verify concepts, and build a structured understanding before generating output.\""
+        },
+        {
+          "heading": "## Teaming Requirement",
+          "title": "Teaming Requirement",
+          "body": "- Every execution must first \"draw a team together\" and at least clarify the three roles and responsibilities of `Owner`, `Executor` and `Reviewer`.\n- If the operating environment only has a single Agent, the three-role perspective must be explicitly output during delivery to form a \"decision-execution-review\" closed loop before submitting the conclusion."
+        },
+        {
+          "heading": "## The Iron Law",
+          "title": "The Iron Law",
+          "body": "```text\nAI IS A TOOL FOR DIGESTION, NOT A REPLACEMENT FOR THINKING.\nNO SUMMARIZATION WITHOUT SOURCE VERIFICATION.\n```\n\nThe moment you outsource the thinking to generic summaries, the learning stops."
+        },
+        {
+          "heading": "## Workflow",
+          "title": "Workflow",
+          "body": "Before starting, confirm the mode:\n- **Deep Research**: Understand a domain well enough to write about it (Phase 1 to 6).\n- **Quick Reference**: Build a working mental model fast, no article planned (Phase 1 to 2).\n- **Write to Learn**: Already have materials, want to force understanding through writing (Phase 3 to 6).\n\n1. **Phase 1: Collect**: Gather only high-quality primary sources (papers, official blogs, canonical repos). Convert to Markdown and organize in a local repository.\n2. **Phase 2: Digest**: Read fully. Use AI *only* to translate or explain specific dense concepts, NOT to summarize entire documents. Discard weak materials.\n3. **Phase 3: Outline**: Build a structural outline mapping concepts to specific sources. Do not proceed until the outline is verified.\n4. **Phase 4: Fill In**: Expand the outline section by section. Revisit materials to fill gaps.\n5. **Phase 5: Refine**: Remove redundancy, flag logic gaps, and strip AI patterns.\n6. **Phase 6: Publish/Review**: Read linearly for truth and flow. Fix abrupt transitions."
+        },
+        {
+          "heading": "## Quality Gates",
+          "title": "Quality Gates",
+          "body": "- Outlines must pass **Three-Layer Verification**:\n  1. *Cross-domain recurrence*: Does the claim appear in multiple independent contexts?\n  2. *Generative power*: Can the framework predict outcomes in unaddressed scenarios?\n  3. *Distinctiveness*: Is it specific to the source, or generic wisdom?\n- Unverified claims with zero passes must be cut.\n- Every section in the outline must cite its origin source material.\n- AI must not be used to write sections from scratch without source backing."
+        },
+        {
+          "heading": "## Expert Standards",
+          "title": "Expert Standards",
+          "body": "- Apply the `Three-Layer Verification` rigorously to all key claims.\n- Construct the `Intellectual Genealogy` of the field: trace problems backward and forward to understand the evolution of the domain.\n- Prefer `Primary Sources` over secondary explainers or listicles.\n- Ensure `Contextual Fidelity` when translating or explaining dense concepts."
+        },
+        {
+          "heading": "## Scripts & Commands",
+          "title": "Scripts & Commands",
+          "body": "- Runtime main command: `arc learn`\n- Setup research directory: `mkdir -p .arc/learn/<topic>/{raw-sources,digests,drafts}`"
+        },
+        {
+          "heading": "## Red Flags",
+          "title": "Red Flags",
+          "body": "- Asking AI to summarize a paper without reading it.\n- Generating a template instead of building a structured mental model.\n- Outlines lacking source citations.\n- Letting AI write the final article in a generic voice."
+        },
+        {
+          "heading": "## Gotchas",
+          "title": "Gotchas",
+          "body": "Real failures from prior sessions, in order of frequency:\n\n- **Outsourced the thinking**: Asked the AI for a summary of 5 papers and just pasted the result. The learning was shallow.\n- **Used weak sources**: Collected \"Top 10\" blog posts instead of official documentation or original papers.\n- **Skipped the outline phase**: Started writing immediately, resulting in a rambling, incoherent draft.\n- **Lost the authorial voice**: Failed to refine the draft, leaving it sounding like a generic AI response."
+        },
+        {
+          "heading": "## When to Use",
+          "title": "When to Use",
+          "body": "**首选触发**: Deep diving into a new architecture, preparing a tech radar report, or turning disorganized research into a whitepaper.\n**典型场景**: Researching a new LLM framework, understanding a complex consensus algorithm, or writing an engineering blog post.\n**边界提示**: Use `arc:context` for just recovering task state, `arc:decide` for making a concrete technical choice, and `arc:learn` for building the foundational knowledge required to make those choices."
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
+        }
+      ],
+      "quick_contract": {
+        "trigger": "The user needs to deeply understand a new domain, research a technology, or synthesize raw materials into a comprehensive article.",
+        "inputs": "Target domain/topic, raw source URLs or documents, `mode` (Deep Research / Quick Reference / Write to Learn).",
+        "outputs": "Organized raw materials, verified outlines, and refined publishable documents.",
+        "quality_gate": "Must pass the three-layer verification check (cross-domain recurrence, generative power, distinctiveness) in `## Quality Gates` before outlining.",
+        "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
+      },
+      "input_arguments": null,
       "outputs_section": null
     },
     {
@@ -2149,6 +2320,11 @@
           "heading": "## Outputs",
           "title": "Outputs",
           "body": "```text\n<project_path>/.arc/microcopy/<task-name>/\n├── inventory.md\n├── rewrite-rules.md\n├── patch-notes.md\n└── verification.md\n```"
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -2275,6 +2451,11 @@
           "heading": "## Outputs",
           "title": "Outputs",
           "body": "```text\n<project_path>/.arc/serve/\n├── tmux-sessions.json\n└── (managed tmux sessions referenced by name in the registry)\n```"
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -2408,6 +2589,11 @@
           "heading": "## Outputs",
           "title": "Outputs",
           "body": "```text\narc:test/\n  test-report.md          # Compile/pass evidence for all generated tests\n  <generated test files>  # Placed according to language convention\n```"
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles changed:    N (+X -Y)\nscope:            on target / drift: [what]\nhard stops:       N found, N fixed, N deferred\nsignals:          N noted\nverification:     [command] → pass / fail\n```"
         }
       ],
       "quick_contract": {
@@ -2468,18 +2654,18 @@
     },
     {
       "name": "arc:uml",
-      "description": "UML 与 Chen E-R 建模：基于代码证据生成标准图谱；当用户说“画架构图/UML 建模/sequence diagram/ER 图”时触发。",
+      "description": "UML 与 Chen E-R 建模：基于代码与文档证据做图型判定，并强制调用 `drawio` skill 生成标准图谱；当用户说“画架构图/UML 建模/sequence diagram/ER 图/activity diagram/drawio”时触发。",
       "source_path": "Arc/arc:uml/SKILL.md",
       "sections": [
         {
           "heading": "## Overview",
           "title": "Overview",
-          "body": "`arc:uml` is used to generate UML diagrams from real project evidence (code, configurations, interfaces, deployments and business processes).\nThis skill emphasizes \"selecting graphics according to actual conditions\", rather than mechanically drawing all 14 types of graphics.\nAll UML diagrams must conform to UML standard notation (it is recommended to align with UML 2.5.1); if the project requires E-R diagrams, **Chen's notation** must be used, and its data source MUST be the actual database table design (数据库表设计)."
+          "body": "`arc:uml` 负责三件事：\n\n1. 判断当前项目应该画哪些图，不应该画哪些图。\n2. 抽取代码、配置、接口、流程和数据库设计中的可追溯证据。\n3. 强制调用 `drawio` skill 生成原生 `.drawio` 文件，并在需要时导出 `.drawio.svg`、`.drawio.png`、`.drawio.pdf` 或 `.drawio.jpg`。\n\n从现在开始，`arc:uml` 不再以 Mermaid 作为默认或推荐作图路径。如果当前环境无法使用 `drawio` skill，应当把它视为阻塞项并明确告知用户；除非用户显式要求兼容旧产物，否则不要回退到 Mermaid。\n\n如果任务包含 E-R 图，必须使用陈氏画法（Chen Notation），并且数据来源必须是实际的数据库表设计，而不是凭空想象的概念草图。对于活动图、用例图、时序图、类图、部署图等常见图型，默认同时满足：\n\n- `UML 2.5.1 / ISO 19505` 的基本语义要求。\n- 中国高校软件工程 / 数据库课程中常见的评图要求。\n\n详细规则按需读取：\n\n- [references/notation-standards.md](./references/notation-standards.md)\n- [references/diagram-catalog.md](./references/diagram-catalog.md)\n- [references/china-university-diagram-guidelines.md](./references/china-university-diagram-guidelines.md)"
         },
         {
           "heading": "## Quick Contract",
           "title": "Quick Contract",
-          "body": "- **Trigger**: A traceable system modeling diagram needs to be established to assist communication, review, handover or architecture evolution.\n- **Inputs**: project path, attention graph, business scenario, deployment environment, output format.\n- **Outputs**: Requested-diagram applicability judgment, UML Mermaid source (`.mmd`), rendered SVG (`.svg`) when supported by the default renderer, diagram directory and evidence mapping; additionally output Chen's E-R diagram when data modeling is in scope.\n- **Quality Gate**: Must pass `## Quality Gates`'s evidence consistency and inter-figure consistency check before delivery.\n- **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
+          "body": "- **Trigger**: 用户需要画架构图、UML 图、活动图、时序图、类图、部署图、E-R 图，或明确提到 `drawio` / `draw.io` / `.drawio`。\n- **Inputs**: 项目路径、业务场景、目标图型、部署环境、是否需要导出格式。\n- **Outputs**: 图型适用性判断、证据清单、建模简报、原生 `.drawio` 图文件，以及可选的 `.drawio.svg` / `.drawio.png` / `.drawio.pdf` / `.drawio.jpg` 导出文件。\n- **Quality Gate**: 每张图都必须能回溯到真实证据；E-R 图必须严格使用陈氏画法；最终作图必须通过 `drawio` skill 完成。\n- **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
         },
         {
           "heading": "## Routing Matrix",
@@ -2489,94 +2675,89 @@
         {
           "heading": "## Announce",
           "title": "Announce",
-          "body": "Begin by stating clearly:\n\"I'm using `arc:uml` to make a pattern applicability determination and then output an evidence-based UML diagram.\""
+          "body": "执行时先明确说明：\n\n> 我将先做图型适用性判断和证据抽取，再调用 `drawio` skill 生成符合规范的图。"
         },
         {
           "heading": "## Teaming Requirement",
           "title": "Teaming Requirement",
-          "body": "- Every execution must first \"draw a team together\" and at least clarify the three roles and responsibilities of `Owner`, `Executor` and `Reviewer`.\n- If the operating environment only has a single Agent, the three-role perspective must be explicitly output during delivery to form a \"decision-execution-review\" closed loop before submitting the conclusion."
+          "body": "- 每次执行都必须先明确 `Owner`、`Executor`、`Reviewer` 三个视角。\n- 如果运行环境只有单个 Agent，也要在交付中显式给出这三个角色的结论，形成“决策-执行-复核”的闭环。"
         },
         {
           "heading": "## The Iron Law",
           "title": "The Iron Law",
-          "body": "```\nNO DIAGRAM WITHOUT EVIDENCE, NO RELATION WITHOUT TRACEABILITY\nNO ER DIAGRAM WITHOUT CHEN NOTATION\n```\n\nDon't draw pictures without evidence, don't connect lines without traceable relationships."
+          "body": "```text\nNO DIAGRAM WITHOUT EVIDENCE\nNO RELATION WITHOUT TRACEABILITY\nNO FINAL UML DELIVERY WITHOUT DRAWIO\nNO ER DIAGRAM WITHOUT CHEN NOTATION\n```"
         },
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. Scan project context (code structure, configuration, API, business processes, deployment information).\n2. Output the 14-diagram applicability matrix (`required` / `recommended` / `not-applicable` + justification + evidence).\n3. Generate UML files and index directories for applicable diagrams (add Chen's E-R diagram when data modeling is required).\n4. Perform consistency check between graphs and output delivery instructions."
+          "body": "1. 扫描项目上下文：代码结构、配置、接口、数据库表设计、部署信息、业务流程。\n2. 产出图型适用性矩阵：对 14 类 UML 图逐项判断 `required` / `recommended` / `not-applicable`，并给出理由与证据。\n3. 为每张 `required` / `recommended` 图整理建模简报，明确图目标、证据来源、记法约束和禁画项。\n4. 调用 `drawio` skill 生成原生 `.drawio` 文件；如果用户要求导出格式，再继续导出。\n5. 做跨图一致性检查，输出维护建议和剩余风险。"
         },
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Each diagram must provide corresponding evidence (`file:line`, configuration path or interface definition).\n- \"Not applicable\" graphics must give a clear reason and cannot be left blank.\n- The naming of core entities must be consistent between different diagrams (module name, service name, domain object name).\n- The relationships between deployment, component, and configuration diagrams must be mappable to each other.\n- The semantics and notation of UML diagrams must conform to standards (relationship types, visibility, and life cycle semantics cannot be mixed).\n- If you want to output an E-R diagram, you must use Chen's drawing method (entity rectangle, contact rhombus, attribute ellipse, multi-valued double ellipse, weak entity double rectangle).\n- Mermaid sources that are supported by `beautiful-mermaid` must also be delivered as `.svg`; unsupported Mermaid dialects must be explicitly marked as `svg-skipped`."
+          "body": "- 每张图都必须给出对应证据：`file:line`、配置路径、接口定义、表结构来源或需求文本片段。\n- 所有 `not-applicable` 图型都必须说明原因，不能留空。\n- 图中核心对象命名必须与代码、配置或业务术语一致。\n- 部署图、组件图、配置图之间必须可以互相印证。\n- 活动图必须体现控制流，不能把流程文字直接堆成框图。\n- 用例图必须区分系统边界、参与者和用例关系，不能把流程步骤画成用例。\n- 时序图必须体现时间顺序，不能把静态依赖关系误画成消息交互。\n- 类图必须区分关联、依赖、聚合、组合、泛化，不能混用箭头。\n- E-R 图必须严格使用陈氏画法：实体矩形、联系菱形、属性椭圆、主键下划线、必要时使用弱实体/多值属性/全参与等符号。\n- 最终可编辑源文件必须是 `.drawio`；如果导出了 `svg/png/pdf`，应优先保留带嵌入 XML 的导出物，或明确说明由 `drawio` skill 自动删除了源 `.drawio` 文件。"
         },
         {
           "heading": "## Expert Standards",
           "title": "Expert Standards",
-          "body": "- UML output needs to be aligned to `UML 2.5.1 / ISO 19505` Semantics, relationships and visibility are not allowed to be mixed.\n- Behavioral class diagrams (sequences/activities/states) must be named consistently with static class diagram entities and can be mutually verified.\n- Architectural class diagrams (components/deployments/packages) need to align with runtime environment evidence (configuration, topology, interface boundaries).\n- If E-R is output, the `Chen` notation must be strictly used (complete expression of entity/relationship/attribute semantics), and its data source MUST be the database table design (数据库表设计). **Do NOT draw foreign keys as attributes (use relationship diamonds instead) and do NOT draw physical characteristics like data types or lengths.**\n- Each picture is accompanied by `Modeling Assumptions + Evidence Location + Applicable Boundaries` to avoid beautiful pictures but unfeasible results."
+          "body": "- UML 图的语义基线默认对齐 `UML 2.5.1 / ISO 19505`。\n- 所有正式图必须通过 `drawio` 生成原生源文件；`drawio` 是正式交付路径，不是可选附加项。\n- 中国高校课程或毕设场景下，优先保证“元素齐全、关系准确、命名清楚、版式整齐、可一眼检查”的表达方式。\n- E-R 图是概念数据模型，不是物理库表说明书。严禁把外键、字段类型、长度、索引等物理实现细节直接画进 Chen 图。\n- 活动图在跨角色或跨部门流程中，优先补泳道；并发必须用 fork / join 粗横条表达，不能用菱形冒充并发。\n- 用例图中的 `<<include>>` 与 `<<extend>>` 必须按语义使用：前者表示被复用的必经行为，后者表示条件性扩展行为。\n- 时序图必须补出关键分支、异常、超时或重试情形，不能只画 happy path。\n- 类图只画当前沟通目标所需的关键属性和操作，不要为了“看起来完整”把所有字段一股脑塞进去。\n- 每张图都要显式记录建模假设、证据位置和适用边界，避免“看起来对、实际不可用”的图。"
         },
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "- Generate UML skeleton (by diagram): `python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types class,sequence,deployment`\n- Generate full UML skeleton: `python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all`\n- Generate Chen's E-R skeleton at the same time: `python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all --include-er-chen`\n- Render one Mermaid source to SVG: `node Arc/arc:uml/scripts/render_beautiful_mermaid_svg.mjs --input <uml_dir>/diagrams/<diagram>.mmd --output <uml_dir>/diagrams/<diagram>.svg`\n- Batch render a UML directory to SVG: `node Arc/arc:uml/scripts/render_beautiful_mermaid_svg.mjs --input-dir <uml_dir>/diagrams --skip-unsupported`\n- Runtime main command: `arc uml`"
+          "body": "- 初始化 UML 交付目录与 `.drawio` 骨架：\n  ```bash\n  python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types class,sequence,deployment\n  ```\n- 初始化全部 UML 图骨架：\n  ```bash\n  python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all\n  ```\n- 同时生成陈氏 E-R 图骨架：\n  ```bash\n  python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all --include-er-chen\n  ```\n- 运行时主命令：\n  ```bash\n  arc uml\n  ```\n\n`drawio` 的 XML 细节、CLI 导出和打开方式，不在本 skill 重复定义，统一遵循 `drawio` skill 本身的约束。"
         },
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Just apply the template and draw the picture without looking at the project evidence.\n- 14 All graphics are produced forcibly, ignoring the actual scale and stage of the project.\n- E-R diagrams use crow's feet or diagram-like symbols to pass off Chen's drawing method.\n- There are only pictures without text description, so the basis of modeling cannot be explained.\n- The naming of the diagram and the code are seriously inconsistent and cannot be used for handover."
+          "body": "- 不看项目证据，直接套模板出图。\n- 明明只需要 2 到 3 张关键图，却强行输出 14 图全套。\n- E-R 图偷换成 Crow's Foot、IDEF1X、类图或数据库表结构图。\n- 活动图不画起点、终点、分支或并发控制，只堆步骤框。\n- 用例图里把数据库表、接口地址、实现类名当作用例主体。\n- 时序图没有返回、异常、条件分支，无法支撑设计评审。\n- 仍然把 Mermaid 作为默认交付格式。"
         },
         {
-          "heading": "## Context Budget (avoid Request too large)",
-          "title": "Context Budget (avoid Request too large)",
-          "body": "- Only key directories, key configurations, and key processes are extracted, and the entire repository code is not pasted.\n- The evidence fragments of each picture are controlled to 5-20 lines of key fragments.\n- Complex systems are output in separate domains to avoid overloading a single image."
+          "heading": "## Context Budget",
+          "title": "Context Budget",
+          "body": "- 只抽取关键目录、关键配置、关键流程与关键表结构，不贴全仓代码。\n- 每张图的证据片段控制在 5 到 20 行关键内容。\n- 大型系统按域拆图，避免单图过载。"
         },
         {
           "heading": "## When to Use",
           "title": "When to Use",
-          "body": "- **Primary Trigger**: Systematic UML diagrams are required to illustrate architecture, interactions, deployment, or business processes.\n- **Typical Scenario**: new member onboarding, architecture review, technical due diligence, pre-release knowledge accumulation, and cross-team alignment.\n- **Boundary Note**: Use `arc:cartography` first when repository structure context is missing; use `arc:audit` first when the need is quality diagnosis rather than modeling."
+          "body": "- **Primary Trigger**: 需要用 UML 或 E-R 图辅助架构沟通、交接、评审、论文/课程建模、毕设答辩或系统演进。\n- **Typical Scenario**: 新成员入项、架构评审、技术尽调、需求梳理、数据库建模、上线前知识沉淀。\n- **Boundary Note**:\n  - 如果仓库结构还没摸清，先用 `arc:cartography`。\n  - 如果主要诉求是质量审计而非建模，先用 `arc:audit`。\n  - 如果用户只要“把图文件导出成 png/pdf/svg”，直接交给 `drawio`。"
         },
         {
           "heading": "## Input Arguments",
           "title": "Input Arguments",
-          "body": "| parameter | type | Required | illustrate |\n|------|------|------|------|\n| `project_path` | string | yes | Absolute path to project root directory |\n| `project_name` | string | no | Project ID; deduced from path by default |\n| `diagram_types` | array | no | Specify a list of graphics; automatically selected by suitability by default |\n| `business_scenarios` | array | no | Key business scenarios (for use case/activity/sequence modeling) |\n| `deployment_targets` | array | no | Deployment target (such as k8s/ecs/vm/on-prem) |\n| `render_format` | string | no | Source DSL fixed to `mermaid`; default delivery must include rendered `.svg` when supported by `beautiful-mermaid` |\n| `include_er` | boolean | no | Whether to output the E-R diagram (it must be Chen's drawing method when outputting), automatically determined by default |\n| `depth_level` | string | no | `quick` / `standard` / `deep`, default `standard` |\n| `output_dir` | string | no | Default `<project_path>/.arc/uml/` |"
-        },
-        {
-          "heading": "## Diagram Catalog (14 categories)",
-          "title": "Diagram Catalog (14 categories)",
-          "body": "1. Class diagram (class)\n2. object graph\n3. component diagram\n4. Deployment diagram (deployment)\n5. package\n6. Composite structure diagram (composite-structure)\n7. Configuration file diagram (configuration, extended view)\n8. Use case diagram (use-case)\n9. Activity diagram (activity)\n10. State machine diagram (state-machine)\n11. sequence diagram\n12. communication diagram\n13. Interaction overview diagram (interaction-overview)\n14. Timing\n\n> See the evidence mapping and applicable conditions of `references/diagram-catalog.md` for details."
+          "body": "| parameter | type | Required | illustrate |\n|------|------|------|------|\n| `project_path` | string | yes | 项目根目录绝对路径 |\n| `project_name` | string | no | 项目标识；默认从路径推断 |\n| `diagram_types` | array | no | 指定图型列表；默认自动判定 |\n| `business_scenarios` | array | no | 关键业务场景，用于活动图/用例图/时序图 |\n| `deployment_targets` | array | no | 部署目标，如 `k8s` / `vm` / `on-prem` |\n| `include_er` | boolean | no | 是否输出 E-R 图；默认按证据自动判断 |\n| `depth_level` | string | no | `quick` / `standard` / `deep`，默认 `standard` |\n| `export_format` | string | no | `none` / `svg` / `png` / `pdf` / `jpg`，默认 `none` |\n| `render_format` | string | no | 向后兼容参数，等价于 `export_format` |\n| `output_dir` | string | no | 默认 `<project_path>/.arc/uml/<project-name>/` |"
         },
         {
           "heading": "## Notation Standards",
           "title": "Notation Standards",
-          "body": "- UML diagrams: follow UML standard semantics and are expressed using Mermaid syntax (recommended semantic baseline UML 2.5.1).\n- E-R diagram: Use Mermaid syntax to express Chen's drawing method; use of Crow's Foot / IDEF1X instead is prohibited.\n- SVG delivery: render Mermaid sources through `beautiful-mermaid` by default; unsupported Mermaid dialects must be explicitly marked as skipped.\n- See `references/notation-standards.md` for the determination details.\n\n### Mermaid Chen E-R Example\n\n```mermaid\nflowchart LR\ncustomer[\"Entity: Customer\"]\nplaces{\"Contact: Places\"}\norder[\"Entity: Order\"]\ncustomer_id((primary key attribute: customer_id))\ncustomer_name((attribute: name))\norder_id((primary key attribute: order_id))\norder_total((property: total_amount))\n\n  customer ---|1| places\n  places ---|N| order\n  customer --- customer_id\n  customer --- customer_name\n  order --- order_id\n  order --- order_total\n\n  style customer stroke-width:2px\n  style order stroke-width:2px\n  style places stroke-width:2px\n```"
+          "body": "- 所有正式图源文件必须是原生 `draw.io` / `drawio` 文件，即 `.drawio`。\n- 任何实际作图动作必须委托给 `drawio` skill 完成。\n- 如需交付图片或打印版，优先导出 `.drawio.svg` / `.drawio.png` / `.drawio.pdf`，以便保留嵌入 XML 的可编辑能力。\n- E-R 图必须使用陈氏画法，详细规则见 [references/notation-standards.md](./references/notation-standards.md)。\n- 中国高校课程和毕业设计常见评图要求见 [references/china-university-diagram-guidelines.md](./references/china-university-diagram-guidelines.md)。\n\n### drawio Skill Contract\n\n在开始绘制每一张图前，至少明确以下信息再调用 `drawio`：\n\n- 图文件路径：如 `diagrams/activity.drawio`\n- 图目标：这张图用于解释什么，不用于解释什么\n- 证据来源：代码、配置、表结构、需求或日志中的哪些位置\n- 必画元素：例如活动图的初始节点 / 判定 / 泳道，或 E-R 图的实体 / 联系 / 主键\n- 禁止事项：例如“不要把外键画成属性”“不要把分支条件写到节点名里”\n- 导出需求：是否需要 `svg/png/pdf/jpg`"
         },
         {
           "heading": "## Dependencies",
           "title": "Dependencies",
-          "body": "* **Organization Contract**: Required. Follows `docs/orchestration-contract.md`, executed through the runtime adaptation layer.\n* **ace-tool (MCP)**: Required. Used to scan code structure, module dependencies, interfaces and implementation evidence.\n* **Exa MCP**: Optional. Used to supplement UML modeling conventions or framework conventions.\n* **Mermaid**: Required. All plots must be output using Mermaid syntax.\n* **beautiful-mermaid**: Required for default SVG delivery. Render Mermaid sources through `scripts/render_beautiful_mermaid_svg.mjs`.\n* **Auxiliary scripts**: `scripts/scaffold_uml_pack.py` initializes the graph file skeleton; `scripts/render_beautiful_mermaid_svg.mjs` renders Mermaid to SVG."
+          "body": "- **Organization Contract**: 必需。执行时保持 `Owner / Executor / Reviewer` 三角色闭环。\n- **ace-tool / 代码检索能力**: 必需。用于收集代码与配置证据。\n- **drawio skill**: 必需。所有正式图必须通过它生成。\n- **联网搜索（web / Exa）**: 按需。用于补充 UML 规范、教材标准或框架约定。"
         },
         {
           "heading": "## Instructions (execution process)",
           "title": "Instructions (execution process)",
-          "body": "### Phase 1: Project Modeling Reconnaissance\n\n1. Scan project modules, entities, interfaces, configurations, database table designs, deployments and business process evidence.\n2. Generate `context/project-snapshot.md` with an initial evidence list.\n\n### Phase 2: Determination of graphic applicability\n\n1. Determine the requested diagram types one by one; when no `diagram_types` are specified, evaluate all 14 categories as `required` / `recommended` / `not-applicable`.\n2. Determine whether an E-R diagram is required (data modeling scenarios typically `required`).\n3. The output `diagram-plan.md` includes graphics, judgment results, reasons, and evidence sources.\n\n### Phase 3: Map output\n\n1. Run the script to initialize the skeleton (optional):\n   ```bash\n   python3 scripts/scaffold_uml_pack.py --output-dir <output_dir> --types all\n   ```\n2. If an E-R diagram is required, initialize Chen's E-R skeleton:\n   ```bash\n   python3 scripts/scaffold_uml_pack.py --output-dir <output_dir> --types all --include-er-chen\n   ```\n3. Write complete relationships and comments to the `required` and `recommended` graphics.\n4. Render supported Mermaid sources into SVG:\n   ```bash\n   node scripts/render_beautiful_mermaid_svg.mjs --input-dir <output_dir>/diagrams --skip-unsupported\n   ```\n5. Generate `diagram-index.md` as the delivery directory and mark any unsupported Mermaid dialect as `svg-skipped`.\n\n### Phase 4: Consistency Verification\n\n1. Check entity naming consistency (class, component, service, node).\n2. Check for cross-graph consistency (component diagram ↔ deployment diagram ↔ configuration diagram).\n3. If there is an E-R diagram, check whether it is strict with Chen's drawing method.\n4. Output `validation-summary.md` with subsequent maintenance recommendations."
+          "body": "### Phase 1: Project Modeling Reconnaissance\n\n1. 扫描项目模块、实体、接口、配置、数据库表设计、部署和关键业务流程。\n2. 生成 `context/project-snapshot.md`，沉淀初步证据。\n\n### Phase 2: Determination of Diagram Applicability\n\n1. 用户未指定 `diagram_types` 时，评估全部 14 类 UML 图。\n2. 同时判断是否需要补充 E-R 图。\n3. 输出 `diagram-plan.md`，记录结论、理由、证据和优先级。\n\n### Phase 3: Modeling Briefs and drawio Output\n\n1. 先初始化交付目录与骨架文件：\n   ```bash\n   python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <output_dir> --types all --include-er-chen\n   ```\n2. 为每张 `required` / `recommended` 图补全 `diagram-briefs/<diagram>.md`。\n3. 逐张调用 `drawio` skill 生成 `.drawio` 文件。\n4. 如果用户要求导出，再继续导出为对应格式。\n5. 更新 `diagram-index.md` 记录交付物状态。\n\n### Phase 4: Consistency Verification\n\n1. 检查命名一致性：类、组件、服务、节点、角色、实体是否统一。\n2. 检查跨图一致性：组件图 ↔ 部署图 ↔ 配置图，活动图 ↔ 时序图 ↔ 用例图。\n3. 若输出 E-R 图，复核是否严格符合陈氏画法和概念模型边界。\n4. 输出 `validation-summary.md` 与后续维护建议。"
         },
         {
           "heading": "## Outputs",
           "title": "Outputs",
-          "body": "```text\n<project_path>/.arc/uml/<project-name>/\n├── context/\n│   └── project-snapshot.md\n├── diagram-plan.md\n├── diagram-index.md\n├── validation-summary.md\n├── diagrams/                      # Only create files for diagrams marked `required` or `recommended`\n│   ├── <diagram-type>.mmd\n│   ├── <diagram-type>.svg\n│   ├── er-chen.mmd                # Optional: only when Chen E-R output is required\n│   ├── er-chen.svg                # Optional: when the Mermaid source is renderable by the default SVG renderer\n│   └── ...\n```"
+          "body": "```text\n<project_path>/.arc/uml/<project-name>/\n├── context/\n│   └── project-snapshot.md\n├── diagram-plan.md\n├── diagram-index.md\n├── validation-summary.md\n├── diagram-briefs/\n│   ├── <diagram-type>.md\n│   └── er-chen.md\n└── diagrams/\n    ├── <diagram-type>.drawio\n    ├── <diagram-type>.drawio.svg\n    ├── <diagram-type>.drawio.png\n    ├── <diagram-type>.drawio.pdf\n    ├── er-chen.drawio\n    ├── er-chen.drawio.svg\n    ├── er-chen.drawio.png\n    └── ...\n```\n\n说明：\n\n- `.drawio` 是默认可编辑源文件。\n- 如果 `drawio` skill 在导出后删除了 `.drawio` 源文件，则以带嵌入 XML 的导出文件作为可编辑主产物，并在 `diagram-index.md` 中说明。\n- 并不是所有扩展名都要同时生成，只交付用户明确需要的格式。"
         },
         {
-          "heading": "## Anti-Patterns",
-          "title": "Anti-Patterns",
-          "body": "- Draw \"good-looking pictures\" but don't connect them to the real code and configuration.\n- Treat the configuration file diagram as a pure screenshot and do not express the relationship between configurations.\n- In the sequence diagram, only the happy path is written, and exceptions and timeout branches are ignored.\n- The E-R diagram does not use Chen's drawing symbols, or its data source is not based on the actual database table design (数据库表设计).\n- **In Chen's E-R diagrams, drawing foreign keys as attributes or including physical table characteristics (like varchar, length, constraints, etc.) is strictly forbidden.** They must be represented strictly as conceptual models.\n- The output map has no maintenance strategy, causing it to expire quickly."
+          "heading": "## Gotchas",
+          "title": "Gotchas",
+          "body": "- 画“好看但不可追溯”的图。\n- 在一张图里同时混入需求、设计、部署、数据库和测试语义，导致主线模糊。\n- 只画 happy path，不画异常、超时、回滚、重试或人工介入。\n- 用数据库物理字段去污染概念 E-R 图。\n- 明明要的是中国高校课程 / 毕设可检查图，却输出随意草图。\n- 没有维护策略，导致图在一次交付后迅速过期。"
         }
       ],
       "quick_contract": {
-        "trigger": "A traceable system modeling diagram needs to be established to assist communication, review, handover or architecture evolution.",
-        "inputs": "project path, attention graph, business scenario, deployment environment, output format.",
-        "outputs": "Requested-diagram applicability judgment, UML Mermaid source (`.mmd`), rendered SVG (`.svg`) when supported by the default renderer, diagram directory and evidence mapping; additionally output Chen's E-R diagram when data modeling is in scope.",
-        "quality_gate": "Must pass `## Quality Gates`'s evidence consistency and inter-figure consistency check before delivery.",
+        "trigger": "用户需要画架构图、UML 图、活动图、时序图、类图、部署图、E-R 图，或明确提到 `drawio` / `draw.io` / `.drawio`。",
+        "inputs": "项目路径、业务场景、目标图型、部署环境、是否需要导出格式。",
+        "outputs": "图型适用性判断、证据清单、建模简报、原生 `.drawio` 图文件，以及可选的 `.drawio.svg` / `.drawio.png` / `.drawio.pdf` / `.drawio.jpg` 导出文件。",
+        "quality_gate": "每张图都必须能回溯到真实证据；E-R 图必须严格使用陈氏画法；最终作图必须通过 `drawio` skill 完成。",
         "decision_tree": "For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
       },
       "input_arguments": [
@@ -2584,60 +2765,66 @@
           "parameter": "project_path",
           "type": "string",
           "required": "yes",
-          "description": "Absolute path to project root directory"
+          "description": "项目根目录绝对路径"
         },
         {
           "parameter": "project_name",
           "type": "string",
           "required": "no",
-          "description": "Project ID; deduced from path by default"
+          "description": "项目标识；默认从路径推断"
         },
         {
           "parameter": "diagram_types",
           "type": "array",
           "required": "no",
-          "description": "Specify a list of graphics; automatically selected by suitability by default"
+          "description": "指定图型列表；默认自动判定"
         },
         {
           "parameter": "business_scenarios",
           "type": "array",
           "required": "no",
-          "description": "Key business scenarios (for use case/activity/sequence modeling)"
+          "description": "关键业务场景，用于活动图/用例图/时序图"
         },
         {
           "parameter": "deployment_targets",
           "type": "array",
           "required": "no",
-          "description": "Deployment target (such as k8s/ecs/vm/on-prem)"
-        },
-        {
-          "parameter": "render_format",
-          "type": "string",
-          "required": "no",
-          "description": "Source DSL fixed to `mermaid`; default delivery must include rendered `.svg` when supported by `beautiful-mermaid`"
+          "description": "部署目标，如 `k8s` / `vm` / `on-prem`"
         },
         {
           "parameter": "include_er",
           "type": "boolean",
           "required": "no",
-          "description": "Whether to output the E-R diagram (it must be Chen's drawing method when outputting), automatically determined by default"
+          "description": "是否输出 E-R 图；默认按证据自动判断"
         },
         {
           "parameter": "depth_level",
           "type": "string",
           "required": "no",
-          "description": "quick` / `standard` / `deep`, default `standard"
+          "description": "quick` / `standard` / `deep`，默认 `standard"
+        },
+        {
+          "parameter": "export_format",
+          "type": "string",
+          "required": "no",
+          "description": "none` / `svg` / `png` / `pdf` / `jpg`，默认 `none"
+        },
+        {
+          "parameter": "render_format",
+          "type": "string",
+          "required": "no",
+          "description": "向后兼容参数，等价于 `export_format`"
         },
         {
           "parameter": "output_dir",
           "type": "string",
           "required": "no",
-          "description": "Default `<project_path>/.arc/uml/`"
+          "description": "默认 `<project_path>/.arc/uml/<project-name>/`"
         }
       ],
       "outputs_section": {
         "format": "text",
-        "content": "<project_path>/.arc/uml/<project-name>/\n├── context/\n│   └── project-snapshot.md\n├── diagram-plan.md\n├── diagram-index.md\n├── validation-summary.md\n├── diagrams/                      # Only create files for diagrams marked `required` or `recommended`\n│   ├── <diagram-type>.mmd\n│   ├── <diagram-type>.svg\n│   ├── er-chen.mmd                # Optional: only when Chen E-R output is required\n│   ├── er-chen.svg                # Optional: when the Mermaid source is renderable by the default SVG renderer\n│   └── ..."
+        "content": "<project_path>/.arc/uml/<project-name>/\n├── context/\n│   └── project-snapshot.md\n├── diagram-plan.md\n├── diagram-index.md\n├── validation-summary.md\n├── diagram-briefs/\n│   ├── <diagram-type>.md\n│   └── er-chen.md\n└── diagrams/\n    ├── <diagram-type>.drawio\n    ├── <diagram-type>.drawio.svg\n    ├── <diagram-type>.drawio.png\n    ├── <diagram-type>.drawio.pdf\n    ├── er-chen.drawio\n    ├── er-chen.drawio.svg\n    ├── er-chen.drawio.png\n    └── ..."
       }
     },
     {

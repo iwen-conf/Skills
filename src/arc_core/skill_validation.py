@@ -96,7 +96,7 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
         ["avoid jargon", "避免术语", "避免技术术语"],
         ["blame-free", "非责怪式", "责怪式"],
     ],
-    "arc:uml": ["UML 2.5.1 / ISO 19505", "Chen", ["建模假设", "modeling assumption", "Modeling Assumption"]],
+    "arc:uml": ["UML 2.5.1 / ISO 19505", "Chen", "drawio", ["建模假设", "modeling assumption", "Modeling Assumption"]],
     "arc:audit": [["业务成熟度", "Business Maturity", "business maturity"], ["依赖健康度", "Dependency Health", "dependency health"], ["专家评审卡", "Expert Review Card", "expert review card"], "9 Tab"],
     "arc:test": [
         "ISTQB",

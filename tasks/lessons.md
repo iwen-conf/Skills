@@ -10,3 +10,8 @@
 ## 2026-03-25
 
 - For this Skills repository, treat "no GitHub Actions" as a hard repository policy, not a soft preference. If the user has already rejected Actions, add a validator/test guard so `.github/workflows/` cannot come back silently.
+
+## 2026-04-10
+
+- When a user says a repository skill "must call" another skill, update the repository source of truth under `/Users/iluwen/Documents/Code/Skills/` first, not only the installed copy under `/Users/iluwen/.cc-switch/skills/`.
+- For skill migrations that change output format or tool contract, update all three layers together: `SKILL.md`, bundled references, and scaffold/generator scripts. Do not leave the source skill on the old delivery path.

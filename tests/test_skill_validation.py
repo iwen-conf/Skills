@@ -271,6 +271,57 @@ project/.arc/microcopy/example/
     assert warnings == []
 
 
+def test_validate_text_accepts_arc_uml_keywords() -> None:
+    text = """---
+name: arc:uml
+description: "包含中文描述"
+---
+# Skill
+## Overview
+overview body
+## Quick Contract
+- **Trigger**: uml trigger
+- **Inputs**: input summary
+- **Outputs**: output summary
+- **Quality Gate**: gate summary
+- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
+## Routing Matrix
+- For unified routing comparison, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
+- A phased getting started view is available at [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#phase-routing-view).
+- For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../../docs/arc-routing-cheatsheet.md).
+## Announce
+announce body
+## The Iron Law
+rule body
+## Workflow
+workflow body
+## Quality Gates
+quality body
+## Expert Standards
+UML 2.5.1 / ISO 19505 drawio Chen 建模假设
+## Scripts & Commands
+scripts body
+## Red Flags
+flags body
+## When to Use
+- **Preferred Trigger**: preferred trigger body
+- **Typical Scenario**: typical scenario body
+- **Boundary Tip**: boundary tip body
+## Input Arguments
+| parameter | type | Required | illustrate |
+|------|------|------|------|
+| `project_path` | string | yes | root path |
+## Outputs
+```text
+project/.arc/uml/demo/
+└── diagrams/class.drawio
+```
+"""
+    errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
+    assert errors == []
+    assert warnings == []
+
+
 def test_validate_text_accepts_fusion_terminal_table_skill() -> None:
     text = """---
 name: "terminal-table-output"

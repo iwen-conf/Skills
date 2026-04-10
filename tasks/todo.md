@@ -117,3 +117,18 @@
 - `uv run python scripts/validate_skills.py` passed for 19 indexed skills, `uv run pytest tests/test_skill_validation.py tests/test_skill_registry.py -q` passed with 18 tests, and `uv run python scripts/build_skills_index.py` refreshed the generated registry artifacts.
 - `validate_skills.py` now also enforces a repository policy: `.github/workflows/` is forbidden in this Skills repository, so accidental GitHub Actions reintroduction fails validation immediately.
 - Remote GitHub state was also cleaned up: the repository Actions permission is `enabled=false`, there is only one branch (`main`), and historical workflow runs were deleted until the Actions runs count returned `0`.
+
+## 2026-04-10 arc:uml drawio hard switch
+
+- [x] Replace the repository `arc:uml` skill contract so formal diagram delivery must call the `drawio` skill and no longer defaults to Mermaid.
+- [x] Add or refresh `arc:uml` reference material for China university-style UML / Chen E-R review points, including activity diagrams.
+- [x] Replace the UML scaffold script so it produces `.drawio` skeletons and modeling briefs instead of Mermaid `.mmd` files.
+- [x] Rebuild generated skill index artifacts and run repository validation.
+- [x] Verify the new scaffold output paths and file names match the updated skill contract.
+
+## Review
+
+- `Arc/arc:uml/SKILL.md` now makes `drawio` the mandatory formal delivery path and explicitly links `notation-standards.md`, `diagram-catalog.md`, and the new `china-university-diagram-guidelines.md`.
+- The scaffold script now produces `.drawio` source files, `diagram-briefs/`, `context/project-snapshot.md`, `diagram-plan.md`, `diagram-index.md`, and `validation-summary.md`, matching the updated contract.
+- The obsolete Mermaid renderer under `Arc/arc:uml/scripts/` was removed so the skill directory no longer advertises two competing delivery paths.
+- Repository validation passed with `uv run python scripts/validate_skills.py`, targeted validation tests passed with `uv run pytest tests/test_skill_validation.py -q`, and `uv run python scripts/build_skills_index.py` refreshed `skills.index.json`.
