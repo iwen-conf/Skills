@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-04-10T15:08:00.897738Z",
+  "generated_at": "2026-04-15T10:08:09.161171Z",
   "skill_count": 20,
   "skills": [
     {
@@ -2660,7 +2660,7 @@
         {
           "heading": "## Overview",
           "title": "Overview",
-          "body": "`arc:uml` 负责三件事：\n\n1. 判断当前项目应该画哪些图，不应该画哪些图。\n2. 抽取代码、配置、接口、流程和数据库设计中的可追溯证据。\n3. 强制调用 `drawio` skill 生成原生 `.drawio` 文件，并在需要时导出 `.drawio.svg`、`.drawio.png`、`.drawio.pdf` 或 `.drawio.jpg`。\n\n从现在开始，`arc:uml` 不再以 Mermaid 作为默认或推荐作图路径。如果当前环境无法使用 `drawio` skill，应当把它视为阻塞项并明确告知用户；除非用户显式要求兼容旧产物，否则不要回退到 Mermaid。\n\n如果任务包含 E-R 图，必须使用陈氏画法（Chen Notation），并且数据来源必须是实际的数据库表设计，而不是凭空想象的概念草图。对于活动图、用例图、时序图、类图、部署图等常见图型，默认同时满足：\n\n- `UML 2.5.1 / ISO 19505` 的基本语义要求。\n- 中国高校软件工程 / 数据库课程中常见的评图要求。\n\n详细规则按需读取：\n\n- [references/notation-standards.md](./references/notation-standards.md)\n- [references/diagram-catalog.md](./references/diagram-catalog.md)\n- [references/china-university-diagram-guidelines.md](./references/china-university-diagram-guidelines.md)"
+          "body": "`arc:uml` 负责三件事：\n\n1. 判断当前项目应该画哪些图，不应该画哪些图。\n2. 抽取代码、配置、接口、流程和数据库设计中的可追溯证据。\n3. 强制调用 `drawio` skill 生成原生 `.drawio` 文件，并在需要时导出 `.drawio.svg`、`.drawio.png`、`.drawio.pdf` 或 `.drawio.jpg`。\n\n从现在开始，`arc:uml` 不再以 Mermaid 作为默认或推荐作图路径（**时序图除外**）。如果当前环境无法使用 `drawio` skill，应当把它视为阻塞项并明确告知用户；除非用户显式要求兼容旧产物，否则不要回退到 Mermaid。\n\n**例外（时序图致命排版预警）**：针对时序图（Sequence Diagram），由于大模型生成原生 `drawio` XML 时极易因无法精确计算连线坐标而导致所有消息箭头在左侧原点重叠堆积（排版完全崩坏），因此时序图**必须**放宽限制：允许并推荐使用 Mermaid 语法（`.mmd`）生成，或在 `drawio` 中使用内嵌的 Mermaid 文本节点（`shape=mermaid`）。切勿让大模型用原生 XML 硬算时序图连线。\n\n如果任务包含 E-R 图，必须使用陈氏画法（Chen Notation），并且数据来源必须是实际的数据库表设计，而不是凭空想象的概念草图。对于活动图、用例图、时序图、类图、部署图等常见图型，默认同时满足：\n\n- `UML 2.5.1 / ISO 19505` 的基本语义要求。\n- 中国高校软件工程 / 数据库课程中常见的评图要求。\n\n详细规则按需读取：\n\n- [references/notation-standards.md](./references/notation-standards.md)\n- [references/diagram-catalog.md](./references/diagram-catalog.md)\n- [references/china-university-diagram-guidelines.md](./references/china-university-diagram-guidelines.md)"
         },
         {
           "heading": "## Quick Contract",

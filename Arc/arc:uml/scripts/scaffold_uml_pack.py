@@ -14,6 +14,70 @@ import argparse
 import html
 from pathlib import Path
 
+SEQUENCE_MMD_TEMPLATE = """# {label} 建模简报
+
+## 图目标
+
+- FILL_IN：这张图要解释什么
+- FILL_IN：这张图不解释什么
+
+## 证据来源
+
+- file:line
+- config:path
+- api:route
+- req:section
+
+## Mermaid 时序图源码
+
+｠｠｠mermaid
+sequenceDiagram
+    participant A as User
+    participant B as Controller
+    participant C as Service
+    participant D as Repository
+
+    A->>B: request()
+    activate B
+    B->>C: process()
+    activate C
+    C->>D: query()
+    activate D
+    D-->>C: return data
+    deactivate D
+    C-->>B: return result
+    deactivate C
+    B-->>A: return response
+    deactivate B
+｠｠｠
+
+## 必画元素
+
+- 时间自上而下，参与者顺序稳定
+- 生命线按调用层级从左到右排列：前端→Controller→Service→外部服务
+- 单图消息数控制在15个以内，复杂流程拆分或使用ref引用
+- 同步调用使用 activate/deactivate 显示激活范围
+- 使用 loop/alt/opt 结构化片段组织分支
+- 补关键分支、异常、超时或重试
+
+## 命名约束
+
+- 与代码实体、配置名、业务术语保持一致
+
+## 禁画项
+
+- 不要脱离证据凭空连线
+- 不要把原生 drawio XML 用于时序图（会导致面条图）
+"""
+
+def write_sequence_mmd_file(briefs_dir: Path) -> Path:
+    output_file = briefs_dir / "sequence.mmd"
+    content = SEQUENCE_MMD_TEMPLATE.format(label="时序图")
+    content = content.replace("｠｠｠", "```")
+    output_file.write_text(content, encoding="utf-8")
+    return output_file
+
+
 
 DIAGRAMS = {
     "class": "类图",
@@ -74,7 +138,12 @@ DRAWING_HINTS = {
         "区分状态与动作",
     ],
     "sequence": [
+        "**必须使用 Mermaid (.mmd) 格式，严禁原生 drawio XML**",
         "时间自上而下，参与者顺序稳定",
+        "生命线按调用层级从左到右排列：前端→Controller→Service→外部服务",
+        "单图消息数控制在15个以内，复杂流程拆分或使用ref引用",
+        "同步调用使用 activate/deactivate 显示激活范围",
+        "使用 loop/alt/opt 结构化片段组织分支",
         "补关键分支、异常、超时或重试",
     ],
     "communication": [
@@ -158,7 +227,12 @@ def render_drawio_xml(page_name: str, note_value: str, diagram_id: str) -> str:
 
 def render_brief_template(diagram_id: str, label: str) -> str:
     hints = "\n".join(f"- {hint}" for hint in DRAWING_HINTS[diagram_id])
-    return f"""# {label} 建模简报
+    
+    sequence_warning = ""
+    if diagram_id == "sequence":
+        sequence_warning = "\n> **[致命排版预警]** 时序图必须使用内嵌 Mermaid 节点（例如 `style=\"shape=mermaid;\"`）或纯文本 Mermaid（.mmd），严禁由大模型硬算原生连线坐标（极易造成左侧连线堆叠）。\n"
+
+    return f"""# {label} 建模简报{sequence_warning}
 
 ## 图目标
 
@@ -313,6 +387,31 @@ def write_validation_stub(base_dir: Path) -> Path:
     output_file.write_text(
         """# 一致性校验摘要
 
+## 自动化验证结果
+
+### 验证脚本执行
+
+每张图生成后必须执行：
+```bash
+python3 Arc/arc:uml/scripts/validate_diagram.py <diagram>.drawio --type <type>
+```
+
+### 验证结果记录
+
+| 图文件 | 类型 | 结果 | 错误数 | 警告数 |
+|--------|------|------|--------|--------|
+| FILL_IN | sequence/activity/class | pass/warning/error | 0 | 0 |
+
+### 阻断性问题（必须修复）
+
+- [ ] FILL_IN：时序图消息数超过20个，需拆分
+- [ ] FILL_IN：缺少激活条，需补充
+
+### 警告事项（建议修复）
+
+- [ ] FILL_IN：线条交叉较多，建议调整生命线排序
+- [ ] FILL_IN：消息标签为空，建议补充描述
+
 ## 命名一致性
 
 - FILL_IN
@@ -328,6 +427,15 @@ def write_validation_stub(base_dir: Path) -> Path:
 - [ ] 时序图是否补足关键异常/分支
 - [ ] 类图关系是否未混用
 - [ ] E-R 图是否严格符合陈氏画法
+
+## 回归验证命令
+
+```bash
+# 重新验证所有图
+for f in diagrams/*.drawio; do
+    python3 Arc/arc:uml/scripts/validate_diagram.py "$f"
+done
+```
 """,
         encoding="utf-8",
     )
@@ -380,7 +488,21 @@ def main() -> int:
 
     created_files = []
     for diagram_id in selected:
-        created_files.append(write_diagram_file(diagrams_dir, diagram_id))
+        # 时序图特殊处理：生成 .mmd 文件而不是 .drawio
+        if diagram_id == "sequence":
+            created_files.append(write_sequence_mmd_file(briefs_dir))
+            # 同时创建一个空的 drawio 文件作为占位（包含说明）
+            seq_note = """# 时序图 (Mermaid 格式)
+
+注意：时序图必须使用 Mermaid (.mmd) 格式，详见 sequence.mmd
+
+致命排版预警：严禁使用原生 drawio XML 生成时序图！
+"""
+            seq_placeholder = diagrams_dir / "sequence.drawio"
+            seq_placeholder.write_text(seq_note, encoding="utf-8")
+            created_files.append(seq_placeholder)
+        else:
+            created_files.append(write_diagram_file(diagrams_dir, diagram_id))
         created_files.append(write_brief_file(briefs_dir, diagram_id))
 
     created_files.append(write_project_snapshot_stub(context_dir))

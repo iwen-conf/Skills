@@ -28,7 +28,9 @@ hooks:
 2. 抽取代码、配置、接口、流程和数据库设计中的可追溯证据。
 3. 强制调用 `drawio` skill 生成原生 `.drawio` 文件，并在需要时导出 `.drawio.svg`、`.drawio.png`、`.drawio.pdf` 或 `.drawio.jpg`。
 
-从现在开始，`arc:uml` 不再以 Mermaid 作为默认或推荐作图路径。如果当前环境无法使用 `drawio` skill，应当把它视为阻塞项并明确告知用户；除非用户显式要求兼容旧产物，否则不要回退到 Mermaid。
+从现在开始，`arc:uml` 不再以 Mermaid 作为默认或推荐作图路径（**时序图除外**）。如果当前环境无法使用 `drawio` skill，应当把它视为阻塞项并明确告知用户；除非用户显式要求兼容旧产物，否则不要回退到 Mermaid。
+
+**例外（时序图致命排版预警）**：针对时序图（Sequence Diagram），由于大模型生成原生 `drawio` XML 时极易因无法精确计算连线坐标而导致所有消息箭头在左侧原点重叠堆积（排版完全崩坏），因此时序图**必须**放宽限制：允许并推荐使用 Mermaid 语法（`.mmd`）生成，或在 `drawio` 中使用内嵌的 Mermaid 文本节点（`shape=mermaid`）。切勿让大模型用原生 XML 硬算时序图连线。
 
 如果任务包含 E-R 图，必须使用陈氏画法（Chen Notation），并且数据来源必须是实际的数据库表设计，而不是凭空想象的概念草图。对于活动图、用例图、时序图、类图、部署图等常见图型，默认同时满足：
 
@@ -138,6 +140,8 @@ NO ER DIAGRAM WITHOUT CHEN NOTATION
 - 活动图不画起点、终点、分支或并发控制，只堆步骤框。
 - 用例图里把数据库表、接口地址、实现类名当作用例主体。
 - 时序图没有返回、异常、条件分支，无法支撑设计评审。
+- **时序图画成"面条图"**：消息过多(>20)、生命线无序排列、缺少激活条、线条交叉混乱。
+- **跳过自动化验证**：不执行 `validate_diagram.py` 直接交付，劣质图流入产物。
 - 仍然把 Mermaid 作为默认交付格式。
 
 ## Context Budget
@@ -193,8 +197,16 @@ NO ER DIAGRAM WITHOUT CHEN NOTATION
 
 - **Organization Contract**: 必需。执行时保持 `Owner / Executor / Reviewer` 三角色闭环。
 - **ace-tool / 代码检索能力**: 必需。用于收集代码与配置证据。
-- **drawio skill**: 必需。所有正式图必须通过它生成。
+- **drawio skill**:
+  - **类图/活动图/用例图/部署图等**: 必需。所有正式图必须通过它生成。
+  - **时序图**: **禁止依赖**。时序图必须使用 Mermaid (`.mmd`) 格式，详见"时序图致命排版预警"。
 - **联网搜索（web / Exa）**: 按需。用于补充 UML 规范、教材标准或框架约定。
+
+### 时序图特殊依赖
+
+时序图**不依赖** `drawio` skill，而是依赖：
+- **Mermaid 语法生成能力**: 必需。时序图必须使用 `.mmd` 纯文本格式。
+- **drawio 内嵌 Mermaid 节点** (可选): 如需要在 `.drawio` 文件中嵌入时序图，使用 `shape=mermaid` 节点包含 Mermaid 源码。
 
 ## Instructions (execution process)
 
@@ -222,10 +234,16 @@ NO ER DIAGRAM WITHOUT CHEN NOTATION
 
 ### Phase 4: Consistency Verification
 
-1. 检查命名一致性：类、组件、服务、节点、角色、实体是否统一。
-2. 检查跨图一致性：组件图 ↔ 部署图 ↔ 配置图，活动图 ↔ 时序图 ↔ 用例图。
-3. 若输出 E-R 图，复核是否严格符合陈氏画法和概念模型边界。
-4. 输出 `validation-summary.md` 与后续维护建议。
+1. **自动化质量验证**：对每张生成的 `.drawio` 图调用验证脚本
+   ```bash
+   python3 Arc/arc:uml/scripts/validate_diagram.py <output_dir>/diagrams/<diagram>.drawio --type <type>
+   ```
+   - 若验证失败（error），必须修复后重新生成，不得流入交付物
+   - 若验证警告（warning），评估是否可在当前迭代修复，或记录到技术债
+2. 检查命名一致性：类、组件、服务、节点、角色、实体是否统一。
+3. 检查跨图一致性：组件图 ↔ 部署图 ↔ 配置图，活动图 ↔ 时序图 ↔ 用例图。
+4. 若输出 E-R 图，复核是否严格符合陈氏画法和概念模型边界。
+5. 输出 `validation-summary.md` 与后续维护建议。
 
 ## Outputs
 
@@ -240,19 +258,21 @@ NO ER DIAGRAM WITHOUT CHEN NOTATION
 │   ├── <diagram-type>.md
 │   └── er-chen.md
 └── diagrams/
-    ├── <diagram-type>.drawio
+    ├── <diagram-type>.drawio       # 类图/活动图/用例图/部署图等
     ├── <diagram-type>.drawio.svg
     ├── <diagram-type>.drawio.png
-    ├── <diagram-type>.drawio.pdf
+    ├── sequence.mmd                # 时序图（Mermaid格式）
+    ├── sequence.mmd.svg            # 时序图渲染输出
     ├── er-chen.drawio
     ├── er-chen.drawio.svg
-    ├── er-chen.drawio.png
     └── ...
 ```
 
 说明：
 
-- `.drawio` 是默认可编辑源文件。
+- **类图/活动图/用例图/部署图等**：使用 `.drawio` 格式，通过 `drawio` skill 生成。
+- **时序图**：**必须使用** `.mmd` (Mermaid) 格式，严禁使用原生 `drawio` XML 生成时序图（避免坐标计算错误导致面条图）。
+- **E-R 图**：使用 `.drawio` 格式，必须使用陈氏画法。
 - 如果 `drawio` skill 在导出后删除了 `.drawio` 源文件，则以带嵌入 XML 的导出文件作为可编辑主产物，并在 `diagram-index.md` 中说明。
 - 并不是所有扩展名都要同时生成，只交付用户明确需要的格式。
 
