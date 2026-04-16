@@ -139,11 +139,17 @@ NO ER DIAGRAM WITHOUT CHEN NOTATION
     --input <uml_dir>/diagrams/sequence.mmd \
     --output <uml_dir>/diagrams/sequence.mmd.svg
   ```
-- **Encapsulate Mermaid Sequence Diagram into a stable drawio file:**
+- **Encapsulate Mermaid Diagram into a stable drawio file:**
   ```bash
-  python3 Arc/arc:uml/scripts/generate_sequence_drawio.py \
-    --input <uml_dir>/diagrams/sequence.mmd \
-    --output <uml_dir>/diagrams/sequence.drawio
+  python3 Arc/arc:uml/scripts/generate_mermaid_drawio.py \
+    --input <uml_dir>/diagrams/class.mmd \
+    --output <uml_dir>/diagrams/class.drawio
+  ```
+- **Generate E-R Diagram from structured JSON specification:**
+  ```bash
+  python3 Arc/arc:uml/scripts/generate_er_drawio.py \
+    --spec <uml_dir>/diagram-specs/er.json \
+    --output <uml_dir>/diagrams/er-chen.drawio
   ```
 - **Execute multi-pass review on UML delivery directory:**
   ```bash
@@ -216,22 +222,17 @@ Note: XML specifications, CLI export procedures, and file access protocols for `
 - E-R Diagrams must utilize Chen Notation. Detailed rules: [references/notation-standards.md](./references/notation-standards.md).
 - Academic evaluation criteria: [references/china-university-diagram-guidelines.md](./references/china-university-diagram-guidelines.md).
 
-### 15.1. drawio Skill Contract
+### 15.1. Execution Script Contract
 
-Prior to invoking the `drawio` skill, explicitly define the following parameters:
-- **File Path:** e.g., `diagrams/activity.drawio`
-- **Objective:** The precise scope of communication for the diagram.
-- **Evidence Source:** Specific code, configuration, schema, or requirement citations.
-- **Mandatory Elements:** e.g., initial nodes/decisions/swimlanes for activity diagrams; entities/relationships/primary keys for E-R diagrams.
-- **Prohibited Actions:** e.g., "Do not represent foreign keys as attributes", "Do not embed branch logic within node names".
-- **Export Requirements:** Specification of `svg/png/pdf/jpg` formats.
-
-**Additional constraints for high-risk diagrams:**
-- **Sequence Diagrams:**
-  - **Delivery Format:** Prioritize `diagrams/sequence.mmd`.
-  - **Constraint:** Direct computation of native XML message vectors is strictly prohibited.
-  - **drawio Encapsulation:** If `drawio` is mandated, restrict generation to embedded Mermaid text nodes. Manual edge routing is forbidden.
-  - **Recommended Pipeline:** Generate `sequence.drawio` via `generate_sequence_drawio.py`.
+Prior to finalizing any diagram, explicitly utilize the proxy scripts instead of attempting direct XML authoring:
+- **Standard Diagrams (Sequence, Class, Activity, Use Case, State):**
+  - **Delivery Format:** Prioritize `.mmd` (Mermaid) or `.puml` (PlantUML).
+  - **Constraint:** Direct computation of native XML is strictly prohibited.
+  - **Recommended Pipeline:** Generate `*.drawio` via `generate_mermaid_drawio.py`.
+- **E-R Diagrams:**
+  - **Input Generation:** Draft via `diagram-specs/er.json`.
+  - **Constraint:** Must strictly enforce Chen Notation mappings (entities, attributes, relationships, connections).
+  - **Recommended Pipeline:** Generate `.drawio` via `generate_er_drawio.py`.
 - **Deployment Diagrams:**
   - **Input Generation:** Draft via `diagram-specs/deployment.seed.txt`.
   - **Partitioning Strategy:** e.g., "Client Zone / Gateway Tier / Application Tier / Data Tier".
@@ -250,8 +251,8 @@ Prior to invoking the `drawio` skill, explicitly define the following parameters
 - **Local Generation Scripts:**
   - `draft_deployment_spec.py`: Recommended. Converts concise text seeds into `deployment.json`.
   - `generate_deployment_drawio.py`: Recommended. Renders structured specifications into aligned `.drawio` files.
-  - `generate_sequence_drawio.py`: Recommended. Encapsulates `sequence.mmd` into stable `sequence.drawio` files.
-  - `render_beautiful_mermaid_svg.mjs`: Recommended. Renders `sequence.mmd` to highly readable `.svg` files.
+  - `generate_mermaid_drawio.py`: Recommended. Encapsulates intermediate `.mmd` diagrams into stable `.drawio` files.
+  - `generate_er_drawio.py`: Recommended. Renders Chen E-R JSON specifications into compliant `.drawio` files.
 
 ## 17. Instructions (Execution Process)
 
@@ -305,17 +306,17 @@ Prior to invoking the `drawio` skill, explicitly define the following parameters
 ├── validation-summary.md
 ├── diagram-specs/
 │   ├── deployment.seed.txt
-│   └── deployment.json
+│   ├── deployment.json
+│   └── er.json
 ├── diagram-briefs/
 │   ├── <diagram-type>.md
 │   └── er-chen.md
 └── diagrams/
-    ├── <diagram-type>.drawio       # Standard UML diagrams
+    ├── <diagram-type>.mmd          # Standard diagrams primary source
+    ├── <diagram-type>.drawio       # Containerized native drawio files
     ├── <diagram-type>.drawio.svg
     ├── <diagram-type>.drawio.png
-    ├── sequence.mmd                # Sequence diagram primary source
-    ├── sequence.drawio             # Sequence diagram encapsulated format
-    ├── sequence.mmd.svg           # Sequence diagram rendered output
+    ├── deployment.drawio
     ├── er-chen.drawio
     ├── er-chen.drawio.svg
     └── ...
