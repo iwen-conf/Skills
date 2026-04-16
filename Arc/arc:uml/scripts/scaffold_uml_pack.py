@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-scaffold_uml_pack.py - 初始化 arc:uml 的 drawio 交付骨架
+scaffold_uml_pack.py - 初始化 arc:uml 的图交付骨架
 
 用法：
     python3 scaffold_uml_pack.py --output-dir .arc/uml/demo --types all
@@ -14,24 +14,7 @@ import argparse
 import html
 from pathlib import Path
 
-SEQUENCE_MMD_TEMPLATE = """# {label} 建模简报
-
-## 图目标
-
-- FILL_IN：这张图要解释什么
-- FILL_IN：这张图不解释什么
-
-## 证据来源
-
-- file:line
-- config:path
-- api:route
-- req:section
-
-## Mermaid 时序图源码
-
-｠｠｠mermaid
-sequenceDiagram
+SEQUENCE_MMD_TEMPLATE = """sequenceDiagram
     participant A as User
     participant B as Controller
     participant C as Service
@@ -43,37 +26,21 @@ sequenceDiagram
     activate C
     C->>D: query()
     activate D
-    D-->>C: return data
+    alt query success
+        D-->>C: return data
+    else query failed
+        D-->>C: return error
+    end
     deactivate D
     C-->>B: return result
     deactivate C
     B-->>A: return response
     deactivate B
-｠｠｠
-
-## 必画元素
-
-- 时间自上而下，参与者顺序稳定
-- 生命线按调用层级从左到右排列：前端→Controller→Service→外部服务
-- 单图消息数控制在15个以内，复杂流程拆分或使用ref引用
-- 同步调用使用 activate/deactivate 显示激活范围
-- 使用 loop/alt/opt 结构化片段组织分支
-- 补关键分支、异常、超时或重试
-
-## 命名约束
-
-- 与代码实体、配置名、业务术语保持一致
-
-## 禁画项
-
-- 不要脱离证据凭空连线
-- 不要把原生 drawio XML 用于时序图（会导致面条图）
 """
 
-def write_sequence_mmd_file(briefs_dir: Path) -> Path:
-    output_file = briefs_dir / "sequence.mmd"
-    content = SEQUENCE_MMD_TEMPLATE.format(label="时序图")
-    content = content.replace("｠｠｠", "```")
+def write_sequence_mmd_file(diagrams_dir: Path) -> Path:
+    output_file = diagrams_dir / "sequence.mmd"
+    content = SEQUENCE_MMD_TEMPLATE
     output_file.write_text(content, encoding="utf-8")
     return output_file
 
@@ -114,6 +81,10 @@ DRAWING_HINTS = {
     "deployment": [
         "强调运行节点、容器、中间件与连接",
         "不要与逻辑组件职责混画",
+        "先按网络区/运行层分区，再摆节点，不要散点排布",
+        "同层节点贴 10px 网格对齐，保持主链路方向一致",
+        "连接线必须用 source/target 挂到节点，不要用漂浮端点硬拉线",
+        "连接样式优先正交路由，减少斜线和交叉线",
     ],
     "package": [
         "突出命名空间、模块分组与依赖方向",
@@ -144,7 +115,9 @@ DRAWING_HINTS = {
         "单图消息数控制在15个以内，复杂流程拆分或使用ref引用",
         "同步调用使用 activate/deactivate 显示激活范围",
         "使用 loop/alt/opt 结构化片段组织分支",
+        "两种不同情况必须放进同一个 alt 矩形框，不要直接拿两条箭头冒充分支",
         "补关键分支、异常、超时或重试",
+        "如必须承载在 drawio 中，只允许内嵌 Mermaid 文本节点，不允许原生手工拉消息线",
     ],
     "communication": [
         "强调对象连接关系与消息编号",
@@ -227,12 +200,21 @@ def render_drawio_xml(page_name: str, note_value: str, diagram_id: str) -> str:
 
 def render_brief_template(diagram_id: str, label: str) -> str:
     hints = "\n".join(f"- {hint}" for hint in DRAWING_HINTS[diagram_id])
+    output_lines = [f"- 输出文件：`diagrams/{diagram_id}.drawio`"]
     
     sequence_warning = ""
     if diagram_id == "sequence":
+        output_lines = [
+            "- 输出文件：`diagrams/sequence.mmd`",
+            "- 如明确要求 drawio 承载：`diagrams/sequence.drawio`（仅允许内嵌 Mermaid）",
+        ]
         sequence_warning = "\n> **[致命排版预警]** 时序图必须使用内嵌 Mermaid 节点（例如 `style=\"shape=mermaid;\"`）或纯文本 Mermaid（.mmd），严禁由大模型硬算原生连线坐标（极易造成左侧连线堆叠）。\n"
 
-    return f"""# {label} 建模简报{sequence_warning}
+    deployment_warning = ""
+    if diagram_id == "deployment":
+        deployment_warning = "\n> **[连线错位预警]** 部署图必须先确定分区和节点对齐规则，再画连接线。已知端点的连线必须绑定 `source/target`，优先使用正交路由，禁止用漂浮端点补坐标。\n"
+
+    base = f"""# {label} 建模简报{sequence_warning}{deployment_warning}
 
 ## 图目标
 
@@ -261,9 +243,47 @@ def render_brief_template(diagram_id: str, label: str) -> str:
 
 ## 调用 drawio skill 时必须说明
 
-- 输出文件：`diagrams/{diagram_id}.drawio`
+{chr(10).join(output_lines)}
 - 布局目标：FILL_IN
 - 导出需求：FILL_IN（none / svg / png / pdf / jpg）
+
+## 推荐生成路径
+
+"""
+
+    if diagram_id == "deployment":
+        return base + """- 先补 `diagram-specs/deployment.seed.txt` 或 `diagram-specs/deployment.json`
+- 如使用 seed 文本，先运行：
+  ```bash
+  python3 Arc/arc:uml/scripts/draft_deployment_spec.py \
+    --input diagram-specs/deployment.seed.txt \
+    --output diagram-specs/deployment.json
+  ```
+- 再运行：
+  ```bash
+  python3 Arc/arc:uml/scripts/generate_deployment_drawio.py \
+    --spec diagram-specs/deployment.json \
+    --output diagrams/deployment.drawio
+  ```
+"""
+
+    if diagram_id == "sequence":
+        return base + """- 默认维护 `diagrams/sequence.mmd`
+- 如需 SVG 成品图，再运行：
+  ```bash
+  node Arc/arc:uml/scripts/render_beautiful_mermaid_svg.mjs \
+    --input diagrams/sequence.mmd \
+    --output diagrams/sequence.mmd.svg
+  ```
+- 如需稳定的 drawio 承载文件，再运行：
+  ```bash
+  python3 Arc/arc:uml/scripts/generate_sequence_drawio.py \
+    --input diagrams/sequence.mmd \
+    --output diagrams/sequence.drawio
+  ```
+"""
+
+    return base + """- 按简报补足证据后，再调用 `drawio` skill 生成正式图
 """
 
 
@@ -314,6 +334,78 @@ def write_brief_file(briefs_dir: Path, diagram_id: str) -> Path:
     output_file = briefs_dir / f"{diagram_id}.md"
     output_file.write_text(render_brief_template(diagram_id, label), encoding="utf-8")
     return output_file
+
+
+def build_deployment_spec_stub() -> str:
+    return """{
+  "title": "FILL_IN：部署图标题",
+  "zones": [
+    {
+      "id": "client",
+      "label": "客户端区",
+      "nodes": [
+        {
+          "id": "frontend",
+          "label": "FILL_IN：客户端入口",
+          "kind": "client",
+          "subtitle": "FILL_IN：如 Web / App"
+        }
+      ]
+    },
+    {
+      "id": "app",
+      "label": "应用层",
+      "nodes": [
+        {
+          "id": "service-a",
+          "label": "FILL_IN：核心服务",
+          "kind": "service"
+        }
+      ]
+    },
+    {
+      "id": "data",
+      "label": "数据层",
+      "nodes": [
+        {
+          "id": "db",
+          "label": "FILL_IN：数据库",
+          "kind": "database"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "frontend",
+      "target": "service-a",
+      "label": "FILL_IN：主入口连接"
+    },
+    {
+      "source": "service-a",
+      "target": "db",
+      "label": "FILL_IN：数据访问"
+    }
+  ]
+}
+"""
+
+
+def build_deployment_seed_stub() -> str:
+    return """title: FILL_IN：部署图标题
+
+zone client | 客户端区
+node frontend | FILL_IN：客户端入口 | client | FILL_IN：如 Web / App
+
+zone app | 应用层
+node service-a | FILL_IN：核心服务 | service
+
+zone data | 数据层
+node db | FILL_IN：数据库 | database
+
+edge frontend -> service-a | FILL_IN：主入口连接
+edge service-a -> db | FILL_IN：数据访问
+"""
 
 
 def write_project_snapshot_stub(context_dir: Path) -> Path:
@@ -369,9 +461,14 @@ def write_index_file(base_dir: Path, selected: list[str], include_er: bool) -> P
     ]
     for diagram_id in selected:
         label = DIAGRAMS[diagram_id]
-        lines.append(
-            f"| {label} | `diagram-briefs/{diagram_id}.md` | `diagrams/{diagram_id}.drawio` | scaffolded |"
-        )
+        if diagram_id == "sequence":
+            lines.append(
+                f"| {label} | `diagram-briefs/{diagram_id}.md` | `diagrams/{diagram_id}.mmd` | scaffolded |"
+            )
+        else:
+            lines.append(
+                f"| {label} | `diagram-briefs/{diagram_id}.md` | `diagrams/{diagram_id}.drawio` | scaffolded |"
+            )
     if include_er:
         lines.append(
             "| E-R 图（陈氏） | `diagram-briefs/er-chen.md` | `diagrams/er-chen.drawio` | scaffolded |"
@@ -393,24 +490,33 @@ def write_validation_stub(base_dir: Path) -> Path:
 
 每张图生成后必须执行：
 ```bash
-python3 Arc/arc:uml/scripts/validate_diagram.py <diagram>.drawio --type <type>
+python3 Arc/arc:uml/scripts/validate_diagram.py <diagram-file> --type <type>
+```
+
+整包生成完成后必须再执行一次多轮复核：
+```bash
+python3 Arc/arc:uml/scripts/review_uml_pack.py --uml-dir <output-dir>
 ```
 
 ### 验证结果记录
 
 | 图文件 | 类型 | 结果 | 错误数 | 警告数 |
 |--------|------|------|--------|--------|
-| FILL_IN | sequence/activity/class | pass/warning/error | 0 | 0 |
+| FILL_IN | sequence/activity/class/deployment | pass/warning/error | 0 | 0 |
 
 ### 阻断性问题（必须修复）
 
 - [ ] FILL_IN：时序图消息数超过20个，需拆分
 - [ ] FILL_IN：缺少激活条，需补充
+- [ ] FILL_IN：部署图存在漂浮连接线，需改为节点挂接
+- [ ] FILL_IN：时序图把两种不同情况直接画成箭头，需改为 alt 矩形片段
+- [ ] FILL_IN：复核脚本发现源文件与派生产物不一致
 
 ### 警告事项（建议修复）
 
 - [ ] FILL_IN：线条交叉较多，建议调整生命线排序
 - [ ] FILL_IN：消息标签为空，建议补充描述
+- [ ] FILL_IN：部署图节点未对齐到统一网格，建议整理版式
 
 ## 命名一致性
 
@@ -425,6 +531,7 @@ python3 Arc/arc:uml/scripts/validate_diagram.py <diagram>.drawio --type <type>
 - [ ] 活动图的控制流是否完整
 - [ ] 用例图的系统边界是否清楚
 - [ ] 时序图是否补足关键异常/分支
+- [ ] 时序图两种不同情况是否已放进 alt/opt 结构化矩形片段
 - [ ] 类图关系是否未混用
 - [ ] E-R 图是否严格符合陈氏画法
 
@@ -432,9 +539,12 @@ python3 Arc/arc:uml/scripts/validate_diagram.py <diagram>.drawio --type <type>
 
 ```bash
 # 重新验证所有图
-for f in diagrams/*.drawio; do
+for f in diagrams/*.drawio diagrams/*.mmd; do
     python3 Arc/arc:uml/scripts/validate_diagram.py "$f"
 done
+
+# 对整个交付目录做多轮复核
+python3 Arc/arc:uml/scripts/review_uml_pack.py --uml-dir .
 ```
 """,
         encoding="utf-8",
@@ -457,8 +567,20 @@ def write_er_brief_file(briefs_dir: Path) -> Path:
     return output_file
 
 
+def write_deployment_spec_stub(specs_dir: Path) -> Path:
+    output_file = specs_dir / "deployment.json"
+    output_file.write_text(build_deployment_spec_stub(), encoding="utf-8")
+    return output_file
+
+
+def write_deployment_seed_stub(specs_dir: Path) -> Path:
+    output_file = specs_dir / "deployment.seed.txt"
+    output_file.write_text(build_deployment_seed_stub(), encoding="utf-8")
+    return output_file
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="初始化 arc:uml 的 drawio 交付骨架")
+    parser = argparse.ArgumentParser(description="初始化 arc:uml 的图交付骨架")
     parser.add_argument("--output-dir", required=True, help="输出目录")
     parser.add_argument(
         "--types",
@@ -475,10 +597,12 @@ def main() -> int:
     output_dir = Path(args.output_dir).resolve()
     diagrams_dir = output_dir / "diagrams"
     briefs_dir = output_dir / "diagram-briefs"
+    specs_dir = output_dir / "diagram-specs"
     context_dir = output_dir / "context"
 
     diagrams_dir.mkdir(parents=True, exist_ok=True)
     briefs_dir.mkdir(parents=True, exist_ok=True)
+    specs_dir.mkdir(parents=True, exist_ok=True)
     context_dir.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -490,19 +614,12 @@ def main() -> int:
     for diagram_id in selected:
         # 时序图特殊处理：生成 .mmd 文件而不是 .drawio
         if diagram_id == "sequence":
-            created_files.append(write_sequence_mmd_file(briefs_dir))
-            # 同时创建一个空的 drawio 文件作为占位（包含说明）
-            seq_note = """# 时序图 (Mermaid 格式)
-
-注意：时序图必须使用 Mermaid (.mmd) 格式，详见 sequence.mmd
-
-致命排版预警：严禁使用原生 drawio XML 生成时序图！
-"""
-            seq_placeholder = diagrams_dir / "sequence.drawio"
-            seq_placeholder.write_text(seq_note, encoding="utf-8")
-            created_files.append(seq_placeholder)
+            created_files.append(write_sequence_mmd_file(diagrams_dir))
         else:
             created_files.append(write_diagram_file(diagrams_dir, diagram_id))
+        if diagram_id == "deployment":
+            created_files.append(write_deployment_seed_stub(specs_dir))
+            created_files.append(write_deployment_spec_stub(specs_dir))
         created_files.append(write_brief_file(briefs_dir, diagram_id))
 
     created_files.append(write_project_snapshot_stub(context_dir))
@@ -514,7 +631,7 @@ def main() -> int:
         created_files.append(write_er_diagram_file(diagrams_dir))
         created_files.append(write_er_brief_file(briefs_dir))
 
-    print(f"✓ 已初始化 arc:uml drawio 交付骨架: {output_dir}")
+    print(f"✓ 已初始化 arc:uml 图交付骨架: {output_dir}")
     print(f"  - 创建文件数量: {len(created_files)}")
     print(f"  - 图文件目录: {diagrams_dir}")
     print(f"  - 建模简报目录: {briefs_dir}")

@@ -1,5 +1,22 @@
 # Task Todo
 
+## 2026-04-15 arc:uml layout hardening
+
+- [x] Audit why sequence and deployment diagrams produced by AI drift away from draw.io shapes and connectors.
+- [x] Tighten the `arc:uml` skill contract so sequence diagrams no longer rely on raw draw.io XML arrows and deployment diagrams carry explicit geometry rules.
+- [x] Update the UML scaffold so sequence sources land in `diagrams/sequence.mmd` and deployment briefs carry anti-misalignment guidance.
+- [x] Add deployment-specific drawio validation for floating edges, manual endpoint coordinates, and off-grid node layout.
+- [x] Add regression tests and run validation / smoke coverage for the new diagram workflow.
+
+## Review
+
+- Sequence diagrams now default to `Mermaid` source under `diagrams/sequence.mmd`, which removes the highest-risk failure mode: LLM-generated raw draw.io message arrows with broken coordinates.
+- Deployment diagrams now have an explicit layout contract instead of only semantic hints. The skill, notation reference, scaffold, and validator all agree on node alignment and connector rules.
+- New automated validation blocks the most damaging deployment failure directly: connectors that do not actually attach to nodes.
+- The workflow no longer stops at validation. `generate_deployment_drawio.py` now turns structured deployment specs into aligned draw.io output, and `render_beautiful_mermaid_svg.mjs` is back in the source tree so `sequence.mmd` can render into a clean deliverable SVG.
+- The workflow now also reduces handwork: `draft_deployment_spec.py` converts a compact seed text into `deployment.json`, and `generate_sequence_drawio.py` wraps `sequence.mmd` into a stable `sequence.drawio` that still validates against embedded Mermaid source.
+- `review_uml_pack.py` now adds a true repeat-check loop: it validates existing sources, regenerates temporary artifacts, reruns validation on regenerated outputs, and checks workspace artifacts for drift before the task can be considered finished.
+
 ## 2026-03-15 arc:init baseline rebuild
 
 - [x] Confirm `arc:init` should be executed as a local skill workflow, not inferred from shell PATH alone.
