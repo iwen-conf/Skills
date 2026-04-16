@@ -16,6 +16,14 @@ This skill analyzes the current project and generates a pure, factual project de
 - **Inputs**: None (automatically analyzes the workspace).
 - **Outputs**: A structured Markdown report containing the project's factual details.
 - **Quality Gate**: The output must exactly match the prescribed template, with NO design suggestions and NO redundant UI/color statements for non-frontend projects.
+- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
+
+## Routing Matrix
+
+- For unified routing comparison, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
+- A phased getting started view is available at [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#phase-routing-view).
+- For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../../docs/arc-routing-cheatsheet.md).
+- If there is a conflict, the **Boundary Tip** of this skill `## When to Use` shall prevail.
 
 ## Announce
 
@@ -54,6 +62,18 @@ The designers will decide the logo's appearance, forms, metaphors, and logo colo
 - **No Negative UI Statements**: For CLI/Backend projects, the output must not contain words like "没有前端", "不适用", "无配色". It should simply state "CLI项目" or "服务端项目" and end.
 - **Format Consistency**: The output must exactly follow the provided Chinese markdown template.
 
+## Expert Standards
+
+- Apply strict factual extraction from code artifacts only — never infer or embellish.
+- Identify the tech stack from dependency manifests (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`), not from file extensions alone.
+- Determine project architecture type by analyzing entry points, build configs, and deployment artifacts.
+- For color extraction, prioritize design-token sources (CSS custom properties, Tailwind config, theme files) over inline styles.
+
+## Scripts & Commands
+
+- Runtime main command: `arc brand-brief`
+- No external scripts required; this skill operates purely through file reading and analysis.
+
 ## Red Flags
 
 - Suggesting shapes or metaphors (e.g., "Because it's a cloud tool, the logo should have a cloud").
@@ -85,6 +105,12 @@ You MUST output EXACTLY this format, filling in the bracketed parts based on you
      - **辅色调**：[Color name/hex, e.g., 翠绿色 (#00D1B2)]
      - **中间偏色/其他颜色**：[Color name/hex, e.g., 浅灰色 (#F3F4F6), 警告红 (#FF3860)]
 ```
+
+## When to Use
+
+**Preferred Trigger**: The user requests a project description or brief specifically for logo design or brand identity work.
+**Typical Scenario**: Preparing a design handoff package, onboarding a visual designer, or generating a factual project summary for external creative teams.
+**Boundary Tip**: Use `arc:cartography` for structural code maps, `arc:audit` for quality diagnostics, and `arc:brand-brief` only for extracting factual project metadata for designers.
 
 ## Sign-off
 

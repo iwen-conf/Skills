@@ -22,6 +22,8 @@
 | `arc:serve` | 启动/重启/停止本地前后端或 dev server，并避免重复 `tmux` 会话 | 生产部署、Docker/K8s 编排、一次性 build/test/lint 命令 | `arc:build` / `arc:fix` / `arc:context` |
 | `arc:ip-check` | 申请前 IP 可行性与风险评估 | 已进入正式文书撰写阶段 | `arc:ip-draft` |
 | `arc:ip-draft` | 基于审查交接起草申请材料 | 尚未完成可行性审查 | `arc:ip-check` |
+| `arc:learn` | 深度学习特定技术/概念，需三层交叉验证 | 仅需快速查询或已有明确方案 | `arc:clarify` / `arc:build` |
+| `arc:brand-brief` | 提取项目事实信息生成设计师简报 | 需要代码地图或质量诊断 | `arc:cartography` / `arc:audit` |
 
 ## Browser Automation Strategy
 
@@ -68,7 +70,10 @@ flowchart TD
     I -- "文书起草" --> ID["arc:ip-draft"]
     I -- "否" --> J{"是学术/专业文本润色链路?"}
     J -- "是" --> AI["arc:aigc"]
-    J -- "否" --> AG2["arc:exec"]
+    J -- "否" --> K{"是深度学习/品牌简报链路?"}
+    K -- "深度学习" --> LN["arc:learn"]
+    K -- "品牌简报" --> BB["arc:brand-brief"]
+    K -- "否" --> AG2["arc:exec"]
 ```
 
 ## Phase Routing View
@@ -85,6 +90,8 @@ flowchart TD
 | 验证（Validate） | 验证行为、定位失败、闭环修复 | `arc:e2e` / `arc:test` / `arc:fix` | `arc:fix --mode retest-loop` / `arc:build` | `pass/fail evidence` → 治理 |
 | 治理（Govern） | 门禁阻断、改进路线与治理闭环 | `arc:gate` / `arc:audit` | `arc:build` | `arc:gate/review outputs` |
 | 知识产权（IP） | 先审查可行性，再起草材料 | `arc:ip-check` / `arc:ip-draft` | `arc:audit` | `ip-drafting-input` → 申请材料草稿 |
+| 学习（Learn） | 深度学习特定技术概念并交叉验证 | `arc:learn` | `arc:clarify` / `arc:build` | `verified knowledge` → 落地/决策 |
+| 品牌（Brand） | 提取项目事实信息供设计师使用 | `arc:brand-brief` | `arc:cartography` / `arc:audit` | `brand brief` → 设计交接 |
 
 ## Fast Routing Rules
 

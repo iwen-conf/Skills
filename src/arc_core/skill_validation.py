@@ -119,6 +119,11 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
         ["primary sources", "第一手信源"],
         ["contextual fidelity", "语境保真度"],
     ],
+    "arc:brand-brief": [
+        ["factual extraction", "事实提取", "facts only"],
+        ["tech stack", "技术栈"],
+        ["project architecture", "项目架构"],
+    ],
 }
 
 LEGACY_TOKEN_PARTS = [
@@ -160,6 +165,8 @@ ARC_ROUTED_SKILLS = {
     "arc:serve",
     "arc:aigc",
     "arc:microcopy",
+    "arc:learn",
+    "arc:brand-brief",
 }
 
 QUICK_CONTRACT_KEY_MAP = {

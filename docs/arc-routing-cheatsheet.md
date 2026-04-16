@@ -13,6 +13,8 @@
 - 已有方案要落地 → `arc:build`
 - 需要系统建模图谱 → `arc:uml`
 - 学术文本需要分段、双阶段润色 → `arc:aigc`
+- 需要深度学习某技术/概念并交叉验证 → `arc:learn`
+- 需要提取项目信息生成设计师简报 → `arc:brand-brief`
 
 ## 2) 常用链路
 
@@ -28,6 +30,8 @@
 - 结构地图：`arc:cartography`
 - UML 图谱：`arc:uml`
 - IP 流程：`arc:ip-check` → `arc:ip-draft`
+- 深度学习：`arc:learn`（三层交叉验证 → 知识谱系输出）
+- 品牌简报：`arc:brand-brief`（事实提取 → 设计交接）
 
 ## 3) 不确定时的默认顺序
 

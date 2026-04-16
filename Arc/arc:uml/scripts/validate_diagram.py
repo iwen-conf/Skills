@@ -79,6 +79,7 @@ class MermaidParser:
         in_alt = False
         loop_count = 0
         alt_count = 0
+        nesting_depth = 0  # track nested loop/alt/opt blocks
 
         for line in self.lines:
             # 跳过 diagram 声明
@@ -94,7 +95,7 @@ class MermaidParser:
                         'label': match.group(2) or match.group(1)
                     })
 
-            # 解析消息 (A->>B: message / A-->>B: message)
+            # 解析消息 (A->>B: message / A-->>B: message / A->B / A-->B)
             msg_match = re.match(r'(\w+)\s*(--?>>?)\s*(\w+)\s*:\s*(.+)', line)
             if msg_match:
                 source = msg_match.group(1)
@@ -102,12 +103,28 @@ class MermaidParser:
                 target = msg_match.group(3)
                 msg_text = msg_match.group(4).strip()
 
-                msg_type = 'return' if arrow_token.startswith('--') else ('async' if arrow_token.endswith('>>') else 'sync')
+                # Mermaid arrow semantics:
+                #   ->>  solid line + filled arrowhead = sync call
+                #   -->> dashed line + filled arrowhead = sync return
+                #   ->   solid line + open arrowhead = async message
+                #   -->  dashed line + open arrowhead = async return
+                is_dashed = arrow_token.startswith('--')
+                is_filled = arrow_token.endswith('>>')
+
+                if is_dashed:
+                    msg_type = 'return'
+                elif is_filled:
+                    msg_type = 'sync'
+                else:
+                    msg_type = 'async'
+
+                is_self_call = (source == target)
                 result['messages'].append({
                     'source': source,
                     'target': target,
                     'text': msg_text,
                     'type': msg_type,
+                    'self_call': is_self_call,
                 })
 
             # 解析激活 (activate/deactivate)
@@ -119,22 +136,30 @@ class MermaidParser:
             # 解析 loop
             if line.startswith('loop '):
                 loop_count += 1
+                nesting_depth += 1
                 in_loop = True
                 result['loops'].append({'condition': line[5:].strip()})
-            if line == 'end' and in_loop:
-                in_loop = False
 
-            # 解析 alt
+            # 解析 alt / else
             if line.startswith('alt '):
                 alt_count += 1
+                nesting_depth += 1
                 in_alt = True
-                result['alts'].append({'condition': line[4:].strip()})
-            if line == 'end' and in_alt and not in_loop:
-                in_alt = False
+                result['alts'].append({'condition': line[4:].strip(), 'else_count': 0})
+            if line.startswith('else') and in_alt and result['alts']:
+                result['alts'][-1]['else_count'] += 1
 
             # 解析 opt
             if line.startswith('opt '):
+                nesting_depth += 1
                 result['opts'].append({'condition': line[4:].strip()})
+
+            # end 关闭最近的 block
+            if line == 'end' and nesting_depth > 0:
+                nesting_depth -= 1
+                if nesting_depth == 0:
+                    in_loop = False
+                    in_alt = False
 
             # 解析 note
             if line.startswith('Note '):
@@ -269,6 +294,17 @@ class MermaidSequenceValidator:
                 "warning",
                 f"估计消息交叉较多({crossing_estimate})，建议按调用顺序排列参与者："
                 f"前端→Controller→Service→DAO→外部服务"
+            )
+
+        # 7. 检查自调用消息
+        self_calls = [m for m in messages if m.get('self_call')]
+        if self_calls:
+            result.stats['self_calls'] = len(self_calls)
+            result.add_issue(
+                "info",
+                f"检测到{len(self_calls)}个自调用消息（self-call），"
+                f"Mermaid 会自动渲染为回环箭头（loopback arrow）。"
+                f"请确认这些自调用确实表示对象内部处理，而非误写了 source 和 target。"
             )
 
         return result

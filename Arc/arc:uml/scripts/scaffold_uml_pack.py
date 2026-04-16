@@ -24,6 +24,7 @@ SEQUENCE_MMD_TEMPLATE = """sequenceDiagram
     activate B
     B->>C: process()
     activate C
+    C->>C: validateInput()
     C->>D: query()
     activate D
     alt query success
@@ -114,6 +115,7 @@ DRAWING_HINTS = {
         "生命线按调用层级从左到右排列：前端→Controller→Service→外部服务",
         "单图消息数控制在15个以内，复杂流程拆分或使用ref引用",
         "同步调用使用 activate/deactivate 显示激活范围",
+        "自调用（self-call）使用回环箭头指向自身生命线（Mermaid: `A->>A: process()`），不要用方框+箭头",
         "使用 loop/alt/opt 结构化片段组织分支",
         "两种不同情况必须放进同一个 alt 矩形框，不要直接拿两条箭头冒充分支",
         "补关键分支、异常、超时或重试",
