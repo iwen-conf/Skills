@@ -1,5 +1,25 @@
 # Task Todo
 
+## 2026-04-18 graduation-doc-support generic skill
+
+- [x] Confirm the correct placement and allowlist path for a new non-`arc:*` skill that captures the thesis-support-doc workflow.
+- [x] Add a reusable root-level generic skill for evidence-driven graduation thesis support documents.
+- [x] Wire the new skill into repository validation, discovery, and README guidance.
+- [x] Rebuild generated registry artifacts and run repository validation/tests.
+
+## Review
+
+- Added root skill `graduation-doc-support/` with a generic-skill contract for evidence-driven graduation thesis support docs.
+- Added `graduation-doc-support` to the generic allowlist in `src/arc_core/skill_validation.py`, so the registry will index it.
+- Updated `README.md` to document the new root-level generic skill alongside `terminal-table-output`.
+- Updated registry tests to assert the new skill is discovered and emitted into `skills.index.json`.
+- Rebuilt generated registry artifacts: `skills.index.json`, `.arc/context-hub/index.json`, `.arc/registry/manifest.json`.
+- Verification results:
+  - `uv run pytest tests/test_skill_registry.py tests/test_skill_validation.py -q` -> pass (`19 passed`)
+  - `PYTHONPATH=src uv run python - <<'PY' ... validate_file(graduation-doc-support/SKILL.md) ...` -> pass (`errors=[]`, `warnings=[]`)
+  - `uv run python scripts/build_skills_index.py` -> pass
+  - `uv run python scripts/validate_skills.py` -> fail, but on pre-existing repository issue: `Arc/arc:brand-brief/SKILL.md` missing required expert keyword `project architecture`, not caused by this task
+
 ## 2026-04-15 arc:uml layout hardening
 
 - [x] Audit why sequence and deployment diagrams produced by AI drift away from draw.io shapes and connectors.

@@ -28,7 +28,7 @@ python3 Arc/arc:uml/scripts/generate_deployment_drawio.py \
           "id": "frontend",
           "label": "前端页面",
           "kind": "client",
-          "subtitle": "Vue.js"
+          "subtitle": "React"
         }
       ]
     },
@@ -89,7 +89,7 @@ python3 Arc/arc:uml/scripts/generate_deployment_drawio.py \
 title: 支付订单部署图
 
 zone client | 客户端区
-node frontend | 前端页面 | client | Vue.js
+node frontend | 前端页面 | client | React
 
 zone app | 应用层
 node orders | Orders Service | service

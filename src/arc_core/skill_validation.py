@@ -143,6 +143,7 @@ BANNED_TOKENS = [
 ]
 
 FUSION_GENERIC_SKILLS: set[str] = {
+    "graduation-doc-support",
     "terminal-table-output",
 }
 

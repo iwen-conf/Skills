@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-04-16T02:11:03.458423Z",
-  "skill_count": 20,
+  "generated_at": "2026-04-18T13:47:22.887718Z",
+  "skill_count": 22,
   "skills": [
     {
       "name": "arc:aigc",
@@ -250,6 +250,87 @@
         "inputs": "`project_path`, optional scope, depth, focus areas, and known business flows.",
         "outputs": "`diagnostic-report.md`, `scorecard.md`, `recommendations.md`, `evidence-registry.md`.",
         "quality_gate": "Every scored conclusion must satisfy the evidence and boundary rules in `## Quality Gates`.",
+        "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
+      },
+      "input_arguments": null,
+      "outputs_section": null
+    },
+    {
+      "name": "arc:brand-brief",
+      "description": "提取项目信息生成简报：查看项目并提取项目名称、项目简介（详细描述）、技术栈以及功能特点（列举多个功能点说明特性和亮点优势）。当用户要求生成项目描述或简报时触发。",
+      "source_path": "Arc/arc:brand-brief/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "This skill analyzes the current project and generates a comprehensive, factual project description. It systematically extracts the project name, detailed summary, tech stack, and key features (highlighting characteristics and advantages) from the codebase and documentation."
+        },
+        {
+          "heading": "## Quick Contract",
+          "title": "Quick Contract",
+          "body": "- **Trigger**: The user requests a project description, brief, or summary.\n- **Inputs**: None (automatically analyzes the workspace).\n- **Outputs**: A structured Markdown report containing the project's factual details.\n- **Quality Gate**: The output must exactly match the prescribed template, providing a detailed project introduction and multiple feature points with advantages. NO architectural details or design/color suggestions should be included.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
+        },
+        {
+          "heading": "## Routing Matrix",
+          "title": "Routing Matrix",
+          "body": "- For unified routing comparison, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).\n- A phased getting started view is available at [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#phase-routing-view).\n- For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../../docs/arc-routing-cheatsheet.md).\n- If there is a conflict, the **Boundary Tip** of this skill `## When to Use` shall prevail."
+        },
+        {
+          "heading": "## Announce",
+          "title": "Announce",
+          "body": "Begin by stating clearly:\n\"I am using `arc:brand-brief` to extract project details for a comprehensive brief.\""
+        },
+        {
+          "heading": "## The Iron Law",
+          "title": "The Iron Law",
+          "body": "```\nFACTS ONLY. DETAILED DESCRIPTIONS AND FEATURES. NO ARCHITECTURE DETAILS.\n```\n\nYour ONLY job is to describe what the project *is*, its detailed introduction, its tech stack, and its key features based on the code. Do not output architectural modes or UI color schemes."
+        },
+        {
+          "heading": "## Workflow",
+          "title": "Workflow",
+          "body": "1. **Information Gathering**:\n   - **Name & Description**: Read `README.md`, `package.json`, `pyproject.toml`, or `Cargo.toml`. Focus on extracting or synthesizing a detailed project introduction.\n   - **Tech Stack**: Analyze dependency files and source file extensions.\n   - **Features**: Identify core functionalities from the code, documentation, or structure. Detail multiple feature points explaining their characteristics, highlights, and advantages.\n2. **Format & Sanitize**:\n   - Ensure the output is strictly in Chinese.\n   - Remove any mention of architectural styles (e.g., Frontend/Backend separation, CLI, Desktop).\n   - Strip out any subjective descriptions or design advice.\n3. **Output**: Render the exact output template."
+        },
+        {
+          "heading": "## Quality Gates",
+          "title": "Quality Gates",
+          "body": "- **Detailed Introduction**: The project introduction must be detailed, expanding beyond a single sentence.\n- **Feature Highlights**: Must list multiple features and explicitly mention their characteristics and advantages.\n- **No Architecture or Design Advice**: The output must not contain architectural classifications or color scheme extractions.\n- **Format Consistency**: The output must exactly follow the provided Chinese markdown template."
+        },
+        {
+          "heading": "## Expert Standards",
+          "title": "Expert Standards",
+          "body": "- Apply strict factual extraction from code artifacts only — never infer or embellish beyond what the codebase supports.\n- Identify the tech stack from dependency manifests (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`), not from file extensions alone."
+        },
+        {
+          "heading": "## Scripts & Commands",
+          "title": "Scripts & Commands",
+          "body": "- Runtime main command: `arc brand-brief`\n- No external scripts required; this skill operates purely through file reading and analysis."
+        },
+        {
+          "heading": "## Red Flags",
+          "title": "Red Flags",
+          "body": "- Outputting architectural types like \"前后端分离\" or \"CLI\".\n- Extracting or outputting color schemes.\n- Providing a very brief, one-sentence project introduction.\n- Padding the output with conversational text like \"Here is your brief\". (Just output the brief)."
+        },
+        {
+          "heading": "## Output Template",
+          "title": "Output Template",
+          "body": "You MUST output EXACTLY this format, filling in the bracketed parts based on your findings:\n\n```markdown\n**项目描述**\n\n1. **项目名称**：\n   [Project Name]\n\n2. **项目简介**：\n   [Detailed description summarizing the project's core functionality, purpose, and value proposition. This should be a comprehensive paragraph.]\n\n3. **技术栈**：\n   [Comma-separated list of main languages, frameworks, and core tools]\n\n4. **功能特点**：\n   - **[Feature 1 Name]**：[Detailed explanation of the feature, highlighting its characteristics and advantages]\n   - **[Feature 2 Name]**：[Detailed explanation of the feature, highlighting its characteristics and advantages]\n   - **[Feature 3 Name]**：[Detailed explanation of the feature, highlighting its characteristics and advantages]\n   [Add more features as discovered]\n```"
+        },
+        {
+          "heading": "## When to Use",
+          "title": "When to Use",
+          "body": "**Preferred Trigger**: The user requests a project description, feature summary, or brief.\n**Typical Scenario**: Preparing a project overview, generating a factual project summary for documentation, or assessing the project's capabilities.\n**Boundary Tip**: Use `arc:cartography` for structural code maps, `arc:audit` for quality diagnostics, and `arc:brand-brief` for extracting factual project metadata and features."
+        },
+        {
+          "heading": "## Sign-off",
+          "title": "Sign-off",
+          "body": "```text\nfiles read:       [list of key files analyzed]\nscope:            on target\nhard stops:       0\nverification:     Ensured detailed introduction, comprehensive feature list, and NO architecture/color info.\n```"
+        }
+      ],
+      "quick_contract": {
+        "trigger": "The user requests a project description, brief, or summary.",
+        "inputs": "None (automatically analyzes the workspace).",
+        "outputs": "A structured Markdown report containing the project's factual details.",
+        "quality_gate": "The output must exactly match the prescribed template, providing a detailed project introduction and multiple feature points with advantages. NO architectural details or design/color suggestions should be included.",
         "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
       },
       "input_arguments": null,
@@ -2654,33 +2735,33 @@
     },
     {
       "name": "arc:uml",
-      "description": "UML 与 Chen E-R 建模：基于代码与文档证据做图型判定，并强制调用 `drawio` skill 生成标准图谱；当用户说“画架构图/UML 建模/sequence diagram/ER 图/activity diagram/drawio”时触发。",
+      "description": "UML 与 Chen E-R 建模：基于可验证的代码和文档证据生成标准合规的架构与 UML 图谱。强制使用 drawio 技能生成原生图表。当用户请求架构图、UML 建模、时序图、ER 图、活动图或 draw.io 文件时触发。",
       "source_path": "Arc/arc:uml/SKILL.md",
       "sections": [
         {
           "heading": "## Overview",
           "title": "Overview",
-          "body": "`arc:uml` 负责三件事：\n\n1. 判断当前项目应该画哪些图，不应该画哪些图。\n2. 抽取代码、配置、接口、流程和数据库设计中的可追溯证据。\n3. 强制调用 `drawio` skill 生成原生 `.drawio` 文件，并在需要时导出 `.drawio.svg`、`.drawio.png`、`.drawio.pdf` 或 `.drawio.jpg`。\n\n从现在开始，`arc:uml` 不再以 Mermaid 作为默认或推荐作图路径（**时序图除外**）。如果当前环境无法使用 `drawio` skill，应当把它视为阻塞项并明确告知用户；除非用户显式要求兼容旧产物，否则不要回退到 Mermaid。\n\n**例外（时序图致命排版预警）**：针对时序图（Sequence Diagram），由于大模型生成原生 `drawio` XML 时极易因无法精确计算连线坐标而导致所有消息箭头在左侧原点重叠堆积（排版完全崩坏），因此时序图**必须**放宽限制：允许并推荐使用 Mermaid 语法（`.mmd`）生成，或在 `drawio` 中使用内嵌的 Mermaid 文本节点（`shape=mermaid`）。切勿让大模型用原生 XML 硬算时序图连线。\n\n**部署图额外约束（防连线错位）**：针对部署图（Deployment Diagram），不要只给语义要求，不给几何约束。节点必须先按网络区 / 运行层分区，再通过正交连接线绑定到具体节点；不要让大模型用漂浮端点和手工折线随意拉线。\n\n如果任务包含 E-R 图，必须使用陈氏画法（Chen Notation），并且数据来源必须是实际的数据库表设计，而不是凭空想象的概念草图。对于活动图、用例图、时序图、类图、部署图等常见图型，默认同时满足：\n\n- `UML 2.5.1 / ISO 19505` 的基本语义要求。\n- 中国高校软件工程 / 数据库课程中常见的评图要求。\n\n详细规则按需读取：\n\n- [references/notation-standards.md](./references/notation-standards.md)\n- [references/diagram-catalog.md](./references/diagram-catalog.md)\n- [references/china-university-diagram-guidelines.md](./references/china-university-diagram-guidelines.md)\n- [references/deployment-layout-spec.md](./references/deployment-layout-spec.md)"
+          "body": "The `arc:uml` skill is responsible for the following core objectives:\n1. **Applicability Analysis:** Determine the necessity and appropriateness of specific diagram types for the current project context.\n2. **Evidence Extraction:** Extract verifiable traceability evidence from source code, configuration files, API specifications, business processes, and database schemas.\n3. **Standardized Generation:** Generate robust, editable `.drawio` files via intermediate languages or JSON specifications, relying on execution scripts for layout and styling.\n\n**Strict Prohibition:** LLMs are strictly prohibited from generating raw native `.drawio` XML coordinate arrays or style payloads directly. Direct generation consistently results in coordinate hallucinations, floating paths, and non-compliant styling. All native `.drawio` artifacts MUST be produced by proxy through intermediate scripts.\n\n**Standard Diagrams (Class, Use Case, Activity, State, Sequence):** Must be generated using Mermaid syntax (`.mmd`) or PlantUML. The intermediate code must then be passed to `generate_mermaid_drawio.py` to compile into an embedded, perfectly rendered `.drawio` artifact.\n\n**Deployment Diagrams:** Must be generated as structured JSON specifications (`deployment.json`), outlining nodes and orthogonal relationships, and then compiled via `generate_deployment_drawio.py`.\n\n**E-R Diagrams:** Must strictly adhere to Chen Notation. The LLM must output a structured JSON specification (`er.json`) which is then compiled via `generate_er_drawio.py` to ensure standard UML shapes and anchored connectors.\n\nAll standard diagrams (Activity, Use Case, Sequence, Class, Deployment) must comply with:\n- **UML 2.5.1 / ISO 19505** semantic specifications.\n- Academic grading standards for software engineering and database design.\n\nDetailed specifications are available in:\n- [references/notation-standards.md](./references/notation-standards.md)\n- [references/diagram-catalog.md](./references/diagram-catalog.md)\n- [references/china-university-diagram-guidelines.md](./references/china-university-diagram-guidelines.md)\n- [references/deployment-layout-spec.md](./references/deployment-layout-spec.md)"
         },
         {
           "heading": "## Quick Contract",
           "title": "Quick Contract",
-          "body": "- **Trigger**: 用户需要画架构图、UML 图、活动图、时序图、类图、部署图、E-R 图，或明确提到 `drawio` / `draw.io` / `.drawio`。\n- **Inputs**: 项目路径、业务场景、目标图型、部署环境、是否需要导出格式。\n- **Outputs**: 图型适用性判断、证据清单、建模简报、原生 `.drawio` 图文件，以及可选的 `.drawio.svg` / `.drawio.png` / `.drawio.pdf` / `.drawio.jpg` 导出文件。\n- **Quality Gate**: 每张图都必须能回溯到真实证据；E-R 图必须严格使用陈氏画法；时序图不得硬算原生 XML 连线；部署图不得使用漂浮连接线；最终作图必须通过 `drawio` skill 完成。\n- **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
+          "body": "- **Trigger**: User requests for architecture diagrams, UML diagrams, activity diagrams, sequence diagrams, class diagrams, deployment diagrams, E-R diagrams, or explicit mentions of `drawio`/`draw.io`/`.drawio`.\n- **Inputs**: Project path, business scenarios, target diagram types, deployment environments, export format requirements.\n- **Outputs**: Diagram applicability matrix, evidence manifest, modeling briefs, native `.drawio` source files, and optional export formats.\n- **Quality Gate**: Absolute traceability to evidence; strict Chen Notation for E-R; prohibition of XML coordinate computation for sequence diagrams; orthogonal binding for deployment diagrams; mandatory use of the `drawio` skill.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
         },
         {
           "heading": "## Routing Matrix",
           "title": "Routing Matrix",
-          "body": "- For unified routing comparison, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).\n- A phased getting started view is available at [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#phase-routing-view).\n- For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../../docs/arc-routing-cheatsheet.md).\n- If there is a conflict, the **Boundary Note** of this skill `## When to Use` shall prevail."
+          "body": "- Unified routing comparison: [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).\n- Phased getting started view: [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#phase-routing-view).\n- Cheat sheet: [`docs/arc-routing-cheatsheet.md`](../../docs/arc-routing-cheatsheet.md).\n- In case of routing conflicts, the **When to Use** boundary notes within this skill specification supersede external routing matrices."
         },
         {
           "heading": "## Announce",
           "title": "Announce",
-          "body": "执行时先明确说明：\n\n> 我将先做图型适用性判断和证据抽取，再调用 `drawio` skill 生成符合规范的图。"
+          "body": "Prior to execution, output the following precise statement:\n> \"Initiating diagram applicability analysis and evidence extraction. The `drawio` skill will be utilized to generate standards-compliant diagrams.\""
         },
         {
           "heading": "## Teaming Requirement",
           "title": "Teaming Requirement",
-          "body": "- 每次执行都必须先明确 `Owner`、`Executor`、`Reviewer` 三个视角。\n- 如果运行环境只有单个 Agent，也要在交付中显式给出这三个角色的结论，形成“决策-执行-复核”的闭环。"
+          "body": "- Every execution cycle must explicitly define the `Owner`, `Executor`, and `Reviewer` roles.\n- In single-agent environments, the final output must still reflect the conclusions of these three distinct perspectives to ensure a closed-loop \"Decision-Execution-Review\" process."
         },
         {
           "heading": "## The Iron Law",
@@ -2690,141 +2771,242 @@
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. 扫描项目上下文：代码结构、配置、接口、数据库表设计、部署信息、业务流程。\n2. 产出图型适用性矩阵：对 14 类 UML 图逐项判断 `required` / `recommended` / `not-applicable`，并给出理由与证据。\n3. 为每张 `required` / `recommended` 图整理建模简报，明确图目标、证据来源、记法约束和禁画项。\n4. 调用 `drawio` skill 生成原生 `.drawio` 文件；如果用户要求导出格式，再继续导出。\n5. 做跨图一致性检查，输出维护建议和剩余风险。"
+          "body": "1. **Context Scanning:** Analyze project structure, configurations, interfaces, database schemas, deployment manifests, and business flows.\n2. **Applicability Matrix:** Evaluate 14 standard UML diagram types, classifying each as `required`, `recommended`, or `not-applicable`. Provide justification and evidence mappings.\n3. **Modeling Briefs:** Generate a modeling brief for each `required` or `recommended` diagram, specifying objectives, evidence sources, notational constraints, and prohibited elements.\n4. **Generation:** Construct the intermediate representations (e.g. `.mmd` for standard diagrams, `deployment.json` for deployments, `er.json` for Chen E-R). Execute the corresponding python compiler scripts (`generate_mermaid_drawio.py`, `generate_deployment_drawio.py`, `generate_er_drawio.py`) to generate the native `.drawio` files.\n5. **Validation:** Perform cross-diagram consistency verification. Output maintenance recommendations and residual risk assessments."
         },
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- 每张图都必须给出对应证据：`file:line`、配置路径、接口定义、表结构来源或需求文本片段。\n- 所有 `not-applicable` 图型都必须说明原因，不能留空。\n- 图中核心对象命名必须与代码、配置或业务术语一致。\n- 部署图、组件图、配置图之间必须可以互相印证。\n- 活动图必须体现控制流，不能把流程文字直接堆成框图。\n- 活动图必须包含标准 UML 基本元素：初始节点、动作节点、控制流，以及至少一条结束路径。\n- 用例图必须区分系统边界、参与者和用例关系，不能把流程步骤画成用例。\n- 用例图必须至少包含参与者、系统边界和用例椭圆；参与者必须在边界外，用例必须在边界内。\n- 时序图必须体现时间顺序，不能把静态依赖关系误画成消息交互。\n- 时序图出现两种不同情况时，必须用 `alt` 组合片段矩形框表达，不能直接拿两条消息箭头硬拼分支。\n- 组件图必须使用标准组件记法或 `<<component>>` stereotype，并明确组件之间的依赖或接口关系。\n- 类图必须区分关联、依赖、聚合、组合、泛化，不能混用箭头。\n- 类图中的属性和操作应尽量使用标准可见性记号 `+/-/#/~`，不要用自然语言散写成员定义。\n- 状态机图必须包含初始状态、至少一个稳定状态和状态迁移；终止状态应明确画出。\n- E-R 图必须严格使用陈氏画法：实体矩形、联系菱形、属性椭圆、主键下划线、必要时使用弱实体/多值属性/全参与等符号。\n- 最终可编辑源文件必须是 `.drawio`；如果导出了 `svg/png/pdf`，应优先保留带嵌入 XML 的导出物，或明确说明由 `drawio` skill 自动删除了源 `.drawio` 文件。"
+          "body": "- **Traceability:** Every diagram must cite corresponding evidence (e.g., `file:line`, configuration path, interface definition, schema source, or specific requirement text).\n- **Applicability Justification:** All `not-applicable` classifications must include explicit reasoning.\n- **Nomenclature:** Core object naming must strictly align with code, configuration, or established business domain terminology.\n- **Consistency:** Deployment, Component, and Configuration diagrams must cross-validate without contradiction.\n- **Activity Diagrams:** Must depict explicit control flows. Direct textual transposition into sequential blocks is prohibited. Must include standard elements: Initial Node, Action Nodes, Control Flows, and at least one Activity Final Node.\n- **Use Case Diagrams:** Must differentiate system boundaries, actors, and use case relationships. Process steps must not be modeled as use cases. Actors must reside outside the system boundary; use cases must reside inside.\n- **Sequence Diagrams:** Must depict chronological interaction. Static dependencies must not be modeled as messages. Divergent conditions must utilize `alt` combined fragments; manual message vector branching is prohibited. Self-calls (an object invoking its own method) must use loopback arrows on the same lifeline, not separate box-and-arrow constructs.\n- **Component Diagrams:** Must utilize standard component notation or the `<<component>>` stereotype, explicitly defining dependencies and interfaces.\n- **Class Diagrams:** Must semantically differentiate association, dependency, aggregation, composition, and generalization. Arrow semantics must not be interchanged. Use standard visibility modifiers (`+`, `-`, `#`, `~`).\n- **State Machine Diagrams:** Must include an initial state, at least one stable state, state transitions, and an explicit terminal state.\n- **E-R Diagrams:** Must strictly adhere to Chen Notation (Entity rectangles, Relationship diamonds, Attribute ellipses, Primary Key underlines). Utilize weak entity, multi-valued attribute, and total participation notations where applicable.\n- **Source Files:** The definitive source file must be `.drawio`. If `svg/png/pdf` are exported, the exports containing embedded XML should be retained, or explicit documentation must state that the source `.drawio` was removed by the `drawio` skill."
         },
         {
           "heading": "## Expert Standards",
           "title": "Expert Standards",
-          "body": "- UML 图的语义基线默认对齐 `UML 2.5.1 / ISO 19505`。\n- 所有正式图必须通过 `drawio` 生成原生源文件；`drawio` 是正式交付路径，不是可选附加项。\n- 中国高校课程或毕设场景下，优先保证“元素齐全、关系准确、命名清楚、版式整齐、可一眼检查”的表达方式。\n- E-R 图是概念数据模型，不是物理库表说明书。严禁把外键、字段类型、长度、索引等物理实现细节直接画进 Chen 图。\n- 活动图在跨角色或跨部门流程中，优先补泳道；并发必须用 fork / join 粗横条表达，不能用菱形冒充并发。\n- 用例图中的 `<<include>>` 与 `<<extend>>` 必须按语义使用：前者表示被复用的必经行为，后者表示条件性扩展行为。\n- 时序图必须补出关键分支、异常、超时或重试情形，不能只画 happy path。\n- 时序图中“成功/失败”“通过/不通过”“命中/未命中”这类互斥情况，必须放进同一个 `alt` 矩形框；只有单一可选情况才用 `opt`。\n- 部署图必须先定分区和层级，再定节点与连接；节点未对齐、连接未挂接到节点、主线方向混乱，均视为不合格版式。\n- 类图只画当前沟通目标所需的关键属性和操作，不要为了“看起来完整”把所有字段一股脑塞进去。\n- 每张图都要显式记录建模假设、证据位置和适用边界，避免“看起来对、实际不可用”的图。"
+          "body": "- **Semantic Baseline:** UML semantics default to `UML 2.5.1 / ISO 19505`.\n- **Primary Delivery:** Formal diagrams must be generated as native `.drawio` files. The `drawio` skill is the mandatory delivery pathway, not an optional extension.\n- **Academic Standards:** Ensure comprehensive element inclusion, precise relationship semantics, clear nomenclature, and orderly layout optimized for immediate inspection.\n- **E-R Diagrams:** Represent conceptual data models. Physical implementation details (foreign keys, data types, lengths, indices) are strictly prohibited in Chen Notation.\n- **Activity Diagrams:** Utilize swimlanes for cross-role or cross-department flows. Concurrency must utilize explicit fork/join synchronization bars; decision diamonds must not represent concurrency.\n- **Use Case Diagrams:** Strictly adhere to `<<include>>` (mandatory reused behavior) and `<<extend>>` (conditional extended behavior) semantics.\n- **Sequence Diagrams:** Must model critical branches, exceptions, timeouts, and retries. Do not restrict modeling to the happy path. Mutually exclusive conditions must be encapsulated within a single `alt` fragment; `opt` is reserved for singular optional conditions. Self-calls must use loopback arrows (`A->>A: method()` in Mermaid), not box-and-arrow or two separate messages.\n- **Deployment Diagrams:** Establish partitions and tiers prior to node placement. Nodes must align orthogonally; edges must bind to node anchors.\n- **Class Diagrams:** Restrict modeling to attributes and operations relevant to the current communication objective. Do not exhaustively dump entity fields.\n- **Assumptions:** Explicitly document modeling assumptions, evidence locations, and applicability boundaries per diagram."
         },
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "- 初始化 UML 交付目录与 `.drawio` 骨架：\n  ```bash\n  python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types class,sequence,deployment\n  ```\n- 根据结构化规格生成整齐的部署图：\n  ```bash\n  python3 Arc/arc:uml/scripts/generate_deployment_drawio.py \\\n    --spec <uml_dir>/diagram-specs/deployment.json \\\n    --output <uml_dir>/diagrams/deployment.drawio\n  ```\n- 从简洁文本草拟部署图规格：\n  ```bash\n  python3 Arc/arc:uml/scripts/draft_deployment_spec.py \\\n    --input <uml_dir>/diagram-specs/deployment.seed.txt \\\n    --output <uml_dir>/diagram-specs/deployment.json\n  ```\n- 将 Mermaid 时序图渲染成 SVG：\n  ```bash\n  node Arc/arc:uml/scripts/render_beautiful_mermaid_svg.mjs \\\n    --input <uml_dir>/diagrams/sequence.mmd \\\n    --output <uml_dir>/diagrams/sequence.mmd.svg\n  ```\n- 将 Mermaid 时序图包装为稳定的 drawio 文件：\n  ```bash\n  python3 Arc/arc:uml/scripts/generate_sequence_drawio.py \\\n    --input <uml_dir>/diagrams/sequence.mmd \\\n    --output <uml_dir>/diagrams/sequence.drawio\n  ```\n- 对整个 UML 交付目录做多轮复核：\n  ```bash\n  python3 Arc/arc:uml/scripts/review_uml_pack.py --uml-dir <uml_dir>\n  ```\n- 初始化全部 UML 图骨架：\n  ```bash\n  python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all\n  ```\n- 同时生成陈氏 E-R 图骨架：\n  ```bash\n  python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all --include-er-chen\n  ```\n- 运行时主命令：\n  ```bash\n  arc uml\n  ```\n\n`drawio` 的 XML 细节、CLI 导出和打开方式，不在本 skill 重复定义，统一遵循 `drawio` skill 本身的约束。"
+          "body": "- **Initialize UML directory and `.drawio` scaffolding:**\n  ```bash\n  python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types class,sequence,deployment\n  ```\n- **Generate Deployment Diagram from structured specification:**\n  ```bash\n  python3 Arc/arc:uml/scripts/generate_deployment_drawio.py \\\n    --spec <uml_dir>/diagram-specs/deployment.json \\\n    --output <uml_dir>/diagrams/deployment.drawio\n  ```\n- **Draft Deployment specification from text seed:**\n  ```bash\n  python3 Arc/arc:uml/scripts/draft_deployment_spec.py \\\n    --input <uml_dir>/diagram-specs/deployment.seed.txt \\\n    --output <uml_dir>/diagram-specs/deployment.json\n  ```\n- **Render Mermaid Sequence Diagram to SVG:**\n  ```bash\n  node Arc/arc:uml/scripts/render_beautiful_mermaid_svg.mjs \\\n    --input <uml_dir>/diagrams/sequence.mmd \\\n    --output <uml_dir>/diagrams/sequence.mmd.svg\n  ```\n- **Encapsulate Mermaid Diagram into a stable drawio file:**\n  ```bash\n  python3 Arc/arc:uml/scripts/generate_mermaid_drawio.py \\\n    --input <uml_dir>/diagrams/class.mmd \\\n    --output <uml_dir>/diagrams/class.drawio\n  ```\n- **Generate E-R Diagram from structured JSON specification:**\n  ```bash\n  python3 Arc/arc:uml/scripts/generate_er_drawio.py \\\n    --spec <uml_dir>/diagram-specs/er.json \\\n    --output <uml_dir>/diagrams/er-chen.drawio\n  ```\n- **Execute multi-pass review on UML delivery directory:**\n  ```bash\n  python3 Arc/arc:uml/scripts/review_uml_pack.py --uml-dir <uml_dir>\n  ```\n- **Initialize scaffolding for all UML diagram types:**\n  ```bash\n  python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all\n  ```\n- **Initialize scaffolding including Chen E-R Diagram:**\n  ```bash\n  python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types all --include-er-chen\n  ```\n- **Primary execution command:**\n  ```bash\n  arc uml\n  ```\n\nNote: XML specifications, CLI export procedures, and file access protocols for `drawio` are governed by the `drawio` skill constraints and are not redefined here."
         },
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- 不看项目证据，直接套模板出图。\n- 明明只需要 2 到 3 张关键图，却强行输出 14 图全套。\n- E-R 图偷换成 Crow's Foot、IDEF1X、类图或数据库表结构图。\n- 活动图不画起点、终点、分支或并发控制，只堆步骤框。\n- 用例图里把数据库表、接口地址、实现类名当作用例主体。\n- 时序图没有返回、异常、条件分支，无法支撑设计评审。\n- **时序图画成\"面条图\"**：消息过多(>20)、生命线无序排列、缺少激活条、线条交叉混乱。\n- **时序图伪分支**：把两种不同情况直接画成两条箭头，却没有 `alt` / `opt` 组合片段矩形框。\n- **跳过自动化验证**：不执行 `validate_diagram.py` 直接交付，劣质图流入产物。\n- **部署图线框脱节**：连线没有挂在节点上，或大量使用漂浮端点 / 手工折线补坐标。\n- 仍然把 Mermaid 作为默认交付格式。"
+          "body": "- Generating diagrams from templates without verifiable project evidence.\n- Forcing the generation of all 14 UML diagram types when only a specific subset is required.\n- Substituting E-R Diagrams (Chen Notation) with Crow's Foot, IDEF1X, Class Diagrams, or physical database schemas.\n- Constructing Activity Diagrams without start/end nodes, branches, or concurrency controls (merely stacking sequential steps).\n- Utilizing database tables, API endpoints, or implementation class names as actors or use cases within Use Case Diagrams.\n- Designing Sequence Diagrams lacking returns, exceptions, or conditional branches.\n- **Incorrect Self-Calls in Sequence Diagrams:** Rendering self-calls as a box with an arrow to another element, or as two separate messages, instead of a loopback arrow on the same lifeline.\n- **Spaghetti Sequence Diagrams:** Excessive message counts (>20), unordered lifelines, missing activation boxes, or chaotic vector intersections.\n- **Pseudo-Branching in Sequence Diagrams:** Modeling divergent conditions as parallel message vectors without utilizing `alt` or `opt` combined fragments.\n- **Bypassing Automated Validation:** Delivering diagrams without executing `validate_diagram.py`.\n- **Disconnected Deployment Nodes:** Routing edges that are not anchored to nodes, or extensively relying on floating endpoints and manual coordinate overrides.\n- Defaulting to Mermaid format for diagrams other than Sequence Diagrams."
         },
         {
           "heading": "## Context Budget",
           "title": "Context Budget",
-          "body": "- 只抽取关键目录、关键配置、关键流程与关键表结构，不贴全仓代码。\n- 每张图的证据片段控制在 5 到 20 行关键内容。\n- 大型系统按域拆图，避免单图过载。"
+          "body": "- Restrict evidence extraction to critical directories, configurations, flows, and schemas. Do not parse the entire repository.\n- Limit evidence citations to 5-20 critical lines per diagram.\n- For large-scale systems, partition diagrams by domain to prevent cognitive overload."
         },
         {
           "heading": "## When to Use",
           "title": "When to Use",
-          "body": "- **Primary Trigger**: 需要用 UML 或 E-R 图辅助架构沟通、交接、评审、论文/课程建模、毕设答辩或系统演进。\n- **Typical Scenario**: 新成员入项、架构评审、技术尽调、需求梳理、数据库建模、上线前知识沉淀。\n- **Boundary Note**:\n  - 如果仓库结构还没摸清，先用 `arc:cartography`。\n  - 如果主要诉求是质量审计而非建模，先用 `arc:audit`。\n  - 如果用户只要“把图文件导出成 png/pdf/svg”，直接交给 `drawio`。"
+          "body": "- **Preferred Trigger**: Requirements for UML or E-R diagrams to support architectural communication, handovers, technical reviews, academic modeling, thesis defense, or system evolution.\n- **Typical Scenario**: Onboarding, architecture review, technical due diligence, requirements analysis, database modeling, or pre-release documentation.\n- **Boundary Tip**:\n  - If the repository structure is unknown, utilize `arc:cartography` first.\n  - If the primary objective is quality auditing rather than modeling, utilize `arc:audit` first.\n  - If the user solely requests format conversion (\"export this file to png/pdf/svg\"), delegate directly to the `drawio` skill."
         },
         {
           "heading": "## Input Arguments",
           "title": "Input Arguments",
-          "body": "| parameter | type | Required | illustrate |\n|------|------|------|------|\n| `project_path` | string | yes | 项目根目录绝对路径 |\n| `project_name` | string | no | 项目标识；默认从路径推断 |\n| `diagram_types` | array | no | 指定图型列表；默认自动判定 |\n| `business_scenarios` | array | no | 关键业务场景，用于活动图/用例图/时序图 |\n| `deployment_targets` | array | no | 部署目标，如 `k8s` / `vm` / `on-prem` |\n| `include_er` | boolean | no | 是否输出 E-R 图；默认按证据自动判断 |\n| `depth_level` | string | no | `quick` / `standard` / `deep`，默认 `standard` |\n| `export_format` | string | no | `none` / `svg` / `png` / `pdf` / `jpg`，默认 `none` |\n| `render_format` | string | no | 向后兼容参数，等价于 `export_format` |\n| `output_dir` | string | no | 默认 `<project_path>/.arc/uml/<project-name>/` |"
+          "body": "| Parameter | Type | Required | Description |\n|------|------|------|------|\n| `project_path` | string | yes | Absolute path to the project root directory. |\n| `project_name` | string | no | Project identifier; inferred from path if omitted. |\n| `diagram_types` | array | no | Explicit list of diagram types; automatically inferred if omitted. |\n| `business_scenarios` | array | no | Critical business scenarios for Activity/Use Case/Sequence diagrams. |\n| `deployment_targets` | array | no | Target environments (e.g., `k8s`, `vm`, `on-prem`). |\n| `include_er` | boolean | no | Flag to include E-R diagrams; inferred from evidence if omitted. |\n| `depth_level` | string | no | Extent of modeling: `quick`, `standard`, `deep`. Default: `standard`. |\n| `export_format` | string | no | Target export format: `none`, `svg`, `png`, `pdf`, `jpg`. Default: `none`. |\n| `render_format` | string | no | Legacy alias for `export_format`. |\n| `output_dir` | string | no | Output destination. Default: `<project_path>/.arc/uml/<project-name>/`. |"
         },
         {
           "heading": "## Notation Standards",
           "title": "Notation Standards",
-          "body": "- 所有正式图源文件必须是原生 `draw.io` / `drawio` 文件，即 `.drawio`。\n- 任何实际作图动作必须委托给 `drawio` skill 完成。\n- 如需交付图片或打印版，优先导出 `.drawio.svg` / `.drawio.png` / `.drawio.pdf`，以便保留嵌入 XML 的可编辑能力。\n- E-R 图必须使用陈氏画法，详细规则见 [references/notation-standards.md](./references/notation-standards.md)。\n- 中国高校课程和毕业设计常见评图要求见 [references/china-university-diagram-guidelines.md](./references/china-university-diagram-guidelines.md)。\n\n### drawio Skill Contract\n\n在开始绘制每一张图前，至少明确以下信息再调用 `drawio`：\n\n- 图文件路径：如 `diagrams/activity.drawio`\n- 图目标：这张图用于解释什么，不用于解释什么\n- 证据来源：代码、配置、表结构、需求或日志中的哪些位置\n- 必画元素：例如活动图的初始节点 / 判定 / 泳道，或 E-R 图的实体 / 联系 / 主键\n- 禁止事项：例如“不要把外键画成属性”“不要把分支条件写到节点名里”\n- 导出需求：是否需要 `svg/png/pdf/jpg`\n\n针对高风险图型，还必须补充：\n\n- **时序图**：\n  - 交付格式：优先 `diagrams/sequence.mmd`\n  - 明确要求：禁止原生 XML 逐条硬算消息箭头\n  - 如用户坚持 `drawio` 承载：只允许内嵌 Mermaid 文本节点，不允许手工拉消息线\n  - 推荐生成：优先由 `generate_sequence_drawio.py` 生成 `sequence.drawio`\n- **部署图**：\n  - 草稿输入：可先写 `diagram-specs/deployment.seed.txt`\n  - 分区方案：例如“客户端区 / 接入层 / 应用层 / 数据层”\n  - 节点对齐规则：例如“同层节点顶边对齐到 10px 网格”\n  - 连线协议：使用 `source/target` 绑定节点，优先正交路由，禁止漂浮端点\n  - 推荐输入：优先维护 `diagram-specs/deployment.json`，再用脚本生成 `.drawio`"
+          "body": "- The definitive source for formal diagrams must be native `draw.io` / `drawio` files (`.drawio`).\n- All diagram generation actions must be delegated to the `drawio` skill.\n- When delivering image or print formats, prioritize `.drawio.svg`, `.drawio.png`, or `.drawio.pdf` to preserve embedded XML for future editing.\n- E-R Diagrams must utilize Chen Notation. Detailed rules: [references/notation-standards.md](./references/notation-standards.md).\n- Academic evaluation criteria: [references/china-university-diagram-guidelines.md](./references/china-university-diagram-guidelines.md).\n\n### 15.1. Execution Script Contract\n\nPrior to finalizing any diagram, explicitly utilize the proxy scripts instead of attempting direct XML authoring:\n- **Standard Diagrams (Sequence, Class, Activity, Use Case, State):**\n  - **Delivery Format:** Prioritize `.mmd` (Mermaid) or `.puml` (PlantUML).\n  - **Constraint:** Direct computation of native XML is strictly prohibited.\n  - **Recommended Pipeline:** Generate `*.drawio` via `generate_mermaid_drawio.py`.\n- **E-R Diagrams:**\n  - **Input Generation:** Draft via `diagram-specs/er.json`.\n  - **Constraint:** Must strictly enforce Chen Notation mappings (entities, attributes, relationships, connections).\n  - **Recommended Pipeline:** Generate `.drawio` via `generate_er_drawio.py`.\n- **Deployment Diagrams:**\n  - **Input Generation:** Draft via `diagram-specs/deployment.seed.txt`.\n  - **Partitioning Strategy:** e.g., \"Client Zone / Gateway Tier / Application Tier / Data Tier\".\n  - **Alignment Protocol:** e.g., \"Align peer nodes orthogonally to a 10px grid\".\n  - **Routing Protocol:** Enforce `source/target` node anchoring. Prioritize orthogonal routing. Floating endpoints are prohibited.\n  - **Recommended Pipeline:** Maintain `diagram-specs/deployment.json` and generate `.drawio` via script."
         },
         {
           "heading": "## Dependencies",
           "title": "Dependencies",
-          "body": "- **Organization Contract**: 必需。执行时保持 `Owner / Executor / Reviewer` 三角色闭环。\n- **ace-tool / 代码检索能力**: 必需。用于收集代码与配置证据。\n- **drawio skill**:\n  - **类图/活动图/用例图/部署图等**: 必需。所有正式图必须通过它生成。\n  - **时序图**: 仅在使用内嵌 Mermaid 节点时可依赖；禁止把 `drawio` skill 用成“原生 XML 消息箭头生成器”。\n- **联网搜索（web / Exa）**: 按需。用于补充 UML 规范、教材标准或框架约定。\n- **本地生成脚本**:\n  - `draft_deployment_spec.py`: 推荐。把简洁的部署种子文本转成 `deployment.json`。\n  - `generate_deployment_drawio.py`: 推荐。把结构化部署规格转成对齐良好的 `.drawio`。\n  - `generate_sequence_drawio.py`: 推荐。把 `sequence.mmd` 包装成稳定可显示的 `sequence.drawio`。\n  - `render_beautiful_mermaid_svg.mjs`: 推荐。把 `sequence.mmd` 渲染成稳定可读的 `.svg`。\n\n### 时序图特殊依赖\n\n时序图依赖：\n- **Mermaid 语法生成能力**: 必需。默认交付 `diagrams/sequence.mmd`。\n- **drawio 内嵌 Mermaid 节点** (可选): 只有在用户明确要求 `drawio` 承载时才使用；严禁改回原生 XML 连线。"
+          "body": "- **Organization Contract:** Mandatory. Enforce the `Owner / Executor / Reviewer` closed-loop execution model.\n- **ace-tool / Code Search:** Mandatory. Utilized for evidence extraction.\n- **drawio Skill:**\n  - **Standard Diagrams:** Mandatory. Required for formal diagram generation.\n  - **Sequence Diagrams:** Conditional. Permitted only when encapsulating Mermaid nodes; prohibited for native XML generation.\n- **Web Search (web / Exa):** Conditional. Utilized for specification retrieval or standard verification.\n- **Local Generation Scripts:**\n  - `draft_deployment_spec.py`: Recommended. Converts concise text seeds into `deployment.json`.\n  - `generate_deployment_drawio.py`: Recommended. Renders structured specifications into aligned `.drawio` files.\n  - `generate_mermaid_drawio.py`: Recommended. Encapsulates intermediate `.mmd` diagrams into stable `.drawio` files.\n  - `generate_er_drawio.py`: Recommended. Renders Chen E-R JSON specifications into compliant `.drawio` files."
         },
         {
-          "heading": "## Instructions (execution process)",
-          "title": "Instructions (execution process)",
-          "body": "### Phase 1: Project Modeling Reconnaissance\n\n1. 扫描项目模块、实体、接口、配置、数据库表设计、部署和关键业务流程。\n2. 生成 `context/project-snapshot.md`，沉淀初步证据。\n\n### Phase 2: Determination of Diagram Applicability\n\n1. 用户未指定 `diagram_types` 时，评估全部 14 类 UML 图。\n2. 同时判断是否需要补充 E-R 图。\n3. 输出 `diagram-plan.md`，记录结论、理由、证据和优先级。\n\n### Phase 3: Modeling Briefs and drawio Output\n\n1. 先初始化交付目录与骨架文件：\n   ```bash\n   python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <output_dir> --types all --include-er-chen\n   ```\n2. 为每张 `required` / `recommended` 图补全 `diagram-briefs/<diagram>.md`。\n3. 逐张生成图文件：\n   - **部署图**：可先补 `diagram-specs/deployment.seed.txt`，再生成 `deployment.json`，最后调用 `generate_deployment_drawio.py` 生成 `.drawio`\n   - **时序图**：默认生成 `diagrams/sequence.mmd`，如需 `.drawio` 交付则调用 `generate_sequence_drawio.py`，如需图片交付再渲染 `sequence.mmd.svg`\n   - **其他图型**：调用 `drawio` skill 生成 `.drawio`\n4. 如果用户要求导出，再继续导出为对应格式。\n5. 更新 `diagram-index.md` 记录交付物状态。\n\n### Phase 4: Consistency Verification\n\n1. **自动化质量验证**：对每张生成的图调用验证脚本\n   ```bash\n   python3 Arc/arc:uml/scripts/validate_diagram.py <output_dir>/diagrams/<diagram-file> --type <type>\n   ```\n   - 例如：`sequence.mmd --type sequence`\n   - 例如：`deployment.drawio --type deployment`\n   - 若验证失败（error），必须修复后重新生成，不得流入交付物\n   - 若验证警告（warning），评估是否可在当前迭代修复，或记录到技术债\n2. **多轮复核**：完成单图校验后，必须对整个交付目录再运行一次目录级复核\n   ```bash\n   python3 Arc/arc:uml/scripts/review_uml_pack.py --uml-dir <output_dir>\n   ```\n   - 该脚本会重复检查源文件、临时派生成品和工作区成品之间是否一致\n   - 若复核发现 drift、缺失产物或再次校验失败，不得结束任务\n3. 检查命名一致性：类、组件、服务、节点、角色、实体是否统一。\n4. 检查跨图一致性：组件图 ↔ 部署图 ↔ 配置图，活动图 ↔ 时序图 ↔ 用例图。\n5. 若输出 E-R 图，复核是否严格符合陈氏画法和概念模型边界。\n6. 输出 `validation-summary.md` 与后续维护建议。"
+          "heading": "## Instructions (Execution Process)",
+          "title": "Instructions (Execution Process)",
+          "body": "### Phase 1: Project Modeling Reconnaissance\n1. Scan project modules, entities, interfaces, configurations, schemas, deployments, and critical flows.\n2. Generate `context/project-snapshot.md` to persist preliminary evidence.\n\n### Phase 2: Applicability Determination\n1. If `diagram_types` is unspecified, evaluate all 14 standard UML diagram types.\n2. Evaluate the necessity of E-R diagrams based on data persistence evidence.\n3. Generate `diagram-plan.md`, documenting conclusions, justifications, evidence citations, and priorities.\n\n### Phase 3: Modeling Briefs and Output Generation\n1. Initialize delivery directory and scaffolding:\n   ```bash\n   python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <output_dir> --types all --include-er-chen\n   ```\n2. Populate `diagram-briefs/<diagram>.md` for all `required` and `recommended` diagrams.\n3. Iteratively generate diagram files:\n   - **Standard Diagrams (Sequence, Class, Activity, etc.):** Generate intermediate code (`.mmd` or `.puml`). Invoke `generate_mermaid_drawio.py` to produce a containerized `.drawio` file.\n   - **Deployment Diagrams:** Draft `diagram-specs/deployment.seed.txt`, convert to `deployment.json`, and invoke `generate_deployment_drawio.py` to produce `.drawio`.\n   - **Chen E-R Diagrams:** Draft `diagram-specs/er.json` (listing entities, relationships, attributes, and connections) and invoke `generate_er_drawio.py` to generate the `.drawio` representation.\n4. Execute required format exports.\n5. Update `diagram-index.md` to reflect delivery status.\n\n### Phase 4: Consistency Verification\n1. **Automated Quality Validation:** Execute validation scripts against all generated diagrams:\n   ```bash\n   python3 Arc/arc:uml/scripts/validate_diagram.py <output_dir>/diagrams/<diagram-file> --type <type>\n   ```\n   - *Failure protocol:* Diagram generation errors must be resolved and regenerated. Defective artifacts must not be delivered.\n   - *Warning protocol:* Evaluate feasibility of immediate remediation or document as technical debt.\n2. **Directory-Level Review:** Execute a comprehensive multi-pass review on the delivery directory:\n   ```bash\n   python3 Arc/arc:uml/scripts/review_uml_pack.py --uml-dir <output_dir>\n   ```\n   - Resolve identified state drift, missing artifacts, or secondary validation failures before concluding the task.\n3. **Nomenclature Consistency:** Verify unified naming conventions across classes, components, services, nodes, roles, and entities.\n4. **Cross-Diagram Consistency:** Verify bidirectional consistency: Component ↔ Deployment ↔ Configuration; Activity ↔ Sequence ↔ Use Case.\n5. **E-R Diagram Verification:** Confirm strict adherence to Chen Notation and conceptual modeling boundaries.\n6. **Finalization:** Generate `validation-summary.md` detailing outcomes and maintenance strategies."
         },
         {
           "heading": "## Outputs",
           "title": "Outputs",
-          "body": "```text\n<project_path>/.arc/uml/<project-name>/\n├── context/\n│   └── project-snapshot.md\n├── diagram-plan.md\n├── diagram-index.md\n├── validation-summary.md\n├── diagram-specs/\n│   ├── deployment.seed.txt\n│   └── deployment.json\n├── diagram-briefs/\n│   ├── <diagram-type>.md\n│   └── er-chen.md\n└── diagrams/\n    ├── <diagram-type>.drawio       # 类图/活动图/用例图/部署图等\n    ├── <diagram-type>.drawio.svg\n    ├── <diagram-type>.drawio.png\n    ├── sequence.mmd                # 时序图默认源文件\n    ├── sequence.drawio             # 时序图稳定 drawio 承载文件\n    ├── sequence.mmd.svg           # 时序图渲染成品\n    ├── er-chen.drawio\n    ├── er-chen.drawio.svg\n    └── ...\n```\n\n说明：\n\n- **类图/活动图/用例图/部署图等**：使用 `.drawio` 格式，通过 `drawio` skill 生成。\n- **部署图**：推荐先维护 `diagram-specs/deployment.seed.txt` 或 `deployment.json`，再通过 `generate_deployment_drawio.py` 生成整齐的 `.drawio`。\n- **时序图**：默认使用 `.mmd` (Mermaid) 格式；若需要 `drawio` 文件，使用 `generate_sequence_drawio.py` 生成稳定承载版本；若需要直接查看成品，渲染 `sequence.mmd.svg`。严禁使用原生 `drawio` XML 逐条生成消息箭头。\n- **E-R 图**：使用 `.drawio` 格式，必须使用陈氏画法。\n- 如果 `drawio` skill 在导出后删除了 `.drawio` 源文件，则以带嵌入 XML 的导出文件作为可编辑主产物，并在 `diagram-index.md` 中说明。\n- 并不是所有扩展名都要同时生成，只交付用户明确需要的格式。"
-        },
-        {
-          "heading": "## Gotchas",
-          "title": "Gotchas",
-          "body": "- 画“好看但不可追溯”的图。\n- 在一张图里同时混入需求、设计、部署、数据库和测试语义，导致主线模糊。\n- 只画 happy path，不画异常、超时、回滚、重试或人工介入。\n- 用数据库物理字段去污染概念 E-R 图。\n- 明明要的是中国高校课程 / 毕设可检查图，却输出随意草图。\n- 没有维护策略，导致图在一次交付后迅速过期。"
+          "body": "```text\n<project_path>/.arc/uml/<project-name>/\n├── context/\n│   └── project-snapshot.md\n├── diagram-plan.md\n├── diagram-index.md\n├── validation-summary.md\n├── diagram-specs/\n│   ├── deployment.seed.txt\n│   ├── deployment.json\n│   └── er.json\n├── diagram-briefs/\n│   ├── <diagram-type>.md\n│   └── er-chen.md\n└── diagrams/\n    ├── <diagram-type>.mmd          # Standard diagrams primary source\n    ├── <diagram-type>.drawio       # Containerized native drawio files\n    ├── <diagram-type>.drawio.svg\n    ├── <diagram-type>.drawio.png\n    ├── deployment.drawio\n    ├── er-chen.drawio\n    ├── er-chen.drawio.svg\n    └── ...\n```\n\n**Delivery Protocol:**\n- Only generate file extensions explicitly requested by the user. Do not arbitrarily populate all formats.\n- Retain exports with embedded XML as the primary editable artifact if the `drawio` skill automatically removes the source `.drawio` post-export. Ensure this behavior is documented in `diagram-index.md`."
         }
       ],
       "quick_contract": {
-        "trigger": "用户需要画架构图、UML 图、活动图、时序图、类图、部署图、E-R 图，或明确提到 `drawio` / `draw.io` / `.drawio`。",
-        "inputs": "项目路径、业务场景、目标图型、部署环境、是否需要导出格式。",
-        "outputs": "图型适用性判断、证据清单、建模简报、原生 `.drawio` 图文件，以及可选的 `.drawio.svg` / `.drawio.png` / `.drawio.pdf` / `.drawio.jpg` 导出文件。",
-        "quality_gate": "每张图都必须能回溯到真实证据；E-R 图必须严格使用陈氏画法；时序图不得硬算原生 XML 连线；部署图不得使用漂浮连接线；最终作图必须通过 `drawio` skill 完成。",
-        "decision_tree": "For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
+        "trigger": "User requests for architecture diagrams, UML diagrams, activity diagrams, sequence diagrams, class diagrams, deployment diagrams, E-R diagrams, or explicit mentions of `drawio`/`draw.io`/`.drawio`.",
+        "inputs": "Project path, business scenarios, target diagram types, deployment environments, export format requirements.",
+        "outputs": "Diagram applicability matrix, evidence manifest, modeling briefs, native `.drawio` source files, and optional export formats.",
+        "quality_gate": "Absolute traceability to evidence; strict Chen Notation for E-R; prohibition of XML coordinate computation for sequence diagrams; orthogonal binding for deployment diagrams; mandatory use of the `drawio` skill.",
+        "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree)."
       },
       "input_arguments": [
         {
           "parameter": "project_path",
           "type": "string",
           "required": "yes",
-          "description": "项目根目录绝对路径"
+          "description": "Absolute path to the project root directory."
         },
         {
           "parameter": "project_name",
           "type": "string",
           "required": "no",
-          "description": "项目标识；默认从路径推断"
+          "description": "Project identifier; inferred from path if omitted."
         },
         {
           "parameter": "diagram_types",
           "type": "array",
           "required": "no",
-          "description": "指定图型列表；默认自动判定"
+          "description": "Explicit list of diagram types; automatically inferred if omitted."
         },
         {
           "parameter": "business_scenarios",
           "type": "array",
           "required": "no",
-          "description": "关键业务场景，用于活动图/用例图/时序图"
+          "description": "Critical business scenarios for Activity/Use Case/Sequence diagrams."
         },
         {
           "parameter": "deployment_targets",
           "type": "array",
           "required": "no",
-          "description": "部署目标，如 `k8s` / `vm` / `on-prem`"
+          "description": "Target environments (e.g., `k8s`, `vm`, `on-prem`)."
         },
         {
           "parameter": "include_er",
           "type": "boolean",
           "required": "no",
-          "description": "是否输出 E-R 图；默认按证据自动判断"
+          "description": "Flag to include E-R diagrams; inferred from evidence if omitted."
         },
         {
           "parameter": "depth_level",
           "type": "string",
           "required": "no",
-          "description": "quick` / `standard` / `deep`，默认 `standard"
+          "description": "Extent of modeling: `quick`, `standard`, `deep`. Default: `standard`."
         },
         {
           "parameter": "export_format",
           "type": "string",
           "required": "no",
-          "description": "none` / `svg` / `png` / `pdf` / `jpg`，默认 `none"
+          "description": "Target export format: `none`, `svg`, `png`, `pdf`, `jpg`. Default: `none`."
         },
         {
           "parameter": "render_format",
           "type": "string",
           "required": "no",
-          "description": "向后兼容参数，等价于 `export_format`"
+          "description": "Legacy alias for `export_format`."
         },
         {
           "parameter": "output_dir",
           "type": "string",
           "required": "no",
-          "description": "默认 `<project_path>/.arc/uml/<project-name>/`"
+          "description": "Output destination. Default: `<project_path>/.arc/uml/<project-name>/`."
         }
       ],
       "outputs_section": {
         "format": "text",
-        "content": "<project_path>/.arc/uml/<project-name>/\n├── context/\n│   └── project-snapshot.md\n├── diagram-plan.md\n├── diagram-index.md\n├── validation-summary.md\n├── diagram-specs/\n│   ├── deployment.seed.txt\n│   └── deployment.json\n├── diagram-briefs/\n│   ├── <diagram-type>.md\n│   └── er-chen.md\n└── diagrams/\n    ├── <diagram-type>.drawio       # 类图/活动图/用例图/部署图等\n    ├── <diagram-type>.drawio.svg\n    ├── <diagram-type>.drawio.png\n    ├── sequence.mmd                # 时序图默认源文件\n    ├── sequence.drawio             # 时序图稳定 drawio 承载文件\n    ├── sequence.mmd.svg           # 时序图渲染成品\n    ├── er-chen.drawio\n    ├── er-chen.drawio.svg\n    └── ..."
+        "content": "<project_path>/.arc/uml/<project-name>/\n├── context/\n│   └── project-snapshot.md\n├── diagram-plan.md\n├── diagram-index.md\n├── validation-summary.md\n├── diagram-specs/\n│   ├── deployment.seed.txt\n│   ├── deployment.json\n│   └── er.json\n├── diagram-briefs/\n│   ├── <diagram-type>.md\n│   └── er-chen.md\n└── diagrams/\n    ├── <diagram-type>.mmd          # Standard diagrams primary source\n    ├── <diagram-type>.drawio       # Containerized native drawio files\n    ├── <diagram-type>.drawio.svg\n    ├── <diagram-type>.drawio.png\n    ├── deployment.drawio\n    ├── er-chen.drawio\n    ├── er-chen.drawio.svg\n    └── ..."
+      }
+    },
+    {
+      "name": "graduation-doc-support",
+      "description": "毕业设计支撑文档生成：当用户要求基于真实项目代码、数据库和现有论文/同学模板，生成“系统用例规约”“数据库物理设计三线表”“功能模块实现主要代码”“测试用例设计”等多个 docx 时触发；强调以运行时代码和 SQL 为准，模板只借格式不借内容。",
+      "source_path": "graduation-doc-support/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "`graduation-doc-support` 用于从本地项目真实实现出发，生成毕业设计/论文配套的支撑性 Word 文档。它适合这样的请求：用户给出项目目录，可能再给一个同学论文或旧 Word 模板，让你“按一样的方式”产出新的 `docx`，但内容必须严格对应当前系统实现。\n\n这个 skill 解决的是“证据驱动文档交付”，不是单纯润色。源码、数据库脚本、已有测试和前端页面是真正的事实来源；同学论文或既有 Word 只允许提供版式、栏目和表格风格，不允许借用其业务结论。详细取证清单与交付矩阵见 [`references/evidence-checklist.md`](references/evidence-checklist.md)。"
+        },
+        {
+          "heading": "## Quick Contract",
+          "title": "Quick Contract",
+          "body": "- **Trigger**: 用户要求查看某个项目的代码、数据库、同学论文或 Word 模板，并据此生成多个毕业设计支撑 `docx`。\n- **Inputs**: `project_root`、可选 `peer_doc_path`、可选 `target_docs`、可选 `output_dir`、可选命名约定。\n- **Outputs**: 基于真实实现生成的多个独立 `docx`，必要时附带 `tmp/docs/pdf/` 下的渲染校验文件与任务记录。\n- **Quality Gate**: 每一项结论都必须能追溯到代码、SQL、路由、菜单、测试或配置；模板只能影响形式，不能替代事实来源。\n- **Decision Tree**: 如果用户只是想润色已有论文正文，用 `arc:aigc`；如果用户要 UML 或 E-R 图，用 `arc:uml`；如果用户要的是从实现中生成毕业支撑文档，用本 skill。"
+        },
+        {
+          "heading": "## Announce",
+          "title": "Announce",
+          "body": "Begin by stating:\n\n> \"I am using `graduation-doc-support` to derive thesis support documents from real code and schema evidence, not from template copy.\""
+        },
+        {
+          "heading": "## Input Arguments",
+          "title": "Input Arguments",
+          "body": "| parameter | type | required | description |\n|-----------|------|----------|-------------|\n| `project_root` | string | yes | 目标项目根目录，必须是实际要取证的仓库路径 |\n| `peer_doc_path` | string | no | 同学论文、旧版 Word 或模板路径，只用于提取栏目和格式线索 |\n| `target_docs` | array | no | 需要生成的文档列表，默认包含系统用例规约、数据库物理设计三线表、功能模块实现主要代码、测试用例设计 |\n| `output_dir` | string | no | 目标输出目录；若未指定，优先沿用项目内现有论文资料目录 |\n| `naming_rule` | string | no | 文件命名规则，例如“项目名+文档名”或“学号姓名+文档名” |\n| `verification_mode` | enum | no | `render-check` / `text-check`；默认优先 `render-check`，即转 PDF 检查版式 |"
+        },
+        {
+          "heading": "## The Iron Law",
+          "title": "The Iron Law",
+          "body": "```text\nNO THESIS SUPPORT DOCUMENT MAY CLAIM A FEATURE, TABLE, FLOW, OR TEST THAT THE PROJECT DOES NOT ACTUALLY IMPLEMENT.\nRUNTIME CODE AND SQL BEAT TEMPLATES. TEMPLATES MAY GUIDE SHAPE, NEVER CONTENT.\n```"
+        },
+        {
+          "heading": "## Workflow",
+          "title": "Workflow",
+          "body": "1. 识别目标项目根目录，并先读取该仓库自己的 `AGENTS.md`、`CLAUDE.md` 或任务记录；如果用户提供了同学论文或旧 Word，只读取和本次需求相关的节，不批量照搬。\n2. 建立事实优先级：先看运行时代码，再看数据库脚本，再看项目内设计文档，最后才看同学论文的栏目和表格样式。\n3. 抽取证据矩阵：\n   - 角色、登录注册、权限与会话；\n   - 核心业务流和对应控制器/页面；\n   - 物理表与字段；\n   - 代表性代码片段；\n   - 自动化测试现状与可设计的人工测试用例。\n4. 对每一份目标文档先确定“必须写什么、不允许猜什么”：\n   - `系统用例规约`：只写真实存在的角色和业务用例；\n   - `数据库物理设计三线表`：直接从 SQL 解析表和字段，不用二手摘要；\n   - `功能模块实现主要代码`：摘录最能说明系统实现的核心代码，给出真实路径和行号；\n   - `测试用例设计`：若仓库自动化测试弱，则明确写人工测试设计并说明现状。\n5. 使用 `python-docx` 生成多个独立 `docx`：\n   - A4 页面；\n   - 三线表；\n   - 代码较宽时允许横向页面；\n   - 文件名稳定且可直接交付。\n6. 进行渲染校验：\n   - `soffice --headless --convert-to pdf`；\n   - `pdfinfo` 检查 A4；\n   - `pdftotext -layout` 抽检标题、表格和代码片段是否断裂。\n7. 收尾时明确说明验证结果与残余风险，例如：\n   - `mvnw` 因换行符无法运行但系统 Maven 可运行；\n   - 项目只有 `contextLoads()`，因此测试文档主要是手工用例设计。"
+        },
+        {
+          "heading": "## Quality Gates",
+          "title": "Quality Gates",
+          "body": "- 所有业务描述都必须落到真实文件、类名、方法名、表名或页面路径。\n- 不得把同学论文中的业务名词、模块名、第三方能力直接挪到目标项目。\n- 数据库物理设计必须以实际 SQL 为准，不能只引用仓库快照、README 或人工总结。\n- 如果项目没有完整自动化测试，要在测试文档里明确说明“现有自动化测试薄弱”，不能伪造已执行覆盖率。\n- 输出必须是多个独立 `docx`，不能把四类内容混成一个总文档，除非用户明确要求。\n- 完成后优先做 PDF 渲染校验；若环境缺依赖，则必须明确指出版式风险和缺失依赖。"
+        },
+        {
+          "heading": "## Red Flags",
+          "title": "Red Flags",
+          "body": "- 把“看一下同学论文”误解成“复制同学论文内容”。\n- 未核对代码和数据库，就凭项目名称脑补角色、支付方式、推荐算法或模块边界。\n- 直接沿用旧文档里的表数量、状态流转或测试结论，而没有回到 SQL 和源码复核。\n- 把“测试用例设计”写成“测试结果报告”，或反过来把没有执行过的结果写成已通过。\n- 未发现学号/姓名等命名证据，却擅自套用某个学生命名格式。"
+        },
+        {
+          "heading": "## When to Use",
+          "title": "When to Use",
+          "body": "- **首选触发**：用户要求“根据我们的系统实现”“按这个论文/Word 的方式”生成毕业设计、论文支撑材料或多个 `docx`。\n- **典型场景**：系统用例规约、数据库物理设计三线表、功能模块实现主要代码、测试用例设计、项目说明型论文附件。\n- **边界提示**：如果任务只是润色已有论文段落，不要用本 skill；如果任务是建模出图，不要用本 skill；如果用户只给了模板却没给项目实现，也不能直接生成事实性文档。"
+        },
+        {
+          "heading": "## Outputs",
+          "title": "Outputs",
+          "body": "```text\n<project_root>/\n├── docs/.../<project-name>系统用例规约.docx\n├── docs/.../<project-name>数据库物理设计三线表.docx\n├── docs/.../<project-name>功能模块实现主要代码.docx\n├── docs/.../<project-name>测试用例设计.docx\n└── tmp/docs/pdf/\n    ├── <project-name>系统用例规约.pdf\n    ├── <project-name>数据库物理设计三线表.pdf\n    ├── <project-name>功能模块实现主要代码.pdf\n    └── <project-name>测试用例设计.pdf\n```"
+        }
+      ],
+      "quick_contract": {
+        "trigger": "用户要求查看某个项目的代码、数据库、同学论文或 Word 模板，并据此生成多个毕业设计支撑 `docx`。",
+        "inputs": "`project_root`、可选 `peer_doc_path`、可选 `target_docs`、可选 `output_dir`、可选命名约定。",
+        "outputs": "基于真实实现生成的多个独立 `docx`，必要时附带 `tmp/docs/pdf/` 下的渲染校验文件与任务记录。",
+        "quality_gate": "每一项结论都必须能追溯到代码、SQL、路由、菜单、测试或配置；模板只能影响形式，不能替代事实来源。",
+        "decision_tree": "如果用户只是想润色已有论文正文，用 `arc:aigc`；如果用户要 UML 或 E-R 图，用 `arc:uml`；如果用户要的是从实现中生成毕业支撑文档，用本 skill。"
+      },
+      "input_arguments": [
+        {
+          "parameter": "project_root",
+          "type": "string",
+          "required": "yes",
+          "description": "目标项目根目录，必须是实际要取证的仓库路径"
+        },
+        {
+          "parameter": "peer_doc_path",
+          "type": "string",
+          "required": "no",
+          "description": "同学论文、旧版 Word 或模板路径，只用于提取栏目和格式线索"
+        },
+        {
+          "parameter": "target_docs",
+          "type": "array",
+          "required": "no",
+          "description": "需要生成的文档列表，默认包含系统用例规约、数据库物理设计三线表、功能模块实现主要代码、测试用例设计"
+        },
+        {
+          "parameter": "output_dir",
+          "type": "string",
+          "required": "no",
+          "description": "目标输出目录；若未指定，优先沿用项目内现有论文资料目录"
+        },
+        {
+          "parameter": "naming_rule",
+          "type": "string",
+          "required": "no",
+          "description": "文件命名规则，例如“项目名+文档名”或“学号姓名+文档名”"
+        },
+        {
+          "parameter": "verification_mode",
+          "type": "enum",
+          "required": "no",
+          "description": "`render-check` / `text-check`；默认优先 `render-check`，即转 PDF 检查版式"
+        }
+      ],
+      "outputs_section": {
+        "format": "text",
+        "content": "<project_root>/\n├── docs/.../<project-name>系统用例规约.docx\n├── docs/.../<project-name>数据库物理设计三线表.docx\n├── docs/.../<project-name>功能模块实现主要代码.docx\n├── docs/.../<project-name>测试用例设计.docx\n└── tmp/docs/pdf/\n    ├── <project-name>系统用例规约.pdf\n    ├── <project-name>数据库物理设计三线表.pdf\n    ├── <project-name>功能模块实现主要代码.pdf\n    └── <project-name>测试用例设计.pdf"
       }
     },
     {

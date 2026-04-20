@@ -30,7 +30,7 @@ Skills/
 - 所有 `arc:*` 技能已统一融合结构：`Quick Contract` / `Announce` / `The Iron Law` / `Workflow` / `Quality Gates` / `Red Flags`。
 - 路由文档已形成三层：矩阵、决策树、阶段视图 + 单页速查。
 - 所有 `SKILL.md` 的 frontmatter `description` 已统一为中文。
-- 已支持少量 allowlist 的 generic/fusion skill，用于共享输出范式，不替代 `arc:*` 的领域边界。
+- 已支持少量 allowlist 的 generic/fusion skill，用于共享输出范式或高复用通用交付能力，不替代 `arc:*` 的领域边界。
 
 ## 命名规则
 
@@ -39,11 +39,13 @@ Skills/
 - 模式参数统一放在 Skill 内部（如 `--mode`），不再把每个模式都当成一级入口
 - generic/fusion skill 仅用于跨领域复用的共享能力，需显式进入 allowlist 才会被主校验器索引
 
-## 共享输出范式
+## 根目录通用 Skill
 
 | 名称 | 用途 | 组合方式 |
 |---|---|---|
 | `terminal-table-output` | 将聊天中的紧凑二维摘要渲染为终端盒线表 | 作为表现层范式与 `arc:*` 组合，工件落盘格式保持原样 |
+| `graduation-doc-support` | 基于真实代码、SQL 和模板线索生成毕业设计支撑 `docx` | 作为项目实现到论文附件的通用交付 workflow，必要时与 `arc:aigc`、`arc:uml` 分工组合 |
+| `frontend-stack-baseline` | 声明 React + Vite + Tailwind + shadcn/ui + Zustand + TanStack Query + React Router + React Hook Form + Zod + Framer Motion 的默认栈与五套低饱和配色 token | 被领域 skill（如 `lazycat:create-app`、`lazycat:admin-ui`）引用，避免各 skill 内重复定义前端栈与色板 |
 
 ## Arc 主技能
 

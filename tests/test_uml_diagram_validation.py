@@ -148,7 +148,7 @@ def test_generate_deployment_drawio_produces_valid_bound_edges(tmp_path: Path) -
           "id": "frontend",
           "label": "前端页面",
           "kind": "client",
-          "subtitle": "Vue.js"
+          "subtitle": "React"
         }
       ]
     },
@@ -243,7 +243,7 @@ def test_draft_deployment_spec_from_seed(tmp_path: Path) -> None:
         """title: 支付订单部署图
 
 zone client | 客户端区
-node frontend | 前端页面 | client | Vue.js
+node frontend | 前端页面 | client | React
 
 zone app | 应用层
 node orders | Orders Service | service

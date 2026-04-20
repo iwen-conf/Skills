@@ -68,7 +68,7 @@
 | Manifest 文件 | 主语言 | 框架检测方式 |
 |--------------|--------|------------|
 | `go.mod` | Go | 读取 `require` 段：gin→Gin, echo→Echo, fiber→Fiber, hertz→Hertz |
-| `package.json` | JavaScript/TypeScript | 读取 `dependencies`：react→React, vue→Vue, solid→SolidJS, next→Next.js, express→Express |
+| `package.json` | JavaScript/TypeScript | 读取 `dependencies`：react→React, solid→SolidJS, next→Next.js, express→Express |
 | `Cargo.toml` | Rust | 读取 `[dependencies]`：actix→Actix, axum→Axum, rocket→Rocket, tokio→Tokio |
 | `pyproject.toml` / `requirements.txt` | Python | 搜索：django→Django, flask→Flask, fastapi→FastAPI |
 | `Gemfile` | Ruby | 搜索：rails→Rails, sinatra→Sinatra |
