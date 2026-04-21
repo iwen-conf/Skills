@@ -5,7 +5,7 @@
 ## 1. 新建项目
 
 ```bash
-pnpm create vite@latest my-app -- --template react-ts
+pnpm create vite@latest my-app -- --template react
 cd my-app
 pnpm install
 ```
@@ -17,8 +17,7 @@ pnpm add react-router-dom zustand @tanstack/react-query \
   react-hook-form @hookform/resolvers zod framer-motion \
   clsx tailwind-merge class-variance-authority lucide-react
 
-pnpm add -D tailwindcss postcss autoprefixer tailwindcss-animate \
-  @types/node
+pnpm add -D tailwindcss postcss autoprefixer tailwindcss-animate
 ```
 
 ## 3. Tailwind + shadcn 初始化
@@ -62,10 +61,9 @@ src/
 └── styles/globals.css # shadcn CSS 变量 + Tailwind 指令
 ```
 
-## 6. `src/main.tsx` 最小范式
+## 6. `src/main.jsx` 最小范式
 
-```tsx
-import React from "react";
+```jsx
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -77,13 +75,11 @@ const qc = new QueryClient({
 });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={qc}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </QueryClientProvider>
-  </React.StrictMode>
+  <QueryClientProvider client={qc}>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </QueryClientProvider>
 );
 ```
 

@@ -259,15 +259,15 @@ fg #2B1E1E  muted-fg #8A7070
 
 ---
 
-## `tailwind.config.ts`（五套共用，只换 `:root` 变量即可）
+## `tailwind.config.js`（五套共用，只换 `:root` 变量即可）
 
-```ts
-import type { Config } from "tailwindcss";
-import animate from "tailwindcss-animate";
+```js
+const animate = require("tailwindcss-animate");
 
-const config: Config = {
+/** @type {import("tailwindcss").Config} */
+module.exports = {
   darkMode: ["class"],
-  content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     container: { center: true, padding: "1rem", screens: { "2xl": "1400px" } },
     extend: {
@@ -315,8 +315,6 @@ const config: Config = {
   },
   plugins: [animate],
 };
-
-export default config;
 ```
 
 组件里一律用 `bg-primary`、`text-primary-foreground`、`border-border` 等 token 类；换 palette 只改 `:root`，组件零改动。
