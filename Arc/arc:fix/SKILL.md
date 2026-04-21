@@ -218,7 +218,7 @@ python Arc/arc:fix/scripts/triage_run.py <run_dir> \
    - For OTA/update/install defects, do not mutate the underlying target directory, package source, local config, or feature flag just to let the page button succeed. If the real user path fails, fix that path instead of rewriting the environment underneath it.
 
 2. **It is strictly prohibited to bypass type safety or business logic to "repair" (Type & Logic Bypass is FORBIDDEN)**
-   - **Type Suppression**: Do NOT change types to `any`, use `@ts-ignore`, `# type: ignore`, or use explicit type casting just to silence compiler errors. This hides the root cause and leads to instability and unmaintainability.
+   - **Type Suppression**: Do NOT add `# type: ignore`, blanket `eslint-disable`, or equivalent suppression shortcuts just to silence diagnostics. This hides the root cause and leads to instability and unmaintainability.
    - **Logic Bypass**: Do NOT comment out throwing errors, delete assertions, or forcefully return a mock value just to make a test pass or an error disappear. This violates the original intent of the business logic.
    - **Root Cause Focus**: You MUST understand and fix the underlying issue. The code should remain maintainable, strictly typed, and logically sound after the fix.
 
@@ -360,7 +360,7 @@ If it is judged to be a false positive by the test script/selector: first correc
 ### 6) Regression verification and production of deliverable repair solutions
 
 - **Code Quality Check (Mandatory)**: You MUST run `bash Arc/scripts/check-placeholders.sh` to ensure no lazy placeholder code was committed to the diff.
-- **Type Safety Check (Mandatory)**: You MUST run `bash Arc/scripts/check-types.sh` to ensure no `any`, `@ts-ignore`, or `eslint-disable` was added as a shortcut.
+- **Type Safety Check (Mandatory)**: You MUST run `bash Arc/scripts/check-types.sh` to ensure no suppression shortcut such as `# type: ignore` or `eslint-disable` was added.
 - **Scope Limit Check (Mandatory)**: You MUST run `bash Arc/scripts/check-scope.sh 3` (default limit: 3 files). If it fails, you must revert or seek explicit user approval for a wider refactor.
 - **Project Verification (Mandatory)**: Before generating the final fix packet, you MUST run the standard project verification script to ensure no regressions were introduced to the type system or test suite:
   - `bash Arc/scripts/verify-project.sh` (or the equivalent project-specific test command)
@@ -407,7 +407,7 @@ Note: arc:e2e may store reusable credentials in `accounts.jsonc`; therefore `rep
 ### Fix Anti-Patterns
 
 - **Refactor-While-Fix**: Refactoring unrelated code while fixing a bug — scope creep causes new bugs
-- **Type Suppression**: Using `as any`, `@ts-ignore`, `@ts-expect-error` to silence errors — forbidden
+- **Type Suppression**: Using blanket suppression comments or equivalent shortcuts to silence errors — forbidden
 - **Test Deletion**: Deleting failing tests to make suite pass — never acceptable
 - **Skip Shortcuts**: Commenting out code or adding `if(false)` to skip logic — proper fix required
 

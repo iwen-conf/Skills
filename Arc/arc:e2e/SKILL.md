@@ -283,7 +283,7 @@ See: `screenshot-manifest.md`
 ### **1. Action Log (Standard, action-log.md and/or stdout)**
 
 ```markdown
-[ANALYSIS] Use ace-tool to read src/pages/Login.tsx and confirm that the login button ID is #btn-submit-v2
+[ANALYSIS] Use ace-tool to read src/pages/Login.jsx and confirm that the login button ID is #btn-submit-v2
 [PLAN] Switch to the approval manager account
 [THOUGHT] Currently logged out, you need to enter the manager account credentials.
 [EXEC] mcp_chrome-devtools_fill "#username" "manager_01"

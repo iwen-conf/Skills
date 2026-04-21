@@ -44,7 +44,7 @@
 | 有独立 `.git` 目录 | +2 | Glob `**/.git` |
 | 源文件数 > 10 | +1 | Bash `find ... \| wc -l` |
 | 有 README.md 或 docs/ 目录 | +1 | Glob |
-| 有测试文件 (*_test.go, *.test.ts, test_*.py, *_spec.rb 等) | +1 | Glob |
+| 有测试文件 (*_test.go, *.test.js, test_*.py, *_spec.rb 等) | +1 | Glob |
 | 有 CI 配置 (ci/, .gitlab-ci.yml, Jenkinsfile, azure-pipelines.yml 等) | +1 | Glob |
 | 被父级 workspace/manifest 显式引用 | +2 | Read 父级 manifest |
 
@@ -68,7 +68,7 @@
 | Manifest 文件 | 主语言 | 框架检测方式 |
 |--------------|--------|------------|
 | `go.mod` | Go | 读取 `require` 段：gin→Gin, echo→Echo, fiber→Fiber, hertz→Hertz |
-| `package.json` | JavaScript/TypeScript | 读取 `dependencies`：react→React, solid→SolidJS, next→Next.js, express→Express |
+| `package.json` | JavaScript | 读取 `dependencies`：react→React, solid→SolidJS, next→Next.js, express→Express |
 | `Cargo.toml` | Rust | 读取 `[dependencies]`：actix→Actix, axum→Axum, rocket→Rocket, tokio→Tokio |
 | `pyproject.toml` / `requirements.txt` | Python | 搜索：django→Django, flask→Flask, fastapi→FastAPI |
 | `Gemfile` | Ruby | 搜索：rails→Rails, sinatra→Sinatra |

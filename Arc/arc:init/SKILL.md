@@ -69,7 +69,7 @@ Index writing must not be started until mode decision and baseline verification 
 ## Workflow
 
 1. Check fingerprint and snapshot status to determine full/update routing.
-2. If `mode=full` or initializing a blank project, inject standard "Passive Coaching Templates" from `Arc/templates/` (e.g., `strict-typescript.md` or `git-commit-convention.md`) into the project's `CLAUDE.md` or `GEMINI.md` to establish global engineering habits.
+2. If `mode=full` or initializing a blank project, inject standard "Passive Coaching Templates" from `Arc/templates/` (e.g., `strict-type-safety.md` or `git-commit-convention.md`) into the project's `CLAUDE.md` or `GEMINI.md` to establish global engineering habits.
 3. Assemble the input parameters and deliver them to the corresponding sub-skill.
 4. Track execution results and verify product integrity.
 5. Output mode selection basis and subsequent maintenance recommendations.
@@ -215,7 +215,7 @@ else:
 
 Use **Scheduling API** to dispatch the corresponding sub-Skill:
 
-```typescript
+```text
 // Schedule arc:init --mode full
 schedule_task(
   capability_profile: "unspecified-high",

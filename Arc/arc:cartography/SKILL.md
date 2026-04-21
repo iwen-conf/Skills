@@ -79,8 +79,8 @@ Prioritize checking the repository root directory `.slim/cartography.json`:
 ```bash
 <skills_root>/arc:cartography/scripts/cartographer init \
   --root ./ \
-  --include "src/**/*.ts" \
-  --exclude "**/*.test.ts" \
+  --include "src/**/*.js" \
+  --exclude "**/*.test.js" \
   --exclude ".git/**" \
   --exclude "dist/**" \
   --exclude "build/**" \

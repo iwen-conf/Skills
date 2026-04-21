@@ -78,8 +78,6 @@ def generate_project_snapshot(project_path: Path) -> str:
     file_counts = {}
     extensions = {
         ".py",
-        ".ts",
-        ".tsx",
         ".js",
         ".jsx",
         ".go",
@@ -98,8 +96,6 @@ def generate_project_snapshot(project_path: Path) -> str:
     # 检测主要语言
     lang_map = {
         ".py": "Python",
-        ".ts": "TypeScript",
-        ".tsx": "TypeScript",
         ".js": "JavaScript",
         ".jsx": "JavaScript",
         ".go": "Go",

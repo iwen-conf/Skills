@@ -46,7 +46,7 @@ def test_scaffold_context_session_creates_expected_artifacts(tmp_path: Path) -> 
             "--objective",
             "Continue auth migration",
             "--entrypoint",
-            str(project_path / "src" / "auth.ts"),
+            str(project_path / "src" / "auth.js"),
         ],
         capture_output=True,
         text=True,
@@ -61,5 +61,5 @@ def test_scaffold_context_session_creates_expected_artifacts(tmp_path: Path) -> 
     manifest = json.loads((case_dir / "restore" / "recovery-manifest.json").read_text(encoding="utf-8"))
     assert manifest["mode"] == "restore"
     assert manifest["task_name"] == "resume-auth"
-    assert manifest["entrypoints"] == ["src/auth.ts"]
+    assert manifest["entrypoints"] == ["src/auth.js"]
     assert manifest["context_hub_artifacts"][0]["status"] == "fresh"

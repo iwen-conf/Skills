@@ -34,12 +34,8 @@ elif [ -f Cargo.toml ]; then
   run_check "cargo clippy -- -D warnings" || FAILED=1
   run_check "cargo test" || FAILED=1
 
-# Node / TypeScript
+# Node / JavaScript
 elif [ -f package.json ]; then
-  if [ -f tsconfig.json ]; then
-    run_check "npx tsc --noEmit" || FAILED=1
-  fi
-  
   if grep -q '"lint"' package.json; then
     run_check "npm run lint" || FAILED=1
   fi

@@ -3,7 +3,7 @@ import { {{FUNCTION_NAME}} } from "{{MODULE_PATH}}";
 
 describe("{{FUNCTION_NAME}} — integration", () => {
   // Shared state for cross-module dependencies
-  let connection: unknown;
+  let connection;
 
   beforeAll(async () => {
     // FILL_IN: setup — initialize DB, HTTP client, service connections

@@ -492,7 +492,7 @@ func extractFileInfo(filePath string, root string, tier int) map[string]any {
 	content := string(payload)
 	lines := strings.Split(content, "\n")
 	entry["line_end"] = len(lines)
-	language := map[string]string{".py": "python", ".js": "javascript", ".ts": "typescript", ".tsx": "tsx", ".jsx": "jsx", ".java": "java", ".go": "go", ".rs": "rust", ".rb": "ruby", ".php": "php", ".c": "c", ".cpp": "cpp", ".h": "c", ".hpp": "cpp", ".cs": "csharp", ".swift": "swift", ".kt": "kotlin", ".scala": "scala", ".md": "markdown", ".json": "json", ".yaml": "yaml", ".yml": "yaml", ".sh": "shell", ".bash": "shell", ".zsh": "shell"}[strings.ToLower(filepath.Ext(filePath))]
+	language := map[string]string{".py": "python", ".js": "javascript", ".jsx": "jsx", ".java": "java", ".go": "go", ".rs": "rust", ".rb": "ruby", ".php": "php", ".c": "c", ".cpp": "cpp", ".h": "c", ".hpp": "cpp", ".cs": "csharp", ".swift": "swift", ".kt": "kotlin", ".scala": "scala", ".md": "markdown", ".json": "json", ".yaml": "yaml", ".yml": "yaml", ".sh": "shell", ".bash": "shell", ".zsh": "shell"}[strings.ToLower(filepath.Ext(filePath))]
 	if language == "" {
 		language = "unknown"
 	}
@@ -524,7 +524,7 @@ func extractFileInfo(filePath string, root string, tier int) map[string]any {
 }
 
 func extractSignature(content string, language string) string {
-	patterns := map[string][]string{"python": {"def ", "class ", "async def "}, "javascript": {"function ", "const ", "export ", "class "}, "typescript": {"function ", "const ", "export ", "class ", "interface "}, "go": {"func ", "type "}, "rust": {"fn ", "pub fn ", "struct ", "enum "}, "java": {"public ", "class ", "interface "}, "ruby": {"def ", "class ", "module "}}
+	patterns := map[string][]string{"python": {"def ", "class ", "async def "}, "javascript": {"function ", "const ", "export ", "class "}, "go": {"func ", "type "}, "rust": {"fn ", "pub fn ", "struct ", "enum "}, "java": {"public ", "class ", "interface "}, "ruby": {"def ", "class ", "module "}}
 	lines := strings.Split(content, "\n")
 	if len(lines) > 50 {
 		lines = lines[:50]
@@ -544,7 +544,7 @@ func extractSignature(content string, language string) string {
 }
 
 func extractDependencies(content string, language string) []string {
-	patterns := map[string][]string{"python": {"import ", "from "}, "javascript": {"import ", "require("}, "typescript": {"import ", "require("}, "go": {"import "}, "rust": {"use "}, "java": {"import "}, "ruby": {"require ", "include "}}
+	patterns := map[string][]string{"python": {"import ", "from "}, "javascript": {"import ", "require("}, "go": {"import "}, "rust": {"use "}, "java": {"import "}, "ruby": {"require ", "include "}}
 	lines := strings.Split(content, "\n")
 	if len(lines) > 100 {
 		lines = lines[:100]

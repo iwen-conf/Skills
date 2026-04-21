@@ -21,7 +21,7 @@ hooks:
 
 ## Overview
 
-`arc:test` generates function-level tests for Go, Rust, Python, TypeScript and Swift projects. It detects the language ecosystem, scaffolds test files from templates, fills test logic guided by ISTQB techniques (boundary value analysis, equivalence partitioning, error path), and validates that every generated test compiles and passes.
+`arc:test` generates function-level tests for Go, Rust, Python, JavaScript and Swift projects. It detects the language ecosystem, scaffolds test files from templates, fills test logic guided by ISTQB techniques (boundary value analysis, equivalence partitioning, error path), and validates that every generated test compiles and passes.
 
 ## Quick Contract
 
@@ -109,7 +109,7 @@ No test may be declared generated unless it compiles and passes in the target pr
 | `project_path` | `string` | required | Root path of the target project (must contain language marker file) |
 | `target` | `string` | required | File or directory to generate tests for |
 | `test_types` | `string` | optional | Comma-separated test types: unit, boundary, table, benchmark, fuzz, integration (default: unit,boundary) |
-| `lang` | `string` | optional | Language override: go, rust, python, typescript, swift (default: auto-detect) |
+| `lang` | `string` | optional | Language override: go, rust, python, javascript, swift (default: auto-detect) |
 | `output_dir` | `string` | optional | Output directory for generated test files (default: language convention) |
 | `force` | `boolean` | optional | Overwrite existing test files (default: false) |
 | `dry_run` | `boolean` | optional | Print planned files without writing (default: false) |

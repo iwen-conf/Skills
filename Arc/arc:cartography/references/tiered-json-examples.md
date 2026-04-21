@@ -36,11 +36,11 @@ Use case: fastest repo lookup and initial entry-point scanning.
   "total_tokens_estimate": 520,
   "entries": [
     {
-      "name": "handler.ts",
+      "name": "handler.js",
       "type": "file",
-      "path": "src/api/handler.ts",
+      "path": "src/api/handler.js",
       "line_start": 1,
-      "language": "typescript",
+      "language": "javascript",
       "signature": "export async function handleRequest(req: Request)"
     }
   ]

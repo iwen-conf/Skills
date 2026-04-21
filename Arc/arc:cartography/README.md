@@ -14,7 +14,7 @@ arc:cartography helps orchestrators map and understand codebases by:
 
 ```bash
 # Initialize mapping
-python3 <skills_root>/arc:cartography/scripts/cartographer.py init --root /repo --include "src/**/*.ts" --exclude "node_modules/**"
+python3 <skills_root>/arc:cartography/scripts/cartographer.py init --root /repo --include "src/**/*.js" --exclude "node_modules/**"
 
 # Check what changed
 python3 <skills_root>/arc:cartography/scripts/cartographer.py changes --root /repo
@@ -32,11 +32,11 @@ python3 <skills_root>/arc:cartography/scripts/cartographer.py update --root /rep
   "metadata": {
     "version": "1.0.0",
     "last_run": "2026-01-25T19:00:00Z",
-    "include_patterns": ["src/**/*.ts"],
+    "include_patterns": ["src/**/*.js"],
     "exclude_patterns": ["node_modules/**"]
   },
   "file_hashes": {
-    "src/index.ts": "abc123..."
+    "src/index.js": "abc123..."
   },
   "folder_hashes": {
     "src": "def456..."

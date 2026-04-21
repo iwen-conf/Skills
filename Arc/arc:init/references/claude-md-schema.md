@@ -117,7 +117,7 @@ graph TD
 ## 编码规范
 
 - **Go**: 标准项目布局, gofmt/go vet/staticcheck
-- **TypeScript**: ESLint + Prettier, strict 模式
+- **JavaScript**: ESLint + Prettier, schema/contract 校验
 ```
 
 #### 10. AI 使用指引

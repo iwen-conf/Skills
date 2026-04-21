@@ -43,11 +43,11 @@ TEMPLATE_MAP: dict[str, dict[str, str]] = {
         "benchmark": "python/test_parametrize.py.tpl",
         "integration": "python/test_integration.py.tpl",
     },
-    "typescript": {
-        "unit": "typescript/unit.test.ts.tpl",
-        "boundary": "typescript/unit.test.ts.tpl",
-        "benchmark": "typescript/unit.test.ts.tpl",
-        "integration": "typescript/integration.test.ts.tpl",
+    "javascript": {
+        "unit": "javascript/unit.test.js.tpl",
+        "boundary": "javascript/unit.test.js.tpl",
+        "benchmark": "javascript/unit.test.js.tpl",
+        "integration": "javascript/integration.test.js.tpl",
     },
     "swift": {
         "unit": "swift/UnitTests.swift.tpl",
@@ -79,11 +79,11 @@ OUTPUT_NAMING: dict[str, dict[str, str]] = {
         "benchmark": "test_{stem}_benchmark.py",
         "integration": "test_{stem}_integration.py",
     },
-    "typescript": {
-        "unit": "{stem}.test.ts",
-        "boundary": "{stem}.boundary.test.ts",
-        "benchmark": "{stem}.bench.ts",
-        "integration": "{stem}.integration.test.ts",
+    "javascript": {
+        "unit": "{stem}.test.js",
+        "boundary": "{stem}.boundary.test.js",
+        "benchmark": "{stem}.bench.js",
+        "integration": "{stem}.integration.test.js",
     },
     "swift": {
         "unit": "{stem}Tests.swift",
@@ -142,7 +142,7 @@ def _resolve_output_dir(project_path: Path, lang: str, output_dir: str | None, t
         return project_path / "tests"
     if lang == "python":
         return project_path / "tests"
-    if lang == "typescript":
+    if lang == "javascript":
         return target.parent / "__tests__"
     if lang == "swift":
         return project_path / "Tests"

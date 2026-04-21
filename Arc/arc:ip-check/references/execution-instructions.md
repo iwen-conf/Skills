@@ -35,7 +35,7 @@ python Arc/arc:ip-check/scripts/scaffold_audit_case.py \
 
 **Start three Agents concurrently** (in the same message):
 
-```typescript
+```text
 // Architecture: Architecture and Innovation Assessment
 schedule_task(
   capability_profile="architecture",
@@ -170,7 +170,7 @@ description="Writing evaluates document completeness and application readiness",
 
 **Mandatory rebuttal mechanism** (each Agent must challenge the other two Agents):
 
-```typescript
+```text
 // Architecture refutes Deep and Writing
 schedule_task(
 task_ref="<architecture_task_ref>", // Reuse Phase 2 session
@@ -224,7 +224,7 @@ Generate `analysis/ip-assets.md`:
 
 | Asset number | Asset type | evidence path | software-copyright feasibility | patent feasibility | preliminary risk |
 |---------|---------|---------|-----------|-----------|---------|
-| IPA-001 | Core algorithm | src/core/algorithm.ts:45-120 | high | middle | Similarity of existing technology to be confirmed |
+| IPA-001 | Core algorithm | src/core/algorithm.js:45-120 | high | middle | Similarity of existing technology to be confirmed |
 | IPA-002 | System architecture | docs/architecture.md + src/server/ | middle | high | Novel architecture but conventional implementation |
 
 **Step 4.3: Output final report**

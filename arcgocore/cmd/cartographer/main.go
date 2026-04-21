@@ -159,7 +159,7 @@ func runExport(args []string) {
 
 func printUsage() {
 	fmt.Fprintln(os.Stderr, `Usage:
-  cartographer init --root /path/to/repo --include "src/**/*.ts" --exclude "node_modules/**"
+  cartographer init --root /path/to/repo --include "src/**/*.js" --exclude "node_modules/**"
   cartographer changes --root /path/to/repo
   cartographer update --root /path/to/repo
   cartographer export --root /path/to/repo --tier 2 --output codemap.json`)

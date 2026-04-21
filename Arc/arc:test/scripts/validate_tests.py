@@ -23,7 +23,7 @@ LANG_RUN_COMMANDS: dict[str, str] = {
     "go": "go test -v -count=1 {files}",
     "rust": "cargo test -- --nocapture",
     "python": "pytest -v {files}",
-    "typescript": "npx vitest run {files}",
+    "javascript": "npx vitest run {files}",
     "swift": "swift test",
 }
 

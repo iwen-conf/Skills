@@ -50,10 +50,10 @@ LANG_MARKERS: list[dict[str, str | list[str]]] = [
     },
 ]
 
-TS_FRAMEWORKS = ["vitest", "jest"]
+JS_TEST_FRAMEWORKS = ["vitest", "jest"]
 
 
-def _detect_ts_framework(project_path: Path) -> str:
+def _detect_js_framework(project_path: Path) -> str:
     """Check package.json devDependencies for vitest or jest."""
     pkg_json = project_path / "package.json"
     if not pkg_json.exists():
@@ -63,7 +63,7 @@ def _detect_ts_framework(project_path: Path) -> str:
     except (json.JSONDecodeError, OSError):
         return "vitest"
     deps = {**data.get("devDependencies", {}), **data.get("dependencies", {})}
-    for fw in TS_FRAMEWORKS:
+    for fw in JS_TEST_FRAMEWORKS:
         if fw in deps:
             return fw
     return "vitest"
@@ -101,15 +101,15 @@ def detect_language(project_path: Path) -> dict[str, object]:
                 "config_files": [str(marker_def["marker"])],
             }
 
-    # TypeScript / JavaScript (checked after others since package.json is common)
+    # JavaScript (checked after others since package.json is common)
     pkg_json = root / "package.json"
     if pkg_json.exists():
-        fw = _detect_ts_framework(root)
+        fw = _detect_js_framework(root)
         test_cmd = "npx vitest run" if fw == "vitest" else "npx jest"
         bench_cmd = "npx vitest bench" if fw == "vitest" else "npx jest"
-        pattern = "*.test.ts" if fw == "vitest" else "*.test.ts"
+        pattern = "*.test.js" if fw == "vitest" else "*.test.js"
         return {
-            "lang": "typescript",
+            "lang": "javascript",
             "framework": fw,
             "test_command": test_cmd,
             "bench_command": bench_cmd,

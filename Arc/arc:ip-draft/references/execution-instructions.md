@@ -32,7 +32,7 @@ python Arc/arc:ip-draft/scripts/scaffold_drafting_case.py \
 
 **Start three Agents concurrently** (in the same message):
 
-```typescript
+```text
 // Architecture: Technical solution description
 schedule_task(
   capability_profile="architecture",
@@ -170,7 +170,7 @@ description="Writing drafting user documentation and function description",
 
 **Mandatory review mechanism** (each Agent must review the other two Agents):
 
-```typescript
+```text
 // Architecture reviews Deep and Writing
 schedule_task(
 task_ref="<architecture_task_ref>", // Reuse Phase 2 session

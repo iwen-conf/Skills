@@ -25,7 +25,7 @@ func TestRunContextScaffold(t *testing.T) {
 			"expires_at":     "2099-01-01T00:00:00Z",
 		}},
 	})
-	caseDir, err := RunContextScaffold(ContextOptions{ProjectPath: project, TaskName: "resume-auth", Mode: "restore", Objective: "Continue auth migration", Entrypoints: []string{filepath.Join(project, "src", "auth.ts")}, ContextBudget: DefaultContextBudget})
+	caseDir, err := RunContextScaffold(ContextOptions{ProjectPath: project, TaskName: "resume-auth", Mode: "restore", Objective: "Continue auth migration", Entrypoints: []string{filepath.Join(project, "src", "auth.js")}, ContextBudget: DefaultContextBudget})
 	if err != nil {
 		t.Fatalf("RunContextScaffold: %v", err)
 	}

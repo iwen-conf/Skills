@@ -202,7 +202,7 @@ def detect_smell(
     project_root = Path(project_path)
 
     if languages is None:
-        languages = ["python", "typescript", "javascript", "go", "java"]
+        languages = ["python", "javascript", "go", "java"]
 
     if exclude_patterns is None:
         exclude_patterns = [
@@ -216,7 +216,6 @@ def detect_smell(
     # 收集文件
     extensions = {
         "python": [".py"],
-        "typescript": [".ts", ".tsx"],
         "javascript": [".js", ".jsx"],
         "go": [".go"],
         "java": [".java"],

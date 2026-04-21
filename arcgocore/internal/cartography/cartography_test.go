@@ -13,7 +13,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestPatternMatcher(t *testing.T) {
-	matcher, err := NewPatternMatcher([]string{"node_modules/", "dist/", "*.log", "src/**/*.ts"})
+	matcher, err := NewPatternMatcher([]string{"node_modules/", "dist/", "*.log", "src/**/*.js"})
 	if err != nil {
 		t.Fatalf("NewPatternMatcher: %v", err)
 	}
@@ -24,8 +24,8 @@ func TestPatternMatcher(t *testing.T) {
 		"src/dist/output.js":         true,
 		"error.log":                  true,
 		"logs/access.log":            true,
-		"src/index.ts":               true,
-		"src/utils/helper.ts":        true,
+		"src/index.js":               true,
+		"src/utils/helper.js":        true,
 		"README.md":                  false,
 		"tests/test.py":              false,
 	}
@@ -40,16 +40,16 @@ func TestSelectFiles(t *testing.T) {
 	root := t.TempDir()
 	mustMkdir(t, filepath.Join(root, "src"))
 	mustMkdir(t, filepath.Join(root, "node_modules"))
-	mustWrite(t, filepath.Join(root, "src", "index.ts"), "code")
-	mustWrite(t, filepath.Join(root, "src", "index.test.ts"), "test")
+	mustWrite(t, filepath.Join(root, "src", "index.js"), "code")
+	mustWrite(t, filepath.Join(root, "src", "index.test.js"), "test")
 	mustWrite(t, filepath.Join(root, "node_modules", "foo.js"), "dep")
 	mustWrite(t, filepath.Join(root, "package.json"), "{}")
 
-	selected, err := SelectFiles(root, []string{"src/**/*.ts", "package.json"}, []string{"**/*.test.ts", "node_modules/"}, nil, nil)
+	selected, err := SelectFiles(root, []string{"src/**/*.js", "package.json"}, []string{"**/*.test.js", "node_modules/"}, nil, nil)
 	if err != nil {
 		t.Fatalf("SelectFiles: %v", err)
 	}
-	expected := []string{"package.json", "src/index.ts"}
+	expected := []string{"package.json", "src/index.js"}
 	if len(selected) != len(expected) {
 		t.Fatalf("SelectFiles len = %d, want %d (%v)", len(selected), len(expected), selected)
 	}
@@ -67,7 +67,7 @@ func TestComputeHashes(t *testing.T) {
 	if got := ComputeFileHash(filePath); got != "9473fdd0d880a43c21b7778d34872157" {
 		t.Fatalf("ComputeFileHash = %q", got)
 	}
-	folderHash := ComputeFolderHash("src", map[string]string{"src/a.ts": "hash-a", "src/b.ts": "hash-b", "tests/test.ts": "hash-test"})
+	folderHash := ComputeFolderHash("src", map[string]string{"src/a.js": "hash-a", "src/b.js": "hash-b", "tests/test.js": "hash-test"})
 	if folderHash == "" {
 		t.Fatal("ComputeFolderHash returned empty hash")
 	}
