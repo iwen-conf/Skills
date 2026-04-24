@@ -1,6 +1,6 @@
 ---
 name: arc:uml
-description: "UML 与 Chen E-R 建模：基于可验证的代码和文档证据生成标准合规的架构与 UML 图谱。强制使用 drawio 技能生成原生图表。当用户请求架构图、UML 建模、时序图、ER 图、活动图或 draw.io 文件时触发。"
+description: "UML 与 Chen E-R 建模：基于可验证的代码和文档证据生成标准合规的架构与 UML 图谱。强制使用 PlantUML 和 Mermaid 语法（必须包含这两种）生成图表。当用户请求架构图、UML 建模、时序图、ER 图、活动图或图表文件时触发。"
 version: 1.0.0
 allowed_tools:
   - Bash
@@ -25,15 +25,13 @@ hooks:
 The `arc:uml` skill is responsible for the following core objectives:
 1. **Applicability Analysis:** Determine the necessity and appropriateness of specific diagram types for the current project context.
 2. **Evidence Extraction:** Extract verifiable traceability evidence from source code, configuration files, API specifications, business processes, and database schemas.
-3. **Standardized Generation:** Generate robust, editable `.drawio` files via intermediate languages or JSON specifications, relying on execution scripts for layout and styling.
+3. **Standardized Generation:** Generate robust, editable diagrams using both PlantUML (`.puml`) and Mermaid (`.mmd`) syntax.
 
-**Strict Prohibition:** LLMs are strictly prohibited from generating raw native `.drawio` XML coordinate arrays or style payloads directly. Direct generation consistently results in coordinate hallucinations, floating paths, and non-compliant styling. All native `.drawio` artifacts MUST be produced by proxy through intermediate scripts.
+**Standard Diagrams (Class, Use Case, Activity, State, Sequence):** Must be generated using both Mermaid syntax (`.mmd`) and PlantUML (`.puml`).
 
-**Standard Diagrams (Class, Use Case, Activity, State, Sequence):** Must be generated using Mermaid syntax (`.mmd`) or PlantUML. The intermediate code must then be passed to `generate_mermaid_drawio.py` to compile into an embedded, perfectly rendered `.drawio` artifact.
+**Deployment Diagrams:** Must be generated using both Mermaid syntax (`.mmd`) and PlantUML (`.puml`).
 
-**Deployment Diagrams:** Must be generated as structured JSON specifications (`deployment.json`), outlining nodes and orthogonal relationships, and then compiled via `generate_deployment_drawio.py`.
-
-**E-R Diagrams:** Must strictly adhere to Chen Notation. The LLM must output a structured JSON specification (`er.json`) which is then compiled via `generate_er_drawio.py` to ensure standard UML shapes and anchored connectors.
+**E-R Diagrams:** Must strictly adhere to Chen Notation. The LLM must output both PlantUML (`.puml`) and Mermaid (`.mmd`) representations to ensure standard UML shapes and relationships.
 
 All standard diagrams (Activity, Use Case, Sequence, Class, Deployment) must comply with:
 - **UML 2.5.1 / ISO 19505** semantic specifications.
@@ -47,10 +45,10 @@ Detailed specifications are available in:
 
 ## Quick Contract
 
-- **Trigger**: User requests for architecture diagrams, UML diagrams, activity diagrams, sequence diagrams, class diagrams, deployment diagrams, E-R diagrams, or explicit mentions of `drawio`/`draw.io`/`.drawio`.
+- **Trigger**: User requests for architecture diagrams, UML diagrams, activity diagrams, sequence diagrams, class diagrams, deployment diagrams, E-R diagrams, or explicit mentions of `.puml`/`.mmd`/`PlantUML`/`Mermaid`.
 - **Inputs**: Project path, business scenarios, target diagram types, deployment environments, export format requirements.
-- **Outputs**: Diagram applicability matrix, evidence manifest, modeling briefs, native `.drawio` source files, and optional export formats.
-- **Quality Gate**: Absolute traceability to evidence; strict Chen Notation for E-R; prohibition of XML coordinate computation for sequence diagrams; orthogonal binding for deployment diagrams; mandatory use of the `drawio` skill.
+- **Outputs**: Diagram applicability matrix, evidence manifest, modeling briefs, PlantUML and Mermaid source files, and optional export formats.
+- **Quality Gate**: Absolute traceability to evidence; strict Chen Notation for E-R; mandatory use of both PlantUML and Mermaid.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
 
 ## Routing Matrix
@@ -63,7 +61,7 @@ Detailed specifications are available in:
 ## Announce
 
 Prior to execution, output the following precise statement:
-> "Initiating diagram applicability analysis and evidence extraction. The `drawio` skill will be utilized to generate standards-compliant diagrams."
+> "Initiating diagram applicability analysis and evidence extraction. Both PlantUML and Mermaid will be utilized to generate standards-compliant diagrams."
 
 ## Teaming Requirement
 
@@ -75,7 +73,7 @@ Prior to execution, output the following precise statement:
 ```text
 NO DIAGRAM WITHOUT EVIDENCE
 NO RELATION WITHOUT TRACEABILITY
-NO FINAL UML DELIVERY WITHOUT DRAWIO
+NO FINAL UML DELIVERY WITHOUT BOTH PLANTUML AND MERMAID
 NO ER DIAGRAM WITHOUT CHEN NOTATION
 ```
 
@@ -84,7 +82,7 @@ NO ER DIAGRAM WITHOUT CHEN NOTATION
 1. **Context Scanning:** Analyze project structure, configurations, interfaces, database schemas, deployment manifests, and business flows.
 2. **Applicability Matrix:** Evaluate 14 standard UML diagram types, classifying each as `required`, `recommended`, or `not-applicable`. Provide justification and evidence mappings.
 3. **Modeling Briefs:** Generate a modeling brief for each `required` or `recommended` diagram, specifying objectives, evidence sources, notational constraints, and prohibited elements.
-4. **Generation:** Construct the intermediate representations (e.g. `.mmd` for standard diagrams, `deployment.json` for deployments, `er.json` for Chen E-R). Execute the corresponding python compiler scripts (`generate_mermaid_drawio.py`, `generate_deployment_drawio.py`, `generate_er_drawio.py`) to generate the native `.drawio` files.
+4. **Generation:** Construct the intermediate representations (`.mmd` and `.puml`) for standard diagrams, deployments, and Chen E-R. Both formats must be provided for every generated diagram.
 5. **Validation:** Perform cross-diagram consistency verification. Output maintenance recommendations and residual risk assessments.
 
 ## Quality Gates
@@ -100,12 +98,17 @@ NO ER DIAGRAM WITHOUT CHEN NOTATION
 - **Class Diagrams:** Must semantically differentiate association, dependency, aggregation, composition, and generalization. Arrow semantics must not be interchanged. Use standard visibility modifiers (`+`, `-`, `#`, `~`).
 - **State Machine Diagrams:** Must include an initial state, at least one stable state, state transitions, and an explicit terminal state.
 - **E-R Diagrams:** Must strictly adhere to Chen Notation (Entity rectangles, Relationship diamonds, Attribute ellipses, Primary Key underlines). Utilize weak entity, multi-valued attribute, and total participation notations where applicable.
-- **Source Files:** The definitive source file must be `.drawio`. If `svg/png/pdf` are exported, the exports containing embedded XML should be retained, or explicit documentation must state that the source `.drawio` was removed by the `drawio` skill.
+- **Source Files:** The definitive source files must be `.puml` and `.mmd`.
+
+## Styling & Formatting Requirements
+
+- **Readability & Font Size:** Generated diagrams MUST be optimized for readability. Always explicitly configure larger font sizes. For PlantUML, include directives like `skinparam defaultFontSize 16` and adjust component padding. For Mermaid, use `%%{init: {'theme': 'default', 'themeVariables': {'fontSize': '16px'}}}%%` or similar directives.
+- **Line Routing & Layout:** Minimize line crossings. Use orthogonal or polyline routing where possible. Keep elements well-spaced to prevent the diagram from looking cluttered or messy.
 
 ## Expert Standards
 
 - **Semantic Baseline:** UML semantics default to `UML 2.5.1 / ISO 19505`.
-- **Primary Delivery:** Formal diagrams must be generated as native `.drawio` files. The `drawio` skill is the mandatory delivery pathway, not an optional extension.
+- **Primary Delivery:** Formal diagrams must be generated as both `.puml` and `.mmd` files.
 - **Academic Standards:** Ensure comprehensive element inclusion, precise relationship semantics, clear nomenclature, and orderly layout optimized for immediate inspection.
 - **E-R Diagrams:** Represent conceptual data models. Physical implementation details (foreign keys, data types, lengths, indices) are strictly prohibited in Chen Notation.
 - **Activity Diagrams:** Utilize swimlanes for cross-role or cross-department flows. Concurrency must utilize explicit fork/join synchronization bars; decision diamonds must not represent concurrency.
@@ -117,15 +120,9 @@ NO ER DIAGRAM WITHOUT CHEN NOTATION
 
 ## Scripts & Commands
 
-- **Initialize UML directory and `.drawio` scaffolding:**
+- **Initialize UML directory and scaffolding:**
   ```bash
   python3 Arc/arc:uml/scripts/scaffold_uml_pack.py --output-dir <uml_dir> --types class,sequence,deployment
-  ```
-- **Generate Deployment Diagram from structured specification:**
-  ```bash
-  python3 Arc/arc:uml/scripts/generate_deployment_drawio.py \
-    --spec <uml_dir>/diagram-specs/deployment.json \
-    --output <uml_dir>/diagrams/deployment.drawio
   ```
 - **Draft Deployment specification from text seed:**
   ```bash
@@ -139,18 +136,7 @@ NO ER DIAGRAM WITHOUT CHEN NOTATION
     --input <uml_dir>/diagrams/sequence.mmd \
     --output <uml_dir>/diagrams/sequence.mmd.svg
   ```
-- **Encapsulate Mermaid Diagram into a stable drawio file:**
-  ```bash
-  python3 Arc/arc:uml/scripts/generate_mermaid_drawio.py \
-    --input <uml_dir>/diagrams/class.mmd \
-    --output <uml_dir>/diagrams/class.drawio
-  ```
-- **Generate E-R Diagram from structured JSON specification:**
-  ```bash
-  python3 Arc/arc:uml/scripts/generate_er_drawio.py \
-    --spec <uml_dir>/diagram-specs/er.json \
-    --output <uml_dir>/diagrams/er-chen.drawio
-  ```
+
 - **Execute multi-pass review on UML delivery directory:**
   ```bash
   python3 Arc/arc:uml/scripts/review_uml_pack.py --uml-dir <uml_dir>
@@ -168,8 +154,6 @@ NO ER DIAGRAM WITHOUT CHEN NOTATION
   arc uml
   ```
 
-Note: XML specifications, CLI export procedures, and file access protocols for `drawio` are governed by the `drawio` skill constraints and are not redefined here.
-
 ## Red Flags
 
 - Generating diagrams from templates without verifiable project evidence.
@@ -182,8 +166,7 @@ Note: XML specifications, CLI export procedures, and file access protocols for `
 - **Spaghetti Sequence Diagrams:** Excessive message counts (>20), unordered lifelines, missing activation boxes, or chaotic vector intersections.
 - **Pseudo-Branching in Sequence Diagrams:** Modeling divergent conditions as parallel message vectors without utilizing `alt` or `opt` combined fragments.
 - **Bypassing Automated Validation:** Delivering diagrams without executing `validate_diagram.py`.
-- **Disconnected Deployment Nodes:** Routing edges that are not anchored to nodes, or extensively relying on floating endpoints and manual coordinate overrides.
-- Defaulting to Mermaid format for diagrams other than Sequence Diagrams.
+- Defaulting to only one syntax (e.g. only Mermaid) instead of generating both PlantUML and Mermaid versions.
 
 ## Context Budget
 
@@ -198,7 +181,7 @@ Note: XML specifications, CLI export procedures, and file access protocols for `
 - **Boundary Tip**:
   - If the repository structure is unknown, utilize `arc:cartography` first.
   - If the primary objective is quality auditing rather than modeling, utilize `arc:audit` first.
-  - If the user solely requests format conversion ("export this file to png/pdf/svg"), delegate directly to the `drawio` skill.
+
 
 ## Input Arguments
 
@@ -217,43 +200,25 @@ Note: XML specifications, CLI export procedures, and file access protocols for `
 
 ## Notation Standards
 
-- The definitive source for formal diagrams must be native `draw.io` / `drawio` files (`.drawio`).
-- All diagram generation actions must be delegated to the `drawio` skill.
-- When delivering image or print formats, prioritize `.drawio.svg`, `.drawio.png`, or `.drawio.pdf` to preserve embedded XML for future editing.
+- The definitive source for formal diagrams must be both PlantUML and Mermaid files.
 - E-R Diagrams must utilize Chen Notation. Detailed rules: [references/notation-standards.md](./references/notation-standards.md).
 - Academic evaluation criteria: [references/china-university-diagram-guidelines.md](./references/china-university-diagram-guidelines.md).
 
 ### 15.1. Execution Script Contract
 
-Prior to finalizing any diagram, explicitly utilize the proxy scripts instead of attempting direct XML authoring:
+Prior to finalizing any diagram, generate both `.puml` and `.mmd` formats:
 - **Standard Diagrams (Sequence, Class, Activity, Use Case, State):**
-  - **Delivery Format:** Prioritize `.mmd` (Mermaid) or `.puml` (PlantUML).
-  - **Constraint:** Direct computation of native XML is strictly prohibited.
-  - **Recommended Pipeline:** Generate `*.drawio` via `generate_mermaid_drawio.py`.
+  - **Delivery Format:** Require both `.mmd` (Mermaid) and `.puml` (PlantUML).
 - **E-R Diagrams:**
-  - **Input Generation:** Draft via `diagram-specs/er.json`.
-  - **Constraint:** Must strictly enforce Chen Notation mappings (entities, attributes, relationships, connections).
-  - **Recommended Pipeline:** Generate `.drawio` via `generate_er_drawio.py`.
+  - **Constraint:** Must strictly enforce Chen Notation mappings (entities, attributes, relationships, connections) in both formats.
 - **Deployment Diagrams:**
-  - **Input Generation:** Draft via `diagram-specs/deployment.seed.txt`.
-  - **Partitioning Strategy:** e.g., "Client Zone / Gateway Tier / Application Tier / Data Tier".
-  - **Alignment Protocol:** e.g., "Align peer nodes orthogonally to a 10px grid".
-  - **Routing Protocol:** Enforce `source/target` node anchoring. Prioritize orthogonal routing. Floating endpoints are prohibited.
-  - **Recommended Pipeline:** Maintain `diagram-specs/deployment.json` and generate `.drawio` via script.
+  - **Delivery Format:** Require both `.mmd` (Mermaid) and `.puml` (PlantUML).
 
 ## Dependencies
 
 - **Organization Contract:** Mandatory. Enforce the `Owner / Executor / Reviewer` closed-loop execution model.
 - **ace-tool / Code Search:** Mandatory. Utilized for evidence extraction.
-- **drawio Skill:**
-  - **Standard Diagrams:** Mandatory. Required for formal diagram generation.
-  - **Sequence Diagrams:** Conditional. Permitted only when encapsulating Mermaid nodes; prohibited for native XML generation.
 - **Web Search (web / Exa):** Conditional. Utilized for specification retrieval or standard verification.
-- **Local Generation Scripts:**
-  - `draft_deployment_spec.py`: Recommended. Converts concise text seeds into `deployment.json`.
-  - `generate_deployment_drawio.py`: Recommended. Renders structured specifications into aligned `.drawio` files.
-  - `generate_mermaid_drawio.py`: Recommended. Encapsulates intermediate `.mmd` diagrams into stable `.drawio` files.
-  - `generate_er_drawio.py`: Recommended. Renders Chen E-R JSON specifications into compliant `.drawio` files.
 
 ## Instructions (Execution Process)
 
@@ -273,9 +238,7 @@ Prior to finalizing any diagram, explicitly utilize the proxy scripts instead of
    ```
 2. Populate `diagram-briefs/<diagram>.md` for all `required` and `recommended` diagrams.
 3. Iteratively generate diagram files:
-   - **Standard Diagrams (Sequence, Class, Activity, etc.):** Generate intermediate code (`.mmd` or `.puml`). Invoke `generate_mermaid_drawio.py` to produce a containerized `.drawio` file.
-   - **Deployment Diagrams:** Draft `diagram-specs/deployment.seed.txt`, convert to `deployment.json`, and invoke `generate_deployment_drawio.py` to produce `.drawio`.
-   - **Chen E-R Diagrams:** Draft `diagram-specs/er.json` (listing entities, relationships, attributes, and connections) and invoke `generate_er_drawio.py` to generate the `.drawio` representation.
+   - For every required diagram (Sequence, Class, Activity, Deployment, E-R, etc.), generate both the `.mmd` and `.puml` files.
 4. Execute required format exports.
 5. Update `diagram-index.md` to reflect delivery status.
 
@@ -313,16 +276,16 @@ Prior to finalizing any diagram, explicitly utilize the proxy scripts instead of
 │   ├── <diagram-type>.md
 │   └── er-chen.md
 └── diagrams/
-    ├── <diagram-type>.mmd          # Standard diagrams primary source
-    ├── <diagram-type>.drawio       # Containerized native drawio files
-    ├── <diagram-type>.drawio.svg
-    ├── <diagram-type>.drawio.png
-    ├── deployment.drawio
-    ├── er-chen.drawio
-    ├── er-chen.drawio.svg
+    ├── <diagram-type>.mmd          # Mermaid source
+    ├── <diagram-type>.puml         # PlantUML source
+    ├── <diagram-type>.mmd.svg      # Exported SVG
+    ├── deployment.mmd
+    ├── deployment.puml
+    ├── er-chen.mmd
+    ├── er-chen.puml
     └── ...
 ```
 
 **Delivery Protocol:**
 - Only generate file extensions explicitly requested by the user. Do not arbitrarily populate all formats.
-- Retain exports with embedded XML as the primary editable artifact if the `drawio` skill automatically removes the source `.drawio` post-export. Ensure this behavior is documented in `diagram-index.md`.
+

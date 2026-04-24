@@ -156,7 +156,7 @@ def drawio_escape(value: str) -> str:
 
 
 def build_note_value(diagram_id: str, label: str) -> str:
-    hints = DRAWING_HINTS[diagram_id]
+    hints = DRAWING_HINTS.get(diagram_id, [])
     lines = [
         f"{label}（{diagram_id}）",
         "证据来源：file:line / config:path / api:route / db:table / req:section",
@@ -164,6 +164,7 @@ def build_note_value(diagram_id: str, label: str) -> str:
         "必画项：",
     ]
     lines.extend(f"- {hint}" for hint in hints)
+    lines.append("- 【核心样式要求】必须调大字体（如 PlantUML 用 skinparam defaultFontSize 16，Mermaid 相应放大），并优化连线路由，避免线条杂乱交叉。")
     lines.append("禁止项：不要脱离证据凭空作图")
     return "\n".join(lines)
 
@@ -176,6 +177,7 @@ def build_er_note_value() -> str:
         "必画项：",
     ]
     lines.extend(f"- {hint}" for hint in ER_HINTS)
+    lines.append("- 【核心样式要求】必须调大字体（如 PlantUML 用 skinparam defaultFontSize 16，Mermaid 相应放大），并优化连线路由，避免线条杂乱交叉。")
     lines.append("禁止项：不要把外键字段当作属性椭圆直接画在实体上")
     return "\n".join(lines)
 
