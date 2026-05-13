@@ -56,9 +56,6 @@ GENERIC_WHEN_TO_USE_MARKERS = [
 ]
 
 ARC_ROUTING_MATRIX_LINK = "../../docs/arc-routing-matrix.md"
-ARC_DECISION_TREE_LINK = "../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree"
-ARC_PHASE_VIEW_LINK = "../../docs/arc-routing-matrix.md#phase-routing-view"
-ARC_CHEATSHEET_LINK = "../../docs/arc-routing-cheatsheet.md"
 
 SUPPORTED_SKILL_PREFIXES = ("arc:",)
 SKILL_NAMESPACE_DIRS = {
@@ -67,63 +64,9 @@ SKILL_NAMESPACE_DIRS = {
 
 ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
     "arc:build": ["DoD", "SemVer", "Contract Test", "RTO/RPO", "SBOM"],
-    "arc:cartography": ["C4", "ISO/IEC 42010", "churn", ["增量差异清单", "incremental diff"]],
     "arc:clarify": ["IEEE 29148", "INVEST", "Given-When-Then"],
-    "arc:context": [
-        ["tool-backed context", "工具驱动上下文"],
-        ["working set", "工作集"],
-        ["recovery manifest", "恢复清单"],
-        ["lazy restore", "按需恢复"],
-        ["token budget", "上下文预算", "context budget"],
-        "FTS5",
-        "BM25",
-        ["compaction", "压缩恢复"],
-        ["sandbox", "沙箱"],
-    ],
-    "arc:decide": ["ADR", "Pre-Mortem", "Fitness Function"],
-    "arc:e2e": ["ISTQB", "OWASP ASVS", "WCAG 2.2 AA"],
-    "arc:exec": ["RACI", ["关键路径(CPM)", "Critical Path", "CPM"], ["冲突仲裁规则", "conflict arbitration", "Conflict Arbitration"]],
     "arc:fix": [["SEV", "Severity Level", "severity level", "severity"], "5 Whys", "Fault Tree", "Blameless Postmortem", "Mandatory Hypothesis", "Rationalization Watch"],
-    "arc:gate": ["Policy-as-Code", "OWASP", "SBOM", "OPA/Rego"],
-    "arc:init": ["schema_version", ["原子更新", "atomic update", "Atomic Update"], ["上一个稳定索引回滚", "stable index rollback", "rollback"]],
-    "arc:serve": ["tmux", "single-instance", ["JSON registry", "registry"], ["port", "ports"], ["graceful shutdown", "graceful"]],
-    "arc:ip-check": [["新颖性", "novelty", "Novelty"], ["创造性", "inventiveness", "Inventiveness", "creativity", "creativeness"], ["实用性", "utility", "Utility", "practicality", "practicability"], "FTO"],
-    "arc:ip-draft": [["宽-中-窄", "broad-medium-narrow", "Broad-Medium-Narrow", "wide-medium-narrow"], ["权利要求", "claims", "Claims"], ["待法务复核清单", "legal review checklist", "Legal Review", "to be reviewed by legal"]],
-    "arc:microcopy": [
-        ["plain language", "人话", "通俗表达"],
-        ["user mental model", "用户心智模型"],
-        ["actionable guidance", "可执行指引"],
-        ["avoid jargon", "避免术语", "避免技术术语"],
-        ["blame-free", "非责怪式", "责怪式"],
-    ],
-    "arc:uml": ["UML 2.5.1 / ISO 19505", "Chen", "PlantUML", "Mermaid", ["建模假设", "modeling assumption", "Modeling Assumption"]],
     "arc:audit": [["业务成熟度", "Business Maturity", "business maturity"], ["依赖健康度", "Dependency Health", "dependency health"], ["专家评审卡", "Expert Review Card", "expert review card"], "9 Tab"],
-    "arc:test": [
-        "ISTQB",
-        ["boundary value analysis", "边界值分析"],
-        ["equivalence partitioning", "等价类划分"],
-        ["code coverage", "代码覆盖率"],
-        ["test pyramid", "测试金字塔"],
-    ],
-    "arc:aigc": [
-        ["chunked rewrite", "chunked polish", "分段重写"],
-        ["citation fidelity", "引用保真"],
-        ["two-stage polish", "two-stage rewrite", "两阶段润色", "双阶段润色"],
-        ["semantic drift", "语义漂移"],
-        ["authorial voice", "作者声音"],
-        ["human review", "人工复核"],
-    ],
-    "arc:learn": [
-        ["three-layer verification", "三层交叉验证"],
-        ["intellectual genealogy", "知识谱系"],
-        ["primary sources", "第一手信源"],
-        ["contextual fidelity", "语境保真度"],
-    ],
-    "arc:brand-brief": [
-        ["factual extraction", "事实提取", "facts only"],
-        ["tech stack", "技术栈"],
-        ["project architecture", "项目架构"],
-    ],
 }
 
 LEGACY_TOKEN_PARTS = [
@@ -138,8 +81,6 @@ BANNED_TOKENS = [
     "session_id",
     "arc-estimate",
     "arc-retest",
-    "arc:init:full",
-    "arc:init:update",
 ]
 
 FUSION_GENERIC_SKILLS: set[str] = {
@@ -148,26 +89,10 @@ FUSION_GENERIC_SKILLS: set[str] = {
 }
 
 ARC_ROUTED_SKILLS = {
-    "arc:exec",
-    "arc:cartography",
-    "arc:decide",
-    "arc:gate",
-    "arc:build",
-    "arc:context",
-    "arc:init",
-    "arc:ip-check",
-    "arc:ip-draft",
     "arc:clarify",
-    "arc:audit",
-    "arc:e2e",
+    "arc:build",
     "arc:fix",
-    "arc:uml",
-    "arc:test",
-    "arc:serve",
-    "arc:aigc",
-    "arc:microcopy",
-    "arc:learn",
-    "arc:brand-brief",
+    "arc:audit",
 }
 
 QUICK_CONTRACT_KEY_MAP = {
@@ -452,7 +377,7 @@ def validate_text(text: str, path_label: str, root: Path | None = None) -> tuple
         extra_keys = sorted(key for key in fm.keys() if key not in allowed_keys)
         if extra_keys:
             errors.append(
-                f"{path_label}: arc frontmatter allows only name/description, found extra keys: {', '.join(extra_keys)}"
+                f"{path_label}: arc frontmatter contains unsupported keys: {', '.join(extra_keys)}"
             )
 
     for heading in REQUIRED_HEADINGS:
@@ -480,12 +405,6 @@ def validate_text(text: str, path_label: str, root: Path | None = None) -> tuple
                 errors.append(f"{path_label}: arc when-to-use missing marker {marker_variants[0]} (or English equivalent)")
         if ARC_ROUTING_MATRIX_LINK not in text:
             errors.append(f"{path_label}: missing routing matrix link {ARC_ROUTING_MATRIX_LINK}")
-        if ARC_DECISION_TREE_LINK not in text:
-            errors.append(f"{path_label}: missing decision tree link {ARC_DECISION_TREE_LINK}")
-        if ARC_PHASE_VIEW_LINK not in text:
-            errors.append(f"{path_label}: missing phase view link {ARC_PHASE_VIEW_LINK}")
-        if ARC_CHEATSHEET_LINK not in text:
-            errors.append(f"{path_label}: missing cheatsheet link {ARC_CHEATSHEET_LINK}")
         expert_section = extract_section(text, "## Expert Standards")
         if expert_section is None:
             errors.append(f"{path_label}: missing expert standards section body")

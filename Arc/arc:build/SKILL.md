@@ -1,285 +1,96 @@
 ---
 name: arc:build
-description: "代码交付与实施落地：按既定方案改代码并给出验证与交接；当用户说“实现这个方案/落地开发/implement this plan”时触发。"
-version: 1.0.0
-allowed_tools:
-  - Bash
-  - Read
-  - Edit
-  - Write
-  - Grep
-  - Glob
-hooks:
-  PreToolUse:
-    - matcher: Bash
-      hooks:
-        - type: command
-          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
-          statusMessage: "Checking for destructive commands..."
+description: "代码交付：当方案和范围已明确，需要实施代码变更、运行验证并说明结果时使用；不负责总控编排。"
 ---
 
-# arc:build — implementation of the solution
+# arc:build
 
 ## Overview
 
-`arc:build` is responsible for transferring requirements and solutions to the code implementation layer, first freezing the interface contract and compatibility strategy, and then outputting deliverable engineering changes and execution reports.
-
-This skill emphasizes "realizable, verifiable, and traceable":
-
-- Produce the minimum executable plan before implementation
-- Document key decisions and risks during implementation
-- Produce verification evidence and handover summary after implementation
+`arc:build` is the lean implementation skill. It guides concrete code changes, verification, and handoff. It does not own planning infrastructure, indexes, E2E frameworks, or release gates.
 
 ## Quick Contract
 
-- **Trigger**: The requirements/solutions have been clarified and the plan needs to be implemented into submittable code changes.
-- **Inputs**: `project_path`, `task_name`, achievement goal, change scope and verification level.
-- **Outputs**: Implementation plan, code changes, verification records and handoff summary.
-- **Quality Gate**: The plan advance and evidence verification check of `## Quality Gates` must be passed before handover.
-- **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
+- **Trigger**: The task is implementation-ready and code or project files should be changed.
+- **Inputs**: Clear task, scope, target repository, constraints, and expected verification.
+- **Outputs**: Code changes, verification evidence, and a concise change summary.
+- **Quality Gate**: The change is scoped, verified, and explainable.
+- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
 ## Routing Matrix
 
-- For unified routing comparison, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
-- A phased getting started view is available at [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#phase-routing-view).
-- For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../../docs/arc-routing-cheatsheet.md).
-- If there is a conflict, the **Border Tip** of this skill `## When to Use` shall prevail.
+- Use `arc:clarify` first if scope or acceptance criteria are unclear.
+- Use `arc:fix` instead when the primary input is a failure report or incident.
+- Use `arc:audit` after implementation if the user wants a read-only quality review.
+- Use `aitask` for cross-agent task ownership or OpenViking memory updates.
 
 ## Announce
 
 Begin by stating clearly:
-"I am using `arc:build` to solidify the implementation plan and verification path first, and then implement the code."
-
-## Teaming Requirement
-
-- Each implementation must first "draw a team together" and clearly define at least three roles and responsibilities of `Owner`, `Executor`, and `Reviewer`.
-- If the operating environment only has a single Agent, the three-role perspective must be explicitly output during delivery to form a "decision-execution-review" closed loop before submitting the conclusion.
+"I am using `arc:build` to implement the scoped change and verify it."
 
 ## The Iron Law
 
+```text
+NO CODE CHANGE WITHOUT SCOPE AND VERIFICATION.
 ```
-NO CODE CHANGE WITHOUT PLAN, EVIDENCE, AND ROLLBACK
-```
-
-Code changes must not be implemented without clear plans, verification evidence, and rollback strategies.
 
 ## Workflow
 
-1. Produce upstream requirements/plan products and create implementation briefs.
-2. Generate a minimum implementation plan and split it into reviewable change units.
-3. Implement in stages and simultaneously document key decisions and risks.
-4. Perform verification, output handover materials, and mark impact surfaces.
+1. Inspect the relevant files and existing patterns.
+2. State the implementation approach if the change is non-trivial.
+3. Edit the smallest viable set of files.
+4. Run targeted verification first, then broader checks when appropriate.
+5. Summarize changed files, behavior, verification, and residual risks.
 
 ## Quality Gates
 
-- `implementation-plan.md` must be generated first and then encoded.
-- Every critical change must have verification commands and results.
-- The handover summary must cover impact modules and regression concerns.
-- Failure scenarios must include rollback or mitigation handling, and any irreversible operation must be explicitly called out before handover.
-- Medium/High-risk implementation must identify a recoverable boundary before coding: pushed remote branch, local snapshot, or explicit blocker.
-- If the final chat handoff includes a compact matrix such as verification status or change inventory, prefer `terminal-table-output`; do not rewrite file artifacts just to match chat styling.
+- Scope remains tied to the requested outcome.
+- Existing user changes are not reverted without explicit instruction.
+- Verification commands are run when feasible; failures are reported with cause.
+- The final summary distinguishes facts, assumptions, and follow-up risk.
 
 ## Expert Standards
 
-- Adopt `DoD` delivery baseline: Delivery can only be made after the build passes, key tests pass, documents are updated, and the rollback path is complete.
-- Execute `SemVer + Contract Test` on interfaces and data contracts, prohibiting undeclared destructive changes.
-- Changes to operationally critical links should provide `RTO/RPO`-style impact notes or an equivalent recovery assessment when those concerns are material.
-- When build artifacts or dependency manifests are part of the delivery surface, include available `SBOM`/provenance references instead of inventing them for minor changes.
-- Handoff must quantify the risk of change: impact area, regression scope, launch window, and observation indicators.
+- Definition of Done (`DoD`) is explicit for behavior, tests, and documentation.
+- Version-impacting changes consider `SemVer` compatibility.
+- Contract-sensitive changes include `Contract Test` or equivalent verification when practical.
+- Reliability-sensitive changes mention `RTO/RPO` implications when relevant.
+- Dependency or packaging changes consider `SBOM`/supply-chain impact.
 
 ## Scripts & Commands
 
-- Work area scaffolding: `Arc/arc:build/scripts/scaffold_implement_case --project-path <project_path> --task-name <task_name>`
-- Delivery report rendering: `Arc/arc:build/scripts/render_implementation_report --case-dir <project_path>/.arc/build/<task_name> --task-name <task_name> --result pass`
-- Runtime main command: `arc build`
-
-## Runtime Verification Gate
-
-- Changes to the Go-backed build scaffold/report runtime must pass `gofmt`, `go vet`, `staticcheck`, `go test`, `go test -race`, and at least one allocation/leak-oriented check such as `go test -bench=. -benchmem` plus `goleak` or `pprof` sampling before release.
+No dedicated Arc runtime scripts. Use the project's own build, lint, test, and typecheck commands.
 
 ## Red Flags
 
-- Skip planning and go directly to large-scale code changes.
-- Only a "completed" conclusion is given, without verification evidence.
-- The change scope is out of control and irrelevant directories are touched.
-- There is no fallback plan but the critical path is changed.
-
-## Mandatory Linkage (cannot be fought alone)
-
-1. Preferably read the `arc:decide` product (if present) as implementation input.
-2. When the requirements are vague, go to `arc:clarify` first, and do not modify it blindly directly.
-3. After the implementation is completed, it is recommended to hand it over to `arc:audit` or `arc:e2e` for verification closed loop.
-4. Output standardized handover documents for downstream skill consumption.
+- Editing before understanding existing patterns.
+- Expanding scope opportunistically.
+- Skipping verification without saying why.
+- Suppressing type, lint, or test failures instead of fixing root causes.
 
 ## When to Use
 
-- **Preferred trigger**: The requirements or solutions have been clarified, and code changes can be submitted if output is required.
-- **Typical scenarios**: Function development, interface evolution, database migration, behavior-invariant reconstruction, document synchronization, defect repair with verification evidence.
-- **Boundary Tip**: `arc:clarify/arc:decide` is used for fuzzy requirements, and `arc:audit` is used for comprehensive evaluation.
+- **Preferred Trigger**: The user asks to implement a known change or approved plan.
+- **Typical Scenario**: Feature work, refactor, migration, documentation sync, or small project automation.
+- **Boundary Tip**: Use `arc:fix` for failure-first work and `arc:clarify` for underspecified work.
 
 ## Input Arguments
 
-| parameter | type | Required | illustrate |
-|------|------|------|------|
-| `project_path` | string | yes | Absolute path to the target project root directory |
-| `task_name` | string | yes | This implementation task name is used for directory naming. |
-| `implementation_goal` | string | no | Achievement Goal Summary |
-| `change_scope` | string | no | Change scope limit (module/directory) |
-| `verification_level` | enum | no | `basic` / `standard` / `strict`, default `standard` |
-| `output_dir` | string | no | Default `<project_path>/.arc/build/<task-name>/` |
+| parameter | type | required | description |
+|---|---|---|---|
+| `project_path` | string | yes | Target repository root |
+| `task` | string | yes | Implementation goal |
+| `scope` | string | no | Files/modules expected to change |
+| `verification` | string | no | Expected test/lint/build command |
 
-## Dependencies
-
-- **Orchestration Contract** (recommended): Follow `docs/orchestration-contract.md` and distribute implementation and verification tasks through the runtime adaptation layer.
-- **ace-tool MCP** (required): Locate the implementation entrance, influence surface, and related symbols.
-- **Scheduling API** (required): schedule implementation and verification tasks.
-- **arc:decide** (recommended): consume upstream solution documents.
-- **arc:clarify** (optional): Supplement the context when the requirements are unclear.
-- **Exa MCP** (optional): Check official documentation and implementation reference.
-
-## Context Priority (mandatory)
-
-0. `.arc/context-hub/index.json` (shared context index, reuse first)
-1. `.arc/build/<task>/context/implementation-brief.md`(24h)
-2. `.arc/decide/<task>/` The product of the next solution (if it exists)
-3. `codemap.md` (arc:cartography) and `CLAUDE.md` hierarchical index (7 days)
-4. score product (generated by `score/` module) / `arc:audit` / last `arc:build` handoff (if index available)
-5. `ace-tool` Semantic scanning
-6. `Exa` external documentation
-
-Failure reflow rules:
-- CLAUDE index invalid: trigger `arc:init --mode update`
-- codemap invalid: trigger `arc:cartography` update
-- score/review product failure: trigger `score` module refresh (triggered by `arc:gate` arrangement) / `arc:audit` update
-
-## Critical Rules
-
-1. **Plan first, then implement**: `plan/implementation-plan.md` must be produced first.
-2. **Small step submission**: Prioritize splitting into small changes that can be reviewed, and do not make unbounded major changes.
-3. **Evidence verification**: There must be verification records (commands/results/conclusions) after implementation.
-4. **Impact Transparency**: Affected modules and regression concerns must be listed.
-5. **Failure to rollback**: Retain the rollback idea and do not allow "non-recoverable" changes.
-6. **Checkpoint before risky work**: When large local deltas or destructive operations are expected, confirm the remote checkpoint or snapshot path before implementation starts.
-7. **Use low-overhead tooling first**: For scans, polling, or browser glue on this machine, prefer `rg`, shell, or JS tooling before Python.
-8. **No execution beyond authority**: Do not touch directories and files unrelated to the task.
-9. **Cloudflare Deployment**: When executing Cloudflare deployments, directly use the locally installed `wrangler` command exclusively. NEVER use `npx wrangler`.
-
-## Instructions
-
-### Phase 1: Contextual archiving
-
-1. Read the upstream product and project index.
-2. Identify implementation entries, affected modules, and constraints.
-3. Generate `context/implementation-brief.md`.
-4. Execute the scaffolding command:
-
-```bash
-Arc/arc:build/scripts/scaffold_implement_case \
-  --project-path <project_path> \
-  --task-name <task_name>
-```
-
-### Phase 2: Implementing the plan
-
-1. Output `plan/implementation-plan.md`:
-- Goals and Scope
-- Change steps
-- Risks and Fallback Plans
-- Verification plan
- - Recovery boundary (remote branch / snapshot / blocker)
-2. If there are major technical differences, return to the `arc:decide` argument first.
-
-### Phase 3: Coding implementation
-
-1. Implemented step by step as planned.
-2. Each step is logged to `execution/execution-log.md`:
-- Modification point
-- reason
-- risk
-- Verification status
-
-### Phase 4: Verification and Handover
-
-1. Perform minimum necessary verification (compile/test/static checks):
-   - You MUST run `bash Arc/scripts/check-placeholders.sh` to ensure no lazy placeholder code (`// ...`, `TODO:`) was left in the git diff.
-   - You MUST run `bash Arc/scripts/check-types.sh` to ensure strict typing was followed.
-   - You MUST run `bash Arc/scripts/check-scope.sh 5` (default limit: 5 files). Exceeding this requires user approval.
-   - You MUST run `bash Arc/scripts/verify-project.sh` (or the equivalent project-specific test command) and verify it passes.
-2. Generate delivery documents:
-- `reports/execution-report.md`
-- `handoff/change-summary.md`
-- `handoff/pr-description.md` (A ready-to-use Pull Request Description with "What", "Why", and "Testing done")
-- `handoff/commit-messages.txt` (Suggested Conventional Commit messages)
-- `handoff/ADR-XXX.md` (If a new library was introduced or architectural boundary crossed, generate a lightweight Architecture Decision Record here)
-3. Use a script to render the final report:
-
-```bash
-Arc/arc:build/scripts/render_implementation_report \
-  --case-dir <output_dir> \
-  --task-name <task_name> \
-  --result pass
-```
-
-## Scripts
-
-```bash
-Arc/arc:build/scripts/scaffold_implement_case --project-path <project_path> --task-name <task_name>
-Arc/arc:build/scripts/render_implementation_report --case-dir <output_dir> --task-name <task_name> --result pass
-```
-
-## Artifacts
-
-Default directory: `<project_path>/.arc/build/<task-name>/`
-
-- `context/implementation-brief.md`
-- `plan/implementation-plan.md`
-- `execution/execution-log.md`
-- `reports/execution-report.md`
-- `handoff/change-summary.md`
-
-## Quick Reference
-
-| output | use |
-|------|------|
-| `implementation-plan.md` | Implementation steps and risk control |
-| `execution-log.md` | Execution process tracking |
-| `execution-report.md` | Implementation results and verification conclusions |
-| `change-summary.md` | Handover summary for downstream skills/reviews |
-
-## Gotchas
-
-**CRITICAL: The following behaviors are FORBIDDEN in arc:build execution:**
-
-### Planning Anti-Patterns
-
-- **Speculation Implementation**: Writing code without reading arc:decide or arc:clarify output first — must have approved plan
-- **Scope Creep**: Adding features not in the approved plan — strict scope adherence required
-- **Pattern Ignorance**: Not reading existing code patterns before implementing — causes inconsistency
-
-### Implementation Anti-Patterns
-
-- **Type Safety Violation**: Using `# type: ignore`, blanket `eslint-disable`, or equivalent suppression shortcuts — forbidden without explicit exception approval. Do not bypass validation or contract errors to achieve the goal.
-- **Logic Bypass**: Modifying, deleting, or bypassing core business logic or assertions just to make a test pass or silence an error — strictly forbidden. You must address the root cause.
-- **Empty Catch Blocks**: `catch(e) {}` — must handle or re-throw errors
-- **Magic Values**: Hardcoding configuration values — use constants/config files
-- **Commented Code**: Leaving commented-out code blocks — delete or implement
-
-### Process Anti-Patterns
-
-- **Skip Verification**: Not running LSP diagnostics after edits — must verify clean before commit
-- **Batch Completion**: Marking multiple todos complete at once — one at a time, verify each
-- **Cache Stale Usage**: Using expired codemap.md (7d+) without refresh — triggers arc:cartography
-- **Handoff Skip**: Not generating `handoff/` artifacts — breaks downstream skills
-
-## Sign-off
+## Outputs
 
 ```text
-files changed:    N (+X -Y)
-scope:            [expand / shape / hold / cut]: [what]
-hard stops:       N found, N fixed, N deferred
-signals:          N noted
-verification:     [command] → pass / fail
+Build Handoff
+- What changed
+- Files touched
+- Verification run
+- Residual risks
+- Suggested next step, if any
 ```
- multiple todos complete at once — one at a time, verify each
-- **Cache Stale Usage**: Using expired codemap.md (7d+) without refresh — triggers arc:cartography
-- **Handoff Skip**: Not generating `handoff/` artifacts — breaks downstream skills

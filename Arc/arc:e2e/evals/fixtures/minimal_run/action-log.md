@@ -1,3 +1,0 @@
-# Action Log
-
-## Raw Log

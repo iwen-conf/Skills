@@ -1,244 +1,95 @@
 ---
 name: arc:clarify
-description: "需求澄清与提示词增强：补齐上下文、识别歧义并产出可执行输入；当用户说“需求不清楚/clarify requirements/refine prompt”时触发。"
-version: 1.0.0
-allowed_tools:
-  - Bash
-  - Read
-  - Edit
-  - Write
-  - Grep
-  - Glob
-hooks:
-  PreToolUse:
-    - matcher: Bash
-      hooks:
-        - type: command
-          command: "bash ${ARC_SKILL_DIR}/scripts/check-destructive.sh"
-          statusMessage: "Checking for destructive commands..."
+description: "需求澄清：当需求边界、约束、验收标准或上下文不足时使用；输出可执行任务说明，不负责调度或记忆。"
 ---
 
-# Question Refiner
+# arc:clarify
 
 ## Overview
 
-Systematically supplement user questions with contextual information. By scanning the CLAUDE.md multi-level index of the project, combined with interactive questioning, fuzzy requirements are transformed into structured, executable enhanced prompts.
+`arc:clarify` turns vague requests into executable task briefs. It is intentionally lightweight and does not orchestrate agents, update indexes, or write long-running state. Use `aitask` for task coordination and OpenViking-backed memory.
 
 ## Quick Contract
 
-- **Trigger**: User needs are vaguely expressed, context is insufficient, and acceptance criteria are missing.
-- **Inputs**: Original question, `task_name`, `workdir`; optional item index context and clarification Q&A results.
-- **Outputs**: Structured enhanced prompt (Context/Task/Constraints/Success Criteria).
-- **Quality Gate**: The executability check of `## Quality Gates` must pass before downstream execution.
-- **Decision Tree**: For the input signal routing diagram, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#signal-to-skill-decision-tree).
+- **Trigger**: The request is ambiguous, underspecified, or missing acceptance criteria.
+- **Inputs**: User request, working directory, known constraints, relevant files or context provided by the user.
+- **Outputs**: A concise task brief with context, scope, constraints, assumptions, open questions, and success criteria.
+- **Quality Gate**: A downstream engineer can start work without guessing the intended outcome.
+- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
 ## Routing Matrix
 
-- For unified routing comparison, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
-- A phased getting started view is available at [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md#phase-routing-view).
-- For a quick cheat sheet, see [`docs/arc-routing-cheatsheet.md`](../../docs/arc-routing-cheatsheet.md).
-- If there is a conflict, the **Border Tip** of this skill `## When to Use` shall prevail.
+- Use `arc:build` after clarification when code changes are ready.
+- Use `arc:audit` after clarification when the user wants read-only assessment.
+- Use `aitask` instead when the main problem is coordination, ownership, Inbox, memory, or cross-agent workflow.
 
 ## Announce
 
 Begin by stating clearly:
-"I am using `arc:clarify`, first complete the context and constraints, and then generate the executable prompt."
-
-## Teaming Requirement
-
-- Each implementation must first "draw a team together" and clearly define at least three roles and responsibilities of `Owner`, `Executor`, and `Reviewer`.
-- If the operating environment only has a single Agent, the three-role perspective must be explicitly output during delivery to form a "decision-execution-review" closed loop before submitting the conclusion.
+"I am using `arc:clarify` to turn the request into an executable task brief."
 
 ## The Iron Law
 
+```text
+NO EXECUTION WITHOUT CONTEXT, CONSTRAINTS, AND SUCCESS CRITERIA.
 ```
-NO EXECUTION PROMPT WITHOUT CONTEXT, CONSTRAINTS, AND SUCCESS CRITERIA
-```
-
-The execution phase must not be entered before the context, constraints and acceptance criteria are formed.
 
 ## Workflow
 
-1. Prioritize reads from shared indexes and CLAUDE/codemap contexts.
-2. Compare the user's original problem with gap analysis.
-3. Clarify execution-affecting uncertainties with key questions when the context scan still leaves gaps.
-4. Generate a structured enhanced prompt and write to the shared directory.
+1. Restate the user goal in concrete terms.
+2. Identify scope boundaries: files, modules, users, environments, and excluded work.
+3. Identify constraints: compatibility, security, performance, timeline, style, and verification expectations.
+4. Surface assumptions and high-impact unknowns.
+5. Ask only the minimum necessary questions if execution would otherwise be risky.
+6. Produce a task brief that can feed directly into implementation or audit.
 
 ## Quality Gates
 
-- Enhanced prompt must contain Context/Task/Constraints/Success Criteria.
-- Key terms must be unified and reusable downstream.
-- Clarification questions should be minimal and of high value to avoid noisy questioning.
-- Clearly label contextual sources and freshness.
-- When gap summaries or quick status snapshots are delivered in chat as compact matrices, prefer `terminal-table-output` over Markdown tables; the written artifact remains Markdown.
+- The brief includes `Context`, `Task`, `Scope`, `Constraints`, and `Success Criteria`.
+- Ambiguous terms are resolved or explicitly marked as open questions.
+- Assumptions are separated from facts.
+- The output does not create artificial process overhead.
 
 ## Expert Standards
 
-- Requirements Quality Alignment `IEEE 29148`: Completeness, consistency, verifiability, traceability must be explicitly checked.
-- User stories need to meet `INVEST` and be broken down into the smallest acceptable unit that can be delivered independently.
-- The acceptance criteria are uniformly `Given-When-Then`, and vague statements (such as "try your best" and "appropriate") are prohibited.
-- Non-functional constraints must be output in columns: performance, security, availability, compliance, and observability.
-- The deliverable must include the `assumption-risk-open-questions` triplet table as the baseline input for downstream decisions.
+- Requirements quality follows `IEEE 29148`: complete, consistent, verifiable, and traceable.
+- User stories should satisfy `INVEST` where relevant.
+- Acceptance criteria should use `Given-When-Then` when behavior needs verification.
 
 ## Scripts & Commands
 
-- Runtime main command: `arc clarify`
-- Linked with estimation: `arc clarify` → `arc decide --mode estimate`
-- Linked with implementation: `arc clarify` → `arc decide` → `arc build`
-- Note: `arc:clarify` currently has no independent `scripts/`, subject to interactive clarification command.
+No dedicated runtime scripts. Use normal repository inspection tools such as `rg`, `find`, and file reads.
 
 ## Red Flags
 
-- Rewrite requirements directly without context scanning.
-- It only repeats the user's original words without supplementing actionable information.
-- Lack of success criteria but delivered to the implementation phase.
-- Critical constraint violations are not explicitly prompted.
+- Asking many questions before reading available context.
+- Producing a vague restatement instead of executable criteria.
+- Hiding assumptions inside the task statement.
+- Turning a small clarification into a heavy planning ceremony.
 
 ## When to Use
 
-- **Preferred trigger**: The requirements are vague or the context is insufficient and need to be converted into executable task descriptions.
-- **Typical scenario**: Module boundaries are unclear, constraints are missing, and acceptance criteria are undefined.
-- **Boundary Tip**: Use `arc:decide` when multiple-solution disputes need to be demonstrated. If the requirements are clear, they will be implemented directly downstream.
+- **Preferred Trigger**: Requirements are vague or missing execution-critical context.
+- **Typical Scenario**: The user asks for a change but scope, constraints, or verification are unclear.
+- **Boundary Tip**: If the user already gave enough detail, skip this skill and proceed directly.
 
-## Core Pattern
+## Input Arguments
 
-### Step 1: Project index scan
+| parameter | type | required | description |
+|---|---|---|---|
+| `request` | string | yes | Original user request |
+| `workdir` | string | no | Target project directory |
+| `known_context` | string | no | Existing constraints or files already provided |
 
-Read the shared context index first, then downgrade according to priority:
-
-1. **Read first** `.arc/context-hub/index.json`, find reusable products:
-   - `CLAUDE.md` level index
-   - `codemap.md`(arc:cartography)
-   - Recent arc:audit/score/implementation handoff
-2. **If the index is missing or invalid**, scan the project root directory and subdirectories to collect CLAUDE.md:
+## Outputs
 
 ```text
-Use `Glob` to locate `**/CLAUDE.md` within the current project.
-```
-
-3. **If it is still not enough**, finally fall back to ace-tool source code semantic search.
-
-### Step 2: Context extraction
-
-First extract from the shared index product, and then add CLAUDE.md level information:
-
-- **Root level CLAUDE.md**: project vision, technology stack overview, module relationship
-- **Module-level CLAUDE.md**: The architecture, coding specifications, and dependencies of a specific module
-- **codemap.md**: Directory responsibilities, module boundaries, cross-directory calling relationships
-- **arc:audit/score/handoff**: Identified risk points, quality bottlenecks, and change context
-
-Use `Read`/`Glob` to read relevant content and build a project context portrait.
-
-### Step 3: Gap analysis
-
-Compare the user's original question with the project context to identify missing dimensions:
-
-| missing dimension | Example |
-|---------|------|
-| technology boundaries | Frontend/backend/full stack? Specific module? |
-| Constraints | Performance requirements? Compatibility requirements? Time limit? |
-| Dependency impact | Does the change involve other modules? Need to migrate? |
-| Acceptance criteria | How is it completed? How to verify success? |
-
-### Step 4: Interactive refinement
-
-If gap analysis still leaves execution-affecting ambiguity, use `AskUserQuestion` to ask the user 1-4 key questions. Each question should:
-
-- Findings based on gap analysis
-- Offers 2-4 options and allows users to customize supplements
-- State the question clearly and avoid jargon
-
-### Step 5: Prompt synthesis
-
-Assemble a structured enhanced prompt, consisting of four parts:
-
-```markdown
-## Context
-<Project context summary, including relevant modules, technology stack, specifications>
-
-## Task
-<User's original task description>
-
-## Constraints
-<Recognized constraints>
-
-## Success Criteria
-<How to verify task completion>
-```
-
-### Step 6: Output
-
-Write the complete enhanced prompt to the shared directory:
-
-```text
-<workdir>/.arc/decide/<task-name>/context/enhanced-prompt.md
-```
-
-## Quick Reference
-
-| stage | tool | output |
-|------|------|------|
-| scanning | Read + Glob + ace-tool | Shared index/CLAUDE.md/source context |
-| extract | Read | Project context summary |
-| analyze | Artificial | gap list |
-| Ask a question | AskUserQuestion | User answers |
-| synthesis | Write | enhanced-prompt.md |
-
-## Gotchas
-
-**CRITICAL: The following behaviors are FORBIDDEN in arc:clarify execution:**
-
-### Scanning Anti-Patterns
-
-- **Skip-Scan-Ask**: Jumping straight to questions without reading CLAUDE.md hierarchy first — questions lack context
-- **Cache Ignorance**: Not checking `.arc/context-hub/index.json` when valid cache exists — wastes prior work
-- **Stale Context Usage**: Using expired cache (24h+) without verification — causes incorrect assumptions
-
-### Question Anti-Patterns
-
-- **Question Overload**: Asking 5+ questions at once — overwhelming, prioritize to 1-3 key questions
-- **Technical Jargon**: Using developer terms with non-technical users — use business language
-- **Leading Questions**: Phrasing questions to bias toward a specific answer — neutral phrasing required
-- **No Custom Option**: Forcing users to pick from predefined options only — always allow free-form input
-
-### Analysis Anti-Patterns
-
-- **Literal Interpretation**: Taking user's words at face value without identifying implicit assumptions
-- **Scope Skipping**: Not clarifying module boundaries when project has multiple sub-systems
-- **Constraint Blindness**: Not identifying performance, compatibility, or timeline constraints
-
-### Output Anti-Patterns
-
-- **Missing Success Criteria**: Enhanced prompt without verification checklist — how to know it's done?
-- **Orphaned Output**: Not writing enhanced-prompt.md to `.arc/decide/` — breaks arc:decide consumption
-## Integration
-
-After this Skill is completed, choose the downstream skill by task type instead of defaulting blindly:
-
-- If the clarified task is still multi-skill or needs orchestration, continue with `arc:exec`.
-- If the clarified task is dominated by logs, snapshots, large files, or context-budget risk, continue with `arc:context`.
-- If the clarified task is academic/professional prose polishing with citation-preservation constraints, continue with `arc:aigc`.
-- If the clarified task is a disputed or high-risk technical route, continue with `arc:decide`.
-- If the clarified task is already implementation-ready, continue with `arc:build`.
-
-If the shared product is found to be invalid during the refinement process:
-- CLAUDE index invalidation → trigger `arc:init --mode update` (`arc:init --mode full` if necessary)
-- codemap invalid → trigger `arc:cartography` update
-- score/review data invalidation → trigger `score` module refresh (triggered by `arc:gate` arrangement) / `arc:audit` update
-
-```
-Problem refinement completed. Enhanced prompt has been written:
-.arc/decide/<task-name>/context/enhanced-prompt.md
-
-You can now route to `arc:exec`, `arc:context`, `arc:aigc`, `arc:decide`, or `arc:build` according to the clarified task boundary.
-```
-
-## Sign-off
-
-```text
-files changed:    N (+X -Y)
-scope:            on target / drift: [what]
-hard stops:       N found, N fixed, N deferred
-signals:          N noted
-verification:     [command] → pass / fail
+Task Brief
+- Context
+- Task
+- Scope
+- Constraints
+- Assumptions
+- Open Questions
+- Success Criteria
 ```

@@ -1,9 +1,10 @@
 # Arc
 
-通用工程技能目录。
+Lean Arc keeps only four engineering workflow skills:
 
-- 技能命名空间：`arc:*`
-- 目标：需求澄清、方案决策、代码交付、测试、E2E、治理、知产等通用工程链路
-- 入口总控：`arc:exec`
+- `arc:clarify`
+- `arc:build`
+- `arc:fix`
+- `arc:audit`
 
-仓库级说明见 [`README.md`](../README.md)。
+Coordination, memory, Inbox, and OpenViking integration are handled by `aitask`.
