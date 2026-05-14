@@ -226,6 +226,48 @@ flags body
     assert warnings == []
 
 
+def test_validate_text_accepts_frontend_stack_baseline_skill() -> None:
+    text = """---
+name: "frontend-stack-baseline"
+description: "包含中文描述，用于通用前端基线"
+---
+# Skill
+## Overview
+overview body
+## Quick Contract
+- **Trigger**: frontend baseline trigger
+- **Inputs**: product type and palette
+- **Outputs**: stack and token artifacts
+- **Quality Gate**: baseline dependencies and theme tokens match
+- **Decision Tree**: use the baseline for React frontend work
+## Announce
+announce body
+## Input Arguments
+| parameter | type | required | description |
+|---|---|---|---|
+| `product_type` | string | yes | target product type |
+## The Iron Law
+rule body
+## Workflow
+workflow body
+## Quality Gates
+quality body
+## Red Flags
+flags body
+## When to Use
+- **首选触发**：需要 Web 前端基线
+- **典型场景**：React、Vite、Tailwind、shadcn/ui 项目
+- **边界提示**：非前端任务不用本 skill
+## Outputs
+```text
+stack and palette summary
+```
+"""
+    errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
+    assert errors == []
+    assert warnings == []
+
+
 def test_run_validation_rejects_github_workflows_directory(tmp_path: Path) -> None:
     workflows_dir = tmp_path / ".github" / "workflows"
     workflows_dir.mkdir(parents=True)

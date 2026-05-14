@@ -84,6 +84,7 @@ BANNED_TOKENS = [
 ]
 
 FUSION_GENERIC_SKILLS: set[str] = {
+    "frontend-stack-baseline",
     "graduation-doc-support",
     "terminal-table-output",
 }

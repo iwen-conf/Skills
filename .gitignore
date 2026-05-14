@@ -36,6 +36,7 @@ Temporary Items
 
 # End of https://www.toptal.com/developers/gitignore/api/macos
 .ace-tool/
+.ai-code-index/tags
 
 .arc/
 

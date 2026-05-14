@@ -24,6 +24,13 @@ description: "故障修复：当已有失败证据、测试失败、线上异常
 - Use `arc:audit` after repair if the user wants broader quality assessment.
 - Use project-native tests, logs, browser tooling, or `agent-browser` for reproduction as appropriate.
 
+## Context Search
+
+- Use `.ai-code-index/search.sh "query"` first to locate the failure path, related tests, ownership boundaries, and likely root-cause files.
+- If the index is missing or stale, run `.ai-code-index/reindex.sh`.
+- Use `.ai-code-index/struct-search.sh` for suspicious code shapes and `.ai-code-index/symbols.sh` for definitions.
+- Use `rg` only for exact error strings, stack frames, config values, new files, or fallback when the index is insufficient.
+
 ## Announce
 
 Begin by stating clearly:
@@ -62,7 +69,7 @@ NO FIX WITHOUT ROOT CAUSE OR EXPLICIT UNCERTAINTY.
 
 ## Scripts & Commands
 
-No dedicated Arc runtime scripts. Use project-native tests, logs, build commands, browser automation, and observability tools.
+No dedicated Arc runtime scripts. Use `.ai-code-index/` for repository context search, then project-native tests, logs, build commands, browser automation, and observability tools.
 
 ## Red Flags
 

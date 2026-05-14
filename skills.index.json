@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-13T11:32:20.057980Z",
-  "skill_count": 6,
+  "generated_at": "2026-05-14T09:58:53.395474Z",
+  "skill_count": 7,
   "skills": [
     {
       "name": "arc:audit",
@@ -22,6 +22,11 @@
           "heading": "## Routing Matrix",
           "title": "Routing Matrix",
           "body": "- Use `arc:build` if the user wants changes implemented after the audit.\n- Use `arc:fix` if a concrete failure is already known.\n- Use `arc:clarify` if audit scope is too vague.\n- Use external domain skills for specialized audits outside engineering quality."
+        },
+        {
+          "heading": "## Context Search",
+          "title": "Context Search",
+          "body": "- Use `.ai-code-index/search.sh \"query\"` as the first choice for relevant code paths, architecture boundaries, tests, and dependency usage.\n- If the index is missing or stale, run `.ai-code-index/reindex.sh`.\n- Use `.ai-code-index/struct-search.sh` for risky code shapes and `.ai-code-index/symbols.sh` for definitions or symbol inventory.\n- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient."
         },
         {
           "heading": "## Announce",
@@ -51,7 +56,7 @@
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "No dedicated Arc runtime scripts. Use repository-native inspection commands, tests, package managers, and static analysis tools when available."
+          "body": "No dedicated Arc runtime scripts. Use `.ai-code-index/` for repository context search, then repository-native inspection commands, tests, package managers, and static analysis tools when available."
         },
         {
           "heading": "## Red Flags",
@@ -124,7 +129,12 @@
         {
           "heading": "## Routing Matrix",
           "title": "Routing Matrix",
-          "body": "- Use `arc:clarify` first if scope or acceptance criteria are unclear.\n- Use `arc:fix` instead when the primary input is a failure report or incident.\n- Use `arc:audit` after implementation if the user wants a read-only quality review.\n- Use `aitask` for cross-agent task ownership or OpenViking memory updates."
+          "body": "- Use `arc:clarify` first if scope or acceptance criteria are unclear.\n- Use `arc:fix` instead when the primary input is a failure report or incident.\n- Use `arc:audit` after implementation if the user wants a read-only quality review.\n- Use `.ai-code-index/` local search helpers for repository search and context discovery; use `aitask` for cross-agent task ownership."
+        },
+        {
+          "heading": "## Context Search",
+          "title": "Context Search",
+          "body": "- Before editing unfamiliar code, use `.ai-code-index/search.sh \"query\"` to locate relevant modules, flows, and symbols.\n- If the index is missing or stale, run `.ai-code-index/reindex.sh`.\n- Use `.ai-code-index/struct-search.sh` for call shapes and refactoring targets; use `.ai-code-index/symbols.sh` for definitions.\n- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient."
         },
         {
           "heading": "## Announce",
@@ -223,7 +233,7 @@
         {
           "heading": "## Overview",
           "title": "Overview",
-          "body": "`arc:clarify` turns vague requests into executable task briefs. It is intentionally lightweight and does not orchestrate agents, update indexes, or write long-running state. Use `aitask` for task coordination and OpenViking-backed memory."
+          "body": "`arc:clarify` turns vague requests into executable task briefs. It is intentionally lightweight and does not orchestrate agents, update indexes, or write long-running state. Use local `.ai-code-index/` search helpers for repository context and `aitask` only for task coordination."
         },
         {
           "heading": "## Quick Contract",
@@ -234,6 +244,11 @@
           "heading": "## Routing Matrix",
           "title": "Routing Matrix",
           "body": "- Use `arc:build` after clarification when code changes are ready.\n- Use `arc:audit` after clarification when the user wants read-only assessment.\n- Use `aitask` instead when the main problem is coordination, ownership, Inbox, memory, or cross-agent workflow."
+        },
+        {
+          "heading": "## Context Search",
+          "title": "Context Search",
+          "body": "- When repository context is needed, first use `.ai-code-index/search.sh \"query\"` after confirming the index is current.\n- If there is no local index or results look stale, run `.ai-code-index/reindex.sh`.\n- Use `.ai-code-index/struct-search.sh` for syntax patterns and `.ai-code-index/symbols.sh` for definitions.\n- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient."
         },
         {
           "heading": "## Announce",
@@ -263,7 +278,7 @@
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "No dedicated runtime scripts. Use normal repository inspection tools such as `rg`, `find`, and file reads."
+          "body": "No dedicated runtime scripts. Use `.ai-code-index/` for repository search, then normal inspection tools such as `rg`, `find`, and file reads for exact follow-up."
         },
         {
           "heading": "## Red Flags",
@@ -339,6 +354,11 @@
           "body": "- Use `arc:clarify` first only when the failure report lacks enough evidence to begin.\n- Use `arc:build` when the task is feature work rather than failure repair.\n- Use `arc:audit` after repair if the user wants broader quality assessment.\n- Use project-native tests, logs, browser tooling, or `agent-browser` for reproduction as appropriate."
         },
         {
+          "heading": "## Context Search",
+          "title": "Context Search",
+          "body": "- Use `.ai-code-index/search.sh \"query\"` first to locate the failure path, related tests, ownership boundaries, and likely root-cause files.\n- If the index is missing or stale, run `.ai-code-index/reindex.sh`.\n- Use `.ai-code-index/struct-search.sh` for suspicious code shapes and `.ai-code-index/symbols.sh` for definitions.\n- Use `rg` only for exact error strings, stack frames, config values, new files, or fallback when the index is insufficient."
+        },
+        {
           "heading": "## Announce",
           "title": "Announce",
           "body": "Begin by stating clearly:\n\"I am using `arc:fix` to reproduce or inspect the failure, identify root cause, patch it, and verify the result.\""
@@ -366,7 +386,7 @@
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "No dedicated Arc runtime scripts. Use project-native tests, logs, build commands, browser automation, and observability tools."
+          "body": "No dedicated Arc runtime scripts. Use `.ai-code-index/` for repository context search, then project-native tests, logs, build commands, browser automation, and observability tools."
         },
         {
           "heading": "## Red Flags",
@@ -428,6 +448,121 @@
       }
     },
     {
+      "name": "frontend-stack-baseline",
+      "description": "通用前端基线声明：任何需要搭建 Web 前端（新项目、脚手架、后台管理、B 端工作台、Landing、Dashboard、管理台、控制台）时的默认技术栈、默认配色与默认 token。固定栈为 React + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + React Router + React Hook Form + Zod + Framer Motion；默认配色从五套低饱和度方案中选一套，并按 shadcn/ui CSS 变量落地。与领域 skill（如 lazycat:create-app / lazycat:admin-ui）组合使用，由本 skill 专管“栈 + 配色”这一层，避免各 skill 内重复定义。",
+      "source_path": "frontend-stack-baseline/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "`frontend-stack-baseline` 是 generic/fusion skill，只负责一件事：**当任务要求写 Web 前端时，把技术栈、目录习惯和配色 token 收敛到一个共享源**。业务 skill 只需声明“按 frontend-stack-baseline 的默认栈交付”。"
+        },
+        {
+          "heading": "## Quick Contract",
+          "title": "Quick Contract",
+          "body": "- **Trigger**: 新建 React/Vite 前端、脚手架、UI 重构、配色方案、shadcn/ui、Tailwind 主题、dashboard 主题、后台管理视觉系统；或任何领域 skill 调用时指定“按基线交付”。\n- **Inputs**: 产品类型、品牌倾向（冷/暖/深/薄荷/玫瑰）、是否需要深色主题、是否需要管理台。\n- **Outputs**: `package.json` 依赖列表、`tailwind.config.js` 色板配置、`src/styles/globals.css` 中的 shadcn CSS 变量 `:root { ... }` 段，以及状态管理 / 路由 / 表单 / 请求层的入口骨架。\n- **Quality Gate**: 栈内依赖必须与本基线一致；不接受脱离 shadcn CSS 变量的手写配色；不接受未声明默认配色方案就开工。\n- **Decision Tree**: 先判断是否仍在本栈；不在本栈则拒绝，或明确标注例外原因。再按产品类型从五套配色中选一套；管理台优先 ①冷灰蓝 / ③深青灰，内容平台优先 ②暖米白 / ④薄荷绿。"
+        },
+        {
+          "heading": "## Context Search",
+          "title": "Context Search",
+          "body": "- 在既有前端仓库中落地或改造时，先用目标仓库的 `.ai-code-index/search.sh` 定位现有入口、路由、主题、组件库和状态管理方式。\n- 搜索 JSX/TSX 调用形态或重复模式时，优先用 `.ai-code-index/struct-search.sh typescript`。\n- 已知文件名、依赖名或 token 的精确匹配，可用 `rg` 小范围补充；索引缺失时先考虑 `.ai-code-index/reindex.sh`。"
+        },
+        {
+          "heading": "## The Iron Law",
+          "title": "The Iron Law",
+          "body": "1. **技术栈固定**（不允许无理由替换）：\n   - 构建：`Vite`（默认）\n   - 框架：`React 18+`\n   - 样式：`Tailwind CSS 3+`\n   - 组件库：`shadcn/ui`（CLI 按需添加组件，不整包安装）\n   - 状态：`Zustand`（轻客户端状态）\n   - 数据层：`TanStack Query v5`（服务端状态、缓存、失效、乐观更新）\n   - 路由：`React Router v6+`\n   - 表单：`React Hook Form` + `Zod`（`@hookform/resolvers/zod`）\n   - 动画：`Framer Motion`（复杂交互）+ Tailwind transitions（简单）\n2. **配色固定**：五套低饱和度方案任选其一，通过 shadcn/ui CSS 变量落地；主色饱和度 20–40 区间，避免原生饱和 Primary。\n3. **主色由 CSS 变量驱动**，不在组件里写死 hex；换主题 = 换 `:root` 变量，组件零改动。\n4. **栈封闭**：默认不引入本基线以外的 UI 组件库、状态库、表单库、请求库；若历史仓库必须沿用其他选型，需显式标注例外原因与边界。\n5. **文件结构默认**：`src/{components,ui,hooks,stores,routes,lib,api,schemas,styles}`；`ui/` 固定放 shadcn 生成的原子组件，业务组件在 `components/`。"
+        },
+        {
+          "heading": "## Announce",
+          "title": "Announce",
+          "body": "Begin by stating clearly:\n\"I am using `frontend-stack-baseline` to apply the default React + Vite + Tailwind + shadcn/ui stack and a low-saturation palette.\""
+        },
+        {
+          "heading": "## Input Arguments",
+          "title": "Input Arguments",
+          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `product_type` | string | yes | 产品类型，例如后台管理、Dashboard、Landing、内容平台或工具型应用 |\n| `brand_tone` | string | no | 品牌倾向，例如冷、暖、深色、薄荷、玫瑰 |\n| `dark_mode` | boolean | no | 是否需要深色主题 |\n| `admin_console` | boolean | no | 是否是管理台、控制台或 B 端工作台 |\n| `existing_project` | string | no | 既有前端项目路径，用于按现状边界落地 |"
+        },
+        {
+          "heading": "## Workflow",
+          "title": "Workflow",
+          "body": "1. **确认栈适用性**：新项目直接按本基线；遗留项目若无法全量迁移，允许“新模块按基线、旧模块保持”，但必须标注边界。\n2. **选配色**：按产品类型选一套；管理台 ①或③；内容 ②；效率/健康 ④；设计/情感向 ⑤。\n3. **落 `tailwind.config.js`**：把选中的 palette 映射到 Tailwind color 令牌（见 [references/color-tokens.md](./references/color-tokens.md)）。\n4. **落 `globals.css`**：把选中 palette 对应的 shadcn CSS 变量贴进 `:root`；若需深色主题，补 `.dark { ... }`。\n5. **初始化 shadcn/ui**：`pnpm dlx shadcn@latest init`，按 palette 回答基色；再用 `shadcn@latest add button card input form dialog ...` 按需补组件。\n6. **装齐依赖**：见 [references/scaffold-commands.md](./references/scaffold-commands.md) 的一键脚本。\n7. **绑定领域 skill**：如 `lazycat:create-app` 仅声明“按 frontend-stack-baseline 交付 React 前端”，不得重复定义栈；`lazycat:admin-ui` 引用本 skill 的配色 token 而非另立色板。"
+        },
+        {
+          "heading": "## Color Palette Presets",
+          "title": "Color Palette Presets",
+          "body": "| 编号 | 名称 | 适用场景 | 主色 | 背景 | 备注 |\n|---|---|---|---|---|---|\n| ① | Slate 冷灰蓝 | 后台管理 / SaaS | `#4A6FA5` | `#F8F9FB` | 管理台首选 |\n| ② | Warm Sand 暖米白 | 内容平台 / 博客 | `#8B7355` | `#FAFAF8` | 长阅读不疲劳 |\n| ③ | Dark Slate 深青灰 | 开发工具 / 深色 | `#5B8DB8` | `#1A1D23` | 唯一深色预设 |\n| ④ | Sage 薄荷绿 | 健康 / 效率 | `#5A7D6A` | `#F5F7F5` | 冷静克制 |\n| ⑤ | Rose Mist 玫瑰灰 | 设计工具 / 女性向 | `#9B6B6B` | `#FAF8F8` | 情感、柔和 |\n\n完整的 `:root` CSS 变量、`tailwind.config.js` 色板映射、深色变体和使用示例见 [references/color-tokens.md](./references/color-tokens.md)。"
+        },
+        {
+          "heading": "## Quality Gates",
+          "title": "Quality Gates",
+          "body": "- `package.json` 里同时出现本基线的 10 项依赖，没有同职责的第三方库重复引入。\n- `tailwind.config.js` 的 `theme.extend.colors` 引用了 shadcn 变量（如 `hsl(var(--primary))`），没有写死 hex。\n- `globals.css` 存在 `:root { --background: ...; --primary: ...; }` 完整段。\n- 如果是管理台，至少存在工作台、列表、详情、表单、设置、登录六类页面，配色保持一致。\n- 切换 palette 只需要改 `:root`，组件层不需要改。"
+        },
+        {
+          "heading": "## Red Flags",
+          "title": "Red Flags",
+          "body": "- 组件里直接写 `bg-[#4A6FA5]`，没有通过 token。\n- 五套配色自己魔改，饱和度 > 50，导致长时间使用刺眼。\n- 领域 skill 里重复声明另一套默认栈或自有色板。"
+        },
+        {
+          "heading": "## When to Use",
+          "title": "When to Use",
+          "body": "- **首选触发**：用户要求搭建、改造或统一 Web 前端，且技术栈可落在 React + Vite + Tailwind CSS + shadcn/ui。\n- **典型场景**：后台管理、Dashboard、控制台、Landing、内容平台、工具型应用、主题 token 统一、前端脚手架。\n- **边界提示**：若任务是原生 iOS/Android、后端 API、纯设计稿或既有项目明确要求其他前端栈，不要强行套用本基线。"
+        },
+        {
+          "heading": "## Bundled References",
+          "title": "Bundled References",
+          "body": "- 完整配色与 Tailwind 片段：[references/color-tokens.md](./references/color-tokens.md)\n- 脚手架安装命令：[references/scaffold-commands.md](./references/scaffold-commands.md)"
+        },
+        {
+          "heading": "## Outputs",
+          "title": "Outputs",
+          "body": "```text\nPhase: Frontend Baseline / Theming\n\nStack\n- Vite + React\n- Tailwind CSS + shadcn/ui\n- Zustand / TanStack Query\n- React Router\n- React Hook Form + Zod\n- Framer Motion\n\nPalette\n- Chosen: <① Slate / ② Warm Sand / ③ Dark Slate / ④ Sage / ⑤ Rose Mist>\n- Dark mode: <needed / skipped>\n\nArtifacts\n- package.json dependency diff\n- tailwind.config.js (colors extended)\n- src/styles/globals.css (:root and .dark blocks)\n- src/components/ui (shadcn components added)\n\nGaps / Risks\n- ...\n\nNext Steps\n1. ...\n```"
+        }
+      ],
+      "quick_contract": {
+        "trigger": "新建 React/Vite 前端、脚手架、UI 重构、配色方案、shadcn/ui、Tailwind 主题、dashboard 主题、后台管理视觉系统；或任何领域 skill 调用时指定“按基线交付”。",
+        "inputs": "产品类型、品牌倾向（冷/暖/深/薄荷/玫瑰）、是否需要深色主题、是否需要管理台。",
+        "outputs": "`package.json` 依赖列表、`tailwind.config.js` 色板配置、`src/styles/globals.css` 中的 shadcn CSS 变量 `:root { ... }` 段，以及状态管理 / 路由 / 表单 / 请求层的入口骨架。",
+        "quality_gate": "栈内依赖必须与本基线一致；不接受脱离 shadcn CSS 变量的手写配色；不接受未声明默认配色方案就开工。",
+        "decision_tree": "先判断是否仍在本栈；不在本栈则拒绝，或明确标注例外原因。再按产品类型从五套配色中选一套；管理台优先 ①冷灰蓝 / ③深青灰，内容平台优先 ②暖米白 / ④薄荷绿。"
+      },
+      "input_arguments": [
+        {
+          "parameter": "product_type",
+          "type": "string",
+          "required": "yes",
+          "description": "产品类型，例如后台管理、Dashboard、Landing、内容平台或工具型应用"
+        },
+        {
+          "parameter": "brand_tone",
+          "type": "string",
+          "required": "no",
+          "description": "品牌倾向，例如冷、暖、深色、薄荷、玫瑰"
+        },
+        {
+          "parameter": "dark_mode",
+          "type": "boolean",
+          "required": "no",
+          "description": "是否需要深色主题"
+        },
+        {
+          "parameter": "admin_console",
+          "type": "boolean",
+          "required": "no",
+          "description": "是否是管理台、控制台或 B 端工作台"
+        },
+        {
+          "parameter": "existing_project",
+          "type": "string",
+          "required": "no",
+          "description": "既有前端项目路径，用于按现状边界落地"
+        }
+      ],
+      "outputs_section": {
+        "format": "text",
+        "content": "Phase: Frontend Baseline / Theming\n\nStack\n- Vite + React\n- Tailwind CSS + shadcn/ui\n- Zustand / TanStack Query\n- React Router\n- React Hook Form + Zod\n- Framer Motion\n\nPalette\n- Chosen: <① Slate / ② Warm Sand / ③ Dark Slate / ④ Sage / ⑤ Rose Mist>\n- Dark mode: <needed / skipped>\n\nArtifacts\n- package.json dependency diff\n- tailwind.config.js (colors extended)\n- src/styles/globals.css (:root and .dark blocks)\n- src/components/ui (shadcn components added)\n\nGaps / Risks\n- ...\n\nNext Steps\n1. ..."
+      }
+    },
+    {
       "name": "graduation-doc-support",
       "description": "毕业设计支撑文档生成：当用户要求基于真实项目代码、数据库和现有论文/同学模板，生成“系统用例规约”“数据库物理设计三线表”“功能模块实现主要代码”“测试用例设计”等多个 docx 时触发；强调以运行时代码和 SQL 为准，模板只借格式不借内容。",
       "source_path": "graduation-doc-support/SKILL.md",
@@ -441,6 +576,11 @@
           "heading": "## Quick Contract",
           "title": "Quick Contract",
           "body": "- **Trigger**: 用户要求查看某个项目的代码、数据库、同学论文或 Word 模板，并据此生成多个毕业设计支撑 `docx`。\n- **Inputs**: `project_root`、可选 `peer_doc_path`、可选 `target_docs`、可选 `output_dir`、可选命名约定。\n- **Outputs**: 基于真实实现生成的多个独立 `docx`，必要时附带 `tmp/docs/pdf/` 下的渲染校验文件与任务记录。\n- **Quality Gate**: 每一项结论都必须能追溯到代码、SQL、路由、菜单、测试或配置；模板只能影响形式，不能替代事实来源。\n- **Decision Tree**: 如果用户只是想修改项目代码，用 `arc:build`；如果用户要的是从实现中生成毕业支撑文档，用本 skill。"
+        },
+        {
+          "heading": "## Context Search",
+          "title": "Context Search",
+          "body": "- 取证时先用目标仓库的 `.ai-code-index/search.sh \"query\"` 定位真实项目中的核心业务流、路由、控制器、数据库脚本、测试和配置。\n- 若目标仓库没有索引入口，优先在其中创建或运行本地索引；索引缺失时再退回到小范围本地搜索。\n- 表名、字段名、类名、路径和错误文本等精确匹配，可用 `rg` 补充，但不要把 `rg` 当成默认全仓扫描工具。"
         },
         {
           "heading": "## Announce",
@@ -460,7 +600,7 @@
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. 识别目标项目根目录，并先读取该仓库自己的 `AGENTS.md`、`CLAUDE.md` 或任务记录；如果用户提供了同学论文或旧 Word，只读取和本次需求相关的节，不批量照搬。\n2. 建立事实优先级：先看运行时代码，再看数据库脚本，再看项目内设计文档，最后才看同学论文的栏目和表格样式。\n3. 抽取证据矩阵：\n   - 角色、登录注册、权限与会话；\n   - 核心业务流和对应控制器/页面；\n   - 物理表与字段；\n   - 代表性代码片段；\n   - 自动化测试现状与可设计的人工测试用例。\n4. 对每一份目标文档先确定“必须写什么、不允许猜什么”：\n   - `系统用例规约`：只写真实存在的角色和业务用例；\n   - `数据库物理设计三线表`：直接从 SQL 解析表和字段，不用二手摘要；\n   - `功能模块实现主要代码`：摘录最能说明系统实现的核心代码，给出真实路径和行号；\n   - `测试用例设计`：若仓库自动化测试弱，则明确写人工测试设计并说明现状。\n5. 使用 `python-docx` 生成多个独立 `docx`：\n   - A4 页面；\n   - 三线表；\n   - 代码较宽时允许横向页面；\n   - 文件名稳定且可直接交付。\n6. 进行渲染校验：\n   - `soffice --headless --convert-to pdf`；\n   - `pdfinfo` 检查 A4；\n   - `pdftotext -layout` 抽检标题、表格和代码片段是否断裂。\n7. 收尾时明确说明验证结果与残余风险，例如：\n   - `mvnw` 因换行符无法运行但系统 Maven 可运行；\n   - 项目只有 `contextLoads()`，因此测试文档主要是手工用例设计。"
+          "body": "1. 识别目标项目根目录，并先读取该仓库自己的 `AGENTS.md`、`CLAUDE.md` 或任务记录；如果用户提供了同学论文或旧 Word，只读取和本次需求相关的节，不批量照搬。\n2. 建立事实优先级：先通过本地索引定位运行时代码，再看数据库脚本，再看项目内设计文档，最后才看同学论文的栏目和表格样式。\n3. 抽取证据矩阵：\n   - 角色、登录注册、权限与会话；\n   - 核心业务流和对应控制器/页面；\n   - 物理表与字段；\n   - 代表性代码片段；\n   - 自动化测试现状与可设计的人工测试用例。\n4. 对每一份目标文档先确定“必须写什么、不允许猜什么”：\n   - `系统用例规约`：只写真实存在的角色和业务用例；\n   - `数据库物理设计三线表`：直接从 SQL 解析表和字段，不用二手摘要；\n   - `功能模块实现主要代码`：摘录最能说明系统实现的核心代码，给出真实路径和行号；\n   - `测试用例设计`：若仓库自动化测试弱，则明确写人工测试设计并说明现状。\n5. 使用 `python-docx` 生成多个独立 `docx`：\n   - A4 页面；\n   - 三线表；\n   - 代码较宽时允许横向页面；\n   - 文件名稳定且可直接交付。\n6. 进行渲染校验：\n   - `soffice --headless --convert-to pdf`；\n   - `pdfinfo` 检查 A4；\n   - `pdftotext -layout` 抽检标题、表格和代码片段是否断裂。\n7. 收尾时明确说明验证结果与残余风险，例如：\n   - `mvnw` 因换行符无法运行但系统 Maven 可运行；\n   - 项目只有 `contextLoads()`，因此测试文档主要是手工用例设计。"
         },
         {
           "heading": "## Quality Gates",
@@ -547,6 +687,11 @@
           "heading": "## Quick Contract",
           "title": "Quick Contract",
           "body": "- **Trigger**: 用户明确要求表格/对比表/矩阵/汇总表，或当前输出天然是短字段重复的二维结构。\n- **Inputs**: 行列结构明确的紧凑数据；可选列宽约束、截断策略和补充说明。\n- **Outputs**: 一个 fenced `text` 代码块中的 Unicode 盒线表；若有溢出说明，可在表格后附短列表。\n- **Quality Gate**: 只有在内容能保持紧凑、对齐稳定、边界闭合时才允许输出表格；否则必须降级为非表格结构。\n- **Decision Tree**: 先判断“是否天然二维且短字段重复”；若否，直接不用表格。"
+        },
+        {
+          "heading": "## Context Search",
+          "title": "Context Search",
+          "body": "- 本 skill 通常不需要搜索代码库；若组合任务需要从仓库提取状态、清单或对比数据，先用目标仓库的 `.ai-code-index/search.sh` 定位上下文。\n- 已知文件名、字段名或配置值的精确匹配，可用 `rg` 小范围补充；索引缺失时先考虑 `.ai-code-index/reindex.sh`。"
         },
         {
           "heading": "## Announce",

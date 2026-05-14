@@ -7,4 +7,4 @@ Lean Arc keeps only four engineering workflow skills:
 - `arc:fix`
 - `arc:audit`
 
-Coordination, memory, Inbox, and OpenViking integration are handled by `aitask`.
+Repository search and code context discovery use the local `.ai-code-index/` helpers backed by Zoekt, ast-grep, and Universal Ctags. Coordination, Inbox, and cross-agent state are handled by `aitask`.

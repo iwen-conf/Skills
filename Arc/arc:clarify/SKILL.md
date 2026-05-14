@@ -7,7 +7,7 @@ description: "需求澄清：当需求边界、约束、验收标准或上下文
 
 ## Overview
 
-`arc:clarify` turns vague requests into executable task briefs. It is intentionally lightweight and does not orchestrate agents, update indexes, or write long-running state. Use `aitask` for task coordination and OpenViking-backed memory.
+`arc:clarify` turns vague requests into executable task briefs. It is intentionally lightweight and does not orchestrate agents, update indexes, or write long-running state. Use local `.ai-code-index/` search helpers for repository context and `aitask` only for task coordination.
 
 ## Quick Contract
 
@@ -22,6 +22,13 @@ description: "需求澄清：当需求边界、约束、验收标准或上下文
 - Use `arc:build` after clarification when code changes are ready.
 - Use `arc:audit` after clarification when the user wants read-only assessment.
 - Use `aitask` instead when the main problem is coordination, ownership, Inbox, memory, or cross-agent workflow.
+
+## Context Search
+
+- When repository context is needed, first use `.ai-code-index/search.sh "query"` after confirming the index is current.
+- If there is no local index or results look stale, run `.ai-code-index/reindex.sh`.
+- Use `.ai-code-index/struct-search.sh` for syntax patterns and `.ai-code-index/symbols.sh` for definitions.
+- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient.
 
 ## Announce
 
@@ -58,7 +65,7 @@ NO EXECUTION WITHOUT CONTEXT, CONSTRAINTS, AND SUCCESS CRITERIA.
 
 ## Scripts & Commands
 
-No dedicated runtime scripts. Use normal repository inspection tools such as `rg`, `find`, and file reads.
+No dedicated runtime scripts. Use `.ai-code-index/` for repository search, then normal inspection tools such as `rg`, `find`, and file reads for exact follow-up.
 
 ## Red Flags
 

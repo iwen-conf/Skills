@@ -24,6 +24,13 @@ description: "项目体检：当需要只读评估代码质量、架构风险、
 - Use `arc:clarify` if audit scope is too vague.
 - Use external domain skills for specialized audits outside engineering quality.
 
+## Context Search
+
+- Use `.ai-code-index/search.sh "query"` as the first choice for relevant code paths, architecture boundaries, tests, and dependency usage.
+- If the index is missing or stale, run `.ai-code-index/reindex.sh`.
+- Use `.ai-code-index/struct-search.sh` for risky code shapes and `.ai-code-index/symbols.sh` for definitions or symbol inventory.
+- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient.
+
 ## Announce
 
 Begin by stating clearly:
@@ -59,7 +66,7 @@ NO FINDING WITHOUT EVIDENCE.
 
 ## Scripts & Commands
 
-No dedicated Arc runtime scripts. Use repository-native inspection commands, tests, package managers, and static analysis tools when available.
+No dedicated Arc runtime scripts. Use `.ai-code-index/` for repository context search, then repository-native inspection commands, tests, package managers, and static analysis tools when available.
 
 ## Red Flags
 

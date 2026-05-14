@@ -22,7 +22,14 @@ description: "代码交付：当方案和范围已明确，需要实施代码变
 - Use `arc:clarify` first if scope or acceptance criteria are unclear.
 - Use `arc:fix` instead when the primary input is a failure report or incident.
 - Use `arc:audit` after implementation if the user wants a read-only quality review.
-- Use `aitask` for cross-agent task ownership or OpenViking memory updates.
+- Use `.ai-code-index/` local search helpers for repository search and context discovery; use `aitask` for cross-agent task ownership.
+
+## Context Search
+
+- Before editing unfamiliar code, use `.ai-code-index/search.sh "query"` to locate relevant modules, flows, and symbols.
+- If the index is missing or stale, run `.ai-code-index/reindex.sh`.
+- Use `.ai-code-index/struct-search.sh` for call shapes and refactoring targets; use `.ai-code-index/symbols.sh` for definitions.
+- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient.
 
 ## Announce
 

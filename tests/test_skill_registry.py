@@ -28,6 +28,7 @@ def test_validate_registry_accepts_generated_registry() -> None:
     assert validate_registry(registry, ROOT) == []
     names = {item["name"] for item in registry["skills"]}
     assert "arc:build" in names
+    assert "frontend-stack-baseline" in names
     assert "graduation-doc-support" in names
     assert "terminal-table-output" in names
 
@@ -35,6 +36,7 @@ def test_validate_registry_accepts_generated_registry() -> None:
 def test_collect_skill_files_indexes_supported_namespaces_and_fusion_skills() -> None:
     files = collect_skill_files(ROOT)
     assert ROOT / "Arc" / "arc:build" / "SKILL.md" in files
+    assert ROOT / "frontend-stack-baseline" / "SKILL.md" in files
     assert ROOT / "graduation-doc-support" / "SKILL.md" in files
     assert ROOT / "terminal-table-output" / "SKILL.md" in files
     allowed_roots = [ROOT / "Arc", *(ROOT / name for name in FUSION_GENERIC_SKILLS)]
