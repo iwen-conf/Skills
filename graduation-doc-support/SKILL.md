@@ -1,6 +1,6 @@
 ---
 name: graduation-doc-support
-description: 毕业设计支撑文档生成：当用户要求基于真实项目代码、数据库和现有论文/同学模板，生成“系统用例规约”“数据库物理设计三线表”“功能模块实现主要代码”“测试用例设计”等多个 docx 时触发；强调以运行时代码和 SQL 为准，模板只借格式不借内容。
+description: 毕设支撑文档生成：基于项目真实代码与 SQL，参考模板版式生成规约、设计表等 docx 支撑材料。
 ---
 
 # Graduation Doc Support

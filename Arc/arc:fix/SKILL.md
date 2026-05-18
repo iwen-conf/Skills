@@ -1,6 +1,6 @@
 ---
 name: arc:fix
-description: "故障修复：当已有失败证据、测试失败、线上异常或可复现 bug 时使用；定位根因、修复并回归验证。"
+description: "故障修复：基于失败证据定位根因，实施修复并回归验证。"
 ---
 
 # arc:fix
@@ -57,6 +57,28 @@ NO FIX WITHOUT ROOT CAUSE OR EXPLICIT UNCERTAINTY.
 - The failing path is verified after the change when feasible.
 - Test expectation changes are justified by product behavior, not convenience.
 - Risky production changes include rollback or monitoring notes.
+
+## SQL Failure Checks
+
+- When a bug involves SQL writes, distinguish database execution success from business success. `err == nil` does not prove that an `UPDATE` or `DELETE` matched the intended row.
+- For resource-targeted writes, inspect the command tag and treat `RowsAffected() == 0` as not found or conflict according to the business rule.
+
+```go
+tag, err := store.Exec(ctx, `
+    DELETE FROM feedbacks
+    WHERE id = $1::uuid
+`, id)
+if err != nil {
+    return err
+}
+if tag.RowsAffected() == 0 {
+    return ErrFeedbackNotFound
+}
+```
+
+- If a write needs to return the updated row, prefer `UPDATE ... RETURNING ...` with `QueryRow(...).Scan(...)` over `Exec` followed by a separate read.
+- Check SQL fixes for parameterization, explicit column lists, `NULL` handling, stable pagination order, soft-delete filters, timestamp consistency, transaction boundaries, and state-transition guards in `WHERE`.
+- Translate database errors and 0-row write results into precise business errors instead of reporting success or leaking raw database details.
 
 ## Expert Standards
 

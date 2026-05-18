@@ -1,6 +1,6 @@
 ---
 name: arc:build
-description: "代码交付：当方案和范围已明确，需要实施代码变更、运行验证并说明结果时使用；不负责总控编排。"
+description: "代码交付：实施代码变更、运行验证并输出结果。"
 ---
 
 # arc:build
@@ -56,6 +56,51 @@ NO CODE CHANGE WITHOUT SCOPE AND VERIFICATION.
 - Existing user changes are not reverted without explicit instruction.
 - Verification commands are run when feasible; failures are reported with cause.
 - The final summary distinguishes facts, assumptions, and follow-up risk.
+
+## SQL Standards
+
+- Use parameterized SQL for all user-controlled values. Do not concatenate user input into SQL strings.
+- For dynamic identifiers such as sort fields, table names, or column names, use explicit whitelist mapping instead of passing raw user input.
+- Do not assume `Exec` success means business success. `err == nil` only means the statement executed without a database error.
+- For business `UPDATE` or `DELETE` statements that target a specific resource, keep the `Exec` return value and check affected rows.
+
+```go
+tag, err := store.Exec(ctx, `
+    UPDATE feedbacks
+    SET status = $2,
+        updated_at = $3
+    WHERE id = $1::uuid
+`, id, status, now)
+if err != nil {
+    return err
+}
+if tag.RowsAffected() == 0 {
+    return ErrFeedbackNotFound
+}
+```
+
+- It is acceptable to discard `Exec` results only when 0 affected rows is valid business behavior, such as inserting logs, best-effort statistics updates, idempotent cleanup, initialization SQL, or code paths that have already proven the target exists.
+- When updated data is needed after a write, prefer `UPDATE ... RETURNING ...` or `INSERT ... RETURNING ...` with `QueryRow(...).Scan(...)`.
+- Avoid `SELECT *` in application code. Select explicit columns and keep the `Scan` order aligned with the SQL column order.
+- Handle `NULL` deliberately. Do not conflate SQL `NULL` with Go zero values unless the business model says they are equivalent.
+- Use stable ordering for pagination, usually with a deterministic tie-breaker such as `ORDER BY created_at DESC, id DESC`.
+- Keep soft-delete filters consistent. Queries, updates, statistics, and details that should ignore deleted rows must include the same `deleted_at IS NULL` style condition.
+- Maintain timestamp fields consistently. Use either database time such as `NOW()` or one application-side `now` value per operation; avoid mixing both in one workflow.
+- Use transactions when multiple SQL statements must succeed or fail together.
+- Encode state transitions in the `WHERE` clause when concurrency matters, then check affected rows.
+
+```sql
+UPDATE orders
+SET status = 'paid',
+    paid_at = $2,
+    updated_at = $2
+WHERE id = $1
+  AND status = 'pending'
+```
+
+- Enforce uniqueness and referential integrity in the database with constraints, then translate database errors into business errors such as already exists, not found, invalid reference, or conflict.
+- Cast structured parameters explicitly when needed, for example `$1::uuid` or `$2::jsonb`, and validate serialized JSON before passing it to the database.
+- Be careful with unconditional `UPDATE` and `DELETE`. Business writes should normally be bounded by primary key, tenant, owner, status, or another explicit scope.
 
 ## Expert Standards
 

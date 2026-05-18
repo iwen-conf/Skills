@@ -1,6 +1,6 @@
 ---
 name: frontend-stack-baseline
-description: 通用前端基线声明：任何需要搭建 Web 前端（新项目、脚手架、后台管理、B 端工作台、Landing、Dashboard、管理台、控制台）时的默认技术栈、默认配色与默认 token。固定栈为 React + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + React Router + React Hook Form + Zod + Framer Motion；默认配色从五套低饱和度方案中选一套，并按 shadcn/ui CSS 变量落地。与领域 skill（如 lazycat:create-app / lazycat:admin-ui）组合使用，由本 skill 专管“栈 + 配色”这一层，避免各 skill 内重复定义。
+description: 通用前端基线声明：用于收敛 React + Vite 前端项目的核心技术栈、默认配色 token 与架构策略，避免各领域 skill 重复定义。
 ---
 
 # Frontend Stack Baseline
@@ -64,6 +64,51 @@ Begin by stating clearly:
 5. **初始化 shadcn/ui**：`pnpm dlx shadcn@latest init`，按 palette 回答基色；再用 `shadcn@latest add button card input form dialog ...` 按需补组件。
 6. **装齐依赖**：见 [references/scaffold-commands.md](./references/scaffold-commands.md) 的一键脚本。
 7. **绑定领域 skill**：如 `lazycat:create-app` 仅声明“按 frontend-stack-baseline 交付 React 前端”，不得重复定义栈；`lazycat:admin-ui` 引用本 skill 的配色 token 而非另立色板。
+
+## Pagination Strategy
+
+根据业务场景选择合适的分页模式，并在实现时贯彻：
+- **传统分页（Offset Pagination）**：当业务为后台管理系统、订单列表、用户列表时，用户确实需要精确跳页、总数感知强烈，使用传统分页更自然。UI 应配合使用 pagination 组件。
+- **游标分页（Cursor Pagination / 瀑布流 / 无限滚动）**：当业务为评论、动态流、聊天记录、消息通知、日志流时，数据频繁追加且不需要跳页，使用 cursor 分页更合适。UI 应配合无限滚动（Infinite Scroll）或“加载更多”按钮。
+
+## State Management Strategy
+
+前端状态应根据生命周期和共享范围进行严格分层，切忌“把所有东西都塞进全局 Store”：
+- **URL State（路由状态）**：筛选条件、搜索关键字、当前页码、激活的 Tab。优先存入 URL Query Params，保证页面刷新不丢，且可被作为链接分享。
+- **Server State（服务端状态）**：业务列表数据、详情数据。全权交由 `TanStack Query` 管理（查询、缓存、失效、乐观更新），严禁使用 `useEffect` 手动 fetch 并存入 Zustand。
+- **Client Global State（客户端全局状态）**：主题模式（Dark Mode）、侧边栏折叠状态、跨页面的表单向导数据。使用 `Zustand` 管理。
+- **Local State（组件局部状态）**：弹窗的开/关、输入框的实时受控值、下拉菜单的状态。直接使用 `useState`。
+
+## Real-time & Polling Strategy
+
+根据业务对数据时效性的要求选择同步机制：
+- **长链接（WebSocket / SSE）**：当业务为 IM 聊天室、协同文档编辑、终端日志流、强实时交易盘口时。适合需要服务端高频主动推送的场景，需做好重连与心跳机制。
+- **短轮询（Polling）**：当业务为大盘数据仪表盘（Dashboard）、耗时任务的状态跟进、订单状态查询时。利用 `TanStack Query` 的 `refetchInterval`（例如 5~15秒），实现成本低且能满足大部分 B 端监控需求。
+
+## Rendering Architecture Strategy
+
+根据业务对 SEO 和首屏时间（FCP）的诉求选择渲染模式：
+- **纯客户端渲染（CSR）**：本基线默认方案（Vite + React）。当业务为后台管理系统、SaaS 工作台、内部工具、复杂交互仪表盘时。无需 SEO，首屏短暂白屏或骨架屏可接受，重在后续交互的流畅度与极低的静态托管部署成本。
+- **服务端渲染 / 静态生成（SSR / SSG）**：当业务为 C 端门户、电商商品页、官方文档、博客时。对 SEO 有强诉求，对首屏加载速度要求极高，需打破本基线限制，引入 Next.js 或 Remix 框架。
+
+## Auth & RBAC Strategy
+
+根据安全与用户体验要求，在不同粒度实施权限控制：
+- **路由级拦截（Route Guard）**：业务页面整体受控时。未登录或无权限直接重定向到 `/login` 或 `/403`，防止加载未经授权的页面级代码。
+- **组件级细粒度控制（Component-level RBAC）**：页面可访问，但仅部分操作受限时。通过封装特定的包装组件，将无权限的按钮置为 `disabled`（并辅以 Tooltip 解释）或直接隐藏。
+
+## Error Handling & Feedback Strategy
+
+针对不同来源的错误提供分级反馈，避免粗暴打断用户心流：
+- **全局故障边界（Global Error Boundary）**：捕获 React 渲染过程中的崩溃，展示友好的“页面崩溃”兜底 UI，并提供刷新按钮，避免整个应用直接白屏。
+- **数据获取错误（Fetch Error）**：列表或详情页数据拉取失败时，应在**原数据渲染区域**展示局部错误状态（如“加载失败，点击重试”），严禁使用打断式的全局遮罩或全屏弹窗。
+- **操作类错误（Mutation Error）**：表单提交或动作执行失败时，使用轻量级的 Toast / Snackbar 在角落提示具体原因，焦点必须保留在原表单，以便用户修改。
+
+## Form & Validation Strategy
+
+根据表单的复杂度决定工程化投入：
+- **重型/复杂表单**：业务涉及多字段联动、动态增减表单项、分步表单、严格格式校验。强制使用 `React Hook Form` 配合 `Zod`，保证校验逻辑集中且类型安全，有效避免全局过度渲染。
+- **超轻量输入**：单输入框（如简单的搜索、发送单条评论），直接使用 `useState` 作为受控组件即可，不要强行引入表单库增加不必要的复杂度。
 
 ## Color Palette Presets
 

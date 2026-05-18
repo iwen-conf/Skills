@@ -1,6 +1,6 @@
 ---
 name: arc:clarify
-description: "需求澄清：当需求边界、约束、验收标准或上下文不足时使用；输出可执行任务说明，不负责调度或记忆。"
+description: "需求澄清：将模糊需求转为可执行任务说明。"
 ---
 
 # arc:clarify

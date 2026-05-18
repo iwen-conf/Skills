@@ -1,6 +1,6 @@
 ---
 name: terminal-table-output
-description: 终端盒线表输出范式：当用户要求表格、比较表、矩阵或状态汇总，且内容足够紧凑时，用 Unicode 盒线表替代 Markdown 表。
+description: 终端表格输出：使用 Unicode 盒线表替代 Markdown 渲染紧凑二维数据。
 ---
 
 # Terminal Table Output

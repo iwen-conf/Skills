@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-14T09:58:53.395474Z",
-  "skill_count": 7,
+  "generated_at": "2026-05-18T12:05:53.942947Z",
+  "skill_count": 8,
   "skills": [
     {
       "name": "arc:audit",
-      "description": "项目体检：当需要只读评估代码质量、架构风险、测试缺口或交付风险时使用；输出证据化发现和改进建议。",
+      "description": "项目体检：只读评估代码质量、架构风险与测试缺口，输出证据化发现与改进建议。",
       "source_path": "Arc/arc:audit/SKILL.md",
       "sections": [
         {
@@ -113,7 +113,7 @@
     },
     {
       "name": "arc:build",
-      "description": "代码交付：当方案和范围已明确，需要实施代码变更、运行验证并说明结果时使用；不负责总控编排。",
+      "description": "代码交付：实施代码变更、运行验证并输出结果。",
       "source_path": "Arc/arc:build/SKILL.md",
       "sections": [
         {
@@ -155,6 +155,11 @@
           "heading": "## Quality Gates",
           "title": "Quality Gates",
           "body": "- Scope remains tied to the requested outcome.\n- Existing user changes are not reverted without explicit instruction.\n- Verification commands are run when feasible; failures are reported with cause.\n- The final summary distinguishes facts, assumptions, and follow-up risk."
+        },
+        {
+          "heading": "## SQL Standards",
+          "title": "SQL Standards",
+          "body": "- Use parameterized SQL for all user-controlled values. Do not concatenate user input into SQL strings.\n- For dynamic identifiers such as sort fields, table names, or column names, use explicit whitelist mapping instead of passing raw user input.\n- Do not assume `Exec` success means business success. `err == nil` only means the statement executed without a database error.\n- For business `UPDATE` or `DELETE` statements that target a specific resource, keep the `Exec` return value and check affected rows.\n\n```go\ntag, err := store.Exec(ctx, `\n    UPDATE feedbacks\n    SET status = $2,\n        updated_at = $3\n    WHERE id = $1::uuid\n`, id, status, now)\nif err != nil {\n    return err\n}\nif tag.RowsAffected() == 0 {\n    return ErrFeedbackNotFound\n}\n```\n\n- It is acceptable to discard `Exec` results only when 0 affected rows is valid business behavior, such as inserting logs, best-effort statistics updates, idempotent cleanup, initialization SQL, or code paths that have already proven the target exists.\n- When updated data is needed after a write, prefer `UPDATE ... RETURNING ...` or `INSERT ... RETURNING ...` with `QueryRow(...).Scan(...)`.\n- Avoid `SELECT *` in application code. Select explicit columns and keep the `Scan` order aligned with the SQL column order.\n- Handle `NULL` deliberately. Do not conflate SQL `NULL` with Go zero values unless the business model says they are equivalent.\n- Use stable ordering for pagination, usually with a deterministic tie-breaker such as `ORDER BY created_at DESC, id DESC`.\n- Keep soft-delete filters consistent. Queries, updates, statistics, and details that should ignore deleted rows must include the same `deleted_at IS NULL` style condition.\n- Maintain timestamp fields consistently. Use either database time such as `NOW()` or one application-side `now` value per operation; avoid mixing both in one workflow.\n- Use transactions when multiple SQL statements must succeed or fail together.\n- Encode state transitions in the `WHERE` clause when concurrency matters, then check affected rows.\n\n```sql\nUPDATE orders\nSET status = 'paid',\n    paid_at = $2,\n    updated_at = $2\nWHERE id = $1\n  AND status = 'pending'\n```\n\n- Enforce uniqueness and referential integrity in the database with constraints, then translate database errors into business errors such as already exists, not found, invalid reference, or conflict.\n- Cast structured parameters explicitly when needed, for example `$1::uuid` or `$2::jsonb`, and validate serialized JSON before passing it to the database.\n- Be careful with unconditional `UPDATE` and `DELETE`. Business writes should normally be bounded by primary key, tenant, owner, status, or another explicit scope."
         },
         {
           "heading": "## Expert Standards",
@@ -227,7 +232,7 @@
     },
     {
       "name": "arc:clarify",
-      "description": "需求澄清：当需求边界、约束、验收标准或上下文不足时使用；输出可执行任务说明，不负责调度或记忆。",
+      "description": "需求澄清：将模糊需求转为可执行任务说明。",
       "source_path": "Arc/arc:clarify/SKILL.md",
       "sections": [
         {
@@ -334,8 +339,122 @@
       }
     },
     {
+      "name": "arc:define",
+      "description": "项目定义：将模糊想法整理为结构化的项目/产品定义文档（PRD / Blueprint）。",
+      "source_path": "Arc/arc:define/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "`arc:define` is the project-genesis skill. It turns a vague idea or scattered notes into a structured Project Definition Document covering positioning, problem, core concepts, features, objects, flow, differentiators, and keywords. It does not write code, do task-level decomposition, or run any execution; for those, route to other Arc skills."
+        },
+        {
+          "heading": "## Quick Contract",
+          "title": "Quick Contract",
+          "body": "- **Trigger**: The user has a project idea, partial draft, or rough PRD that needs structuring.\n- **Inputs**: User-provided idea, target users, known constraints, optional prior notes.\n- **Outputs**: A Project Definition Document strictly following [`references/template.md`](references/template.md).\n- **Quality Gate**: Every template section is concrete, non-empty, and free of filler; gaps are explicitly listed as open questions.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+        },
+        {
+          "heading": "## Routing Matrix",
+          "title": "Routing Matrix",
+          "body": "- Use `arc:clarify` after definition when individual tasks need an executable brief.\n- Use `arc:build` when a defined feature is ready to be implemented.\n- Use `arc:audit` when an existing project's definition or scope needs read-only review.\n- Use `aitask` when the genesis work needs cross-agent coordination or persisted memory."
+        },
+        {
+          "heading": "## Context Search",
+          "title": "Context Search",
+          "body": "- For brownfield projects, first run `.ai-code-index/search.sh \"query\"` to surface existing modules, naming, and domain language before drafting the definition.\n- If the index is missing or stale, run `.ai-code-index/reindex.sh`.\n- Use `.ai-code-index/symbols.sh` to extract the project's real entity names instead of inventing new ones.\n- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient."
+        },
+        {
+          "heading": "## Announce",
+          "title": "Announce",
+          "body": "Begin by stating clearly:\n\"I am using `arc:define` to produce a structured project definition document.\""
+        },
+        {
+          "heading": "## The Iron Law",
+          "title": "The Iron Law",
+          "body": "```text\nNO SECTION WITHOUT A CONCRETE CONCEPT.\n```"
+        },
+        {
+          "heading": "## Workflow",
+          "title": "Workflow",
+          "body": "1. Restate the user's idea in one or two sentences to confirm intent.\n2. Map the idea onto each section of [`references/template.md`](references/template.md).\n3. Fill known sections directly; mark unknowns as open questions rather than guessing.\n4. Force each section past filler: positioning ≠ \"全方位 / 一站式\"; core concept ≠ a feature list.\n5. Iterate with the user only on the smallest set of gaps blocking the definition.\n6. Deliver the final document in the template's exact section order."
+        },
+        {
+          "heading": "## Quality Gates",
+          "title": "Quality Gates",
+          "body": "- Every section in `template.md` is present, in order, and non-empty.\n- \"项目定位\" is 1–3 sentences and not interchangeable with another project.\n- \"核心概念\" names a metaphor or central abstraction, not a feature.\n- \"核心功能\" lists 3–6 capabilities, each verifiable from the user's perspective.\n- \"主要对象\" lists the real domain entities the system will model.\n- \"业务流程\" is expressible as a short arrow chain (`A → B → C`).\n- Open questions are listed separately and do not pollute the body."
+        },
+        {
+          "heading": "## Expert Standards",
+          "title": "Expert Standards",
+          "body": "- Requirements quality follows `IEEE 29148`: complete, consistent, verifiable.\n- Concept framing uses a `Domain-Driven Design` lens — name the ubiquitous language.\n- Differentiators follow a `Positioning Statement` shape: for *who*, that *needs*, our project *does*, unlike *alternatives*.\n- Keywords serve discoverability, not marketing; prefer concrete domain terms over hype."
+        },
+        {
+          "heading": "## Scripts & Commands",
+          "title": "Scripts & Commands",
+          "body": "No dedicated runtime scripts. Use `.ai-code-index/` for brownfield context, then plain Markdown editing tools. The output is a single document — do not generate side artifacts."
+        },
+        {
+          "heading": "## Red Flags",
+          "title": "Red Flags",
+          "body": "- Filling sections with \"全方位 / 智能化 / 一站式\" or other interchangeable phrasing.\n- Collapsing 核心概念 into a feature list.\n- Inventing entities that contradict an existing codebase when one exists.\n- Expanding scope into task decomposition or implementation planning — route to `arc:clarify` / `arc:build` instead.\n- Producing a parallel PRD format that diverges from `template.md`."
+        },
+        {
+          "heading": "## When to Use",
+          "title": "When to Use",
+          "body": "- **Preferred Trigger**: The user says \"梳理一下这个项目 / 写个 PRD / 把想法整理成定义 / 定义新项目\".\n- **Typical Scenario**: New project genesis, rebooting a stalled idea, aligning multiple contributors on what a project actually is.\n- **Boundary Tip**: If the user has a concrete task and only needs scope/constraints, use `arc:clarify`; this skill is for the project, not the task."
+        },
+        {
+          "heading": "## Input Arguments",
+          "title": "Input Arguments",
+          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `idea` | string | yes | User's project idea or rough description |\n| `project_path` | string | no | Existing repository, for brownfield grounding |\n| `constraints` | string | no | Known constraints: users, platform, deadline, regulations |\n| `prior_notes` | string | no | Earlier drafts, slides, or chat logs to consolidate |"
+        },
+        {
+          "heading": "## Outputs",
+          "title": "Outputs",
+          "body": "```text\nProject Definition Document\n- 项目名称\n- 项目类型\n- 项目定位\n- 解决的问题\n- 核心概念\n- 核心功能\n- 主要对象\n- 业务流程\n- 项目特色\n- 项目关键词\n- Open Questions (only if any section is unresolved)\n```"
+        }
+      ],
+      "quick_contract": {
+        "trigger": "The user has a project idea, partial draft, or rough PRD that needs structuring.",
+        "inputs": "User-provided idea, target users, known constraints, optional prior notes.",
+        "outputs": "A Project Definition Document strictly following [`references/template.md`](references/template.md).",
+        "quality_gate": "Every template section is concrete, non-empty, and free of filler; gaps are explicitly listed as open questions.",
+        "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+      },
+      "input_arguments": [
+        {
+          "parameter": "idea",
+          "type": "string",
+          "required": "yes",
+          "description": "User's project idea or rough description"
+        },
+        {
+          "parameter": "project_path",
+          "type": "string",
+          "required": "no",
+          "description": "Existing repository, for brownfield grounding"
+        },
+        {
+          "parameter": "constraints",
+          "type": "string",
+          "required": "no",
+          "description": "Known constraints: users, platform, deadline, regulations"
+        },
+        {
+          "parameter": "prior_notes",
+          "type": "string",
+          "required": "no",
+          "description": "Earlier drafts, slides, or chat logs to consolidate"
+        }
+      ],
+      "outputs_section": {
+        "format": "text",
+        "content": "Project Definition Document\n- 项目名称\n- 项目类型\n- 项目定位\n- 解决的问题\n- 核心概念\n- 核心功能\n- 主要对象\n- 业务流程\n- 项目特色\n- 项目关键词\n- Open Questions (only if any section is unresolved)"
+      }
+    },
+    {
       "name": "arc:fix",
-      "description": "故障修复：当已有失败证据、测试失败、线上异常或可复现 bug 时使用；定位根因、修复并回归验证。",
+      "description": "故障修复：基于失败证据定位根因，实施修复并回归验证。",
       "source_path": "Arc/arc:fix/SKILL.md",
       "sections": [
         {
@@ -377,6 +496,11 @@
           "heading": "## Quality Gates",
           "title": "Quality Gates",
           "body": "- The fix addresses the cause, not only the symptom.\n- The failing path is verified after the change when feasible.\n- Test expectation changes are justified by product behavior, not convenience.\n- Risky production changes include rollback or monitoring notes."
+        },
+        {
+          "heading": "## SQL Failure Checks",
+          "title": "SQL Failure Checks",
+          "body": "- When a bug involves SQL writes, distinguish database execution success from business success. `err == nil` does not prove that an `UPDATE` or `DELETE` matched the intended row.\n- For resource-targeted writes, inspect the command tag and treat `RowsAffected() == 0` as not found or conflict according to the business rule.\n\n```go\ntag, err := store.Exec(ctx, `\n    DELETE FROM feedbacks\n    WHERE id = $1::uuid\n`, id)\nif err != nil {\n    return err\n}\nif tag.RowsAffected() == 0 {\n    return ErrFeedbackNotFound\n}\n```\n\n- If a write needs to return the updated row, prefer `UPDATE ... RETURNING ...` with `QueryRow(...).Scan(...)` over `Exec` followed by a separate read.\n- Check SQL fixes for parameterization, explicit column lists, `NULL` handling, stable pagination order, soft-delete filters, timestamp consistency, transaction boundaries, and state-transition guards in `WHERE`.\n- Translate database errors and 0-row write results into precise business errors instead of reporting success or leaking raw database details."
         },
         {
           "heading": "## Expert Standards",
@@ -449,7 +573,7 @@
     },
     {
       "name": "frontend-stack-baseline",
-      "description": "通用前端基线声明：任何需要搭建 Web 前端（新项目、脚手架、后台管理、B 端工作台、Landing、Dashboard、管理台、控制台）时的默认技术栈、默认配色与默认 token。固定栈为 React + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + React Router + React Hook Form + Zod + Framer Motion；默认配色从五套低饱和度方案中选一套，并按 shadcn/ui CSS 变量落地。与领域 skill（如 lazycat:create-app / lazycat:admin-ui）组合使用，由本 skill 专管“栈 + 配色”这一层，避免各 skill 内重复定义。",
+      "description": "通用前端基线声明：用于收敛 React + Vite 前端项目的核心技术栈、默认配色 token 与架构策略，避免各领域 skill 重复定义。",
       "source_path": "frontend-stack-baseline/SKILL.md",
       "sections": [
         {
@@ -486,6 +610,41 @@
           "heading": "## Workflow",
           "title": "Workflow",
           "body": "1. **确认栈适用性**：新项目直接按本基线；遗留项目若无法全量迁移，允许“新模块按基线、旧模块保持”，但必须标注边界。\n2. **选配色**：按产品类型选一套；管理台 ①或③；内容 ②；效率/健康 ④；设计/情感向 ⑤。\n3. **落 `tailwind.config.js`**：把选中的 palette 映射到 Tailwind color 令牌（见 [references/color-tokens.md](./references/color-tokens.md)）。\n4. **落 `globals.css`**：把选中 palette 对应的 shadcn CSS 变量贴进 `:root`；若需深色主题，补 `.dark { ... }`。\n5. **初始化 shadcn/ui**：`pnpm dlx shadcn@latest init`，按 palette 回答基色；再用 `shadcn@latest add button card input form dialog ...` 按需补组件。\n6. **装齐依赖**：见 [references/scaffold-commands.md](./references/scaffold-commands.md) 的一键脚本。\n7. **绑定领域 skill**：如 `lazycat:create-app` 仅声明“按 frontend-stack-baseline 交付 React 前端”，不得重复定义栈；`lazycat:admin-ui` 引用本 skill 的配色 token 而非另立色板。"
+        },
+        {
+          "heading": "## Pagination Strategy",
+          "title": "Pagination Strategy",
+          "body": "根据业务场景选择合适的分页模式，并在实现时贯彻：\n- **传统分页（Offset Pagination）**：当业务为后台管理系统、订单列表、用户列表时，用户确实需要精确跳页、总数感知强烈，使用传统分页更自然。UI 应配合使用 pagination 组件。\n- **游标分页（Cursor Pagination / 瀑布流 / 无限滚动）**：当业务为评论、动态流、聊天记录、消息通知、日志流时，数据频繁追加且不需要跳页，使用 cursor 分页更合适。UI 应配合无限滚动（Infinite Scroll）或“加载更多”按钮。"
+        },
+        {
+          "heading": "## State Management Strategy",
+          "title": "State Management Strategy",
+          "body": "前端状态应根据生命周期和共享范围进行严格分层，切忌“把所有东西都塞进全局 Store”：\n- **URL State（路由状态）**：筛选条件、搜索关键字、当前页码、激活的 Tab。优先存入 URL Query Params，保证页面刷新不丢，且可被作为链接分享。\n- **Server State（服务端状态）**：业务列表数据、详情数据。全权交由 `TanStack Query` 管理（查询、缓存、失效、乐观更新），严禁使用 `useEffect` 手动 fetch 并存入 Zustand。\n- **Client Global State（客户端全局状态）**：主题模式（Dark Mode）、侧边栏折叠状态、跨页面的表单向导数据。使用 `Zustand` 管理。\n- **Local State（组件局部状态）**：弹窗的开/关、输入框的实时受控值、下拉菜单的状态。直接使用 `useState`。"
+        },
+        {
+          "heading": "## Real-time & Polling Strategy",
+          "title": "Real-time & Polling Strategy",
+          "body": "根据业务对数据时效性的要求选择同步机制：\n- **长链接（WebSocket / SSE）**：当业务为 IM 聊天室、协同文档编辑、终端日志流、强实时交易盘口时。适合需要服务端高频主动推送的场景，需做好重连与心跳机制。\n- **短轮询（Polling）**：当业务为大盘数据仪表盘（Dashboard）、耗时任务的状态跟进、订单状态查询时。利用 `TanStack Query` 的 `refetchInterval`（例如 5~15秒），实现成本低且能满足大部分 B 端监控需求。"
+        },
+        {
+          "heading": "## Rendering Architecture Strategy",
+          "title": "Rendering Architecture Strategy",
+          "body": "根据业务对 SEO 和首屏时间（FCP）的诉求选择渲染模式：\n- **纯客户端渲染（CSR）**：本基线默认方案（Vite + React）。当业务为后台管理系统、SaaS 工作台、内部工具、复杂交互仪表盘时。无需 SEO，首屏短暂白屏或骨架屏可接受，重在后续交互的流畅度与极低的静态托管部署成本。\n- **服务端渲染 / 静态生成（SSR / SSG）**：当业务为 C 端门户、电商商品页、官方文档、博客时。对 SEO 有强诉求，对首屏加载速度要求极高，需打破本基线限制，引入 Next.js 或 Remix 框架。"
+        },
+        {
+          "heading": "## Auth & RBAC Strategy",
+          "title": "Auth & RBAC Strategy",
+          "body": "根据安全与用户体验要求，在不同粒度实施权限控制：\n- **路由级拦截（Route Guard）**：业务页面整体受控时。未登录或无权限直接重定向到 `/login` 或 `/403`，防止加载未经授权的页面级代码。\n- **组件级细粒度控制（Component-level RBAC）**：页面可访问，但仅部分操作受限时。通过封装特定的包装组件，将无权限的按钮置为 `disabled`（并辅以 Tooltip 解释）或直接隐藏。"
+        },
+        {
+          "heading": "## Error Handling & Feedback Strategy",
+          "title": "Error Handling & Feedback Strategy",
+          "body": "针对不同来源的错误提供分级反馈，避免粗暴打断用户心流：\n- **全局故障边界（Global Error Boundary）**：捕获 React 渲染过程中的崩溃，展示友好的“页面崩溃”兜底 UI，并提供刷新按钮，避免整个应用直接白屏。\n- **数据获取错误（Fetch Error）**：列表或详情页数据拉取失败时，应在**原数据渲染区域**展示局部错误状态（如“加载失败，点击重试”），严禁使用打断式的全局遮罩或全屏弹窗。\n- **操作类错误（Mutation Error）**：表单提交或动作执行失败时，使用轻量级的 Toast / Snackbar 在角落提示具体原因，焦点必须保留在原表单，以便用户修改。"
+        },
+        {
+          "heading": "## Form & Validation Strategy",
+          "title": "Form & Validation Strategy",
+          "body": "根据表单的复杂度决定工程化投入：\n- **重型/复杂表单**：业务涉及多字段联动、动态增减表单项、分步表单、严格格式校验。强制使用 `React Hook Form` 配合 `Zod`，保证校验逻辑集中且类型安全，有效避免全局过度渲染。\n- **超轻量输入**：单输入框（如简单的搜索、发送单条评论），直接使用 `useState` 作为受控组件即可，不要强行引入表单库增加不必要的复杂度。"
         },
         {
           "heading": "## Color Palette Presets",
@@ -564,7 +723,7 @@
     },
     {
       "name": "graduation-doc-support",
-      "description": "毕业设计支撑文档生成：当用户要求基于真实项目代码、数据库和现有论文/同学模板，生成“系统用例规约”“数据库物理设计三线表”“功能模块实现主要代码”“测试用例设计”等多个 docx 时触发；强调以运行时代码和 SQL 为准，模板只借格式不借内容。",
+      "description": "毕设支撑文档生成：基于项目真实代码与 SQL，参考模板版式生成规约、设计表等 docx 支撑材料。",
       "source_path": "graduation-doc-support/SKILL.md",
       "sections": [
         {
@@ -675,7 +834,7 @@
     },
     {
       "name": "terminal-table-output",
-      "description": "终端盒线表输出范式：当用户要求表格、比较表、矩阵或状态汇总，且内容足够紧凑时，用 Unicode 盒线表替代 Markdown 表。",
+      "description": "终端表格输出：使用 Unicode 盒线表替代 Markdown 渲染紧凑二维数据。",
       "source_path": "terminal-table-output/SKILL.md",
       "sections": [
         {
