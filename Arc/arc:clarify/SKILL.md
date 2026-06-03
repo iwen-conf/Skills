@@ -50,6 +50,14 @@ NO EXECUTION WITHOUT CONTEXT, CONSTRAINTS, AND SUCCESS CRITERIA.
 5. Ask only the minimum necessary questions if execution would otherwise be risky.
 6. Produce a task brief that can feed directly into implementation or audit.
 
+## Code Rot Gates
+
+Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Clarification is where two whole-project rot sources are cut off at the root:
+
+- Prune to the minimum surface (#32): translate the request into the smallest API/feature set that satisfies it. If the requirement is one endpoint, the brief specifies one — flag any speculative scenario expansion as out of scope.
+- Fix the state contract up front (#7): when the feature has states, enumerate the full state set and legal transitions in the brief so implementation does not let it drift 8 → 10 → 7 later.
+- Pin shared contracts (#2, #18, #19): name the canonical field names, the error-code type (`int` vs `string`), and the response envelope shape in the brief so downstream work cannot diverge.
+
 ## Quality Gates
 
 - The brief includes `Context`, `Task`, `Scope`, `Constraints`, and `Success Criteria`.
@@ -73,6 +81,7 @@ No dedicated runtime scripts. Use `.ai-code-index/` for repository search, then 
 - Producing a vague restatement instead of executable criteria.
 - Hiding assumptions inside the task statement.
 - Turning a small clarification into a heavy planning ceremony.
+- Letting scope balloon into speculative endpoints the requirement never asked for (#32).
 
 ## When to Use
 

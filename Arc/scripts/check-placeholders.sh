@@ -24,6 +24,12 @@ LAZY_PATTERNS=(
   '# rest of'
   'TODO: implement'
   'TBD'
+  # Code rot #35: half-done work reported as "done".
+  'NotImplementedError'
+  'unimplemented!'
+  'todo!'
+  'not implemented'
+  'FIXME'
 )
 
 FAILED=0

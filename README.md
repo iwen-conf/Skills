@@ -39,6 +39,12 @@ Skills/
 | `terminal-table-output` | 聊天中输出紧凑盒线表 |
 | `frontend-stack-baseline` | 为 React/Vite/Tailwind/shadcn 前端任务提供默认栈和配色基线 |
 
+## 共享参考
+
+| 文档 | 用途 |
+|---|---|
+| [`docs/code-rot-taxonomy.md`](docs/code-rot-taxonomy.md) | AI 代码腐化 36 条权威清单(6 大家族),各 Arc 技能引用各自负责的切片作为可执行门禁 |
+
 ## 收敛原则
 
 - 所有 Skill 需要搜索代码库或定位上下文时，优先使用 `.ai-code-index/search.sh` 查询本地 Zoekt 索引。

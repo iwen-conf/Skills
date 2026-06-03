@@ -35,3 +35,4 @@ flowchart TD
 - 需要图表：用 `drawio`。
 - 需要测试：直接按项目测试框架生成或运行，不再走 Arc 内部测试 Skill。
 - 需要 E2E：直接使用项目 E2E 工具或 `agent-browser`，不再走 Arc 内部 E2E Skill。
+- 防范 AI 代码腐化：每个 Arc 技能在 `## Code Rot Gates` 引用 [`code-rot-taxonomy.md`](code-rot-taxonomy.md) 中各自负责的家族切片；define→命名，clarify→减枝/状态，build→实施期门禁，fix→数据层/状态根因，audit→全 36 条复查。

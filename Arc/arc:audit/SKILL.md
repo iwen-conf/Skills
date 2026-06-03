@@ -50,6 +50,19 @@ NO FINDING WITHOUT EVIDENCE.
 4. Separate confirmed issues from residual risks and assumptions.
 5. Recommend the smallest useful remediation path.
 
+## Code Rot Gates
+
+Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Use all 36 items as the review rubric — this skill owns the complete catalog. Walk the six families and produce evidence-backed findings per family:
+
+- A — Convention drift: naming (`phone`/`mobile`), error-code type, JSON nesting, Redis keys, pagination, timezone, logging spec (#1,2,8,16,18,19,22,24,33).
+- B — Redundancy & dead code: unused symbols/deps, competing logging libs, duplicate endpoints, re-implemented helpers, over-design (#9,14,15,17,20,21,23,32).
+- C — Security: horizontal/vertical authz, brute-force protection, predictable RNG, hardcoded backdoors, zero-amount purchase (#6,12,28,29,30,31).
+- D — Data layer: soft-delete consistency, N+1/slow queries, JSONB misuse, raw-SQL/ORM mixing, unbounded lists, unindexed `LIKE` (#3,5,10,11,24,25,26).
+- E — Error & state: scattered status codes, unstable state machines, swallowed exceptions, races (#4,7,13,27).
+- F — AI execution integrity: half-finished refactors reported as done, leftover placeholders, build left broken (#34,35,36).
+
+Report each finding with a file/line reference or command output; mark anything inferred as an assumption.
+
 ## Quality Gates
 
 - Findings are ordered by severity.
@@ -74,6 +87,7 @@ No dedicated Arc runtime scripts. Use `.ai-code-index/` for repository context s
 - Treating preferences as defects.
 - Hiding uncertainty behind numeric scores.
 - Implementing fixes during a read-only audit without permission.
+- Reporting only style nits while missing a family-C security finding (authz, 0元购, backdoor) (#12,29,31).
 
 ## When to Use
 

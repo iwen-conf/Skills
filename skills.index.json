@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-18T12:05:53.942947Z",
+  "generated_at": "2026-06-03T05:24:33.681130Z",
   "skill_count": 8,
   "skills": [
     {
@@ -44,6 +44,11 @@
           "body": "1. Confirm review scope and constraints.\n2. Inspect structure, dependencies, critical paths, tests, and recent changes.\n3. Identify findings with severity and file references.\n4. Separate confirmed issues from residual risks and assumptions.\n5. Recommend the smallest useful remediation path."
         },
         {
+          "heading": "## Code Rot Gates",
+          "title": "Code Rot Gates",
+          "body": "Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Use all 36 items as the review rubric — this skill owns the complete catalog. Walk the six families and produce evidence-backed findings per family:\n\n- A — Convention drift: naming (`phone`/`mobile`), error-code type, JSON nesting, Redis keys, pagination, timezone, logging spec (#1,2,8,16,18,19,22,24,33).\n- B — Redundancy & dead code: unused symbols/deps, competing logging libs, duplicate endpoints, re-implemented helpers, over-design (#9,14,15,17,20,21,23,32).\n- C — Security: horizontal/vertical authz, brute-force protection, predictable RNG, hardcoded backdoors, zero-amount purchase (#6,12,28,29,30,31).\n- D — Data layer: soft-delete consistency, N+1/slow queries, JSONB misuse, raw-SQL/ORM mixing, unbounded lists, unindexed `LIKE` (#3,5,10,11,24,25,26).\n- E — Error & state: scattered status codes, unstable state machines, swallowed exceptions, races (#4,7,13,27).\n- F — AI execution integrity: half-finished refactors reported as done, leftover placeholders, build left broken (#34,35,36).\n\nReport each finding with a file/line reference or command output; mark anything inferred as an assumption."
+        },
+        {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
           "body": "- Findings are ordered by severity.\n- Each finding includes a file, command output, config, or behavioral evidence when possible.\n- Recommendations are actionable and scoped.\n- The audit remains read-only unless the user explicitly asks for implementation."
@@ -61,7 +66,7 @@
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Producing generic advice without inspecting the project.\n- Treating preferences as defects.\n- Hiding uncertainty behind numeric scores.\n- Implementing fixes during a read-only audit without permission."
+          "body": "- Producing generic advice without inspecting the project.\n- Treating preferences as defects.\n- Hiding uncertainty behind numeric scores.\n- Implementing fixes during a read-only audit without permission.\n- Reporting only style nits while missing a family-C security finding (authz, 0元购, backdoor) (#12,29,31)."
         },
         {
           "heading": "## When to Use",
@@ -162,6 +167,11 @@
           "body": "- Use parameterized SQL for all user-controlled values. Do not concatenate user input into SQL strings.\n- For dynamic identifiers such as sort fields, table names, or column names, use explicit whitelist mapping instead of passing raw user input.\n- Do not assume `Exec` success means business success. `err == nil` only means the statement executed without a database error.\n- For business `UPDATE` or `DELETE` statements that target a specific resource, keep the `Exec` return value and check affected rows.\n\n```go\ntag, err := store.Exec(ctx, `\n    UPDATE feedbacks\n    SET status = $2,\n        updated_at = $3\n    WHERE id = $1::uuid\n`, id, status, now)\nif err != nil {\n    return err\n}\nif tag.RowsAffected() == 0 {\n    return ErrFeedbackNotFound\n}\n```\n\n- It is acceptable to discard `Exec` results only when 0 affected rows is valid business behavior, such as inserting logs, best-effort statistics updates, idempotent cleanup, initialization SQL, or code paths that have already proven the target exists.\n- When updated data is needed after a write, prefer `UPDATE ... RETURNING ...` or `INSERT ... RETURNING ...` with `QueryRow(...).Scan(...)`.\n- Avoid `SELECT *` in application code. Select explicit columns and keep the `Scan` order aligned with the SQL column order.\n- Handle `NULL` deliberately. Do not conflate SQL `NULL` with Go zero values unless the business model says they are equivalent.\n- Use stable ordering for pagination, usually with a deterministic tie-breaker such as `ORDER BY created_at DESC, id DESC`.\n- Keep soft-delete filters consistent. Queries, updates, statistics, and details that should ignore deleted rows must include the same `deleted_at IS NULL` style condition.\n- Maintain timestamp fields consistently. Use either database time such as `NOW()` or one application-side `now` value per operation; avoid mixing both in one workflow.\n- Use transactions when multiple SQL statements must succeed or fail together.\n- Encode state transitions in the `WHERE` clause when concurrency matters, then check affected rows.\n\n```sql\nUPDATE orders\nSET status = 'paid',\n    paid_at = $2,\n    updated_at = $2\nWHERE id = $1\n  AND status = 'pending'\n```\n\n- Enforce uniqueness and referential integrity in the database with constraints, then translate database errors into business errors such as already exists, not found, invalid reference, or conflict.\n- Cast structured parameters explicitly when needed, for example `$1::uuid` or `$2::jsonb`, and validate serialized JSON before passing it to the database.\n- Be careful with unconditional `UPDATE` and `DELETE`. Business writes should normally be bounded by primary key, tenant, owner, status, or another explicit scope."
         },
         {
+          "heading": "## Code Rot Gates",
+          "title": "Code Rot Gates",
+          "body": "Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). At implementation time this skill prevents families A (convention drift), B (redundancy), C (security), E (error/state); the existing `SQL Standards` section above covers most of family D.\n\n- Reuse before writing (#21, #23): search the index for an existing endpoint, module, or formatter before adding one. Do not clone near-identical behavior.\n- Build only the requested surface (#32): if one API satisfies the requirement, ship one. No speculative scenario variants.\n- One name per concept (#8, #18): reuse the project's existing field names; never introduce `phone` where the code already says `mobile`. Keep request and response field names identical.\n- Centralize, do not scatter (#4, #16): reference shared status-code and constant definitions instead of inlining raw `500`/`400` literals or magic values.\n- Never swallow errors (#13): no empty `catch`/`except: pass`; handle, wrap with context, or rethrow.\n- Authorize every access (#12, #31): check ownership and role in the query and handler; recompute price/amount server-side before payment — never trust client-supplied amounts.\n- Secure randomness and no backdoors (#28, #29): CSPRNG for tokens/codes; secrets from config, never hardcoded.\n- Confirm state and JSON contracts before coding (#7, #19): use the state set and response envelope fixed by `arc:clarify`; do not invent new shapes mid-implementation.\n- Execution integrity (#34, #35, #36): keep the project runnable — verify after meaningful changes (`Arc/scripts/verify-project.sh`); leave no placeholders or half-migrated call sites and report residual work honestly (`check-placeholders.sh`, `check-completion.sh`); never run unreviewed project-wide `sed -i`/`find -exec sed` rewrites — ensure a rollback checkpoint and edit directory-by-directory (`check-destructive.sh`)."
+        },
+        {
           "heading": "## Expert Standards",
           "title": "Expert Standards",
           "body": "- Definition of Done (`DoD`) is explicit for behavior, tests, and documentation.\n- Version-impacting changes consider `SemVer` compatibility.\n- Contract-sensitive changes include `Contract Test` or equivalent verification when practical.\n- Reliability-sensitive changes mention `RTO/RPO` implications when relevant.\n- Dependency or packaging changes consider `SBOM`/supply-chain impact."
@@ -174,7 +184,7 @@
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Editing before understanding existing patterns.\n- Expanding scope opportunistically.\n- Skipping verification without saying why.\n- Suppressing type, lint, or test failures instead of fixing root causes."
+          "body": "- Editing before understanding existing patterns.\n- Expanding scope opportunistically.\n- Skipping verification without saying why.\n- Suppressing type, lint, or test failures instead of fixing root causes.\n- Cloning a near-identical endpoint or formatter instead of reusing an existing one (#21, #23).\n- Inventing speculative APIs the requirement never asked for (#32).\n- Trusting a client-supplied price, amount, or identifier without server-side authorization (#12, #31)."
         },
         {
           "heading": "## When to Use",
@@ -271,6 +281,11 @@
           "body": "1. Restate the user goal in concrete terms.\n2. Identify scope boundaries: files, modules, users, environments, and excluded work.\n3. Identify constraints: compatibility, security, performance, timeline, style, and verification expectations.\n4. Surface assumptions and high-impact unknowns.\n5. Ask only the minimum necessary questions if execution would otherwise be risky.\n6. Produce a task brief that can feed directly into implementation or audit."
         },
         {
+          "heading": "## Code Rot Gates",
+          "title": "Code Rot Gates",
+          "body": "Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Clarification is where two whole-project rot sources are cut off at the root:\n\n- Prune to the minimum surface (#32): translate the request into the smallest API/feature set that satisfies it. If the requirement is one endpoint, the brief specifies one — flag any speculative scenario expansion as out of scope.\n- Fix the state contract up front (#7): when the feature has states, enumerate the full state set and legal transitions in the brief so implementation does not let it drift 8 → 10 → 7 later.\n- Pin shared contracts (#2, #18, #19): name the canonical field names, the error-code type (`int` vs `string`), and the response envelope shape in the brief so downstream work cannot diverge."
+        },
+        {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
           "body": "- The brief includes `Context`, `Task`, `Scope`, `Constraints`, and `Success Criteria`.\n- Ambiguous terms are resolved or explicitly marked as open questions.\n- Assumptions are separated from facts.\n- The output does not create artificial process overhead."
@@ -288,7 +303,7 @@
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Asking many questions before reading available context.\n- Producing a vague restatement instead of executable criteria.\n- Hiding assumptions inside the task statement.\n- Turning a small clarification into a heavy planning ceremony."
+          "body": "- Asking many questions before reading available context.\n- Producing a vague restatement instead of executable criteria.\n- Hiding assumptions inside the task statement.\n- Turning a small clarification into a heavy planning ceremony.\n- Letting scope balloon into speculative endpoints the requirement never asked for (#32)."
         },
         {
           "heading": "## When to Use",
@@ -379,6 +394,11 @@
           "body": "1. Restate the user's idea in one or two sentences to confirm intent.\n2. Map the idea onto each section of [`references/template.md`](references/template.md).\n3. Fill known sections directly; mark unknowns as open questions rather than guessing.\n4. Force each section past filler: positioning ≠ \"全方位 / 一站式\"; core concept ≠ a feature list.\n5. Iterate with the user only on the smallest set of gaps blocking the definition.\n6. Deliver the final document in the template's exact section order."
         },
         {
+          "heading": "## Code Rot Gates",
+          "title": "Code Rot Gates",
+          "body": "Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Genesis is where naming drift is prevented before any code exists:\n\n- Establish one ubiquitous term per concept (#8, #18): in \"主要对象\", name each domain entity once and commit to it (`phone` or `mobile`, not both). Everything downstream reuses these names for fields, params, and responses.\n- For brownfield projects, extract the real entity names with `.ai-code-index/symbols.sh` instead of inventing synonyms that will later collide with the existing code."
+        },
+        {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
           "body": "- Every section in `template.md` is present, in order, and non-empty.\n- \"项目定位\" is 1–3 sentences and not interchangeable with another project.\n- \"核心概念\" names a metaphor or central abstraction, not a feature.\n- \"核心功能\" lists 3–6 capabilities, each verifiable from the user's perspective.\n- \"主要对象\" lists the real domain entities the system will model.\n- \"业务流程\" is expressible as a short arrow chain (`A → B → C`).\n- Open questions are listed separately and do not pollute the body."
@@ -396,7 +416,7 @@
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Filling sections with \"全方位 / 智能化 / 一站式\" or other interchangeable phrasing.\n- Collapsing 核心概念 into a feature list.\n- Inventing entities that contradict an existing codebase when one exists.\n- Expanding scope into task decomposition or implementation planning — route to `arc:clarify` / `arc:build` instead.\n- Producing a parallel PRD format that diverges from `template.md`."
+          "body": "- Filling sections with \"全方位 / 智能化 / 一站式\" or other interchangeable phrasing.\n- Collapsing 核心概念 into a feature list.\n- Inventing entities that contradict an existing codebase when one exists.\n- Expanding scope into task decomposition or implementation planning — route to `arc:clarify` / `arc:build` instead.\n- Producing a parallel PRD format that diverges from `template.md`.\n- Naming one domain concept two ways across sections, seeding downstream naming drift (#8, #18)."
         },
         {
           "heading": "## When to Use",
@@ -503,6 +523,11 @@
           "body": "- When a bug involves SQL writes, distinguish database execution success from business success. `err == nil` does not prove that an `UPDATE` or `DELETE` matched the intended row.\n- For resource-targeted writes, inspect the command tag and treat `RowsAffected() == 0` as not found or conflict according to the business rule.\n\n```go\ntag, err := store.Exec(ctx, `\n    DELETE FROM feedbacks\n    WHERE id = $1::uuid\n`, id)\nif err != nil {\n    return err\n}\nif tag.RowsAffected() == 0 {\n    return ErrFeedbackNotFound\n}\n```\n\n- If a write needs to return the updated row, prefer `UPDATE ... RETURNING ...` with `QueryRow(...).Scan(...)` over `Exec` followed by a separate read.\n- Check SQL fixes for parameterization, explicit column lists, `NULL` handling, stable pagination order, soft-delete filters, timestamp consistency, transaction boundaries, and state-transition guards in `WHERE`.\n- Translate database errors and 0-row write results into precise business errors instead of reporting success or leaking raw database details."
         },
         {
+          "heading": "## Code Rot Gates",
+          "title": "Code Rot Gates",
+          "body": "Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Failures most often root-cause into family D (data layer) and family E (error/state); the `SQL Failure Checks` section above is the data-layer arm of this.\n\n- Suspect the data layer first (#5, #25, #26): an N+1 loop, a missing `LIMIT`, or a leading-wildcard `LIKE '%x%'` on an unindexed column is a common latency/timeout root cause.\n- Check soft-delete consistency (#3): a \"ghost row\" or wrong count is often one query that forgot the `deleted_at IS NULL` filter the others apply.\n- Hunt swallowed exceptions (#13): an empty `catch`/`except: pass` hiding the real error is a frequent reason a failure is invisible. Surface it before patching.\n- Treat flaky-under-load as a race (#27): guard read-modify-write with a transaction, optimistic lock, or state-encoded `WHERE`, then check affected rows — do not just retry.\n- Verify the state machine (#7): an \"impossible\" state usually means an undeclared transition; confirm the legal transition set rather than special-casing the symptom.\n- Execution integrity (#34, #35, #36): re-run the failing check after patching (`Arc/scripts/verify-project.sh`); leave no placeholder or half-applied fix and report honestly (`check-placeholders.sh`, `check-completion.sh`); never bulk-`sed` a fix across the tree without a rollback checkpoint (`check-destructive.sh`)."
+        },
+        {
           "heading": "## Expert Standards",
           "title": "Expert Standards",
           "body": "- Severity is described using `SEV` or an equivalent impact scale when relevant.\n- Root cause analysis uses `5 Whys` or comparable causal reasoning for non-trivial failures.\n- Complex incidents may use a lightweight `Fault Tree` to avoid single-cause tunnel vision.\n- Communication is compatible with a `Blameless Postmortem` style.\n- Maintain a `Mandatory Hypothesis` before editing significant code.\n- Watch for `Rationalization Watch`: do not reinterpret failure evidence to fit an easy fix."
@@ -515,7 +540,7 @@
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Fixing without reading the error or reproduction evidence.\n- Changing tests to pass without validating behavior.\n- Broad rewrites for localized failures.\n- Declaring success without rerunning the relevant check."
+          "body": "- Fixing without reading the error or reproduction evidence.\n- Changing tests to pass without validating behavior.\n- Broad rewrites for localized failures.\n- Declaring success without rerunning the relevant check.\n- Patching a symptom while an empty `catch` still hides the real cause (#13).\n- Retrying a flaky path instead of guarding the underlying race (#27)."
         },
         {
           "heading": "## When to Use",

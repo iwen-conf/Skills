@@ -80,6 +80,17 @@ if tag.RowsAffected() == 0 {
 - Check SQL fixes for parameterization, explicit column lists, `NULL` handling, stable pagination order, soft-delete filters, timestamp consistency, transaction boundaries, and state-transition guards in `WHERE`.
 - Translate database errors and 0-row write results into precise business errors instead of reporting success or leaking raw database details.
 
+## Code Rot Gates
+
+Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Failures most often root-cause into family D (data layer) and family E (error/state); the `SQL Failure Checks` section above is the data-layer arm of this.
+
+- Suspect the data layer first (#5, #25, #26): an N+1 loop, a missing `LIMIT`, or a leading-wildcard `LIKE '%x%'` on an unindexed column is a common latency/timeout root cause.
+- Check soft-delete consistency (#3): a "ghost row" or wrong count is often one query that forgot the `deleted_at IS NULL` filter the others apply.
+- Hunt swallowed exceptions (#13): an empty `catch`/`except: pass` hiding the real error is a frequent reason a failure is invisible. Surface it before patching.
+- Treat flaky-under-load as a race (#27): guard read-modify-write with a transaction, optimistic lock, or state-encoded `WHERE`, then check affected rows — do not just retry.
+- Verify the state machine (#7): an "impossible" state usually means an undeclared transition; confirm the legal transition set rather than special-casing the symptom.
+- Execution integrity (#34, #35, #36): re-run the failing check after patching (`Arc/scripts/verify-project.sh`); leave no placeholder or half-applied fix and report honestly (`check-placeholders.sh`, `check-completion.sh`); never bulk-`sed` a fix across the tree without a rollback checkpoint (`check-destructive.sh`).
+
 ## Expert Standards
 
 - Severity is described using `SEV` or an equivalent impact scale when relevant.
@@ -99,6 +110,8 @@ No dedicated Arc runtime scripts. Use `.ai-code-index/` for repository context s
 - Changing tests to pass without validating behavior.
 - Broad rewrites for localized failures.
 - Declaring success without rerunning the relevant check.
+- Patching a symptom while an empty `catch` still hides the real cause (#13).
+- Retrying a flaky path instead of guarding the underlying race (#27).
 
 ## When to Use
 

@@ -102,6 +102,20 @@ WHERE id = $1
 - Cast structured parameters explicitly when needed, for example `$1::uuid` or `$2::jsonb`, and validate serialized JSON before passing it to the database.
 - Be careful with unconditional `UPDATE` and `DELETE`. Business writes should normally be bounded by primary key, tenant, owner, status, or another explicit scope.
 
+## Code Rot Gates
+
+Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). At implementation time this skill prevents families A (convention drift), B (redundancy), C (security), E (error/state); the existing `SQL Standards` section above covers most of family D.
+
+- Reuse before writing (#21, #23): search the index for an existing endpoint, module, or formatter before adding one. Do not clone near-identical behavior.
+- Build only the requested surface (#32): if one API satisfies the requirement, ship one. No speculative scenario variants.
+- One name per concept (#8, #18): reuse the project's existing field names; never introduce `phone` where the code already says `mobile`. Keep request and response field names identical.
+- Centralize, do not scatter (#4, #16): reference shared status-code and constant definitions instead of inlining raw `500`/`400` literals or magic values.
+- Never swallow errors (#13): no empty `catch`/`except: pass`; handle, wrap with context, or rethrow.
+- Authorize every access (#12, #31): check ownership and role in the query and handler; recompute price/amount server-side before payment — never trust client-supplied amounts.
+- Secure randomness and no backdoors (#28, #29): CSPRNG for tokens/codes; secrets from config, never hardcoded.
+- Confirm state and JSON contracts before coding (#7, #19): use the state set and response envelope fixed by `arc:clarify`; do not invent new shapes mid-implementation.
+- Execution integrity (#34, #35, #36): keep the project runnable — verify after meaningful changes (`Arc/scripts/verify-project.sh`); leave no placeholders or half-migrated call sites and report residual work honestly (`check-placeholders.sh`, `check-completion.sh`); never run unreviewed project-wide `sed -i`/`find -exec sed` rewrites — ensure a rollback checkpoint and edit directory-by-directory (`check-destructive.sh`).
+
 ## Expert Standards
 
 - Definition of Done (`DoD`) is explicit for behavior, tests, and documentation.
@@ -120,6 +134,9 @@ No dedicated Arc runtime scripts. Use the project's own build, lint, test, and t
 - Expanding scope opportunistically.
 - Skipping verification without saying why.
 - Suppressing type, lint, or test failures instead of fixing root causes.
+- Cloning a near-identical endpoint or formatter instead of reusing an existing one (#21, #23).
+- Inventing speculative APIs the requirement never asked for (#32).
+- Trusting a client-supplied price, amount, or identifier without server-side authorization (#12, #31).
 
 ## When to Use
 

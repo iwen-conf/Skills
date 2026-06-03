@@ -51,6 +51,13 @@ NO SECTION WITHOUT A CONCRETE CONCEPT.
 5. Iterate with the user only on the smallest set of gaps blocking the definition.
 6. Deliver the final document in the template's exact section order.
 
+## Code Rot Gates
+
+Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Genesis is where naming drift is prevented before any code exists:
+
+- Establish one ubiquitous term per concept (#8, #18): in "主要对象", name each domain entity once and commit to it (`phone` or `mobile`, not both). Everything downstream reuses these names for fields, params, and responses.
+- For brownfield projects, extract the real entity names with `.ai-code-index/symbols.sh` instead of inventing synonyms that will later collide with the existing code.
+
 ## Quality Gates
 
 - Every section in `template.md` is present, in order, and non-empty.
@@ -79,6 +86,7 @@ No dedicated runtime scripts. Use `.ai-code-index/` for brownfield context, then
 - Inventing entities that contradict an existing codebase when one exists.
 - Expanding scope into task decomposition or implementation planning — route to `arc:clarify` / `arc:build` instead.
 - Producing a parallel PRD format that diverges from `template.md`.
+- Naming one domain concept two ways across sections, seeding downstream naming drift (#8, #18).
 
 ## When to Use
 
