@@ -15,6 +15,10 @@ Lark is active only when one condition is true:
 
 When Lark is inactive, skip this contract entirely. When `.lark.json` already exists, inspect and verify indexed resources before writes.
 
+`创建飞书项目空间`, `创建完整飞书项目空间`, `一键创建飞书项目空间`, `create Lark project space`, and `create full Lark workspace` mean full workspace provisioning. Full workspace provisioning must create or resolve all standard project folders, files, docs, Base tables, dashboards, workflow resources, and collaboration resources in one pass, then write every real durable URL/ID/token into `.lark.json`.
+
+`更新飞书项目空间`, `刷新飞书项目空间`, `补齐飞书项目空间`, `同步飞书项目空间`, `update Lark project space`, `refresh Lark project space`, and `complete Lark project space` mean existing workspace update. Workspace update must verify the current `.lark.json` index or a user-provided existing Lark link, repair gaps, refresh SDLC resources, and never create a duplicate project workspace.
+
 ## Minimal Shape
 
 ```json
@@ -37,12 +41,17 @@ When Lark is inactive, skip this contract entirely. When `.lark.json` already ex
     "wiki_space": null,
     "wiki_node": null,
     "drive_folder": null,
+    "drive_folders": {},
     "project_home": null,
     "prd": null,
     "requirements": null,
     "architecture": null,
+    "requirements_base": null,
+    "sprint_base": null,
     "progress_base": null,
     "task_base": null,
+    "bug_base": null,
+    "release_base": null,
     "risk_base": null,
     "traceability_base": null,
     "dashboards": [],
@@ -151,12 +160,17 @@ Allowed `type` values:
 - `wiki_space`: Lark Wiki space that contains the project knowledge hierarchy.
 - `wiki_node`: project node inside the Wiki space, usually pointing to the project home.
 - `drive_folder`: project Drive folder for attachments, exports, templates, and binary evidence.
+- `drive_folders`: named project subfolders, commonly `docs`, `design`, `engineering`, `meetings`, `releases`, `incidents`, `audits`, `attachments`, and `exports`.
 - `project_home`: Docx home page linking the project resources and latest status.
 - `prd`: project definition or PRD created by `arc:define`.
 - `requirements`: requirements and acceptance criteria, often updated by `arc:clarify`.
 - `architecture`: architecture notes, diagrams, data model references, and technical decisions.
+- `requirements_base`: structured requirements table with owner, priority, acceptance criteria, status, and linked docs.
+- `sprint_base`: structured sprint/iteration table with dates, scope, owner, status, and linked tasks.
 - `progress_base`: structured progress tracker for milestones, owners, status, and verification.
 - `task_base`: structured Base task table for Lark-active feature state; required for tracked feature updates only when Lark is active.
+- `bug_base`: structured bug/defect tracker with severity, owner, status, reproduction, fix, and verification.
+- `release_base`: structured release tracker with version, scope, status, checklist, approval, and delivery links.
 - `risk_base`: structured risk and audit finding tracker.
 - `traceability_base`: requirement-to-code-to-test mapping for non-trivial projects.
 - `dashboards`: Lark dashboard views backed by structured Base or Project data; never manual Doc summaries.
@@ -203,6 +217,41 @@ Minimum task row fields:
 
 `tasklist` may hold personal reminders only. It must not replace `task_base`.
 
+## Full Workspace Contract
+
+Full workspace provisioning is required when the user says `创建飞书项目空间` or an equivalent full workspace trigger.
+
+Full workspace resources:
+
+- Drive: root folder plus `drive_folders.docs`, `design`, `engineering`, `meetings`, `releases`, `incidents`, `audits`, `attachments`, and `exports`.
+- Docx: `project_home`, `prd`, `requirements`, `architecture`, plus delivery, incident, audit, and meeting note docs.
+- Wiki: `wiki_space` and `wiki_node`.
+- Base: `requirements_base`, `sprint_base`, `task_base`, `bug_base`, `release_base`, `progress_base`, `risk_base`, and `traceability_base`.
+- Dashboard: project overview, sprint/progress, risk/quality, and release dashboard entries in `dashboards`.
+- Project: `lark_project` for sprint board, milestones, and project flow.
+- Calendar/meetings: `calendar`, planned `meetings`, and future meeting placeholders when available.
+- Collaboration: `im_chat` when members are known; `mail_threads` only when formal handoff exists.
+- Visual resources: architecture, flow, ER/data model, sequence/interaction, and review whiteboards in `whiteboards`.
+- Automation: status, notification, approval, webhook, or Base/Project glue in `workflow_automations` when supported.
+- Optional artifacts: `sheets`, `slides`, `apps`, `markdown_files`, `approvals`, `okrs`, and `workflow_reports` only when relevant to the project or requested.
+
+Every created/resolved durable resource must be written into `.lark.json.resources`. If creation is blocked, append a lifecycle blocker entry with `status: "blocked"`, the intended `resource_keys`, and a short reason.
+
+## Full Workspace Update Contract
+
+Full workspace update is required when the user says `更新飞书项目空间` or an equivalent update trigger.
+
+Update rules:
+
+- Require existing `.lark.json` or an existing Lark project home/link before any write.
+- Do not create a duplicate `project_home`, Base app, dashboard set, `lark_project`, Wiki node, or Drive root.
+- Verify each indexed resource that is relevant to the request; repair stale URLs/IDs and missing index entries.
+- If the existing workspace is full or the user requests completion, create missing standard full-workspace resources and index them.
+- Refresh `task_base`, requirements/sprint/bug/release/progress/risk/traceability Base views, dashboards, Project flow, workflow automations, and lifecycle status when present.
+- Cross-link project home, Wiki, Base tables, dashboards, Project flow, Calendar, IM, Whiteboards, and Drive folders after repair.
+- Append a lifecycle entry with `event: "full_workspace_update"` and the changed `resource_keys`.
+- If permissions, owner/member data, auth, or API coverage blocks an update, append a lifecycle blocker instead of omitting the resource.
+
 ## Lifecycle Entry
 
 Append one entry after each meaningful project event.
@@ -241,6 +290,24 @@ Do not rewrite historical lifecycle entries unless a link is broken or the origi
   "event": "requirements_update",
   "summary": "Added acceptance criteria for billing export",
   "resource_keys": ["requirements", "task_base", "progress_base", "traceability_base", "dashboards"]
+}
+```
+
+```json
+{
+  "skill": "arc:docs",
+  "event": "full_workspace_setup",
+  "summary": "Created full Lark project workspace and indexed resources",
+  "resource_keys": ["drive_folder", "drive_folders", "project_home", "prd", "requirements", "architecture", "requirements_base", "sprint_base", "task_base", "bug_base", "release_base", "progress_base", "risk_base", "traceability_base", "dashboards", "lark_project", "calendar", "im_chat", "whiteboards", "workflow_automations"]
+}
+```
+
+```json
+{
+  "skill": "arc:docs",
+  "event": "full_workspace_update",
+  "summary": "Refreshed Lark project workspace index, dashboards, task table, and workflow links",
+  "resource_keys": ["project_home", "task_base", "progress_base", "dashboards", "lark_project", "workflow_automations"]
 }
 ```
 
@@ -292,7 +359,7 @@ Do not rewrite historical lifecycle entries unless a link is broken or the origi
 ## Naming Rules
 
 - Keep one `resources.project_home` per repository.
-- Prefer stable English titles: `<project> Project Home`, `<project> PRD`, `<project> Requirements`, `<project> Architecture`, `<project> Progress`, `<project> Dashboard`, `<project> Risks`, `<project> Delivery`, `<project> Incidents`, `<project> Audit`.
+- Prefer stable English titles: `<project> Project Home`, `<project> PRD`, `<project> Requirements`, `<project> Architecture`, `<project> Requirements Base`, `<project> Sprint Base`, `<project> Task Base`, `<project> Bug Base`, `<project> Release Base`, `<project> Progress`, `<project> Dashboard`, `<project> Risks`, `<project> Delivery`, `<project> Incidents`, `<project> Audit`.
 - Store generated local docs under the project’s existing docs directory when one exists.
 - Use arrays for repeating resources such as meetings, minutes, whiteboards, sheets, approvals, delivery notes, incidents, audits, and thesis-support docs.
 - Keep `.lark.json` small enough to review in a diff.

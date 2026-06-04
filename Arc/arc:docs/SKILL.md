@@ -31,6 +31,8 @@ Lark activation:
 |---|---|---|
 | Active existing | Project root has `.lark.json` | Read it, verify indexed resources when relevant, update through `arc:docs`. |
 | Active requested | User provides Lark URL/token or explicit trigger phrase | Ask only missing setup details, then create/index the smallest useful resource set. |
+| Full workspace requested | User says `创建飞书项目空间` or `create Lark project space` | Create the full standard project workspace in one pass and index everything in `.lark.json`. |
+| Full workspace update requested | User says `更新飞书项目空间` or `refresh Lark project space` | Verify the existing workspace, repair/index gaps, refresh SDLC resources, and never create duplicates. |
 | Candidate | User asks for project collaboration/docs/tracking but does not mention Lark | Ask once whether to enable Lark or stay local. |
 | Inactive | No `.lark.json` and no Lark trigger | Do not create Lark resources, do not create `.lark.json`, do not ask during ordinary code work. |
 
@@ -53,6 +55,24 @@ Explicit trigger phrases include:
 - `create Lark dashboard`
 - `sync to Lark`
 
+Full workspace trigger phrases:
+
+- `创建飞书项目空间`
+- `创建完整飞书项目空间`
+- `一键创建飞书项目空间`
+- `create Lark project space`
+- `create full Lark workspace`
+
+Workspace update trigger phrases:
+
+- `更新飞书项目空间`
+- `刷新飞书项目空间`
+- `补齐飞书项目空间`
+- `同步飞书项目空间`
+- `update Lark project space`
+- `refresh Lark project space`
+- `complete Lark project space`
+
 Lark resource router:
 
 | Resource | Required Lark skill | `.lark.json` key |
@@ -60,7 +80,8 @@ Lark resource router:
 | Auth, identity, high-risk write protocol | `lark-shared` | `lark` |
 | Project home, PRD, requirements, architecture, delivery, audit, incident docs | `lark-doc` | `project_home`, `prd`, `requirements`, `architecture`, `delivery`, `audits`, `incidents` |
 | Wiki hierarchy | `lark-wiki` | `wiki_space`, `wiki_node` |
-| Structured requirements, progress, risks, traceability | `lark-base` | `progress_base`, `risk_base`, `traceability_base` |
+| Drive root and project subfolders | `lark-drive` | `drive_folder`, `drive_folders` |
+| Structured requirements, sprints, tasks, bugs, releases, progress, risks, traceability | `lark-base` | `requirements_base`, `sprint_base`, `task_base`, `bug_base`, `release_base`, `progress_base`, `risk_base`, `traceability_base` |
 | Feature task table and delivery state | `lark-base` | `task_base` |
 | Dashboards from structured Base/Project data | `lark-base` | `dashboards` |
 | Personal reminders and lightweight follow-up | `lark-task` | `tasklist` |
@@ -70,7 +91,7 @@ Lark resource router:
 | Ended meeting notes and transcripts | `lark-vc`, `lark-minutes` | `meetings`, `minutes` |
 | Project chat and notifications | `lark-im` | `im_chat` |
 | Formal external or email handoff | `lark-mail` | `mail_threads` |
-| Files, exports, attachments | `lark-drive` | `drive_folder` |
+| Files, exports, attachments | `lark-drive` | `drive_folder`, `drive_folders` |
 | Architecture, flow, ER, sequence, class, use-case diagrams | `lark-whiteboard`, `lark-uml:*` | `whiteboards` |
 | Lightweight tables | `lark-sheets` | `sheets` |
 | Formal gates | `lark-approval` | `approvals` |
@@ -125,6 +146,9 @@ NO LARK-ACTIVE TRACKED FEATURE UPDATE WITHOUT task_base UPDATE.
 ## Hard Constraints
 
 - MUST choose the smallest useful Lark resource set; NEVER create every possible Lark artifact by default.
+- MUST treat `创建飞书项目空间` / `create Lark project space` as `workspace_scope=full`; this trigger overrides the smallest-resource default.
+- MUST treat `更新飞书项目空间` / `refresh Lark project space` as `workspace_update`; it requires existing `.lark.json` or a user-provided existing Lark link.
+- MUST NOT create a duplicate workspace, project home, Base app, dashboard, or Lark Project when updating an existing Lark project space.
 - MUST treat projects without `.lark.json` as local-only unless the user explicitly triggers or confirms Lark.
 - MUST ask one concise enablement question only for candidate collaboration/docs/tracking work; NEVER ask during ordinary code, fix, or audit work.
 - MUST index-check existing `.lark.json` before any Lark update.
@@ -153,6 +177,40 @@ NO LARK-ACTIVE TRACKED FEATURE UPDATE WITHOUT task_base UPDATE.
 - NEVER guess Lark URLs, tokens, table IDs, chat IDs, tasklist IDs, calendar IDs, meeting IDs, or approval IDs.
 - NEVER store access tokens, app secrets, cookies, private keys, credentials, or full document bodies in `.lark.json`.
 
+## Full Workspace Contract
+
+When the user says `创建飞书项目空间`, MUST create the full standard project workspace in one pass. Ask only for missing project name, owner, or auth data that is required to create resources.
+
+Full workspace MUST create or resolve and index:
+
+- Drive root folder plus subfolders: `docs`, `design`, `engineering`, `meetings`, `releases`, `incidents`, `audits`, `attachments`, `exports`.
+- Project home Docx plus docs for PRD, requirements, architecture, delivery log, incident log, audit log, and meeting notes.
+- Wiki space/node for long-term knowledge hierarchy.
+- Base app/tables for requirements, sprint, tasks, bugs, releases, progress, risks, and traceability.
+- Dashboards for project overview, sprint/progress, risk/quality, and release status.
+- Lark Project board or flow for sprint, milestones, and project process.
+- Calendar resource for milestones and project meetings.
+- Project IM chat or indexed chat when members are available.
+- Whiteboards for architecture, process flow, data model, and sequence/interaction views.
+- Workflow automations for status notifications and Base/Project glue when supported.
+- Drive/Markdown/Slides/Sheets/App resources when project artifacts require those formats.
+
+Full workspace MUST write every created or resolved durable resource to `.lark.json.resources` with real URLs/IDs/tokens. If a resource cannot be created because of permission, missing owner/member data, or unsupported API coverage, MUST append a `.lark.json.lifecycle[]` blocker entry naming the missing resource and reason; do not silently omit it.
+
+## Workspace Update Contract
+
+When the user says `更新飞书项目空间`, MUST update the existing Lark project space instead of recreating it.
+
+Workspace update MUST:
+
+- Read `.lark.json` first; if absent, require an existing Lark project home/link before any write.
+- Verify every indexed resource that is relevant to the request.
+- Repair stale URLs/IDs, missing index entries, and broken cross-links.
+- Create missing standard full-workspace resources only when the workspace was or should be full.
+- Refresh `task_base`, Project flow, dashboards, Base views, Workflow automations, and lifecycle status.
+- Append a `full_workspace_update` lifecycle entry with changed `resource_keys`.
+- Record blockers for missing permission, missing owner/member data, or unsupported API coverage.
+
 ## Task Table Contract
 
 `task_base` is mandatory only when Lark is active and a tracked feature is created, changed, delivered, blocked, or verified.
@@ -178,7 +236,7 @@ Use `tasklist` only for personal reminders; it cannot replace `task_base`.
 4. Read project instructions, existing docs, `.lark.json`, and local index status.
 5. Create or update `.lark.json` from the reference contract.
 6. Refresh local code index when needed and record status.
-7. Choose workspace scope: `minimum`, `normal`, or `full`.
+7. Choose workspace scope and operation: `minimum`, `normal`, `full`, or `workspace_update`; exact full workspace triggers MUST use `full`, and update triggers MUST use `workspace_update`.
 8. Select Lark tools by evidence:
    - narrative knowledge -> Docx/Wiki;
    - feature task state -> Base `task_base`;
@@ -191,7 +249,7 @@ Use `tasklist` only for personal reminders; it cannot replace `task_base`.
    - visual models -> Whiteboard/UML;
    - automation -> Workflow;
    - missing native capability -> OpenAPI/Skill Maker.
-9. Create or resolve Lark resources through the resource router.
+9. Create or resolve Lark resources through the resource router; for `full`, create the complete standard workspace contract above.
 10. Store each durable resource in `.lark.json.resources`.
 11. For every Lark-active tracked feature update, create or update the `task_base` row before the delivery is considered complete.
 12. Append `.lark.json.lifecycle[]` for Arc events: define, clarify, build, frontend, fix, audit, meeting follow-up.
@@ -200,6 +258,8 @@ Use `tasklist` only for personal reminders; it cannot replace `task_base`.
 ## Quality Gates
 
 - `project_home`, local index status, and project identity are present once remote docs exist.
+- Full workspace trigger creates or explicitly blocks every standard workspace resource and records each result in `.lark.json`.
+- Workspace update trigger verifies the existing index, refreshes structured SDLC resources, repairs gaps, and records blockers without duplicating resources.
 - No `.lark.json` is created for inactive projects.
 - Wiki, Drive, Docx, Base, Dashboard, Task, Project, Calendar, VC/Minutes, IM, Whiteboard, Sheets, Approval, Workflow, and Contact entries appear only when actually used.
 - Requirements, delivery, incidents, audits, meetings, risks, and tasks are cross-linked when more than one resource exists.
@@ -229,7 +289,8 @@ lark-cli docs +update --api-version v2 --doc "<doc-url-or-token>" --command appe
 
 - Lark resource created but missing from `.lark.json`.
 - `.lark.json` created without explicit trigger, existing Lark link, or user confirmation.
-- Creating a full Lark workspace when `minimum` or `normal` would satisfy the project.
+- Creating a full Lark workspace without an explicit full workspace trigger.
+- Updating a Lark project space by creating a duplicate workspace or project home.
 - Multiple project home docs for one repository.
 - Progress recorded only in chat.
 - Lark-active feature delivered while `task_base` is missing or stale.
@@ -252,7 +313,7 @@ lark-cli docs +update --api-version v2 --doc "<doc-url-or-token>" --command appe
 | `project_path` | string | yes | Target repository root |
 | `project_name` | string | no | Human-readable project name |
 | `lark_home` | string | no | Existing project home URL or token |
-| `workspace_scope` | string | no | `minimum`, `normal`, or `full` |
+| `workspace_scope` | string | no | `minimum`, `normal`, `full`, or `workspace_update` |
 | `doc_scope` | string | no | PRD, requirements, architecture, progress, audit, delivery, incidents, thesis, or all |
 | `progress_mode` | enum | no | `doc`, `base`, `task`, or `none` |
 

@@ -42,7 +42,9 @@ flowchart TD
 - 需要代码库搜索或上下文定位：用 `.ai-code-index/search.sh`、`struct-search.sh`、`symbols.sh`，不要在 Arc 内另建搜索机制。
 - 已存在 `.lark.json` 时，所有 Arc 生命周期工作都应先读取它；有交付、修复、审计或文档变更时追加 lifecycle 记录。
 - 没有 `.lark.json` 时，普通代码/修复/审查任务不询问、不创建飞书；只有用户提供飞书链接、明确触发或确认后才用 `arc:docs`。
-- 飞书触发词包括：`启用飞书项目空间`、`接入飞书`、`创建飞书文档`、`创建飞书任务表`、`创建飞书仪表盘`、`同步到飞书`、`索引飞书资源`、`enable Lark`、`create Lark workspace`、`sync to Lark`。
+- `创建飞书项目空间`、`创建完整飞书项目空间`、`一键创建飞书项目空间`、`create Lark project space` 表示 full workspace：一次性创建标准项目文件夹、文档、多维表格、仪表盘、项目流、日历、协作、画板、自动化等飞书资源，并全部写入 `.lark.json`。
+- `更新飞书项目空间`、`刷新飞书项目空间`、`补齐飞书项目空间`、`同步飞书项目空间`、`refresh Lark project space` 表示 workspace update：校验既有 `.lark.json` 或飞书链接，修复断链/缺失索引，补齐标准资源，刷新任务表、仪表盘、项目流和自动化，不重复创建空间。
+- 其它飞书触发词按需创建：`启用飞书项目空间`、`接入飞书`、`创建飞书文档`、`创建飞书任务表`、`创建飞书仪表盘`、`同步到飞书`、`索引飞书资源`、`enable Lark`、`create Lark workspace`、`sync to Lark`。
 - 需要浏览器自动化：用 `agent-browser` 或相关浏览器工具。
 - 需要图表：用 `drawio`。
 - 需要测试：直接按项目测试框架生成或运行，不再走 Arc 内部测试 Skill。
