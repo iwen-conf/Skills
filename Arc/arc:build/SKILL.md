@@ -1,35 +1,36 @@
 ---
 name: arc:build
-description: "代码交付：实施代码变更、运行验证并输出结果。"
+description: "Code delivery."
 ---
 
 # arc:build
 
 ## Overview
 
-`arc:build` is the lean implementation skill. It guides concrete code changes, verification, and handoff. It does not own planning infrastructure, indexes, E2E frameworks, or release gates.
+`arc:build` implements scoped project changes and verifies them. It does not clarify vague work, fix unknown failures, or update Lark resources directly.
 
 ## Quick Contract
 
-- **Trigger**: The task is implementation-ready and code or project files should be changed.
-- **Inputs**: Clear task, scope, target repository, constraints, and expected verification.
-- **Outputs**: Code changes, verification evidence, and a concise change summary.
-- **Quality Gate**: The change is scoped, verified, and explainable.
+- **Trigger**: The task is implementation-ready and files should change.
+- **Inputs**: Project path, task, scope, constraints, expected verification.
+- **Outputs**: Code changes, verification evidence, risks, and optional Lark handoff.
+- **Quality Gate**: The change is minimal, verified, and explainable.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
 ## Routing Matrix
 
 - Use `arc:clarify` first if scope or acceptance criteria are unclear.
-- Use `arc:fix` instead when the primary input is a failure report or incident.
-- Use `arc:audit` after implementation if the user wants a read-only quality review.
-- Use `.ai-code-index/` local search helpers for repository search and context discovery; use `aitask` for cross-agent task ownership.
+- Use `arc:fix` when the primary input is a failure, incident, or failing check.
+- Use `arc:frontend` for frontend baseline or UI lifecycle work.
+- Use `arc:docs` only when Lark is active for delivery notes, `task_base` feature status, progress Base, Drive artifacts, or `.lark.json.lifecycle[]`.
+- Use `arc:audit` after delivery for read-only review.
 
 ## Context Search
 
-- Before editing unfamiliar code, use `.ai-code-index/search.sh "query"` to locate relevant modules, flows, and symbols.
-- If the index is missing or stale, run `.ai-code-index/reindex.sh`.
-- Use `.ai-code-index/struct-search.sh` for call shapes and refactoring targets; use `.ai-code-index/symbols.sh` for definitions.
-- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient.
+- MUST inspect existing code before editing unfamiliar files.
+- MUST use `.ai-code-index/search.sh` first for broad repository context.
+- MUST use `.ai-code-index/struct-search.sh` for structural patterns and `.ai-code-index/symbols.sh` for definitions when relevant.
+- If `.lark.json` exists, MUST read it before final handoff.
 
 ## Announce
 
@@ -39,109 +40,69 @@ Begin by stating clearly:
 ## The Iron Law
 
 ```text
-NO CODE CHANGE WITHOUT SCOPE AND VERIFICATION.
+NO CODE CHANGE WITHOUT SCOPE.
+NO DELIVERY WITHOUT VERIFICATION OR AN EXPLICIT BLOCKER.
+NO LARK DELIVERY UPDATE OUTSIDE arc:docs.
+NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
 ```
+
+## Hard Constraints
+
+- MUST preserve unrelated user changes.
+- MUST edit the smallest viable file set.
+- MUST run targeted verification when feasible.
+- MUST report failed or skipped verification.
+- MUST route all Lark writes through `arc:docs`.
+- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
+- MUST hand off to `arc:docs` after every Lark-active tracked feature update so `task_base` records title, owner, status, related requirement, files, verification, lifecycle link, and `updated_at`.
+- MUST NOT claim a Lark-active tracked feature is complete until `task_base` is updated or the blocker is explicit.
+- NEVER broaden scope opportunistically.
+- NEVER suppress type, lint, test, or runtime failures to claim completion.
+- NEVER trust user-controlled SQL, payment, ownership, role, amount, sort field, or identifier without server-side validation.
 
 ## Workflow
 
-1. Inspect the relevant files and existing patterns.
-2. State the implementation approach if the change is non-trivial.
-3. Edit the smallest viable set of files.
-4. Run targeted verification first, then broader checks when appropriate.
-5. Summarize changed files, behavior, verification, and residual risks.
+1. Confirm task, scope, and verification target.
+2. Search for existing patterns, call sites, tests, and contracts.
+3. Edit only the needed files.
+4. Run targeted verification; broaden only when risk requires it.
+5. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.
+6. Summarize changes, verification, and residual risk.
 
 ## Quality Gates
 
-- Scope remains tied to the requested outcome.
-- Existing user changes are not reverted without explicit instruction.
-- Verification commands are run when feasible; failures are reported with cause.
-- The final summary distinguishes facts, assumptions, and follow-up risk.
-
-## SQL Standards
-
-- Use parameterized SQL for all user-controlled values. Do not concatenate user input into SQL strings.
-- For dynamic identifiers such as sort fields, table names, or column names, use explicit whitelist mapping instead of passing raw user input.
-- Do not assume `Exec` success means business success. `err == nil` only means the statement executed without a database error.
-- For business `UPDATE` or `DELETE` statements that target a specific resource, keep the `Exec` return value and check affected rows.
-
-```go
-tag, err := store.Exec(ctx, `
-    UPDATE feedbacks
-    SET status = $2,
-        updated_at = $3
-    WHERE id = $1::uuid
-`, id, status, now)
-if err != nil {
-    return err
-}
-if tag.RowsAffected() == 0 {
-    return ErrFeedbackNotFound
-}
-```
-
-- It is acceptable to discard `Exec` results only when 0 affected rows is valid business behavior, such as inserting logs, best-effort statistics updates, idempotent cleanup, initialization SQL, or code paths that have already proven the target exists.
-- When updated data is needed after a write, prefer `UPDATE ... RETURNING ...` or `INSERT ... RETURNING ...` with `QueryRow(...).Scan(...)`.
-- Avoid `SELECT *` in application code. Select explicit columns and keep the `Scan` order aligned with the SQL column order.
-- Handle `NULL` deliberately. Do not conflate SQL `NULL` with Go zero values unless the business model says they are equivalent.
-- Use stable ordering for pagination, usually with a deterministic tie-breaker such as `ORDER BY created_at DESC, id DESC`.
-- Keep soft-delete filters consistent. Queries, updates, statistics, and details that should ignore deleted rows must include the same `deleted_at IS NULL` style condition.
-- Maintain timestamp fields consistently. Use either database time such as `NOW()` or one application-side `now` value per operation; avoid mixing both in one workflow.
-- Use transactions when multiple SQL statements must succeed or fail together.
-- Encode state transitions in the `WHERE` clause when concurrency matters, then check affected rows.
-
-```sql
-UPDATE orders
-SET status = 'paid',
-    paid_at = $2,
-    updated_at = $2
-WHERE id = $1
-  AND status = 'pending'
-```
-
-- Enforce uniqueness and referential integrity in the database with constraints, then translate database errors into business errors such as already exists, not found, invalid reference, or conflict.
-- Cast structured parameters explicitly when needed, for example `$1::uuid` or `$2::jsonb`, and validate serialized JSON before passing it to the database.
-- Be careful with unconditional `UPDATE` and `DELETE`. Business writes should normally be bounded by primary key, tenant, owner, status, or another explicit scope.
-
-## Code Rot Gates
-
-Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). At implementation time this skill prevents families A (convention drift), B (redundancy), C (security), E (error/state); the existing `SQL Standards` section above covers most of family D.
-
-- Reuse before writing (#21, #23): search the index for an existing endpoint, module, or formatter before adding one. Do not clone near-identical behavior.
-- Build only the requested surface (#32): if one API satisfies the requirement, ship one. No speculative scenario variants.
-- One name per concept (#8, #18): reuse the project's existing field names; never introduce `phone` where the code already says `mobile`. Keep request and response field names identical.
-- Centralize, do not scatter (#4, #16): reference shared status-code and constant definitions instead of inlining raw `500`/`400` literals or magic values.
-- Never swallow errors (#13): no empty `catch`/`except: pass`; handle, wrap with context, or rethrow.
-- Authorize every access (#12, #31): check ownership and role in the query and handler; recompute price/amount server-side before payment — never trust client-supplied amounts.
-- Secure randomness and no backdoors (#28, #29): CSPRNG for tokens/codes; secrets from config, never hardcoded.
-- Confirm state and JSON contracts before coding (#7, #19): use the state set and response envelope fixed by `arc:clarify`; do not invent new shapes mid-implementation.
-- Execution integrity (#34, #35, #36): keep the project runnable — verify after meaningful changes (`Arc/scripts/verify-project.sh`); leave no placeholders or half-migrated call sites and report residual work honestly (`check-placeholders.sh`, `check-completion.sh`); never run unreviewed project-wide `sed -i`/`find -exec sed` rewrites — ensure a rollback checkpoint and edit directory-by-directory (`check-destructive.sh`).
+- Requested behavior is implemented without speculative extra surface.
+- Existing contracts, names, state shapes, and response envelopes are preserved unless explicitly changed.
+- Security-sensitive work checks authz, ownership, server-side amount/price computation, and secret handling.
+- Data writes check business success, not just execution success.
+- No placeholders, half-migrated call sites, or knowingly broken builds remain.
+- Lark delivery status and `task_base` are recorded via `.lark.json` only when Lark is active.
 
 ## Expert Standards
 
-- Definition of Done (`DoD`) is explicit for behavior, tests, and documentation.
-- Version-impacting changes consider `SemVer` compatibility.
-- Contract-sensitive changes include `Contract Test` or equivalent verification when practical.
-- Reliability-sensitive changes mention `RTO/RPO` implications when relevant.
-- Dependency or packaging changes consider `SBOM`/supply-chain impact.
+- Definition of Done (`DoD`) covers behavior, tests, and documentation.
+- Compatibility-impacting changes consider `SemVer`.
+- Contract-sensitive changes include a `Contract Test` or equivalent check when practical.
+- Reliability-sensitive changes mention `RTO/RPO` only when actually relevant.
+- Dependency changes consider `SBOM` and supply-chain risk.
 
 ## Scripts & Commands
 
-No dedicated Arc runtime scripts. Use the project's own build, lint, test, and typecheck commands.
+Use project-native build, lint, test, typecheck, and migration commands. Use `Arc/scripts/verify-project.sh` and related guard scripts only when they fit the target project.
 
 ## Red Flags
 
 - Editing before understanding existing patterns.
-- Expanding scope opportunistically.
-- Skipping verification without saying why.
-- Suppressing type, lint, or test failures instead of fixing root causes.
-- Cloning a near-identical endpoint or formatter instead of reusing an existing one (#21, #23).
-- Inventing speculative APIs the requirement never asked for (#32).
-- Trusting a client-supplied price, amount, or identifier without server-side authorization (#12, #31).
+- Duplicating existing endpoints, helpers, formatters, or constants.
+- Adding speculative APIs or states.
+- Skipping verification silently.
+- Updating Lark delivery resources directly instead of through `arc:docs`.
+- Completing a Lark-active feature while the `task_base` row is missing or stale.
 
 ## When to Use
 
 - **Preferred Trigger**: The user asks to implement a known change or approved plan.
-- **Typical Scenario**: Feature work, refactor, migration, documentation sync, or small project automation.
+- **Typical Scenario**: Feature work, refactor, migration, documentation sync, or small automation.
 - **Boundary Tip**: Use `arc:fix` for failure-first work and `arc:clarify` for underspecified work.
 
 ## Input Arguments
@@ -150,8 +111,8 @@ No dedicated Arc runtime scripts. Use the project's own build, lint, test, and t
 |---|---|---|---|
 | `project_path` | string | yes | Target repository root |
 | `task` | string | yes | Implementation goal |
-| `scope` | string | no | Files/modules expected to change |
-| `verification` | string | no | Expected test/lint/build command |
+| `scope` | string | no | Expected files or modules |
+| `verification` | string | no | Expected test, lint, build, or typecheck |
 
 ## Outputs
 
@@ -161,5 +122,5 @@ Build Handoff
 - Files touched
 - Verification run
 - Residual risks
-- Suggested next step, if any
+- Lark / .lark.json / task_base handoff, if applicable
 ```

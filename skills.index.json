@@ -1,32 +1,32 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-06-03T05:24:33.681130Z",
-  "skill_count": 8,
+  "generated_at": "2026-06-04T19:46:50.360940Z",
+  "skill_count": 7,
   "skills": [
     {
       "name": "arc:audit",
-      "description": "项目体检：只读评估代码质量、架构风险与测试缺口，输出证据化发现与改进建议。",
+      "description": "Project audit.",
       "source_path": "Arc/arc:audit/SKILL.md",
       "sections": [
         {
           "heading": "## Overview",
           "title": "Overview",
-          "body": "`arc:audit` is a read-only review skill. It identifies risks, evidence, and pragmatic improvements. It does not generate dashboards, scores, release gates, or implementation patches by itself."
+          "body": "`arc:audit` performs read-only engineering review. It reports evidence-backed risks and recommendations only; it does not patch code or create Lark resources directly."
         },
         {
           "heading": "## Quick Contract",
           "title": "Quick Contract",
-          "body": "- **Trigger**: The user asks for code review, health check, technical audit, architecture review, or risk assessment.\n- **Inputs**: Project path, review scope, risk focus, and optional changed files.\n- **Outputs**: Findings ordered by severity, evidence references, and actionable recommendations.\n- **Quality Gate**: Each finding is backed by concrete evidence or explicitly marked as an assumption.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+          "body": "- **Trigger**: The user asks for review, health check, risk assessment, architecture review, or release readiness.\n- **Inputs**: Project path, scope, risk focus, optional changed files.\n- **Outputs**: Severity-ordered findings, evidence, impact, recommendations, and optional Lark handoff.\n- **Quality Gate**: Every finding has concrete evidence or is explicitly marked as an assumption.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
         },
         {
           "heading": "## Routing Matrix",
           "title": "Routing Matrix",
-          "body": "- Use `arc:build` if the user wants changes implemented after the audit.\n- Use `arc:fix` if a concrete failure is already known.\n- Use `arc:clarify` if audit scope is too vague.\n- Use external domain skills for specialized audits outside engineering quality."
+          "body": "- Use `arc:clarify` if audit scope is vague.\n- Use `arc:fix` if a concrete failure is already known.\n- Use `arc:build` only if the user asks to implement fixes.\n- Use `arc:docs` only when Lark is active for audit reports, risk Base rows, remediation tasks, approval gates, or `.lark.json.lifecycle[]`."
         },
         {
           "heading": "## Context Search",
           "title": "Context Search",
-          "body": "- Use `.ai-code-index/search.sh \"query\"` as the first choice for relevant code paths, architecture boundaries, tests, and dependency usage.\n- If the index is missing or stale, run `.ai-code-index/reindex.sh`.\n- Use `.ai-code-index/struct-search.sh` for risky code shapes and `.ai-code-index/symbols.sh` for definitions or symbol inventory.\n- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient."
+          "body": "- MUST use `.ai-code-index/search.sh` first for relevant code paths, tests, dependencies, and architecture boundaries.\n- MUST use `.ai-code-index/struct-search.sh` for risky code shapes when relevant.\n- If `.lark.json` exists, MUST read it before reporting prior risks, tasks, approvals, and audit records."
         },
         {
           "heading": "## Announce",
@@ -36,59 +36,59 @@
         {
           "heading": "## The Iron Law",
           "title": "The Iron Law",
-          "body": "```text\nNO FINDING WITHOUT EVIDENCE.\n```"
+          "body": "```text\nNO FINDING WITHOUT EVIDENCE.\nNO CODE EDIT DURING AUDIT.\nNO LARK AUDIT UPDATE OUTSIDE arc:docs.\n```"
+        },
+        {
+          "heading": "## Hard Constraints",
+          "title": "Hard Constraints",
+          "body": "- MUST remain read-only unless the user explicitly changes the task to implementation.\n- MUST inspect the project before giving findings.\n- MUST order findings by severity.\n- MUST include file path, command output, config, behavior, or other evidence for each confirmed issue.\n- MUST mark inferred risks as assumptions.\n- MUST route all Lark audit/risk/task/approval updates through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- NEVER present preferences as defects.\n- NEVER hide uncertainty behind numeric scores."
         },
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. Confirm review scope and constraints.\n2. Inspect structure, dependencies, critical paths, tests, and recent changes.\n3. Identify findings with severity and file references.\n4. Separate confirmed issues from residual risks and assumptions.\n5. Recommend the smallest useful remediation path."
-        },
-        {
-          "heading": "## Code Rot Gates",
-          "title": "Code Rot Gates",
-          "body": "Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Use all 36 items as the review rubric — this skill owns the complete catalog. Walk the six families and produce evidence-backed findings per family:\n\n- A — Convention drift: naming (`phone`/`mobile`), error-code type, JSON nesting, Redis keys, pagination, timezone, logging spec (#1,2,8,16,18,19,22,24,33).\n- B — Redundancy & dead code: unused symbols/deps, competing logging libs, duplicate endpoints, re-implemented helpers, over-design (#9,14,15,17,20,21,23,32).\n- C — Security: horizontal/vertical authz, brute-force protection, predictable RNG, hardcoded backdoors, zero-amount purchase (#6,12,28,29,30,31).\n- D — Data layer: soft-delete consistency, N+1/slow queries, JSONB misuse, raw-SQL/ORM mixing, unbounded lists, unindexed `LIKE` (#3,5,10,11,24,25,26).\n- E — Error & state: scattered status codes, unstable state machines, swallowed exceptions, races (#4,7,13,27).\n- F — AI execution integrity: half-finished refactors reported as done, leftover placeholders, build left broken (#34,35,36).\n\nReport each finding with a file/line reference or command output; mark anything inferred as an assumption."
+          "body": "1. Confirm scope, constraints, and risk focus.\n2. Inspect structure, dependencies, critical paths, tests, and recent changes.\n3. Check the 36-item code-rot taxonomy in [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md).\n4. Produce severity-ordered findings with evidence and recommended action.\n5. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with findings, risk rows, tasks, and approval needs."
         },
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Findings are ordered by severity.\n- Each finding includes a file, command output, config, or behavioral evidence when possible.\n- Recommendations are actionable and scoped.\n- The audit remains read-only unless the user explicitly asks for implementation."
+          "body": "- Findings lead the report; summary is secondary.\n- Each confirmed finding has concrete evidence.\n- Recommendations are scoped and actionable.\n- Security, data-layer, state, dependency, and test risks are considered when relevant.\n- Lark audit state is linked through `.lark.json` only when Lark is active."
         },
         {
           "heading": "## Expert Standards",
           "title": "Expert Standards",
-          "body": "- Business impact is described with `Business Maturity` where relevant.\n- Dependency and maintenance risks include `Dependency Health` considerations.\n- Significant findings can be summarized as an `Expert Review Card`.\n- If scoring is useful, keep it lightweight and avoid pretending precision; a compact `9 Tab` style summary is acceptable only when evidence supports it."
+          "body": "- Business impact is described with `Business Maturity` when relevant.\n- Dependency risk uses `Dependency Health`.\n- Major findings can be summarized as an `Expert Review Card`.\n- If scoring is useful, use a compact `9 Tab` summary only when evidence supports it."
         },
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "No dedicated Arc runtime scripts. Use `.ai-code-index/` for repository context search, then repository-native inspection commands, tests, package managers, and static analysis tools when available."
+          "body": "No dedicated runtime scripts. Use `.ai-code-index/`, project-native inspection commands, tests, package managers, and static analysis tools."
         },
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Producing generic advice without inspecting the project.\n- Treating preferences as defects.\n- Hiding uncertainty behind numeric scores.\n- Implementing fixes during a read-only audit without permission.\n- Reporting only style nits while missing a family-C security finding (authz, 0元购, backdoor) (#12,29,31)."
+          "body": "- Generic advice without inspection.\n- Style nits hiding security, data, state, or test risk.\n- Fixing code during read-only review.\n- Audit report created in Lark but missing from `.lark.json`."
         },
         {
           "heading": "## When to Use",
           "title": "When to Use",
-          "body": "- **Preferred Trigger**: The user asks whether a codebase, PR, architecture, or module is healthy or risky.\n- **Typical Scenario**: Pre-refactor assessment, takeover review, release readiness discussion, or quality gap analysis.\n- **Boundary Tip**: Use `arc:build` for implementation and `arc:fix` for known failures."
+          "body": "- **Preferred Trigger**: The user asks whether a codebase, PR, architecture, or module is healthy or risky.\n- **Typical Scenario**: Pre-refactor assessment, takeover review, release readiness, or quality gap analysis.\n- **Boundary Tip**: Use `arc:build` for implementation and `arc:fix` for known failures."
         },
         {
           "heading": "## Input Arguments",
           "title": "Input Arguments",
-          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `project_path` | string | yes | Target repository root |\n| `scope` | string | no | Whole project, module, PR, or specific concern |\n| `risk_focus` | string | no | Architecture, security, tests, dependencies, performance, maintainability |"
+          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `project_path` | string | yes | Target repository root |\n| `scope` | string | no | Whole project, module, PR, or concern |\n| `risk_focus` | string | no | Architecture, security, tests, dependencies, performance, maintainability |"
         },
         {
           "heading": "## Outputs",
           "title": "Outputs",
-          "body": "```text\nAudit Report\n- Findings by severity\n- Evidence\n- Impact\n- Recommendation\n- Residual risks\n```"
+          "body": "```text\nAudit Report\n- Findings by severity\n- Evidence\n- Impact\n- Recommendation\n- Residual risks\n- Lark / .lark.json handoff, if applicable\n```"
         }
       ],
       "quick_contract": {
-        "trigger": "The user asks for code review, health check, technical audit, architecture review, or risk assessment.",
-        "inputs": "Project path, review scope, risk focus, and optional changed files.",
-        "outputs": "Findings ordered by severity, evidence references, and actionable recommendations.",
-        "quality_gate": "Each finding is backed by concrete evidence or explicitly marked as an assumption.",
+        "trigger": "The user asks for review, health check, risk assessment, architecture review, or release readiness.",
+        "inputs": "Project path, scope, risk focus, optional changed files.",
+        "outputs": "Severity-ordered findings, evidence, impact, recommendations, and optional Lark handoff.",
+        "quality_gate": "Every finding has concrete evidence or is explicitly marked as an assumption.",
         "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
       },
       "input_arguments": [
@@ -102,7 +102,7 @@
           "parameter": "scope",
           "type": "string",
           "required": "no",
-          "description": "Whole project, module, PR, or specific concern"
+          "description": "Whole project, module, PR, or concern"
         },
         {
           "parameter": "risk_focus",
@@ -113,33 +113,33 @@
       ],
       "outputs_section": {
         "format": "text",
-        "content": "Audit Report\n- Findings by severity\n- Evidence\n- Impact\n- Recommendation\n- Residual risks"
+        "content": "Audit Report\n- Findings by severity\n- Evidence\n- Impact\n- Recommendation\n- Residual risks\n- Lark / .lark.json handoff, if applicable"
       }
     },
     {
       "name": "arc:build",
-      "description": "代码交付：实施代码变更、运行验证并输出结果。",
+      "description": "Code delivery.",
       "source_path": "Arc/arc:build/SKILL.md",
       "sections": [
         {
           "heading": "## Overview",
           "title": "Overview",
-          "body": "`arc:build` is the lean implementation skill. It guides concrete code changes, verification, and handoff. It does not own planning infrastructure, indexes, E2E frameworks, or release gates."
+          "body": "`arc:build` implements scoped project changes and verifies them. It does not clarify vague work, fix unknown failures, or update Lark resources directly."
         },
         {
           "heading": "## Quick Contract",
           "title": "Quick Contract",
-          "body": "- **Trigger**: The task is implementation-ready and code or project files should be changed.\n- **Inputs**: Clear task, scope, target repository, constraints, and expected verification.\n- **Outputs**: Code changes, verification evidence, and a concise change summary.\n- **Quality Gate**: The change is scoped, verified, and explainable.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+          "body": "- **Trigger**: The task is implementation-ready and files should change.\n- **Inputs**: Project path, task, scope, constraints, expected verification.\n- **Outputs**: Code changes, verification evidence, risks, and optional Lark handoff.\n- **Quality Gate**: The change is minimal, verified, and explainable.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
         },
         {
           "heading": "## Routing Matrix",
           "title": "Routing Matrix",
-          "body": "- Use `arc:clarify` first if scope or acceptance criteria are unclear.\n- Use `arc:fix` instead when the primary input is a failure report or incident.\n- Use `arc:audit` after implementation if the user wants a read-only quality review.\n- Use `.ai-code-index/` local search helpers for repository search and context discovery; use `aitask` for cross-agent task ownership."
+          "body": "- Use `arc:clarify` first if scope or acceptance criteria are unclear.\n- Use `arc:fix` when the primary input is a failure, incident, or failing check.\n- Use `arc:frontend` for frontend baseline or UI lifecycle work.\n- Use `arc:docs` only when Lark is active for delivery notes, `task_base` feature status, progress Base, Drive artifacts, or `.lark.json.lifecycle[]`.\n- Use `arc:audit` after delivery for read-only review."
         },
         {
           "heading": "## Context Search",
           "title": "Context Search",
-          "body": "- Before editing unfamiliar code, use `.ai-code-index/search.sh \"query\"` to locate relevant modules, flows, and symbols.\n- If the index is missing or stale, run `.ai-code-index/reindex.sh`.\n- Use `.ai-code-index/struct-search.sh` for call shapes and refactoring targets; use `.ai-code-index/symbols.sh` for definitions.\n- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient."
+          "body": "- MUST inspect existing code before editing unfamiliar files.\n- MUST use `.ai-code-index/search.sh` first for broad repository context.\n- MUST use `.ai-code-index/struct-search.sh` for structural patterns and `.ai-code-index/symbols.sh` for definitions when relevant.\n- If `.lark.json` exists, MUST read it before final handoff."
         },
         {
           "heading": "## Announce",
@@ -149,64 +149,59 @@
         {
           "heading": "## The Iron Law",
           "title": "The Iron Law",
-          "body": "```text\nNO CODE CHANGE WITHOUT SCOPE AND VERIFICATION.\n```"
+          "body": "```text\nNO CODE CHANGE WITHOUT SCOPE.\nNO DELIVERY WITHOUT VERIFICATION OR AN EXPLICIT BLOCKER.\nNO LARK DELIVERY UPDATE OUTSIDE arc:docs.\nNO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.\n```"
+        },
+        {
+          "heading": "## Hard Constraints",
+          "title": "Hard Constraints",
+          "body": "- MUST preserve unrelated user changes.\n- MUST edit the smallest viable file set.\n- MUST run targeted verification when feasible.\n- MUST report failed or skipped verification.\n- MUST route all Lark writes through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST hand off to `arc:docs` after every Lark-active tracked feature update so `task_base` records title, owner, status, related requirement, files, verification, lifecycle link, and `updated_at`.\n- MUST NOT claim a Lark-active tracked feature is complete until `task_base` is updated or the blocker is explicit.\n- NEVER broaden scope opportunistically.\n- NEVER suppress type, lint, test, or runtime failures to claim completion.\n- NEVER trust user-controlled SQL, payment, ownership, role, amount, sort field, or identifier without server-side validation."
         },
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. Inspect the relevant files and existing patterns.\n2. State the implementation approach if the change is non-trivial.\n3. Edit the smallest viable set of files.\n4. Run targeted verification first, then broader checks when appropriate.\n5. Summarize changed files, behavior, verification, and residual risks."
+          "body": "1. Confirm task, scope, and verification target.\n2. Search for existing patterns, call sites, tests, and contracts.\n3. Edit only the needed files.\n4. Run targeted verification; broaden only when risk requires it.\n5. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.\n6. Summarize changes, verification, and residual risk."
         },
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Scope remains tied to the requested outcome.\n- Existing user changes are not reverted without explicit instruction.\n- Verification commands are run when feasible; failures are reported with cause.\n- The final summary distinguishes facts, assumptions, and follow-up risk."
-        },
-        {
-          "heading": "## SQL Standards",
-          "title": "SQL Standards",
-          "body": "- Use parameterized SQL for all user-controlled values. Do not concatenate user input into SQL strings.\n- For dynamic identifiers such as sort fields, table names, or column names, use explicit whitelist mapping instead of passing raw user input.\n- Do not assume `Exec` success means business success. `err == nil` only means the statement executed without a database error.\n- For business `UPDATE` or `DELETE` statements that target a specific resource, keep the `Exec` return value and check affected rows.\n\n```go\ntag, err := store.Exec(ctx, `\n    UPDATE feedbacks\n    SET status = $2,\n        updated_at = $3\n    WHERE id = $1::uuid\n`, id, status, now)\nif err != nil {\n    return err\n}\nif tag.RowsAffected() == 0 {\n    return ErrFeedbackNotFound\n}\n```\n\n- It is acceptable to discard `Exec` results only when 0 affected rows is valid business behavior, such as inserting logs, best-effort statistics updates, idempotent cleanup, initialization SQL, or code paths that have already proven the target exists.\n- When updated data is needed after a write, prefer `UPDATE ... RETURNING ...` or `INSERT ... RETURNING ...` with `QueryRow(...).Scan(...)`.\n- Avoid `SELECT *` in application code. Select explicit columns and keep the `Scan` order aligned with the SQL column order.\n- Handle `NULL` deliberately. Do not conflate SQL `NULL` with Go zero values unless the business model says they are equivalent.\n- Use stable ordering for pagination, usually with a deterministic tie-breaker such as `ORDER BY created_at DESC, id DESC`.\n- Keep soft-delete filters consistent. Queries, updates, statistics, and details that should ignore deleted rows must include the same `deleted_at IS NULL` style condition.\n- Maintain timestamp fields consistently. Use either database time such as `NOW()` or one application-side `now` value per operation; avoid mixing both in one workflow.\n- Use transactions when multiple SQL statements must succeed or fail together.\n- Encode state transitions in the `WHERE` clause when concurrency matters, then check affected rows.\n\n```sql\nUPDATE orders\nSET status = 'paid',\n    paid_at = $2,\n    updated_at = $2\nWHERE id = $1\n  AND status = 'pending'\n```\n\n- Enforce uniqueness and referential integrity in the database with constraints, then translate database errors into business errors such as already exists, not found, invalid reference, or conflict.\n- Cast structured parameters explicitly when needed, for example `$1::uuid` or `$2::jsonb`, and validate serialized JSON before passing it to the database.\n- Be careful with unconditional `UPDATE` and `DELETE`. Business writes should normally be bounded by primary key, tenant, owner, status, or another explicit scope."
-        },
-        {
-          "heading": "## Code Rot Gates",
-          "title": "Code Rot Gates",
-          "body": "Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). At implementation time this skill prevents families A (convention drift), B (redundancy), C (security), E (error/state); the existing `SQL Standards` section above covers most of family D.\n\n- Reuse before writing (#21, #23): search the index for an existing endpoint, module, or formatter before adding one. Do not clone near-identical behavior.\n- Build only the requested surface (#32): if one API satisfies the requirement, ship one. No speculative scenario variants.\n- One name per concept (#8, #18): reuse the project's existing field names; never introduce `phone` where the code already says `mobile`. Keep request and response field names identical.\n- Centralize, do not scatter (#4, #16): reference shared status-code and constant definitions instead of inlining raw `500`/`400` literals or magic values.\n- Never swallow errors (#13): no empty `catch`/`except: pass`; handle, wrap with context, or rethrow.\n- Authorize every access (#12, #31): check ownership and role in the query and handler; recompute price/amount server-side before payment — never trust client-supplied amounts.\n- Secure randomness and no backdoors (#28, #29): CSPRNG for tokens/codes; secrets from config, never hardcoded.\n- Confirm state and JSON contracts before coding (#7, #19): use the state set and response envelope fixed by `arc:clarify`; do not invent new shapes mid-implementation.\n- Execution integrity (#34, #35, #36): keep the project runnable — verify after meaningful changes (`Arc/scripts/verify-project.sh`); leave no placeholders or half-migrated call sites and report residual work honestly (`check-placeholders.sh`, `check-completion.sh`); never run unreviewed project-wide `sed -i`/`find -exec sed` rewrites — ensure a rollback checkpoint and edit directory-by-directory (`check-destructive.sh`)."
+          "body": "- Requested behavior is implemented without speculative extra surface.\n- Existing contracts, names, state shapes, and response envelopes are preserved unless explicitly changed.\n- Security-sensitive work checks authz, ownership, server-side amount/price computation, and secret handling.\n- Data writes check business success, not just execution success.\n- No placeholders, half-migrated call sites, or knowingly broken builds remain.\n- Lark delivery status and `task_base` are recorded via `.lark.json` only when Lark is active."
         },
         {
           "heading": "## Expert Standards",
           "title": "Expert Standards",
-          "body": "- Definition of Done (`DoD`) is explicit for behavior, tests, and documentation.\n- Version-impacting changes consider `SemVer` compatibility.\n- Contract-sensitive changes include `Contract Test` or equivalent verification when practical.\n- Reliability-sensitive changes mention `RTO/RPO` implications when relevant.\n- Dependency or packaging changes consider `SBOM`/supply-chain impact."
+          "body": "- Definition of Done (`DoD`) covers behavior, tests, and documentation.\n- Compatibility-impacting changes consider `SemVer`.\n- Contract-sensitive changes include a `Contract Test` or equivalent check when practical.\n- Reliability-sensitive changes mention `RTO/RPO` only when actually relevant.\n- Dependency changes consider `SBOM` and supply-chain risk."
         },
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "No dedicated Arc runtime scripts. Use the project's own build, lint, test, and typecheck commands."
+          "body": "Use project-native build, lint, test, typecheck, and migration commands. Use `Arc/scripts/verify-project.sh` and related guard scripts only when they fit the target project."
         },
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Editing before understanding existing patterns.\n- Expanding scope opportunistically.\n- Skipping verification without saying why.\n- Suppressing type, lint, or test failures instead of fixing root causes.\n- Cloning a near-identical endpoint or formatter instead of reusing an existing one (#21, #23).\n- Inventing speculative APIs the requirement never asked for (#32).\n- Trusting a client-supplied price, amount, or identifier without server-side authorization (#12, #31)."
+          "body": "- Editing before understanding existing patterns.\n- Duplicating existing endpoints, helpers, formatters, or constants.\n- Adding speculative APIs or states.\n- Skipping verification silently.\n- Updating Lark delivery resources directly instead of through `arc:docs`.\n- Completing a Lark-active feature while the `task_base` row is missing or stale."
         },
         {
           "heading": "## When to Use",
           "title": "When to Use",
-          "body": "- **Preferred Trigger**: The user asks to implement a known change or approved plan.\n- **Typical Scenario**: Feature work, refactor, migration, documentation sync, or small project automation.\n- **Boundary Tip**: Use `arc:fix` for failure-first work and `arc:clarify` for underspecified work."
+          "body": "- **Preferred Trigger**: The user asks to implement a known change or approved plan.\n- **Typical Scenario**: Feature work, refactor, migration, documentation sync, or small automation.\n- **Boundary Tip**: Use `arc:fix` for failure-first work and `arc:clarify` for underspecified work."
         },
         {
           "heading": "## Input Arguments",
           "title": "Input Arguments",
-          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `project_path` | string | yes | Target repository root |\n| `task` | string | yes | Implementation goal |\n| `scope` | string | no | Files/modules expected to change |\n| `verification` | string | no | Expected test/lint/build command |"
+          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `project_path` | string | yes | Target repository root |\n| `task` | string | yes | Implementation goal |\n| `scope` | string | no | Expected files or modules |\n| `verification` | string | no | Expected test, lint, build, or typecheck |"
         },
         {
           "heading": "## Outputs",
           "title": "Outputs",
-          "body": "```text\nBuild Handoff\n- What changed\n- Files touched\n- Verification run\n- Residual risks\n- Suggested next step, if any\n```"
+          "body": "```text\nBuild Handoff\n- What changed\n- Files touched\n- Verification run\n- Residual risks\n- Lark / .lark.json / task_base handoff, if applicable\n```"
         }
       ],
       "quick_contract": {
-        "trigger": "The task is implementation-ready and code or project files should be changed.",
-        "inputs": "Clear task, scope, target repository, constraints, and expected verification.",
-        "outputs": "Code changes, verification evidence, and a concise change summary.",
-        "quality_gate": "The change is scoped, verified, and explainable.",
+        "trigger": "The task is implementation-ready and files should change.",
+        "inputs": "Project path, task, scope, constraints, expected verification.",
+        "outputs": "Code changes, verification evidence, risks, and optional Lark handoff.",
+        "quality_gate": "The change is minimal, verified, and explainable.",
         "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
       },
       "input_arguments": [
@@ -226,44 +221,44 @@
           "parameter": "scope",
           "type": "string",
           "required": "no",
-          "description": "Files/modules expected to change"
+          "description": "Expected files or modules"
         },
         {
           "parameter": "verification",
           "type": "string",
           "required": "no",
-          "description": "Expected test/lint/build command"
+          "description": "Expected test, lint, build, or typecheck"
         }
       ],
       "outputs_section": {
         "format": "text",
-        "content": "Build Handoff\n- What changed\n- Files touched\n- Verification run\n- Residual risks\n- Suggested next step, if any"
+        "content": "Build Handoff\n- What changed\n- Files touched\n- Verification run\n- Residual risks\n- Lark / .lark.json / task_base handoff, if applicable"
       }
     },
     {
       "name": "arc:clarify",
-      "description": "需求澄清：将模糊需求转为可执行任务说明。",
+      "description": "Requirement clarification.",
       "source_path": "Arc/arc:clarify/SKILL.md",
       "sections": [
         {
           "heading": "## Overview",
           "title": "Overview",
-          "body": "`arc:clarify` turns vague requests into executable task briefs. It is intentionally lightweight and does not orchestrate agents, update indexes, or write long-running state. Use local `.ai-code-index/` search helpers for repository context and `aitask` only for task coordination."
+          "body": "`arc:clarify` turns vague work into an executable task brief. It does not implement, plan a whole project, or write Lark resources directly."
         },
         {
           "heading": "## Quick Contract",
           "title": "Quick Contract",
-          "body": "- **Trigger**: The request is ambiguous, underspecified, or missing acceptance criteria.\n- **Inputs**: User request, working directory, known constraints, relevant files or context provided by the user.\n- **Outputs**: A concise task brief with context, scope, constraints, assumptions, open questions, and success criteria.\n- **Quality Gate**: A downstream engineer can start work without guessing the intended outcome.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+          "body": "- **Trigger**: Scope, context, constraints, or acceptance criteria are unclear.\n- **Inputs**: User request, workdir, known context, relevant files, optional `.lark.json`.\n- **Outputs**: Task brief with scope, constraints, assumptions, questions, and success criteria.\n- **Quality Gate**: A downstream engineer can start without guessing.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
         },
         {
           "heading": "## Routing Matrix",
           "title": "Routing Matrix",
-          "body": "- Use `arc:build` after clarification when code changes are ready.\n- Use `arc:audit` after clarification when the user wants read-only assessment.\n- Use `aitask` instead when the main problem is coordination, ownership, Inbox, memory, or cross-agent workflow."
+          "body": "- Use `arc:docs` only when Lark is active and clarified requirements must update Lark Docx, Base, `task_base`, or `.lark.json.lifecycle[]`.\n- Use `arc:build` once the task is executable.\n- Use `arc:audit` for read-only assessment.\n- Use `aitask` only for cross-agent ownership or coordination."
         },
         {
           "heading": "## Context Search",
           "title": "Context Search",
-          "body": "- When repository context is needed, first use `.ai-code-index/search.sh \"query\"` after confirming the index is current.\n- If there is no local index or results look stale, run `.ai-code-index/reindex.sh`.\n- Use `.ai-code-index/struct-search.sh` for syntax patterns and `.ai-code-index/symbols.sh` for definitions.\n- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient."
+          "body": "- MUST inspect available local context before asking broad questions.\n- MUST use `.ai-code-index/search.sh` first for repository context; use `rg` only for narrow exact follow-up.\n- If `.lark.json` exists, MUST read it before finalizing the brief."
         },
         {
           "heading": "## Announce",
@@ -273,59 +268,59 @@
         {
           "heading": "## The Iron Law",
           "title": "The Iron Law",
-          "body": "```text\nNO EXECUTION WITHOUT CONTEXT, CONSTRAINTS, AND SUCCESS CRITERIA.\n```"
+          "body": "```text\nNO EXECUTION WITHOUT CONTEXT, CONSTRAINTS, AND SUCCESS CRITERIA.\nNO LARK REQUIREMENT UPDATE OUTSIDE arc:docs.\nNO LARK-ACTIVE FEATURE REQUIREMENT WITHOUT task_base ROW.\n```"
+        },
+        {
+          "heading": "## Hard Constraints",
+          "title": "Hard Constraints",
+          "body": "- MUST separate facts, assumptions, and open questions.\n- MUST ask only blocking questions.\n- MUST define in-scope and out-of-scope work.\n- MUST use `Given-When-Then` when behavior must be tested.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST hand off Lark-active feature requirements to `arc:docs` so `task_base` is created or updated before delivery starts.\n- NEVER expand the requested surface speculatively."
         },
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. Restate the user goal in concrete terms.\n2. Identify scope boundaries: files, modules, users, environments, and excluded work.\n3. Identify constraints: compatibility, security, performance, timeline, style, and verification expectations.\n4. Surface assumptions and high-impact unknowns.\n5. Ask only the minimum necessary questions if execution would otherwise be risky.\n6. Produce a task brief that can feed directly into implementation or audit."
-        },
-        {
-          "heading": "## Code Rot Gates",
-          "title": "Code Rot Gates",
-          "body": "Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Clarification is where two whole-project rot sources are cut off at the root:\n\n- Prune to the minimum surface (#32): translate the request into the smallest API/feature set that satisfies it. If the requirement is one endpoint, the brief specifies one — flag any speculative scenario expansion as out of scope.\n- Fix the state contract up front (#7): when the feature has states, enumerate the full state set and legal transitions in the brief so implementation does not let it drift 8 → 10 → 7 later.\n- Pin shared contracts (#2, #18, #19): name the canonical field names, the error-code type (`int` vs `string`), and the response envelope shape in the brief so downstream work cannot diverge."
+          "body": "1. Restate the goal in concrete terms.\n2. Inspect repository and `.lark.json` context when available.\n3. Define scope, constraints, assumptions, and success criteria.\n4. Ask only remaining blocking questions.\n5. Produce the brief.\n6. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with requirement, acceptance criteria, task owner/status, and resource keys to update."
         },
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- The brief includes `Context`, `Task`, `Scope`, `Constraints`, and `Success Criteria`.\n- Ambiguous terms are resolved or explicitly marked as open questions.\n- Assumptions are separated from facts.\n- The output does not create artificial process overhead."
+          "body": "- Brief includes `Context`, `Task`, `Scope`, `Constraints`, `Assumptions`, `Open Questions`, and `Success Criteria`.\n- Ambiguous terms are resolved or explicitly open.\n- Acceptance criteria are testable.\n- Lark requirement and `task_base` updates are linked through `.lark.json` via `arc:docs` only when Lark is active."
         },
         {
           "heading": "## Expert Standards",
           "title": "Expert Standards",
-          "body": "- Requirements quality follows `IEEE 29148`: complete, consistent, verifiable, and traceable.\n- User stories should satisfy `INVEST` where relevant.\n- Acceptance criteria should use `Given-When-Then` when behavior needs verification."
+          "body": "- Requirements quality follows `IEEE 29148`.\n- User stories should satisfy `INVEST` when relevant.\n- Behavioral acceptance criteria use `Given-When-Then`."
         },
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "No dedicated runtime scripts. Use `.ai-code-index/` for repository search, then normal inspection tools such as `rg`, `find`, and file reads for exact follow-up."
+          "body": "No dedicated runtime scripts. Use `.ai-code-index/` for repository search and exact file reads for follow-up."
         },
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Asking many questions before reading available context.\n- Producing a vague restatement instead of executable criteria.\n- Hiding assumptions inside the task statement.\n- Turning a small clarification into a heavy planning ceremony.\n- Letting scope balloon into speculative endpoints the requirement never asked for (#32)."
+          "body": "- Asking many questions before reading available context.\n- Hiding assumptions inside the task.\n- Vague success criteria.\n- Updating Lark Base, `task_base`, Task, or Docx without `arc:docs`."
         },
         {
           "heading": "## When to Use",
           "title": "When to Use",
-          "body": "- **Preferred Trigger**: Requirements are vague or missing execution-critical context.\n- **Typical Scenario**: The user asks for a change but scope, constraints, or verification are unclear.\n- **Boundary Tip**: If the user already gave enough detail, skip this skill and proceed directly."
+          "body": "- **Preferred Trigger**: Requirements are vague or execution-critical context is missing.\n- **Typical Scenario**: The user asks for a change but scope or verification is unclear.\n- **Boundary Tip**: If the task is already clear, proceed to the appropriate execution skill."
         },
         {
           "heading": "## Input Arguments",
           "title": "Input Arguments",
-          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `request` | string | yes | Original user request |\n| `workdir` | string | no | Target project directory |\n| `known_context` | string | no | Existing constraints or files already provided |"
+          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `request` | string | yes | Original user request |\n| `workdir` | string | no | Target project directory |\n| `known_context` | string | no | Existing constraints or files |"
         },
         {
           "heading": "## Outputs",
           "title": "Outputs",
-          "body": "```text\nTask Brief\n- Context\n- Task\n- Scope\n- Constraints\n- Assumptions\n- Open Questions\n- Success Criteria\n```"
+          "body": "```text\nTask Brief\n- Context\n- Task\n- Scope\n- Constraints\n- Assumptions\n- Open Questions\n- Success Criteria\n- Lark / .lark.json / task_base handoff, if applicable\n```"
         }
       ],
       "quick_contract": {
-        "trigger": "The request is ambiguous, underspecified, or missing acceptance criteria.",
-        "inputs": "User request, working directory, known constraints, relevant files or context provided by the user.",
-        "outputs": "A concise task brief with context, scope, constraints, assumptions, open questions, and success criteria.",
-        "quality_gate": "A downstream engineer can start work without guessing the intended outcome.",
+        "trigger": "Scope, context, constraints, or acceptance criteria are unclear.",
+        "inputs": "User request, workdir, known context, relevant files, optional `.lark.json`.",
+        "outputs": "Task brief with scope, constraints, assumptions, questions, and success criteria.",
+        "quality_gate": "A downstream engineer can start without guessing.",
         "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
       },
       "input_arguments": [
@@ -345,100 +340,100 @@
           "parameter": "known_context",
           "type": "string",
           "required": "no",
-          "description": "Existing constraints or files already provided"
+          "description": "Existing constraints or files"
         }
       ],
       "outputs_section": {
         "format": "text",
-        "content": "Task Brief\n- Context\n- Task\n- Scope\n- Constraints\n- Assumptions\n- Open Questions\n- Success Criteria"
+        "content": "Task Brief\n- Context\n- Task\n- Scope\n- Constraints\n- Assumptions\n- Open Questions\n- Success Criteria\n- Lark / .lark.json / task_base handoff, if applicable"
       }
     },
     {
       "name": "arc:define",
-      "description": "项目定义：将模糊想法整理为结构化的项目/产品定义文档（PRD / Blueprint）。",
+      "description": "Project definition.",
       "source_path": "Arc/arc:define/SKILL.md",
       "sections": [
         {
           "heading": "## Overview",
           "title": "Overview",
-          "body": "`arc:define` is the project-genesis skill. It turns a vague idea or scattered notes into a structured Project Definition Document covering positioning, problem, core concepts, features, objects, flow, differentiators, and keywords. It does not write code, do task-level decomposition, or run any execution; for those, route to other Arc skills."
+          "body": "`arc:define` turns a rough product or project idea into a concrete definition or PRD. It does not implement, decompose tasks, or create Lark resources directly."
         },
         {
           "heading": "## Quick Contract",
           "title": "Quick Contract",
-          "body": "- **Trigger**: The user has a project idea, partial draft, or rough PRD that needs structuring.\n- **Inputs**: User-provided idea, target users, known constraints, optional prior notes.\n- **Outputs**: A Project Definition Document strictly following [`references/template.md`](references/template.md).\n- **Quality Gate**: Every template section is concrete, non-empty, and free of filler; gaps are explicitly listed as open questions.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+          "body": "- **Trigger**: The user needs a project definition, PRD, blueprint, or structured product concept.\n- **Inputs**: Idea, target users, constraints, optional repository, optional prior notes.\n- **Outputs**: Project Definition Document plus open questions and optional Lark handoff.\n- **Quality Gate**: Every section is concrete, named, and verifiable; unknowns stay explicit.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
         },
         {
           "heading": "## Routing Matrix",
           "title": "Routing Matrix",
-          "body": "- Use `arc:clarify` after definition when individual tasks need an executable brief.\n- Use `arc:build` when a defined feature is ready to be implemented.\n- Use `arc:audit` when an existing project's definition or scope needs read-only review.\n- Use `aitask` when the genesis work needs cross-agent coordination or persisted memory."
+          "body": "- Use `arc:docs` only when Lark is active or the user confirms Lark for PRD, project home, Wiki node, or `.lark.json` entry.\n- Use `arc:clarify` for task-level acceptance criteria after the project is defined.\n- Use `arc:build` only after scope is implementation-ready.\n- Use `arc:audit` for read-only review of an existing definition."
         },
         {
           "heading": "## Context Search",
           "title": "Context Search",
-          "body": "- For brownfield projects, first run `.ai-code-index/search.sh \"query\"` to surface existing modules, naming, and domain language before drafting the definition.\n- If the index is missing or stale, run `.ai-code-index/reindex.sh`.\n- Use `.ai-code-index/symbols.sh` to extract the project's real entity names instead of inventing new ones.\n- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient."
+          "body": "- For brownfield work, MUST search existing terms first with `.ai-code-index/search.sh`, then `.ai-code-index/symbols.sh` if entity names matter.\n- If `.lark.json` exists, MUST read it before drafting so PRD, owners, requirements, and Wiki links remain consistent."
         },
         {
           "heading": "## Announce",
           "title": "Announce",
-          "body": "Begin by stating clearly:\n\"I am using `arc:define` to produce a structured project definition document.\""
+          "body": "Begin by stating clearly:\n\"I am using `arc:define` to produce a structured project definition.\""
         },
         {
           "heading": "## The Iron Law",
           "title": "The Iron Law",
-          "body": "```text\nNO SECTION WITHOUT A CONCRETE CONCEPT.\n```"
+          "body": "```text\nNO GENERIC PRD.\nNO INVENTED DOMAIN TERMS IN A BROWNFIELD PROJECT.\nNO PASSIVE LARK PRD OR .lark.json CREATION.\n```"
+        },
+        {
+          "heading": "## Hard Constraints",
+          "title": "Hard Constraints",
+          "body": "- MUST follow [`references/template.md`](references/template.md) section order unless the user explicitly provides another required format.\n- MUST use one canonical name per domain concept.\n- MUST mark missing facts as open questions; NEVER fill gaps with filler.\n- MUST route through `arc:docs` for all active Lark writes and `.lark.json.resources.prd` updates.\n- MUST ask once whether to enable Lark only when the user asks for collaborative project docs/tracking but does not mention Lark.\n- MUST NOT create `.lark.json` when Lark is inactive.\n- NEVER turn project definition into task planning, code design, or implementation."
         },
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. Restate the user's idea in one or two sentences to confirm intent.\n2. Map the idea onto each section of [`references/template.md`](references/template.md).\n3. Fill known sections directly; mark unknowns as open questions rather than guessing.\n4. Force each section past filler: positioning ≠ \"全方位 / 一站式\"; core concept ≠ a feature list.\n5. Iterate with the user only on the smallest set of gaps blocking the definition.\n6. Deliver the final document in the template's exact section order."
-        },
-        {
-          "heading": "## Code Rot Gates",
-          "title": "Code Rot Gates",
-          "body": "Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Genesis is where naming drift is prevented before any code exists:\n\n- Establish one ubiquitous term per concept (#8, #18): in \"主要对象\", name each domain entity once and commit to it (`phone` or `mobile`, not both). Everything downstream reuses these names for fields, params, and responses.\n- For brownfield projects, extract the real entity names with `.ai-code-index/symbols.sh` instead of inventing synonyms that will later collide with the existing code."
+          "body": "1. Restate the idea in one concrete sentence.\n2. Extract or confirm domain terms, users, constraints, and non-goals.\n3. Fill the template with specific content only.\n4. List open questions separately.\n5. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with the PRD content and intended resource key."
         },
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Every section in `template.md` is present, in order, and non-empty.\n- \"项目定位\" is 1–3 sentences and not interchangeable with another project.\n- \"核心概念\" names a metaphor or central abstraction, not a feature.\n- \"核心功能\" lists 3–6 capabilities, each verifiable from the user's perspective.\n- \"主要对象\" lists the real domain entities the system will model.\n- \"业务流程\" is expressible as a short arrow chain (`A → B → C`).\n- Open questions are listed separately and do not pollute the body."
+          "body": "- Project positioning is specific to this project.\n- Core concept is a central abstraction, not a feature list.\n- Core capabilities are 3-6 user-verifiable capabilities.\n- Main objects use existing repository vocabulary when a repository exists.\n- Business flow is a short ordered path.\n- `.lark.json.resources.prd` is updated through `arc:docs` only when Lark is active."
         },
         {
           "heading": "## Expert Standards",
           "title": "Expert Standards",
-          "body": "- Requirements quality follows `IEEE 29148`: complete, consistent, verifiable.\n- Concept framing uses a `Domain-Driven Design` lens — name the ubiquitous language.\n- Differentiators follow a `Positioning Statement` shape: for *who*, that *needs*, our project *does*, unlike *alternatives*.\n- Keywords serve discoverability, not marketing; prefer concrete domain terms over hype."
+          "body": "- Requirements quality follows `IEEE 29148`.\n- Naming uses `Domain-Driven Design` ubiquitous language.\n- Differentiation follows a `Positioning Statement`: for whom, what need, what product, why different."
         },
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "No dedicated runtime scripts. Use `.ai-code-index/` for brownfield context, then plain Markdown editing tools. The output is a single document — do not generate side artifacts."
+          "body": "No dedicated runtime scripts. Use `.ai-code-index/` for brownfield context and plain Markdown for output."
         },
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Filling sections with \"全方位 / 智能化 / 一站式\" or other interchangeable phrasing.\n- Collapsing 核心概念 into a feature list.\n- Inventing entities that contradict an existing codebase when one exists.\n- Expanding scope into task decomposition or implementation planning — route to `arc:clarify` / `arc:build` instead.\n- Producing a parallel PRD format that diverges from `template.md`.\n- Naming one domain concept two ways across sections, seeding downstream naming drift (#8, #18)."
+          "body": "- Generic positioning such as \"all-in-one\" or \"intelligent platform\".\n- Two names for one concept.\n- Claims that contradict existing code, docs, or `.lark.json`.\n- Lark document creation outside `arc:docs`."
         },
         {
           "heading": "## When to Use",
           "title": "When to Use",
-          "body": "- **Preferred Trigger**: The user says \"梳理一下这个项目 / 写个 PRD / 把想法整理成定义 / 定义新项目\".\n- **Typical Scenario**: New project genesis, rebooting a stalled idea, aligning multiple contributors on what a project actually is.\n- **Boundary Tip**: If the user has a concrete task and only needs scope/constraints, use `arc:clarify`; this skill is for the project, not the task."
+          "body": "- **Preferred Trigger**: The user asks to define a project, write a PRD, or structure a rough idea.\n- **Typical Scenario**: New project kickoff, stalled idea reset, or contributor alignment.\n- **Boundary Tip**: Use `arc:clarify` for task briefs and `arc:build` for implementation."
         },
         {
           "heading": "## Input Arguments",
           "title": "Input Arguments",
-          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `idea` | string | yes | User's project idea or rough description |\n| `project_path` | string | no | Existing repository, for brownfield grounding |\n| `constraints` | string | no | Known constraints: users, platform, deadline, regulations |\n| `prior_notes` | string | no | Earlier drafts, slides, or chat logs to consolidate |"
+          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `idea` | string | yes | User's rough project idea |\n| `project_path` | string | no | Existing repository for grounding |\n| `constraints` | string | no | Users, platform, deadline, rules, or non-goals |\n| `prior_notes` | string | no | Drafts, slides, chat logs, or existing docs |"
         },
         {
           "heading": "## Outputs",
           "title": "Outputs",
-          "body": "```text\nProject Definition Document\n- 项目名称\n- 项目类型\n- 项目定位\n- 解决的问题\n- 核心概念\n- 核心功能\n- 主要对象\n- 业务流程\n- 项目特色\n- 项目关键词\n- Open Questions (only if any section is unresolved)\n```"
+          "body": "```text\nProject Definition Document\n- Project Name\n- Project Type\n- Project Positioning\n- Problem\n- Core Concept\n- Core Capabilities\n- Main Objects\n- Business Flow\n- Differentiators\n- Keywords\n- Open Questions\n- Lark / .lark.json handoff, if applicable\n```"
         }
       ],
       "quick_contract": {
-        "trigger": "The user has a project idea, partial draft, or rough PRD that needs structuring.",
-        "inputs": "User-provided idea, target users, known constraints, optional prior notes.",
-        "outputs": "A Project Definition Document strictly following [`references/template.md`](references/template.md).",
-        "quality_gate": "Every template section is concrete, non-empty, and free of filler; gaps are explicitly listed as open questions.",
+        "trigger": "The user needs a project definition, PRD, blueprint, or structured product concept.",
+        "inputs": "Idea, target users, constraints, optional repository, optional prior notes.",
+        "outputs": "Project Definition Document plus open questions and optional Lark handoff.",
+        "quality_gate": "Every section is concrete, named, and verifiable; unknowns stay explicit.",
         "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
       },
       "input_arguments": [
@@ -446,123 +441,254 @@
           "parameter": "idea",
           "type": "string",
           "required": "yes",
-          "description": "User's project idea or rough description"
+          "description": "User's rough project idea"
         },
         {
           "parameter": "project_path",
           "type": "string",
           "required": "no",
-          "description": "Existing repository, for brownfield grounding"
+          "description": "Existing repository for grounding"
         },
         {
           "parameter": "constraints",
           "type": "string",
           "required": "no",
-          "description": "Known constraints: users, platform, deadline, regulations"
+          "description": "Users, platform, deadline, rules, or non-goals"
         },
         {
           "parameter": "prior_notes",
           "type": "string",
           "required": "no",
-          "description": "Earlier drafts, slides, or chat logs to consolidate"
+          "description": "Drafts, slides, chat logs, or existing docs"
         }
       ],
       "outputs_section": {
         "format": "text",
-        "content": "Project Definition Document\n- 项目名称\n- 项目类型\n- 项目定位\n- 解决的问题\n- 核心概念\n- 核心功能\n- 主要对象\n- 业务流程\n- 项目特色\n- 项目关键词\n- Open Questions (only if any section is unresolved)"
+        "content": "Project Definition Document\n- Project Name\n- Project Type\n- Project Positioning\n- Problem\n- Core Concept\n- Core Capabilities\n- Main Objects\n- Business Flow\n- Differentiators\n- Keywords\n- Open Questions\n- Lark / .lark.json handoff, if applicable"
+      }
+    },
+    {
+      "name": "arc:docs",
+      "description": "Optional Lark workspace.",
+      "source_path": "Arc/arc:docs/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "`arc:docs` creates and maintains the project Lark workspace plus the project-root `.lark.json` index only when Lark is active for the project. It is the only Arc skill allowed to create or update durable Lark project resources.\n\nRead [`references/lark-index-contract.md`](references/lark-index-contract.md) when creating or changing `.lark.json`."
+        },
+        {
+          "heading": "## Quick Contract",
+          "title": "Quick Contract",
+          "body": "- **Trigger**: `.lark.json` exists, the user provides a Lark link, or the user explicitly asks to enable/create/index Lark project resources.\n- **Inputs**: Project path, project name, desired workspace scope, owners, optional existing Lark links.\n- **Outputs**: `.lark.json`, Lark resource links/IDs, local index status, lifecycle entries.\n- **Quality Gate**: Every indexed resource exists, every claim has evidence, every lifecycle event is traceable.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+        },
+        {
+          "heading": "## Routing Matrix",
+          "title": "Routing Matrix",
+          "body": "- Use `arc:define` before `arc:docs` if the PRD/project concept is missing.\n- Use `arc:clarify` before `arc:docs` if requirement acceptance criteria are missing.\n- Use `arc:build`, `arc:frontend`, `arc:fix`, or `arc:audit` for delivery, UI, repair, or review; then update `.lark.json` here only when Lark is active.\n\nLark activation:\n\n| State | Condition | Required behavior |\n|---|---|---|\n| Active existing | Project root has `.lark.json` | Read it, verify indexed resources when relevant, update through `arc:docs`. |\n| Active requested | User provides Lark URL/token or explicit trigger phrase | Ask only missing setup details, then create/index the smallest useful resource set. |\n| Candidate | User asks for project collaboration/docs/tracking but does not mention Lark | Ask once whether to enable Lark or stay local. |\n| Inactive | No `.lark.json` and no Lark trigger | Do not create Lark resources, do not create `.lark.json`, do not ask during ordinary code work. |\n\nExplicit trigger phrases include:\n\n- `启用飞书项目空间`\n- `接入飞书`\n- `创建飞书文档`\n- `创建飞书项目文档`\n- `创建飞书任务表`\n- `创建飞书仪表盘`\n- `同步到飞书`\n- `索引飞书资源`\n- `生成飞书PRD`\n- `把这个项目纳入飞书`\n- `enable Lark`\n- `create Lark workspace`\n- `create Lark docs`\n- `create Lark task table`\n- `create Lark dashboard`\n- `sync to Lark`\n\nLark resource router:\n\n| Resource | Required Lark skill | `.lark.json` key |\n|---|---|---|\n| Auth, identity, high-risk write protocol | `lark-shared` | `lark` |\n| Project home, PRD, requirements, architecture, delivery, audit, incident docs | `lark-doc` | `project_home`, `prd`, `requirements`, `architecture`, `delivery`, `audits`, `incidents` |\n| Wiki hierarchy | `lark-wiki` | `wiki_space`, `wiki_node` |\n| Structured requirements, progress, risks, traceability | `lark-base` | `progress_base`, `risk_base`, `traceability_base` |\n| Feature task table and delivery state | `lark-base` | `task_base` |\n| Dashboards from structured Base/Project data | `lark-base` | `dashboards` |\n| Personal reminders and lightweight follow-up | `lark-task` | `tasklist` |\n| Sprint board, project flow, milestones | `lark-openapi-explorer` if no dedicated Project skill exists | `lark_project` |\n| Future meetings and milestones | `lark-calendar` | `calendar`, `meetings` |\n| Live meeting participation | `lark-vc-agent` | `live_meetings` |\n| Ended meeting notes and transcripts | `lark-vc`, `lark-minutes` | `meetings`, `minutes` |\n| Project chat and notifications | `lark-im` | `im_chat` |\n| Formal external or email handoff | `lark-mail` | `mail_threads` |\n| Files, exports, attachments | `lark-drive` | `drive_folder` |\n| Architecture, flow, ER, sequence, class, use-case diagrams | `lark-whiteboard`, `lark-uml:*` | `whiteboards` |\n| Lightweight tables | `lark-sheets` | `sheets` |\n| Formal gates | `lark-approval` | `approvals` |\n| Objectives and measurable project outcomes | `lark-okr` | `okrs` |\n| Published static prototype or app | `lark-apps` | `apps` |\n| Markdown source docs | `lark-markdown` | `markdown_files` |\n| Slides and presentation handoff | `lark-slides`, `lark-uml:ppt` | `slides` |\n| Workflow summaries | `lark-workflow-meeting-summary`, `lark-workflow-standup-report` | `workflow_reports` |\n| Status automation, notifications, webhooks | `lark-base` workflow or `lark-openapi-explorer` | `workflow_automations` |\n| Real-time Lark events | `lark-event` | `event_subscriptions` |\n| Attendance/compliance evidence | `lark-attendance` | `attendance_records` |\n| Missing native API capability | `lark-openapi-explorer` | `native_openapi` |\n| Repeated custom Lark operation | `lark-skill-maker` | `custom_lark_skills` |\n| Owner and attendee IDs | `lark-contact` | resource owners |\n\nCore component boundaries:\n\n| Component | Use for | NEVER use for |\n|---|---|---|\n| Doc | PRD, technical plan, architecture narrative, meeting notes, design discussion | SDLC state machine, issue tracking, dashboard data |\n| Base | Requirement records, feature task table, Sprint data, bugs, releases, risks, traceability, dashboard source data | Long-form discussion or prose-only knowledge |\n| Tasks | Personal or small-team reminders | Feature delivery state, complex SDLC model, sprint source of truth |\n| Project | Sprint board, milestone flow, workflow-driven project progress | Knowledge archive or loose discussion |\n| Wiki | Long-term architecture/API/process archive | Active issue state or transient execution |\n| Workflow | Status transitions, approval glue, notifications, webhooks | Hidden business state or undocumented side effects |\n| Dashboard | Project health, sprint, risk, release, and quality visibility | Manual Doc summaries without structured backing data |"
+        },
+        {
+          "heading": "## Context Search",
+          "title": "Context Search",
+          "body": "- MUST inspect the project root, existing docs, `.lark.json`, and `.ai-code-index/` status first.\n- MUST use local `.ai-code-index/` search before broad repository reads.\n- MUST load `lark-shared` before any Lark write.\n- If `.lark.json` is absent and no explicit Lark trigger exists, Lark is inactive."
+        },
+        {
+          "heading": "## Announce",
+          "title": "Announce",
+          "body": "Begin by stating clearly:\n\"I am using `arc:docs` to maintain the optional Lark workspace and `.lark.json` index.\""
+        },
+        {
+          "heading": "## The Iron Law",
+          "title": "The Iron Law",
+          "body": "```text\nNO LARK PROJECT RESOURCE WITHOUT .lark.json.\nNO .lark.json ENTRY WITHOUT A REAL RESOURCE.\nNO PASSIVE .lark.json CREATION.\nNO LARK WRITE WITHOUT EXISTING INDEX, EXPLICIT TRIGGER, OR USER CONFIRMATION.\nNO CLAIM WITHOUT REPOSITORY OR USER-PROVIDED EVIDENCE.\nNO SECRET OR DOCUMENT BODY IN .lark.json.\nNO LARK-ACTIVE TRACKED FEATURE UPDATE WITHOUT task_base UPDATE.\n```"
+        },
+        {
+          "heading": "## Hard Constraints",
+          "title": "Hard Constraints",
+          "body": "- MUST choose the smallest useful Lark resource set; NEVER create every possible Lark artifact by default.\n- MUST treat projects without `.lark.json` as local-only unless the user explicitly triggers or confirms Lark.\n- MUST ask one concise enablement question only for candidate collaboration/docs/tracking work; NEVER ask during ordinary code, fix, or audit work.\n- MUST index-check existing `.lark.json` before any Lark update.\n- MUST create or update `.lark.json` at the project root for every Lark project workspace.\n- MUST store durable URLs, IDs, owners, status, and timestamps only.\n- MUST use `docs +create/+fetch/+update --api-version v2` for Lark Docx operations.\n- MUST record local code index status in `.lark.json.local_index`.\n- MUST append lifecycle events; NEVER rewrite history except to fix a broken link or factual error.\n- MUST treat `.lark.json.resources.task_base` as the structured feature task table for tracked projects.\n- MUST create or resolve `task_base` with `lark-base` before marking a Lark-active tracked feature update complete.\n- MUST update `task_base` after every Lark-active tracked feature update with title, owner, status, related requirement, changed files, verification, linked lifecycle entry, and `updated_at`.\n- MUST resolve owners/attendees through Contact when Lark IDs are required.\n- MUST use Base for structured progress/risk/traceability and Docx for narrative documents.\n- MUST use Dashboard only from structured Base or Project data; NEVER fake a dashboard with a manually written Doc summary.\n- MUST use Tasks only for lightweight execution; NEVER treat Tasks as the SDLC system of record.\n- MUST use Lark Project for sprint board, milestone flow, and process-driven project tracking when those are required.\n- MUST use Wiki for long-lived knowledge hierarchy and archival; NEVER use Wiki as active workflow state.\n- MUST use Workflow automation only as glue; the authoritative state MUST remain in Base, Project, Approval, or `.lark.json`.\n- MUST ask for confirmation through the relevant Lark skill before destructive or high-risk writes.\n- MUST use Calendar for planned meetings, VC/Minutes for ended meetings, and VC Agent only for live meeting participation.\n- MUST use IM for fast internal collaboration and Mail for formal external or inbox-based handoff.\n- MUST use Whiteboard/UML when architecture, workflow, data model, or interaction structure is easier to verify visually than in prose.\n- MUST use Approval or OKR only when there is a real gate, objective, owner, or metric to track.\n- MUST use OpenAPI Explorer only when existing `lark-*` skills cannot cover the required Lark API.\n- MUST use `lark-skill-maker` only for repeated Lark operations worth packaging as a reusable skill.\n- NEVER guess Lark URLs, tokens, table IDs, chat IDs, tasklist IDs, calendar IDs, meeting IDs, or approval IDs.\n- NEVER store access tokens, app secrets, cookies, private keys, credentials, or full document bodies in `.lark.json`."
+        },
+        {
+          "heading": "## Task Table Contract",
+          "title": "Task Table Contract",
+          "body": "`task_base` is mandatory only when Lark is active and a tracked feature is created, changed, delivered, blocked, or verified.\n\nEach feature update MUST write one current Base row with:\n\n- `title`\n- `owner`\n- `status`\n- `related_requirement`\n- `changed_files`\n- `verification`\n- `lifecycle_entry`\n- `updated_at`\n\nUse `tasklist` only for personal reminders; it cannot replace `task_base`."
+        },
+        {
+          "heading": "## Workflow",
+          "title": "Workflow",
+          "body": "1. Determine Lark state: active existing, active requested, candidate, or inactive.\n2. If inactive, stop Lark work and continue local-only.\n3. If candidate, ask whether to enable Lark or stay local.\n4. Read project instructions, existing docs, `.lark.json`, and local index status.\n5. Create or update `.lark.json` from the reference contract.\n6. Refresh local code index when needed and record status.\n7. Choose workspace scope: `minimum`, `normal`, or `full`.\n8. Select Lark tools by evidence:\n   - narrative knowledge -> Docx/Wiki;\n   - feature task state -> Base `task_base`;\n   - structured state -> Base/Project/Approval/OKR;\n   - visibility -> Dashboard backed by Base or Project;\n   - lightweight personal reminders -> Task;\n   - meetings -> Calendar/VC/Minutes/VC Agent;\n   - collaboration -> IM/Mail/Contact;\n   - artifacts -> Drive/Markdown/Sheets/Slides/Apps;\n   - visual models -> Whiteboard/UML;\n   - automation -> Workflow;\n   - missing native capability -> OpenAPI/Skill Maker.\n9. Create or resolve Lark resources through the resource router.\n10. Store each durable resource in `.lark.json.resources`.\n11. For every Lark-active tracked feature update, create or update the `task_base` row before the delivery is considered complete.\n12. Append `.lark.json.lifecycle[]` for Arc events: define, clarify, build, frontend, fix, audit, meeting follow-up.\n13. Finish with resource links, task table status, evidence used, unresolved gaps, and next lifecycle step."
+        },
+        {
+          "heading": "## Quality Gates",
+          "title": "Quality Gates",
+          "body": "- `project_home`, local index status, and project identity are present once remote docs exist.\n- No `.lark.json` is created for inactive projects.\n- Wiki, Drive, Docx, Base, Dashboard, Task, Project, Calendar, VC/Minutes, IM, Whiteboard, Sheets, Approval, Workflow, and Contact entries appear only when actually used.\n- Requirements, delivery, incidents, audits, meetings, risks, and tasks are cross-linked when more than one resource exists.\n- Dashboards reference structured source resources such as `progress_base`, `risk_base`, `traceability_base`, or `lark_project`.\n- Every Lark-active tracked feature update has a `task_base` row linked to the lifecycle entry; `tasklist` alone is never enough.\n- Thesis-support claims trace to code, SQL, routes, tests, config, or explicit source docs.\n- Every selected Lark tool has a lifecycle reason; unused \"nice to have\" resources are omitted."
+        },
+        {
+          "heading": "## Expert Standards",
+          "title": "Expert Standards",
+          "body": "- Treat the workspace as `Information Architecture`: one project home, stable hierarchy, clear ownership.\n- Maintain a `Traceability Matrix` across requirements, code, tests, risks, tasks, meetings, and handoffs when the project is non-trivial.\n- Use Lark as collaboration infrastructure: Doc for narrative, Base for structured SDLC data, Project for flow, Dashboard for visibility, Task for execution, Wiki for archive, Workflow for glue, Calendar/VC/Minutes for meetings, IM/Mail for communication, Drive for files, Whiteboard for diagrams, Approval for gates.\n- Keep `.lark.json` small, reviewable, and machine-readable."
+        },
+        {
+          "heading": "## Scripts & Commands",
+          "title": "Scripts & Commands",
+          "body": "Use project-local commands and Lark CLI through the relevant Lark skill:\n\n```bash\n.ai-code-index/reindex.sh\nlark-cli docs +create --api-version v2 --content '<title>Project Home</title>'\nlark-cli docs +update --api-version v2 --doc \"<doc-url-or-token>\" --command append --content '<p>...</p>'\n```"
+        },
+        {
+          "heading": "## Red Flags",
+          "title": "Red Flags",
+          "body": "- Lark resource created but missing from `.lark.json`.\n- `.lark.json` created without explicit trigger, existing Lark link, or user confirmation.\n- Creating a full Lark workspace when `minimum` or `normal` would satisfy the project.\n- Multiple project home docs for one repository.\n- Progress recorded only in chat.\n- Lark-active feature delivered while `task_base` is missing or stale.\n- Dashboard created without structured Base or Project source data.\n- Base treated as implementation truth without checking code.\n- Tasks used as the complex SDLC system of record.\n- Workflow automation hiding authoritative state outside Base/Project/Approval.\n- Owner, attendee, or approval data guessed."
+        },
+        {
+          "heading": "## When to Use",
+          "title": "When to Use",
+          "body": "- **Preferred Trigger**: `.lark.json` exists, the user provides a Lark link, or the user asks to connect a project to Lark, create Lark docs, maintain Lark progress, index Lark resources, or preserve Lark lifecycle state.\n- **Typical Scenario**: Kickoff, PRD handoff, requirements tracking, architecture docs, delivery notes, incident/audit records, meeting follow-up, thesis support.\n- **Boundary Tip**: Use `arc:build` for code-only delivery and `arc:fix` for failure-only repair; use this skill when documentation, collaboration, traceability, or Lark indexing is in scope."
+        },
+        {
+          "heading": "## Input Arguments",
+          "title": "Input Arguments",
+          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `project_path` | string | yes | Target repository root |\n| `project_name` | string | no | Human-readable project name |\n| `lark_home` | string | no | Existing project home URL or token |\n| `workspace_scope` | string | no | `minimum`, `normal`, or `full` |\n| `doc_scope` | string | no | PRD, requirements, architecture, progress, audit, delivery, incidents, thesis, or all |\n| `progress_mode` | enum | no | `doc`, `base`, `task`, or `none` |"
+        },
+        {
+          "heading": "## Outputs",
+          "title": "Outputs",
+          "body": "```text\nProject Documentation Handoff\n- .lark.json created or updated\n- Lark resources created or indexed\n- Feature task table updated when Lark is active\n- Local code index status\n- Lifecycle entries appended\n- Evidence sources used\n- Open gaps and next step\n```"
+        }
+      ],
+      "quick_contract": {
+        "trigger": "`.lark.json` exists, the user provides a Lark link, or the user explicitly asks to enable/create/index Lark project resources.",
+        "inputs": "Project path, project name, desired workspace scope, owners, optional existing Lark links.",
+        "outputs": "`.lark.json`, Lark resource links/IDs, local index status, lifecycle entries.",
+        "quality_gate": "Every indexed resource exists, every claim has evidence, every lifecycle event is traceable.",
+        "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+      },
+      "input_arguments": [
+        {
+          "parameter": "project_path",
+          "type": "string",
+          "required": "yes",
+          "description": "Target repository root"
+        },
+        {
+          "parameter": "project_name",
+          "type": "string",
+          "required": "no",
+          "description": "Human-readable project name"
+        },
+        {
+          "parameter": "lark_home",
+          "type": "string",
+          "required": "no",
+          "description": "Existing project home URL or token"
+        },
+        {
+          "parameter": "workspace_scope",
+          "type": "string",
+          "required": "no",
+          "description": "minimum`, `normal`, or `full"
+        },
+        {
+          "parameter": "doc_scope",
+          "type": "string",
+          "required": "no",
+          "description": "PRD, requirements, architecture, progress, audit, delivery, incidents, thesis, or all"
+        },
+        {
+          "parameter": "progress_mode",
+          "type": "enum",
+          "required": "no",
+          "description": "doc`, `base`, `task`, or `none"
+        }
+      ],
+      "outputs_section": {
+        "format": "text",
+        "content": "Project Documentation Handoff\n- .lark.json created or updated\n- Lark resources created or indexed\n- Feature task table updated when Lark is active\n- Local code index status\n- Lifecycle entries appended\n- Evidence sources used\n- Open gaps and next step"
       }
     },
     {
       "name": "arc:fix",
-      "description": "故障修复：基于失败证据定位根因，实施修复并回归验证。",
+      "description": "Failure repair.",
       "source_path": "Arc/arc:fix/SKILL.md",
       "sections": [
         {
           "heading": "## Overview",
           "title": "Overview",
-          "body": "`arc:fix` handles failure-first work. It starts from evidence, identifies root cause, applies the smallest safe fix, and verifies the failing path. It does not depend on a dedicated Arc E2E runtime."
+          "body": "`arc:fix` repairs evidence-backed failures. It starts from a failing signal, identifies root cause, applies the smallest fix, and verifies the failing path."
         },
         {
           "heading": "## Quick Contract",
           "title": "Quick Contract",
-          "body": "- **Trigger**: A bug, failed test, incident, regression, or broken user flow has evidence.\n- **Inputs**: Failure symptoms, logs, reproduction steps, failing command, screenshots, or affected files.\n- **Outputs**: Root cause, fix, verification evidence, and regression risk notes.\n- **Quality Gate**: The original failure is explained and the fix is verified or the blocker is explicit.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+          "body": "- **Trigger**: A bug, incident, regression, failing test, crash, or broken flow has evidence.\n- **Inputs**: Failure signal, expected behavior, project path, optional verification command.\n- **Outputs**: Root cause, fix, verification, risk, and optional Lark incident handoff.\n- **Quality Gate**: The original failure is explained and rechecked, or the blocker is explicit.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
         },
         {
           "heading": "## Routing Matrix",
           "title": "Routing Matrix",
-          "body": "- Use `arc:clarify` first only when the failure report lacks enough evidence to begin.\n- Use `arc:build` when the task is feature work rather than failure repair.\n- Use `arc:audit` after repair if the user wants broader quality assessment.\n- Use project-native tests, logs, browser tooling, or `agent-browser` for reproduction as appropriate."
+          "body": "- Use `arc:clarify` only if the failure report lacks enough evidence to begin.\n- Use `arc:build` when the work is planned feature delivery, not repair.\n- Use `arc:docs` only when Lark is active for incident docs, risk Base, `task_base` feature status, follow-up Task, meeting records, or `.lark.json.lifecycle[]`.\n- Use `arc:audit` after repair for broader read-only review."
         },
         {
           "heading": "## Context Search",
           "title": "Context Search",
-          "body": "- Use `.ai-code-index/search.sh \"query\"` first to locate the failure path, related tests, ownership boundaries, and likely root-cause files.\n- If the index is missing or stale, run `.ai-code-index/reindex.sh`.\n- Use `.ai-code-index/struct-search.sh` for suspicious code shapes and `.ai-code-index/symbols.sh` for definitions.\n- Use `rg` only for exact error strings, stack frames, config values, new files, or fallback when the index is insufficient."
+          "body": "- MUST inspect the failure signal before editing.\n- MUST use `.ai-code-index/search.sh` first for related code paths and tests.\n- MUST use exact search for error strings, stack frames, logs, and config keys.\n- If `.lark.json` exists, MUST read it before final incident handoff."
         },
         {
           "heading": "## Announce",
           "title": "Announce",
-          "body": "Begin by stating clearly:\n\"I am using `arc:fix` to reproduce or inspect the failure, identify root cause, patch it, and verify the result.\""
+          "body": "Begin by stating clearly:\n\"I am using `arc:fix` to inspect the failure, identify root cause, patch it, and verify the result.\""
         },
         {
           "heading": "## The Iron Law",
           "title": "The Iron Law",
-          "body": "```text\nNO FIX WITHOUT ROOT CAUSE OR EXPLICIT UNCERTAINTY.\n```"
+          "body": "```text\nNO FIX WITHOUT ROOT CAUSE OR EXPLICIT UNCERTAINTY.\nNO SUCCESS CLAIM WITHOUT RERUNNING THE FAILING CHECK OR NAMING THE BLOCKER.\nNO LARK INCIDENT UPDATE OUTSIDE arc:docs.\nNO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.\n```"
+        },
+        {
+          "heading": "## Hard Constraints",
+          "title": "Hard Constraints",
+          "body": "- MUST preserve failure evidence.\n- MUST state a concrete hypothesis before significant edits.\n- MUST patch the smallest safe surface.\n- MUST rerun the failing path when feasible.\n- MUST route all Lark incident/risk/task updates through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST update `task_base` through `arc:docs` when Lark is active and a fix changes a tracked feature or user-visible flow.\n- NEVER change tests only to make them pass.\n- NEVER broad-rewrite a localized failure.\n- NEVER hide uncertainty behind a confident root cause."
         },
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. Capture the failure signal and expected behavior.\n2. Reproduce or inspect the failure path when feasible.\n3. Form a concrete root-cause hypothesis tied to files or runtime behavior.\n4. Patch the smallest safe surface.\n5. Run the failing check again, plus targeted regression checks.\n6. Report root cause, fix, verification, and remaining risk."
+          "body": "1. Capture failure, expected behavior, and reproduction path.\n2. Reproduce or inspect the failing path.\n3. Form and test a root-cause hypothesis.\n4. Patch the smallest safe surface.\n5. Rerun the failing check plus focused regressions.\n6. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks."
         },
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- The fix addresses the cause, not only the symptom.\n- The failing path is verified after the change when feasible.\n- Test expectation changes are justified by product behavior, not convenience.\n- Risky production changes include rollback or monitoring notes."
-        },
-        {
-          "heading": "## SQL Failure Checks",
-          "title": "SQL Failure Checks",
-          "body": "- When a bug involves SQL writes, distinguish database execution success from business success. `err == nil` does not prove that an `UPDATE` or `DELETE` matched the intended row.\n- For resource-targeted writes, inspect the command tag and treat `RowsAffected() == 0` as not found or conflict according to the business rule.\n\n```go\ntag, err := store.Exec(ctx, `\n    DELETE FROM feedbacks\n    WHERE id = $1::uuid\n`, id)\nif err != nil {\n    return err\n}\nif tag.RowsAffected() == 0 {\n    return ErrFeedbackNotFound\n}\n```\n\n- If a write needs to return the updated row, prefer `UPDATE ... RETURNING ...` with `QueryRow(...).Scan(...)` over `Exec` followed by a separate read.\n- Check SQL fixes for parameterization, explicit column lists, `NULL` handling, stable pagination order, soft-delete filters, timestamp consistency, transaction boundaries, and state-transition guards in `WHERE`.\n- Translate database errors and 0-row write results into precise business errors instead of reporting success or leaking raw database details."
-        },
-        {
-          "heading": "## Code Rot Gates",
-          "title": "Code Rot Gates",
-          "body": "Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Failures most often root-cause into family D (data layer) and family E (error/state); the `SQL Failure Checks` section above is the data-layer arm of this.\n\n- Suspect the data layer first (#5, #25, #26): an N+1 loop, a missing `LIMIT`, or a leading-wildcard `LIKE '%x%'` on an unindexed column is a common latency/timeout root cause.\n- Check soft-delete consistency (#3): a \"ghost row\" or wrong count is often one query that forgot the `deleted_at IS NULL` filter the others apply.\n- Hunt swallowed exceptions (#13): an empty `catch`/`except: pass` hiding the real error is a frequent reason a failure is invisible. Surface it before patching.\n- Treat flaky-under-load as a race (#27): guard read-modify-write with a transaction, optimistic lock, or state-encoded `WHERE`, then check affected rows — do not just retry.\n- Verify the state machine (#7): an \"impossible\" state usually means an undeclared transition; confirm the legal transition set rather than special-casing the symptom.\n- Execution integrity (#34, #35, #36): re-run the failing check after patching (`Arc/scripts/verify-project.sh`); leave no placeholder or half-applied fix and report honestly (`check-placeholders.sh`, `check-completion.sh`); never bulk-`sed` a fix across the tree without a rollback checkpoint (`check-destructive.sh`)."
+          "body": "- Fix targets cause, not only symptom.\n- Verification covers the original failure.\n- Residual risk and rollback/monitoring notes are explicit for risky changes.\n- Data-layer fixes check rows affected, transaction boundaries, state guards, soft-delete filters, and query bounds when relevant.\n- Incident records and affected `task_base` rows are linked through `.lark.json` only when Lark is active."
         },
         {
           "heading": "## Expert Standards",
           "title": "Expert Standards",
-          "body": "- Severity is described using `SEV` or an equivalent impact scale when relevant.\n- Root cause analysis uses `5 Whys` or comparable causal reasoning for non-trivial failures.\n- Complex incidents may use a lightweight `Fault Tree` to avoid single-cause tunnel vision.\n- Communication is compatible with a `Blameless Postmortem` style.\n- Maintain a `Mandatory Hypothesis` before editing significant code.\n- Watch for `Rationalization Watch`: do not reinterpret failure evidence to fit an easy fix."
+          "body": "- Severity is described with `SEV` or an equivalent impact scale when relevant.\n- Root cause uses `5 Whys` or equivalent causal reasoning.\n- Complex incidents may use a lightweight `Fault Tree`.\n- Communication remains compatible with `Blameless Postmortem`.\n- Maintain a `Mandatory Hypothesis`; apply `Rationalization Watch` against easy but unsupported fixes."
         },
         {
           "heading": "## Scripts & Commands",
           "title": "Scripts & Commands",
-          "body": "No dedicated Arc runtime scripts. Use `.ai-code-index/` for repository context search, then project-native tests, logs, build commands, browser automation, and observability tools."
+          "body": "Use project-native tests, logs, build commands, browser tooling, and observability. Use `.ai-code-index/` for context and exact search for failure strings."
         },
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Fixing without reading the error or reproduction evidence.\n- Changing tests to pass without validating behavior.\n- Broad rewrites for localized failures.\n- Declaring success without rerunning the relevant check.\n- Patching a symptom while an empty `catch` still hides the real cause (#13).\n- Retrying a flaky path instead of guarding the underlying race (#27)."
+          "body": "- Fixing before reading the error.\n- Treating a retry as root cause.\n- Swallowing exceptions or masking logs.\n- Declaring success without verification.\n- Updating Lark incident resources directly instead of through `arc:docs`.\n- Fixing a Lark-active tracked feature while the `task_base` row is missing or stale."
         },
         {
           "heading": "## When to Use",
           "title": "When to Use",
-          "body": "- **Preferred Trigger**: There is concrete failure evidence or a reproducible broken behavior.\n- **Typical Scenario**: CI failure, runtime exception, regression, flaky behavior, broken user flow, or incident follow-up.\n- **Boundary Tip**: If there is no failure evidence and the work is a planned change, use `arc:build`."
+          "body": "- **Preferred Trigger**: There is concrete failure evidence or reproducible broken behavior.\n- **Typical Scenario**: CI failure, runtime exception, regression, flaky path, broken flow, or incident follow-up.\n- **Boundary Tip**: If there is no failure evidence, use `arc:build`."
         },
         {
           "heading": "## Input Arguments",
           "title": "Input Arguments",
-          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `project_path` | string | yes | Target repository root |\n| `failure` | string | yes | Error, log, repro, or failing command |\n| `expected` | string | no | Expected behavior |\n| `verification` | string | no | Command or flow that proves the fix |"
+          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `project_path` | string | yes | Target repository root |\n| `failure` | string | yes | Error, log, repro, screenshot, or failing command |\n| `expected` | string | no | Expected behavior |\n| `verification` | string | no | Command or flow proving repair |"
         },
         {
           "heading": "## Outputs",
           "title": "Outputs",
-          "body": "```text\nFix Packet\n- Failure observed\n- Root cause\n- Fix applied\n- Verification run\n- Regression risk\n```"
+          "body": "```text\nFix Packet\n- Failure observed\n- Root cause\n- Fix applied\n- Verification run\n- Regression risk\n- Lark / .lark.json / task_base handoff, if applicable\n```"
         }
       ],
       "quick_contract": {
-        "trigger": "A bug, failed test, incident, regression, or broken user flow has evidence.",
-        "inputs": "Failure symptoms, logs, reproduction steps, failing command, screenshots, or affected files.",
-        "outputs": "Root cause, fix, verification evidence, and regression risk notes.",
-        "quality_gate": "The original failure is explained and the fix is verified or the blocker is explicit.",
+        "trigger": "A bug, incident, regression, failing test, crash, or broken flow has evidence.",
+        "inputs": "Failure signal, expected behavior, project path, optional verification command.",
+        "outputs": "Root cause, fix, verification, risk, and optional Lark incident handoff.",
+        "quality_gate": "The original failure is explained and rechecked, or the blocker is explicit.",
         "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
       },
       "input_arguments": [
@@ -576,7 +702,7 @@
           "parameter": "failure",
           "type": "string",
           "required": "yes",
-          "description": "Error, log, repro, or failing command"
+          "description": "Error, log, repro, screenshot, or failing command"
         },
         {
           "parameter": "expected",
@@ -588,383 +714,131 @@
           "parameter": "verification",
           "type": "string",
           "required": "no",
-          "description": "Command or flow that proves the fix"
+          "description": "Command or flow proving repair"
         }
       ],
       "outputs_section": {
         "format": "text",
-        "content": "Fix Packet\n- Failure observed\n- Root cause\n- Fix applied\n- Verification run\n- Regression risk"
+        "content": "Fix Packet\n- Failure observed\n- Root cause\n- Fix applied\n- Verification run\n- Regression risk\n- Lark / .lark.json / task_base handoff, if applicable"
       }
     },
     {
-      "name": "frontend-stack-baseline",
-      "description": "通用前端基线声明：用于收敛 React + Vite 前端项目的核心技术栈、默认配色 token 与架构策略，避免各领域 skill 重复定义。",
-      "source_path": "frontend-stack-baseline/SKILL.md",
+      "name": "arc:frontend",
+      "description": "Frontend engineering.",
+      "source_path": "Arc/arc:frontend/SKILL.md",
       "sections": [
         {
           "heading": "## Overview",
           "title": "Overview",
-          "body": "`frontend-stack-baseline` 是 generic/fusion skill，只负责一件事：**当任务要求写 Web 前端时，把技术栈、目录习惯和配色 token 收敛到一个共享源**。业务 skill 只需声明“按 frontend-stack-baseline 的默认栈交付”。"
+          "body": "`arc:frontend` handles frontend lifecycle work: baseline, UI implementation, theme tokens, frontend architecture, verification, and frontend progress handoff. It does not replace design-only skills or create Lark resources directly."
         },
         {
           "heading": "## Quick Contract",
           "title": "Quick Contract",
-          "body": "- **Trigger**: 新建 React/Vite 前端、脚手架、UI 重构、配色方案、shadcn/ui、Tailwind 主题、dashboard 主题、后台管理视觉系统；或任何领域 skill 调用时指定“按基线交付”。\n- **Inputs**: 产品类型、品牌倾向（冷/暖/深/薄荷/玫瑰）、是否需要深色主题、是否需要管理台。\n- **Outputs**: `package.json` 依赖列表、`tailwind.config.js` 色板配置、`src/styles/globals.css` 中的 shadcn CSS 变量 `:root { ... }` 段，以及状态管理 / 路由 / 表单 / 请求层的入口骨架。\n- **Quality Gate**: 栈内依赖必须与本基线一致；不接受脱离 shadcn CSS 变量的手写配色；不接受未声明默认配色方案就开工。\n- **Decision Tree**: 先判断是否仍在本栈；不在本栈则拒绝，或明确标注例外原因。再按产品类型从五套配色中选一套；管理台优先 ①冷灰蓝 / ③深青灰，内容平台优先 ②暖米白 / ④薄荷绿。"
+          "body": "- **Trigger**: The project needs frontend baseline, UI implementation, theme setup, frontend architecture, or frontend progress documentation.\n- **Inputs**: Project path, frontend scope, product type, existing stack, verification expectations.\n- **Outputs**: Frontend decisions, code/config changes, verification, and optional Lark handoff.\n- **Quality Gate**: UI follows existing patterns, tokenized styling, accessibility basics, responsive constraints, and verified checks.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+        },
+        {
+          "heading": "## Routing Matrix",
+          "title": "Routing Matrix",
+          "body": "- Use `arc:define` if product concept or information architecture is missing.\n- Use `arc:clarify` if page scope, target users, or acceptance criteria are unclear.\n- Use `arc:build` for the implementation edit path.\n- Use `arc:docs` only when Lark is active for frontend milestones, design decisions, page progress, `task_base` feature status, whiteboards, screenshots, or `.lark.json.lifecycle[]`.\n- Use `arc:audit` for read-only UI architecture or accessibility review."
         },
         {
           "heading": "## Context Search",
           "title": "Context Search",
-          "body": "- 在既有前端仓库中落地或改造时，先用目标仓库的 `.ai-code-index/search.sh` 定位现有入口、路由、主题、组件库和状态管理方式。\n- 搜索 JSX/TSX 调用形态或重复模式时，优先用 `.ai-code-index/struct-search.sh typescript`。\n- 已知文件名、依赖名或 token 的精确匹配，可用 `rg` 小范围补充；索引缺失时先考虑 `.ai-code-index/reindex.sh`。"
-        },
-        {
-          "heading": "## The Iron Law",
-          "title": "The Iron Law",
-          "body": "1. **技术栈固定**（不允许无理由替换）：\n   - 构建：`Vite`（默认）\n   - 框架：`React 18+`\n   - 样式：`Tailwind CSS 3+`\n   - 组件库：`shadcn/ui`（CLI 按需添加组件，不整包安装）\n   - 状态：`Zustand`（轻客户端状态）\n   - 数据层：`TanStack Query v5`（服务端状态、缓存、失效、乐观更新）\n   - 路由：`React Router v6+`\n   - 表单：`React Hook Form` + `Zod`（`@hookform/resolvers/zod`）\n   - 动画：`Framer Motion`（复杂交互）+ Tailwind transitions（简单）\n2. **配色固定**：五套低饱和度方案任选其一，通过 shadcn/ui CSS 变量落地；主色饱和度 20–40 区间，避免原生饱和 Primary。\n3. **主色由 CSS 变量驱动**，不在组件里写死 hex；换主题 = 换 `:root` 变量，组件零改动。\n4. **栈封闭**：默认不引入本基线以外的 UI 组件库、状态库、表单库、请求库；若历史仓库必须沿用其他选型，需显式标注例外原因与边界。\n5. **文件结构默认**：`src/{components,ui,hooks,stores,routes,lib,api,schemas,styles}`；`ui/` 固定放 shadcn 生成的原子组件，业务组件在 `components/`。"
+          "body": "- MUST inspect existing routes, layouts, components, theme files, API clients, stores, forms, and tests before changing them.\n- MUST use `.ai-code-index/search.sh` first; use `.ai-code-index/struct-search.sh typescript` for React patterns.\n- If `.lark.json` exists, MUST read it before major frontend decisions."
         },
         {
           "heading": "## Announce",
           "title": "Announce",
-          "body": "Begin by stating clearly:\n\"I am using `frontend-stack-baseline` to apply the default React + Vite + Tailwind + shadcn/ui stack and a low-saturation palette.\""
+          "body": "Begin by stating clearly:\n\"I am using `arc:frontend` to apply frontend engineering constraints and keep UI decisions traceable.\""
         },
         {
-          "heading": "## Input Arguments",
-          "title": "Input Arguments",
-          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `product_type` | string | yes | 产品类型，例如后台管理、Dashboard、Landing、内容平台或工具型应用 |\n| `brand_tone` | string | no | 品牌倾向，例如冷、暖、深色、薄荷、玫瑰 |\n| `dark_mode` | boolean | no | 是否需要深色主题 |\n| `admin_console` | boolean | no | 是否是管理台、控制台或 B 端工作台 |\n| `existing_project` | string | no | 既有前端项目路径，用于按现状边界落地 |"
+          "heading": "## The Iron Law",
+          "title": "The Iron Law",
+          "body": "```text\nNO FRONTEND CHANGE WITHOUT USER WORKFLOW.\nNO UI DELIVERY WITHOUT DESIGN TOKENS, RESPONSIVE CONSTRAINTS, AND VERIFICATION.\nNO LARK FRONTEND UPDATE OUTSIDE arc:docs.\nNO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.\n```"
+        },
+        {
+          "heading": "## Hard Constraints",
+          "title": "Hard Constraints",
+          "body": "- MUST preserve an existing frontend stack unless migration is explicitly requested.\n- MUST keep styling behind `Design Token` or CSS variable paths.\n- MUST implement `Accessibility` basics: semantic controls, labels, focus states, keyboard reachability, and contrast.\n- MUST build `Responsive` layouts with explicit constraints; NEVER use viewport-scaled fonts as the layout solution.\n- MUST model `RBAC` at route and action level when roles or permissions exist.\n- MUST use project-native data/form/state patterns before introducing new libraries.\n- MUST verify build/typecheck/lint/tests or report the blocker.\n- MUST route all Lark progress, whiteboard, screenshot, or `.lark.json` updates through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST hand off every Lark-active frontend feature/page update to `arc:docs` so `task_base` records title, owner, status, related requirement, changed files, verification, lifecycle link, and `updated_at`.\n- MUST NOT call Lark-active frontend work complete until `task_base` is updated or the blocker is explicit."
         },
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. **确认栈适用性**：新项目直接按本基线；遗留项目若无法全量迁移，允许“新模块按基线、旧模块保持”，但必须标注边界。\n2. **选配色**：按产品类型选一套；管理台 ①或③；内容 ②；效率/健康 ④；设计/情感向 ⑤。\n3. **落 `tailwind.config.js`**：把选中的 palette 映射到 Tailwind color 令牌（见 [references/color-tokens.md](./references/color-tokens.md)）。\n4. **落 `globals.css`**：把选中 palette 对应的 shadcn CSS 变量贴进 `:root`；若需深色主题，补 `.dark { ... }`。\n5. **初始化 shadcn/ui**：`pnpm dlx shadcn@latest init`，按 palette 回答基色；再用 `shadcn@latest add button card input form dialog ...` 按需补组件。\n6. **装齐依赖**：见 [references/scaffold-commands.md](./references/scaffold-commands.md) 的一键脚本。\n7. **绑定领域 skill**：如 `lazycat:create-app` 仅声明“按 frontend-stack-baseline 交付 React 前端”，不得重复定义栈；`lazycat:admin-ui` 引用本 skill 的配色 token 而非另立色板。"
-        },
-        {
-          "heading": "## Pagination Strategy",
-          "title": "Pagination Strategy",
-          "body": "根据业务场景选择合适的分页模式，并在实现时贯彻：\n- **传统分页（Offset Pagination）**：当业务为后台管理系统、订单列表、用户列表时，用户确实需要精确跳页、总数感知强烈，使用传统分页更自然。UI 应配合使用 pagination 组件。\n- **游标分页（Cursor Pagination / 瀑布流 / 无限滚动）**：当业务为评论、动态流、聊天记录、消息通知、日志流时，数据频繁追加且不需要跳页，使用 cursor 分页更合适。UI 应配合无限滚动（Infinite Scroll）或“加载更多”按钮。"
-        },
-        {
-          "heading": "## State Management Strategy",
-          "title": "State Management Strategy",
-          "body": "前端状态应根据生命周期和共享范围进行严格分层，切忌“把所有东西都塞进全局 Store”：\n- **URL State（路由状态）**：筛选条件、搜索关键字、当前页码、激活的 Tab。优先存入 URL Query Params，保证页面刷新不丢，且可被作为链接分享。\n- **Server State（服务端状态）**：业务列表数据、详情数据。全权交由 `TanStack Query` 管理（查询、缓存、失效、乐观更新），严禁使用 `useEffect` 手动 fetch 并存入 Zustand。\n- **Client Global State（客户端全局状态）**：主题模式（Dark Mode）、侧边栏折叠状态、跨页面的表单向导数据。使用 `Zustand` 管理。\n- **Local State（组件局部状态）**：弹窗的开/关、输入框的实时受控值、下拉菜单的状态。直接使用 `useState`。"
-        },
-        {
-          "heading": "## Real-time & Polling Strategy",
-          "title": "Real-time & Polling Strategy",
-          "body": "根据业务对数据时效性的要求选择同步机制：\n- **长链接（WebSocket / SSE）**：当业务为 IM 聊天室、协同文档编辑、终端日志流、强实时交易盘口时。适合需要服务端高频主动推送的场景，需做好重连与心跳机制。\n- **短轮询（Polling）**：当业务为大盘数据仪表盘（Dashboard）、耗时任务的状态跟进、订单状态查询时。利用 `TanStack Query` 的 `refetchInterval`（例如 5~15秒），实现成本低且能满足大部分 B 端监控需求。"
-        },
-        {
-          "heading": "## Rendering Architecture Strategy",
-          "title": "Rendering Architecture Strategy",
-          "body": "根据业务对 SEO 和首屏时间（FCP）的诉求选择渲染模式：\n- **纯客户端渲染（CSR）**：本基线默认方案（Vite + React）。当业务为后台管理系统、SaaS 工作台、内部工具、复杂交互仪表盘时。无需 SEO，首屏短暂白屏或骨架屏可接受，重在后续交互的流畅度与极低的静态托管部署成本。\n- **服务端渲染 / 静态生成（SSR / SSG）**：当业务为 C 端门户、电商商品页、官方文档、博客时。对 SEO 有强诉求，对首屏加载速度要求极高，需打破本基线限制，引入 Next.js 或 Remix 框架。"
-        },
-        {
-          "heading": "## Auth & RBAC Strategy",
-          "title": "Auth & RBAC Strategy",
-          "body": "根据安全与用户体验要求，在不同粒度实施权限控制：\n- **路由级拦截（Route Guard）**：业务页面整体受控时。未登录或无权限直接重定向到 `/login` 或 `/403`，防止加载未经授权的页面级代码。\n- **组件级细粒度控制（Component-level RBAC）**：页面可访问，但仅部分操作受限时。通过封装特定的包装组件，将无权限的按钮置为 `disabled`（并辅以 Tooltip 解释）或直接隐藏。"
-        },
-        {
-          "heading": "## Error Handling & Feedback Strategy",
-          "title": "Error Handling & Feedback Strategy",
-          "body": "针对不同来源的错误提供分级反馈，避免粗暴打断用户心流：\n- **全局故障边界（Global Error Boundary）**：捕获 React 渲染过程中的崩溃，展示友好的“页面崩溃”兜底 UI，并提供刷新按钮，避免整个应用直接白屏。\n- **数据获取错误（Fetch Error）**：列表或详情页数据拉取失败时，应在**原数据渲染区域**展示局部错误状态（如“加载失败，点击重试”），严禁使用打断式的全局遮罩或全屏弹窗。\n- **操作类错误（Mutation Error）**：表单提交或动作执行失败时，使用轻量级的 Toast / Snackbar 在角落提示具体原因，焦点必须保留在原表单，以便用户修改。"
-        },
-        {
-          "heading": "## Form & Validation Strategy",
-          "title": "Form & Validation Strategy",
-          "body": "根据表单的复杂度决定工程化投入：\n- **重型/复杂表单**：业务涉及多字段联动、动态增减表单项、分步表单、严格格式校验。强制使用 `React Hook Form` 配合 `Zod`，保证校验逻辑集中且类型安全，有效避免全局过度渲染。\n- **超轻量输入**：单输入框（如简单的搜索、发送单条评论），直接使用 `useState` 作为受控组件即可，不要强行引入表单库增加不必要的复杂度。"
-        },
-        {
-          "heading": "## Color Palette Presets",
-          "title": "Color Palette Presets",
-          "body": "| 编号 | 名称 | 适用场景 | 主色 | 背景 | 备注 |\n|---|---|---|---|---|---|\n| ① | Slate 冷灰蓝 | 后台管理 / SaaS | `#4A6FA5` | `#F8F9FB` | 管理台首选 |\n| ② | Warm Sand 暖米白 | 内容平台 / 博客 | `#8B7355` | `#FAFAF8` | 长阅读不疲劳 |\n| ③ | Dark Slate 深青灰 | 开发工具 / 深色 | `#5B8DB8` | `#1A1D23` | 唯一深色预设 |\n| ④ | Sage 薄荷绿 | 健康 / 效率 | `#5A7D6A` | `#F5F7F5` | 冷静克制 |\n| ⑤ | Rose Mist 玫瑰灰 | 设计工具 / 女性向 | `#9B6B6B` | `#FAF8F8` | 情感、柔和 |\n\n完整的 `:root` CSS 变量、`tailwind.config.js` 色板映射、深色变体和使用示例见 [references/color-tokens.md](./references/color-tokens.md)。"
+          "body": "1. Confirm user workflow, pages, audience, devices, and verification.\n2. Inspect existing frontend stack and patterns.\n3. Choose route: preserve existing stack, apply React baseline for new React work, or document exception for non-React work.\n4. Implement with tokenized styling, stable layout constraints, accessible states, and existing data/form/state patterns.\n5. Run project-native verification.\n6. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with pages, decisions, changed files, verification, screenshots/whiteboards, task status, lifecycle link, and resource keys."
         },
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- `package.json` 里同时出现本基线的 10 项依赖，没有同职责的第三方库重复引入。\n- `tailwind.config.js` 的 `theme.extend.colors` 引用了 shadcn 变量（如 `hsl(var(--primary))`），没有写死 hex。\n- `globals.css` 存在 `:root { --background: ...; --primary: ...; }` 完整段。\n- 如果是管理台，至少存在工作台、列表、详情、表单、设置、登录六类页面，配色保持一致。\n- 切换 palette 只需要改 `:root`，组件层不需要改。"
+          "body": "- No scattered hardcoded palette values.\n- No overlapping or overflowing text in expected viewports.\n- Loading, empty, error, disabled, and permission-denied states exist when relevant.\n- Server state is not duplicated into unrelated global stores.\n- Significant frontend progress and `task_base` are linked through `.lark.json` only when Lark is active."
+        },
+        {
+          "heading": "## Expert Standards",
+          "title": "Expert Standards",
+          "body": "- `Design Token` decisions are centralized and auditable.\n- `Accessibility` checks are part of done.\n- `Responsive` behavior uses explicit constraints.\n- `RBAC` protects routes and action-level controls when applicable."
+        },
+        {
+          "heading": "## Scripts & Commands",
+          "title": "Scripts & Commands",
+          "body": "Use project-native scripts. For new Vite React projects only, use [`references/scaffold-commands.md`](references/scaffold-commands.md). For palettes and CSS variables, use [`references/color-tokens.md`](references/color-tokens.md)."
         },
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- 组件里直接写 `bg-[#4A6FA5]`，没有通过 token。\n- 五套配色自己魔改，饱和度 > 50，导致长时间使用刺眼。\n- 领域 skill 里重复声明另一套默认栈或自有色板。"
+          "body": "- Replacing the stack without a migration request.\n- Decorative landing page instead of the requested usable UI.\n- Hardcoded component colors.\n- Global store used for server state by convenience.\n- Frontend lifecycle progress left out of existing `.lark.json`.\n- Completed Lark-active frontend feature missing a current `task_base` row."
         },
         {
           "heading": "## When to Use",
           "title": "When to Use",
-          "body": "- **首选触发**：用户要求搭建、改造或统一 Web 前端，且技术栈可落在 React + Vite + Tailwind CSS + shadcn/ui。\n- **典型场景**：后台管理、Dashboard、控制台、Landing、内容平台、工具型应用、主题 token 统一、前端脚手架。\n- **边界提示**：若任务是原生 iOS/Android、后端 API、纯设计稿或既有项目明确要求其他前端栈，不要强行套用本基线。"
+          "body": "- **Preferred Trigger**: The user asks to build, standardize, review, or document frontend lifecycle work.\n- **Typical Scenario**: React/Vite setup, dashboard/admin UI, routing/state architecture, theme setup, forms, responsive pages, frontend handoff.\n- **Boundary Tip**: Use `arc:build` for backend/API-only work and `arc:docs` for pure Lark indexing."
         },
         {
-          "heading": "## Bundled References",
-          "title": "Bundled References",
-          "body": "- 完整配色与 Tailwind 片段：[references/color-tokens.md](./references/color-tokens.md)\n- 脚手架安装命令：[references/scaffold-commands.md](./references/scaffold-commands.md)"
+          "heading": "## Input Arguments",
+          "title": "Input Arguments",
+          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `project_path` | string | yes | Target repository root |\n| `frontend_scope` | string | yes | Page, module, app shell, theme, state layer, or full frontend |\n| `product_type` | string | no | Admin console, dashboard, content platform, tool, landing, or other |\n| `verification` | string | no | Expected build, lint, test, screenshot, or typecheck |"
         },
         {
           "heading": "## Outputs",
           "title": "Outputs",
-          "body": "```text\nPhase: Frontend Baseline / Theming\n\nStack\n- Vite + React\n- Tailwind CSS + shadcn/ui\n- Zustand / TanStack Query\n- React Router\n- React Hook Form + Zod\n- Framer Motion\n\nPalette\n- Chosen: <① Slate / ② Warm Sand / ③ Dark Slate / ④ Sage / ⑤ Rose Mist>\n- Dark mode: <needed / skipped>\n\nArtifacts\n- package.json dependency diff\n- tailwind.config.js (colors extended)\n- src/styles/globals.css (:root and .dark blocks)\n- src/components/ui (shadcn components added)\n\nGaps / Risks\n- ...\n\nNext Steps\n1. ...\n```"
+          "body": "```text\nFrontend Handoff\n- Workflow and pages covered\n- Stack and token decisions\n- Files changed\n- Responsive/accessibility checks\n- Verification run\n- Lark / .lark.json / task_base handoff, if applicable\n- Residual risks\n```"
         }
       ],
       "quick_contract": {
-        "trigger": "新建 React/Vite 前端、脚手架、UI 重构、配色方案、shadcn/ui、Tailwind 主题、dashboard 主题、后台管理视觉系统；或任何领域 skill 调用时指定“按基线交付”。",
-        "inputs": "产品类型、品牌倾向（冷/暖/深/薄荷/玫瑰）、是否需要深色主题、是否需要管理台。",
-        "outputs": "`package.json` 依赖列表、`tailwind.config.js` 色板配置、`src/styles/globals.css` 中的 shadcn CSS 变量 `:root { ... }` 段，以及状态管理 / 路由 / 表单 / 请求层的入口骨架。",
-        "quality_gate": "栈内依赖必须与本基线一致；不接受脱离 shadcn CSS 变量的手写配色；不接受未声明默认配色方案就开工。",
-        "decision_tree": "先判断是否仍在本栈；不在本栈则拒绝，或明确标注例外原因。再按产品类型从五套配色中选一套；管理台优先 ①冷灰蓝 / ③深青灰，内容平台优先 ②暖米白 / ④薄荷绿。"
+        "trigger": "The project needs frontend baseline, UI implementation, theme setup, frontend architecture, or frontend progress documentation.",
+        "inputs": "Project path, frontend scope, product type, existing stack, verification expectations.",
+        "outputs": "Frontend decisions, code/config changes, verification, and optional Lark handoff.",
+        "quality_gate": "UI follows existing patterns, tokenized styling, accessibility basics, responsive constraints, and verified checks.",
+        "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
       },
       "input_arguments": [
+        {
+          "parameter": "project_path",
+          "type": "string",
+          "required": "yes",
+          "description": "Target repository root"
+        },
+        {
+          "parameter": "frontend_scope",
+          "type": "string",
+          "required": "yes",
+          "description": "Page, module, app shell, theme, state layer, or full frontend"
+        },
         {
           "parameter": "product_type",
           "type": "string",
-          "required": "yes",
-          "description": "产品类型，例如后台管理、Dashboard、Landing、内容平台或工具型应用"
+          "required": "no",
+          "description": "Admin console, dashboard, content platform, tool, landing, or other"
         },
         {
-          "parameter": "brand_tone",
+          "parameter": "verification",
           "type": "string",
           "required": "no",
-          "description": "品牌倾向，例如冷、暖、深色、薄荷、玫瑰"
-        },
-        {
-          "parameter": "dark_mode",
-          "type": "boolean",
-          "required": "no",
-          "description": "是否需要深色主题"
-        },
-        {
-          "parameter": "admin_console",
-          "type": "boolean",
-          "required": "no",
-          "description": "是否是管理台、控制台或 B 端工作台"
-        },
-        {
-          "parameter": "existing_project",
-          "type": "string",
-          "required": "no",
-          "description": "既有前端项目路径，用于按现状边界落地"
+          "description": "Expected build, lint, test, screenshot, or typecheck"
         }
       ],
       "outputs_section": {
         "format": "text",
-        "content": "Phase: Frontend Baseline / Theming\n\nStack\n- Vite + React\n- Tailwind CSS + shadcn/ui\n- Zustand / TanStack Query\n- React Router\n- React Hook Form + Zod\n- Framer Motion\n\nPalette\n- Chosen: <① Slate / ② Warm Sand / ③ Dark Slate / ④ Sage / ⑤ Rose Mist>\n- Dark mode: <needed / skipped>\n\nArtifacts\n- package.json dependency diff\n- tailwind.config.js (colors extended)\n- src/styles/globals.css (:root and .dark blocks)\n- src/components/ui (shadcn components added)\n\nGaps / Risks\n- ...\n\nNext Steps\n1. ..."
-      }
-    },
-    {
-      "name": "graduation-doc-support",
-      "description": "毕设支撑文档生成：基于项目真实代码与 SQL，参考模板版式生成规约、设计表等 docx 支撑材料。",
-      "source_path": "graduation-doc-support/SKILL.md",
-      "sections": [
-        {
-          "heading": "## Overview",
-          "title": "Overview",
-          "body": "`graduation-doc-support` 用于从本地项目真实实现出发，生成毕业设计/论文配套的支撑性 Word 文档。它适合这样的请求：用户给出项目目录，可能再给一个同学论文或旧 Word 模板，让你“按一样的方式”产出新的 `docx`，但内容必须严格对应当前系统实现。\n\n这个 skill 解决的是“证据驱动文档交付”，不是单纯润色。源码、数据库脚本、已有测试和前端页面是真正的事实来源；同学论文或既有 Word 只允许提供版式、栏目和表格风格，不允许借用其业务结论。详细取证清单与交付矩阵见 [`references/evidence-checklist.md`](references/evidence-checklist.md)。"
-        },
-        {
-          "heading": "## Quick Contract",
-          "title": "Quick Contract",
-          "body": "- **Trigger**: 用户要求查看某个项目的代码、数据库、同学论文或 Word 模板，并据此生成多个毕业设计支撑 `docx`。\n- **Inputs**: `project_root`、可选 `peer_doc_path`、可选 `target_docs`、可选 `output_dir`、可选命名约定。\n- **Outputs**: 基于真实实现生成的多个独立 `docx`，必要时附带 `tmp/docs/pdf/` 下的渲染校验文件与任务记录。\n- **Quality Gate**: 每一项结论都必须能追溯到代码、SQL、路由、菜单、测试或配置；模板只能影响形式，不能替代事实来源。\n- **Decision Tree**: 如果用户只是想修改项目代码，用 `arc:build`；如果用户要的是从实现中生成毕业支撑文档，用本 skill。"
-        },
-        {
-          "heading": "## Context Search",
-          "title": "Context Search",
-          "body": "- 取证时先用目标仓库的 `.ai-code-index/search.sh \"query\"` 定位真实项目中的核心业务流、路由、控制器、数据库脚本、测试和配置。\n- 若目标仓库没有索引入口，优先在其中创建或运行本地索引；索引缺失时再退回到小范围本地搜索。\n- 表名、字段名、类名、路径和错误文本等精确匹配，可用 `rg` 补充，但不要把 `rg` 当成默认全仓扫描工具。"
-        },
-        {
-          "heading": "## Announce",
-          "title": "Announce",
-          "body": "Begin by stating:\n\n> \"I am using `graduation-doc-support` to derive thesis support documents from real code and schema evidence, not from template copy.\""
-        },
-        {
-          "heading": "## Input Arguments",
-          "title": "Input Arguments",
-          "body": "| parameter | type | required | description |\n|-----------|------|----------|-------------|\n| `project_root` | string | yes | 目标项目根目录，必须是实际要取证的仓库路径 |\n| `peer_doc_path` | string | no | 同学论文、旧版 Word 或模板路径，只用于提取栏目和格式线索 |\n| `target_docs` | array | no | 需要生成的文档列表，默认包含系统用例规约、数据库物理设计三线表、功能模块实现主要代码、测试用例设计 |\n| `output_dir` | string | no | 目标输出目录；若未指定，优先沿用项目内现有论文资料目录 |\n| `naming_rule` | string | no | 文件命名规则，例如“项目名+文档名”或“学号姓名+文档名” |\n| `verification_mode` | enum | no | `render-check` / `text-check`；默认优先 `render-check`，即转 PDF 检查版式 |"
-        },
-        {
-          "heading": "## The Iron Law",
-          "title": "The Iron Law",
-          "body": "```text\nNO THESIS SUPPORT DOCUMENT MAY CLAIM A FEATURE, TABLE, FLOW, OR TEST THAT THE PROJECT DOES NOT ACTUALLY IMPLEMENT.\nRUNTIME CODE AND SQL BEAT TEMPLATES. TEMPLATES MAY GUIDE SHAPE, NEVER CONTENT.\n```"
-        },
-        {
-          "heading": "## Workflow",
-          "title": "Workflow",
-          "body": "1. 识别目标项目根目录，并先读取该仓库自己的 `AGENTS.md`、`CLAUDE.md` 或任务记录；如果用户提供了同学论文或旧 Word，只读取和本次需求相关的节，不批量照搬。\n2. 建立事实优先级：先通过本地索引定位运行时代码，再看数据库脚本，再看项目内设计文档，最后才看同学论文的栏目和表格样式。\n3. 抽取证据矩阵：\n   - 角色、登录注册、权限与会话；\n   - 核心业务流和对应控制器/页面；\n   - 物理表与字段；\n   - 代表性代码片段；\n   - 自动化测试现状与可设计的人工测试用例。\n4. 对每一份目标文档先确定“必须写什么、不允许猜什么”：\n   - `系统用例规约`：只写真实存在的角色和业务用例；\n   - `数据库物理设计三线表`：直接从 SQL 解析表和字段，不用二手摘要；\n   - `功能模块实现主要代码`：摘录最能说明系统实现的核心代码，给出真实路径和行号；\n   - `测试用例设计`：若仓库自动化测试弱，则明确写人工测试设计并说明现状。\n5. 使用 `python-docx` 生成多个独立 `docx`：\n   - A4 页面；\n   - 三线表；\n   - 代码较宽时允许横向页面；\n   - 文件名稳定且可直接交付。\n6. 进行渲染校验：\n   - `soffice --headless --convert-to pdf`；\n   - `pdfinfo` 检查 A4；\n   - `pdftotext -layout` 抽检标题、表格和代码片段是否断裂。\n7. 收尾时明确说明验证结果与残余风险，例如：\n   - `mvnw` 因换行符无法运行但系统 Maven 可运行；\n   - 项目只有 `contextLoads()`，因此测试文档主要是手工用例设计。"
-        },
-        {
-          "heading": "## Quality Gates",
-          "title": "Quality Gates",
-          "body": "- 所有业务描述都必须落到真实文件、类名、方法名、表名或页面路径。\n- 不得把同学论文中的业务名词、模块名、第三方能力直接挪到目标项目。\n- 数据库物理设计必须以实际 SQL 为准，不能只引用仓库快照、README 或人工总结。\n- 如果项目没有完整自动化测试，要在测试文档里明确说明“现有自动化测试薄弱”，不能伪造已执行覆盖率。\n- 输出必须是多个独立 `docx`，不能把四类内容混成一个总文档，除非用户明确要求。\n- 完成后优先做 PDF 渲染校验；若环境缺依赖，则必须明确指出版式风险和缺失依赖。"
-        },
-        {
-          "heading": "## Red Flags",
-          "title": "Red Flags",
-          "body": "- 把“看一下同学论文”误解成“复制同学论文内容”。\n- 未核对代码和数据库，就凭项目名称脑补角色、支付方式、推荐算法或模块边界。\n- 直接沿用旧文档里的表数量、状态流转或测试结论，而没有回到 SQL 和源码复核。\n- 把“测试用例设计”写成“测试结果报告”，或反过来把没有执行过的结果写成已通过。\n- 未发现学号/姓名等命名证据，却擅自套用某个学生命名格式。"
-        },
-        {
-          "heading": "## When to Use",
-          "title": "When to Use",
-          "body": "- **首选触发**：用户要求“根据我们的系统实现”“按这个论文/Word 的方式”生成毕业设计、论文支撑材料或多个 `docx`。\n- **典型场景**：系统用例规约、数据库物理设计三线表、功能模块实现主要代码、测试用例设计、项目说明型论文附件。\n- **边界提示**：如果任务只是润色已有论文段落，不要用本 skill；如果任务是建模出图，不要用本 skill；如果用户只给了模板却没给项目实现，也不能直接生成事实性文档。"
-        },
-        {
-          "heading": "## Outputs",
-          "title": "Outputs",
-          "body": "```text\n<project_root>/\n├── docs/.../<project-name>系统用例规约.docx\n├── docs/.../<project-name>数据库物理设计三线表.docx\n├── docs/.../<project-name>功能模块实现主要代码.docx\n├── docs/.../<project-name>测试用例设计.docx\n└── tmp/docs/pdf/\n    ├── <project-name>系统用例规约.pdf\n    ├── <project-name>数据库物理设计三线表.pdf\n    ├── <project-name>功能模块实现主要代码.pdf\n    └── <project-name>测试用例设计.pdf\n```"
-        }
-      ],
-      "quick_contract": {
-        "trigger": "用户要求查看某个项目的代码、数据库、同学论文或 Word 模板，并据此生成多个毕业设计支撑 `docx`。",
-        "inputs": "`project_root`、可选 `peer_doc_path`、可选 `target_docs`、可选 `output_dir`、可选命名约定。",
-        "outputs": "基于真实实现生成的多个独立 `docx`，必要时附带 `tmp/docs/pdf/` 下的渲染校验文件与任务记录。",
-        "quality_gate": "每一项结论都必须能追溯到代码、SQL、路由、菜单、测试或配置；模板只能影响形式，不能替代事实来源。",
-        "decision_tree": "如果用户只是想修改项目代码，用 `arc:build`；如果用户要的是从实现中生成毕业支撑文档，用本 skill。"
-      },
-      "input_arguments": [
-        {
-          "parameter": "project_root",
-          "type": "string",
-          "required": "yes",
-          "description": "目标项目根目录，必须是实际要取证的仓库路径"
-        },
-        {
-          "parameter": "peer_doc_path",
-          "type": "string",
-          "required": "no",
-          "description": "同学论文、旧版 Word 或模板路径，只用于提取栏目和格式线索"
-        },
-        {
-          "parameter": "target_docs",
-          "type": "array",
-          "required": "no",
-          "description": "需要生成的文档列表，默认包含系统用例规约、数据库物理设计三线表、功能模块实现主要代码、测试用例设计"
-        },
-        {
-          "parameter": "output_dir",
-          "type": "string",
-          "required": "no",
-          "description": "目标输出目录；若未指定，优先沿用项目内现有论文资料目录"
-        },
-        {
-          "parameter": "naming_rule",
-          "type": "string",
-          "required": "no",
-          "description": "文件命名规则，例如“项目名+文档名”或“学号姓名+文档名”"
-        },
-        {
-          "parameter": "verification_mode",
-          "type": "enum",
-          "required": "no",
-          "description": "`render-check` / `text-check`；默认优先 `render-check`，即转 PDF 检查版式"
-        }
-      ],
-      "outputs_section": {
-        "format": "text",
-        "content": "<project_root>/\n├── docs/.../<project-name>系统用例规约.docx\n├── docs/.../<project-name>数据库物理设计三线表.docx\n├── docs/.../<project-name>功能模块实现主要代码.docx\n├── docs/.../<project-name>测试用例设计.docx\n└── tmp/docs/pdf/\n    ├── <project-name>系统用例规约.pdf\n    ├── <project-name>数据库物理设计三线表.pdf\n    ├── <project-name>功能模块实现主要代码.pdf\n    └── <project-name>测试用例设计.pdf"
-      }
-    },
-    {
-      "name": "terminal-table-output",
-      "description": "终端表格输出：使用 Unicode 盒线表替代 Markdown 渲染紧凑二维数据。",
-      "source_path": "terminal-table-output/SKILL.md",
-      "sections": [
-        {
-          "heading": "## Overview",
-          "title": "Overview",
-          "body": "`terminal-table-output` 是一个 generic/fusion skill，负责把**聊天里的紧凑二维信息**渲染为终端风格盒线表，而不是 Markdown 表。\n\n它只负责表现层，不负责领域判断。本 skill 不应改变磁盘工件的原生格式；Markdown、JSON、HTML、日志与代码文件仍保持各自原约定。\n\n详细渲染规则见 [`references/render-rules.md`](references/render-rules.md)。"
-        },
-        {
-          "heading": "## Quick Contract",
-          "title": "Quick Contract",
-          "body": "- **Trigger**: 用户明确要求表格/对比表/矩阵/汇总表，或当前输出天然是短字段重复的二维结构。\n- **Inputs**: 行列结构明确的紧凑数据；可选列宽约束、截断策略和补充说明。\n- **Outputs**: 一个 fenced `text` 代码块中的 Unicode 盒线表；若有溢出说明，可在表格后附短列表。\n- **Quality Gate**: 只有在内容能保持紧凑、对齐稳定、边界闭合时才允许输出表格；否则必须降级为非表格结构。\n- **Decision Tree**: 先判断“是否天然二维且短字段重复”；若否，直接不用表格。"
-        },
-        {
-          "heading": "## Context Search",
-          "title": "Context Search",
-          "body": "- 本 skill 通常不需要搜索代码库；若组合任务需要从仓库提取状态、清单或对比数据，先用目标仓库的 `.ai-code-index/search.sh` 定位上下文。\n- 已知文件名、字段名或配置值的精确匹配，可用 `rg` 小范围补充；索引缺失时先考虑 `.ai-code-index/reindex.sh`。"
-        },
-        {
-          "heading": "## Announce",
-          "title": "Announce",
-          "body": "Begin by stating clearly:\n\"I am using `terminal-table-output` to render a compact box-drawing table for chat delivery.\""
-        },
-        {
-          "heading": "## The Iron Law",
-          "title": "The Iron Law",
-          "body": "```text\nNO TABLE UNLESS THE CONTENT IS NATURALLY TWO-DIMENSIONAL, COMPACT, AND ALIGNABLE.\n```\n\n如果内容不是天然二维、不能保持紧凑，或对齐稳定性存疑，就不要输出表格。"
-        },
-        {
-          "heading": "## Workflow",
-          "title": "Workflow",
-          "body": "1. 判断内容是否天然适合二维呈现，而不是为了“看起来像表格”强行入格。\n2. 精简列数、缩短表头，并把长解释、路径、URL、代码、JSON 挪到表格外。\n3. 逐列计算显示宽度：\n   - 中文和其他全角字符按宽度 `2`\n   - 英文、数字、半角符号按宽度 `1`\n4. 在 fenced `text` 代码块中用 Unicode 盒线字符渲染完整外框与分隔线。\n5. 逐行复核总宽度是否一致；若不一致，继续缩短或放弃表格。"
-        },
-        {
-          "heading": "## Quality Gates",
-          "title": "Quality Gates",
-          "body": "- 仅当信息天然是紧凑二维结构时才使用表格。\n- 只能在 fenced code block with `text` 中输出，不使用 Markdown table syntax，除非用户明确要求。\n- 每一行都必须左右闭合，且总宽度一致。\n- 单元格右侧只能用空格补齐，不能使用 tab。\n- 若内容过宽，优先减列、缩短表头、手动换行或显式截断为 `...`。\n- 文件路径、URL、代码、JSON、长段解释、错误细节不应被强行塞进表格。\n- 当稳定对齐无法保证时，必须降级为列表、分组块或正文。"
-        },
-        {
-          "heading": "## Red Flags",
-          "title": "Red Flags",
-          "body": "- 为了“形式统一”把长解释硬塞进表格。\n- 混用 Markdown 表和盒线表。\n- 行宽不一致、边框未闭合、全角宽度未处理。\n- 表格过宽，超出默认聊天区域仍继续堆列。\n- 本该用列表或正文，却为了视觉密度误用表格。"
-        },
-        {
-          "heading": "## When to Use",
-          "title": "When to Use",
-          "body": "- **首选触发**：用户要求表格、比较表、矩阵、状态汇总，或当前答案天然就是短字段重复的二维信息。\n- **典型场景**：方案对比、状态盘点、短清单汇总、风险矩阵、紧凑型 inventory。\n- **边界提示**：若内容包含长解释、代码、日志、路径、URL、JSON 或稳定对齐存疑，应直接改用列表、分组块或正文。"
-        },
-        {
-          "heading": "## Input Arguments",
-          "title": "Input Arguments",
-          "body": "| parameter | type | required | description |\n|-----------|------|----------|-------------|\n| `headers` | array | yes | 列标题，需保持简短 |\n| `rows` | array | yes | 行数据，单元格应尽量短小 |\n| `max_width_hint` | integer | no | 目标总宽度提示，默认尽量控制在约 80 半角列以内 |\n| `wrap_or_truncate` | enum | no | `wrap` / `truncate`，默认按可读性择优 |\n| `notes` | array | no | 不适合入表的补充说明，放在表格后 |"
-        },
-        {
-          "heading": "## Outputs",
-          "title": "Outputs",
-          "body": "```text\n┌──────────┬──────────────┬──────────────┐\n│ 维度     │ 选择         │ 说明         │\n├──────────┼──────────────┼──────────────┤\n│ 输出形式 │ 盒线表       │ 聊天摘要用   │\n│ 工件格式 │ 原格式保留   │ 不改落盘结果 │\n└──────────┴──────────────┴──────────────┘\n```"
-        },
-        {
-          "heading": "## Integration",
-          "title": "Integration",
-          "body": "- 与 `arc:*` 组合时，只接管聊天总结、对比与状态盘点的表现层。\n- 磁盘工件继续保持原始约定，例如 Markdown、JSON、HTML、text。\n- 共享组合规则见 [`../docs/orchestration-contract.md`](../docs/orchestration-contract.md) 与 [`../docs/fusion-guide.md`](../docs/fusion-guide.md)。"
-        }
-      ],
-      "quick_contract": {
-        "trigger": "用户明确要求表格/对比表/矩阵/汇总表，或当前输出天然是短字段重复的二维结构。",
-        "inputs": "行列结构明确的紧凑数据；可选列宽约束、截断策略和补充说明。",
-        "outputs": "一个 fenced `text` 代码块中的 Unicode 盒线表；若有溢出说明，可在表格后附短列表。",
-        "quality_gate": "只有在内容能保持紧凑、对齐稳定、边界闭合时才允许输出表格；否则必须降级为非表格结构。",
-        "decision_tree": "先判断“是否天然二维且短字段重复”；若否，直接不用表格。"
-      },
-      "input_arguments": [
-        {
-          "parameter": "headers",
-          "type": "array",
-          "required": "yes",
-          "description": "列标题，需保持简短"
-        },
-        {
-          "parameter": "rows",
-          "type": "array",
-          "required": "yes",
-          "description": "行数据，单元格应尽量短小"
-        },
-        {
-          "parameter": "max_width_hint",
-          "type": "integer",
-          "required": "no",
-          "description": "目标总宽度提示，默认尽量控制在约 80 半角列以内"
-        },
-        {
-          "parameter": "wrap_or_truncate",
-          "type": "enum",
-          "required": "no",
-          "description": "`wrap` / `truncate`，默认按可读性择优"
-        },
-        {
-          "parameter": "notes",
-          "type": "array",
-          "required": "no",
-          "description": "不适合入表的补充说明，放在表格后"
-        }
-      ],
-      "outputs_section": {
-        "format": "text",
-        "content": "┌──────────┬──────────────┬──────────────┐\n│ 维度     │ 选择         │ 说明         │\n├──────────┼──────────────┼──────────────┤\n│ 输出形式 │ 盒线表       │ 聊天摘要用   │\n│ 工件格式 │ 原格式保留   │ 不改落盘结果 │\n└──────────┴──────────────┴──────────────┘"
+        "content": "Frontend Handoff\n- Workflow and pages covered\n- Stack and token decisions\n- Files changed\n- Responsive/accessibility checks\n- Verification run\n- Lark / .lark.json / task_base handoff, if applicable\n- Residual risks"
       }
     }
   ]

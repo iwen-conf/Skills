@@ -15,18 +15,7 @@ REQUIRED_HEADINGS = [
     "## When to Use",
 ]
 
-GENERIC_REQUIRED_HEADINGS = [
-    "## Quick Contract",
-    "## Announce",
-    "## Input Arguments",
-    "## The Iron Law",
-    "## Workflow",
-    "## Quality Gates",
-    "## Red Flags",
-    "## Outputs",
-]
-
-ARC_FUSION_REQUIRED_HEADINGS = [
+ARC_REQUIRED_HEADINGS = [
     "## Quick Contract",
     "## Announce",
     "## The Iron Law",
@@ -37,22 +26,10 @@ ARC_FUSION_REQUIRED_HEADINGS = [
     "## Red Flags",
 ]
 
-ARC_WHEN_TO_USE_MARKERS_ZH = [
-    "**首选触发**",
-    "**典型场景**",
-    "**边界提示**",
-]
-
 ARC_WHEN_TO_USE_MARKERS_EN = [
     ["**Preferred Trigger**", "**Preferred trigger**", "**Primary Trigger**", "**Primary trigger**"],
     ["**Typical scenario**", "**Typical Scenario**", "**Typical scenarios**", "**Typical Scenarios**"],
     ["**Boundary Tip**", "**Boundary Tips**", "**Boundary Note**", "**Border Tip**"],
-]
-
-GENERIC_WHEN_TO_USE_MARKERS = [
-    "**首选触发**",
-    "**典型场景**",
-    "**边界提示**",
 ]
 
 ARC_ROUTING_MATRIX_LINK = "../../docs/arc-routing-matrix.md"
@@ -65,8 +42,11 @@ SKILL_NAMESPACE_DIRS = {
 ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
     "arc:build": ["DoD", "SemVer", "Contract Test", "RTO/RPO", "SBOM"],
     "arc:clarify": ["IEEE 29148", "INVEST", "Given-When-Then"],
+    "arc:define": ["IEEE 29148", "Domain-Driven Design", "Positioning Statement"],
+    "arc:docs": ["Lark", ".lark.json", "Traceability Matrix", "Information Architecture"],
+    "arc:frontend": ["Design Token", "Accessibility", "Responsive", "RBAC"],
     "arc:fix": [["SEV", "Severity Level", "severity level", "severity"], "5 Whys", "Fault Tree", "Blameless Postmortem", "Mandatory Hypothesis", "Rationalization Watch"],
-    "arc:audit": [["业务成熟度", "Business Maturity", "business maturity"], ["依赖健康度", "Dependency Health", "dependency health"], ["专家评审卡", "Expert Review Card", "expert review card"], "9 Tab"],
+    "arc:audit": ["Business Maturity", "Dependency Health", "Expert Review Card", "9 Tab"],
 }
 
 LEGACY_TOKEN_PARTS = [
@@ -83,18 +63,7 @@ BANNED_TOKENS = [
     "arc-retest",
 ]
 
-FUSION_GENERIC_SKILLS: set[str] = {
-    "frontend-stack-baseline",
-    "graduation-doc-support",
-    "terminal-table-output",
-}
-
-ARC_ROUTED_SKILLS = {
-    "arc:clarify",
-    "arc:build",
-    "arc:fix",
-    "arc:audit",
-}
+ARC_ROUTED_SKILLS = set(ARC_EXPERT_KEYWORDS)
 
 QUICK_CONTRACT_KEY_MAP = {
     "trigger": "trigger",
@@ -112,11 +81,7 @@ INPUT_ARGUMENT_HEADER_MAP = {
     "description": "description",
 }
 
-WHEN_TO_USE_MARKER_VARIANTS = [
-    ["**首选触发**", "**Preferred Trigger**", "**Preferred trigger**", "**Primary Trigger**", "**Primary trigger**"],
-    ["**典型场景**", "**Typical scenario**", "**Typical Scenario**", "**Typical scenarios**", "**Typical Scenarios**"],
-    ["**边界提示**", "**Boundary Tip**", "**Boundary Tips**", "**Boundary Note**", "**Border Tip**"],
-]
+WHEN_TO_USE_MARKER_VARIANTS = ARC_WHEN_TO_USE_MARKERS_EN
 
 
 
@@ -144,7 +109,7 @@ def is_supported_skill(name: str) -> bool:
 
 
 def get_namespace_dir(name: str) -> str | None:
-    namespace, _, _ = name.partition("-")
+    namespace, _, _ = name.partition(":")
     return SKILL_NAMESPACE_DIRS.get(namespace)
 
 
@@ -363,14 +328,13 @@ def validate_text(text: str, path_label: str, root: Path | None = None) -> tuple
         errors.append(f"{path_label}: missing frontmatter description")
     if "name" in fm and not re.fullmatch(r"[a-z0-9:-]+", fm["name"]):
         errors.append(f"{path_label}: name contains unsupported characters")
-    if "name" in fm and fm["name"] and not is_supported_skill(fm["name"]) and fm["name"] not in FUSION_GENERIC_SKILLS:
-        errors.append(f"{path_label}: skill name must use arc-xxx namespace")
+    if "name" in fm and fm["name"] and not is_supported_skill(fm["name"]):
+        errors.append(f"{path_label}: skill name must use arc:xxx namespace")
     description = fm.get("description", "")
-    if description and not contains_cjk(description):
-        errors.append(f"{path_label}: description must contain Chinese text")
+    if description and len(description) > 120:
+        errors.append(f"{path_label}: description must be short, at most 120 characters")
 
     skill_name = fm.get("name", "")
-    enforce_fusion_profile = skill_name in FUSION_GENERIC_SKILLS
     enforce_arc_profile = skill_name in ARC_ROUTED_SKILLS
 
     if enforce_arc_profile:
@@ -384,21 +348,13 @@ def validate_text(text: str, path_label: str, root: Path | None = None) -> tuple
     for heading in REQUIRED_HEADINGS:
         if heading not in text:
             message = f"{path_label}: missing heading {heading}"
-            if enforce_fusion_profile or enforce_arc_profile:
+            if enforce_arc_profile:
                 errors.append(message)
             else:
                 warnings.append(message)
 
-    if enforce_fusion_profile:
-        for heading in GENERIC_REQUIRED_HEADINGS:
-            if heading not in text:
-                errors.append(f"{path_label}: missing heading {heading}")
-        for marker in GENERIC_WHEN_TO_USE_MARKERS:
-            if marker not in text:
-                errors.append(f"{path_label}: generic when-to-use missing marker {marker}")
-
     if enforce_arc_profile:
-        for heading in ARC_FUSION_REQUIRED_HEADINGS:
+        for heading in ARC_REQUIRED_HEADINGS:
             if heading not in text:
                 errors.append(f"{path_label}: missing heading {heading}")
         for marker_variants in WHEN_TO_USE_MARKER_VARIANTS:
@@ -471,7 +427,7 @@ def collect_skill_files(root: Path) -> list[Path]:
         if error:
             continue
         skill_name = frontmatter.get("name", "")
-        if is_supported_skill(skill_name) or skill_name in FUSION_GENERIC_SKILLS:
+        if is_supported_skill(skill_name):
             collected.append(path)
     return collected
 

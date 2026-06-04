@@ -1,21 +1,25 @@
-# Lean Arc Cheatsheet
+# Arc Lifecycle Cheatsheet
 
-Arc 现在处理五类判断：一个项目级（define），四个任务级（clarify/build/fix/audit）。任务编排、记忆和跨 Agent 协作走 `aitask`。
+Arc now keeps seven software engineering lifecycle skills. Task orchestration, memory, and cross-agent collaboration stay in `aitask`; Lark resources are optional and are indexed only when a project has `.lark.json` or the user explicitly enables Lark.
 
-## 选择规则
+## Selection Rules
 
-| 输入信号 | 使用 |
+| Input signal | Use |
 |---|---|
-| 项目想法待结构化、需要 PRD/Blueprint | `arc:define` |
-| 需求不清、边界不明、验收标准缺失 | `arc:clarify` |
-| 方案已明确，需要改代码并交付验证 | `arc:build` |
-| 已有失败证据、线上故障或测试失败 | `arc:fix` |
-| 需要只读体检、风险盘点、改进建议 | `arc:audit` |
+| Project idea needs PRD/Blueprint structure | `arc:define` |
+| Requirement is vague or missing acceptance criteria | `arc:clarify` |
+| `.lark.json` exists, a Lark link is provided, or the user explicitly asks to enable/create/sync Lark resources | `arc:docs` |
+| Implementation is scoped and ready | `arc:build` |
+| Frontend baseline, UI, theme, or frontend progress is needed | `arc:frontend` |
+| Failure evidence, incident, regression, or failing test exists | `arc:fix` |
+| Read-only health check, risk review, or code audit is needed | `arc:audit` |
 
-## 默认顺序
+## Default Order
 
-1. 项目尚未定义先 `arc:define`。
-2. 任务不清楚先 `arc:clarify`。
-3. 要改代码用 `arc:build`。
-4. 有失败证据用 `arc:fix`。
-5. 要评估质量用 `arc:audit`。
+1. Use `arc:define` when the project is not yet defined.
+2. Use `arc:docs` only when Lark is active: existing `.lark.json`, provided Lark link, explicit Lark trigger, or user confirmation.
+3. Use `arc:clarify` when the task is not executable yet.
+4. Use `arc:frontend` for frontend lifecycle work.
+5. Use `arc:build` for scoped implementation.
+6. Use `arc:fix` when failure evidence exists.
+7. Use `arc:audit` for read-only risk and quality review.

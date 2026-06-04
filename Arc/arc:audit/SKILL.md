@@ -1,35 +1,34 @@
 ---
 name: arc:audit
-description: "项目体检：只读评估代码质量、架构风险与测试缺口，输出证据化发现与改进建议。"
+description: "Project audit."
 ---
 
 # arc:audit
 
 ## Overview
 
-`arc:audit` is a read-only review skill. It identifies risks, evidence, and pragmatic improvements. It does not generate dashboards, scores, release gates, or implementation patches by itself.
+`arc:audit` performs read-only engineering review. It reports evidence-backed risks and recommendations only; it does not patch code or create Lark resources directly.
 
 ## Quick Contract
 
-- **Trigger**: The user asks for code review, health check, technical audit, architecture review, or risk assessment.
-- **Inputs**: Project path, review scope, risk focus, and optional changed files.
-- **Outputs**: Findings ordered by severity, evidence references, and actionable recommendations.
-- **Quality Gate**: Each finding is backed by concrete evidence or explicitly marked as an assumption.
+- **Trigger**: The user asks for review, health check, risk assessment, architecture review, or release readiness.
+- **Inputs**: Project path, scope, risk focus, optional changed files.
+- **Outputs**: Severity-ordered findings, evidence, impact, recommendations, and optional Lark handoff.
+- **Quality Gate**: Every finding has concrete evidence or is explicitly marked as an assumption.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
 ## Routing Matrix
 
-- Use `arc:build` if the user wants changes implemented after the audit.
+- Use `arc:clarify` if audit scope is vague.
 - Use `arc:fix` if a concrete failure is already known.
-- Use `arc:clarify` if audit scope is too vague.
-- Use external domain skills for specialized audits outside engineering quality.
+- Use `arc:build` only if the user asks to implement fixes.
+- Use `arc:docs` only when Lark is active for audit reports, risk Base rows, remediation tasks, approval gates, or `.lark.json.lifecycle[]`.
 
 ## Context Search
 
-- Use `.ai-code-index/search.sh "query"` as the first choice for relevant code paths, architecture boundaries, tests, and dependency usage.
-- If the index is missing or stale, run `.ai-code-index/reindex.sh`.
-- Use `.ai-code-index/struct-search.sh` for risky code shapes and `.ai-code-index/symbols.sh` for definitions or symbol inventory.
-- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient.
+- MUST use `.ai-code-index/search.sh` first for relevant code paths, tests, dependencies, and architecture boundaries.
+- MUST use `.ai-code-index/struct-search.sh` for risky code shapes when relevant.
+- If `.lark.json` exists, MUST read it before reporting prior risks, tasks, approvals, and audit records.
 
 ## Announce
 
@@ -40,59 +39,60 @@ Begin by stating clearly:
 
 ```text
 NO FINDING WITHOUT EVIDENCE.
+NO CODE EDIT DURING AUDIT.
+NO LARK AUDIT UPDATE OUTSIDE arc:docs.
 ```
+
+## Hard Constraints
+
+- MUST remain read-only unless the user explicitly changes the task to implementation.
+- MUST inspect the project before giving findings.
+- MUST order findings by severity.
+- MUST include file path, command output, config, behavior, or other evidence for each confirmed issue.
+- MUST mark inferred risks as assumptions.
+- MUST route all Lark audit/risk/task/approval updates through `arc:docs`.
+- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
+- NEVER present preferences as defects.
+- NEVER hide uncertainty behind numeric scores.
 
 ## Workflow
 
-1. Confirm review scope and constraints.
+1. Confirm scope, constraints, and risk focus.
 2. Inspect structure, dependencies, critical paths, tests, and recent changes.
-3. Identify findings with severity and file references.
-4. Separate confirmed issues from residual risks and assumptions.
-5. Recommend the smallest useful remediation path.
-
-## Code Rot Gates
-
-Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Use all 36 items as the review rubric — this skill owns the complete catalog. Walk the six families and produce evidence-backed findings per family:
-
-- A — Convention drift: naming (`phone`/`mobile`), error-code type, JSON nesting, Redis keys, pagination, timezone, logging spec (#1,2,8,16,18,19,22,24,33).
-- B — Redundancy & dead code: unused symbols/deps, competing logging libs, duplicate endpoints, re-implemented helpers, over-design (#9,14,15,17,20,21,23,32).
-- C — Security: horizontal/vertical authz, brute-force protection, predictable RNG, hardcoded backdoors, zero-amount purchase (#6,12,28,29,30,31).
-- D — Data layer: soft-delete consistency, N+1/slow queries, JSONB misuse, raw-SQL/ORM mixing, unbounded lists, unindexed `LIKE` (#3,5,10,11,24,25,26).
-- E — Error & state: scattered status codes, unstable state machines, swallowed exceptions, races (#4,7,13,27).
-- F — AI execution integrity: half-finished refactors reported as done, leftover placeholders, build left broken (#34,35,36).
-
-Report each finding with a file/line reference or command output; mark anything inferred as an assumption.
+3. Check the 36-item code-rot taxonomy in [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md).
+4. Produce severity-ordered findings with evidence and recommended action.
+5. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with findings, risk rows, tasks, and approval needs.
 
 ## Quality Gates
 
-- Findings are ordered by severity.
-- Each finding includes a file, command output, config, or behavioral evidence when possible.
-- Recommendations are actionable and scoped.
-- The audit remains read-only unless the user explicitly asks for implementation.
+- Findings lead the report; summary is secondary.
+- Each confirmed finding has concrete evidence.
+- Recommendations are scoped and actionable.
+- Security, data-layer, state, dependency, and test risks are considered when relevant.
+- Lark audit state is linked through `.lark.json` only when Lark is active.
 
 ## Expert Standards
 
-- Business impact is described with `Business Maturity` where relevant.
-- Dependency and maintenance risks include `Dependency Health` considerations.
-- Significant findings can be summarized as an `Expert Review Card`.
-- If scoring is useful, keep it lightweight and avoid pretending precision; a compact `9 Tab` style summary is acceptable only when evidence supports it.
+- Business impact is described with `Business Maturity` when relevant.
+- Dependency risk uses `Dependency Health`.
+- Major findings can be summarized as an `Expert Review Card`.
+- If scoring is useful, use a compact `9 Tab` summary only when evidence supports it.
 
 ## Scripts & Commands
 
-No dedicated Arc runtime scripts. Use `.ai-code-index/` for repository context search, then repository-native inspection commands, tests, package managers, and static analysis tools when available.
+No dedicated runtime scripts. Use `.ai-code-index/`, project-native inspection commands, tests, package managers, and static analysis tools.
 
 ## Red Flags
 
-- Producing generic advice without inspecting the project.
-- Treating preferences as defects.
-- Hiding uncertainty behind numeric scores.
-- Implementing fixes during a read-only audit without permission.
-- Reporting only style nits while missing a family-C security finding (authz, 0元购, backdoor) (#12,29,31).
+- Generic advice without inspection.
+- Style nits hiding security, data, state, or test risk.
+- Fixing code during read-only review.
+- Audit report created in Lark but missing from `.lark.json`.
 
 ## When to Use
 
 - **Preferred Trigger**: The user asks whether a codebase, PR, architecture, or module is healthy or risky.
-- **Typical Scenario**: Pre-refactor assessment, takeover review, release readiness discussion, or quality gap analysis.
+- **Typical Scenario**: Pre-refactor assessment, takeover review, release readiness, or quality gap analysis.
 - **Boundary Tip**: Use `arc:build` for implementation and `arc:fix` for known failures.
 
 ## Input Arguments
@@ -100,7 +100,7 @@ No dedicated Arc runtime scripts. Use `.ai-code-index/` for repository context s
 | parameter | type | required | description |
 |---|---|---|---|
 | `project_path` | string | yes | Target repository root |
-| `scope` | string | no | Whole project, module, PR, or specific concern |
+| `scope` | string | no | Whole project, module, PR, or concern |
 | `risk_focus` | string | no | Architecture, security, tests, dependencies, performance, maintainability |
 
 ## Outputs
@@ -112,4 +112,5 @@ Audit Report
 - Impact
 - Recommendation
 - Residual risks
+- Lark / .lark.json handoff, if applicable
 ```

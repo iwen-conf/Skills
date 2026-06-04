@@ -1,10 +1,13 @@
 # Conductor Pattern
 
-本仓库不再维护 Arc conductor。代码库上下文检索由 `.ai-code-index/` 本地搜索脚本负责；跨 Agent 编排、Inbox 消费和任务分派由 `aitask` 负责。
+This repository no longer maintains an Arc conductor. Codebase context retrieval is handled by local `.ai-code-index/` helpers. Cross-agent orchestration, Inbox consumption, and task dispatch are handled by `aitask`.
 
-Arc Skill 可以作为 `aitask` 编排中的局部工作方法：
+Arc skills can still be used as local working methods inside an `aitask` orchestration:
 
-- `arc:clarify`：澄清任务输入。
-- `arc:build`：执行代码交付。
-- `arc:fix`：修复有证据的问题。
-- `arc:audit`：只读评估质量和风险。
+- `arc:define`: define a project or PRD.
+- `arc:clarify`: clarify task inputs and acceptance criteria.
+- `arc:docs`: maintain optional Lark resources only when `.lark.json` exists or the user explicitly enables Lark.
+- `arc:build`: deliver scoped code changes.
+- `arc:frontend`: handle frontend lifecycle work.
+- `arc:fix`: repair evidence-backed failures.
+- `arc:audit`: review quality and risk without editing code.

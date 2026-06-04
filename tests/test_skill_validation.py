@@ -14,7 +14,7 @@ ROOT = Path("/Users/iluwen/Documents/Code/Skills")
 def _arc_skill_text(name: str, expert: str) -> str:
     return f'''---
 name: {name}
-description: "包含中文描述"
+description: "Short description."
 ---
 # Skill
 ## Overview
@@ -59,20 +59,20 @@ output.md
 def test_parse_frontmatter_extracts_core_fields() -> None:
     text = """---
 name: "arc:build"
-description: "包含中文描述"
+description: "Code delivery."
 ---
 # Title
 """
     frontmatter, error = parse_frontmatter(text)
     assert error is None
     assert frontmatter["name"] == "arc:build"
-    assert frontmatter["description"] == "包含中文描述"
+    assert frontmatter["description"] == "Code delivery."
 
 
 def test_validate_text_reports_missing_required_heading_for_routed_skill() -> None:
     text = """---
 name: "arc:build"
-description: "包含中文描述"
+description: "Code delivery."
 ---
 # Skill
 ## Overview
@@ -84,7 +84,7 @@ description: "包含中文描述"
 def test_build_skill_document_extracts_sections() -> None:
     text = """---
 name: "arc:build"
-description: "包含中文描述"
+description: "Code delivery."
 ---
 # Skill
 ## Overview
@@ -101,7 +101,7 @@ workflow body
 def test_validate_skill_schema_accepts_minimal_structured_document() -> None:
     text = """---
 name: "arc:build"
-description: "包含中文描述"
+description: "Code delivery."
 ---
 # Skill
 ## Overview
@@ -116,7 +116,7 @@ when-to-use body
 def test_build_skill_document_extracts_quick_contract_inputs_and_outputs() -> None:
     text = """---
 name: "arc:build"
-description: "包含中文描述"
+description: "Code delivery."
 ---
 # Skill
 ## Quick Contract
@@ -145,7 +145,7 @@ project/.arc/example/
 def test_build_skill_document_extracts_numbered_input_arguments() -> None:
     text = """---
 name: "arc:fix"
-description: "包含中文描述"
+description: "Failure repair."
 ---
 # Skill
 ## **Input Arguments**
@@ -165,6 +165,9 @@ def test_validate_text_accepts_lean_arc_skills() -> None:
     cases = {
         "arc:clarify": "IEEE 29148 INVEST Given-When-Then",
         "arc:build": "DoD SemVer Contract Test RTO/RPO SBOM",
+        "arc:define": "IEEE 29148 Domain-Driven Design Positioning Statement",
+        "arc:docs": "Lark .lark.json Traceability Matrix Information Architecture",
+        "arc:frontend": "Design Token Accessibility Responsive RBAC",
         "arc:fix": "SEV 5 Whys Fault Tree Blameless Postmortem Mandatory Hypothesis Rationalization Watch",
         "arc:audit": "Business Maturity Dependency Health Expert Review Card 9 Tab",
     }
@@ -174,62 +177,25 @@ def test_validate_text_accepts_lean_arc_skills() -> None:
         assert warnings == []
 
 
-def test_validate_text_does_not_enforce_deleted_arc_profiles_on_generic_skills() -> None:
-    text = _arc_skill_text("arc:build", "DoD SemVer Contract Test RTO/RPO SBOM")
-    errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
-    assert errors == []
-    assert warnings == []
-
-
-def test_validate_text_accepts_fusion_terminal_table_skill() -> None:
+def test_validate_text_accepts_only_arc_namespace() -> None:
     text = """---
-name: "terminal-table-output"
-description: "包含中文描述，用于终端盒线表输出"
+name: "plain-skill"
+description: "Non-arc namespace."
 ---
 # Skill
 ## Overview
 overview body
-## Quick Contract
-- **Trigger**: table trigger
-- **Inputs**: compact table data
-- **Outputs**: box-drawing table
-- **Quality Gate**: alignment gate
-- **Decision Tree**: use a table only when compact
-## Announce
-announce body
-## Input Arguments
-| parameter | type | required | description |
-|---|---|---|---|
-| `headers` | array | yes | column titles |
-| `rows` | array | yes | row data |
-## The Iron Law
-rule body
-## Workflow
-workflow body
-## Quality Gates
-quality body
-## Red Flags
-flags body
 ## When to Use
-- **首选触发**：需要紧凑表格
-- **典型场景**：状态汇总、比较矩阵
-- **边界提示**：长文本不用表格
-## Outputs
-```text
-┌──┬──┐
-│A │B │
-└──┴──┘
-```
+when body
 """
     errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
-    assert errors == []
-    assert warnings == []
+    assert "virtual/SKILL.md: skill name must use arc:xxx namespace" in errors
 
 
-def test_validate_text_accepts_frontend_stack_baseline_skill() -> None:
+def test_validate_text_accepts_arc_frontend_skill() -> None:
     text = """---
-name: "frontend-stack-baseline"
-description: "包含中文描述，用于通用前端基线"
+name: "arc:frontend"
+description: "Frontend engineering."
 ---
 # Skill
 ## Overview
@@ -239,7 +205,7 @@ overview body
 - **Inputs**: product type and palette
 - **Outputs**: stack and token artifacts
 - **Quality Gate**: baseline dependencies and theme tokens match
-- **Decision Tree**: use the baseline for React frontend work
+- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 ## Announce
 announce body
 ## Input Arguments
@@ -252,12 +218,16 @@ rule body
 workflow body
 ## Quality Gates
 quality body
+## Expert Standards
+Design Token Accessibility Responsive RBAC
+## Scripts & Commands
+scripts body
 ## Red Flags
 flags body
 ## When to Use
-- **首选触发**：需要 Web 前端基线
-- **典型场景**：React、Vite、Tailwind、shadcn/ui 项目
-- **边界提示**：非前端任务不用本 skill
+- **Preferred Trigger**: frontend lifecycle work
+- **Typical Scenario**: React, Vite, Tailwind, shadcn/ui project
+- **Boundary Tip**: use another skill for backend-only work
 ## Outputs
 ```text
 stack and palette summary

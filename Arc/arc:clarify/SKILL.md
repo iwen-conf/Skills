@@ -1,34 +1,34 @@
 ---
 name: arc:clarify
-description: "需求澄清：将模糊需求转为可执行任务说明。"
+description: "Requirement clarification."
 ---
 
 # arc:clarify
 
 ## Overview
 
-`arc:clarify` turns vague requests into executable task briefs. It is intentionally lightweight and does not orchestrate agents, update indexes, or write long-running state. Use local `.ai-code-index/` search helpers for repository context and `aitask` only for task coordination.
+`arc:clarify` turns vague work into an executable task brief. It does not implement, plan a whole project, or write Lark resources directly.
 
 ## Quick Contract
 
-- **Trigger**: The request is ambiguous, underspecified, or missing acceptance criteria.
-- **Inputs**: User request, working directory, known constraints, relevant files or context provided by the user.
-- **Outputs**: A concise task brief with context, scope, constraints, assumptions, open questions, and success criteria.
-- **Quality Gate**: A downstream engineer can start work without guessing the intended outcome.
+- **Trigger**: Scope, context, constraints, or acceptance criteria are unclear.
+- **Inputs**: User request, workdir, known context, relevant files, optional `.lark.json`.
+- **Outputs**: Task brief with scope, constraints, assumptions, questions, and success criteria.
+- **Quality Gate**: A downstream engineer can start without guessing.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
 ## Routing Matrix
 
-- Use `arc:build` after clarification when code changes are ready.
-- Use `arc:audit` after clarification when the user wants read-only assessment.
-- Use `aitask` instead when the main problem is coordination, ownership, Inbox, memory, or cross-agent workflow.
+- Use `arc:docs` only when Lark is active and clarified requirements must update Lark Docx, Base, `task_base`, or `.lark.json.lifecycle[]`.
+- Use `arc:build` once the task is executable.
+- Use `arc:audit` for read-only assessment.
+- Use `aitask` only for cross-agent ownership or coordination.
 
 ## Context Search
 
-- When repository context is needed, first use `.ai-code-index/search.sh "query"` after confirming the index is current.
-- If there is no local index or results look stale, run `.ai-code-index/reindex.sh`.
-- Use `.ai-code-index/struct-search.sh` for syntax patterns and `.ai-code-index/symbols.sh` for definitions.
-- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient.
+- MUST inspect available local context before asking broad questions.
+- MUST use `.ai-code-index/search.sh` first for repository context; use `rg` only for narrow exact follow-up.
+- If `.lark.json` exists, MUST read it before finalizing the brief.
 
 ## Announce
 
@@ -39,55 +39,58 @@ Begin by stating clearly:
 
 ```text
 NO EXECUTION WITHOUT CONTEXT, CONSTRAINTS, AND SUCCESS CRITERIA.
+NO LARK REQUIREMENT UPDATE OUTSIDE arc:docs.
+NO LARK-ACTIVE FEATURE REQUIREMENT WITHOUT task_base ROW.
 ```
+
+## Hard Constraints
+
+- MUST separate facts, assumptions, and open questions.
+- MUST ask only blocking questions.
+- MUST define in-scope and out-of-scope work.
+- MUST use `Given-When-Then` when behavior must be tested.
+- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
+- MUST hand off Lark-active feature requirements to `arc:docs` so `task_base` is created or updated before delivery starts.
+- NEVER expand the requested surface speculatively.
 
 ## Workflow
 
-1. Restate the user goal in concrete terms.
-2. Identify scope boundaries: files, modules, users, environments, and excluded work.
-3. Identify constraints: compatibility, security, performance, timeline, style, and verification expectations.
-4. Surface assumptions and high-impact unknowns.
-5. Ask only the minimum necessary questions if execution would otherwise be risky.
-6. Produce a task brief that can feed directly into implementation or audit.
-
-## Code Rot Gates
-
-Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Clarification is where two whole-project rot sources are cut off at the root:
-
-- Prune to the minimum surface (#32): translate the request into the smallest API/feature set that satisfies it. If the requirement is one endpoint, the brief specifies one — flag any speculative scenario expansion as out of scope.
-- Fix the state contract up front (#7): when the feature has states, enumerate the full state set and legal transitions in the brief so implementation does not let it drift 8 → 10 → 7 later.
-- Pin shared contracts (#2, #18, #19): name the canonical field names, the error-code type (`int` vs `string`), and the response envelope shape in the brief so downstream work cannot diverge.
+1. Restate the goal in concrete terms.
+2. Inspect repository and `.lark.json` context when available.
+3. Define scope, constraints, assumptions, and success criteria.
+4. Ask only remaining blocking questions.
+5. Produce the brief.
+6. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with requirement, acceptance criteria, task owner/status, and resource keys to update.
 
 ## Quality Gates
 
-- The brief includes `Context`, `Task`, `Scope`, `Constraints`, and `Success Criteria`.
-- Ambiguous terms are resolved or explicitly marked as open questions.
-- Assumptions are separated from facts.
-- The output does not create artificial process overhead.
+- Brief includes `Context`, `Task`, `Scope`, `Constraints`, `Assumptions`, `Open Questions`, and `Success Criteria`.
+- Ambiguous terms are resolved or explicitly open.
+- Acceptance criteria are testable.
+- Lark requirement and `task_base` updates are linked through `.lark.json` via `arc:docs` only when Lark is active.
 
 ## Expert Standards
 
-- Requirements quality follows `IEEE 29148`: complete, consistent, verifiable, and traceable.
-- User stories should satisfy `INVEST` where relevant.
-- Acceptance criteria should use `Given-When-Then` when behavior needs verification.
+- Requirements quality follows `IEEE 29148`.
+- User stories should satisfy `INVEST` when relevant.
+- Behavioral acceptance criteria use `Given-When-Then`.
 
 ## Scripts & Commands
 
-No dedicated runtime scripts. Use `.ai-code-index/` for repository search, then normal inspection tools such as `rg`, `find`, and file reads for exact follow-up.
+No dedicated runtime scripts. Use `.ai-code-index/` for repository search and exact file reads for follow-up.
 
 ## Red Flags
 
 - Asking many questions before reading available context.
-- Producing a vague restatement instead of executable criteria.
-- Hiding assumptions inside the task statement.
-- Turning a small clarification into a heavy planning ceremony.
-- Letting scope balloon into speculative endpoints the requirement never asked for (#32).
+- Hiding assumptions inside the task.
+- Vague success criteria.
+- Updating Lark Base, `task_base`, Task, or Docx without `arc:docs`.
 
 ## When to Use
 
-- **Preferred Trigger**: Requirements are vague or missing execution-critical context.
-- **Typical Scenario**: The user asks for a change but scope, constraints, or verification are unclear.
-- **Boundary Tip**: If the user already gave enough detail, skip this skill and proceed directly.
+- **Preferred Trigger**: Requirements are vague or execution-critical context is missing.
+- **Typical Scenario**: The user asks for a change but scope or verification is unclear.
+- **Boundary Tip**: If the task is already clear, proceed to the appropriate execution skill.
 
 ## Input Arguments
 
@@ -95,7 +98,7 @@ No dedicated runtime scripts. Use `.ai-code-index/` for repository search, then 
 |---|---|---|---|
 | `request` | string | yes | Original user request |
 | `workdir` | string | no | Target project directory |
-| `known_context` | string | no | Existing constraints or files already provided |
+| `known_context` | string | no | Existing constraints or files |
 
 ## Outputs
 
@@ -108,4 +111,5 @@ Task Brief
 - Assumptions
 - Open Questions
 - Success Criteria
+- Lark / .lark.json / task_base handoff, if applicable
 ```

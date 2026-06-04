@@ -1,121 +1,120 @@
 ---
 name: arc:define
-description: "项目定义：将模糊想法整理为结构化的项目/产品定义文档（PRD / Blueprint）。"
+description: "Project definition."
 ---
 
 # arc:define
 
 ## Overview
 
-`arc:define` is the project-genesis skill. It turns a vague idea or scattered notes into a structured Project Definition Document covering positioning, problem, core concepts, features, objects, flow, differentiators, and keywords. It does not write code, do task-level decomposition, or run any execution; for those, route to other Arc skills.
+`arc:define` turns a rough product or project idea into a concrete definition or PRD. It does not implement, decompose tasks, or create Lark resources directly.
 
 ## Quick Contract
 
-- **Trigger**: The user has a project idea, partial draft, or rough PRD that needs structuring.
-- **Inputs**: User-provided idea, target users, known constraints, optional prior notes.
-- **Outputs**: A Project Definition Document strictly following [`references/template.md`](references/template.md).
-- **Quality Gate**: Every template section is concrete, non-empty, and free of filler; gaps are explicitly listed as open questions.
+- **Trigger**: The user needs a project definition, PRD, blueprint, or structured product concept.
+- **Inputs**: Idea, target users, constraints, optional repository, optional prior notes.
+- **Outputs**: Project Definition Document plus open questions and optional Lark handoff.
+- **Quality Gate**: Every section is concrete, named, and verifiable; unknowns stay explicit.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
 ## Routing Matrix
 
-- Use `arc:clarify` after definition when individual tasks need an executable brief.
-- Use `arc:build` when a defined feature is ready to be implemented.
-- Use `arc:audit` when an existing project's definition or scope needs read-only review.
-- Use `aitask` when the genesis work needs cross-agent coordination or persisted memory.
+- Use `arc:docs` only when Lark is active or the user confirms Lark for PRD, project home, Wiki node, or `.lark.json` entry.
+- Use `arc:clarify` for task-level acceptance criteria after the project is defined.
+- Use `arc:build` only after scope is implementation-ready.
+- Use `arc:audit` for read-only review of an existing definition.
 
 ## Context Search
 
-- For brownfield projects, first run `.ai-code-index/search.sh "query"` to surface existing modules, naming, and domain language before drafting the definition.
-- If the index is missing or stale, run `.ai-code-index/reindex.sh`.
-- Use `.ai-code-index/symbols.sh` to extract the project's real entity names instead of inventing new ones.
-- Use `rg` only for narrow exact follow-up, new files, non-indexed files, or fallback when the index is insufficient.
+- For brownfield work, MUST search existing terms first with `.ai-code-index/search.sh`, then `.ai-code-index/symbols.sh` if entity names matter.
+- If `.lark.json` exists, MUST read it before drafting so PRD, owners, requirements, and Wiki links remain consistent.
 
 ## Announce
 
 Begin by stating clearly:
-"I am using `arc:define` to produce a structured project definition document."
+"I am using `arc:define` to produce a structured project definition."
 
 ## The Iron Law
 
 ```text
-NO SECTION WITHOUT A CONCRETE CONCEPT.
+NO GENERIC PRD.
+NO INVENTED DOMAIN TERMS IN A BROWNFIELD PROJECT.
+NO PASSIVE LARK PRD OR .lark.json CREATION.
 ```
+
+## Hard Constraints
+
+- MUST follow [`references/template.md`](references/template.md) section order unless the user explicitly provides another required format.
+- MUST use one canonical name per domain concept.
+- MUST mark missing facts as open questions; NEVER fill gaps with filler.
+- MUST route through `arc:docs` for all active Lark writes and `.lark.json.resources.prd` updates.
+- MUST ask once whether to enable Lark only when the user asks for collaborative project docs/tracking but does not mention Lark.
+- MUST NOT create `.lark.json` when Lark is inactive.
+- NEVER turn project definition into task planning, code design, or implementation.
 
 ## Workflow
 
-1. Restate the user's idea in one or two sentences to confirm intent.
-2. Map the idea onto each section of [`references/template.md`](references/template.md).
-3. Fill known sections directly; mark unknowns as open questions rather than guessing.
-4. Force each section past filler: positioning ≠ "全方位 / 一站式"; core concept ≠ a feature list.
-5. Iterate with the user only on the smallest set of gaps blocking the definition.
-6. Deliver the final document in the template's exact section order.
-
-## Code Rot Gates
-
-Full catalog: [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md). Genesis is where naming drift is prevented before any code exists:
-
-- Establish one ubiquitous term per concept (#8, #18): in "主要对象", name each domain entity once and commit to it (`phone` or `mobile`, not both). Everything downstream reuses these names for fields, params, and responses.
-- For brownfield projects, extract the real entity names with `.ai-code-index/symbols.sh` instead of inventing synonyms that will later collide with the existing code.
+1. Restate the idea in one concrete sentence.
+2. Extract or confirm domain terms, users, constraints, and non-goals.
+3. Fill the template with specific content only.
+4. List open questions separately.
+5. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with the PRD content and intended resource key.
 
 ## Quality Gates
 
-- Every section in `template.md` is present, in order, and non-empty.
-- "项目定位" is 1–3 sentences and not interchangeable with another project.
-- "核心概念" names a metaphor or central abstraction, not a feature.
-- "核心功能" lists 3–6 capabilities, each verifiable from the user's perspective.
-- "主要对象" lists the real domain entities the system will model.
-- "业务流程" is expressible as a short arrow chain (`A → B → C`).
-- Open questions are listed separately and do not pollute the body.
+- Project positioning is specific to this project.
+- Core concept is a central abstraction, not a feature list.
+- Core capabilities are 3-6 user-verifiable capabilities.
+- Main objects use existing repository vocabulary when a repository exists.
+- Business flow is a short ordered path.
+- `.lark.json.resources.prd` is updated through `arc:docs` only when Lark is active.
 
 ## Expert Standards
 
-- Requirements quality follows `IEEE 29148`: complete, consistent, verifiable.
-- Concept framing uses a `Domain-Driven Design` lens — name the ubiquitous language.
-- Differentiators follow a `Positioning Statement` shape: for *who*, that *needs*, our project *does*, unlike *alternatives*.
-- Keywords serve discoverability, not marketing; prefer concrete domain terms over hype.
+- Requirements quality follows `IEEE 29148`.
+- Naming uses `Domain-Driven Design` ubiquitous language.
+- Differentiation follows a `Positioning Statement`: for whom, what need, what product, why different.
 
 ## Scripts & Commands
 
-No dedicated runtime scripts. Use `.ai-code-index/` for brownfield context, then plain Markdown editing tools. The output is a single document — do not generate side artifacts.
+No dedicated runtime scripts. Use `.ai-code-index/` for brownfield context and plain Markdown for output.
 
 ## Red Flags
 
-- Filling sections with "全方位 / 智能化 / 一站式" or other interchangeable phrasing.
-- Collapsing 核心概念 into a feature list.
-- Inventing entities that contradict an existing codebase when one exists.
-- Expanding scope into task decomposition or implementation planning — route to `arc:clarify` / `arc:build` instead.
-- Producing a parallel PRD format that diverges from `template.md`.
-- Naming one domain concept two ways across sections, seeding downstream naming drift (#8, #18).
+- Generic positioning such as "all-in-one" or "intelligent platform".
+- Two names for one concept.
+- Claims that contradict existing code, docs, or `.lark.json`.
+- Lark document creation outside `arc:docs`.
 
 ## When to Use
 
-- **Preferred Trigger**: The user says "梳理一下这个项目 / 写个 PRD / 把想法整理成定义 / 定义新项目".
-- **Typical Scenario**: New project genesis, rebooting a stalled idea, aligning multiple contributors on what a project actually is.
-- **Boundary Tip**: If the user has a concrete task and only needs scope/constraints, use `arc:clarify`; this skill is for the project, not the task.
+- **Preferred Trigger**: The user asks to define a project, write a PRD, or structure a rough idea.
+- **Typical Scenario**: New project kickoff, stalled idea reset, or contributor alignment.
+- **Boundary Tip**: Use `arc:clarify` for task briefs and `arc:build` for implementation.
 
 ## Input Arguments
 
 | parameter | type | required | description |
 |---|---|---|---|
-| `idea` | string | yes | User's project idea or rough description |
-| `project_path` | string | no | Existing repository, for brownfield grounding |
-| `constraints` | string | no | Known constraints: users, platform, deadline, regulations |
-| `prior_notes` | string | no | Earlier drafts, slides, or chat logs to consolidate |
+| `idea` | string | yes | User's rough project idea |
+| `project_path` | string | no | Existing repository for grounding |
+| `constraints` | string | no | Users, platform, deadline, rules, or non-goals |
+| `prior_notes` | string | no | Drafts, slides, chat logs, or existing docs |
 
 ## Outputs
 
 ```text
 Project Definition Document
-- 项目名称
-- 项目类型
-- 项目定位
-- 解决的问题
-- 核心概念
-- 核心功能
-- 主要对象
-- 业务流程
-- 项目特色
-- 项目关键词
-- Open Questions (only if any section is unresolved)
+- Project Name
+- Project Type
+- Project Positioning
+- Problem
+- Core Concept
+- Core Capabilities
+- Main Objects
+- Business Flow
+- Differentiators
+- Keywords
+- Open Questions
+- Lark / .lark.json handoff, if applicable
 ```

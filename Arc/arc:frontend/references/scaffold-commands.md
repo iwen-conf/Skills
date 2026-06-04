@@ -1,6 +1,6 @@
 # Scaffold Commands
 
-一键初始化一个符合 `frontend-stack-baseline` 的 React 前端。
+一键初始化一个符合 `arc:frontend` 基线的 React 前端。
 
 ## 1. 新建项目
 
