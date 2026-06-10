@@ -6,7 +6,7 @@ Arc skills can still be used as local working methods inside an `aitask` orchest
 
 - `arc:define`: define a project or PRD.
 - `arc:clarify`: clarify task inputs and acceptance criteria.
-- `arc:docs`: maintain optional Lark resources only when `.lark.json` exists or the user explicitly enables Lark.
+- `arc:docs`: initialize or maintain Lark resources only for existing `.lark.json`, a user-provided Lark project link, or explicit Lark project-space creation/update.
 - `arc:build`: deliver scoped code changes.
 - `arc:frontend`: handle frontend lifecycle work.
 - `arc:fix`: repair evidence-backed failures.

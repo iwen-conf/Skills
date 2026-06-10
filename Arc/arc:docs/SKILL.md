@@ -1,19 +1,19 @@
 ---
 name: arc:docs
-description: "Optional Lark workspace."
+description: "Feishu/Lark project space and .lark.json owner for explicit setup and indexed document lifecycle."
 ---
 
 # arc:docs
 
 ## Overview
 
-`arc:docs` creates and maintains the project Lark workspace plus the project-root `.lark.json` index only when Lark is active for the project. It is the only Arc skill allowed to create or update durable Lark project resources.
+`arc:docs` creates and maintains the project Lark workspace plus the project-root `.lark.json` index only after an explicit project-space request, an existing `.lark.json`, or a user-provided Lark project link. It is the only Arc skill allowed to create or update durable Lark project resources.
 
 Read [`references/lark-index-contract.md`](references/lark-index-contract.md) when creating or changing `.lark.json`.
 
 ## Quick Contract
 
-- **Trigger**: `.lark.json` exists, the user provides a Lark link, or the user explicitly asks to enable/create/index Lark project resources.
+- **Trigger**: `.lark.json` exists, the user provides a Lark project link, or the user explicitly asks to create/connect/update/index Lark project resources.
 - **Inputs**: Project path, project name, desired workspace scope, owners, optional existing Lark links.
 - **Outputs**: `.lark.json`, Lark resource links/IDs, local index status, lifecycle entries.
 - **Quality Gate**: Every indexed resource exists, every claim has evidence, every lifecycle event is traceable.
@@ -29,15 +29,16 @@ Lark activation:
 
 | State | Condition | Required behavior |
 |---|---|---|
-| Active existing | Project root has `.lark.json` | Read it, verify indexed resources when relevant, update through `arc:docs`. |
-| Active requested | User provides Lark URL/token or explicit trigger phrase | Ask only missing setup details, then create/index the smallest useful resource set. |
-| Full workspace requested | User says `创建飞书项目空间` or `create Lark project space` | Create the full standard project workspace in one pass and index everything in `.lark.json`. |
+| Active existing | Project root has `.lark.json` | Read it first, use indexed resource URLs/IDs as the entry point, verify resources when relevant, then update through `arc:docs`. |
+| Existing Lark link provided | User provides a Lark project home, Drive folder, Wiki/Base, or project-space link | Resolve the link, create/update `.lark.json`, and avoid duplicate resources. |
+| Project space create requested | User says `创建项目的飞书空间`, `创建飞书项目空间`, `初始化飞书项目空间`, or `create Lark project space` | Create the standard project workspace in one pass, store the project file-space URL in `.lark.json.resources.drive_folder.url`, and index every created/resolved resource. |
 | Full workspace update requested | User says `更新飞书项目空间` or `refresh Lark project space` | Verify the existing workspace, repair/index gaps, refresh SDLC resources, and never create duplicates. |
-| Candidate | User asks for project collaboration/docs/tracking but does not mention Lark | Ask once whether to enable Lark or stay local. |
-| Inactive | No `.lark.json` and no Lark trigger | Do not create Lark resources, do not create `.lark.json`, do not ask during ordinary code work. |
+| Inactive | No `.lark.json`, no user-provided Lark project link, and no explicit project-space request | Do not create Lark resources, do not create `.lark.json`, and do not prompt just because the project is large. |
 
 Explicit trigger phrases include:
 
+- `创建项目的飞书空间`
+- `初始化飞书项目空间`
 - `启用飞书项目空间`
 - `接入飞书`
 - `创建飞书文档`
@@ -48,20 +49,38 @@ Explicit trigger phrases include:
 - `索引飞书资源`
 - `生成飞书PRD`
 - `把这个项目纳入飞书`
+- `初始化项目空间`
 - `enable Lark`
+- `initialize Lark project space`
 - `create Lark workspace`
 - `create Lark docs`
 - `create Lark task table`
 - `create Lark dashboard`
 - `sync to Lark`
 
-Full workspace trigger phrases:
+Project-space creation trigger phrases:
 
+- `创建项目的飞书空间`
 - `创建飞书项目空间`
 - `创建完整飞书项目空间`
 - `一键创建飞书项目空间`
+- `初始化飞书项目空间`
 - `create Lark project space`
 - `create full Lark workspace`
+
+Explicit creation rule:
+
+- Do not infer project-space creation from project size, repository structure, long-running work, or docs/tracking needs.
+- If `.lark.json` is absent, only explicit project-space creation/connect/index/update wording can create or update `.lark.json`.
+- A request like `创建飞书文档` or `创建飞书任务表` creates only the requested resource unless the user also asks to create/connect the project space.
+- If required auth, owner, project name, or remote-write confirmation is missing, stop Lark writes and ask only for the missing setup detail.
+
+Material capture contract:
+
+- Any durable project material discovered or produced during research, search, development, design, review, meetings, or handoff MUST be routed into the Lark project space when `.lark.json` exists.
+- Store source URLs, local file paths, titles, timestamps, owners, summary, and evidence links in the correct resource; never store access tokens or full secret-bearing document bodies in `.lark.json`.
+- Use Docx/Wiki for narrative findings, Base for structured requirements/tasks/risks/traceability, Drive for files/exports/attachments, Whiteboard/UML for visual models, Slides for presentation assets, and lifecycle entries for provenance.
+- If `.lark.json` is absent, keep durable materials local unless the user explicitly asks to create/connect a Lark project space.
 
 Workspace update trigger phrases:
 
@@ -124,12 +143,13 @@ Core component boundaries:
 - MUST inspect the project root, existing docs, `.lark.json`, and `.ai-code-index/` status first.
 - MUST use local `.ai-code-index/` search before broad repository reads.
 - MUST load `lark-shared` before any Lark write.
-- If `.lark.json` is absent and no explicit Lark trigger exists, Lark is inactive.
+- If `.lark.json` exists, MUST use its indexed Lark addresses before searching or changing remote Lark resources.
+- If `.lark.json` is absent and no explicit project-space request or existing Lark project link exists, Lark is inactive.
 
 ## Announce
 
 Begin by stating clearly:
-"I am using `arc:docs` to maintain the optional Lark workspace and `.lark.json` index."
+"I am using `arc:docs` to initialize or maintain the Lark project workspace and `.lark.json` index."
 
 ## The Iron Law
 
@@ -137,26 +157,30 @@ Begin by stating clearly:
 NO LARK PROJECT RESOURCE WITHOUT .lark.json.
 NO .lark.json ENTRY WITHOUT A REAL RESOURCE.
 NO PASSIVE .lark.json CREATION.
+NO PROJECT SPACE CREATION WITHOUT AN EXPLICIT USER REQUEST OR USER-PROVIDED LARK PROJECT LINK.
 NO LARK WRITE WITHOUT EXISTING INDEX, EXPLICIT TRIGGER, OR USER CONFIRMATION.
 NO CLAIM WITHOUT REPOSITORY OR USER-PROVIDED EVIDENCE.
 NO SECRET OR DOCUMENT BODY IN .lark.json.
 NO LARK-ACTIVE TRACKED FEATURE UPDATE WITHOUT task_base UPDATE.
+NO DURABLE PROJECT MATERIAL LEFT ONLY IN CHAT WHEN .lark.json EXISTS.
 ```
 
 ## Hard Constraints
 
-- MUST choose the smallest useful Lark resource set; NEVER create every possible Lark artifact by default.
-- MUST treat `创建飞书项目空间` / `create Lark project space` as `workspace_scope=full`; this trigger overrides the smallest-resource default.
+- MUST choose the smallest useful Lark resource set for explicitly scoped work.
+- MUST NOT create a Lark project space because a project is large or long-running.
+- MUST treat `创建项目的飞书空间` / `创建飞书项目空间` / `create Lark project space` as `workspace_scope=full` unless the user explicitly limits scope.
 - MUST treat `更新飞书项目空间` / `refresh Lark project space` as `workspace_update`; it requires existing `.lark.json` or a user-provided existing Lark link.
 - MUST NOT create a duplicate workspace, project home, Base app, dashboard, or Lark Project when updating an existing Lark project space.
-- MUST treat projects without `.lark.json` as local-only unless the user explicitly triggers or confirms Lark.
-- MUST ask one concise enablement question only for candidate collaboration/docs/tracking work; NEVER ask during ordinary code, fix, or audit work.
+- MUST treat missing `.lark.json` as local-only unless the user explicitly asks to create/connect/index/update Lark project space or provides an existing Lark project link.
 - MUST index-check existing `.lark.json` before any Lark update.
 - MUST create or update `.lark.json` at the project root for every Lark project workspace.
+- MUST store the project file-space Feishu address in `.lark.json.resources.drive_folder.url` when a project space is created or resolved.
 - MUST store durable URLs, IDs, owners, status, and timestamps only.
 - MUST use `docs +create/+fetch/+update --api-version v2` for Lark Docx operations.
 - MUST record local code index status in `.lark.json.local_index`.
 - MUST append lifecycle events; NEVER rewrite history except to fix a broken link or factual error.
+- MUST capture durable project material into Lark resources when `.lark.json` exists: research sources, new docs, API notes, architecture facts, decisions, screenshots, reports, exports, and handoff artifacts.
 - MUST treat `.lark.json.resources.task_base` as the structured feature task table for tracked projects.
 - MUST create or resolve `task_base` with `lark-base` before marking a Lark-active tracked feature update complete.
 - MUST update `task_base` after every Lark-active tracked feature update with title, owner, status, related requirement, changed files, verification, linked lifecycle entry, and `updated_at`.
@@ -179,7 +203,7 @@ NO LARK-ACTIVE TRACKED FEATURE UPDATE WITHOUT task_base UPDATE.
 
 ## Full Workspace Contract
 
-When the user says `创建飞书项目空间`, MUST create the full standard project workspace in one pass. Ask only for missing project name, owner, or auth data that is required to create resources.
+When the user says `创建项目的飞书空间`, `创建飞书项目空间`, or `初始化飞书项目空间`, MUST create the standard project workspace in one pass. Ask only for missing project name, owner, auth data, or remote-write confirmation that is required to create resources.
 
 Full workspace MUST create or resolve and index:
 
@@ -195,7 +219,7 @@ Full workspace MUST create or resolve and index:
 - Workflow automations for status notifications and Base/Project glue when supported.
 - Drive/Markdown/Slides/Sheets/App resources when project artifacts require those formats.
 
-Full workspace MUST write every created or resolved durable resource to `.lark.json.resources` with real URLs/IDs/tokens. If a resource cannot be created because of permission, missing owner/member data, or unsupported API coverage, MUST append a `.lark.json.lifecycle[]` blocker entry naming the missing resource and reason; do not silently omit it.
+Full workspace MUST write every created or resolved durable resource to `.lark.json.resources` with real URLs/IDs/tokens. The project file-space URL MUST be stored at `.lark.json.resources.drive_folder.url`. If a resource cannot be created because of permission, missing owner/member data, or unsupported API coverage, MUST append a `.lark.json.lifecycle[]` blocker entry naming the missing resource and reason; do not silently omit it.
 
 ## Workspace Update Contract
 
@@ -230,14 +254,16 @@ Use `tasklist` only for personal reminders; it cannot replace `task_base`.
 
 ## Workflow
 
-1. Determine Lark state: active existing, active requested, candidate, or inactive.
-2. If inactive, stop Lark work and continue local-only.
-3. If candidate, ask whether to enable Lark or stay local.
-4. Read project instructions, existing docs, `.lark.json`, and local index status.
-5. Create or update `.lark.json` from the reference contract.
-6. Refresh local code index when needed and record status.
-7. Choose workspace scope and operation: `minimum`, `normal`, `full`, or `workspace_update`; exact full workspace triggers MUST use `full`, and update triggers MUST use `workspace_update`.
-8. Select Lark tools by evidence:
+1. Determine Lark state: active existing, existing Lark link provided, project space create requested, workspace update requested, or inactive.
+2. At project start or before any Lark work, look for project-root `.lark.json`; if present, read it before remote operations.
+3. If inactive, stop Lark work and continue local-only without prompting.
+4. If project space creation was explicitly requested, create the standard workspace and then write `.lark.json` with `resources.drive_folder.url`.
+5. If an existing Lark project link was provided, resolve/index it into `.lark.json` without creating duplicates.
+6. Read project instructions, existing docs, `.lark.json`, and local index status.
+7. Create or update `.lark.json` from the reference contract.
+8. Refresh local code index when needed and record status.
+9. Choose workspace scope and operation: `minimum`, `normal`, `full`, or `workspace_update`; exact project-space creation triggers MUST use `full` unless user-limited, and update triggers MUST use `workspace_update`.
+10. Select Lark tools by evidence:
    - narrative knowledge -> Docx/Wiki;
    - feature task state -> Base `task_base`;
    - structured state -> Base/Project/Approval/OKR;
@@ -249,15 +275,18 @@ Use `tasklist` only for personal reminders; it cannot replace `task_base`.
    - visual models -> Whiteboard/UML;
    - automation -> Workflow;
    - missing native capability -> OpenAPI/Skill Maker.
-9. Create or resolve Lark resources through the resource router; for `full`, create the complete standard workspace contract above.
-10. Store each durable resource in `.lark.json.resources`.
-11. For every Lark-active tracked feature update, create or update the `task_base` row before the delivery is considered complete.
-12. Append `.lark.json.lifecycle[]` for Arc events: define, clarify, build, frontend, fix, audit, meeting follow-up.
-13. Finish with resource links, task table status, evidence used, unresolved gaps, and next lifecycle step.
+11. Create, search, update, delete, or resolve Lark resources through `.lark.json` resource URLs/IDs and the resource router; confirm before destructive deletes.
+12. Store each durable resource in `.lark.json.resources`.
+13. Capture durable project material into the relevant Lark resource and append source/evidence references.
+14. For every Lark-active tracked feature update, create or update the `task_base` row before the delivery is considered complete.
+15. Append `.lark.json.lifecycle[]` for Arc events: define, clarify, build, frontend, fix, audit, research/material capture, meeting follow-up.
+16. Finish with resource links, task table status, material capture status, evidence used, unresolved gaps, and next lifecycle step.
 
 ## Quality Gates
 
 - `project_home`, local index status, and project identity are present once remote docs exist.
+- Project-space creation happens only after explicit user request or provided Lark project link.
+- Created/resolved project spaces store `.lark.json.resources.drive_folder.url`.
 - Full workspace trigger creates or explicitly blocks every standard workspace resource and records each result in `.lark.json`.
 - Workspace update trigger verifies the existing index, refreshes structured SDLC resources, repairs gaps, and records blockers without duplicating resources.
 - No `.lark.json` is created for inactive projects.
@@ -265,6 +294,7 @@ Use `tasklist` only for personal reminders; it cannot replace `task_base`.
 - Requirements, delivery, incidents, audits, meetings, risks, and tasks are cross-linked when more than one resource exists.
 - Dashboards reference structured source resources such as `progress_base`, `risk_base`, `traceability_base`, or `lark_project`.
 - Every Lark-active tracked feature update has a `task_base` row linked to the lifecycle entry; `tasklist` alone is never enough.
+- Durable project materials discovered or created during work are linked from Docx/Wiki/Base/Drive/Whiteboard/Slides as appropriate.
 - Thesis-support claims trace to code, SQL, routes, tests, config, or explicit source docs.
 - Every selected Lark tool has a lifecycle reason; unused "nice to have" resources are omitted.
 
@@ -302,7 +332,7 @@ lark-cli docs +update --api-version v2 --doc "<doc-url-or-token>" --command appe
 
 ## When to Use
 
-- **Preferred Trigger**: `.lark.json` exists, the user provides a Lark link, or the user asks to connect a project to Lark, create Lark docs, maintain Lark progress, index Lark resources, or preserve Lark lifecycle state.
+- **Preferred Trigger**: `.lark.json` exists, the user provides a Lark project link, or the user asks to create/connect/update a project Lark space, create Lark docs, maintain Lark progress, index Lark resources, or preserve Lark lifecycle state.
 - **Typical Scenario**: Kickoff, PRD handoff, requirements tracking, architecture docs, delivery notes, incident/audit records, meeting follow-up, thesis support.
 - **Boundary Tip**: Use `arc:build` for code-only delivery and `arc:fix` for failure-only repair; use this skill when documentation, collaboration, traceability, or Lark indexing is in scope.
 

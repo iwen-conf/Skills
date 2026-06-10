@@ -1,6 +1,6 @@
 ---
 name: arc:audit
-description: "Project audit."
+description: "Read-only project audit; hand active Lark findings, risks, remediation tasks, approvals, and lifecycle to arc:docs."
 ---
 
 # arc:audit

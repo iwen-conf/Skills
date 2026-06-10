@@ -1,6 +1,6 @@
 ---
 name: arc:define
-description: "Project definition."
+description: "Project definition and PRD; hand active Lark project-home/Wiki/.lark.json updates to arc:docs."
 ---
 
 # arc:define
@@ -48,7 +48,7 @@ NO PASSIVE LARK PRD OR .lark.json CREATION.
 - MUST use one canonical name per domain concept.
 - MUST mark missing facts as open questions; NEVER fill gaps with filler.
 - MUST route through `arc:docs` for all active Lark writes and `.lark.json.resources.prd` updates.
-- MUST ask once whether to enable Lark only when the user asks for collaborative project docs/tracking but does not mention Lark.
+- MUST NOT suggest or create a Lark project space unless the user explicitly asks for Lark/Feishu output or `.lark.json` already exists.
 - MUST NOT create `.lark.json` when Lark is inactive.
 - NEVER turn project definition into task planning, code design, or implementation.
 

@@ -1,6 +1,6 @@
 ---
 name: arc:build
-description: "Code delivery."
+description: "Code delivery with verification; hand active Lark task_base, progress, delivery, and lifecycle to arc:docs."
 ---
 
 # arc:build

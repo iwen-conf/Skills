@@ -1,6 +1,6 @@
 ---
 name: arc:clarify
-description: "Requirement clarification."
+description: "Requirement clarification; hand active Lark requirements, task_base, and lifecycle updates to arc:docs."
 ---
 
 # arc:clarify

@@ -1,6 +1,6 @@
 ---
 name: arc:frontend
-description: "Frontend engineering."
+description: "Frontend engineering; hand active Lark page progress, decisions, screenshots, task_base, and lifecycle to arc:docs."
 ---
 
 # arc:frontend

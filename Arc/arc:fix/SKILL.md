@@ -1,6 +1,6 @@
 ---
 name: arc:fix
-description: "Failure repair."
+description: "Failure repair with root cause; hand active Lark incidents, risks, follow-ups, task_base, and lifecycle to arc:docs."
 ---
 
 # arc:fix

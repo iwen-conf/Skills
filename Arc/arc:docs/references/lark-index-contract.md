@@ -4,18 +4,17 @@ This reference defines the project-root `.lark.json` file maintained by `arc:doc
 
 ## Activation Rules
 
-Do not create `.lark.json` for every project.
+Do not create `.lark.json` for every project and do not infer creation from project size.
 
 Lark is active only when one condition is true:
 
 - `.lark.json` already exists in the project root.
-- The user provides a Lark URL, token, Base link, Wiki link, or project link.
-- The user explicitly triggers Lark setup, indexing, docs, task table, dashboard, or sync.
-- The user confirms Lark after a candidate collaboration/docs/tracking prompt.
+- The user provides an existing Lark project-space, Drive folder, project home, Wiki, Base, or project link to index.
+- The user explicitly says to create/init/connect/update/index the project's Feishu/Lark project space.
 
-When Lark is inactive, skip this contract entirely. When `.lark.json` already exists, inspect and verify indexed resources before writes.
+When Lark is inactive, skip this contract entirely. When `.lark.json` already exists, inspect and verify indexed resources before writes. At the start of work in a project, check the project root for `.lark.json`; if it exists, use its stored Lark addresses for future search, update, delete, and create operations.
 
-`创建飞书项目空间`, `创建完整飞书项目空间`, `一键创建飞书项目空间`, `create Lark project space`, and `create full Lark workspace` mean full workspace provisioning. Full workspace provisioning must create or resolve all standard project folders, files, docs, Base tables, dashboards, workflow resources, and collaboration resources in one pass, then write every real durable URL/ID/token into `.lark.json`.
+`创建项目的飞书空间`, `创建飞书项目空间`, `初始化飞书项目空间`, `创建完整飞书项目空间`, `一键创建飞书项目空间`, `create Lark project space`, and `create full Lark workspace` mean full workspace provisioning. Full workspace provisioning must create or resolve all standard project folders, files, docs, Base tables, dashboards, workflow resources, and collaboration resources in one pass, then write every real durable URL/ID/token into `.lark.json`. The project file-space Feishu address must be stored in `.lark.json.resources.drive_folder.url`.
 
 `更新飞书项目空间`, `刷新飞书项目空间`, `补齐飞书项目空间`, `同步飞书项目空间`, `update Lark project space`, `refresh Lark project space`, and `complete Lark project space` mean existing workspace update. Workspace update must verify the current `.lark.json` index or a user-provided existing Lark link, repair gaps, refresh SDLC resources, and never create a duplicate project workspace.
 
@@ -236,6 +235,8 @@ Full workspace resources:
 - Optional artifacts: `sheets`, `slides`, `apps`, `markdown_files`, `approvals`, `okrs`, and `workflow_reports` only when relevant to the project or requested.
 
 Every created/resolved durable resource must be written into `.lark.json.resources`. If creation is blocked, append a lifecycle blocker entry with `status: "blocked"`, the intended `resource_keys`, and a short reason.
+
+Project-space creation or connection has one required invariant: `resources.drive_folder` must be a non-null resource entry with a human-openable `url`. This URL is the project's Feishu file-space entry point for later document search, update, deletion, creation, and file/archive operations.
 
 ## Full Workspace Update Contract
 
