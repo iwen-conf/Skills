@@ -35,6 +35,7 @@ def test_validate_registry_accepts_generated_registry() -> None:
         "arc:frontend",
         "arc:fix",
         "arc:audit",
+        "arc:security",
     }
 
 

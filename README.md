@@ -13,7 +13,8 @@ Skills/
 │   ├── arc:build/
 │   ├── arc:frontend/
 │   ├── arc:fix/
-│   └── arc:audit/
+│   ├── arc:audit/
+│   └── arc:security/
 ├── .ai-code-index/
 ├── docs/
 ├── schemas/
@@ -33,6 +34,7 @@ Skills/
 | `arc:frontend` | 前端工程 | 收敛 React/Vite/Tailwind/shadcn 基线并记录前端决策 |
 | `arc:fix` | 故障修复 | 基于失败证据定位根因、修复并回归验证 |
 | `arc:audit` | 项目体检 | 做只读项目体检，输出风险和改进建议 |
+| `arc:security` | 安全自动化 | 本地安装和编排安全 CLI，生成可读安全报告，并把修复/审计/文档沉淀交回 Arc |
 
 ## 共享参考
 
@@ -56,7 +58,7 @@ Skills/
 - 飞书操作由 `arc:docs` 路由到 `lark-doc` / `lark-base` / `lark-shared` 等对应技能，遵守认证、API 版本和高风险写入规则。
 - `aitask` 仅负责任务编排、协作、Inbox 和跨 Agent 状态。
 - Arc 只保留软件工程生命周期中的稳定判断框架和文档索引契约。
-- Arc Skill 默认是纯 `SKILL.md` 契约，不维护专用 Python/Go 运行时。
+- Arc Skill 默认是纯 `SKILL.md` 契约；`arc:security` 这种需要可重复自动化的能力可以携带本地脚本。
 - 图表、浏览器、Lazycat、纯设计等垂直能力由对应专门 Skill 负责，不再在 Arc 内重复建设。
 
 ## 校验

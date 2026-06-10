@@ -170,6 +170,7 @@ def test_validate_text_accepts_lean_arc_skills() -> None:
         "arc:frontend": "Design Token Accessibility Responsive RBAC",
         "arc:fix": "SEV 5 Whys Fault Tree Blameless Postmortem Mandatory Hypothesis Rationalization Watch",
         "arc:audit": "Business Maturity Dependency Health Expert Review Card 9 Tab",
+        "arc:security": "SAST SCA DAST OpenAPI Fuzz SBOM SARIF CWE CVSS OWASP Top 10 OWASP ASVS AuthZ",
     }
     for name, expert in cases.items():
         errors, warnings = validate_text(_arc_skill_text(name, expert), "virtual/SKILL.md", root=ROOT)

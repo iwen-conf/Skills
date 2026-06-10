@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 from typing import Any, TypeAlias
 
+import yaml
 from jsonschema import ValidationError, validate
 
 KeywordVariant: TypeAlias = str | list[str]
@@ -47,6 +48,7 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
     "arc:frontend": ["Design Token", "Accessibility", "Responsive", "RBAC"],
     "arc:fix": [["SEV", "Severity Level", "severity level", "severity"], "5 Whys", "Fault Tree", "Blameless Postmortem", "Mandatory Hypothesis", "Rationalization Watch"],
     "arc:audit": ["Business Maturity", "Dependency Health", "Expert Review Card", "9 Tab"],
+    "arc:security": ["SAST", "SCA", "DAST", "OpenAPI Fuzz", "SBOM", "SARIF", "CWE", "CVSS", "OWASP Top 10", "OWASP ASVS", "AuthZ"],
 }
 
 LEGACY_TOKEN_PARTS = [
@@ -82,10 +84,6 @@ INPUT_ARGUMENT_HEADER_MAP = {
 }
 
 WHEN_TO_USE_MARKER_VARIANTS = ARC_WHEN_TO_USE_MARKERS_EN
-
-
-
-import yaml
 
 def parse_frontmatter(text: str) -> tuple[dict[str, Any], str | None]:
     if not text.startswith("---\n"):

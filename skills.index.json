@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-06-10T13:14:35.466287Z",
-  "skill_count": 7,
+  "generated_at": "2026-06-10T14:57:29.236618Z",
+  "skill_count": 8,
   "skills": [
     {
       "name": "arc:audit",
@@ -849,6 +849,137 @@
       "outputs_section": {
         "format": "text",
         "content": "Frontend Handoff\n- Workflow and pages covered\n- Stack and token decisions\n- Files changed\n- Responsive/accessibility checks\n- Verification run\n- Lark / .lark.json / task_base handoff, if applicable\n- Residual risks"
+      }
+    },
+    {
+      "name": "arc:security",
+      "description": "Security automation for SAST, SCA, secrets, Go, API fuzz, DAST scans, and readable Arc handoffs.",
+      "source_path": "Arc/arc:security/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "`arc:security` runs local-first security automation for application repositories. It installs and orchestrates CLI scanners, produces human-readable reports, and routes remediation or durable project records through existing Arc skills.\n\nRead [`references/security-tooling.md`](references/security-tooling.md) when choosing tools, interpreting scanner limits, or explaining coverage to a user."
+        },
+        {
+          "heading": "## Quick Contract",
+          "title": "Quick Contract",
+          "body": "- **Trigger**: The user asks for security scanning, vulnerability assessment, secure release checks, dependency/secrets review, API fuzzing, or a readable security report.\n- **Inputs**: Project path, optional target URL, optional OpenAPI spec, scan mode, installation preference, and expected report format.\n- **Outputs**: Local security reports, raw scanner artifacts, prioritized findings, remediation handoff, and optional Lark handoff.\n- **Quality Gate**: Scans are local-first, reproducible, evidence-backed, readable, and explicit about skipped tools and manual test gaps.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+        },
+        {
+          "heading": "## Routing Matrix",
+          "title": "Routing Matrix",
+          "body": "- Use `arc:clarify` first if target environment, scan scope, authorization, or destructive-test boundaries are unclear.\n- Use `arc:audit` when the user wants a read-only security review without running active scanners.\n- Use `arc:build` when the task is to add security tooling, scripts, checks, or project configuration.\n- Use `arc:fix` when a concrete vulnerability, failing scanner result, or exploit path must be repaired.\n- Use `arc:frontend` for frontend-specific XSS, CSP, auth UI, route guard, token handling, or browser verification work.\n- Use `arc:docs` only when Lark is active for security reports, risk rows, remediation tasks, approval gates, artifacts, or `.lark.json.lifecycle[]`."
+        },
+        {
+          "heading": "## Context Search",
+          "title": "Context Search",
+          "body": "- MUST inspect project type, package managers, API specs, Docker files, auth boundaries, and existing security tooling before scanning.\n- MUST use `.ai-code-index/search.sh` first for broad repository context when available.\n- MUST use `.ai-code-index/struct-search.sh` for risky code shapes such as raw SQL, shell execution, file upload, SSRF fetches, JWT parsing, or auth bypasses.\n- If `.lark.json` exists, MUST read it before security handoff and route durable reports through `arc:docs`."
+        },
+        {
+          "heading": "## Announce",
+          "title": "Announce",
+          "body": "Begin by stating clearly:\n\"I am using `arc:security` to run local-first security automation and produce readable evidence-backed reports.\""
+        },
+        {
+          "heading": "## The Iron Law",
+          "title": "The Iron Law",
+          "body": "```text\nNO SECURITY CLAIM WITHOUT EVIDENCE.\nNO ACTIVE DAST AGAINST A TARGET WITHOUT AUTHORIZATION.\nNO CLOUD SCAN OR PAID SERVICE WITHOUT USER CONFIRMATION.\nNO LARK SECURITY UPDATE OUTSIDE arc:docs.\n```"
+        },
+        {
+          "heading": "## Hard Constraints",
+          "title": "Hard Constraints",
+          "body": "- MUST keep scanning local-first: no paid SaaS, remote GraphRAG, external vector DB, or persistent remote memory by default.\n- MUST disable telemetry where supported and avoid uploading source code or full reports to cloud services unless the user explicitly approves.\n- MUST treat DAST, fuzzing, Nuclei, and ZAP as active testing; run them only against owned or authorized targets.\n- MUST redact tokens, cookies, private keys, passwords, and internal secrets from final chat output.\n- MUST preserve raw scanner artifacts locally and summarize findings in Markdown/HTML/JSON.\n- MUST separate confirmed findings, tool warnings, skipped checks, and manual-test gaps.\n- MUST route all Lark writes through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- NEVER claim business-logic coverage from automated scanners alone.\n- NEVER treat scanner severity as final severity without checking exploitability, reachability, auth context, and affected environment."
+        },
+        {
+          "heading": "## Workflow",
+          "title": "Workflow",
+          "body": "1. Confirm authorization, scan scope, target URL, OpenAPI spec, and whether CLI installation is allowed.\n2. Inspect the project with local index tools and detect stack markers such as `go.mod`, `package.json`, lockfiles, `Dockerfile`, and OpenAPI files.\n3. Install missing local CLI tools with [`scripts/install-security-tools.sh`](scripts/install-security-tools.sh) when requested or necessary.\n4. Run [`scripts/security-scan.py`](scripts/security-scan.py) with the project path and optional `--target-url` / `--openapi` arguments.\n5. Review generated `security-report.md`, `security-report.html`, `security-summary.json`, and raw tool outputs under `.arc/security/<timestamp>/`.\n6. Prioritize findings by confirmed exploitability, asset exposure, severity, reachability, and remediation cost.\n7. Route fixes to `arc:fix` or `arc:build`; route read-only review to `arc:audit`; route active Lark project records to `arc:docs`."
+        },
+        {
+          "heading": "## Quality Gates",
+          "title": "Quality Gates",
+          "body": "- Report includes command status, skipped-tool reasons, raw artifact links, severity counts, and actionable next steps.\n- SAST, SCA, secrets, Go vulnerability, Go secure coding, package audit, API fuzz, and DAST coverage are selected only when relevant to the project.\n- AuthZ, ownership, payment amount, approval flow, tenant boundary, upload, SSRF, and role-bypass gaps are marked as manual checks.\n- Scanner findings are deduplicated or grouped before remediation planning when practical.\n- Security artifacts stay local unless `.lark.json` is active or the user explicitly asks for remote publication."
+        },
+        {
+          "heading": "## Expert Standards",
+          "title": "Expert Standards",
+          "body": "- Use `SAST` for source scanning, `SCA` for dependency and container risk, `DAST` for running services, and `OpenAPI Fuzz` for API robustness.\n- Track `SBOM`, `SARIF`, `CWE`, `CVSS`, and `OWASP Top 10` metadata when tools provide it.\n- Use `OWASP ASVS` thinking for authn, `AuthZ`, session, API, file upload, and business-logic checks.\n- Treat secrets exposure, supply-chain compromise, auth bypass, RCE, SQL injection, SSRF, and payment tampering as priority risk classes.\n- Validate scanner output against code reachability, deployment exposure, compensating controls, and exploit prerequisites."
+        },
+        {
+          "heading": "## Scripts & Commands",
+          "title": "Scripts & Commands",
+          "body": "Install local CLI tools:\n\n```bash\nArc/arc:security/scripts/install-security-tools.sh --core\n```\n\nRun a local repository scan:\n\n```bash\nArc/arc:security/scripts/security-scan.py /path/to/project --install-missing\n```\n\nRun full app scanning against an authorized local target:\n\n```bash\nArc/arc:security/scripts/security-scan.py /path/to/project \\\n  --target-url http://localhost:8080 \\\n  --openapi /path/to/project/openapi.yaml \\\n  --mode full \\\n  --install-missing\n```\n\nThe scan script writes reports to `.arc/security/<timestamp>/` by default:\n\n- `security-report.md`\n- `security-report.html`\n- `security-summary.json`\n- `raw/` scanner outputs\n- `logs/` command stdout/stderr"
+        },
+        {
+          "heading": "## Red Flags",
+          "title": "Red Flags",
+          "body": "- Running ZAP, Nuclei, or fuzzing against a third-party system without explicit authorization.\n- Uploading source, scanner results, secrets, or SARIF to a cloud service without confirmation.\n- Reporting only scanner output with no manual authz/business-logic gap statement.\n- Ignoring nonzero scanner exit codes caused by findings.\n- Marking a Lark-active security task complete while `task_base` or risk records are stale."
+        },
+        {
+          "heading": "## When to Use",
+          "title": "When to Use",
+          "body": "- **Preferred Trigger**: security scan, vulnerability scan, dependency audit, secrets audit, Go security check, API fuzzing, ZAP/Nuclei scan, or security report.\n- **Typical Scenario**: Go + React repository release check using Semgrep, Trivy, Gitleaks, Gosec, Govulncheck, package audit, Schemathesis, ZAP, and Nuclei.\n- **Boundary Tip**: use `arc:audit` for read-only review only; use `arc:fix` for confirmed vulnerabilities; use `arc:docs` only when Lark is active."
+        },
+        {
+          "heading": "## Input Arguments",
+          "title": "Input Arguments",
+          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `project_path` | string | yes | Target repository root |\n| `target_url` | string | no | Authorized running app URL for DAST tools |\n| `openapi` | string | no | OpenAPI file or URL for API fuzzing |\n| `mode` | enum | no | `quick` for local repository checks, `full` for local checks plus API/DAST |\n| `install_missing` | boolean | no | Whether to install missing local CLI tools before scanning |\n| `output_dir` | string | no | Directory for reports and raw artifacts |"
+        },
+        {
+          "heading": "## Outputs",
+          "title": "Outputs",
+          "body": "```text\nSecurity Handoff\n- Report paths\n- Tool coverage and skipped checks\n- Severity summary\n- Confirmed findings and evidence\n- Manual authz/business-logic gaps\n- Recommended arc:fix / arc:build / arc:audit / arc:docs next steps\n- Lark / .lark.json / task_base handoff, if applicable\n```"
+        }
+      ],
+      "quick_contract": {
+        "trigger": "The user asks for security scanning, vulnerability assessment, secure release checks, dependency/secrets review, API fuzzing, or a readable security report.",
+        "inputs": "Project path, optional target URL, optional OpenAPI spec, scan mode, installation preference, and expected report format.",
+        "outputs": "Local security reports, raw scanner artifacts, prioritized findings, remediation handoff, and optional Lark handoff.",
+        "quality_gate": "Scans are local-first, reproducible, evidence-backed, readable, and explicit about skipped tools and manual test gaps.",
+        "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+      },
+      "input_arguments": [
+        {
+          "parameter": "project_path",
+          "type": "string",
+          "required": "yes",
+          "description": "Target repository root"
+        },
+        {
+          "parameter": "target_url",
+          "type": "string",
+          "required": "no",
+          "description": "Authorized running app URL for DAST tools"
+        },
+        {
+          "parameter": "openapi",
+          "type": "string",
+          "required": "no",
+          "description": "OpenAPI file or URL for API fuzzing"
+        },
+        {
+          "parameter": "mode",
+          "type": "enum",
+          "required": "no",
+          "description": "`quick` for local repository checks, `full` for local checks plus API/DAST"
+        },
+        {
+          "parameter": "install_missing",
+          "type": "boolean",
+          "required": "no",
+          "description": "Whether to install missing local CLI tools before scanning"
+        },
+        {
+          "parameter": "output_dir",
+          "type": "string",
+          "required": "no",
+          "description": "Directory for reports and raw artifacts"
+        }
+      ],
+      "outputs_section": {
+        "format": "text",
+        "content": "Security Handoff\n- Report paths\n- Tool coverage and skipped checks\n- Severity summary\n- Confirmed findings and evidence\n- Manual authz/business-logic gaps\n- Recommended arc:fix / arc:build / arc:audit / arc:docs next steps\n- Lark / .lark.json / task_base handoff, if applicable"
       }
     }
   ]
