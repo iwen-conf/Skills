@@ -22,6 +22,7 @@ description: "Code delivery with verification; hand active Lark task_base, progr
 - Use `arc:clarify` first if scope or acceptance criteria are unclear.
 - Use `arc:fix` when the primary input is a failure, incident, or failing check.
 - Use `arc:frontend` for frontend baseline or UI lifecycle work.
+- For Web, mobile, desktop, or multi-vendor mini-program implementation, inherit the `arc:frontend` platform default stack unless the user explicitly specified another stack; do not define a separate stack in `arc:build`.
 - Use `arc:docs` only when Lark is active for delivery notes, `task_base` feature status, progress Base, Drive artifacts, or `.lark.json.lifecycle[]`.
 - Use `arc:audit` after delivery for read-only review.
 
@@ -50,6 +51,7 @@ NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
 
 - MUST preserve unrelated user changes.
 - MUST edit the smallest viable file set.
+- MUST route frontend platform decisions through `arc:frontend`; defaults are Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod, mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router, desktop = Tauri 2 + Web stack, multi-vendor mini-program = Taro 4 + React + TypeScript + Zustand, unless explicitly overridden by the user.
 - MUST run targeted verification when feasible.
 - MUST report failed or skipped verification.
 - MUST route all Lark writes through `arc:docs`.

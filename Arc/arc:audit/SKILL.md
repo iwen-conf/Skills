@@ -49,6 +49,7 @@ NO LARK AUDIT UPDATE OUTSIDE arc:docs.
 - MUST inspect the project before giving findings.
 - MUST order findings by severity.
 - MUST include file path, command output, config, behavior, or other evidence for each confirmed issue.
+- MUST check frontend platform stack drift against `arc:frontend` when relevant: Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod; mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router; desktop = Tauri 2 + Web stack; multi-vendor mini-program = Taro 4 + React + TypeScript + Zustand, unless an explicit project exception exists.
 - MUST mark inferred risks as assumptions.
 - MUST route all Lark audit/risk/task/approval updates through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
@@ -69,6 +70,7 @@ NO LARK AUDIT UPDATE OUTSIDE arc:docs.
 - Each confirmed finding has concrete evidence.
 - Recommendations are scoped and actionable.
 - Security, data-layer, state, dependency, and test risks are considered when relevant.
+- Frontend audits check same-duty library duplication, state-layer mixing, and undocumented default-stack exceptions when relevant.
 - Lark audit state is linked through `.lark.json` only when Lark is active.
 
 ## Expert Standards
