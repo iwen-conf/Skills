@@ -21,7 +21,7 @@ description: "Requirement clarification; hand active Lark requirements, task_bas
 
 - Use `arc:docs` only when Lark is active and clarified requirements must update Lark Docx, Base, `task_base`, or `.lark.json.lifecycle[]`.
 - Use `arc:build` once the task is executable.
-- Use `arc:frontend` when the clarified scope includes Web, mobile, desktop, multi-vendor mini-program stack, UI architecture, routing, server state, client state, forms, or theme decisions.
+- Use `arc:frontend` when the clarified scope includes Web, mobile, desktop, mini-program stack, UI architecture, routing, server state, client state, forms, or theme decisions.
 - Use `arc:audit` for read-only assessment.
 - Use `aitask` only for cross-agent ownership or coordination.
 
@@ -50,7 +50,7 @@ NO LARK-ACTIVE FEATURE REQUIREMENT WITHOUT task_base ROW.
 - MUST ask only blocking questions.
 - MUST define in-scope and out-of-scope work.
 - MUST use `Given-When-Then` when behavior must be tested.
-- MUST record `arc:frontend` platform default stack as the frontend assumption unless the user explicitly specifies another stack: Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod; mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router; desktop = Tauri 2 + Web stack; multi-vendor mini-program = Taro 4 + React + TypeScript + Zustand.
+- MUST record `arc:frontend` platform default stack as the frontend assumption unless the user explicitly specifies another stack: Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod; mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router; desktop = Tauri 2 + Web stack; mini-program = Taro 4 + React + TypeScript + Zustand.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
 - MUST hand off Lark-active feature requirements to `arc:docs` so `task_base` is created or updated before delivery starts.
 - NEVER expand the requested surface speculatively.

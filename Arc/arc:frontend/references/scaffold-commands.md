@@ -153,7 +153,7 @@ pnpm tauri init
 - UI、状态、查询、表单、schema 和 token 优先复用 Web 基线。
 - 不默认改用 Electron，也不把桌面端 UI 重写成另一套。
 
-## 10. 多厂家小程序基线
+## 10. 小程序基线
 
 ```bash
 pnpm dlx @tarojs/cli init my-miniapp
@@ -167,5 +167,5 @@ pnpm add zustand
 - Version: `Taro 4`
 
 约束：
-- 多厂家小程序默认使用 Taro 4 + React + TypeScript + Zustand。
-- 微信原生单端小程序仍走 `wxskills`，不要为了单端任务强行套 Taro。
+- 微信和其他小程序新项目默认使用 Taro 4 + React + TypeScript + Zustand。
+- `wxskills` 只用于微信 API、隐私、支付、组件、Skyline 约束，以及既有原生微信小程序维护；除非用户明确要求或项目已是原生微信栈，新建微信小程序不得默认回退到原生 WXML/WXSS/Component。

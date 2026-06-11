@@ -21,7 +21,7 @@ description: "Project definition and PRD; hand active Lark project-home/Wiki/.la
 
 - Use `arc:docs` only when Lark is active or the user confirms Lark for PRD, project home, Wiki node, or `.lark.json` entry.
 - Use `arc:clarify` for task-level acceptance criteria after the project is defined.
-- Use `arc:frontend` for Web, mobile, desktop, multi-vendor mini-program stack, UI architecture, theme, routing, state, and form baseline decisions.
+- Use `arc:frontend` for Web, mobile, desktop, mini-program stack, UI architecture, theme, routing, state, and form baseline decisions.
 - Use `arc:build` only after scope is implementation-ready.
 - Use `arc:audit` for read-only review of an existing definition.
 
@@ -47,7 +47,7 @@ NO PASSIVE LARK PRD OR .lark.json CREATION.
 
 - MUST follow [`references/template.md`](references/template.md) section order unless the user explicitly provides another required format.
 - MUST use one canonical name per domain concept.
-- MUST define frontend surfaces with `arc:frontend` platform default stack unless the user explicitly chooses another stack: Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod; mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router; desktop = Tauri 2 + Web stack; multi-vendor mini-program = Taro 4 + React + TypeScript + Zustand.
+- MUST define frontend surfaces with `arc:frontend` platform default stack unless the user explicitly chooses another stack: Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod; mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router; desktop = Tauri 2 + Web stack; mini-program = Taro 4 + React + TypeScript + Zustand.
 - MUST mark missing facts as open questions; NEVER fill gaps with filler.
 - MUST route through `arc:docs` for all active Lark writes and `.lark.json.resources.prd` updates.
 - MUST NOT suggest or create a Lark project space unless the user explicitly asks for Lark/Feishu output or `.lark.json` already exists.

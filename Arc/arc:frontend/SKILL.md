@@ -51,8 +51,8 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 - MUST use the default Web frontend stack for new Web frontends unless the user explicitly names another stack: `React 19` + `TypeScript` + `Vite` + `Tailwind CSS` + `shadcn/ui` + `Zustand` for client state + `TanStack Query` for server state + `TanStack Router` for type-safe routing + `React Hook Form` + `Zod`.
 - MUST use the default mobile stack for new iOS/Android apps unless the user explicitly names another stack: `React Native` + `Expo` + `TypeScript` + `NativeWind` + `Zustand` + `TanStack Query` + `Expo Router`.
 - MUST use the default desktop stack for new Mac/Windows/Linux apps unless the user explicitly names another stack: `Tauri 2` + the default React Web stack, reusing Web UI/state/query/form code where practical.
-- MUST use the default multi-vendor mini-program stack unless the user explicitly names another stack: `Taro 4` + `React` + `TypeScript` + `Zustand`.
-- MUST keep WeChat-only native mini-program work in the `wxskills` native stack unless the requirement is explicitly cross-vendor; do not force React/Taro into a WeChat-only native task.
+- MUST use the default mini-program stack for WeChat and other mini-program targets unless the user explicitly names another stack: `Taro 4` + `React` + `TypeScript` + `Zustand`.
+- MUST use `wxskills` for WeChat platform APIs, privacy, payment, native component constraints, Skyline, and maintenance of existing native mini-program projects on WeChat; do not treat `wxskills` as a separate default project stack.
 - MUST preserve an existing frontend stack unless migration is explicitly requested; new modules in mixed legacy projects use the default stack when they can be isolated.
 - MUST NOT substitute same-duty defaults such as React Router, Redux, MobX, SWR, Formik, Yup, Ant Design, MUI, Chakra, or a custom component library unless the user explicitly requires it or the existing project already depends on it and the boundary is documented.
 - MUST separate state by responsibility: URL/search params in `TanStack Router`, server cache and mutations in `TanStack Query`, lightweight cross-page client state in `Zustand`, complex form state in `React Hook Form` with `Zod`, and component-only state in React local state.
@@ -81,7 +81,7 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 
 - No scattered hardcoded palette values.
 - Default-stack projects include the required stack pieces and no same-duty duplicate library.
-- Cross-platform projects declare exactly one platform target per deliverable: Web, iOS/Android, Desktop, multi-vendor mini-program, or native WeChat mini-program.
+- Cross-platform projects declare exactly one platform target per deliverable: Web, iOS/Android, Desktop, or Mini Program.
 - URL, server, client-global, form, and local state are not mixed into one store.
 - No overlapping or overflowing text in expected viewports.
 - Loading, empty, error, disabled, and permission-denied states exist when relevant.
@@ -104,7 +104,7 @@ Use project-native scripts. For new React 19 + TypeScript + Vite projects, use [
 - Replacing the stack without a migration request.
 - Introducing React Router, Redux, SWR, Formik, Yup, MUI, Ant Design, Chakra, or another same-duty library as a new default.
 - Treating a vertical business skill as permission to invent a separate Web, mobile, desktop, or mini-program frontend stack.
-- Forcing Taro/React into a WeChat-only native mini-program task, or forcing native wx skills into a multi-vendor mini-program requirement.
+- Starting a new WeChat mini-program with native WXML/WXSS/Component as the default stack instead of Taro 4 without explicit user direction.
 - Decorative landing page instead of the requested usable UI.
 - Hardcoded component colors.
 - Global store used for server state by convenience.
@@ -114,7 +114,7 @@ Use project-native scripts. For new React 19 + TypeScript + Vite projects, use [
 ## When to Use
 
 - **Preferred Trigger**: The user asks to build, standardize, review, or document frontend lifecycle work.
-- **Typical Scenario**: React 19 + TypeScript + Vite setup, React Native + Expo apps, Tauri 2 desktop shells, Taro 4 multi-vendor mini-programs, dashboard/admin UI, TanStack Router/Query architecture, theme setup, forms, responsive pages, frontend handoff.
+- **Typical Scenario**: React 19 + TypeScript + Vite setup, React Native + Expo apps, Tauri 2 desktop shells, Taro 4 mini-programs, dashboard/admin UI, TanStack Router/Query architecture, theme setup, forms, responsive pages, frontend handoff.
 - **Boundary Tip**: Use `arc:build` for backend/API-only work and `arc:docs` for pure Lark indexing.
 
 ## Input Arguments
@@ -123,7 +123,7 @@ Use project-native scripts. For new React 19 + TypeScript + Vite projects, use [
 |---|---|---|---|
 | `project_path` | string | yes | Target repository root |
 | `frontend_scope` | string | yes | Page, module, app shell, theme, state layer, or full frontend |
-| `platform_target` | string | yes | Web, iOS/Android, Desktop, multi-vendor mini-program, or native WeChat mini-program |
+| `platform_target` | string | yes | Web, iOS/Android, Desktop, or Mini Program |
 | `product_type` | string | no | Admin console, dashboard, content platform, tool, landing, or other |
 | `verification` | string | no | Expected build, lint, test, screenshot, or typecheck |
 
@@ -133,7 +133,7 @@ Use project-native scripts. For new React 19 + TypeScript + Vite projects, use [
 Frontend Handoff
 - Workflow and pages covered
 - Stack and token decisions, including default stack or explicit exception
-- Platform target: Web / iOS+Android / Desktop / Multi-vendor Mini Program / Native WeChat Mini Program
+- Platform target: Web / iOS+Android / Desktop / Mini Program
 - Files changed
 - Responsive/accessibility checks
 - Verification run

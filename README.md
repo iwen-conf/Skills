@@ -31,7 +31,7 @@ Skills/
 | `arc:clarify` | 需求澄清 | 把模糊需求收敛成可执行上下文、约束和验收标准 |
 | `arc:docs` | 飞书项目空间 | 在用户明确创建/连接飞书空间或项目已有 `.lark.json` 时，维护飞书项目文档、`.lark.json` 索引、进度、资料和生命周期资料 |
 | `arc:build` | 代码交付 | 在方案明确时做代码交付、验证和变更说明 |
-| `arc:frontend` | 前端工程 | 收敛 Web、移动、桌面和多端小程序默认技术栈并记录前端决策 |
+| `arc:frontend` | 前端工程 | 收敛 Web、移动、桌面和小程序默认技术栈并记录前端决策 |
 | `arc:fix` | 故障修复 | 基于失败证据定位根因、修复并回归验证 |
 | `arc:audit` | 项目体检 | 做只读项目体检，输出风险和改进建议 |
 | `arc:security` | 安全自动化 | 本地安装和编排安全 CLI，生成可读安全报告，并把修复/审计/文档沉淀交回 Arc |
@@ -56,7 +56,7 @@ Skills/
 - Web 前端默认统一走 `arc:frontend`：除非用户明确指定其他技术，默认栈固定为 React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod。
 - 移动端 iOS/Android 默认统一走 `arc:frontend`：React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router。
 - 桌面端 Mac/Windows/Linux 默认统一走 `arc:frontend`：Tauri 2 + 现有 React Web 默认栈，优先复用 Web 代码。
-- 多厂家小程序默认统一走 `arc:frontend`：Taro 4 + React + TypeScript + Zustand；微信原生单端小程序仍由 `wxskills` 处理。
+- 小程序默认统一走 `arc:frontend`：Taro 4 + React + TypeScript + Zustand；`wxskills` 只提供微信 API、隐私、支付、组件、Skyline 和既有原生微信项目维护约束。
 - 垂直业务 Skill 只声明“前端面按 `arc:frontend` 平台默认栈交付”，不得按 Lazycat、微信小程序、支付、后台、Dashboard 等业务差异另起一套默认前端栈。
 - 用户说 `创建项目的飞书空间`、`创建飞书项目空间`、`创建完整飞书项目空间` 或 `一键创建飞书项目空间` 时，`arc:docs` 必须一次性创建标准项目空间：文件夹、文档、多维表格、仪表盘、项目流、日历、协作资源、画板、自动化等，并把全部真实链接/ID 写入 `.lark.json`。
 - 用户说 `更新飞书项目空间`、`刷新飞书项目空间`、`补齐飞书项目空间` 或 `同步飞书项目空间` 时，`arc:docs` 必须更新既有空间：校验 `.lark.json`，修复断链/缺失索引，补齐标准资源，刷新任务表、仪表盘、项目流和自动化，不得重复创建项目空间。
