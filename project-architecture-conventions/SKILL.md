@@ -72,10 +72,10 @@ project-root/
 Layer responsibilities:
 
 - `contract`: Business-layer interface definitions. Define minimal service ports, repository ports, external capability ports, DTO-facing contracts, and cross-layer abstractions that business logic depends on. Do not create interfaces for private helpers or same-layer code just to fill this folder.
-- `services`: Business core logic. Implement use cases, orchestration, validation, state transitions, permission decisions, and transaction boundaries. Depend on `contract`, not concrete adapters.
-- `controllers` / `handlers`: Control/transport layer. Parse HTTP/RPC/CLI/message input, call services, map errors and responses, and keep transport concerns out of business logic.
-- `repositories` / `adapters`: Concrete implementations for persistence, external APIs, SDKs, queues, caches, file systems, and other infrastructure. Implement interfaces declared in `contract`.
-- `models` / `entities`: Business data structures, entities, value objects, constants, and state definitions used by the business module.
+- `services`: Business core logic. Implement use cases, orchestration, validation, state transitions, permission decisions, and transaction boundaries. Distinguish successful empty results from failures; zero matching rows for list/search/dashboard queries is a normal business state. Depend on `contract`, not concrete adapters.
+- `controllers` / `handlers`: Control/transport layer. Parse HTTP/RPC/CLI/message input, call services, map errors and responses, and keep transport concerns out of business logic. Return successful empty response envelopes for no-data list/query results instead of mapping them to transport errors.
+- `repositories` / `adapters`: Concrete implementations for persistence, external APIs, SDKs, queues, caches, file systems, and other infrastructure. Implement interfaces declared in `contract`. Return empty collections for successful zero-row queries; reserve errors for storage, network, parsing, validation, or authorization failures.
+- `models` / `entities`: Business data structures, entities, value objects, constants, and state definitions used by the business module, including explicit states for empty/no-data, not-found, permission-denied, validation failure, and system failure when those states cross layer boundaries.
 - `helpers`: Helper utilities that belong only to this business module. Keep them private to the module and do not use them as cross-business dumping grounds.
 - `main` / `cmd/<app>` / `main.go`: Composition root. Create concrete implementations, inject dependencies, register routes/jobs/commands, start the process, and avoid business logic.
 - `pkg/utils/<name>`: Project-wide common utilities. Use only for extracted helpers that are genuinely shared by multiple business modules.
@@ -144,6 +144,8 @@ Do not extract prematurely. A helper becomes project-wide only after reuse is re
 - Each `contract` interface is justified by a boundary, external capability, test seam, or multiple implementations.
 - Concrete adapters are wired in `main` and implement `contract`.
 - `contract` contains interfaces and contracts, not concrete service or adapter logic.
+- List/query contracts return success with empty collections for no-data results; single-resource missing cases are represented intentionally as `not found` only when the product flow needs a missing-resource error state.
+- Controllers and frontend DTOs can distinguish empty, not-found, permission-denied, validation error, and system error without relying on generic error text.
 - `helpers` are business-local unless proven reusable.
 - Shared helpers extracted late live under `pkg/utils/<specific-name>` and do not import business modules.
 - `ponytail` was read before coding, or its absence was reported before editing.

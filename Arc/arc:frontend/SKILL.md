@@ -57,6 +57,9 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 - MUST NOT substitute same-duty defaults such as React Router, Redux, MobX, SWR, Formik, Yup, Ant Design, MUI, Chakra, or a custom component library unless the user explicitly requires it or the existing project already depends on it and the boundary is documented.
 - MUST separate state by responsibility: URL/search params in `TanStack Router`, server cache and mutations in `TanStack Query`, lightweight cross-page client state in `Zustand`, complex form state in `React Hook Form` with `Zod`, and component-only state in React local state.
 - MUST make vertical or business-domain skills call this default stack contract for frontend surfaces; business domain differences do not create a new default frontend or cross-platform stack.
+- MUST model UI state semantics explicitly: `loading` means a request or transition is pending; `empty` means the request succeeded but returned no usable records/content; `error` means the request or parsing failed; `permission-denied` means the user is not allowed to see or perform the action.
+- MUST design `empty` and `error` as different surfaces. Empty states use neutral tone, contextual next action, optional create/reset-filter guidance, and must not use destructive/error styling, error pages, exception boundaries, or failure toasts.
+- MUST derive empty state from successful data contracts such as `items.length === 0`, `total === 0`, or an explicit empty flag, not from thrown errors, rejected promises, HTTP 4xx/5xx branches, or generic catch handlers.
 - MUST keep styling behind `Design Token` or CSS variable paths.
 - MUST implement `Accessibility` basics: semantic controls, labels, focus states, keyboard reachability, and contrast.
 - MUST build `Responsive` layouts with explicit constraints; NEVER use viewport-scaled fonts as the layout solution.
@@ -73,7 +76,7 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 1. Confirm user workflow, pages, audience, devices, and verification.
 2. Inspect existing frontend stack and patterns.
 3. Choose route: apply the platform default stack, preserve an existing stack with a documented boundary, or document the explicit user-requested exception.
-4. Implement with tokenized styling, stable layout constraints, accessible states, and existing data/form/state patterns.
+4. Implement with tokenized styling, stable layout constraints, accessible states, explicit loading/empty/error/permission branches, and existing data/form/state patterns.
 5. Run project-native verification.
 6. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with pages, decisions, changed files, verification, screenshots/whiteboards, task status, lifecycle link, and resource keys.
 
@@ -84,7 +87,7 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 - Cross-platform projects declare exactly one platform target per deliverable: Web, iOS/Android, Desktop, or Mini Program.
 - URL, server, client-global, form, and local state are not mixed into one store.
 - No overlapping or overflowing text in expected viewports.
-- Loading, empty, error, disabled, and permission-denied states exist when relevant.
+- Loading, empty, error, disabled, and permission-denied states exist when relevant, with empty and error proven to render through different branches and visual treatments.
 - Server state is not duplicated into unrelated global stores.
 - Significant frontend progress and `task_base` are linked through `.lark.json` only when Lark is active.
 
@@ -94,6 +97,7 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 - `Accessibility` checks are part of done.
 - `Responsive` behavior uses explicit constraints.
 - `RBAC` protects routes and action-level controls when applicable.
+- `Empty State` is a normal product state with a recovery path; it is never represented as an exception, crash, failed route, or full-page error unless the underlying request actually failed.
 
 ## Scripts & Commands
 
@@ -108,6 +112,7 @@ Use project-native scripts. For new React 19 + TypeScript + Vite projects, use [
 - Decorative landing page instead of the requested usable UI.
 - Hardcoded component colors.
 - Global store used for server state by convenience.
+- Empty search results, first-use pages, zero-count dashboards, or filtered-out lists displayed as error pages, destructive alerts, or failed fetch states.
 - Frontend lifecycle progress left out of existing `.lark.json`.
 - Completed Lark-active frontend feature missing a current `task_base` row.
 

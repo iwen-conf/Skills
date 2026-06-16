@@ -63,6 +63,7 @@ Skills/
 - 后续查找、更新、删除、创建项目相关飞书文档/表格/画板/资料时，都必须通过 `.lark.json` 里的飞书地址和资源 ID 定位；删除等破坏性操作仍需确认。
 - 后续搜索到的资料、新增文档、外部链接、接口说明、架构事实、决策、截图、报告、会议纪要和交付证据，只要项目已有 `.lark.json`，都必须通过 `arc:docs` 写入对应飞书 Doc/Wiki/Base/Drive/Whiteboard/Slides，并在 `.lark.json.lifecycle[]` 保留来源和时间。
 - Web 前端默认统一走 `arc:frontend`：除非用户明确指定其他技术，默认栈固定为 React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod。
+- 所有前后端交付必须区分状态语义：无数据/空状态是成功业务状态，错误是失败状态，权限不足和单资源不存在也要独立建模；前端不得把空列表、空搜索、空仪表盘或首次使用页面展示成错误页。
 - 移动端 iOS/Android 默认统一走 `arc:frontend`：React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router。
 - 桌面端 Mac/Windows/Linux 默认统一走 `arc:frontend`：Tauri 2 + 现有 React Web 默认栈，优先复用 Web 代码。
 - 小程序默认统一走 `arc:frontend`：Taro 4 + React + TypeScript + Zustand；`wxskills` 只提供微信 API、隐私、支付、组件、Skyline 和既有原生微信项目维护约束。

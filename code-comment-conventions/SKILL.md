@@ -82,6 +82,7 @@ Rules:
 - Include `参数` for every non-obvious parameter. Mark optional parameters with `可选`.
 - Include every return value, including `(value, error)` style returns.
 - Include `错误` when the function can fail or return an error. If no error path exists, omit the section.
+- Do not document successful empty list/search/query results as errors. Describe empty collections, zero totals, and first-use no-data responses under `返回值` or `描述`; reserve `错误` for actual failures or intentional single-resource `not found` cases.
 - Include `注意事项` only for real constraints such as authentication, transaction boundaries, idempotency, concurrency, performance, caching, or side effects.
 
 Example:
@@ -147,6 +148,7 @@ Rules:
 - Keep all parameter groups in the template, even when a group is empty; use `//   -` for empty groups.
 - Include authentication, tenant, trace, idempotency, or content negotiation headers under `Header参数`.
 - If the controller accepts a body, describe the request DTO fields under the matching content type section.
+- For list/search/dashboard endpoints, document the successful no-data response shape separately from error responses, such as `items=[]`, `total=0`, or an explicit empty-state field when the API uses one.
 - Update the comment whenever route method, path, query/body shape, or auth requirement changes.
 
 ## Review Checklist
@@ -154,5 +156,6 @@ Rules:
 - Comment templates match the function role: controller handler, reusable API/interface, or internal implementation steps.
 - Function names, route paths, parameter names, return types, and callee names are exact.
 - Optional parameters and empty controller parameter groups are explicitly marked.
+- Successful empty/no-data responses are documented as normal returns, not as `错误`, unless the operation is a single-resource lookup where missing data is intentionally a `not found` error.
 - Numbered step comments are continuous and describe blocks rather than single obvious statements.
 - Comments explain contract and behavior without inventing guarantees that the code does not enforce.

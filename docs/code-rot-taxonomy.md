@@ -68,6 +68,7 @@ Rules are written model-facing in English. IDs are stable and match the original
 
 4. **Status codes scattered everywhere** → Centralize HTTP/business status codes in one place (enum/constants) and reference them; do not sprinkle raw `500`/`400` literals across handlers. → Smell: raw numeric status literals throughout the codebase.
 7. **Unstable state machine** → Define the full state set and legal transitions once, up front; do not let states drift from 8 → 10 → 7 across days. Encode transitions explicitly. → Smell: states added/removed ad hoc; transitions implied, not declared.
+8. **Empty state mislabeled as error** → Treat no-data as a successful business/UI state for list, search, dashboard, and first-use flows; reserve errors for failed requests, invalid responses, denied permissions, or intentional single-resource not-found cases. → Smell: zero rows trigger exceptions, rejected promises, failed fetch state, destructive alerts, or full-page error UI.
 13. **Swallowed exceptions** → Never `catch` and discard. Handle, wrap with context, or rethrow; log with cause. An empty catch is forbidden. → Smell: `catch {}` / `except: pass` with no handling.
 27. **Race conditions under concurrency** → Guard concurrent writes with transactions, optimistic locking, or state-encoded `WHERE` clauses (`... WHERE status='pending'`) and check affected rows. → Smell: read-modify-write without locking; unguarded counters/balances.
 
