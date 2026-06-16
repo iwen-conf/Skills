@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-06-11T14:08:37.005888Z",
-  "skill_count": 8,
+  "generated_at": "2026-06-16T05:40:54.547022Z",
+  "skill_count": 9,
   "skills": [
     {
       "name": "arc:audit",
@@ -987,6 +987,46 @@
         "format": "text",
         "content": "Security Handoff\n- Report paths\n- Tool coverage and skipped checks\n- Severity summary\n- Confirmed findings and evidence\n- Manual authz/business-logic gaps\n- Recommended arc:fix / arc:build / arc:audit / arc:docs next steps\n- Lark / .lark.json / task_base handoff, if applicable"
       }
+    },
+    {
+      "name": "code-comment-conventions",
+      "description": "Apply Chinese comment templates for functions, APIs/controllers, and numbered in-function steps.",
+      "source_path": "code-comment-conventions/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "Use this skill when writing or reviewing code comments that must follow the project convention for function/interface comments, controller comments, and numbered implementation-step comments inside functions.\n\nPrefer comments that explain intent, contract, parameters, return values, errors, and operational constraints. Do not add decorative comments or duplicate obvious code."
+        },
+        {
+          "heading": "## When to Use",
+          "title": "When to Use",
+          "body": "- Use when creating or updating functions, methods, service APIs, repository APIs, domain interfaces, or controller handlers.\n- Use when reviewing code for comment style consistency.\n- Use when a function has meaningful sequential steps that should be documented inline.\n- Skip long templates for trivial private helpers only when the name and surrounding code already make behavior unambiguous and the project does not require full comments."
+        },
+        {
+          "heading": "## In-Function Step Comments",
+          "title": "In-Function Step Comments",
+          "body": "Inside function bodies, describe meaningful execution steps with numbered `//` comments. Use imperative, outcome-oriented wording.\n\nFormat:\n\n```go\nfunc Example(ctx context.Context, id string) error {\n    //1. 调用“xxx.函数名”获取xxx\n    item, err := xxx.GetItem(ctx, id)\n    if err != nil {\n        return err\n    }\n\n    //2. 校验xxx是否满足业务条件\n    if !item.Enabled {\n        return ErrDisabled\n    }\n\n    //3. 调用“yyy.函数名”保存xxx\n    return yyy.SaveItem(ctx, item)\n}\n```\n\nRules:\n\n- Start each step with `//1.`, `//2.`, `//3.` and keep numbering continuous in the local function.\n- Use `调用“包名或对象名.函数名”获取/创建/更新/删除xxx` when the line calls another component.\n- Comment a block of code, not every line. Merge adjacent trivial statements under one step.\n- Renumber comments after inserting, deleting, or reordering steps.\n- Avoid stale comments: the named callee, action, and object in the comment must match the code below it."
+        },
+        {
+          "heading": "## Function And Interface Comments",
+          "title": "Function And Interface Comments",
+          "body": "Use this template for service methods, repository methods, domain APIs, exported functions, and interface methods that represent a reusable contract.\n\n```go\n// 函数名  功能简述\n// 描述：详细说明该函数的用途和作用（如果简述已经足够，这里可以省略）\n//\n// 参数：\n//   - 参数名（类型）：含义和使用说明\n//   - 参数名（类型，可选）：说明（可省略的要标明）\n//\n// 返回值：\n//   - 返回类型：说明\n//   - 返回类型：说明\n//\n// 错误：\n//   - 场景1：错误说明\n//   - 场景2：错误说明\n//   - 场景3：错误说明\n//\n// 注意事项：\n//   - 使用限制 / 性能提示 / 并发安全说明（如有必要）\n```\n\nRules:\n\n- First line must be `// 函数名  功能简述`; keep two spaces between the function name and summary.\n- Omit `描述` only when the first-line summary fully explains the purpose.\n- Include `参数` for every non-obvious parameter. Mark optional parameters with `可选`.\n- Include every return value, including `(value, error)` style returns.\n- Include `错误` when the function can fail or return an error. If no error path exists, omit the section.\n- Include `注意事项` only for real constraints such as authentication, transaction boundaries, idempotency, concurrency, performance, caching, or side effects.\n\nExample:\n\n```go\n// GetApprovalRequest  获取审批请求详情\n// 描述：根据审批请求 ID 查询单条审批请求，供业务页面展示当前审批状态和关联人员信息。\n//\n// 参数：\n//   - ctx（context.Context）：请求上下文，用于超时控制和链路追踪\n//   - id（string）：审批请求 ID\n//\n// 返回值：\n//   - *ApprovalRequest：审批请求详情\n//   - error：查询失败或记录不存在时返回错误\n//\n// 错误：\n//   - 记录不存在：返回 ErrApprovalRequestNotFound\n//   - 存储异常：返回底层存储错误\n//\n// 注意事项：\n//   - 调用方需要保证 id 已完成基础格式校验\nfunc GetApprovalRequest(ctx context.Context, id string) (*ApprovalRequest, error) {\n    //1. 调用“repo.GetApprovalRequest”获取审批请求详情\n    return repo.GetApprovalRequest(ctx, id)\n}\n```"
+        },
+        {
+          "heading": "## Controller Comments",
+          "title": "Controller Comments",
+          "body": "Use this template for HTTP controller or handler functions.\n\n```go\n// ListApprovalRequests 列表查询审批请求 ApprovalRequest\n// HTTP方法：GET\n// API路径：/api/v1/app/approvalRequests\n// 函数名：ListApprovalRequests\n// 功能简述：分页返回符合条件的审批请求列表\n//\n// 描述：可用于查看人事相关业务的审批记录，例如志愿者调整、任职变更等，支持分页和过滤。\n//\n// 参数：\n// Query参数\n//   - limit: 单页返回记录条数（可选）\n//   - cursor: 上一次响应中的 next_cursor，用于获取下一页\n//   - filter: AIPS 风格过滤表达式，例如 status=\"PENDING\"\n// Params路径参数\n//   -\n// JSON参数（Content-Type: application/json）\n//   -\n// x-www-form-urlencoded参数（Content-Type: application/x-www-form-urlencoded）\n//   -\n// multipart/form-data参数（Content-Type: multipart/form-data）\n//   -\n// Header参数\n//   - Authorization: Bearer <access_token>（需要鉴权）\n```\n\nRules:\n\n- First line must include handler name, operation summary, and primary resource/model name when applicable.\n- Keep `HTTP方法` and `API路径` exactly aligned with route registration.\n- Keep all parameter groups in the template, even when a group is empty; use `//   -` for empty groups.\n- Include authentication, tenant, trace, idempotency, or content negotiation headers under `Header参数`.\n- If the controller accepts a body, describe the request DTO fields under the matching content type section.\n- Update the comment whenever route method, path, query/body shape, or auth requirement changes."
+        },
+        {
+          "heading": "## Review Checklist",
+          "title": "Review Checklist",
+          "body": "- Comment templates match the function role: controller handler, reusable API/interface, or internal implementation steps.\n- Function names, route paths, parameter names, return types, and callee names are exact.\n- Optional parameters and empty controller parameter groups are explicitly marked.\n- Numbered step comments are continuous and describe blocks rather than single obvious statements.\n- Comments explain contract and behavior without inventing guarantees that the code does not enforce."
+        }
+      ],
+      "quick_contract": null,
+      "input_arguments": null,
+      "outputs_section": null
     }
   ]
 }

@@ -1,6 +1,6 @@
 # Skills
 
-这个仓库保留一组 `arc:*` 软件工程生命周期 Skill 文档。代码库搜索默认走本地索引工具链：Zoekt、ast-grep、Universal Ctags；任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责；飞书项目空间只在用户明确要求创建/连接后由 `arc:docs` 创建/维护 `.lark.json`、项目资料、任务表、仪表盘、Wiki、画板和生命周期索引。
+这个仓库保留一组 `arc:*` 软件工程生命周期 Skill 文档，以及少量显式白名单的通用工程约束 Skill。代码库搜索默认走本地索引工具链：Zoekt、ast-grep、Universal Ctags；任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责；飞书项目空间只在用户明确要求创建/连接后由 `arc:docs` 创建/维护 `.lark.json`、项目资料、任务表、仪表盘、Wiki、画板和生命周期索引。
 
 ## 当前保留
 
@@ -15,6 +15,7 @@ Skills/
 │   ├── arc:fix/
 │   ├── arc:audit/
 │   └── arc:security/
+├── code-comment-conventions/
 ├── .ai-code-index/
 ├── docs/
 ├── schemas/
@@ -35,6 +36,12 @@ Skills/
 | `arc:fix` | 故障修复 | 基于失败证据定位根因、修复并回归验证 |
 | `arc:audit` | 项目体检 | 做只读项目体检，输出风险和改进建议 |
 | `arc:security` | 安全自动化 | 本地安装和编排安全 CLI，生成可读安全报告，并把修复/审计/文档沉淀交回 Arc |
+
+## 通用工程约束
+
+| Skill ID | 用途 |
+|---|---|
+| `code-comment-conventions` | 统一函数/接口注释、控制层 HTTP 注释和函数内部编号步骤注释规范 |
 
 ## 共享参考
 
@@ -63,6 +70,7 @@ Skills/
 - 飞书操作由 `arc:docs` 路由到 `lark-doc` / `lark-base` / `lark-shared` 等对应技能，遵守认证、API 版本和高风险写入规则。
 - `aitask` 仅负责任务编排、协作、Inbox 和跨 Agent 状态。
 - Arc 只保留软件工程生命周期中的稳定判断框架和文档索引契约。
+- 普通工程约束 Skill 必须显式加入校验白名单，避免任意目录被误收录。
 - Arc Skill 默认是纯 `SKILL.md` 契约；`arc:security` 这种需要可重复自动化的能力可以携带本地脚本。
 - 图表、浏览器、Lazycat、纯设计等垂直能力由对应专门 Skill 负责，不再在 Arc 内重复建设。
 

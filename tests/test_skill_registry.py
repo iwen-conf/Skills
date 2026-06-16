@@ -36,15 +36,21 @@ def test_validate_registry_accepts_generated_registry() -> None:
         "arc:fix",
         "arc:audit",
         "arc:security",
+        "code-comment-conventions",
     }
 
 
-def test_collect_skill_files_indexes_only_arc_namespace() -> None:
+def test_collect_skill_files_indexes_arc_and_approved_plain_skills() -> None:
     files = collect_skill_files(ROOT)
     assert ROOT / "Arc" / "arc:build" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:docs" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:frontend" / "SKILL.md" in files
-    assert all(path.is_relative_to(ROOT / "Arc") for path in files)
+    assert ROOT / "code-comment-conventions" / "SKILL.md" in files
+    assert all(
+        path.is_relative_to(ROOT / "Arc")
+        or path == ROOT / "code-comment-conventions" / "SKILL.md"
+        for path in files
+    )
 
 
 def test_update_context_hub_registers_skills_registry_artifact() -> None:
@@ -64,6 +70,7 @@ def test_update_context_hub_registers_skills_registry_artifact() -> None:
         assert artifact["artifact_type"] == "skills-registry"
         assert artifact["producer_skill"] == "arc-registry"
         assert artifact["path"] == "skills.index.json"
+        assert "code-comment-conventions" in artifact["consumers"]
     finally:
         import shutil
 

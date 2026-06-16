@@ -178,7 +178,7 @@ def test_validate_text_accepts_lean_arc_skills() -> None:
         assert warnings == []
 
 
-def test_validate_text_accepts_only_arc_namespace() -> None:
+def test_validate_text_rejects_unapproved_plain_skill() -> None:
     text = """---
 name: "plain-skill"
 description: "Non-arc namespace."
@@ -190,7 +190,23 @@ overview body
 when body
 """
     errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
-    assert "virtual/SKILL.md: skill name must use arc:xxx namespace" in errors
+    assert "virtual/SKILL.md: skill name must use arc:xxx namespace or be an approved plain skill" in errors
+
+
+def test_validate_text_accepts_approved_plain_skill() -> None:
+    text = """---
+name: "code-comment-conventions"
+description: "Apply Chinese comment templates for functions and controllers."
+---
+# Skill
+## Overview
+overview body
+## When to Use
+when body
+"""
+    errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
+    assert errors == []
+    assert warnings == []
 
 
 def test_validate_text_accepts_arc_frontend_skill() -> None:
