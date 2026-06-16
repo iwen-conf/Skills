@@ -38,6 +38,7 @@ ARC_ROUTING_MATRIX_LINK = "../../docs/arc-routing-matrix.md"
 SUPPORTED_SKILL_PREFIXES = ("arc:",)
 SUPPORTED_PLAIN_SKILLS = {
     "code-comment-conventions",
+    "project-architecture-conventions",
 }
 SKILL_NAMESPACE_DIRS = {
     "arc": "Arc",

@@ -50,6 +50,7 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 - MUST preserve failure evidence.
 - MUST state a concrete hypothesis before significant edits.
 - MUST patch the smallest safe surface.
+- MUST apply `project-architecture-conventions` before code edits, including its DIP, ONC-style layer layout, helper extraction, and ponytail preflight rules.
 - MUST rerun the failing path when feasible.
 - MUST route all Lark incident/risk/task updates through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
@@ -63,13 +64,15 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 1. Capture failure, expected behavior, and reproduction path.
 2. Reproduce or inspect the failing path.
 3. Form and test a root-cause hypothesis.
-4. Patch the smallest safe surface.
-5. Rerun the failing check plus focused regressions.
-6. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks.
+4. Apply `project-architecture-conventions` before code edits; stop and report if ponytail is required but unavailable or conflicting.
+5. Patch the smallest safe surface.
+6. Rerun the failing check plus focused regressions.
+7. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks.
 
 ## Quality Gates
 
 - Fix targets cause, not only symptom.
+- Fix preserves DIP and ONC-style layer responsibilities unless the failure is explicitly caused by migrating toward them.
 - Verification covers the original failure.
 - Residual risk and rollback/monitoring notes are explicit for risky changes.
 - Data-layer fixes check rows affected, transaction boundaries, state guards, soft-delete filters, and query bounds when relevant.
@@ -90,6 +93,7 @@ Use project-native tests, logs, build commands, browser tooling, and observabili
 ## Red Flags
 
 - Fixing before reading the error.
+- Fixing by adding concrete infrastructure dependencies into business services.
 - Treating a retry as root cause.
 - Swallowing exceptions or masking logs.
 - Declaring success without verification.

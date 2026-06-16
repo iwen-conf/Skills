@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-06-16T05:40:54.547022Z",
-  "skill_count": 9,
+  "generated_at": "2026-06-16T05:51:17.869766Z",
+  "skill_count": 10,
   "skills": [
     {
       "name": "arc:audit",
@@ -154,17 +154,17 @@
         {
           "heading": "## Hard Constraints",
           "title": "Hard Constraints",
-          "body": "- MUST preserve unrelated user changes.\n- MUST edit the smallest viable file set.\n- MUST route frontend platform decisions through `arc:frontend`; defaults are Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod, mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router, desktop = Tauri 2 + Web stack, mini-program = Taro 4 + React + TypeScript + Zustand, unless explicitly overridden by the user.\n- MUST run targeted verification when feasible.\n- MUST report failed or skipped verification.\n- MUST route all Lark writes through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST hand off to `arc:docs` after every Lark-active tracked feature update so `task_base` records title, owner, status, related requirement, files, verification, lifecycle link, and `updated_at`.\n- MUST NOT claim a Lark-active tracked feature is complete until `task_base` is updated or the blocker is explicit.\n- NEVER broaden scope opportunistically.\n- NEVER suppress type, lint, test, or runtime failures to claim completion.\n- NEVER trust user-controlled SQL, payment, ownership, role, amount, sort field, or identifier without server-side validation."
+          "body": "- MUST preserve unrelated user changes.\n- MUST edit the smallest viable file set.\n- MUST apply `project-architecture-conventions` before writing project code, including its DIP, ONC-style layer layout, helper extraction, and ponytail preflight rules.\n- MUST route frontend platform decisions through `arc:frontend`; defaults are Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod, mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router, desktop = Tauri 2 + Web stack, mini-program = Taro 4 + React + TypeScript + Zustand, unless explicitly overridden by the user.\n- MUST run targeted verification when feasible.\n- MUST report failed or skipped verification.\n- MUST route all Lark writes through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST hand off to `arc:docs` after every Lark-active tracked feature update so `task_base` records title, owner, status, related requirement, files, verification, lifecycle link, and `updated_at`.\n- MUST NOT claim a Lark-active tracked feature is complete until `task_base` is updated or the blocker is explicit.\n- NEVER broaden scope opportunistically.\n- NEVER suppress type, lint, test, or runtime failures to claim completion.\n- NEVER trust user-controlled SQL, payment, ownership, role, amount, sort field, or identifier without server-side validation."
         },
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. Confirm task, scope, and verification target.\n2. Search for existing patterns, call sites, tests, and contracts.\n3. Edit only the needed files.\n4. Run targeted verification; broaden only when risk requires it.\n5. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.\n6. Summarize changes, verification, and residual risk."
+          "body": "1. Confirm task, scope, and verification target.\n2. Apply `project-architecture-conventions` before code edits; stop and report if ponytail is required but unavailable or conflicting.\n3. Search for existing patterns, call sites, tests, and contracts.\n4. Edit only the needed files.\n5. Run targeted verification; broaden only when risk requires it.\n6. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.\n7. Summarize changes, verification, and residual risk."
         },
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Requested behavior is implemented without speculative extra surface.\n- Existing contracts, names, state shapes, and response envelopes are preserved unless explicitly changed.\n- Security-sensitive work checks authz, ownership, server-side amount/price computation, and secret handling.\n- Data writes check business success, not just execution success.\n- No placeholders, half-migrated call sites, or knowingly broken builds remain.\n- Lark delivery status and `task_base` are recorded via `.lark.json` only when Lark is active."
+          "body": "- Requested behavior is implemented without speculative extra surface.\n- Existing contracts, names, state shapes, and response envelopes are preserved unless explicitly changed.\n- Project architecture preserves DIP and the ONC-style layer responsibilities from `project-architecture-conventions`.\n- Security-sensitive work checks authz, ownership, server-side amount/price computation, and secret handling.\n- Data writes check business success, not just execution success.\n- No placeholders, half-migrated call sites, or knowingly broken builds remain.\n- Lark delivery status and `task_base` are recorded via `.lark.json` only when Lark is active."
         },
         {
           "heading": "## Expert Standards",
@@ -179,7 +179,7 @@
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Editing before understanding existing patterns.\n- Duplicating existing endpoints, helpers, formatters, or constants.\n- Adding speculative APIs or states.\n- Skipping verification silently.\n- Updating Lark delivery resources directly instead of through `arc:docs`.\n- Completing a Lark-active feature while the `task_base` row is missing or stale."
+          "body": "- Editing before understanding existing patterns.\n- Duplicating existing endpoints, helpers, formatters, or constants.\n- Putting business logic in controllers, adapters, `main`, or cross-business `helpers`.\n- Adding speculative APIs or states.\n- Skipping verification silently.\n- Updating Lark delivery resources directly instead of through `arc:docs`.\n- Completing a Lark-active feature while the `task_base` row is missing or stale."
         },
         {
           "heading": "## When to Use",
@@ -651,17 +651,17 @@
         {
           "heading": "## Hard Constraints",
           "title": "Hard Constraints",
-          "body": "- MUST preserve failure evidence.\n- MUST state a concrete hypothesis before significant edits.\n- MUST patch the smallest safe surface.\n- MUST rerun the failing path when feasible.\n- MUST route all Lark incident/risk/task updates through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST update `task_base` through `arc:docs` when Lark is active and a fix changes a tracked feature or user-visible flow.\n- NEVER change tests only to make them pass.\n- NEVER broad-rewrite a localized failure.\n- NEVER hide uncertainty behind a confident root cause."
+          "body": "- MUST preserve failure evidence.\n- MUST state a concrete hypothesis before significant edits.\n- MUST patch the smallest safe surface.\n- MUST apply `project-architecture-conventions` before code edits, including its DIP, ONC-style layer layout, helper extraction, and ponytail preflight rules.\n- MUST rerun the failing path when feasible.\n- MUST route all Lark incident/risk/task updates through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST update `task_base` through `arc:docs` when Lark is active and a fix changes a tracked feature or user-visible flow.\n- NEVER change tests only to make them pass.\n- NEVER broad-rewrite a localized failure.\n- NEVER hide uncertainty behind a confident root cause."
         },
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. Capture failure, expected behavior, and reproduction path.\n2. Reproduce or inspect the failing path.\n3. Form and test a root-cause hypothesis.\n4. Patch the smallest safe surface.\n5. Rerun the failing check plus focused regressions.\n6. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks."
+          "body": "1. Capture failure, expected behavior, and reproduction path.\n2. Reproduce or inspect the failing path.\n3. Form and test a root-cause hypothesis.\n4. Apply `project-architecture-conventions` before code edits; stop and report if ponytail is required but unavailable or conflicting.\n5. Patch the smallest safe surface.\n6. Rerun the failing check plus focused regressions.\n7. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks."
         },
         {
           "heading": "## Quality Gates",
           "title": "Quality Gates",
-          "body": "- Fix targets cause, not only symptom.\n- Verification covers the original failure.\n- Residual risk and rollback/monitoring notes are explicit for risky changes.\n- Data-layer fixes check rows affected, transaction boundaries, state guards, soft-delete filters, and query bounds when relevant.\n- Incident records and affected `task_base` rows are linked through `.lark.json` only when Lark is active."
+          "body": "- Fix targets cause, not only symptom.\n- Fix preserves DIP and ONC-style layer responsibilities unless the failure is explicitly caused by migrating toward them.\n- Verification covers the original failure.\n- Residual risk and rollback/monitoring notes are explicit for risky changes.\n- Data-layer fixes check rows affected, transaction boundaries, state guards, soft-delete filters, and query bounds when relevant.\n- Incident records and affected `task_base` rows are linked through `.lark.json` only when Lark is active."
         },
         {
           "heading": "## Expert Standards",
@@ -676,7 +676,7 @@
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Fixing before reading the error.\n- Treating a retry as root cause.\n- Swallowing exceptions or masking logs.\n- Declaring success without verification.\n- Updating Lark incident resources directly instead of through `arc:docs`.\n- Fixing a Lark-active tracked feature while the `task_base` row is missing or stale."
+          "body": "- Fixing before reading the error.\n- Fixing by adding concrete infrastructure dependencies into business services.\n- Treating a retry as root cause.\n- Swallowing exceptions or masking logs.\n- Declaring success without verification.\n- Updating Lark incident resources directly instead of through `arc:docs`.\n- Fixing a Lark-active tracked feature while the `task_base` row is missing or stale."
         },
         {
           "heading": "## When to Use",
@@ -1022,6 +1022,66 @@
           "heading": "## Review Checklist",
           "title": "Review Checklist",
           "body": "- Comment templates match the function role: controller handler, reusable API/interface, or internal implementation steps.\n- Function names, route paths, parameter names, return types, and callee names are exact.\n- Optional parameters and empty controller parameter groups are explicitly marked.\n- Numbered step comments are continuous and describe blocks rather than single obvious statements.\n- Comments explain contract and behavior without inventing guarantees that the code does not enforce."
+        }
+      ],
+      "quick_contract": null,
+      "input_arguments": null,
+      "outputs_section": null
+    },
+    {
+      "name": "project-architecture-conventions",
+      "description": "Apply mandatory DIP and ONC-style architecture rules before writing or reviewing project code.",
+      "source_path": "project-architecture-conventions/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "Use this skill before writing, changing, or reviewing project code. All projects must follow the Dependency Inversion Principle (DIP) and the ONC-style architecture described here.\n\nDo not read an external ONC project to discover the architecture while coding. Treat this SKILL.md as the source of truth for the ONC-style layer layout."
+        },
+        {
+          "heading": "## When to Use",
+          "title": "When to Use",
+          "body": "- Use before implementing backend, service, controller, repository, integration, or helper code.\n- Use before creating a new module, package, business feature, command entrypoint, or project skeleton.\n- Use when reviewing whether code violates DIP, leaks infrastructure into business logic, or places helpers in the wrong layer.\n- Use together with `code-comment-conventions` when adding comments to functions, controllers, or implementation steps."
+        },
+        {
+          "heading": "## Ponytail Preflight",
+          "title": "Ponytail Preflight",
+          "body": "- Before writing code, load and read the installed `ponytail` skill from the local environment.\n- If the environment exposes it as `$ponytail`, use that skill first.\n- If it is installed under a skill directory, read its `SKILL.md` before code edits. Known fallback locations include `~/.claude/plugins/marketplaces/ponytail/skills/ponytail/SKILL.md` and `~/.codex/.tmp/marketplaces/ponytail/skills/ponytail/SKILL.md`.\n- If `ponytail` cannot be found or loaded, report that explicitly before editing code; do not invent or infer ponytail rules.\n- If `ponytail` conflicts with this skill, stop and report the conflict instead of silently choosing one rule."
+        },
+        {
+          "heading": "## Ponytail Conflict Resolution",
+          "title": "Ponytail Conflict Resolution",
+          "body": "`ponytail` rejects unrequested abstractions such as an interface with one implementation. This skill explicitly requests DIP and ONC-style boundaries, so boundary interfaces in `contract` are allowed only when they protect business logic from infrastructure, external capabilities, framework details, or cross-layer dependencies.\n\nResolution rules:\n\n- Required DIP boundary interfaces are not \"unrequested abstraction\"; they are part of the project contract.\n- Keep `contract` minimal: define ports that business logic consumes, not interfaces for every struct or helper.\n- Do not create service interfaces, factories, config objects, or adapter interfaces solely because a folder exists.\n- Do not add an interface for private pure business code, local helpers, or same-layer calls unless a real boundary, test seam, or second implementation exists.\n- Prefer one small constructor-injection path over frameworks, registries, reflection, or generated wiring.\n- If a ponytail simplification would remove a required DIP boundary, keep the boundary and shrink everything around it."
+        },
+        {
+          "heading": "## DIP Rules",
+          "title": "DIP Rules",
+          "body": "All project code must obey DIP:\n\n- High-level business policy depends on abstractions, not concrete storage, SDK, network, queue, cache, or framework implementations.\n- `services` owns core business behavior and consumes boundary interfaces from `contract`.\n- Concrete adapters implement `contract` interfaces and are wired in `main`; they are not constructed inside business logic.\n- Controllers/handlers translate transport input into service calls and transport output; they must not contain core business decisions.\n- Domain/business code must not import infrastructure-only packages unless those packages are expressed through `contract` abstractions.\n- New dependencies must be injected through constructors or explicit parameters, not pulled from globals or created ad hoc inside business functions."
+        },
+        {
+          "heading": "## ONC Architecture",
+          "title": "ONC Architecture",
+          "body": "Use this ONC-style layout for business modules. Names may be adapted to the host language, but responsibilities must stay the same.\n\n```text\nproject-root/\n├── main/ or cmd/<app>/ or main.go\n├── internal/<business>/\n│   ├── contract/\n│   ├── services/\n│   ├── controllers/ or handlers/\n│   ├── repositories/ or adapters/\n│   ├── models/ or entities/\n│   └── helpers/\n└── pkg/\n    └── utils/\n        └── <common-utility>/\n```\n\nLayer responsibilities:\n\n- `contract`: Business-layer interface definitions. Define minimal service ports, repository ports, external capability ports, DTO-facing contracts, and cross-layer abstractions that business logic depends on. Do not create interfaces for private helpers or same-layer code just to fill this folder.\n- `services`: Business core logic. Implement use cases, orchestration, validation, state transitions, permission decisions, and transaction boundaries. Depend on `contract`, not concrete adapters.\n- `controllers` / `handlers`: Control/transport layer. Parse HTTP/RPC/CLI/message input, call services, map errors and responses, and keep transport concerns out of business logic.\n- `repositories` / `adapters`: Concrete implementations for persistence, external APIs, SDKs, queues, caches, file systems, and other infrastructure. Implement interfaces declared in `contract`.\n- `models` / `entities`: Business data structures, entities, value objects, constants, and state definitions used by the business module.\n- `helpers`: Helper utilities that belong only to this business module. Keep them private to the module and do not use them as cross-business dumping grounds.\n- `main` / `cmd/<app>` / `main.go`: Composition root. Create concrete implementations, inject dependencies, register routes/jobs/commands, start the process, and avoid business logic.\n- `pkg/utils/<name>`: Project-wide common utilities. Use only for extracted helpers that are genuinely shared by multiple business modules."
+        },
+        {
+          "heading": "## Dependency Direction",
+          "title": "Dependency Direction",
+          "body": "Allowed direction:\n\n```text\ncontrollers/handlers -> services -> contract\nrepositories/adapters -> contract\nmain -> controllers/handlers, services, repositories/adapters, contract\nhelpers -> local module code only when business-specific\npkg/utils -> no business-module dependency\n```\n\nForbidden direction:\n\n```text\nservices -> repositories/adapters concrete implementation\nservices -> HTTP framework, database client, SDK client, queue client, cache client\ncontract -> services concrete implementation\ncontract -> repositories/adapters concrete implementation\npkg/utils -> internal/<business>\nhelpers from one business module -> helpers of another business module\n```"
+        },
+        {
+          "heading": "## Main And Injection",
+          "title": "Main And Injection",
+          "body": "Keep object creation and wiring in `main` or the project composition root:\n\n```go\nfunc main() {\n    repo := adapters.NewApprovalRequestRepository(db)\n    service := services.NewApprovalRequestService(repo)\n    handler := controllers.NewApprovalRequestController(service)\n\n    router.RegisterApprovalRequestRoutes(handler)\n    server.Start()\n}\n```\n\nRules:\n\n- `main` may know concrete implementations because it is the injection point.\n- `services.New...` must accept interfaces from `contract` when the dependency is infrastructure or an external capability.\n- Business methods must not call `adapters.New...`, `sql.Open`, SDK constructors, HTTP client setup, or queue/cache constructors.\n- If dependency construction requires configuration, parse configuration before injection and pass typed values into constructors."
+        },
+        {
+          "heading": "## Helper Extraction",
+          "title": "Helper Extraction",
+          "body": "Use this lifecycle for helpers:\n\n1. During feature work, put business-specific helpers under that module's `helpers`.\n2. Keep helper names tied to the business need; avoid vague `common`, `misc`, `tools`, or `utils` buckets inside a module.\n3. Near project completion or after a feature set stabilizes, review all business `helpers`.\n4. If the same helper concept is used by multiple business modules and has no business-specific dependency, extract it to `pkg/utils/<specific-name>`.\n5. After extraction, update imports and keep `pkg/utils/<specific-name>` independent from `internal/<business>` packages.\n\nDo not extract prematurely. A helper becomes project-wide only after reuse is real and the API can be named without referencing one business module."
+        },
+        {
+          "heading": "## Review Checklist",
+          "title": "Review Checklist",
+          "body": "- Business logic is in `services`, not controllers, adapters, or `main`.\n- Business code depends on `contract` boundary interfaces instead of concrete infrastructure.\n- Each `contract` interface is justified by a boundary, external capability, test seam, or multiple implementations.\n- Concrete adapters are wired in `main` and implement `contract`.\n- `contract` contains interfaces and contracts, not concrete service or adapter logic.\n- `helpers` are business-local unless proven reusable.\n- Shared helpers extracted late live under `pkg/utils/<specific-name>` and do not import business modules.\n- `ponytail` was read before coding, or its absence was reported before editing."
         }
       ],
       "quick_contract": null,

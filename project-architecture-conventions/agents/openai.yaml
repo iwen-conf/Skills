@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Architecture Conventions"
+  short_description: "DIP and ONC-style project architecture rules"
+  default_prompt: "Use $project-architecture-conventions before writing project code to apply DIP and ONC-style architecture rules."

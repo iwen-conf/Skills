@@ -16,6 +16,7 @@ Skills/
 │   ├── arc:audit/
 │   └── arc:security/
 ├── code-comment-conventions/
+├── project-architecture-conventions/
 ├── .ai-code-index/
 ├── docs/
 ├── schemas/
@@ -42,6 +43,7 @@ Skills/
 | Skill ID | 用途 |
 |---|---|
 | `code-comment-conventions` | 统一函数/接口注释、控制层 HTTP 注释和函数内部编号步骤注释规范 |
+| `project-architecture-conventions` | 统一 DIP、ONC 风格层级、依赖注入位置、业务 helpers 与通用 utils 抽取规范 |
 
 ## 共享参考
 
@@ -71,6 +73,7 @@ Skills/
 - `aitask` 仅负责任务编排、协作、Inbox 和跨 Agent 状态。
 - Arc 只保留软件工程生命周期中的稳定判断框架和文档索引契约。
 - 普通工程约束 Skill 必须显式加入校验白名单，避免任意目录被误收录。
+- 所有项目代码交付和修复必须遵守 `project-architecture-conventions`：先看 ponytail，保持 DIP，按 ONC 风格层级放置 `contract`、`services`、`main`、`helpers`，并在项目趋稳后抽取公共 helper 到 `pkg/utils/<specific-name>`；DIP 边界接口是明确架构要求，但不得为私有 helper、同层代码或形式主义创建接口。
 - Arc Skill 默认是纯 `SKILL.md` 契约；`arc:security` 这种需要可重复自动化的能力可以携带本地脚本。
 - 图表、浏览器、Lazycat、纯设计等垂直能力由对应专门 Skill 负责，不再在 Arc 内重复建设。
 

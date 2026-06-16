@@ -51,6 +51,7 @@ NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
 
 - MUST preserve unrelated user changes.
 - MUST edit the smallest viable file set.
+- MUST apply `project-architecture-conventions` before writing project code, including its DIP, ONC-style layer layout, helper extraction, and ponytail preflight rules.
 - MUST route frontend platform decisions through `arc:frontend`; defaults are Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod, mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router, desktop = Tauri 2 + Web stack, mini-program = Taro 4 + React + TypeScript + Zustand, unless explicitly overridden by the user.
 - MUST run targeted verification when feasible.
 - MUST report failed or skipped verification.
@@ -65,16 +66,18 @@ NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
 ## Workflow
 
 1. Confirm task, scope, and verification target.
-2. Search for existing patterns, call sites, tests, and contracts.
-3. Edit only the needed files.
-4. Run targeted verification; broaden only when risk requires it.
-5. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.
-6. Summarize changes, verification, and residual risk.
+2. Apply `project-architecture-conventions` before code edits; stop and report if ponytail is required but unavailable or conflicting.
+3. Search for existing patterns, call sites, tests, and contracts.
+4. Edit only the needed files.
+5. Run targeted verification; broaden only when risk requires it.
+6. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.
+7. Summarize changes, verification, and residual risk.
 
 ## Quality Gates
 
 - Requested behavior is implemented without speculative extra surface.
 - Existing contracts, names, state shapes, and response envelopes are preserved unless explicitly changed.
+- Project architecture preserves DIP and the ONC-style layer responsibilities from `project-architecture-conventions`.
 - Security-sensitive work checks authz, ownership, server-side amount/price computation, and secret handling.
 - Data writes check business success, not just execution success.
 - No placeholders, half-migrated call sites, or knowingly broken builds remain.
@@ -96,6 +99,7 @@ Use project-native build, lint, test, typecheck, and migration commands. Use `Ar
 
 - Editing before understanding existing patterns.
 - Duplicating existing endpoints, helpers, formatters, or constants.
+- Putting business logic in controllers, adapters, `main`, or cross-business `helpers`.
 - Adding speculative APIs or states.
 - Skipping verification silently.
 - Updating Lark delivery resources directly instead of through `arc:docs`.

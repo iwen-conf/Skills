@@ -194,9 +194,20 @@ when body
 
 
 def test_validate_text_accepts_approved_plain_skill() -> None:
-    text = """---
-name: "code-comment-conventions"
-description: "Apply Chinese comment templates for functions and controllers."
+    cases = [
+        (
+            "code-comment-conventions",
+            "Apply Chinese comment templates for functions and controllers.",
+        ),
+        (
+            "project-architecture-conventions",
+            "Apply mandatory DIP and ONC-style architecture rules before coding.",
+        ),
+    ]
+    for name, description in cases:
+        text = f"""---
+name: "{name}"
+description: "{description}"
 ---
 # Skill
 ## Overview
@@ -204,9 +215,37 @@ overview body
 ## When to Use
 when body
 """
-    errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
-    assert errors == []
-    assert warnings == []
+        errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
+        assert errors == []
+        assert warnings == []
+
+
+def test_project_architecture_skill_locks_dip_onc_and_ponytail_contract() -> None:
+    text = (ROOT / "project-architecture-conventions" / "SKILL.md").read_text(encoding="utf-8")
+
+    required_phrases = [
+        "Dependency Inversion Principle (DIP)",
+        "Do not read an external ONC project",
+        "Ponytail Conflict Resolution",
+        "Required DIP boundary interfaces are not \"unrequested abstraction\"",
+        "Do not create service interfaces, factories, config objects, or adapter interfaces solely because a folder exists.",
+        "`contract`: Business-layer interface definitions.",
+        "`services`: Business core logic.",
+        "`helpers`: Helper utilities that belong only to this business module.",
+        "`main` / `cmd/<app>` / `main.go`: Composition root.",
+        "`pkg/utils/<name>`: Project-wide common utilities.",
+        "pkg/utils -> no business-module dependency",
+        "If a ponytail simplification would remove a required DIP boundary, keep the boundary",
+    ]
+    for phrase in required_phrases:
+        assert phrase in text
+
+
+def test_arc_code_editing_skills_require_project_architecture_conventions() -> None:
+    for relative_path in ["Arc/arc:build/SKILL.md", "Arc/arc:fix/SKILL.md"]:
+        text = (ROOT / relative_path).read_text(encoding="utf-8")
+        assert "MUST apply `project-architecture-conventions` before" in text
+        assert "stop and report if ponytail is required but unavailable or conflicting" in text
 
 
 def test_validate_text_accepts_arc_frontend_skill() -> None:
