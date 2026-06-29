@@ -1,4 +1,4 @@
 interface:
   display_name: "Project Architecture Conventions"
-  short_description: "DIP, local ONC-inspired layout, and Go stdlib constant rules"
-  default_prompt: "Use $project-architecture-conventions before writing project code to apply DIP, local ONC-inspired layout, and Go standard-library constant rules."
+  short_description: "DIP, real ONC backend architecture, and Go stdlib constants"
+  default_prompt: "Use $project-architecture-conventions before writing backend code to inspect and apply real ONC architecture naming, layering, interface design, DIP, and Go standard-library constant rules."

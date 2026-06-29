@@ -43,7 +43,7 @@ Before applying ONC architecture to a non-trivial change, inspect the current ON
 Resolution rules:
 
 - Required DIP boundary interfaces are not "unrequested abstraction"; they are part of the project contract.
-- Keep `contract` minimal: define ports that business logic consumes, not interfaces for every struct or helper.
+- Keep contracts minimal: define usecase `Contract`, `domain/repositories` interfaces, or capability contracts that cross real boundaries; do not add interfaces for every struct or helper.
 - Do not create service interfaces, factories, config objects, or adapter interfaces solely because a folder exists.
 - Do not add an interface for private pure business code, local helpers, or same-layer calls unless a real boundary, test seam, or second implementation exists.
 - Prefer one small constructor-injection path over frameworks, registries, reflection, or generated wiring.
@@ -161,5 +161,5 @@ Follow ONC's helper placement:
 - Controllers and frontend DTOs can distinguish empty, not-found, permission-denied, validation error, and system error without relying on generic error text.
 - Go code uses standard-library constants for native semantic literals, especially date/time layouts such as `time.DateTime`; raw equivalent strings are not accepted.
 - `helpers` are business-local unless proven reusable.
-- Shared helpers extracted late live under `pkg/utils/<specific-name>` and do not import business modules.
+- Shared application helpers live in `internal/usecase/shared` or another focused ONC-aligned package and do not import interface or infrastructure packages.
 - `ponytail` was read before coding, or its absence was reported before editing.

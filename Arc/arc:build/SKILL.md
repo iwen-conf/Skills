@@ -51,7 +51,7 @@ NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
 
 - MUST preserve unrelated user changes.
 - MUST edit the smallest viable file set.
-- MUST apply `project-architecture-conventions` before writing project code, including its DIP, local ONC-inspired layer layout, helper extraction, and ponytail preflight rules.
+- MUST apply `project-architecture-conventions` before writing project code, including its DIP, real ONC backend architecture preflight, helper extraction, and ponytail preflight rules.
 - MUST route frontend platform decisions through `arc:frontend`; defaults are Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod, mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router, desktop = Tauri 2 + Web stack, mini-program = Taro 4 + React + TypeScript + Zustand, unless explicitly overridden by the user.
 - MUST preserve the product-state contract across backend and frontend: empty/no-data is a successful business state, not an error; list/query endpoints return success with an empty collection and pagination metadata, while real failures return typed errors.
 - MUST run targeted verification when feasible.
@@ -78,7 +78,7 @@ NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
 
 - Requested behavior is implemented without speculative extra surface.
 - Existing contracts, names, state shapes, and response envelopes are preserved unless explicitly changed.
-- Project architecture preserves DIP and the local ONC-inspired layer responsibilities from `project-architecture-conventions`.
+- Project architecture preserves DIP and the real ONC architecture responsibilities from `project-architecture-conventions` when ONC alignment applies.
 - API/service contracts distinguish `empty`, `not found`, `permission denied`, validation failure, network/server failure, and loading/processing states; frontend consumers must not need to infer empty state from an error branch.
 - Security-sensitive work checks authz, ownership, server-side amount/price computation, and secret handling.
 - Data writes check business success, not just execution success.

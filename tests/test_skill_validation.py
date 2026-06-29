@@ -201,7 +201,7 @@ def test_validate_text_accepts_approved_plain_skill() -> None:
         ),
         (
             "project-architecture-conventions",
-            "Apply mandatory DIP and local ONC-inspired architecture rules before coding.",
+            "Apply mandatory DIP and real ONC backend architecture rules before coding.",
         ),
     ]
     for name, description in cases:
@@ -225,18 +225,18 @@ def test_project_architecture_skill_locks_dip_onc_and_ponytail_contract() -> Non
 
     required_phrases = [
         "Dependency Inversion Principle (DIP)",
-        "Do not read an external ONC project",
-        "This skill defines a local convention; it is not a claim about the directory names or exact architecture of any external project named ONC.",
-        "Inspect an external ONC project only when the user explicitly asks for comparison or verification",
+        "The ONC codebase, when available, is the source of truth for ONC architecture.",
+        "Before applying ONC architecture to a non-trivial change, inspect the current ONC source if it is available.",
+        "Do not call this \"ONC-style\" or \"ONC-inspired\" when the source has been checked",
         "Ponytail Conflict Resolution",
         "Required DIP boundary interfaces are not \"unrequested abstraction\"",
         "Do not create service interfaces, factories, config objects, or adapter interfaces solely because a folder exists.",
-        "`contract`: Business-layer interface definitions.",
-        "`services`: Business core logic.",
-        "`helpers`: Helper utilities that belong only to this business module.",
-        "`main` / `cmd/<app>` / `main.go`: Composition root.",
-        "`pkg/utils/<name>`: Project-wide common utilities.",
-        "pkg/utils -> no business-module dependency",
+        "`domain`: Pure business entities, repository interfaces, events, filters, and domain services.",
+        "`usecase/<module>`: Application/business workflows.",
+        "`interface/restful`: Gin/HTTP boundary.",
+        "`wire`: Composition root.",
+        "cmd -> internal/wire -> internal/interface/restful -> internal/usecase -> internal/domain",
+        "internal/usecase/shared",
         "If a ponytail simplification would remove a required DIP boundary, keep the boundary",
     ]
     for phrase in required_phrases:
