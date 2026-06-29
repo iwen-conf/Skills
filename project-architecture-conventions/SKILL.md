@@ -1,6 +1,6 @@
 ---
 name: project-architecture-conventions
-description: Apply mandatory DIP, real ONC backend architecture naming/layering/interface conventions, and Go stdlib constant rules before writing or reviewing project code. Use when implementing or reviewing backend, service, controller, repository, infrastructure, helper, or project skeleton code that should learn from ONC.
+description: Apply mandatory DIP, real ONC backend architecture, and Go stdlib constant rules before coding.
 ---
 
 # Project Architecture Conventions
