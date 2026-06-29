@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-06-29T08:40:39.985245Z",
+  "generated_at": "2026-06-29T08:41:04.701552Z",
   "skill_count": 10,
   "skills": [
     {
@@ -1040,7 +1040,7 @@
     },
     {
       "name": "project-architecture-conventions",
-      "description": "Apply mandatory DIP, real ONC backend architecture naming/layering/interface conventions, and Go stdlib constant rules before writing or reviewing project code. Use when implementing or reviewing backend, service, controller, repository, infrastructure, helper, or project skeleton code that should learn from ONC.",
+      "description": "Apply mandatory DIP, real ONC backend architecture, and Go stdlib constant rules before coding.",
       "source_path": "project-architecture-conventions/SKILL.md",
       "sections": [
         {
