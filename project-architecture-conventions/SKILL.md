@@ -1,6 +1,6 @@
 ---
 name: project-architecture-conventions
-description: Apply mandatory DIP and ONC-style architecture rules before writing or reviewing project code.
+description: Apply mandatory DIP, ONC layout, and Go stdlib constant rules before writing or reviewing project code.
 ---
 
 # Project Architecture Conventions
@@ -125,6 +125,16 @@ Rules:
 - Business methods must not call `adapters.New...`, `sql.Open`, SDK constructors, HTTP client setup, or queue/cache constructors.
 - If dependency construction requires configuration, parse configuration before injection and pass typed values into constructors.
 
+## Go Native Constants
+
+For Go code, treat standard-library exported constants and typed values as mandatory when they represent the intended literal.
+
+- MUST use Go standard-library constants instead of equivalent magic strings or numbers.
+- MUST replace date/time layout literals with `time` constants when available, such as `time.DateTime` instead of `"2006-01-02 15:04:05"`, `time.DateOnly` instead of `"2006-01-02"`, `time.TimeOnly` instead of `"15:04:05"`, and `time.RFC3339` / `time.RFC3339Nano` for RFC3339 layouts.
+- MUST use standard-library semantic constants for HTTP methods, status codes, file modes, TLS versions, crypto hashes, and other native package domains when the package exposes one.
+- MUST NOT introduce raw string literals for values already defined by the Go standard library. If no standard-library constant exists, define a local named constant at the narrowest useful scope instead of repeating the literal.
+- During review, flag equivalent literals as defects even when the code compiles.
+
 ## Helper Extraction
 
 Use this lifecycle for helpers:
@@ -146,6 +156,7 @@ Do not extract prematurely. A helper becomes project-wide only after reuse is re
 - `contract` contains interfaces and contracts, not concrete service or adapter logic.
 - List/query contracts return success with empty collections for no-data results; single-resource missing cases are represented intentionally as `not found` only when the product flow needs a missing-resource error state.
 - Controllers and frontend DTOs can distinguish empty, not-found, permission-denied, validation error, and system error without relying on generic error text.
+- Go code uses standard-library constants for native semantic literals, especially date/time layouts such as `time.DateTime`; raw equivalent strings are not accepted.
 - `helpers` are business-local unless proven reusable.
 - Shared helpers extracted late live under `pkg/utils/<specific-name>` and do not import business modules.
 - `ponytail` was read before coding, or its absence was reported before editing.

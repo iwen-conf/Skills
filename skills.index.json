@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-06-16T11:25:31.105101Z",
+  "generated_at": "2026-06-29T06:43:18.986313Z",
   "skill_count": 10,
   "skills": [
     {
@@ -1030,7 +1030,7 @@
     },
     {
       "name": "project-architecture-conventions",
-      "description": "Apply mandatory DIP and ONC-style architecture rules before writing or reviewing project code.",
+      "description": "Apply mandatory DIP, ONC layout, and Go stdlib constant rules before writing or reviewing project code.",
       "source_path": "project-architecture-conventions/SKILL.md",
       "sections": [
         {
@@ -1074,6 +1074,11 @@
           "body": "Keep object creation and wiring in `main` or the project composition root:\n\n```go\nfunc main() {\n    repo := adapters.NewApprovalRequestRepository(db)\n    service := services.NewApprovalRequestService(repo)\n    handler := controllers.NewApprovalRequestController(service)\n\n    router.RegisterApprovalRequestRoutes(handler)\n    server.Start()\n}\n```\n\nRules:\n\n- `main` may know concrete implementations because it is the injection point.\n- `services.New...` must accept interfaces from `contract` when the dependency is infrastructure or an external capability.\n- Business methods must not call `adapters.New...`, `sql.Open`, SDK constructors, HTTP client setup, or queue/cache constructors.\n- If dependency construction requires configuration, parse configuration before injection and pass typed values into constructors."
         },
         {
+          "heading": "## Go Native Constants",
+          "title": "Go Native Constants",
+          "body": "For Go code, treat standard-library exported constants and typed values as mandatory when they represent the intended literal.\n\n- MUST use Go standard-library constants instead of equivalent magic strings or numbers.\n- MUST replace date/time layout literals with `time` constants when available, such as `time.DateTime` instead of `\"2006-01-02 15:04:05\"`, `time.DateOnly` instead of `\"2006-01-02\"`, `time.TimeOnly` instead of `\"15:04:05\"`, and `time.RFC3339` / `time.RFC3339Nano` for RFC3339 layouts.\n- MUST use standard-library semantic constants for HTTP methods, status codes, file modes, TLS versions, crypto hashes, and other native package domains when the package exposes one.\n- MUST NOT introduce raw string literals for values already defined by the Go standard library. If no standard-library constant exists, define a local named constant at the narrowest useful scope instead of repeating the literal.\n- During review, flag equivalent literals as defects even when the code compiles."
+        },
+        {
           "heading": "## Helper Extraction",
           "title": "Helper Extraction",
           "body": "Use this lifecycle for helpers:\n\n1. During feature work, put business-specific helpers under that module's `helpers`.\n2. Keep helper names tied to the business need; avoid vague `common`, `misc`, `tools`, or `utils` buckets inside a module.\n3. Near project completion or after a feature set stabilizes, review all business `helpers`.\n4. If the same helper concept is used by multiple business modules and has no business-specific dependency, extract it to `pkg/utils/<specific-name>`.\n5. After extraction, update imports and keep `pkg/utils/<specific-name>` independent from `internal/<business>` packages.\n\nDo not extract prematurely. A helper becomes project-wide only after reuse is real and the API can be named without referencing one business module."
@@ -1081,7 +1086,7 @@
         {
           "heading": "## Review Checklist",
           "title": "Review Checklist",
-          "body": "- Business logic is in `services`, not controllers, adapters, or `main`.\n- Business code depends on `contract` boundary interfaces instead of concrete infrastructure.\n- Each `contract` interface is justified by a boundary, external capability, test seam, or multiple implementations.\n- Concrete adapters are wired in `main` and implement `contract`.\n- `contract` contains interfaces and contracts, not concrete service or adapter logic.\n- List/query contracts return success with empty collections for no-data results; single-resource missing cases are represented intentionally as `not found` only when the product flow needs a missing-resource error state.\n- Controllers and frontend DTOs can distinguish empty, not-found, permission-denied, validation error, and system error without relying on generic error text.\n- `helpers` are business-local unless proven reusable.\n- Shared helpers extracted late live under `pkg/utils/<specific-name>` and do not import business modules.\n- `ponytail` was read before coding, or its absence was reported before editing."
+          "body": "- Business logic is in `services`, not controllers, adapters, or `main`.\n- Business code depends on `contract` boundary interfaces instead of concrete infrastructure.\n- Each `contract` interface is justified by a boundary, external capability, test seam, or multiple implementations.\n- Concrete adapters are wired in `main` and implement `contract`.\n- `contract` contains interfaces and contracts, not concrete service or adapter logic.\n- List/query contracts return success with empty collections for no-data results; single-resource missing cases are represented intentionally as `not found` only when the product flow needs a missing-resource error state.\n- Controllers and frontend DTOs can distinguish empty, not-found, permission-denied, validation error, and system error without relying on generic error text.\n- Go code uses standard-library constants for native semantic literals, especially date/time layouts such as `time.DateTime`; raw equivalent strings are not accepted.\n- `helpers` are business-local unless proven reusable.\n- Shared helpers extracted late live under `pkg/utils/<specific-name>` and do not import business modules.\n- `ponytail` was read before coding, or its absence was reported before editing."
         }
       ],
       "quick_contract": null,
