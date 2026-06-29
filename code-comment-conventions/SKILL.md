@@ -1,19 +1,19 @@
 ---
 name: code-comment-conventions
-description: Apply Chinese comment templates for functions, APIs/controllers, and numbered in-function steps.
+description: Apply Chinese comment templates for controllers, interfaces, functions, structs, fields, and numbered steps.
 ---
 
 # Code Comment Conventions
 
 ## Overview
 
-Use this skill when writing or reviewing code comments that must follow the project convention for function/interface comments, controller comments, and numbered implementation-step comments inside functions.
+Use this skill when writing or reviewing code comments that must follow the project convention for controller comments, interface comments, ordinary function comments, struct comments, field comments, and numbered implementation-step comments inside functions.
 
 Prefer comments that explain intent, contract, parameters, return values, errors, and operational constraints. Do not add decorative comments or duplicate obvious code.
 
 ## When to Use
 
-- Use when creating or updating functions, methods, service APIs, repository APIs, domain interfaces, or controller handlers.
+- Use when creating or updating controllers, service APIs, repository APIs, domain interfaces, ordinary functions, methods, structs, or DTOs.
 - Use when reviewing code for comment style consistency.
 - Use when a function has meaningful sequential steps that should be documented inline.
 - Skip long templates for trivial private helpers only when the name and surrounding code already make behavior unambiguous and the project does not require full comments.
@@ -50,64 +50,88 @@ Rules:
 - Renumber comments after inserting, deleting, or reordering steps.
 - Avoid stale comments: the named callee, action, and object in the comment must match the code below it.
 
-## Function And Interface Comments
+## Interface Or Contract Comments
 
-Use this template for service methods, repository methods, domain APIs, exported functions, and interface methods that represent a reusable contract.
+Use this template for API contracts, service interfaces, repository interfaces, domain interfaces, and request/response contract definitions that need parameter and response-body documentation.
 
 ```go
-// 函数名  功能简述
-// 描述：详细说明该函数的用途和作用（如果简述已经足够，这里可以省略）
+// UserAdminAccountPatch 定义管理员账号维护允许更新的字段。
 //
-// 参数：
-//   - 参数名（类型）：含义和使用说明
-//   - 参数名（类型，可选）：说明（可省略的要标明）
-//
-// 返回值：
-//   - 返回类型：说明
-//   - 返回类型：说明
-//
-// 错误：
-//   - 场景1：错误说明
-//   - 场景2：错误说明
-//   - 场景3：错误说明
-//
-// 注意事项：
-//   - 使用限制 / 性能提示 / 并发安全说明（如有必要）
+// 参数
+// - 参数名 参数含义
+// 返回体
+// - 返回体名 返回体含义
 ```
 
 Rules:
 
-- First line must be `// 函数名  功能简述`; keep two spaces between the function name and summary.
-- Omit `描述` only when the first-line summary fully explains the purpose.
-- Include `参数` for every non-obvious parameter. Mark optional parameters with `可选`.
-- Include every return value, including `(value, error)` style returns.
-- Include `错误` when the function can fail or return an error. If no error path exists, omit the section.
-- Do not document successful empty list/search/query results as errors. Describe empty collections, zero totals, and first-use no-data responses under `返回值` or `描述`; reserve `错误` for actual failures or intentional single-resource `not found` cases.
-- Include `注意事项` only for real constraints such as authentication, transaction boundaries, idempotency, concurrency, performance, caching, or side effects.
+- First line must be `// 接口名 定义xxx。`; use the exact interface, DTO, or contract name.
+- Use `参数` and `返回体` headings without trailing colon.
+- Use `// - 参数名 参数含义` and `// - 返回体名 返回体含义`; do not include type annotations unless the project explicitly needs them for disambiguation.
+- Omit `参数` only when the interface has no parameters. Omit `返回体` only when it has no return body or result.
+- Mention optional parameters directly in the parameter meaning, for example `筛选条件（可选）`.
 
 Example:
 
 ```go
-// GetApprovalRequest  获取审批请求详情
-// 描述：根据审批请求 ID 查询单条审批请求，供业务页面展示当前审批状态和关联人员信息。
+// UserAdminAccountPatch 定义管理员账号维护允许更新的字段。
 //
-// 参数：
-//   - ctx（context.Context）：请求上下文，用于超时控制和链路追踪
-//   - id（string）：审批请求 ID
-//
-// 返回值：
-//   - *ApprovalRequest：审批请求详情
-//   - error：查询失败或记录不存在时返回错误
-//
-// 错误：
-//   - 记录不存在：返回 ErrApprovalRequestNotFound
-//   - 存储异常：返回底层存储错误
-//
-// 注意事项：
-//   - 调用方需要保证 id 已完成基础格式校验
-func GetApprovalRequest(ctx context.Context, id string) (*ApprovalRequest, error) {
-    //1. 调用“repo.GetApprovalRequest”获取审批请求详情
-    return repo.GetApprovalRequest(ctx, id)
+// 参数
+// - id 管理员账号 ID
+// - patch 允许更新的字段
+// 返回体
+// - account 更新后的管理员账号
+// - err 更新失败时返回错误
+```
+
+## Ordinary Function Comments
+
+Use this template for ordinary functions and methods that are not controller handlers and do not need the full interface contract template.
+
+```go
+// 函数名 函数作用
+```
+
+Rules:
+
+- First line must be a single concise sentence: `// 函数名 函数作用`.
+- Use the exact function or method name.
+- Do not add parameter, return, error, or注意事项 sections for ordinary functions unless the surrounding project explicitly asks for a richer contract comment.
+
+Example:
+
+```go
+// normalizeApprovalStatus 标准化审批状态
+func normalizeApprovalStatus(status string) string {
+    return strings.ToUpper(strings.TrimSpace(status))
+}
+```
+
+## Struct Comments
+
+Use this template for structs and their fields.
+
+```go
+// 结构体名 结构体中文含义
+type xxx struct {
+    字段名 类型 // 字段的中文含义
+}
+```
+
+Rules:
+
+- Add a struct-level comment immediately before the `type` declaration.
+- Field comments are inline `// 字段的中文含义` comments after the field type and tags.
+- Keep field comments concise and business-oriented.
+- Do not repeat the field name as the whole field comment.
+
+Example:
+
+```go
+// ApprovalRequest 审批请求
+type ApprovalRequest struct {
+    ID     string `json:"id"`     // 审批请求 ID
+    Status string `json:"status"` // 审批状态
 }
 ```
 
@@ -153,7 +177,7 @@ Rules:
 
 ## Review Checklist
 
-- Comment templates match the function role: controller handler, reusable API/interface, or internal implementation steps.
+- Comment templates match the role: controller handler, interface/contract, ordinary function, struct/field, or internal implementation steps.
 - Function names, route paths, parameter names, return types, and callee names are exact.
 - Optional parameters and empty controller parameter groups are explicitly marked.
 - Successful empty/no-data responses are documented as normal returns, not as `错误`, unless the operation is a single-resource lookup where missing data is intentionally a `not found` error.

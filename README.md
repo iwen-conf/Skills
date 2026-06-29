@@ -42,7 +42,7 @@ Skills/
 
 | Skill ID | 用途 |
 |---|---|
-| `code-comment-conventions` | 统一函数/接口注释、控制层 HTTP 注释和函数内部编号步骤注释规范 |
+| `code-comment-conventions` | 统一 Controller、接口/契约、普通函数、结构体/字段和函数内部编号步骤注释规范 |
 | `project-architecture-conventions` | 统一 DIP、ONC 风格层级、依赖注入位置、Go 标准库常量、业务 helpers 与通用 utils 抽取规范 |
 
 ## 共享参考

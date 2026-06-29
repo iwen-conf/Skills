@@ -1,4 +1,4 @@
 interface:
   display_name: "Code Comment Conventions"
-  short_description: "Chinese templates for code comment contracts"
+  short_description: "Chinese templates for controllers, contracts, functions, structs, and fields"
   default_prompt: "Use $code-comment-conventions to write or review code comments against the project convention."
