@@ -52,36 +52,87 @@ Rules:
 
 ## Interface Or Contract Comments
 
-Use this template for API contracts, service interfaces, repository interfaces, domain interfaces, and request/response contract definitions that need parameter and response-body documentation.
+Use these templates for API contracts, service interfaces, repository interfaces, domain interfaces, and request/response contract definitions.
+
+For `type Xxx interface`, document only the interface responsibility. Do not aggregate all method parameters and return values on the interface type comment.
 
 ```go
-// UserAdminAccountPatch 定义管理员账号维护允许更新的字段。
-//
-// 参数
-// - 参数名 参数含义
-// 返回体
-// - 返回体名 返回体含义
+// NovelTaxonomy 定义 novel_taxonomies 小说分类和标签字典集合仓储端口。
+type NovelTaxonomy interface {
+    // FindTaxonomy 查询指定类型的分类或标签字典文档。
+    //
+    // 参数
+    // - ctx 请求上下文
+    // - id 分类或标签业务主键 ID
+    // - taxonomyType 字典类型
+    // 返回体
+    // - taxonomy 匹配的分类或标签字典文档
+    // - err 仓储访问失败时返回错误
+    FindTaxonomy(ctx context.Context, id int64, taxonomyType string) (*entities.NovelTaxonomy, error)
+}
 ```
+
+For DTOs or other request/response contract structs, document the contract itself and use field comments for field meaning.
 
 Rules:
 
-- First line must be `// 接口名 定义xxx。`; use the exact interface, DTO, or contract name.
+- `type Xxx interface` 的首行必须是 `// 接口名 定义xxx。`，只说明接口整体职责、边界或端口含义。
+- Each exported interface method that represents a callable contract must have its own method comment immediately above the method.
+- Put `参数` and `返回体` on the specific method comment, not on the parent `type Xxx interface` comment.
 - Use `参数` and `返回体` headings without trailing colon.
 - Use `// - 参数名 参数含义` and `// - 返回体名 返回体含义`; do not include type annotations unless the project explicitly needs them for disambiguation.
-- Omit `参数` only when the interface has no parameters. Omit `返回体` only when it has no return body or result.
+- Omit `参数` only when the method has no parameters. Omit `返回体` only when the method has no return body or result.
 - Mention optional parameters directly in the parameter meaning, for example `筛选条件（可选）`.
+- If an interface embeds another interface such as `Collection`, keep the embedded line uncommented unless it needs non-obvious behavior notes.
 
 Example:
 
 ```go
-// UserAdminAccountPatch 定义管理员账号维护允许更新的字段。
-//
-// 参数
-// - id 管理员账号 ID
-// - patch 允许更新的字段
-// 返回体
-// - account 更新后的管理员账号
-// - err 更新失败时返回错误
+// NovelTaxonomy 定义 novel_taxonomies 小说分类和标签字典集合仓储端口。
+type NovelTaxonomy interface {
+    Collection
+
+    // FindTaxonomy 查询指定类型的分类或标签字典文档。
+    //
+    // 参数
+    // - ctx 请求上下文
+    // - id 分类或标签业务主键 ID
+    // - taxonomyType 字典类型
+    // 返回体
+    // - taxonomy 匹配的分类或标签字典文档
+    // - err 仓储访问失败时返回错误
+    FindTaxonomy(ctx context.Context, id int64, taxonomyType string) (*entities.NovelTaxonomy, error)
+
+    // FindTaxonomies 查询分类和标签字典列表。
+    //
+    // 参数
+    // - ctx 请求上下文
+    // - query 分类和标签查询条件
+    // 返回体
+    // - taxonomies 匹配的分类或标签字典列表
+    // - err 仓储访问失败时返回错误
+    FindTaxonomies(ctx context.Context, query NovelTaxonomyQuery) ([]*entities.NovelTaxonomy, error)
+
+    // SaveTaxonomy 保存分类或标签字典文档。
+    //
+    // 参数
+    // - ctx 请求上下文
+    // - taxonomy 分类或标签字典文档
+    // 返回体
+    // - err 仓储访问失败时返回错误
+    SaveTaxonomy(ctx context.Context, taxonomy *entities.NovelTaxonomy) error
+
+    // UpdateTaxonomy 更新指定类型的分类或标签字典文档。
+    //
+    // 参数
+    // - ctx 请求上下文
+    // - id 分类或标签业务主键 ID
+    // - taxonomyType 字典类型
+    // - patch 允许更新的字段
+    // 返回体
+    // - err 仓储访问失败时返回错误
+    UpdateTaxonomy(ctx context.Context, id int64, taxonomyType string, patch Patch) error
+}
 ```
 
 ## Ordinary Function Comments

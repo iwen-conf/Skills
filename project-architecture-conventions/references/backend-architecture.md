@@ -149,6 +149,18 @@ Support/gateway wrappers:
 - Use `contract.go`, `engine.go`, `service.go`, and `main.go` when a capability has a service boundary and one or more engines.
 - Validate required engines in `NewService(...)` and return constructor errors; do not repeat "engine not configured" checks in every method.
 
+## Logging Rules
+
+Use zap as the default structured logger and keep logging as an explicit observability design choice.
+
+- Initialize zap in `cmd`, `wire`, or `infrastructure/support/logger`; inject it or a narrow project logger contract through constructors.
+- Keep `domain` free of logging imports. In `usecase`, log only business-significant state changes, security-sensitive decisions, idempotency conflicts, or workflow failures that need traceability.
+- Prefer centralized request logging middleware for HTTP request summaries. Do not duplicate the same successful request log in every controller.
+- Repositories and gateways may log slow operations, retries, retry exhaustion, and external dependency failures with sanitized structured fields.
+- Use stable fields: `operation`, `request_id`, `tenant_id`, `user_id`, `resource`, `resource_id`, `status`, `duration_ms`, and `error`.
+- Do not log normal validation failures, expected empty/not-found results, every successful read query, per-row loop details, health checks, secrets, tokens, raw authorization headers, full payloads, or personal data beyond minimal identifiers.
+- Log each failure once at the owning boundary. Wrap and return errors in lower layers instead of producing duplicate caller/callee logs.
+
 ## File Budgets And Naming
 
 - `controllers/*` <= 600 lines.

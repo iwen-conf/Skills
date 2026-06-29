@@ -1,13 +1,13 @@
 ---
 name: project-architecture-conventions
-description: Apply mandatory backend architecture, DIP, and Go stdlib constant rules before coding.
+description: Apply mandatory backend architecture, DIP, zap logging, and Go stdlib constant rules before coding.
 ---
 
 # Project Architecture Conventions
 
 ## Overview
 
-Use this skill before writing, changing, or reviewing backend, service, controller, repository, infrastructure, helper, or project skeleton code. Project code must follow the default backend architecture, the Dependency Inversion Principle (DIP), and the naming, layering, file, and interface conventions defined here.
+Use this skill before writing, changing, or reviewing backend, service, controller, repository, infrastructure, helper, logging, or project skeleton code. Project code must follow the default backend architecture, the Dependency Inversion Principle (DIP), and the naming, layering, file, interface, logging, and observability conventions defined here.
 
 For new backend modules and project skeletons, use this architecture by default. For existing repositories, preserve established local patterns unless the task explicitly asks to migrate toward this architecture.
 
@@ -15,7 +15,8 @@ For new backend modules and project skeletons, use this architecture by default.
 
 - Use before implementing backend, service, controller, repository, integration, or helper code.
 - Use before creating a new module, package, business feature, command entrypoint, or project skeleton.
-- Use when reviewing whether code violates DIP, leaks infrastructure into business logic, or places helpers in the wrong layer.
+- Use when adding or reviewing zap logs, business observability, or error reporting.
+- Use when reviewing whether code violates DIP, leaks infrastructure into business logic, places helpers in the wrong layer, or logs without business value.
 - Use together with `code-comment-conventions` when adding comments to functions, controllers, or implementation steps.
 
 ## Architecture Preflight
@@ -127,6 +128,45 @@ Rules:
 - Business methods must not call repository constructors, `sql.Open`, SDK constructors, HTTP client setup, or queue/cache constructors.
 - If dependency construction requires configuration, parse configuration before injection and pass typed values into constructors.
 
+## Zap Logging
+
+Use zap as the default structured logging backend for Go services, but add logs only where they improve diagnosis, auditability, or operational visibility.
+
+Architecture rules:
+
+- Use exactly one logging library/facade per project. Prefer `go.uber.org/zap`; do not mix zap with `log`, `slog`, logrus, or ad hoc `fmt.Println` logging.
+- Initialize zap in `cmd`, `wire`, or `infrastructure/support/logger`; call `Sync()` during graceful shutdown when appropriate.
+- Inject the logger or a narrow project logger contract through constructors. Do not create new zap loggers inside controllers, usecases, repositories, or helper functions.
+- Keep `domain` pure: no zap imports and no logging in entities, value objects, filters, or pure domain services.
+- If `usecase` code needs logs, prefer a narrow logger contract or the repository's existing project logger abstraction. Import zap directly there only when the repository already standardizes on direct zap injection.
+- Use structured fields with stable keys, such as `operation`, `request_id`, `tenant_id`, `user_id`, `resource`, `resource_id`, `status`, `duration_ms`, and `error`.
+- Never log secrets, tokens, passwords, raw authorization headers, private keys, full request/response bodies, large payloads, or personal data beyond the minimum identifier needed for diagnosis.
+
+Log these when business or operations benefit:
+
+- Application startup, shutdown, migration/bootstrap outcomes, and configuration choices that are safe to disclose.
+- Request boundary summaries in middleware, including method, path/route, status, latency, request ID, actor or tenant when available, and error class.
+- Business state changes such as create/update/delete/approve/reject/publish/pay/refund/import/export, with actor, target resource, result, and idempotency key when relevant.
+- Security and authorization events that require traceability, such as login failure throttling, permission denial on sensitive actions, tenant boundary rejection, or suspicious replay.
+- External dependency calls and failures: database, cache, queue, object storage, payment, notification, recommendation, and third-party APIs. Include operation, target, retry count, duration, and sanitized error.
+- Slow operations and retry exhaustion at the boundary that owns the timeout or retry policy.
+
+Do not log these by default:
+
+- Every successful read/list/detail query; rely on request middleware and metrics unless the query is business-critical.
+- Normal validation failures, empty results, not-found results in expected flows, or branch decisions that are already returned to the caller.
+- Both caller and callee for the same failure. Log once at the boundary with enough context; wrap and return errors elsewhere.
+- Tight loops, per-row processing, pagination item details, health checks, readiness checks, or high-frequency background ticks unless sampled or rate-limited.
+- Sensitive payload dumps added for debugging. Add targeted sanitized fields instead.
+
+Level rules:
+
+- `Debug`: development-only diagnostics or sampled details that can be disabled in production.
+- `Info`: successful lifecycle events and meaningful business state changes.
+- `Warn`: recoverable anomalies, retries, throttling, suspicious but handled security events, and slow operations above the project threshold.
+- `Error`: failed operations that require attention and are not normal user input outcomes.
+- `Fatal`/`Panic`: only at process boundaries when the service cannot continue safely.
+
 ## Go Native Constants
 
 For Go code, treat standard-library exported constants and typed values as mandatory when they represent the intended literal.
@@ -157,6 +197,8 @@ Follow this helper placement:
 - Usecase `contract.go` contains the exported controller-facing contract, not concrete service or adapter logic.
 - List/query contracts return success with empty collections for no-data results; single-resource missing cases are represented intentionally as `not found` only when the product flow needs a missing-resource error state.
 - Controllers and frontend DTOs can distinguish empty, not-found, permission-denied, validation error, and system error without relying on generic error text.
+- Zap logging is initialized once, injected explicitly, structured with stable fields, and added only at useful business or operational boundaries.
+- Logs avoid secrets, raw payloads, duplicate caller/callee error records, normal validation noise, and high-frequency loop noise.
 - Go code uses standard-library constants for native semantic literals, especially date/time layouts such as `time.DateTime`; raw equivalent strings are not accepted.
 - `helpers` are business-local unless proven reusable.
 - Shared application helpers live in `internal/usecase/shared` or another focused package and do not import interface or infrastructure packages.

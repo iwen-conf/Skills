@@ -236,6 +236,9 @@ def test_project_architecture_skill_locks_dip_architecture_and_ponytail_contract
         "`interface/restful`: Gin/HTTP boundary.",
         "`wire`: Composition root.",
         "cmd -> internal/wire -> internal/interface/restful -> internal/usecase -> internal/domain",
+        "Use zap as the default structured logging backend",
+        "Do not log these by default:",
+        "Zap logging is initialized once, injected explicitly",
         "internal/usecase/shared",
         "If a ponytail simplification would remove a required DIP boundary, keep the boundary",
     ]
