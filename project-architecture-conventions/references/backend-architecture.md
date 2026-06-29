@@ -1,22 +1,8 @@
-# ONC Backend Architecture Reference
+# Backend Architecture Reference
 
-Cached from `/Users/iluwen/Documents/Code/Go/ONC/backend` on 2026-06-29. Treat this file as a baseline only. Re-check the real ONC source when it is available.
-
-## Source Files To Inspect
-
-Use these files to refresh facts before applying ONC architecture:
-
-- `AGENTS.md` at the ONC repo root for repository truth-source priority.
-- `backend/internal/domain`
-- `backend/internal/usecase`
-- `backend/internal/interface/restful`
-- `backend/internal/infrastructure`
-- `backend/internal/wire`
-- `docs/后端/重构计划-对齐VOMS架构.md` for stated refactor constraints, then verify against runtime code.
+Use this file as the detailed reference for the default backend architecture. Keep `SKILL.md` as the short operating contract and load this file when a task needs file-level naming, interface boundaries, transaction placement, or review checks.
 
 ## Directory Layout
-
-The runtime backend uses this layout:
 
 ```text
 backend/
@@ -47,14 +33,12 @@ backend/
 
 ## Dependency Direction
 
-ONC's intended direction:
-
 ```text
 cmd -> internal/wire -> internal/interface/restful -> internal/usecase -> internal/domain
 internal/infrastructure -> internal/domain
 ```
 
-Rules observed in code and docs:
+Rules:
 
 - `domain` must not import infrastructure, usecase, interface, Gin, pgx, Redis, Casbin, or other driver/framework packages.
 - `usecase` must not import Gin, `net/http`, pgx, `database/sql`, or interface-layer packages.
@@ -68,7 +52,7 @@ Rules observed in code and docs:
 - `domain/repositories`: Repository interfaces consumed by usecases. Example: `type Course interface { List(...); GetByID(...); Create(...); Update(...) }`.
 - `domain/services`: Pure domain services when needed.
 - `usecase/<module>`: Application workflows and transaction orchestration. Controllers depend on the module `Contract`.
-- `interface/restful/controllers`: Gin handlers. They bind/validate request input, authorize, call usecase contracts, map errors, map DTOs, and respond.
+- `interface/restful/controllers`: HTTP handlers. They bind/validate request input, authorize, call usecase contracts, map errors, map DTOs, and respond.
 - `interface/restful/dto/requests`: Named request DTOs and reusable request fragments.
 - `interface/restful/dto/responses`: Named response DTOs and response envelope helpers.
 - `infrastructure/gateways/persistence/postgres/models`: Database row/table models and entity conversion.
@@ -79,8 +63,6 @@ Rules observed in code and docs:
 - `bootstrap`: Startup initialization that runs after migrations and repository construction.
 
 ## Usecase Module Shape
-
-Most modules follow this shape:
 
 ```text
 internal/usecase/<module>/
@@ -94,7 +76,7 @@ internal/usecase/<module>/
 └── service_<feature>.go
 ```
 
-Observed conventions:
+Conventions:
 
 - `contract.go` exposes `type Contract interface { ... }` for controller-facing operations.
 - `main.go` defines `type Service struct { ... }` and `New(...) Contract`.
@@ -106,7 +88,7 @@ Observed conventions:
 
 ## Interface Design
 
-ONC uses explicit contracts at real boundaries:
+Use explicit contracts at real boundaries:
 
 - Usecase boundary: `internal/usecase/<module>/Contract`.
 - Repository boundary: `internal/domain/repositories.<Entity>`.
@@ -134,7 +116,7 @@ Common type names:
 
 ## Transaction Boundary
 
-ONC puts transaction orchestration in usecase logic through `domain/repositories.TxManager`.
+Put transaction orchestration in usecase logic through `domain/repositories.TxManager`.
 
 - `domain/repositories/transaction.go` defines `Tx`, `TxFunc`, and `TxManager`.
 - Postgres implements it in `infrastructure/gateways/persistence/postgres/repository/transaction.go`.
@@ -169,10 +151,7 @@ Support/gateway wrappers:
 
 ## File Budgets And Naming
 
-ONC's refactor docs use these budgets:
-
 - `controllers/*` <= 600 lines.
 - `usecase/*/main.go` <= 200 lines.
 - `usecase/*/service_*.go` <= 400 lines.
-
-Plural package names are used where applicable: `entities`, `repositories`, `services`, `events`, `filters`, `controllers`, `middlewares`, `models`, `requests`, `responses`.
+- Use plural package names where applicable: `entities`, `repositories`, `services`, `events`, `filters`, `controllers`, `middlewares`, `models`, `requests`, `responses`.

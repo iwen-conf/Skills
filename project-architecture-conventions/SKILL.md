@@ -1,17 +1,15 @@
 ---
 name: project-architecture-conventions
-description: Apply mandatory DIP, real ONC backend architecture, and Go stdlib constant rules before coding.
+description: Apply mandatory backend architecture, DIP, and Go stdlib constant rules before coding.
 ---
 
 # Project Architecture Conventions
 
 ## Overview
 
-Use this skill before writing, changing, or reviewing backend, service, controller, repository, infrastructure, helper, or project skeleton code. Project code must follow the Dependency Inversion Principle (DIP) and learn naming, layering, and interface design from the real ONC backend architecture.
+Use this skill before writing, changing, or reviewing backend, service, controller, repository, infrastructure, helper, or project skeleton code. Project code must follow the default backend architecture, the Dependency Inversion Principle (DIP), and the naming, layering, file, and interface conventions defined here.
 
-The ONC codebase, when available, is the source of truth for ONC architecture. Known local source path: `/Users/iluwen/Documents/Code/Go/ONC/backend`.
-
-Before applying ONC architecture to a non-trivial change, inspect the current ONC source if it is available. If ONC source cannot be found, report that explicitly and use `references/onc-architecture.md` only as a cached baseline; do not invent ONC facts. Do not call this "ONC-style" or "ONC-inspired" when the source has been checked; call it ONC architecture.
+For new backend modules and project skeletons, use this architecture by default. For existing repositories, preserve established local patterns unless the task explicitly asks to migrate toward this architecture.
 
 ## When to Use
 
@@ -20,13 +18,13 @@ Before applying ONC architecture to a non-trivial change, inspect the current ON
 - Use when reviewing whether code violates DIP, leaks infrastructure into business logic, or places helpers in the wrong layer.
 - Use together with `code-comment-conventions` when adding comments to functions, controllers, or implementation steps.
 
-## ONC Preflight
+## Architecture Preflight
 
-1. Locate ONC source. Prefer `$ONC_REPO/backend` when `ONC_REPO` is set, then `/Users/iluwen/Documents/Code/Go/ONC/backend`, then a nearby `../ONC/backend`.
-2. Inspect real ONC code before using ONC facts. At minimum check `internal/domain`, `internal/usecase`, `internal/interface/restful`, `internal/infrastructure`, and `internal/wire`.
-3. Read `references/onc-architecture.md` after source inspection, or as a fallback when the source is unavailable.
-4. If ONC source and the cached reference disagree, trust the source and mention the observed difference.
-5. Preserve the host repository's established patterns unless the task explicitly asks to align it with ONC.
+1. Inspect the host repository first: package layout, constructors, contracts, DTOs, tests, and dependency direction.
+2. For new modules, use the default architecture in this skill unless the repository already has a stronger local convention.
+3. For migrations, change the smallest slice that can preserve behavior while moving toward the default architecture.
+4. Read `references/backend-architecture.md` when deeper file-level or interface-level guidance is needed.
+5. Do not invent extra layers, factories, interfaces, or helpers beyond the boundaries described here.
 
 ## Ponytail Preflight
 
@@ -38,7 +36,7 @@ Before applying ONC architecture to a non-trivial change, inspect the current ON
 
 ## Ponytail Conflict Resolution
 
-`ponytail` rejects unrequested abstractions such as an interface with one implementation. This skill explicitly requests DIP and ONC boundary interfaces, so interfaces are allowed only when they protect business logic from infrastructure, external capabilities, framework details, transport boundaries, or cross-layer dependencies.
+`ponytail` rejects unrequested abstractions such as an interface with one implementation. This skill explicitly requests DIP boundary interfaces, so interfaces are allowed only when they protect business logic from infrastructure, external capabilities, framework details, transport boundaries, or cross-layer dependencies.
 
 Resolution rules:
 
@@ -60,9 +58,9 @@ All project code must obey DIP:
 - Domain/usecase code must not import infrastructure-only packages unless those capabilities are expressed through contracts.
 - New dependencies must be injected through constructors or explicit parameters, not pulled from globals or created ad hoc inside business functions.
 
-## ONC Architecture
+## Backend Architecture
 
-Use real ONC backend architecture as the reference for Go backend projects. Names may be adapted only when the host language or existing repository convention requires it; responsibilities and dependency direction must stay the same.
+Use this backend architecture as the default for Go backend projects. Names may be adapted only when the host language or existing repository convention requires it; responsibilities and dependency direction must stay the same.
 
 ```text
 backend/
@@ -82,23 +80,23 @@ backend/
 Layer responsibilities:
 
 - `domain`: Pure business entities, repository interfaces, events, filters, and domain services. It must not import infrastructure, usecase, interface, framework, or driver packages.
-- `usecase/<module>`: Application/business workflows. ONC modules use `contract.go`, `main.go`, `params.go`, `results.go`, optional `errors.go`, and focused `service*.go` files. `Contract` is the controller-facing interface; `Service` implements it and depends on `domain/repositories` plus explicit external capability contracts.
+- `usecase/<module>`: Application/business workflows. Modules use `contract.go`, `main.go`, `params.go`, `results.go`, optional `errors.go`, and focused `service*.go` files. `Contract` is the controller-facing interface; `Service` implements it and depends on `domain/repositories` plus explicit external capability contracts.
 - `interface/restful`: Gin/HTTP boundary. Controllers bind input, authorize, call usecase contracts, map errors, and return DTO responses. DTOs live in `dto/requests` and `dto/responses`; controllers must not touch repositories or database drivers directly.
 - `infrastructure/gateways`: Concrete external gateways such as Postgres persistence, notification, storage, and recommendation. Persistence uses `postgres/models` for table models and `postgres/repository` for implementations of `domain/repositories`.
-- `infrastructure/support`: Cross-cutting support capabilities such as authorization, cache, logger, and security. ONC uses `contract.go`, `engine.go`, `service.go`, and `main.go` to separate service contracts from concrete engines.
+- `infrastructure/support`: Cross-cutting support capabilities such as authorization, cache, logger, and security. Use `contract.go`, `engine.go`, `service.go`, and `main.go` to separate service contracts from concrete engines.
 - `wire`: Composition root. Construct repositories, support services, usecases, controllers, bootstrap, seeds, and application lifecycle. It may import concrete infrastructure; business layers may not.
 - `bootstrap`: Startup domain initialization such as ensuring seed data or super-admin prerequisites after migrations and repository construction.
 
 ## Dependency Direction
 
-Use ONC's dependency direction:
+Use this dependency direction:
 
 ```text
 cmd -> internal/wire -> internal/interface/restful -> internal/usecase -> internal/domain
 internal/infrastructure -> internal/domain
 ```
 
-Forbidden ONC-aligned imports:
+Forbidden imports:
 
 ```text
 internal/domain -> internal/infrastructure, internal/usecase, internal/interface, framework/driver SDKs
@@ -141,7 +139,7 @@ For Go code, treat standard-library exported constants and typed values as manda
 
 ## Helper And Shared Code
 
-Follow ONC's helper placement:
+Follow this helper placement:
 
 1. Keep module-specific usecase helpers inside the same `internal/usecase/<module>` package, using focused files such as `helpers.go`, `service_<feature>.go`, or `services.go` when the module already uses them.
 2. Put application-layer shared types such as pagination or common business errors in `internal/usecase/shared`; do not duplicate them in each feature module.
@@ -151,7 +149,7 @@ Follow ONC's helper placement:
 
 ## Review Checklist
 
-- ONC source was inspected, or its absence was explicitly reported before applying cached ONC guidance.
+- Host repository patterns were inspected before applying the default backend architecture.
 - Business logic is in `usecase/<module>`, not controllers, infrastructure, or `wire`.
 - Business code depends on `domain/repositories` or explicit capability contracts instead of concrete infrastructure.
 - Each interface is justified by a layer boundary, external capability, test seam, or multiple implementations.
@@ -161,5 +159,5 @@ Follow ONC's helper placement:
 - Controllers and frontend DTOs can distinguish empty, not-found, permission-denied, validation error, and system error without relying on generic error text.
 - Go code uses standard-library constants for native semantic literals, especially date/time layouts such as `time.DateTime`; raw equivalent strings are not accepted.
 - `helpers` are business-local unless proven reusable.
-- Shared application helpers live in `internal/usecase/shared` or another focused ONC-aligned package and do not import interface or infrastructure packages.
+- Shared application helpers live in `internal/usecase/shared` or another focused package and do not import interface or infrastructure packages.
 - `ponytail` was read before coding, or its absence was reported before editing.

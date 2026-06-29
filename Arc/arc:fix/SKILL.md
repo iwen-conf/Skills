@@ -50,7 +50,7 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 - MUST preserve failure evidence.
 - MUST state a concrete hypothesis before significant edits.
 - MUST patch the smallest safe surface.
-- MUST apply `project-architecture-conventions` before code edits, including its DIP, real ONC backend architecture preflight, helper extraction, and ponytail preflight rules.
+- MUST apply `project-architecture-conventions` before code edits, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
 - MUST rerun the failing path when feasible.
 - MUST route all Lark incident/risk/task updates through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
@@ -72,7 +72,7 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 ## Quality Gates
 
 - Fix targets cause, not only symptom.
-- Fix preserves DIP and real ONC architecture responsibilities when ONC alignment applies, unless the failure is explicitly caused by migrating toward them.
+- Fix preserves DIP and default backend architecture responsibilities when backend architecture applies, unless the failure is explicitly caused by migrating toward them.
 - Verification covers the original failure.
 - Residual risk and rollback/monitoring notes are explicit for risky changes.
 - Data-layer fixes check rows affected, transaction boundaries, state guards, soft-delete filters, and query bounds when relevant.

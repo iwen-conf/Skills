@@ -201,7 +201,7 @@ def test_validate_text_accepts_approved_plain_skill() -> None:
         ),
         (
             "project-architecture-conventions",
-            "Apply mandatory DIP and real ONC backend architecture rules before coding.",
+            "Apply mandatory backend architecture and DIP rules before coding.",
         ),
     ]
     for name, description in cases:
@@ -220,14 +220,14 @@ when body
         assert warnings == []
 
 
-def test_project_architecture_skill_locks_dip_onc_and_ponytail_contract() -> None:
+def test_project_architecture_skill_locks_dip_architecture_and_ponytail_contract() -> None:
     text = (ROOT / "project-architecture-conventions" / "SKILL.md").read_text(encoding="utf-8")
 
     required_phrases = [
         "Dependency Inversion Principle (DIP)",
-        "The ONC codebase, when available, is the source of truth for ONC architecture.",
-        "Before applying ONC architecture to a non-trivial change, inspect the current ONC source if it is available.",
-        "Do not call this \"ONC-style\" or \"ONC-inspired\" when the source has been checked",
+        "Use this backend architecture as the default for Go backend projects.",
+        "Read `references/backend-architecture.md` when deeper file-level or interface-level guidance is needed.",
+        "Do not invent extra layers, factories, interfaces, or helpers beyond the boundaries described here.",
         "Ponytail Conflict Resolution",
         "Required DIP boundary interfaces are not \"unrequested abstraction\"",
         "Do not create service interfaces, factories, config objects, or adapter interfaces solely because a folder exists.",
