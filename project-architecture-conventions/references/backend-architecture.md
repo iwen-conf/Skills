@@ -162,6 +162,22 @@ Use zap as the default structured logger and keep logging as an explicit observa
 - Do not log normal validation failures, expected empty/not-found results, every successful read query, per-row loop details, health checks, secrets, tokens, raw authorization headers, full payloads, or personal data beyond minimal identifiers.
 - Log each failure once at the owning boundary. Wrap and return errors in lower layers instead of producing duplicate caller/callee logs.
 
+## Debugging Log Evidence
+
+When a backend failure is reproducible or observable, preserve runtime evidence in files before broad inspection or edits.
+
+- Capture application logs, command stdout/stderr, request IDs, timestamps, stack frames, SQL states, external status codes, retry counts, and sanitized dependency errors into a local artifact path such as `.arc/artifacts/<task>/logs/backend.log` or `tmp/logs/backend.log`.
+- Use project-native logging configuration when available. For local commands, redirect or tee output to a file so the evidence can be searched and rechecked.
+- Search saved logs for exact failure strings and correlation IDs before changing code. Avoid long code-reading loops when the failing path can provide runtime evidence.
+- Add temporary diagnostic logs only to test a concrete hypothesis. They must be structured, level-gated, sanitized, and removed or promoted into useful permanent observability before the fix is complete.
+- Do not commit raw debug logs unless the repository explicitly tracks sanitized evidence. Never store secrets, tokens, raw authorization headers, full payloads, or personal data in debug artifacts.
+
+```bash
+mkdir -p .arc/artifacts/debug/logs
+go test ./... 2>&1 | tee .arc/artifacts/debug/logs/go-test.log
+go run ./cmd/server 2>&1 | tee .arc/artifacts/debug/logs/server.log
+```
+
 ## Constant And Enum Rules
 
 Use Go constants as compile-time semantic names. They should clarify business meaning, preserve type safety, and avoid repeated literals without becoming global macro buckets.

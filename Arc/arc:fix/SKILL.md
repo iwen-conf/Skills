@@ -40,6 +40,7 @@ Begin by stating clearly:
 
 ```text
 NO FIX WITHOUT ROOT CAUSE OR EXPLICIT UNCERTAINTY.
+NO DEBUGGING WITHOUT PERSISTED EVIDENCE WHEN LOGS CAN BE CAPTURED.
 NO SUCCESS CLAIM WITHOUT RERUNNING THE FAILING CHECK OR NAMING THE BLOCKER.
 NO LARK INCIDENT UPDATE OUTSIDE arc:docs.
 NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
@@ -48,6 +49,7 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 ## Hard Constraints
 
 - MUST preserve failure evidence.
+- MUST capture runnable or observable failures into local log/evidence files before large edits. Use paths such as `.arc/artifacts/<task>/logs/` or `tmp/logs/`.
 - MUST state a concrete hypothesis before significant edits.
 - MUST patch the smallest safe surface.
 - MUST apply `project-architecture-conventions` before code edits, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
@@ -62,16 +64,18 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 ## Workflow
 
 1. Capture failure, expected behavior, and reproduction path.
-2. Reproduce or inspect the failing path.
-3. Form and test a root-cause hypothesis.
-4. Apply `project-architecture-conventions` before code edits; stop and report if ponytail is required but unavailable or conflicting.
-5. Patch the smallest safe surface.
-6. Rerun the failing check plus focused regressions.
-7. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks.
+2. Reproduce or inspect the failing path and persist available logs, command output, browser console, network traces, screenshots, or stack traces to a local evidence file.
+3. Search the saved evidence for exact error strings, request IDs, stack frames, network failures, and config keys.
+4. Form and test a root-cause hypothesis.
+5. Apply `project-architecture-conventions` before code edits; stop and report if ponytail is required but unavailable or conflicting.
+6. Patch the smallest safe surface.
+7. Rerun the failing check plus focused regressions, saving verification output when useful.
+8. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks.
 
 ## Quality Gates
 
 - Fix targets cause, not only symptom.
+- Runnable failures have persisted sanitized log/evidence files, or the reason evidence could not be captured is explicit.
 - Fix preserves DIP and default backend architecture responsibilities when backend architecture applies, unless the failure is explicitly caused by migrating toward them.
 - Verification covers the original failure.
 - Residual risk and rollback/monitoring notes are explicit for risky changes.
@@ -88,11 +92,12 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 
 ## Scripts & Commands
 
-Use project-native tests, logs, build commands, browser tooling, and observability. Use `.ai-code-index/` for context and exact search for failure strings.
+Use project-native tests, logs, build commands, browser tooling, and observability. Persist command output and browser/runtime evidence to local files, then use `.ai-code-index/` for context and exact search for failure strings.
 
 ## Red Flags
 
 - Fixing before reading the error.
+- Debugging only by rereading code while runnable logs, browser console output, or command output were available but not captured.
 - Fixing by adding concrete infrastructure dependencies into business services.
 - Treating a retry as root cause.
 - Swallowing exceptions or masking logs.
@@ -120,6 +125,7 @@ Use project-native tests, logs, build commands, browser tooling, and observabili
 ```text
 Fix Packet
 - Failure observed
+- Evidence/log files captured
 - Root cause
 - Fix applied
 - Verification run

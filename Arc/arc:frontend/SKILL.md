@@ -65,6 +65,8 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 - MUST build `Responsive` layouts with explicit constraints; NEVER use viewport-scaled fonts as the layout solution.
 - MUST model `RBAC` at route and action level when roles or permissions exist.
 - MUST use project-native data/form/state patterns before introducing new libraries.
+- MUST persist frontend debugging evidence to local files when investigating runnable UI bugs: browser console output, network failures, runtime errors, screenshots, and relevant reproduction notes should go under `.arc/artifacts/<task>/logs/` or `tmp/logs/`.
+- MUST remove temporary `console.log`, `debugger`, alert-based probes, and noisy instrumentation before completion, or convert them into the project's level-gated logger/telemetry pattern.
 - MUST verify build/typecheck/lint/tests or report the blocker.
 - MUST route all Lark progress, whiteboard, screenshot, or `.lark.json` updates through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
@@ -77,8 +79,9 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 2. Inspect existing frontend stack and patterns.
 3. Choose route: apply the platform default stack, preserve an existing stack with a documented boundary, or document the explicit user-requested exception.
 4. Implement with tokenized styling, stable layout constraints, accessible states, explicit loading/empty/error/permission branches, and existing data/form/state patterns.
-5. Run project-native verification.
-6. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with pages, decisions, changed files, verification, screenshots/whiteboards, task status, lifecycle link, and resource keys.
+5. For UI bugs, capture browser/runtime evidence to files before broad edits and use exact error strings or request IDs to drive the fix.
+6. Run project-native verification.
+7. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with pages, decisions, changed files, verification, screenshots/whiteboards, task status, lifecycle link, and resource keys.
 
 ## Quality Gates
 
@@ -89,6 +92,8 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 - No overlapping or overflowing text in expected viewports.
 - Loading, empty, error, disabled, and permission-denied states exist when relevant, with empty and error proven to render through different branches and visual treatments.
 - Server state is not duplicated into unrelated global stores.
+- Frontend bug work has saved, searchable console/network/runtime evidence when the failure is reproducible or observable.
+- Temporary debug probes are removed or converted into approved level-gated logging/telemetry before delivery.
 - Significant frontend progress and `task_base` are linked through `.lark.json` only when Lark is active.
 
 ## Expert Standards
@@ -110,6 +115,8 @@ Use project-native scripts. For new React 19 + TypeScript + Vite projects, use [
 - Treating a vertical business skill as permission to invent a separate Web, mobile, desktop, or mini-program frontend stack.
 - Starting a new WeChat mini-program with native WXML/WXSS/Component as the default stack instead of Taro 4 without explicit user direction.
 - Decorative landing page instead of the requested usable UI.
+- Debugging only from source inspection while browser console, network, or runtime errors could be captured.
+- Leaving `console.log`, `debugger`, alert probes, or noisy debug output in delivered frontend code.
 - Hardcoded component colors.
 - Global store used for server state by convenience.
 - Empty search results, first-use pages, zero-count dashboards, or filtered-out lists displayed as error pages, destructive alerts, or failed fetch states.
@@ -141,6 +148,7 @@ Frontend Handoff
 - Platform target: Web / iOS+Android / Desktop / Mini Program
 - Files changed
 - Responsive/accessibility checks
+- Debug evidence/log files, when frontend bug work was performed
 - Verification run
 - Lark / .lark.json / task_base handoff, if applicable
 - Residual risks

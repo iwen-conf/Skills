@@ -7,7 +7,7 @@ description: Apply mandatory backend architecture, DIP, zap logging, and Go cons
 
 ## Overview
 
-Use this skill before writing, changing, or reviewing backend, service, controller, repository, infrastructure, helper, logging, constants, enum-like states, or project skeleton code. Project code must follow the default backend architecture, the Dependency Inversion Principle (DIP), and the naming, layering, file, interface, logging, constant, and observability conventions defined here.
+Use this skill before writing, changing, or reviewing backend, service, controller, repository, infrastructure, helper, logging, debugging, constants, enum-like states, or project skeleton code. Project code must follow the default backend architecture, the Dependency Inversion Principle (DIP), and the naming, layering, file, interface, logging, debugging, constant, and observability conventions defined here.
 
 For new backend modules and project skeletons, use this architecture by default. For existing repositories, preserve established local patterns unless the task explicitly asks to migrate toward this architecture.
 
@@ -15,7 +15,7 @@ For new backend modules and project skeletons, use this architecture by default.
 
 - Use before implementing backend, service, controller, repository, integration, or helper code.
 - Use before creating a new module, package, business feature, command entrypoint, or project skeleton.
-- Use when adding or reviewing zap logs, business observability, constants, enum-like state, or error reporting.
+- Use when adding or reviewing zap logs, business observability, debugging evidence, constants, enum-like state, or error reporting.
 - Use when reviewing whether code violates DIP, leaks infrastructure into business logic, places helpers in the wrong layer, logs without business value, or uses magic literals.
 - Use together with `code-comment-conventions` when adding comments to functions, controllers, or implementation steps.
 
@@ -141,6 +141,7 @@ Architecture rules:
 - If `usecase` code needs logs, prefer a narrow logger contract or the repository's existing project logger abstraction. Import zap directly there only when the repository already standardizes on direct zap injection.
 - Use structured fields with stable keys, such as `operation`, `request_id`, `tenant_id`, `user_id`, `resource`, `resource_id`, `status`, `duration_ms`, and `error`.
 - Never log secrets, tokens, passwords, raw authorization headers, private keys, full request/response bodies, large payloads, or personal data beyond the minimum identifier needed for diagnosis.
+- When debugging a backend failure, capture reproducible logs to a local file such as `.arc/artifacts/<task>/logs/backend.log` or `tmp/logs/backend.log`. Do not rely only on terminal scrollback or memory.
 
 Log these when business or operations benefit:
 
@@ -166,6 +167,13 @@ Level rules:
 - `Warn`: recoverable anomalies, retries, throttling, suspicious but handled security events, and slow operations above the project threshold.
 - `Error`: failed operations that require attention and are not normal user input outcomes.
 - `Fatal`/`Panic`: only at process boundaries when the service cannot continue safely.
+
+Debugging evidence rules:
+
+- For bug hunts and incident repair, run the failing path with logs persisted to files before large code edits. Capture command stdout/stderr, application logs, request IDs, relevant timestamps, and sanitized dependency errors.
+- Add temporary diagnostic logs only when they test a concrete hypothesis. Keep them level-gated, structured, and removed or converted into useful permanent logs before completion.
+- Prefer searching saved log files for exact error strings, request IDs, SQL states, external status codes, and stack frames. Do not keep rereading code without runtime evidence when the failure can be reproduced.
+- Keep log artifacts out of commits unless the repository explicitly tracks sanitized evidence. Never persist secrets, tokens, raw authorization headers, full payloads, or personal data in debug files.
 
 ## Go Constants And Enums
 
@@ -203,6 +211,7 @@ Follow this helper placement:
 - List/query contracts return success with empty collections for no-data results; single-resource missing cases are represented intentionally as `not found` only when the product flow needs a missing-resource error state.
 - Controllers and frontend DTOs can distinguish empty, not-found, permission-denied, validation error, and system error without relying on generic error text.
 - Zap logging is initialized once, injected explicitly, structured with stable fields, and added only at useful business or operational boundaries.
+- Backend debugging captures reproducible sanitized logs to a file before large edits when the failure is runnable or observable.
 - Logs avoid secrets, raw payloads, duplicate caller/callee error records, normal validation noise, and high-frequency loop noise.
 - Go constants use `MixedCaps` / `mixedCaps`, stay near their business context, prefer untyped literals unless typing is semantically required, and avoid broad `constants.go` buckets.
 - Go code uses standard-library constants for native semantic literals, especially date/time layouts such as `time.DateTime`; raw equivalent strings are not accepted.
