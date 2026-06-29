@@ -59,6 +59,7 @@ Rules:
 - `infrastructure/gateways/persistence/postgres/repository`: Postgres implementations of `domain/repositories`.
 - `infrastructure/gateways/<capability>`: External capability gateways such as notification, storage, and recommendation.
 - `infrastructure/support/<capability>`: Cross-cutting infrastructure such as authorization, cache, logger, and security.
+- `constants`: Truly application-wide constants with multiple legitimate consumers. Do not use this as a dumping ground for module-specific business limits, labels, or state.
 - `wire`: Repository set, usecase set, controller construction, bootstrap, seeds, reset, and application lifecycle.
 - `bootstrap`: Startup initialization that runs after migrations and repository construction.
 
@@ -160,6 +161,79 @@ Use zap as the default structured logger and keep logging as an explicit observa
 - Use stable fields: `operation`, `request_id`, `tenant_id`, `user_id`, `resource`, `resource_id`, `status`, `duration_ms`, and `error`.
 - Do not log normal validation failures, expected empty/not-found results, every successful read query, per-row loop details, health checks, secrets, tokens, raw authorization headers, full payloads, or personal data beyond minimal identifiers.
 - Log each failure once at the owning boundary. Wrap and return errors in lower layers instead of producing duplicate caller/callee logs.
+
+## Constant And Enum Rules
+
+Use Go constants as compile-time semantic names. They should clarify business meaning, preserve type safety, and avoid repeated literals without becoming global macro buckets.
+
+Naming and scope:
+
+- Use Go `MixedCaps` / `mixedCaps`. Do not use `SNAKE_CASE`, `ALL_CAPS`, or package prefixes inside the name when the package already gives context.
+- Export a constant only when another package should compile against it. Keep private constants lower-case and close to the behavior they configure.
+- Prefer constants beside the code that uses them: entity state constants in `domain/entities`, workflow limits in the owning `usecase/<module>`, transport literals in the REST package, and integration-specific constants in the gateway/support package.
+- Use `internal/constants` only for stable application-wide constants that are legitimately shared across several layers or modules. Do not create a catch-all `constants.go` for unrelated values.
+- Replace repeated magic numbers and strings with a named constant that expresses business meaning, such as `MaxBatchSize`, `DefaultPageSize`, or `TokenExpirySkew`.
+
+Typed and untyped constants:
+
+- Prefer untyped constants for plain scalar literals when the value can safely adapt to context, such as numeric limits, ratios, string labels, and pure compile-time defaults.
+- Add an explicit type when the type is part of the API contract, prevents invalid domain values, is required by a dependency signature, or models enum-like state.
+- Use standard-library constants whenever they already represent the value: `time.DateTime`, `time.DateOnly`, `time.TimeOnly`, `time.RFC3339`, `http.MethodGet`, `http.StatusOK`, file modes, TLS versions, crypto hashes, and similar semantic constants.
+
+```go
+const (
+    MaxBatchSize = 50
+    defaultLimit = 20
+)
+
+func list(limit int32) {
+    if limit > MaxBatchSize {
+        limit = MaxBatchSize
+    }
+}
+```
+
+Enum-like domain states:
+
+- Define a custom type for business states. Do not accept naked `int` or `string` parameters when the value represents a closed domain set.
+- Reserve the zero value for `Unknown`, `Unspecified`, or a safe default that matches the product behavior.
+- Use typed constants with `iota` when the underlying value is internal. Use explicit string values when they are persisted or part of a public wire contract.
+- Implement `String()` for states used in logs, errors, metrics, CLI output, or operator-facing diagnostics.
+- Add parse and validation helpers at boundaries where values enter from HTTP, queues, storage, or external APIs.
+
+```go
+type OrderStatus int
+
+const (
+    OrderStatusUnknown OrderStatus = iota
+    OrderStatusCreated
+    OrderStatusPaid
+    OrderStatusShipped
+    OrderStatusCompleted
+)
+
+func (s OrderStatus) String() string {
+    switch s {
+    case OrderStatusCreated:
+        return "Created"
+    case OrderStatusPaid:
+        return "Paid"
+    case OrderStatusShipped:
+        return "Shipped"
+    case OrderStatusCompleted:
+        return "Completed"
+    default:
+        return "Unknown"
+    }
+}
+```
+
+Cross-service constants:
+
+- Treat cross-service error codes, event types, and state values as API contracts, not local implementation details.
+- Prefer Protobuf/OpenAPI definitions with generated code when the values cross service boundaries.
+- In a monorepo, a governed shared module is acceptable only when it has version ownership and compatibility rules. Services must not copy-paste constants into private packages.
+- Keep transport or wire-code enums separate from internal domain enums when their lifecycle differs. Map between them at the interface/gateway boundary.
 
 ## File Budgets And Naming
 

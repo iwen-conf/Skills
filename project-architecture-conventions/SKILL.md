@@ -1,13 +1,13 @@
 ---
 name: project-architecture-conventions
-description: Apply mandatory backend architecture, DIP, zap logging, and Go stdlib constant rules before coding.
+description: Apply mandatory backend architecture, DIP, zap logging, and Go constant rules before coding.
 ---
 
 # Project Architecture Conventions
 
 ## Overview
 
-Use this skill before writing, changing, or reviewing backend, service, controller, repository, infrastructure, helper, logging, or project skeleton code. Project code must follow the default backend architecture, the Dependency Inversion Principle (DIP), and the naming, layering, file, interface, logging, and observability conventions defined here.
+Use this skill before writing, changing, or reviewing backend, service, controller, repository, infrastructure, helper, logging, constants, enum-like states, or project skeleton code. Project code must follow the default backend architecture, the Dependency Inversion Principle (DIP), and the naming, layering, file, interface, logging, constant, and observability conventions defined here.
 
 For new backend modules and project skeletons, use this architecture by default. For existing repositories, preserve established local patterns unless the task explicitly asks to migrate toward this architecture.
 
@@ -15,8 +15,8 @@ For new backend modules and project skeletons, use this architecture by default.
 
 - Use before implementing backend, service, controller, repository, integration, or helper code.
 - Use before creating a new module, package, business feature, command entrypoint, or project skeleton.
-- Use when adding or reviewing zap logs, business observability, or error reporting.
-- Use when reviewing whether code violates DIP, leaks infrastructure into business logic, places helpers in the wrong layer, or logs without business value.
+- Use when adding or reviewing zap logs, business observability, constants, enum-like state, or error reporting.
+- Use when reviewing whether code violates DIP, leaks infrastructure into business logic, places helpers in the wrong layer, logs without business value, or uses magic literals.
 - Use together with `code-comment-conventions` when adding comments to functions, controllers, or implementation steps.
 
 ## Architecture Preflight
@@ -167,15 +167,20 @@ Level rules:
 - `Error`: failed operations that require attention and are not normal user input outcomes.
 - `Fatal`/`Panic`: only at process boundaries when the service cannot continue safely.
 
-## Go Native Constants
+## Go Constants And Enums
 
-For Go code, treat standard-library exported constants and typed values as mandatory when they represent the intended literal.
+For Go code, constants are compile-time semantic names, not C-style global macros. Prefer the narrowest useful scope, idiomatic names, untyped literals when flexibility is useful, and typed custom constants when modeling domain state.
 
-- MUST use Go standard-library constants instead of equivalent magic strings or numbers.
-- MUST replace date/time layout literals with `time` constants when available, such as `time.DateTime` instead of `"2006-01-02 15:04:05"`, `time.DateOnly` instead of `"2006-01-02"`, `time.TimeOnly` instead of `"15:04:05"`, and `time.RFC3339` / `time.RFC3339Nano` for RFC3339 layouts.
+- Name constants with Go `MixedCaps` / `mixedCaps`. Do not use `SNAKE_CASE` or `ALL_CAPS`; export only when another package should depend on the name.
+- Prefer untyped constants for plain scalar literals such as sizes, limits, ratios, string labels, and numeric defaults. Add an explicit type only when it is part of the API contract, prevents invalid domain values, or is required by a dependency signature.
+- MUST use Go standard-library constants instead of equivalent magic strings or numbers. Replace date/time layout literals with `time` constants when available, such as `time.DateTime`, `time.DateOnly`, `time.TimeOnly`, `time.RFC3339`, and `time.RFC3339Nano`.
 - MUST use standard-library semantic constants for HTTP methods, status codes, file modes, TLS versions, crypto hashes, and other native package domains when the package exposes one.
-- MUST NOT introduce raw string literals for values already defined by the Go standard library. If no standard-library constant exists, define a local named constant at the narrowest useful scope instead of repeating the literal.
-- During review, flag equivalent literals as defects even when the code compiles.
+- If no standard-library constant exists, define a local named constant at the narrowest useful scope instead of repeating the literal.
+- Keep constants close to the behavior they describe. Do not create broad dumping-ground `constants.go` files; use `internal/constants` only for truly application-wide constants with multiple legitimate consumers.
+- Model enum-like business states with a custom type plus typed `const` values, usually with a zero `Unknown` or default value. Do not pass naked `int` or `string` values as domain states.
+- Implement `String()` for enum-like states used in logs, errors, metrics, serialization diagnostics, or operator-facing output. Add parse/validate helpers when values enter from transport or storage.
+- For cross-service constants such as error codes, prefer versioned API contracts and generated code, such as Protobuf/OpenAPI enum definitions or a governed shared module. Do not copy constants between services manually.
+- During review, flag equivalent literals, C-style names, naked enum parameters, and broad constant buckets as defects even when the code compiles.
 
 ## Helper And Shared Code
 
@@ -199,7 +204,9 @@ Follow this helper placement:
 - Controllers and frontend DTOs can distinguish empty, not-found, permission-denied, validation error, and system error without relying on generic error text.
 - Zap logging is initialized once, injected explicitly, structured with stable fields, and added only at useful business or operational boundaries.
 - Logs avoid secrets, raw payloads, duplicate caller/callee error records, normal validation noise, and high-frequency loop noise.
+- Go constants use `MixedCaps` / `mixedCaps`, stay near their business context, prefer untyped literals unless typing is semantically required, and avoid broad `constants.go` buckets.
 - Go code uses standard-library constants for native semantic literals, especially date/time layouts such as `time.DateTime`; raw equivalent strings are not accepted.
+- Enum-like business states use custom typed constants with an `Unknown` or default zero value, and cross-service constants come from versioned generated contracts or governed shared modules.
 - `helpers` are business-local unless proven reusable.
 - Shared application helpers live in `internal/usecase/shared` or another focused package and do not import interface or infrastructure packages.
 - `ponytail` was read before coding, or its absence was reported before editing.
