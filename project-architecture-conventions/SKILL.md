@@ -1,15 +1,17 @@
 ---
 name: project-architecture-conventions
-description: Apply mandatory DIP, ONC layout, and Go stdlib constant rules before writing or reviewing project code.
+description: Apply mandatory DIP, real ONC backend architecture naming/layering/interface conventions, and Go stdlib constant rules before writing or reviewing project code. Use when implementing or reviewing backend, service, controller, repository, infrastructure, helper, or project skeleton code that should learn from ONC.
 ---
 
 # Project Architecture Conventions
 
 ## Overview
 
-Use this skill before writing, changing, or reviewing project code. All projects must follow the Dependency Inversion Principle (DIP) and the ONC-style architecture described here.
+Use this skill before writing, changing, or reviewing backend, service, controller, repository, infrastructure, helper, or project skeleton code. Project code must follow the Dependency Inversion Principle (DIP) and learn naming, layering, and interface design from the real ONC backend architecture.
 
-Do not read an external ONC project to discover the architecture while coding. Treat this SKILL.md as the source of truth for the ONC-style layer layout.
+The ONC codebase, when available, is the source of truth for ONC architecture. Known local source path: `/Users/iluwen/Documents/Code/Go/ONC/backend`.
+
+Before applying ONC architecture to a non-trivial change, inspect the current ONC source if it is available. If ONC source cannot be found, report that explicitly and use `references/onc-architecture.md` only as a cached baseline; do not invent ONC facts. Do not call this "ONC-style" or "ONC-inspired" when the source has been checked; call it ONC architecture.
 
 ## When to Use
 
@@ -17,6 +19,14 @@ Do not read an external ONC project to discover the architecture while coding. T
 - Use before creating a new module, package, business feature, command entrypoint, or project skeleton.
 - Use when reviewing whether code violates DIP, leaks infrastructure into business logic, or places helpers in the wrong layer.
 - Use together with `code-comment-conventions` when adding comments to functions, controllers, or implementation steps.
+
+## ONC Preflight
+
+1. Locate ONC source. Prefer `$ONC_REPO/backend` when `ONC_REPO` is set, then `/Users/iluwen/Documents/Code/Go/ONC/backend`, then a nearby `../ONC/backend`.
+2. Inspect real ONC code before using ONC facts. At minimum check `internal/domain`, `internal/usecase`, `internal/interface/restful`, `internal/infrastructure`, and `internal/wire`.
+3. Read `references/onc-architecture.md` after source inspection, or as a fallback when the source is unavailable.
+4. If ONC source and the cached reference disagree, trust the source and mention the observed difference.
+5. Preserve the host repository's established patterns unless the task explicitly asks to align it with ONC.
 
 ## Ponytail Preflight
 
@@ -28,7 +38,7 @@ Do not read an external ONC project to discover the architecture while coding. T
 
 ## Ponytail Conflict Resolution
 
-`ponytail` rejects unrequested abstractions such as an interface with one implementation. This skill explicitly requests DIP and ONC-style boundaries, so boundary interfaces in `contract` are allowed only when they protect business logic from infrastructure, external capabilities, framework details, or cross-layer dependencies.
+`ponytail` rejects unrequested abstractions such as an interface with one implementation. This skill explicitly requests DIP and ONC boundary interfaces, so interfaces are allowed only when they protect business logic from infrastructure, external capabilities, framework details, transport boundaries, or cross-layer dependencies.
 
 Resolution rules:
 
@@ -44,85 +54,79 @@ Resolution rules:
 All project code must obey DIP:
 
 - High-level business policy depends on abstractions, not concrete storage, SDK, network, queue, cache, or framework implementations.
-- `services` owns core business behavior and consumes boundary interfaces from `contract`.
-- Concrete adapters implement `contract` interfaces and are wired in `main`; they are not constructed inside business logic.
-- Controllers/handlers translate transport input into service calls and transport output; they must not contain core business decisions.
-- Domain/business code must not import infrastructure-only packages unless those packages are expressed through `contract` abstractions.
+- `usecase/<module>` owns application/business behavior and consumes `domain/repositories` interfaces or explicit capability contracts.
+- Concrete infrastructure implements domain or capability contracts and is wired in `internal/wire`; it is not constructed inside business logic.
+- Controllers translate transport input into usecase calls and transport output; they must not contain core business decisions.
+- Domain/usecase code must not import infrastructure-only packages unless those capabilities are expressed through contracts.
 - New dependencies must be injected through constructors or explicit parameters, not pulled from globals or created ad hoc inside business functions.
 
 ## ONC Architecture
 
-Use this ONC-style layout for business modules. Names may be adapted to the host language, but responsibilities must stay the same.
+Use real ONC backend architecture as the reference for Go backend projects. Names may be adapted only when the host language or existing repository convention requires it; responsibilities and dependency direction must stay the same.
 
 ```text
-project-root/
-├── main/ or cmd/<app>/ or main.go
-├── internal/<business>/
-│   ├── contract/
-│   ├── services/
-│   ├── controllers/ or handlers/
-│   ├── repositories/ or adapters/
-│   ├── models/ or entities/
-│   └── helpers/
-└── pkg/
-    └── utils/
-        └── <common-utility>/
+backend/
+├── cmd/server/
+├── configs/
+├── internal/
+│   ├── bootstrap/
+│   ├── constants/
+│   ├── domain/{entities,events,filters,repositories,services}/
+│   ├── usecase/<module>/
+│   ├── interface/restful/{controllers,dto/{requests,responses},middlewares,router/routes}/
+│   ├── infrastructure/{gateways,support}/
+│   └── wire/
+└── migrations/{up,down}/
 ```
 
 Layer responsibilities:
 
-- `contract`: Business-layer interface definitions. Define minimal service ports, repository ports, external capability ports, DTO-facing contracts, and cross-layer abstractions that business logic depends on. Do not create interfaces for private helpers or same-layer code just to fill this folder.
-- `services`: Business core logic. Implement use cases, orchestration, validation, state transitions, permission decisions, and transaction boundaries. Distinguish successful empty results from failures; zero matching rows for list/search/dashboard queries is a normal business state. Depend on `contract`, not concrete adapters.
-- `controllers` / `handlers`: Control/transport layer. Parse HTTP/RPC/CLI/message input, call services, map errors and responses, and keep transport concerns out of business logic. Return successful empty response envelopes for no-data list/query results instead of mapping them to transport errors.
-- `repositories` / `adapters`: Concrete implementations for persistence, external APIs, SDKs, queues, caches, file systems, and other infrastructure. Implement interfaces declared in `contract`. Return empty collections for successful zero-row queries; reserve errors for storage, network, parsing, validation, or authorization failures.
-- `models` / `entities`: Business data structures, entities, value objects, constants, and state definitions used by the business module, including explicit states for empty/no-data, not-found, permission-denied, validation failure, and system failure when those states cross layer boundaries.
-- `helpers`: Helper utilities that belong only to this business module. Keep them private to the module and do not use them as cross-business dumping grounds.
-- `main` / `cmd/<app>` / `main.go`: Composition root. Create concrete implementations, inject dependencies, register routes/jobs/commands, start the process, and avoid business logic.
-- `pkg/utils/<name>`: Project-wide common utilities. Use only for extracted helpers that are genuinely shared by multiple business modules.
+- `domain`: Pure business entities, repository interfaces, events, filters, and domain services. It must not import infrastructure, usecase, interface, framework, or driver packages.
+- `usecase/<module>`: Application/business workflows. ONC modules use `contract.go`, `main.go`, `params.go`, `results.go`, optional `errors.go`, and focused `service*.go` files. `Contract` is the controller-facing interface; `Service` implements it and depends on `domain/repositories` plus explicit external capability contracts.
+- `interface/restful`: Gin/HTTP boundary. Controllers bind input, authorize, call usecase contracts, map errors, and return DTO responses. DTOs live in `dto/requests` and `dto/responses`; controllers must not touch repositories or database drivers directly.
+- `infrastructure/gateways`: Concrete external gateways such as Postgres persistence, notification, storage, and recommendation. Persistence uses `postgres/models` for table models and `postgres/repository` for implementations of `domain/repositories`.
+- `infrastructure/support`: Cross-cutting support capabilities such as authorization, cache, logger, and security. ONC uses `contract.go`, `engine.go`, `service.go`, and `main.go` to separate service contracts from concrete engines.
+- `wire`: Composition root. Construct repositories, support services, usecases, controllers, bootstrap, seeds, and application lifecycle. It may import concrete infrastructure; business layers may not.
+- `bootstrap`: Startup domain initialization such as ensuring seed data or super-admin prerequisites after migrations and repository construction.
 
 ## Dependency Direction
 
-Allowed direction:
+Use ONC's dependency direction:
 
 ```text
-controllers/handlers -> services -> contract
-repositories/adapters -> contract
-main -> controllers/handlers, services, repositories/adapters, contract
-helpers -> local module code only when business-specific
-pkg/utils -> no business-module dependency
+cmd -> internal/wire -> internal/interface/restful -> internal/usecase -> internal/domain
+internal/infrastructure -> internal/domain
 ```
 
-Forbidden direction:
+Forbidden ONC-aligned imports:
 
 ```text
-services -> repositories/adapters concrete implementation
-services -> HTTP framework, database client, SDK client, queue client, cache client
-contract -> services concrete implementation
-contract -> repositories/adapters concrete implementation
-pkg/utils -> internal/<business>
-helpers from one business module -> helpers of another business module
+internal/domain -> internal/infrastructure, internal/usecase, internal/interface, framework/driver SDKs
+internal/usecase -> gin, net/http, pgx, database/sql, internal/interface
+internal/interface/restful/controllers -> domain/repositories, pgx, database/sql, pgxpool
 ```
 
 ## Main And Injection
 
-Keep object creation and wiring in `main` or the project composition root:
+Keep object creation and wiring in `internal/wire`, `main`, or the project composition root:
 
 ```go
 func main() {
-    repo := adapters.NewApprovalRequestRepository(db)
-    service := services.NewApprovalRequestService(repo)
-    handler := controllers.NewApprovalRequestController(service)
-
-    router.RegisterApprovalRequestRoutes(handler)
-    server.Start()
+    app, err := wire.NewApplication()
+    if err != nil {
+        panic(err)
+    }
+    if err := app.Start(); err != nil {
+        panic(err)
+    }
 }
 ```
 
 Rules:
 
-- `main` may know concrete implementations because it is the injection point.
-- `services.New...` must accept interfaces from `contract` when the dependency is infrastructure or an external capability.
-- Business methods must not call `adapters.New...`, `sql.Open`, SDK constructors, HTTP client setup, or queue/cache constructors.
+- `wire` / `main` may know concrete implementations because it is the injection point.
+- `usecase/<module>.New(...)` must accept domain repository interfaces and explicit capability contracts, not concrete adapters.
+- Business methods must not call repository constructors, `sql.Open`, SDK constructors, HTTP client setup, or queue/cache constructors.
 - If dependency construction requires configuration, parse configuration before injection and pass typed values into constructors.
 
 ## Go Native Constants
@@ -135,25 +139,24 @@ For Go code, treat standard-library exported constants and typed values as manda
 - MUST NOT introduce raw string literals for values already defined by the Go standard library. If no standard-library constant exists, define a local named constant at the narrowest useful scope instead of repeating the literal.
 - During review, flag equivalent literals as defects even when the code compiles.
 
-## Helper Extraction
+## Helper And Shared Code
 
-Use this lifecycle for helpers:
+Follow ONC's helper placement:
 
-1. During feature work, put business-specific helpers under that module's `helpers`.
-2. Keep helper names tied to the business need; avoid vague `common`, `misc`, `tools`, or `utils` buckets inside a module.
-3. Near project completion or after a feature set stabilizes, review all business `helpers`.
-4. If the same helper concept is used by multiple business modules and has no business-specific dependency, extract it to `pkg/utils/<specific-name>`.
-5. After extraction, update imports and keep `pkg/utils/<specific-name>` independent from `internal/<business>` packages.
-
-Do not extract prematurely. A helper becomes project-wide only after reuse is real and the API can be named without referencing one business module.
+1. Keep module-specific usecase helpers inside the same `internal/usecase/<module>` package, using focused files such as `helpers.go`, `service_<feature>.go`, or `services.go` when the module already uses them.
+2. Put application-layer shared types such as pagination or common business errors in `internal/usecase/shared`; do not duplicate them in each feature module.
+3. Put REST request fragments in `internal/interface/restful/dto/requests` and response payloads in `internal/interface/restful/dto/responses`; controllers should call mapper helpers instead of declaring private DTO structs inline for runtime responses.
+4. Keep controller helpers focused inside `internal/interface/restful/controllers` only when they are transport-boundary helpers. Move pure business helpers down into usecase.
+5. Avoid vague `common`, `misc`, `tools`, or broad `utils` buckets. Extract only after real reuse and with a specific package purpose.
 
 ## Review Checklist
 
-- Business logic is in `services`, not controllers, adapters, or `main`.
-- Business code depends on `contract` boundary interfaces instead of concrete infrastructure.
-- Each `contract` interface is justified by a boundary, external capability, test seam, or multiple implementations.
-- Concrete adapters are wired in `main` and implement `contract`.
-- `contract` contains interfaces and contracts, not concrete service or adapter logic.
+- ONC source was inspected, or its absence was explicitly reported before applying cached ONC guidance.
+- Business logic is in `usecase/<module>`, not controllers, infrastructure, or `wire`.
+- Business code depends on `domain/repositories` or explicit capability contracts instead of concrete infrastructure.
+- Each interface is justified by a layer boundary, external capability, test seam, or multiple implementations.
+- Concrete infrastructure is wired in `internal/wire` and implements domain or capability contracts.
+- Usecase `contract.go` contains the exported controller-facing contract, not concrete service or adapter logic.
 - List/query contracts return success with empty collections for no-data results; single-resource missing cases are represented intentionally as `not found` only when the product flow needs a missing-resource error state.
 - Controllers and frontend DTOs can distinguish empty, not-found, permission-denied, validation error, and system error without relying on generic error text.
 - Go code uses standard-library constants for native semantic literals, especially date/time layouts such as `time.DateTime`; raw equivalent strings are not accepted.

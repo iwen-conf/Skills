@@ -201,7 +201,7 @@ def test_validate_text_accepts_approved_plain_skill() -> None:
         ),
         (
             "project-architecture-conventions",
-            "Apply mandatory DIP and ONC-style architecture rules before coding.",
+            "Apply mandatory DIP and local ONC-inspired architecture rules before coding.",
         ),
     ]
     for name, description in cases:
@@ -226,6 +226,8 @@ def test_project_architecture_skill_locks_dip_onc_and_ponytail_contract() -> Non
     required_phrases = [
         "Dependency Inversion Principle (DIP)",
         "Do not read an external ONC project",
+        "This skill defines a local convention; it is not a claim about the directory names or exact architecture of any external project named ONC.",
+        "Inspect an external ONC project only when the user explicitly asks for comparison or verification",
         "Ponytail Conflict Resolution",
         "Required DIP boundary interfaces are not \"unrequested abstraction\"",
         "Do not create service interfaces, factories, config objects, or adapter interfaces solely because a folder exists.",

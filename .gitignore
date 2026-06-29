@@ -41,6 +41,7 @@ Temporary Items
 .arc/
 
 # Python
+.venv/
 __pycache__/
 *.py[cod]
 
