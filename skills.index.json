@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-06-29T11:16:41.549017Z",
-  "skill_count": 10,
+  "generated_at": "2026-06-30T07:01:06.367264Z",
+  "skill_count": 11,
   "skills": [
     {
       "name": "arc:audit",
@@ -1032,6 +1032,56 @@
           "heading": "## Review Checklist",
           "title": "Review Checklist",
           "body": "- Comment templates match the role: controller handler, interface/contract, ordinary function, struct/field, or internal implementation steps.\n- Function names, route paths, parameter names, return types, and callee names are exact.\n- Optional parameters and empty controller parameter groups are explicitly marked.\n- Successful empty/no-data responses are documented as normal returns, not as `错误`, unless the operation is a single-resource lookup where missing data is intentionally a `not found` error.\n- Numbered step comments are continuous and describe blocks rather than single obvious statements.\n- Comments explain contract and behavior without inventing guarantees that the code does not enforce."
+        }
+      ],
+      "quick_contract": null,
+      "input_arguments": null,
+      "outputs_section": null
+    },
+    {
+      "name": "go-gin-ssr-fmt-tracing",
+      "description": "Add low-cost fmt/time or log.Printf timing probes to Go Gin SSR request paths.",
+      "source_path": "go-gin-ssr-fmt-tracing/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "Use this skill to add coarse performance timing to Go/Gin SSR code paths with minimal dependencies. Treat `fmt + time` as a low-cost instrumentation method, not as a profiler: it helps answer \"which stage is slow\", not \"which function, allocation, goroutine, or lock is slow\"."
+        },
+        {
+          "heading": "## Positioning",
+          "title": "Positioning",
+          "body": "Use stage timing for:\n\n- Quickly locating the slow segment in a request.\n- Splitting SSR latency across handler, data fetch, view-model build, template render, and response write.\n- Temporary production debugging when pprof is unavailable.\n- Producing structured logs that another agent or script can analyze.\n\nDo not present this as sufficient for:\n\n- CPU hotspot analysis.\n- GC, heap, or allocation diagnosis.\n- Goroutine scheduling, blocking, or lock contention.\n- Precise function-level profiling.\n\nEscalate to `pprof` for CPU/heap detail and to `go tool trace` for goroutine scheduling and runtime behavior."
+        },
+        {
+          "heading": "## Workflow",
+          "title": "Workflow",
+          "body": "1. Inspect the existing Go project before editing: router, Gin handlers, service calls, template renderer, logger convention, request ID middleware, and tests.\n2. Identify the SSR path and split it into these stages: handler entry, data fetch, view-model build, template render, and response write.\n3. Add a tiny trace helper close to the owning package unless the repo already has an observability helper package.\n4. Prefer structured output with stable keys. Use the project's logger if one exists; otherwise use `log.Printf` or `fmt.Fprintf(os.Stderr, ...)`, not plain `fmt.Println`.\n5. Include a request ID when available. If the project has no request ID, add Gin middleware only when that is inside the task scope.\n6. Keep probes temporary or clearly scoped. Avoid broad refactors, new metrics stacks, or pprof setup unless the user asks.\n7. Run focused tests or a local request when possible, then explain where the logs appear and how to interpret them."
+        },
+        {
+          "heading": "## Minimal Trace Helper",
+          "title": "Minimal Trace Helper",
+          "body": "Use a helper like this when the project has no existing trace/log helper:\n\n```go\ntype Trace struct {\n\tname  string\n\tstart time.Time\n}\n\nfunc NewTrace(name string) *Trace {\n\treturn &Trace{\n\t\tname:  name,\n\t\tstart: time.Now(),\n\t}\n}\n\nfunc (t *Trace) Done() {\n\tlog.Printf(\"[TRACE] stage=%s cost_ms=%d\", t.name, time.Since(t.start).Milliseconds())\n}\n```\n\nFor AI-readable logs, prefer JSON lines:\n\n```go\nfunc (t *Trace) Done() {\n\tlog.Printf(`{\"event\":\"ssr_trace\",\"stage\":\"%s\",\"cost_ms\":%d}`,\n\t\tt.name,\n\t\ttime.Since(t.start).Milliseconds(),\n\t)\n}\n```\n\nIf stage names can contain quotes or user-controlled values, use `encoding/json` or a structured logger instead of formatting JSON by hand."
+        },
+        {
+          "heading": "## Request ID",
+          "title": "Request ID",
+          "body": "When Gin context already contains a request ID, thread it into each trace:\n\n```go\nfunc NewTraceWithID(reqID, stage string) *Trace {\n\treturn NewTrace(fmt.Sprintf(\"[%s] %s\", reqID, stage))\n}\n```\n\nFor cleaner structured output, keep request ID as a separate key:\n\n```go\ntype Trace struct {\n\treqID string\n\tstage string\n\tstart time.Time\n}\n\nfunc NewTrace(reqID, stage string) *Trace {\n\treturn &Trace{reqID: reqID, stage: stage, start: time.Now()}\n}\n\nfunc (t *Trace) Done() {\n\tlog.Printf(`{\"event\":\"ssr_trace\",\"request_id\":\"%s\",\"stage\":\"%s\",\"cost_ms\":%d}`,\n\t\tt.reqID,\n\t\tt.stage,\n\t\ttime.Since(t.start).Milliseconds(),\n\t)\n}\n```\n\nIf request IDs are missing and middleware is in scope:\n\n```go\nfunc RequestID() gin.HandlerFunc {\n\treturn func(c *gin.Context) {\n\t\tc.Set(\"req_id\", uuid.NewString())\n\t\tc.Next()\n\t}\n}\n```"
+        },
+        {
+          "heading": "## SSR Stage Template",
+          "title": "SSR Stage Template",
+          "body": "Instrument the standard SSR path like this, adapting names to the repo:\n\n```go\nfunc GetArticle(c *gin.Context) {\n\treqID, _ := c.Get(\"req_id\")\n\ttrace := NewTrace(fmt.Sprint(reqID), \"TOTAL\")\n\tdefer trace.Done()\n\n\tt1 := NewTrace(fmt.Sprint(reqID), \"FETCH\")\n\tdata, err := service.GetData(c.Request.Context())\n\tt1.Done()\n\tif err != nil {\n\t\t// Return using the repo's existing error response pattern.\n\t\treturn\n\t}\n\n\tt2 := NewTrace(fmt.Sprint(reqID), \"BUILD_VIEW\")\n\tvm := buildViewModel(data)\n\tt2.Done()\n\n\tt3 := NewTrace(fmt.Sprint(reqID), \"RENDER_TEMPLATE\")\n\thtml, err := renderTemplate(vm)\n\tt3.Done()\n\tif err != nil {\n\t\t// Return using the repo's existing error response pattern.\n\t\treturn\n\t}\n\n\tt4 := NewTrace(fmt.Sprint(reqID), \"WRITE_RESPONSE\")\n\tc.Data(http.StatusOK, \"text/html; charset=utf-8\", []byte(html))\n\tt4.Done()\n}\n```\n\nUse `defer` only for the total request timer or for stages with multiple returns. For short linear stages, call `Done()` immediately after the operation so the measured range is obvious."
+        },
+        {
+          "heading": "## Output Rules",
+          "title": "Output Rules",
+          "body": "Prefer one log line per stage:\n\n```json\n{\"event\":\"ssr_trace\",\"request_id\":\"abc\",\"stage\":\"FETCH\",\"cost_ms\":12}\n{\"event\":\"ssr_trace\",\"request_id\":\"abc\",\"stage\":\"BUILD_VIEW\",\"cost_ms\":3}\n{\"event\":\"ssr_trace\",\"request_id\":\"abc\",\"stage\":\"RENDER_TEMPLATE\",\"cost_ms\":45}\n{\"event\":\"ssr_trace\",\"request_id\":\"abc\",\"stage\":\"TOTAL\",\"cost_ms\":67}\n```\n\nUse stable stage names such as `TOTAL`, `FETCH`, `DB_QUERY`, `RPC_CALL`, `BUILD_VIEW`, `RENDER_TEMPLATE`, and `WRITE_RESPONSE`. Include route, handler, tenant, or user only when safe and useful; never log secrets, tokens, raw authorization headers, full payloads, or sensitive personal data."
+        },
+        {
+          "heading": "## Review Checklist",
+          "title": "Review Checklist",
+          "body": "- The helper imports only what is needed, usually `log` or `fmt`, `time`, and possibly `os`.\n- Logs go through the existing project logger when one is established.\n- Every trace line can be correlated by request ID.\n- SSR is split at least into fetch, build view, render template, and total.\n- Error paths still emit total timing and do not double-write responses.\n- JSON output is valid or uses the project's structured logger instead.\n- The final response tells the user that this is coarse timing and suggests pprof or trace only for deeper function/runtime diagnosis."
         }
       ],
       "quick_contract": null,

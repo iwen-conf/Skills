@@ -200,6 +200,10 @@ def test_validate_text_accepts_approved_plain_skill() -> None:
             "Apply Chinese comment templates for functions and controllers.",
         ),
         (
+            "go-gin-ssr-fmt-tracing",
+            "Add low-cost fmt/time or log.Printf timing probes to Go Gin SSR request paths.",
+        ),
+        (
             "project-architecture-conventions",
             "Apply mandatory backend architecture and DIP rules before coding.",
         ),
