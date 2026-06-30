@@ -40,6 +40,7 @@ Begin by stating clearly:
 
 ```text
 NO FIX WITHOUT ROOT CAUSE OR EXPLICIT UNCERTAINTY.
+NO LARGE REPAIR WITHOUT CURRENT LOCAL TASK DOCS.
 NO DEBUGGING WITHOUT PERSISTED EVIDENCE WHEN LOGS CAN BE CAPTURED.
 NO SUCCESS CLAIM WITHOUT RERUNNING THE FAILING CHECK OR NAMING THE BLOCKER.
 NO LARK INCIDENT UPDATE OUTSIDE arc:docs.
@@ -52,7 +53,8 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 - MUST capture runnable or observable failures into local log/evidence files before large edits. Use paths such as `.arc/artifacts/<task>/logs/` or `tmp/logs/`.
 - MUST state a concrete hypothesis before significant edits.
 - MUST patch the smallest safe surface.
-- MUST apply `project-architecture-conventions` before code edits, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
+- MUST apply `arc:task-doc-progress-conventions` before code edits for large, multi-step, cross-module, or tracked repair work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, failure evidence, or status change.
+- MUST apply `arc:project-architecture-conventions` before code edits, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
 - MUST rerun the failing path when feasible.
 - MUST route all Lark incident/risk/task updates through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
@@ -67,14 +69,16 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 2. Reproduce or inspect the failing path and persist available logs, command output, browser console, network traces, screenshots, or stack traces to a local evidence file.
 3. Search the saved evidence for exact error strings, request IDs, stack frames, network failures, and config keys.
 4. Form and test a root-cause hypothesis.
-5. Apply `project-architecture-conventions` before code edits; stop and report if ponytail is required but unavailable or conflicting.
-6. Patch the smallest safe surface.
-7. Rerun the failing check plus focused regressions, saving verification output when useful.
-8. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks.
+5. For large, multi-step, cross-module, or tracked repair work, apply `arc:task-doc-progress-conventions` before code edits and keep local task status current as evidence or project state changes.
+6. Apply `arc:project-architecture-conventions` before code edits; stop and report if ponytail is required but unavailable or conflicting.
+7. Patch the smallest safe surface.
+8. Rerun the failing check plus focused regressions, saving verification output when useful.
+9. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks.
 
 ## Quality Gates
 
 - Fix targets cause, not only symptom.
+- Large, multi-step, cross-module, or tracked repair work has current local task docs, detailed subtasks, and synchronized progress status from `arc:task-doc-progress-conventions`.
 - Runnable failures have persisted sanitized log/evidence files, or the reason evidence could not be captured is explicit.
 - Fix preserves DIP and default backend architecture responsibilities when backend architecture applies, unless the failure is explicitly caused by migrating toward them.
 - Verification covers the original failure.
@@ -100,6 +104,7 @@ Use project-native tests, logs, build commands, browser tooling, and observabili
 - Debugging only by rereading code while runnable logs, browser console output, or command output were available but not captured.
 - Fixing by adding concrete infrastructure dependencies into business services.
 - Treating a retry as root cause.
+- Fixing from stale task docs or leaving local repair progress inconsistent with the actual project state.
 - Swallowing exceptions or masking logs.
 - Declaring success without verification.
 - Updating Lark incident resources directly instead of through `arc:docs`.

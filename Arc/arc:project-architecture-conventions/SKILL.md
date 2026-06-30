@@ -1,5 +1,5 @@
 ---
-name: project-architecture-conventions
+name: arc:project-architecture-conventions
 description: Apply mandatory backend architecture, DIP, zap logging, and Go constant rules before coding.
 ---
 
@@ -17,7 +17,7 @@ For new backend modules and project skeletons, use this architecture by default.
 - Use before creating a new module, package, business feature, command entrypoint, or project skeleton.
 - Use when adding or reviewing zap logs, business observability, debugging evidence, constants, enum-like state, or error reporting.
 - Use when reviewing whether code violates DIP, leaks infrastructure into business logic, places helpers in the wrong layer, logs without business value, or uses magic literals.
-- Use together with `code-comment-conventions` when adding comments to functions, controllers, or implementation steps.
+- Use together with `arc:code-comment-conventions` when adding comments to functions, controllers, or implementation steps.
 
 ## Architecture Preflight
 

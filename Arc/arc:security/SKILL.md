@@ -44,6 +44,7 @@ Begin by stating clearly:
 
 ```text
 NO SECURITY CLAIM WITHOUT EVIDENCE.
+NO MULTI-FINDING REMEDIATION PLAN WITHOUT CURRENT LOCAL TASK DOCS.
 NO ACTIVE DAST AGAINST A TARGET WITHOUT AUTHORIZATION.
 NO CLOUD SCAN OR PAID SERVICE WITHOUT USER CONFIRMATION.
 NO LARK SECURITY UPDATE OUTSIDE arc:docs.
@@ -57,6 +58,7 @@ NO LARK SECURITY UPDATE OUTSIDE arc:docs.
 - MUST redact tokens, cookies, private keys, passwords, and internal secrets from final chat output.
 - MUST preserve raw scanner artifacts locally and summarize findings in Markdown/HTML/JSON.
 - MUST separate confirmed findings, tool warnings, skipped checks, and manual-test gaps.
+- MUST apply `arc:task-doc-progress-conventions` before generating multi-finding remediation plans or code-changing security work; task docs must be generated from the latest project state and updated immediately when findings, reachability, affected files, scope, assumptions, or status change.
 - MUST route all Lark writes through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
 - NEVER claim business-logic coverage from automated scanners alone.
@@ -70,7 +72,8 @@ NO LARK SECURITY UPDATE OUTSIDE arc:docs.
 4. Run [`scripts/security-scan.py`](scripts/security-scan.py) with the project path and optional `--target-url` / `--openapi` arguments.
 5. Review generated `security-report.md`, `security-report.html`, `security-summary.json`, and raw tool outputs under `.arc/security/<timestamp>/`.
 6. Prioritize findings by confirmed exploitability, asset exposure, severity, reachability, and remediation cost.
-7. Route fixes to `arc:fix` or `arc:build`; route read-only review to `arc:audit`; route active Lark project records to `arc:docs`.
+7. For multi-finding remediation plans or code-changing security work, apply `arc:task-doc-progress-conventions` and keep local task status current as findings or project state change.
+8. Route fixes to `arc:fix` or `arc:build`; route read-only review to `arc:audit`; route active Lark project records to `arc:docs`.
 
 ## Quality Gates
 
@@ -78,6 +81,7 @@ NO LARK SECURITY UPDATE OUTSIDE arc:docs.
 - SAST, SCA, secrets, Go vulnerability, Go secure coding, package audit, API fuzz, and DAST coverage are selected only when relevant to the project.
 - AuthZ, ownership, payment amount, approval flow, tenant boundary, upload, SSRF, and role-bypass gaps are marked as manual checks.
 - Scanner findings are deduplicated or grouped before remediation planning when practical.
+- Multi-finding remediation or code-changing security work has current local task docs, detailed subtasks, and synchronized progress status from `arc:task-doc-progress-conventions`.
 - Security artifacts stay local unless `.lark.json` is active or the user explicitly asks for remote publication.
 
 ## Expert Standards
@@ -125,6 +129,7 @@ The scan script writes reports to `.arc/security/<timestamp>/` by default:
 - Running ZAP, Nuclei, or fuzzing against a third-party system without explicit authorization.
 - Uploading source, scanner results, secrets, or SARIF to a cloud service without confirmation.
 - Reporting only scanner output with no manual authz/business-logic gap statement.
+- Creating remediation tasks from stale findings or leaving local security task status inconsistent with current reachability, affected files, or project state.
 - Ignoring nonzero scanner exit codes caused by findings.
 - Marking a Lark-active security task complete while `task_base` or risk records are stale.
 

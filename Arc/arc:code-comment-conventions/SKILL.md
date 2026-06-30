@@ -1,5 +1,5 @@
 ---
-name: code-comment-conventions
+name: arc:code-comment-conventions
 description: Apply Chinese comment templates for controllers, interfaces, functions, structs, fields, and numbered steps.
 ---
 

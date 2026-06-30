@@ -41,6 +41,7 @@ Begin by stating clearly:
 
 ```text
 NO FRONTEND CHANGE WITHOUT USER WORKFLOW.
+NO LARGE FRONTEND CHANGE WITHOUT CURRENT LOCAL TASK DOCS.
 NO UI DELIVERY WITHOUT DESIGN TOKENS, RESPONSIVE CONSTRAINTS, AND VERIFICATION.
 NO LARK FRONTEND UPDATE OUTSIDE arc:docs.
 NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
@@ -48,6 +49,7 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 
 ## Hard Constraints
 
+- MUST apply `arc:task-doc-progress-conventions` before code edits for large, multi-page, cross-module, architectural, or tracked frontend work; task docs must be generated from the latest project state and updated immediately when routes, components, APIs, state models, scope, assumptions, or status change.
 - MUST use the default Web frontend stack for new Web frontends unless the user explicitly names another stack: `React 19` + `TypeScript` + `Vite` + `Tailwind CSS` + `shadcn/ui` + `Zustand` for client state + `TanStack Query` for server state + `TanStack Router` for type-safe routing + `React Hook Form` + `Zod`.
 - MUST use the default mobile stack for new iOS/Android apps unless the user explicitly names another stack: `React Native` + `Expo` + `TypeScript` + `NativeWind` + `Zustand` + `TanStack Query` + `Expo Router`.
 - MUST use the default desktop stack for new Mac/Windows/Linux apps unless the user explicitly names another stack: `Tauri 2` + the default React Web stack, reusing Web UI/state/query/form code where practical.
@@ -76,16 +78,18 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 ## Workflow
 
 1. Confirm user workflow, pages, audience, devices, and verification.
-2. Inspect existing frontend stack and patterns.
-3. Choose route: apply the platform default stack, preserve an existing stack with a documented boundary, or document the explicit user-requested exception.
-4. Implement with tokenized styling, stable layout constraints, accessible states, explicit loading/empty/error/permission branches, and existing data/form/state patterns.
-5. For UI bugs, capture browser/runtime evidence to files before broad edits and use exact error strings or request IDs to drive the fix.
-6. Run project-native verification.
-7. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with pages, decisions, changed files, verification, screenshots/whiteboards, task status, lifecycle link, and resource keys.
+2. For large, multi-page, cross-module, architectural, or tracked frontend work, apply `arc:task-doc-progress-conventions` before code edits and keep local task status current as routes, components, APIs, or state models change.
+3. Inspect existing frontend stack and patterns.
+4. Choose route: apply the platform default stack, preserve an existing stack with a documented boundary, or document the explicit user-requested exception.
+5. Implement with tokenized styling, stable layout constraints, accessible states, explicit loading/empty/error/permission branches, and existing data/form/state patterns.
+6. For UI bugs, capture browser/runtime evidence to files before broad edits and use exact error strings or request IDs to drive the fix.
+7. Run project-native verification.
+8. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with pages, decisions, changed files, verification, screenshots/whiteboards, task status, lifecycle link, and resource keys.
 
 ## Quality Gates
 
 - No scattered hardcoded palette values.
+- Large, multi-page, cross-module, architectural, or tracked frontend work has current local task docs, detailed subtasks, and synchronized progress status from `arc:task-doc-progress-conventions`.
 - Default-stack projects include the required stack pieces and no same-duty duplicate library.
 - Cross-platform projects declare exactly one platform target per deliverable: Web, iOS/Android, Desktop, or Mini Program.
 - URL, server, client-global, form, and local state are not mixed into one store.
@@ -115,6 +119,7 @@ Use project-native scripts. For new React 19 + TypeScript + Vite projects, use [
 - Treating a vertical business skill as permission to invent a separate Web, mobile, desktop, or mini-program frontend stack.
 - Starting a new WeChat mini-program with native WXML/WXSS/Component as the default stack instead of Taro 4 without explicit user direction.
 - Decorative landing page instead of the requested usable UI.
+- Implementing from stale frontend task docs or leaving local page/task progress inconsistent with current routes, components, APIs, or state contracts.
 - Debugging only from source inspection while browser console, network, or runtime errors could be captured.
 - Leaving `console.log`, `debugger`, alert probes, or noisy debug output in delivered frontend code.
 - Hardcoded component colors.

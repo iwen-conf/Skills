@@ -1,0 +1,4 @@
+interface:
+  display_name: "Task Doc Progress Conventions"
+  short_description: "Current-state task docs and progress gates"
+  default_prompt: "Use $arc:task-doc-progress-conventions to create current-state task docs, detailed subtasks, pre-constraints, and a progress table before large implementation work."

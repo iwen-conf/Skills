@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Architecture Conventions"
+  short_description: "Backend architecture, DIP, zap logging, and Go constant rules"
+  default_prompt: "Use $arc:project-architecture-conventions before writing backend code to apply the default architecture naming, layering, interface design, DIP, zap logging, and Go constant/enum rules."

@@ -21,6 +21,7 @@ description: "Read-only project audit; hand active Lark findings, risks, remedia
 
 - Use `arc:clarify` if audit scope is vague.
 - Use `arc:fix` if a concrete failure is already known.
+- Use `arc:task-doc-progress-conventions` before remediation when audit findings become large, multi-step, cross-module, or tracked implementation work.
 - Use `arc:build` only if the user asks to implement fixes.
 - Use `arc:docs` only when Lark is active for audit reports, risk Base rows, remediation tasks, approval gates, or `.lark.json.lifecycle[]`.
 
@@ -53,6 +54,7 @@ NO LARK AUDIT UPDATE OUTSIDE arc:docs.
 - MUST mark inferred risks as assumptions.
 - MUST route all Lark audit/risk/task/approval updates through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
+- MUST route multi-finding or multi-step remediation planning through `arc:task-doc-progress-conventions` before execution starts.
 - NEVER present preferences as defects.
 - NEVER hide uncertainty behind numeric scores.
 
@@ -62,13 +64,15 @@ NO LARK AUDIT UPDATE OUTSIDE arc:docs.
 2. Inspect structure, dependencies, critical paths, tests, and recent changes.
 3. Check the 36-item code-rot taxonomy in [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md).
 4. Produce severity-ordered findings with evidence and recommended action.
-5. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with findings, risk rows, tasks, and approval needs.
+5. If findings become large or tracked remediation work, hand off to `arc:task-doc-progress-conventions` before `arc:build` or `arc:fix`.
+6. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with findings, risk rows, tasks, and approval needs.
 
 ## Quality Gates
 
 - Findings lead the report; summary is secondary.
 - Each confirmed finding has concrete evidence.
 - Recommendations are scoped and actionable.
+- Large remediation follow-up names `arc:task-doc-progress-conventions` as the required local planning gate.
 - Security, data-layer, state, dependency, and test risks are considered when relevant.
 - Frontend audits check same-duty library duplication, state-layer mixing, and undocumented default-stack exceptions when relevant.
 - Lark audit state is linked through `.lark.json` only when Lark is active.
@@ -89,6 +93,7 @@ No dedicated runtime scripts. Use `.ai-code-index/`, project-native inspection c
 - Generic advice without inspection.
 - Style nits hiding security, data, state, or test risk.
 - Fixing code during read-only review.
+- Turning audit findings into broad remediation work without current local task docs.
 - Audit report created in Lark but missing from `.lark.json`.
 
 ## When to Use

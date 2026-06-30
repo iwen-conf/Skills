@@ -42,6 +42,7 @@ Begin by stating clearly:
 
 ```text
 NO CODE CHANGE WITHOUT SCOPE.
+NO LARGE PROJECT CODE CHANGE WITHOUT CURRENT LOCAL TASK DOCS.
 NO DELIVERY WITHOUT VERIFICATION OR AN EXPLICIT BLOCKER.
 NO LARK DELIVERY UPDATE OUTSIDE arc:docs.
 NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
@@ -51,7 +52,8 @@ NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
 
 - MUST preserve unrelated user changes.
 - MUST edit the smallest viable file set.
-- MUST apply `project-architecture-conventions` before writing project code, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
+- MUST apply `arc:task-doc-progress-conventions` before code edits for large, multi-step, cross-module, or tracked work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, or status change.
+- MUST apply `arc:project-architecture-conventions` before writing project code, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
 - MUST route frontend platform decisions through `arc:frontend`; defaults are Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod, mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router, desktop = Tauri 2 + Web stack, mini-program = Taro 4 + React + TypeScript + Zustand, unless explicitly overridden by the user.
 - MUST preserve the product-state contract across backend and frontend: empty/no-data is a successful business state, not an error; list/query endpoints return success with an empty collection and pagination metadata, while real failures return typed errors.
 - MUST run targeted verification when feasible.
@@ -67,18 +69,20 @@ NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
 ## Workflow
 
 1. Confirm task, scope, and verification target.
-2. Apply `project-architecture-conventions` before code edits; stop and report if ponytail is required but unavailable or conflicting.
-3. Search for existing patterns, call sites, tests, and contracts.
-4. Edit only the needed files.
-5. Run targeted verification; broaden only when risk requires it.
-6. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.
-7. Summarize changes, verification, and residual risk.
+2. For large, multi-step, cross-module, or tracked work, apply `arc:task-doc-progress-conventions` before code edits and keep local task status current as the project changes.
+3. Apply `arc:project-architecture-conventions` before code edits; stop and report if ponytail is required but unavailable or conflicting.
+4. Search for existing patterns, call sites, tests, and contracts.
+5. Edit only the needed files.
+6. Run targeted verification; broaden only when risk requires it.
+7. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.
+8. Summarize changes, verification, and residual risk.
 
 ## Quality Gates
 
 - Requested behavior is implemented without speculative extra surface.
+- Large, multi-step, cross-module, or tracked work has current local task docs, detailed subtasks, and synchronized progress status from `arc:task-doc-progress-conventions`.
 - Existing contracts, names, state shapes, and response envelopes are preserved unless explicitly changed.
-- Project architecture preserves DIP and the default backend architecture responsibilities from `project-architecture-conventions` when backend architecture applies.
+- Project architecture preserves DIP and the default backend architecture responsibilities from `arc:project-architecture-conventions` when backend architecture applies.
 - API/service contracts distinguish `empty`, `not found`, `permission denied`, validation failure, network/server failure, and loading/processing states; frontend consumers must not need to infer empty state from an error branch.
 - Security-sensitive work checks authz, ownership, server-side amount/price computation, and secret handling.
 - Data writes check business success, not just execution success.
@@ -104,6 +108,7 @@ Use project-native build, lint, test, typecheck, and migration commands. Use `Ar
 - Putting business logic in controllers, adapters, `main`, or cross-business `helpers`.
 - Treating zero rows, empty search results, empty dashboards, or first-use setup as exceptions, failed requests, toast errors, or full-page error states.
 - Adding speculative APIs or states.
+- Implementing from stale task docs or leaving local progress status inconsistent with the actual project state.
 - Skipping verification silently.
 - Updating Lark delivery resources directly instead of through `arc:docs`.
 - Completing a Lark-active feature while the `task_base` row is missing or stale.

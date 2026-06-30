@@ -1,0 +1,4 @@
+interface:
+  display_name: "Go Gin SSR fmt Tracing"
+  short_description: "Low-cost timing probes for Go/Gin SSR"
+  default_prompt: "Use $arc:go-gin-ssr-fmt-tracing to add AI-readable stage timing logs to a Go/Gin SSR request path."

@@ -8,7 +8,7 @@ from arc_core.skill_validation import (
     validate_text,
 )
 
-ROOT = Path("/Users/iluwen/Documents/Code/Skills")
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _arc_skill_text(name: str, expert: str) -> str:
@@ -178,7 +178,7 @@ def test_validate_text_accepts_lean_arc_skills() -> None:
         assert warnings == []
 
 
-def test_validate_text_rejects_unapproved_plain_skill() -> None:
+def test_validate_text_rejects_non_arc_skill_name() -> None:
     text = """---
 name: "plain-skill"
 description: "Non-arc namespace."
@@ -190,22 +190,26 @@ overview body
 when body
 """
     errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
-    assert "virtual/SKILL.md: skill name must use arc:xxx namespace or be an approved plain skill" in errors
+    assert "virtual/SKILL.md: skill name must use arc:xxx namespace" in errors
 
 
-def test_validate_text_accepts_approved_plain_skill() -> None:
+def test_validate_text_accepts_arc_namespaced_constraint_skills() -> None:
     cases = [
         (
-            "code-comment-conventions",
+            "arc:code-comment-conventions",
             "Apply Chinese comment templates for functions and controllers.",
         ),
         (
-            "go-gin-ssr-fmt-tracing",
+            "arc:go-gin-ssr-fmt-tracing",
             "Add low-cost fmt/time or log.Printf timing probes to Go Gin SSR request paths.",
         ),
         (
-            "project-architecture-conventions",
+            "arc:project-architecture-conventions",
             "Apply mandatory backend architecture and DIP rules before coding.",
+        ),
+        (
+            "arc:task-doc-progress-conventions",
+            "Create task docs, pre-constraints, and progress tables before large coding work.",
         ),
     ]
     for name, description in cases:
@@ -225,7 +229,7 @@ when body
 
 
 def test_project_architecture_skill_locks_dip_architecture_and_ponytail_contract() -> None:
-    text = (ROOT / "project-architecture-conventions" / "SKILL.md").read_text(encoding="utf-8")
+    text = (ROOT / "Arc" / "arc:project-architecture-conventions" / "SKILL.md").read_text(encoding="utf-8")
 
     required_phrases = [
         "Dependency Inversion Principle (DIP)",
@@ -253,8 +257,80 @@ def test_project_architecture_skill_locks_dip_architecture_and_ponytail_contract
 def test_arc_code_editing_skills_require_project_architecture_conventions() -> None:
     for relative_path in ["Arc/arc:build/SKILL.md", "Arc/arc:fix/SKILL.md"]:
         text = (ROOT / relative_path).read_text(encoding="utf-8")
-        assert "MUST apply `project-architecture-conventions` before" in text
+        assert "MUST apply `arc:project-architecture-conventions` before" in text
         assert "stop and report if ponytail is required but unavailable or conflicting" in text
+
+
+def test_task_doc_progress_skill_requires_current_state_and_arc_integration() -> None:
+    text = (ROOT / "Arc" / "arc:task-doc-progress-conventions" / "SKILL.md").read_text(encoding="utf-8")
+
+    required_phrases = [
+        "latest repository state",
+        "## Integration With Arc Skills",
+        "## Progress Tracking Hard Gate",
+        "`进度跟踪表.md` and subtask `状态：...` are the authoritative local execution state",
+        "MUST update progress tracking immediately when starting, pausing, blocking, completing, or verifying a subtask",
+        "MUST NOT continue implementation while `进度跟踪表.md` or the active subtask status is stale",
+        "MUST NOT send a final delivery response for tracked work until progress tracking reflects the actual final state",
+        "Resolve the task document root from the project",
+        "immediate children of `docs/` as numbered document categories",
+        "next available two-digit category number",
+        "`DD` is the `docs/` category sequence",
+        "Every concrete subtask must be specific to the current project",
+        "If the repository changed since the task was written",
+        "updated immediately when project files, scope, assumptions, or status change",
+        "current files, scope, outputs, and verification",
+    ]
+    for phrase in required_phrases:
+        assert phrase in text
+    assert "docs/01-任务" not in text
+
+
+def test_all_skill_names_use_arc_namespace() -> None:
+    for path in ROOT.rglob("SKILL.md"):
+        text = path.read_text(encoding="utf-8")
+        frontmatter, error = parse_frontmatter(text)
+        if error:
+            continue
+        assert frontmatter.get("name", "").startswith("arc:"), path
+
+
+def test_arc_skills_route_large_work_through_task_doc_progress_conventions() -> None:
+    cases = {
+        "Arc/arc:build/SKILL.md": [
+            "MUST apply `arc:task-doc-progress-conventions` before code edits",
+            "NO LARGE PROJECT CODE CHANGE WITHOUT CURRENT LOCAL TASK DOCS",
+        ],
+        "Arc/arc:fix/SKILL.md": [
+            "MUST apply `arc:task-doc-progress-conventions` before code edits",
+            "NO LARGE REPAIR WITHOUT CURRENT LOCAL TASK DOCS",
+        ],
+        "Arc/arc:frontend/SKILL.md": [
+            "MUST apply `arc:task-doc-progress-conventions` before code edits",
+            "NO LARGE FRONTEND CHANGE WITHOUT CURRENT LOCAL TASK DOCS",
+        ],
+        "Arc/arc:security/SKILL.md": [
+            "MUST apply `arc:task-doc-progress-conventions` before generating multi-finding remediation plans",
+            "NO MULTI-FINDING REMEDIATION PLAN WITHOUT CURRENT LOCAL TASK DOCS",
+        ],
+        "Arc/arc:clarify/SKILL.md": [
+            "Use `arc:task-doc-progress-conventions` after clarification",
+        ],
+        "Arc/arc:define/SKILL.md": [
+            "Use `arc:task-doc-progress-conventions` before implementation",
+        ],
+        "Arc/arc:audit/SKILL.md": [
+            "Use `arc:task-doc-progress-conventions` before remediation",
+        ],
+        "Arc/arc:docs/SKILL.md": [
+            "Lark task tables do not replace local task docs",
+        ],
+    }
+
+    for relative_path, phrases in cases.items():
+        text = (ROOT / relative_path).read_text(encoding="utf-8")
+        for phrase in phrases:
+            assert phrase in text
 
 
 def test_validate_text_accepts_arc_frontend_skill() -> None:

@@ -36,11 +36,6 @@ ARC_WHEN_TO_USE_MARKERS_EN = [
 ARC_ROUTING_MATRIX_LINK = "../../docs/arc-routing-matrix.md"
 
 SUPPORTED_SKILL_PREFIXES = ("arc:",)
-SUPPORTED_PLAIN_SKILLS = {
-    "code-comment-conventions",
-    "go-gin-ssr-fmt-tracing",
-    "project-architecture-conventions",
-}
 SKILL_NAMESPACE_DIRS = {
     "arc": "Arc",
 }
@@ -108,9 +103,7 @@ def parse_frontmatter(text: str) -> tuple[dict[str, Any], str | None]:
 def is_arc_skill(name: str) -> bool:
     return name.startswith("arc:")
 def is_supported_skill(name: str) -> bool:
-    return name in SUPPORTED_PLAIN_SKILLS or any(
-        name.startswith(prefix) for prefix in SUPPORTED_SKILL_PREFIXES
-    )
+    return any(name.startswith(prefix) for prefix in SUPPORTED_SKILL_PREFIXES)
 
 
 def get_namespace_dir(name: str) -> str | None:
@@ -334,7 +327,7 @@ def validate_text(text: str, path_label: str, root: Path | None = None) -> tuple
     if "name" in fm and not re.fullmatch(r"[a-z0-9:-]+", fm["name"]):
         errors.append(f"{path_label}: name contains unsupported characters")
     if "name" in fm and fm["name"] and not is_supported_skill(fm["name"]):
-        errors.append(f"{path_label}: skill name must use arc:xxx namespace or be an approved plain skill")
+        errors.append(f"{path_label}: skill name must use arc:xxx namespace")
     description = fm.get("description", "")
     if description and len(description) > 120:
         errors.append(f"{path_label}: description must be short, at most 120 characters")

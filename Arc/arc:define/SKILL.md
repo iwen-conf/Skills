@@ -21,6 +21,7 @@ description: "Project definition and PRD; hand active Lark project-home/Wiki/.la
 
 - Use `arc:docs` only when Lark is active or the user confirms Lark for PRD, project home, Wiki node, or `.lark.json` entry.
 - Use `arc:clarify` for task-level acceptance criteria after the project is defined.
+- Use `arc:task-doc-progress-conventions` before implementation when the defined work becomes a large, multi-step, cross-module, or tracked task set.
 - Use `arc:frontend` for Web, mobile, desktop, mini-program stack, UI architecture, theme, routing, state, and form baseline decisions.
 - Use `arc:build` only after scope is implementation-ready.
 - Use `arc:audit` for read-only review of an existing definition.
@@ -52,6 +53,7 @@ NO PASSIVE LARK PRD OR .lark.json CREATION.
 - MUST route through `arc:docs` for all active Lark writes and `.lark.json.resources.prd` updates.
 - MUST NOT suggest or create a Lark project space unless the user explicitly asks for Lark/Feishu output or `.lark.json` already exists.
 - MUST NOT create `.lark.json` when Lark is inactive.
+- MUST route large implementation decomposition to `arc:task-doc-progress-conventions` instead of embedding stale or generic implementation tasks in the PRD.
 - NEVER turn project definition into task planning, code design, or implementation.
 
 ## Workflow
@@ -60,7 +62,8 @@ NO PASSIVE LARK PRD OR .lark.json CREATION.
 2. Extract or confirm domain terms, users, constraints, and non-goals.
 3. Fill the template with specific content only.
 4. List open questions separately.
-5. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with the PRD content and intended resource key.
+5. If the definition is ready to become large implementation work, name `arc:task-doc-progress-conventions` as the required local planning gate before execution.
+6. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with the PRD content and intended resource key.
 
 ## Quality Gates
 
@@ -69,6 +72,7 @@ NO PASSIVE LARK PRD OR .lark.json CREATION.
 - Core capabilities are 3-6 user-verifiable capabilities.
 - Main objects use existing repository vocabulary when a repository exists.
 - Business flow is a short ordered path.
+- Large implementation follow-up is routed to `arc:task-doc-progress-conventions`, not hidden inside generic PRD task bullets.
 - `.lark.json.resources.prd` is updated through `arc:docs` only when Lark is active.
 
 ## Expert Standards
@@ -86,6 +90,7 @@ No dedicated runtime scripts. Use `.ai-code-index/` for brownfield context and p
 - Generic positioning such as "all-in-one" or "intelligent platform".
 - Two names for one concept.
 - Claims that contradict existing code, docs, or `.lark.json`.
+- PRD contains broad implementation checklists that should be current local task docs.
 - Lark document creation outside `arc:docs`.
 
 ## When to Use

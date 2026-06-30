@@ -1,6 +1,6 @@
 # Skills
 
-这个仓库保留一组 `arc:*` 软件工程生命周期 Skill 文档，以及少量显式白名单的通用工程约束 Skill。代码库搜索默认走本地索引工具链：Zoekt、ast-grep、Universal Ctags；任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责；飞书项目空间只在用户明确要求创建/连接后由 `arc:docs` 创建/维护 `.lark.json`、项目资料、任务表、仪表盘、Wiki、画板和生命周期索引。
+这个仓库保留一组统一使用 `arc:*` 命名空间的软件工程生命周期和通用工程约束 Skill 文档。代码库搜索默认走本地索引工具链：Zoekt、ast-grep、Universal Ctags；任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责；飞书项目空间只在用户明确要求创建/连接后由 `arc:docs` 创建/维护 `.lark.json`、项目资料、任务表、仪表盘、Wiki、画板和生命周期索引。
 
 ## 当前保留
 
@@ -14,9 +14,11 @@ Skills/
 │   ├── arc:frontend/
 │   ├── arc:fix/
 │   ├── arc:audit/
-│   └── arc:security/
-├── code-comment-conventions/
-├── project-architecture-conventions/
+│   ├── arc:security/
+│   ├── arc:code-comment-conventions/
+│   ├── arc:go-gin-ssr-fmt-tracing/
+│   ├── arc:project-architecture-conventions/
+│   └── arc:task-doc-progress-conventions/
 ├── .ai-code-index/
 ├── docs/
 ├── schemas/
@@ -42,8 +44,10 @@ Skills/
 
 | Skill ID | 用途 |
 |---|---|
-| `code-comment-conventions` | 统一 Controller、接口/契约、普通函数、结构体/字段和函数内部编号步骤注释规范 |
-| `project-architecture-conventions` | 统一默认后端架构命名/分层/接口设计、DIP、依赖注入位置、后端日志证据、Go 常量/枚举和 helper 抽取规范 |
+| `arc:code-comment-conventions` | 统一 Controller、接口/契约、普通函数、结构体/字段和函数内部编号步骤注释规范 |
+| `arc:go-gin-ssr-fmt-tracing` | 为 Go Gin SSR 请求路径添加低成本 fmt/time 或 log.Printf 计时探针 |
+| `arc:project-architecture-conventions` | 统一默认后端架构命名/分层/接口设计、DIP、依赖注入位置、后端日志证据、Go 常量/枚举和 helper 抽取规范 |
+| `arc:task-doc-progress-conventions` | 大任务实施前创建任务文档、前置约束、子任务文件和中心进度跟踪表 |
 
 ## 共享参考
 
@@ -74,8 +78,9 @@ Skills/
 - 飞书操作由 `arc:docs` 路由到 `lark-doc` / `lark-base` / `lark-shared` 等对应技能，遵守认证、API 版本和高风险写入规则。
 - `aitask` 仅负责任务编排、协作、Inbox 和跨 Agent 状态。
 - Arc 只保留软件工程生命周期中的稳定判断框架和文档索引契约。
-- 普通工程约束 Skill 必须显式加入校验白名单，避免任意目录被误收录。
-- 所有项目代码交付和修复必须遵守 `project-architecture-conventions`：先看 ponytail；保持 DIP；默认按 `domain`、`usecase`、`interface/restful`、`infrastructure`、`wire` 的分层、命名和接口设计组织后端代码；后端排障必须用结构化日志和本地日志文件保留可复查证据；Go 常量必须使用 `MixedCaps` / `mixedCaps`、优先标准库语义常量、按最小作用域定义，枚举型业务状态必须用自定义类型建模，跨服务常量必须来自版本化契约或受治理的共享模块；DIP 边界接口是明确架构要求，但不得为私有 helper、同层代码或形式主义创建接口。
+- 所有 Skill 名称必须使用 `arc:*` 命名空间，并统一放在 `Arc/arc:*` 目录下。
+- 所有项目代码交付和修复必须遵守 `arc:project-architecture-conventions`：先看 ponytail；保持 DIP；默认按 `domain`、`usecase`、`interface/restful`、`infrastructure`、`wire` 的分层、命名和接口设计组织后端代码；后端排障必须用结构化日志和本地日志文件保留可复查证据；Go 常量必须使用 `MixedCaps` / `mixedCaps`、优先标准库语义常量、按最小作用域定义，枚举型业务状态必须用自定义类型建模，跨服务常量必须来自版本化契约或受治理的共享模块；DIP 边界接口是明确架构要求，但不得为私有 helper、同层代码或形式主义创建接口。
+- 大任务、跨多轮任务、迁移、重构、修复战役和需要持续跟踪的工作，必须先遵守 `arc:task-doc-progress-conventions`：按最新项目状态解析或创建 `docs/DD-任务` 这类数字序列化任务分类，再建立任务入口、`00-前置约束.md`、`tasks/` 子任务文件和 `进度跟踪表.md`；每个具体任务都要写明当前文件/调用点/输出/验证；开始、暂停、阻塞、完成、验证或下一步变化时，必须立即更新 `进度跟踪表.md` 和子任务状态，未同步前不得继续实现或交付。
 - Arc Skill 默认是纯 `SKILL.md` 契约；`arc:security` 这种需要可重复自动化的能力可以携带本地脚本。
 - 图表、浏览器、Lazycat、纯设计等垂直能力由对应专门 Skill 负责，不再在 Arc 内重复建设。
 
