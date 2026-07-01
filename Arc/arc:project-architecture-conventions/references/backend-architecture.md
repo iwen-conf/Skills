@@ -129,11 +129,93 @@ Put transaction orchestration in usecase logic through `domain/repositories.TxMa
 Controllers should:
 
 - Use named request and response DTOs.
-- Use mapper helpers for DTO conversion.
+- Use mapper helpers only when conversion is nontrivial or the repository already has that pattern.
 - Return successful empty list/query results as success responses with empty collections and pagination metadata.
 - Keep HTTP status and business error mapping explicit at call sites when the flow is small.
 - Avoid `gin.H` for runtime response bodies; named DTO structs are preferred.
 - Keep business decisions, transaction logic, SQL, and repository calls out of controllers.
+
+## Response DTO Composition
+
+Use composition for every Go REST response body. Keep the response DTO package as the wire contract and avoid generic response catch-alls.
+
+Define the shared base envelope in `internal/interface/restful/dto/responses/base.go`. If the host repository already uses singular `dto/response`, keep that established package name.
+
+```go
+package responses
+
+type Base struct {
+    Success bool   `json:"success"`
+    Message string `json:"message"`
+}
+
+var SuccessBase = Base{
+    Success: true,
+    Message: "ok",
+}
+```
+
+For each endpoint, define a response-specific DTO. Embed `Base`; do not repeat `Success` and `Message` fields in every response.
+
+```go
+import "github.com/iwen-conf/utils-pkg/pagination"
+
+type User struct {
+    ID   int    `json:"id"`
+    Name string `json:"name"`
+}
+
+type UserResp struct {
+    Base
+    Data User `json:"data"`
+}
+
+type UserListResp struct {
+    Base
+    Data []User `json:"data"`
+}
+
+type Page struct {
+    Page     int   `json:"page"`
+    PageSize int   `json:"page_size"`
+    Total    int64 `json:"total"`
+}
+
+type UserPageResp struct {
+    Base
+    Data []User `json:"data"`
+    Page Page   `json:"page"`
+}
+
+type UserCursorResp struct {
+    Base
+    Data   []User                    `json:"data"`
+    Cursor pagination.CursorResponse `json:"cursor"`
+}
+```
+
+Use response structs directly at the HTTP boundary:
+
+```go
+c.JSON(http.StatusOK, responses.UserListResp{
+    Base: responses.SuccessBase,
+    Data: users,
+})
+```
+
+Page-number pagination, offset pagination, and cursor pagination are different contracts:
+
+- Page-number pagination exposes `page`, `page_size`, and `total`; use it when the UI needs total count or jump-to-page behavior.
+- Offset pagination exposes `offset`, `limit`, `total`, and `has_more`; when the API exposes offset/limit, use `github.com/iwen-conf/utils-pkg/pagination.OffsetRequest` and `OffsetResponse`.
+- Cursor pagination exposes `cursor`/`limit` on request and `next_cursor`, `prev_cursor`, `has_more` on response; use `pagination.CursorRequest`, `pagination.CursorResponse`, and `pagination.NewHMACCodec` for signed opaque cursors. Cursor responses do not expose `page` or `total`.
+
+Strict rules:
+
+- Every runtime response body must be a named struct in the response DTO package, such as `GetCourseResponse`, `ListCoursesResponse`, or `DeleteCourseResponse`.
+- The `Data` field type must be a concrete DTO type or slice of one, such as `Data User` or `Data []User`. Do not use `Data any`, `Data interface{}`, `Data map[string]any`, or inline `struct{...}`.
+- Do not use `gin.H`, `map[string]any`, anonymous structs, or generic catch-all envelopes such as `Response[T any]` for runtime response bodies.
+- Keep page metadata and cursor metadata as separate top-level response fields, not hidden inside `Data`.
+- Do not add constructors, factories, or mapper helpers only to satisfy this rule. Use direct struct literals unless the repository already has a helper pattern.
 
 ## Infrastructure Rules
 

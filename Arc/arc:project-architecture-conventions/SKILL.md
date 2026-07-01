@@ -88,6 +88,71 @@ Layer responsibilities:
 - `wire`: Composition root. Construct repositories, support services, usecases, controllers, bootstrap, seeds, and application lifecycle. It may import concrete infrastructure; business layers may not.
 - `bootstrap`: Startup domain initialization such as ensuring seed data or super-admin prerequisites after migrations and repository construction.
 
+## Go Response DTO Composition
+
+For Go REST APIs, plan response bodies as named DTO compositions. Do not return dynamic maps or catch-all envelopes from controllers.
+
+Define the shared response base in `internal/interface/restful/dto/responses/base.go`; if the host repository already uses singular `dto/response`, keep that local package name instead of renaming only for this rule.
+
+```go
+type Base struct {
+    Success bool   `json:"success"`
+    Message string `json:"message"`
+}
+
+var SuccessBase = Base{
+    Success: true,
+    Message: "ok",
+}
+```
+
+Every endpoint response must define its own named response struct in the response DTO package. Embed `Base` and use explicit concrete fields.
+
+```go
+type User struct {
+    ID   int    `json:"id"`
+    Name string `json:"name"`
+}
+
+type UserResp struct {
+    Base
+    Data User `json:"data"`
+}
+
+type UserListResp struct {
+    Base
+    Data []User `json:"data"`
+}
+
+type Page struct {
+    Page     int   `json:"page"`
+    PageSize int   `json:"page_size"`
+    Total    int64 `json:"total"`
+}
+
+type UserPageResp struct {
+    Base
+    Data []User `json:"data"`
+    Page Page   `json:"page"`
+}
+
+type UserCursorResp struct {
+    Base
+    Data   []User                    `json:"data"`
+    Cursor pagination.CursorResponse `json:"cursor"`
+}
+```
+
+Use `Base: SuccessBase` directly in the controller response literal.
+
+Rules:
+
+- `Data` must be a concrete DTO type or slice of a concrete DTO type, such as `User` or `[]User`.
+- Page-number pagination uses `Page Page` metadata (`page`, `page_size`, `total`); cursor pagination uses cursor metadata (`next_cursor`, `prev_cursor`, `has_more`). Do not mix the two contracts.
+- Use `github.com/iwen-conf/utils-pkg/pagination` when available: `CursorRequest`, `CursorResponse`, and `NewHMACCodec` for cursor pagination; `OffsetRequest` and `OffsetResponse` for offset/limit APIs. If the public API is `page/page_size`, map it explicitly to query offset/limit instead of exposing cursor fields.
+- Runtime response bodies must not use `any`, `interface{}`, `map[string]any`, `gin.H`, anonymous structs, or generic catch-all envelopes such as `Response[T any]`.
+- Do not add constructors, factories, or mapper helpers only to satisfy this rule; direct struct literals are fine unless the repository already has a helper pattern.
+
 ## Dependency Direction
 
 Use this dependency direction:
@@ -196,9 +261,10 @@ Follow this helper placement:
 
 1. Keep module-specific usecase helpers inside the same `internal/usecase/<module>` package, using focused files such as `helpers.go`, `service_<feature>.go`, or `services.go` when the module already uses them.
 2. Put application-layer shared types such as pagination or common business errors in `internal/usecase/shared`; do not duplicate them in each feature module.
-3. Put REST request fragments in `internal/interface/restful/dto/requests` and response payloads in `internal/interface/restful/dto/responses`; controllers should call mapper helpers instead of declaring private DTO structs inline for runtime responses.
-4. Keep controller helpers focused inside `internal/interface/restful/controllers` only when they are transport-boundary helpers. Move pure business helpers down into usecase.
-5. Avoid vague `common`, `misc`, `tools`, or broad `utils` buckets. Extract only after real reuse and with a specific package purpose.
+3. Put REST request fragments in `internal/interface/restful/dto/requests` and response payloads in `internal/interface/restful/dto/responses`; controllers should return named DTO structs instead of declaring private DTO structs inline for runtime responses.
+4. Define REST response bodies as named DTO composition structs in `dto/responses` with embedded `Base` and explicit concrete fields such as `Data User`, `Data []User`, `Page Page`, or `Cursor pagination.CursorResponse`; do not define ad hoc response structs inside controllers.
+5. Keep controller helpers focused inside `internal/interface/restful/controllers` only when they are transport-boundary helpers. Move pure business helpers down into usecase.
+6. Avoid vague `common`, `misc`, `tools`, or broad `utils` buckets. Extract only after real reuse and with a specific package purpose.
 
 ## Review Checklist
 
@@ -218,4 +284,5 @@ Follow this helper placement:
 - Enum-like business states use custom typed constants with an `Unknown` or default zero value, and cross-service constants come from versioned generated contracts or governed shared modules.
 - `helpers` are business-local unless proven reusable.
 - Shared application helpers live in `internal/usecase/shared` or another focused package and do not import interface or infrastructure packages.
+- Go REST responses use `dto/responses.Base` composition plus per-endpoint named response structs; `Data` uses concrete DTO types or slices, page and cursor metadata stay separate, and no response body uses `any`, `interface{}`, `map[string]any`, `gin.H`, anonymous structs, or `Response[T any]`.
 - `ponytail` was read before coding, or its absence was reported before editing.
