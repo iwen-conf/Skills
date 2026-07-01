@@ -41,6 +41,7 @@ internal/infrastructure -> internal/domain
 Rules:
 
 - `domain` must not import infrastructure, usecase, interface, Gin, pgx, Redis, Casbin, or other driver/framework packages.
+- `domain/entities` must not import REST DTO packages or expose transport conversion methods such as `ToDTO`, `ToResponse`, or methods returning `dto/responses` types.
 - `usecase` must not import Gin, `net/http`, pgx, `database/sql`, or interface-layer packages.
 - `interface/restful/controllers` must not import `domain/repositories`, pgx, `database/sql`, or `pgxpool`.
 - `wire` is allowed to import concrete infrastructure and assemble the object graph.
@@ -48,20 +49,88 @@ Rules:
 
 ## Layer Responsibilities
 
-- `domain/entities`: Business entities, value objects, and enum-like state types.
-- `domain/repositories`: Repository interfaces consumed by usecases. Example: `type Course interface { List(...); GetByID(...); Create(...); Update(...) }`.
-- `domain/services`: Pure domain services when needed.
-- `usecase/<module>`: Application workflows and transaction orchestration. Controllers depend on the module `Contract`.
-- `interface/restful/controllers`: HTTP handlers. They bind/validate request input, authorize, call usecase contracts, map errors, map DTOs, and respond.
+- `domain/entities`: Business objects with identity, lifecycle state, domain behavior, and invariants. Entity is not DTO and not ORM model. Put entity-local rules here when they protect consistency, such as status transitions, balance changes, freeze/unfreeze, or field changes with business validation. Do not put HTTP/DTO conversion methods on entities.
+- `domain/repositories`: Repository interfaces consumed by usecases. Define business persistence capabilities, such as `FindByID`, `Save`, or `ListByOwner`. Do not mention SQL tables, Mongo collections, HTTP, pgx, GORM, or driver-specific types. Example: `type Course interface { List(...); GetByID(...); Create(...); Update(...) }`.
+- `domain/services`: Pure domain services when a rule spans multiple entities or value objects and does not naturally belong to one entity. Keep them free of persistence, transport, logging, and workflow orchestration.
+- `usecase/<module>`: Application workflows, authorization decisions that are application-specific, transaction orchestration, calls to repository ports, and calls to explicit external capability contracts. Controllers depend on the module `Contract`. Usecases coordinate entities; they should not become storage adapters or HTTP handlers.
+- `interface/restful/controllers`: HTTP handlers. They bind/validate request input, authorize at the transport boundary when applicable, call usecase contracts, map errors, map entity/usecase results to response DTOs, and respond. They own transport mapping helpers when conversion is needed.
 - `interface/restful/dto/requests`: Named request DTOs and reusable request fragments. Keep this package as transport schema only.
 - `interface/restful/dto/responses`: Named response DTOs, response envelope base types, and harmless response constants. Keep this package as transport schema only; do not put entity/usecase-to-DTO mapper constructors, factories, or business helpers here.
-- `infrastructure/gateways/persistence/postgres/models`: Database row/table models and entity conversion.
-- `infrastructure/gateways/persistence/postgres/repository`: Postgres implementations of `domain/repositories`.
-- `infrastructure/gateways/<capability>`: External capability gateways such as notification, storage, and recommendation.
+- `infrastructure/gateways/persistence/postgres/models`: Database row/table models and storage-shape conversion. ORM/database models are not domain entities.
+- `infrastructure/gateways/persistence/postgres/repository`: Postgres implementations of `domain/repositories`. Repositories translate between storage models and domain entities.
+- `infrastructure/gateways/<capability>`: External capability gateways such as notification, storage, payment, and recommendation. They adapt external protocols behind contracts.
 - `infrastructure/support/<capability>`: Cross-cutting infrastructure such as authorization, cache, logger, and security.
 - `constants`: Truly application-wide constants with multiple legitimate consumers. Do not use this as a dumping ground for module-specific business limits, labels, or state.
 - `wire`: Repository set, usecase set, controller construction, bootstrap, seeds, reset, and application lifecycle.
 - `bootstrap`: Startup initialization that runs after migrations and repository construction.
+
+## DTO, Entity, And Repository Model Boundaries
+
+Keep API contracts, domain models, and persistence models separate.
+
+### DTO
+
+DTO is the external communication contract.
+
+- Place request DTOs in `internal/interface/restful/dto/requests`.
+- Place response DTOs in `internal/interface/restful/dto/responses`.
+- Allow JSON/form/query binding tags and API-facing field names.
+- Do not add business behavior, domain invariants, repository calls, persistence tags, or entity/usecase mapper constructors.
+- DTOs may change with API contracts without forcing domain or storage shape changes.
+
+### Entity
+
+Entity is the domain model.
+
+- Place entities in `internal/domain/entities`.
+- Model identity, lifecycle state, domain behavior, and invariants.
+- Put entity-local behavior here when it protects consistency, such as `Cancel`, `Pay`, `Freeze`, `ChangeEmail`, or validated status transitions.
+- Do not add JSON/API response conversion, ORM tags, SQL/Mongo-specific fields, repository calls, logging, or framework imports.
+- Do not use entities as direct database row structs or response DTOs.
+
+### Repository Model
+
+Repository Model is the persistence mapping shape.
+
+- Place storage models in infrastructure persistence packages such as `internal/infrastructure/gateways/persistence/postgres/models` or the equivalent local store package.
+- Allow ORM/DB tags, table/collection field names, nullable storage fields, denormalized columns, and storage-optimized shapes.
+- Do not add business behavior or domain invariants.
+- Convert repository models to entities before returning from repository implementations, and convert entities to repository models before persisting.
+
+Data flow:
+
+```text
+HTTP request -> request DTO -> usecase params -> entity/usecase workflow -> repository interface -> repository model -> database
+database -> repository model -> repository interface -> entity/usecase result -> response DTO -> HTTP response
+```
+
+Conversion responsibility:
+
+- HTTP boundary converts REST request DTOs to usecase params and usecase/entity results to REST response DTOs. REST DTOs must not enter `usecase`.
+- Usecases convert application params/results into entity operations and coordinate entities, domain services, repositories, and transactions.
+- Domain repository interfaces accept and return entities or domain value objects, not repository models. A method such as `FindByID` returns `*entities.Order`; `Save` accepts `*entities.Order`.
+- Infrastructure repository implementations convert repository models to entities on reads and entities to repository models on writes.
+- Repository models are private to infrastructure persistence implementations. Do not expose them from domain repository interfaces, usecases, or controllers.
+- Read-optimized projections may bypass entities only for explicit query/read-model paths such as CQRS, reports, dashboards, or SSR view reads. Those projections must not enter domain behavior or write workflows.
+
+Mapper placement:
+
+- Do not create broad packages such as `internal/mapper` that import REST DTOs, domain entities, and repository models together.
+- Do not put `DTO -> Entity`, `Entity -> DTO`, `Entity -> Model`, and `Model -> Entity` in one `order_mapper.go`. That file crosses transport, domain, and persistence boundaries.
+- Put REST DTO mapping beside the HTTP boundary, for example `internal/interface/restful/controllers/order_mapper.go` or a focused mapper file in the same transport package.
+- Put repository model mapping beside the persistence implementation, for example `internal/infrastructure/gateways/persistence/postgres/repository/order_mapper.go`.
+- If two conversions share field assignments, prefer a tiny unexported helper inside the owning boundary package. Do not centralize mappings across layers to avoid a few repeated field names.
+- Accept small repeated field assignments across HTTP and persistence mappers when they protect dependency direction.
+- If repeated mapping code encodes real business normalization, defaulting, validation, or invariant construction, move that behavior to domain constructors, value objects, or entity methods. Do not hide business rules in a cross-layer mapper.
+
+Forbidden shortcuts:
+
+- Do not use DTOs as entities.
+- Do not use entities as ORM/database models.
+- Do not return repository models from domain repository interfaces, usecases, or controllers.
+- Do not put `ToDTO`, `ToResponse`, `TableName`, ORM hooks, or JSON wire-shape methods on domain entities.
+- Do not put domain rules in repository models or DTOs.
+- Do not use a global mapper package as a shortcut around dependency direction.
 
 ## Usecase Module Shape
 
@@ -92,7 +161,7 @@ Conventions:
 Use explicit contracts at real boundaries:
 
 - Usecase boundary: `internal/usecase/<module>/Contract`.
-- Repository boundary: `internal/domain/repositories.<Entity>`.
+- Repository boundary: `internal/domain/repositories.<Entity>`. Repository interfaces speak domain language and accept/return entities or domain value objects, never infrastructure repository models.
 - External capability boundary: package-local `Contract` interfaces in `infrastructure/gateways/*` or `infrastructure/support/*`.
 - Engine boundary for swappable low-level implementations: `Engine` interfaces in support/gateway packages such as cache or storage.
 
@@ -219,6 +288,7 @@ Strict rules:
 - Do not use `gin.H`, `map[string]any`, anonymous structs, or generic catch-all envelopes such as `Response[T any]` for runtime response bodies.
 - Keep page metadata and cursor metadata as separate top-level response fields, not hidden inside `Data`.
 - DTO packages must not import `internal/domain`, `internal/usecase`, repositories, database models, Gin, or database drivers for mapping.
+- Domain entities must not import `dto/responses` or expose response conversion methods. Do not add methods like `func (a ActivityCategory) ToDTO() responses.ActivityCategoryDTO`; that reverses the dependency direction.
 - Do not add constructors, factories, or mapper helpers only to satisfy this rule. Use direct struct literals unless the repository already has a helper pattern.
 - If conversion from entities or usecase results is nontrivial, place it at the HTTP boundary that owns the transport contract, usually `internal/interface/restful/controllers` or a focused mapper file in that package. Do not add functions like `responses.NewUser(entity)` or `responses.NewUserList(usecaseResult)`.
 
