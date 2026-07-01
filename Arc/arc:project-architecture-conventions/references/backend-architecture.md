@@ -53,8 +53,8 @@ Rules:
 - `domain/services`: Pure domain services when needed.
 - `usecase/<module>`: Application workflows and transaction orchestration. Controllers depend on the module `Contract`.
 - `interface/restful/controllers`: HTTP handlers. They bind/validate request input, authorize, call usecase contracts, map errors, map DTOs, and respond.
-- `interface/restful/dto/requests`: Named request DTOs and reusable request fragments.
-- `interface/restful/dto/responses`: Named response DTOs and response envelope helpers.
+- `interface/restful/dto/requests`: Named request DTOs and reusable request fragments. Keep this package as transport schema only.
+- `interface/restful/dto/responses`: Named response DTOs, response envelope base types, and harmless response constants. Keep this package as transport schema only; do not put entity/usecase-to-DTO mapper constructors, factories, or business helpers here.
 - `infrastructure/gateways/persistence/postgres/models`: Database row/table models and entity conversion.
 - `infrastructure/gateways/persistence/postgres/repository`: Postgres implementations of `domain/repositories`.
 - `infrastructure/gateways/<capability>`: External capability gateways such as notification, storage, and recommendation.
@@ -130,6 +130,7 @@ Controllers should:
 
 - Use named request and response DTOs.
 - Use mapper helpers only when conversion is nontrivial or the repository already has that pattern.
+- Keep mapper helpers in the controller package or another HTTP-boundary package, not in `dto/requests` or `dto/responses`.
 - Return successful empty list/query results as success responses with empty collections and pagination metadata.
 - Keep HTTP status and business error mapping explicit at call sites when the flow is small.
 - Avoid `gin.H` for runtime response bodies; named DTO structs are preferred.
@@ -139,7 +140,7 @@ Controllers should:
 
 Use composition for every Go REST response body. Keep the response DTO package as the wire contract and avoid generic response catch-alls.
 
-Define the shared base envelope in `internal/interface/restful/dto/responses/base.go`. If the host repository already uses singular `dto/response`, keep that established package name.
+Define the shared base envelope in `internal/interface/restful/dto/responses/base.go`. If the host repository already uses singular `dto/response`, keep that established package name. Preserve the repository's established base type name, such as `Base`, `BaseResponse`, or `ResponseBase`.
 
 ```go
 package responses
@@ -212,10 +213,14 @@ Page-number pagination, offset pagination, and cursor pagination are different c
 Strict rules:
 
 - Every runtime response body must be a named struct in the response DTO package, such as `GetCourseResponse`, `ListCoursesResponse`, or `DeleteCourseResponse`.
+- Split shared response schema by responsibility: `base.go` contains only the base envelope and base constants/helpers, `meta.go` contains shared response metadata such as `Meta`, `Pagination`, cursor, or page structs, and feature files such as `activity_category.go` contain only that resource's DTOs and endpoint response structs.
+- Do not put `BaseResponse`, `Meta`, `Pagination`, and feature DTOs in one feature response file. Shared schema belongs in shared files.
 - The `Data` field type must be a concrete DTO type or slice of one, such as `Data User` or `Data []User`. Do not use `Data any`, `Data interface{}`, `Data map[string]any`, or inline `struct{...}`.
 - Do not use `gin.H`, `map[string]any`, anonymous structs, or generic catch-all envelopes such as `Response[T any]` for runtime response bodies.
 - Keep page metadata and cursor metadata as separate top-level response fields, not hidden inside `Data`.
+- DTO packages must not import `internal/domain`, `internal/usecase`, repositories, database models, Gin, or database drivers for mapping.
 - Do not add constructors, factories, or mapper helpers only to satisfy this rule. Use direct struct literals unless the repository already has a helper pattern.
+- If conversion from entities or usecase results is nontrivial, place it at the HTTP boundary that owns the transport contract, usually `internal/interface/restful/controllers` or a focused mapper file in that package. Do not add functions like `responses.NewUser(entity)` or `responses.NewUserList(usecaseResult)`.
 
 ## Infrastructure Rules
 

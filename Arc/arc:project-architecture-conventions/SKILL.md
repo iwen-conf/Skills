@@ -82,7 +82,7 @@ Layer responsibilities:
 
 - `domain`: Pure business entities, repository interfaces, events, filters, and domain services. It must not import infrastructure, usecase, interface, framework, or driver packages.
 - `usecase/<module>`: Application/business workflows. Modules use `contract.go`, `main.go`, `params.go`, `results.go`, optional `errors.go`, and focused `service*.go` files. `Contract` is the controller-facing interface; `Service` implements it and depends on `domain/repositories` plus explicit external capability contracts.
-- `interface/restful`: Gin/HTTP boundary. Controllers bind input, authorize, call usecase contracts, map errors, and return DTO responses. DTOs live in `dto/requests` and `dto/responses`; controllers must not touch repositories or database drivers directly.
+- `interface/restful`: Gin/HTTP boundary. Controllers bind input, authorize, call usecase contracts, map errors, and return DTO responses. DTOs live in `dto/requests` and `dto/responses`; controllers must not touch repositories or database drivers directly. DTO packages are transport schema only: do not put entity/usecase-to-DTO mapping constructors, factories, or business helpers there.
 - `infrastructure/gateways`: Concrete external gateways such as Postgres persistence, notification, storage, and recommendation. Persistence uses `postgres/models` for table models and `postgres/repository` for implementations of `domain/repositories`.
 - `infrastructure/support`: Cross-cutting support capabilities such as authorization, cache, logger, and security. Use `contract.go`, `engine.go`, `service.go`, and `main.go` to separate service contracts from concrete engines.
 - `wire`: Composition root. Construct repositories, support services, usecases, controllers, bootstrap, seeds, and application lifecycle. It may import concrete infrastructure; business layers may not.
@@ -92,7 +92,7 @@ Layer responsibilities:
 
 For Go REST APIs, plan response bodies as named DTO compositions. Do not return dynamic maps or catch-all envelopes from controllers.
 
-Define the shared response base in `internal/interface/restful/dto/responses/base.go`; if the host repository already uses singular `dto/response`, keep that local package name instead of renaming only for this rule.
+Define the shared response base in `internal/interface/restful/dto/responses/base.go`; if the host repository already uses singular `dto/response`, keep that local package name instead of renaming only for this rule. Preserve the repository's established base type name, such as `Base`, `BaseResponse`, or `ResponseBase`.
 
 ```go
 type Base struct {
@@ -147,11 +147,15 @@ Use `Base: SuccessBase` directly in the controller response literal.
 
 Rules:
 
+- Split shared response schema by responsibility: `base.go` contains only the base envelope and base constants/helpers, `meta.go` contains shared response metadata such as `Meta`, `Pagination`, cursor, or page structs, and feature files such as `activity_category.go` contain only that resource's DTOs and endpoint response structs.
+- Do not put `BaseResponse`, `Meta`, `Pagination`, and feature DTOs in one feature response file. Shared schema belongs in shared files.
 - `Data` must be a concrete DTO type or slice of a concrete DTO type, such as `User` or `[]User`.
 - Page-number pagination uses `Page Page` metadata (`page`, `page_size`, `total`); cursor pagination uses cursor metadata (`next_cursor`, `prev_cursor`, `has_more`). Do not mix the two contracts.
 - Use `github.com/iwen-conf/utils-pkg/pagination` when available: `CursorRequest`, `CursorResponse`, and `NewHMACCodec` for cursor pagination; `OffsetRequest` and `OffsetResponse` for offset/limit APIs. If the public API is `page/page_size`, map it explicitly to query offset/limit instead of exposing cursor fields.
 - Runtime response bodies must not use `any`, `interface{}`, `map[string]any`, `gin.H`, anonymous structs, or generic catch-all envelopes such as `Response[T any]`.
+- Response DTO packages must not import `internal/domain`, `internal/usecase`, repositories, database models, Gin, or database drivers for mapping. Keep DTO files as named wire-contract structs plus harmless envelope constants/types.
 - Do not add constructors, factories, or mapper helpers only to satisfy this rule; direct struct literals are fine unless the repository already has a helper pattern.
+- If conversion from entities or usecase results is nontrivial, put the mapper at the HTTP boundary that owns the transport contract, usually `internal/interface/restful/controllers` or a focused mapper file in that package. Do not add functions like `responses.NewUser(entity)` or `responses.NewUserList(usecaseResult)`.
 
 ## Dependency Direction
 
@@ -168,6 +172,7 @@ Forbidden imports:
 internal/domain -> internal/infrastructure, internal/usecase, internal/interface, framework/driver SDKs
 internal/usecase -> gin, net/http, pgx, database/sql, internal/interface
 internal/interface/restful/controllers -> domain/repositories, pgx, database/sql, pgxpool
+internal/interface/restful/dto -> internal/domain, internal/usecase, internal/infrastructure, framework/driver SDKs
 ```
 
 ## Main And Injection
@@ -261,7 +266,7 @@ Follow this helper placement:
 
 1. Keep module-specific usecase helpers inside the same `internal/usecase/<module>` package, using focused files such as `helpers.go`, `service_<feature>.go`, or `services.go` when the module already uses them.
 2. Put application-layer shared types such as pagination or common business errors in `internal/usecase/shared`; do not duplicate them in each feature module.
-3. Put REST request fragments in `internal/interface/restful/dto/requests` and response payloads in `internal/interface/restful/dto/responses`; controllers should return named DTO structs instead of declaring private DTO structs inline for runtime responses.
+3. Put REST request fragments in `internal/interface/restful/dto/requests` and response payloads in `internal/interface/restful/dto/responses`; controllers should return named DTO structs instead of declaring private DTO structs inline for runtime responses. Keep DTO packages schema-only and free of entity/usecase mapper constructors.
 4. Define REST response bodies as named DTO composition structs in `dto/responses` with embedded `Base` and explicit concrete fields such as `Data User`, `Data []User`, `Page Page`, or `Cursor pagination.CursorResponse`; do not define ad hoc response structs inside controllers.
 5. Keep controller helpers focused inside `internal/interface/restful/controllers` only when they are transport-boundary helpers. Move pure business helpers down into usecase.
 6. Avoid vague `common`, `misc`, `tools`, or broad `utils` buckets. Extract only after real reuse and with a specific package purpose.
@@ -284,5 +289,5 @@ Follow this helper placement:
 - Enum-like business states use custom typed constants with an `Unknown` or default zero value, and cross-service constants come from versioned generated contracts or governed shared modules.
 - `helpers` are business-local unless proven reusable.
 - Shared application helpers live in `internal/usecase/shared` or another focused package and do not import interface or infrastructure packages.
-- Go REST responses use `dto/responses.Base` composition plus per-endpoint named response structs; `Data` uses concrete DTO types or slices, page and cursor metadata stay separate, and no response body uses `any`, `interface{}`, `map[string]any`, `gin.H`, anonymous structs, or `Response[T any]`.
+- Go REST responses use `dto/responses.Base` composition plus per-endpoint named response structs; `Data` uses concrete DTO types or slices, page and cursor metadata stay separate, no response body uses `any`, `interface{}`, `map[string]any`, `gin.H`, anonymous structs, or `Response[T any]`, and DTO packages do not contain entity/usecase mapping constructors.
 - `ponytail` was read before coding, or its absence was reported before editing.

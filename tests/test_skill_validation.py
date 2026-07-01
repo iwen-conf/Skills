@@ -249,6 +249,12 @@ def test_project_architecture_skill_locks_dip_architecture_and_ponytail_contract
         "Zap logging is initialized once, injected explicitly",
         "internal/usecase/shared",
         "If a ponytail simplification would remove a required DIP boundary, keep the boundary",
+        "DTO packages are transport schema only",
+        "Do not add functions like `responses.NewUser(entity)` or `responses.NewUserList(usecaseResult)`.",
+        "internal/interface/restful/dto -> internal/domain, internal/usecase, internal/infrastructure, framework/driver SDKs",
+        "`base.go` contains only the base envelope",
+        "`meta.go` contains shared response metadata",
+        "Do not put `BaseResponse`, `Meta`, `Pagination`, and feature DTOs in one feature response file.",
     ]
     for phrase in required_phrases:
         assert phrase in text
