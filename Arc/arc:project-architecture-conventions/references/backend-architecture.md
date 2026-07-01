@@ -413,4 +413,5 @@ Cross-service constants:
 - `controllers/*` <= 600 lines.
 - `usecase/*/main.go` <= 200 lines.
 - `usecase/*/service_*.go` <= 400 lines.
+- No Go file may contain more than two unexported/private `func` declarations. When an original file reaches two private functions, create a sibling helper file named from the original basename plus `_helpers.go`, such as `order.go` -> `order_helpers.go`, and move the private helpers there. Helper files follow the same two-private-function limit.
 - Use plural package names where applicable: `entities`, `repositories`, `services`, `events`, `filters`, `controllers`, `middlewares`, `models`, `requests`, `responses`.

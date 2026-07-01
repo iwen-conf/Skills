@@ -1,13 +1,13 @@
 ---
 name: arc:project-architecture-conventions
-description: Apply mandatory backend architecture, DIP, zap logging, and Go constant rules before coding.
+description: Apply mandatory backend architecture, DIP, zap logging, Go constant rules, and helper file limits before coding.
 ---
 
 # Project Architecture Conventions
 
 ## Overview
 
-Use this skill before writing, changing, or reviewing backend, service, controller, repository, infrastructure, helper, logging, debugging, constants, enum-like states, or project skeleton code. Project code must follow the default backend architecture, the Dependency Inversion Principle (DIP), and the naming, layering, file, interface, logging, debugging, constant, and observability conventions defined here.
+Use this skill before writing, changing, or reviewing backend, service, controller, repository, infrastructure, helper, logging, debugging, constants, enum-like states, or project skeleton code. Project code must follow the default backend architecture, the Dependency Inversion Principle (DIP), and the naming, layering, file, interface, logging, debugging, constant, helper limit, and observability conventions defined here.
 
 For new backend modules and project skeletons, use this architecture by default. For existing repositories, preserve established local patterns unless the task explicitly asks to migrate toward this architecture.
 
@@ -26,6 +26,13 @@ For new backend modules and project skeletons, use this architecture by default.
 3. For migrations, change the smallest slice that can preserve behavior while moving toward the default architecture.
 4. Read `references/backend-architecture.md` when deeper file-level or interface-level guidance is needed.
 5. Do not invent extra layers, factories, interfaces, or helpers beyond the boundaries described here.
+
+## Go File Constraints
+
+- MUST keep every Go file at no more than two unexported/private `func` declarations.
+- MUST create a sibling helper file named from the original basename plus `_helpers.go` when an original file reaches two private functions, such as `order.go` -> `order_helpers.go`.
+- MUST move private helpers into the sibling helper file instead of adding a third private function to the original file.
+- MUST apply the same two-private-function limit to `_helpers.go` files; split by focused behavior instead of growing a dump file.
 
 ## Ponytail Preflight
 
@@ -317,6 +324,7 @@ Follow this helper placement:
 - Go constants use `MixedCaps` / `mixedCaps`, stay near their business context, prefer untyped literals unless typing is semantically required, and avoid broad `constants.go` buckets.
 - Go code uses standard-library constants for native semantic literals, especially date/time layouts such as `time.DateTime`; raw equivalent strings are not accepted.
 - Enum-like business states use custom typed constants with an `Unknown` or default zero value, and cross-service constants come from versioned generated contracts or governed shared modules.
+- No Go file contains more than two private functions; files that reach two private functions are split into `<original>_helpers.go` sibling files.
 - `helpers` are business-local unless proven reusable.
 - Shared application helpers live in `internal/usecase/shared` or another focused package and do not import interface or infrastructure packages.
 - Go REST responses use `dto/responses.Base` composition plus per-endpoint named response structs; `Data` uses concrete DTO types or slices, page and cursor metadata stay separate, no response body uses `any`, `interface{}`, `map[string]any`, `gin.H`, anonymous structs, or `Response[T any]`, and DTO packages do not contain entity/usecase mapping constructors.

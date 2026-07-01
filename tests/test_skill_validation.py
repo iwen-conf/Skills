@@ -275,6 +275,9 @@ def test_project_architecture_skill_locks_dip_architecture_and_ponytail_contract
         "Put repository model mapping beside the persistence implementation",
         "Accept small repeated field assignments across HTTP and persistence mappers when they protect dependency direction.",
         "move that behavior to domain constructors, value objects, or entity methods",
+        "## Go File Constraints",
+        "MUST keep every Go file at no more than two unexported/private `func` declarations.",
+        "MUST create a sibling helper file named from the original basename plus `_helpers.go`",
     ]
     for phrase in required_phrases:
         assert phrase in text
