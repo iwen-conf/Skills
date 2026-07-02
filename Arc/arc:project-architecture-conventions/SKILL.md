@@ -321,6 +321,17 @@ For Go code, constants are compile-time semantic names, not C-style global macro
 - For cross-service constants such as error codes, prefer versioned API contracts and generated code, such as Protobuf/OpenAPI enum definitions or a governed shared module. Do not copy constants between services manually.
 - During review, flag equivalent literals, C-style names, naked enum parameters, and broad constant buckets as defects even when the code compiles.
 
+Enum constant reference example:
+
+```go
+// Bad: raw casts, broader package detours, and needless import aliases hide ownership.
+Status: paymentgateway.Status("unknown")
+Status: gateways.PaymentStatusUnknown
+
+// Good: use the package that owns the status type and constants.
+Status: payment.PaymentStatusUnknown
+```
+
 ## Helper And Shared Code
 
 Follow this helper placement:
