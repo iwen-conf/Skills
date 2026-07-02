@@ -232,6 +232,7 @@ Rules:
 
 - `wire` / `main` may know concrete implementations because it is the injection point.
 - `usecase/<module>.New(...)` must accept domain repository interfaces and explicit capability contracts, not concrete adapters.
+- Name injected repository fields with the repository contract name plus `Repo`, so the field name carries the dependency role without a redundant comment. Preserve Go visibility from the local pattern: use `novelCommentRepo repositories.NovelComment` for private service fields, or `NovelCommentRepo repositories.NovelComment` only when the field is intentionally exported. Do not use vague names such as `comments`, `reports`, or `readingHistory` when the type is a repository contract.
 - Business methods must not call repository constructors, `sql.Open`, SDK constructors, HTTP client setup, or queue/cache constructors.
 - If dependency construction requires configuration, parse configuration before injection and pass typed values into constructors.
 
@@ -315,6 +316,7 @@ Follow this helper placement:
 - Business code depends on `domain/repositories` or explicit capability contracts instead of concrete infrastructure.
 - Each interface is justified by a layer boundary, external capability, test seam, or multiple implementations.
 - Concrete infrastructure is wired in `internal/wire` and implements domain or capability contracts.
+- Injected repository fields are named with the repository contract plus `Repo`, such as `novelCommentRepo repositories.NovelComment` or intentionally exported `NovelCommentRepo repositories.NovelComment`, instead of vague plural nouns plus explanatory comments.
 - Usecase `contract.go` contains the exported controller-facing contract, not concrete service or adapter logic.
 - List/query contracts return success with empty collections for no-data results; single-resource missing cases are represented intentionally as `not found` only when the product flow needs a missing-resource error state.
 - Controllers and frontend DTOs can distinguish empty, not-found, permission-denied, validation error, and system error without relying on generic error text.
