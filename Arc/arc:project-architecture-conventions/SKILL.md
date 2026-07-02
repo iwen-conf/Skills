@@ -236,6 +236,28 @@ Rules:
 - Business methods must not call repository constructors, `sql.Open`, SDK constructors, HTTP client setup, or queue/cache constructors.
 - If dependency construction requires configuration, parse configuration before injection and pass typed values into constructors.
 
+Repository field naming example:
+
+```go
+// Bad: vague field names need comments to explain the role.
+type BadService struct {
+    comments       repositories.NovelComment
+    readingHistory repositories.NovelReadingHistory
+}
+
+// Good: private service fields keep Go visibility local.
+type Service struct {
+    novelCommentRepo    repositories.NovelComment
+    readingHistoryRepo  repositories.NovelReadingHistory
+}
+
+// Good when the repository's local pattern intentionally exports injected fields.
+type ExportedService struct {
+    NovelCommentRepo    repositories.NovelComment
+    ReadingHistoryRepo  repositories.NovelReadingHistory
+}
+```
+
 ## Zap Logging
 
 Use zap as the default structured logging backend for Go services, but add logs only where they improve diagnosis, auditability, or operational visibility.
