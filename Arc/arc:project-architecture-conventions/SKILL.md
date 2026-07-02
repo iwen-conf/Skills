@@ -294,6 +294,7 @@ For Go code, constants are compile-time semantic names, not C-style global macro
 - If no standard-library constant exists, define a local named constant at the narrowest useful scope instead of repeating the literal.
 - Keep constants close to the behavior they describe. Do not create broad dumping-ground `constants.go` files; use `internal/constants` only for truly application-wide constants with multiple legitimate consumers.
 - Model enum-like business states with a custom type plus typed `const` values, usually with a zero `Unknown` or default value. Do not pass naked `int` or `string` values as domain states.
+- Reference enum-like constants through the package that owns the semantic type in the current layer. Do not import a broader domain package only to spell a constant, do not cast raw literals such as `paymentgateway.Status("unknown")`, and do not add package aliases such as `paymentgateway` when the declared package name can be used directly. For example, in a payment gateway package that exports `PaymentStatusUnknown`, use `payment.PaymentStatusUnknown`, not `gateways.PaymentStatusUnknown` or `paymentgateway.Status("unknown")`.
 - Implement `String()` for enum-like states used in logs, errors, metrics, serialization diagnostics, or operator-facing output. Add parse/validate helpers when values enter from transport or storage.
 - For cross-service constants such as error codes, prefer versioned API contracts and generated code, such as Protobuf/OpenAPI enum definitions or a governed shared module. Do not copy constants between services manually.
 - During review, flag equivalent literals, C-style names, naked enum parameters, and broad constant buckets as defects even when the code compiles.
@@ -326,6 +327,7 @@ Follow this helper placement:
 - Go constants use `MixedCaps` / `mixedCaps`, stay near their business context, prefer untyped literals unless typing is semantically required, and avoid broad `constants.go` buckets.
 - Go code uses standard-library constants for native semantic literals, especially date/time layouts such as `time.DateTime`; raw equivalent strings are not accepted.
 - Enum-like business states use custom typed constants with an `Unknown` or default zero value, and cross-service constants come from versioned generated contracts or governed shared modules.
+- Enum-like constants are referenced through their owning package, without needless import aliases, broader-package detours, or raw literal casts such as `Status("unknown")`.
 - No Go file contains more than two private functions; files that reach two private functions are split into `<original>_helpers.go` sibling files.
 - `helpers` are business-local unless proven reusable.
 - Shared application helpers live in `internal/usecase/shared` or another focused package and do not import interface or infrastructure packages.
