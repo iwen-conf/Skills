@@ -178,6 +178,28 @@ Rules:
 - Do not repeat the field name as the whole field comment.
 - Do not use comments to compensate for vague dependency names. Rename `comments`, `reports`, or `readingHistory` to names that expose the dependency role, such as `novelCommentRepo`, `reportRepo`, or `readingHistoryRepo`.
 
+Private dependency field example:
+
+```go
+// Bad: comments repeat the dependency role that the name should carry.
+type BadService struct {
+    comments       repositories.NovelComment        // 小说评论仓储
+    readingHistory repositories.NovelReadingHistory // 阅读历史仓储
+}
+
+// Good: no inline comments are needed because the field names are explicit.
+type Service struct {
+    novelCommentRepo   repositories.NovelComment
+    readingHistoryRepo repositories.NovelReadingHistory
+}
+
+// Good when the repository's local pattern intentionally exports injected fields.
+type ExportedService struct {
+    NovelCommentRepo   repositories.NovelComment
+    ReadingHistoryRepo repositories.NovelReadingHistory
+}
+```
+
 Example:
 
 ```go
