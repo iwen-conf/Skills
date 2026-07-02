@@ -1,6 +1,6 @@
 ---
 name: arc:project-architecture-conventions
-description: Apply mandatory backend architecture, DIP, usecase contract result boundaries, zap logging, Go constant rules, and helper file limits before coding.
+description: Apply backend architecture, DIP, usecase result boundaries, zap logging, Go constants, and helper limits.
 ---
 
 # Project Architecture Conventions
@@ -91,7 +91,7 @@ Layer responsibilities:
 - `domain/repositories`: Persistence ports consumed by usecases. Define business persistence needs here; do not mention SQL tables, Mongo collections, HTTP, or driver types.
 - `domain/services`: Pure domain operations that do not naturally belong to one entity, especially rules involving multiple entities. Do not use this as an application workflow bucket.
 - `usecase/<module>`: Application/business workflows and transaction orchestration. Modules use `contract.go`, `main.go`, `params.go`, `results.go`, optional `errors.go`, and focused `service*.go` files. `Contract` is the controller-facing interface; `Service` implements it and depends on `domain/repositories` plus explicit external capability contracts. Controller-facing `Contract` methods return named usecase result types from `results.go`; do not return raw `domain/entities` from some methods and `*Result` types from others.
-- `interface/restful/controllers`: HTTP boundary. Controllers bind input, authorize, call usecase contracts, map errors, map entity/usecase results to response DTOs, and respond. Controllers must not touch repositories or database drivers directly.
+- `interface/restful/controllers`: HTTP boundary. Controllers bind input, authorize, call usecase contracts, map errors, map named usecase results to response DTOs, and respond. Controllers must not touch repositories or database drivers directly.
 - `interface/restful/dto`: Transport schema only. Request DTOs describe incoming HTTP bodies/queries; response DTOs describe wire output. Do not put entity/usecase-to-DTO mapping constructors, factories, or business helpers there.
 - `infrastructure/gateways`: Concrete external gateways such as Postgres persistence, notification, storage, and recommendation. Persistence uses database models for storage shape and repository implementations for `domain/repositories`. Repositories translate between storage models and domain entities.
 - `infrastructure/support`: Cross-cutting support capabilities such as authorization, cache, logger, and security. Use `contract.go`, `engine.go`, `service.go`, and `main.go` to separate service contracts from concrete engines.
@@ -210,7 +210,7 @@ Example:
 
 ```go
 // Bad: controller-facing contract leaks a domain entity and mixes return styles.
-type Contract interface {
+type BadContract interface {
     GetNovel(ctx context.Context, id int64) (*entities.Novel, error)
     ListNovels(ctx context.Context, query ListNovelsParam) (*ListNovelsResult, error)
 }
