@@ -1,6 +1,6 @@
 ---
 name: arc:project-architecture-conventions
-description: Apply mandatory backend architecture, DIP, zap logging, Go constant rules, and helper file limits before coding.
+description: Apply mandatory backend architecture, DIP, usecase contract result boundaries, zap logging, Go constant rules, and helper file limits before coding.
 ---
 
 # Project Architecture Conventions
@@ -90,7 +90,7 @@ Layer responsibilities:
 - `domain/entities`: Business objects with identity, lifecycle state, and domain invariants. Entity is not DTO and not ORM model. Put entity-local business behavior here when it protects invariants, such as status transitions or validation that belongs to one aggregate. Entities must not contain transport conversion methods such as `ToDTO`, `ToResponse`, or methods returning `dto/responses` types.
 - `domain/repositories`: Persistence ports consumed by usecases. Define business persistence needs here; do not mention SQL tables, Mongo collections, HTTP, or driver types.
 - `domain/services`: Pure domain operations that do not naturally belong to one entity, especially rules involving multiple entities. Do not use this as an application workflow bucket.
-- `usecase/<module>`: Application/business workflows and transaction orchestration. Modules use `contract.go`, `main.go`, `params.go`, `results.go`, optional `errors.go`, and focused `service*.go` files. `Contract` is the controller-facing interface; `Service` implements it and depends on `domain/repositories` plus explicit external capability contracts.
+- `usecase/<module>`: Application/business workflows and transaction orchestration. Modules use `contract.go`, `main.go`, `params.go`, `results.go`, optional `errors.go`, and focused `service*.go` files. `Contract` is the controller-facing interface; `Service` implements it and depends on `domain/repositories` plus explicit external capability contracts. Controller-facing `Contract` methods return named usecase result types from `results.go`; do not return raw `domain/entities` from some methods and `*Result` types from others.
 - `interface/restful/controllers`: HTTP boundary. Controllers bind input, authorize, call usecase contracts, map errors, map entity/usecase results to response DTOs, and respond. Controllers must not touch repositories or database drivers directly.
 - `interface/restful/dto`: Transport schema only. Request DTOs describe incoming HTTP bodies/queries; response DTOs describe wire output. Do not put entity/usecase-to-DTO mapping constructors, factories, or business helpers there.
 - `infrastructure/gateways`: Concrete external gateways such as Postgres persistence, notification, storage, and recommendation. Persistence uses database models for storage shape and repository implementations for `domain/repositories`. Repositories translate between storage models and domain entities.
@@ -108,7 +108,7 @@ Keep these three structures separate:
 
 Conversion ownership:
 
-- Controller or another HTTP-boundary mapper converts REST request DTOs into usecase params and converts usecase/entity results into REST response DTOs. REST DTOs must not enter `usecase`.
+- Controller or another HTTP-boundary mapper converts REST request DTOs into usecase params and converts named usecase results into REST response DTOs. REST DTOs must not enter `usecase`.
 - Usecases convert application params/results into entity operations and coordinate entities, domain services, repositories, and transactions.
 - Domain repository interfaces accept and return entities or domain value objects, not repository models. A method such as `FindByID` returns `*entities.Order`; `Save` accepts `*entities.Order`.
 - Repository implementations convert repository models to domain entities on reads and domain entities to repository models on writes.
@@ -192,7 +192,35 @@ Rules:
 - Response DTO packages must not import `internal/domain`, `internal/usecase`, repositories, database models, Gin, or database drivers for mapping. Keep DTO files as named wire-contract structs plus harmless envelope constants/types.
 - Domain entities must not import `dto/responses` or expose response conversion methods. Do not add methods like `func (a ActivityCategory) ToDTO() responses.ActivityCategoryDTO`; that reverses the dependency direction.
 - Do not add constructors, factories, or mapper helpers only to satisfy this rule; direct struct literals are fine unless the repository already has a helper pattern.
-- If conversion from entities or usecase results is nontrivial, put the mapper at the HTTP boundary that owns the transport contract, usually `internal/interface/restful/controllers` or a focused mapper file in that package. Do not add functions like `responses.NewUser(entity)` or `responses.NewUserList(usecaseResult)`.
+- If conversion from usecase results to response DTOs is nontrivial, put the mapper at the HTTP boundary that owns the transport contract, usually `internal/interface/restful/controllers` or a focused mapper file in that package. Do not add functions like `responses.NewUser(result)` or `responses.NewUserList(usecaseResult)`.
+
+## Usecase Contract Results
+
+Keep controller-facing usecase contracts stable and application-shaped. A `Contract` method should accept named `Param` types and return named `Result` types plus `error`, even when the service internally loads or mutates a single domain entity.
+
+Rules:
+
+- Define request inputs in `params.go` and return payloads in `results.go`.
+- Do not expose `*entities.Xxx`, `[]*entities.Xxx`, repository models, REST DTOs, or database driver types from `Contract` methods.
+- Do not mix raw entity returns and result returns in the same `Contract`; a method set like `GetNovel(...) (*entities.Novel, error)` plus `ListNovels(...) (*ListNovelsResult, error)` is inconsistent.
+- Keep domain entities inside usecase implementation and repository/domain boundaries. Convert entity fields into usecase result structs before returning to controllers.
+- Result structs may contain nested usecase result fragments, scalar value objects, pagination metadata, and operator-facing state needed by the controller mapper. They must not contain Gin, REST response DTOs, ORM models, or storage tags.
+
+Example:
+
+```go
+// Bad: controller-facing contract leaks a domain entity and mixes return styles.
+type Contract interface {
+    GetNovel(ctx context.Context, id int64) (*entities.Novel, error)
+    ListNovels(ctx context.Context, query ListNovelsParam) (*ListNovelsResult, error)
+}
+
+// Good: all controller-facing returns are usecase result types.
+type Contract interface {
+    GetNovel(ctx context.Context, param GetNovelParam) (*NovelResult, error)
+    ListNovels(ctx context.Context, query ListNovelsParam) (*ListNovelsResult, error)
+}
+```
 
 ## Dependency Direction
 
@@ -351,7 +379,7 @@ Follow this helper placement:
 - Each interface is justified by a layer boundary, external capability, test seam, or multiple implementations.
 - Concrete infrastructure is wired in `internal/wire` and implements domain or capability contracts.
 - Injected repository fields are named with the repository contract plus `Repo`, such as `novelCommentRepo repositories.NovelComment` or intentionally exported `NovelCommentRepo repositories.NovelComment`, instead of vague plural nouns plus explanatory comments.
-- Usecase `contract.go` contains the exported controller-facing contract, not concrete service or adapter logic.
+- Usecase `contract.go` contains the exported controller-facing contract, not concrete service or adapter logic, and its methods return named usecase result types instead of raw domain entities.
 - List/query contracts return success with empty collections for no-data results; single-resource missing cases are represented intentionally as `not found` only when the product flow needs a missing-resource error state.
 - Controllers and frontend DTOs can distinguish empty, not-found, permission-denied, validation error, and system error without relying on generic error text.
 - Zap logging is initialized once, injected explicitly, structured with stable fields, and added only at useful business or operational boundaries.
