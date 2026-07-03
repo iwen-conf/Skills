@@ -85,12 +85,14 @@ backend/
 └── migrations/{up,down}/
 ```
 
+The `domain` directory is a strict whitelist: use only `entities`, `events`, `filters`, `repositories`, and `services` unless the host repository already has a deliberate stronger convention. Do not create `internal/domain/gateways`, `internal/domain/ports`, `internal/domain/adapters`, or `internal/domain/clients` to hold external integration interfaces. `gateways` is an infrastructure concept in this architecture.
+
 Layer responsibilities:
 
 - `domain/entities`: Business objects with identity, lifecycle state, and domain invariants. Entity is not DTO and not ORM model. Put entity-local business behavior here when it protects invariants, such as status transitions or validation that belongs to one aggregate. Entities must not contain transport conversion methods such as `ToDTO`, `ToResponse`, or methods returning `dto/responses` types.
 - `domain/repositories`: Persistence ports consumed by usecases. Define business persistence needs here; do not mention SQL tables, Mongo collections, HTTP, or driver types.
 - `domain/services`: Pure domain operations that do not naturally belong to one entity, especially rules involving multiple entities. Do not use this as an application workflow bucket.
-- `usecase/<module>`: Application/business workflows and transaction orchestration. Modules use `contract.go`, `main.go`, `params.go`, `results.go`, optional `errors.go`, and focused `service*.go` files. `Contract` is the controller-facing interface; `Service` implements it and depends on `domain/repositories` plus explicit external capability contracts. Controller-facing `Contract` methods return named usecase result types from `results.go`; do not return raw `domain/entities` from some methods and `*Result` types from others.
+- `usecase/<module>`: Application/business workflows and transaction orchestration. Modules use `contract.go`, `main.go`, `params.go`, `results.go`, optional `errors.go`, and focused `service*.go` files. `Contract` is the controller-facing interface; `Service` implements it and depends on `domain/repositories` plus explicit external capability contracts owned by the usecase module. Controller-facing `Contract` methods return named usecase result types from `results.go`; do not return raw `domain/entities` from some methods and `*Result` types from others.
 - `interface/restful/controllers`: HTTP boundary. Controllers bind input, authorize, call usecase contracts, map errors, map named usecase results to response DTOs, and respond. Controllers must not touch repositories or database drivers directly.
 - `interface/restful/dto`: Transport schema only. Request DTOs describe incoming HTTP bodies/queries; response DTOs describe wire output. Do not put entity/usecase-to-DTO mapping constructors, factories, or business helpers there.
 - `infrastructure/gateways`: Concrete external gateways such as Postgres persistence, notification, storage, and recommendation. Persistence uses database models for storage shape and repository implementations for `domain/repositories`. Repositories translate between storage models and domain entities.
@@ -219,6 +221,37 @@ type BadContract interface {
 type Contract interface {
     GetNovel(ctx context.Context, param GetNovelParam) (*NovelResult, error)
     ListNovels(ctx context.Context, query ListNovelsParam) (*ListNovelsResult, error)
+}
+```
+
+## External Capability Contracts
+
+When a usecase needs payment, notification, storage, recommendation, search, moderation, or another external capability, define the narrow capability interface in the usecase package that consumes it, or in `internal/usecase/shared` only after real reuse. Concrete adapters live under `internal/infrastructure/gateways/<capability>` or `internal/infrastructure/support/<capability>` and are wired in `internal/wire`.
+
+Rules:
+
+- Do not create `internal/domain/gateways` for external capability ports. That package name is forbidden in this architecture.
+- Do not put payment, notification, storage, search, moderation, or SDK-oriented contracts in `domain/repositories`; repositories are persistence ports.
+- Do not make domain entities or pure domain services depend on external capability interfaces.
+- Name usecase-owned external capability interfaces by business capability, not by infrastructure folder. Prefer `PaymentProcessor`, `Notifier`, `ObjectStore`, `SearchClient`, or a repository-local established name over `Gateway`.
+- Keep the usecase-owned interface minimal: only the methods required by that usecase workflow. Do not mirror an SDK or create a broad shared client contract.
+- Infrastructure gateway packages may expose constructors and concrete services, but usecases must receive the usecase-owned interface through `New(...)`; only `wire` connects the concrete gateway to the usecase contract.
+
+Example:
+
+```go
+// Bad: domain/gateways is a fake layer and turns domain into an integration bucket.
+package gateways
+
+type PaymentGateway interface {
+    CreateCheckoutSession(ctx context.Context, orderID int64) (string, error)
+}
+
+// Good: the consuming usecase owns the narrow capability it needs.
+package order
+
+type PaymentProcessor interface {
+    CreateCheckoutSession(ctx context.Context, orderID int64) (*CheckoutSessionResult, error)
 }
 ```
 
@@ -378,6 +411,7 @@ Follow this helper placement:
 - Business code depends on `domain/repositories` or explicit capability contracts instead of concrete infrastructure.
 - Each interface is justified by a layer boundary, external capability, test seam, or multiple implementations.
 - Concrete infrastructure is wired in `internal/wire` and implements domain or capability contracts.
+- No `internal/domain/gateways`, `internal/domain/ports`, `internal/domain/adapters`, or `internal/domain/clients` package exists; external capability contracts consumed by usecases are owned by usecase packages.
 - Injected repository fields are named with the repository contract plus `Repo`, such as `novelCommentRepo repositories.NovelComment` or intentionally exported `NovelCommentRepo repositories.NovelComment`, instead of vague plural nouns plus explanatory comments.
 - Usecase `contract.go` contains the exported controller-facing contract, not concrete service or adapter logic, and its methods return named usecase result types instead of raw domain entities.
 - List/query contracts return success with empty collections for no-data results; single-resource missing cases are represented intentionally as `not found` only when the product flow needs a missing-resource error state.

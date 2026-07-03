@@ -31,6 +31,8 @@ backend/
 └── migrations/{up,down}/
 ```
 
+`internal/domain` is a strict whitelist in this architecture: `entities`, `events`, `filters`, `repositories`, and `services`. Do not create `internal/domain/gateways`, `internal/domain/ports`, `internal/domain/adapters`, or `internal/domain/clients`. External integration adapters belong under `internal/infrastructure/gateways`, and external capability interfaces consumed by usecases belong to the consuming usecase package.
+
 ## Dependency Direction
 
 ```text
@@ -52,8 +54,8 @@ Rules:
 - `domain/entities`: Business objects with identity, lifecycle state, domain behavior, and invariants. Entity is not DTO and not ORM model. Put entity-local rules here when they protect consistency, such as status transitions, balance changes, freeze/unfreeze, or field changes with business validation. Do not put HTTP/DTO conversion methods on entities.
 - `domain/repositories`: Repository interfaces consumed by usecases. Define business persistence capabilities, such as `FindByID`, `Save`, or `ListByOwner`. Do not mention SQL tables, Mongo collections, HTTP, pgx, GORM, or driver-specific types. Example: `type Course interface { List(...); GetByID(...); Create(...); Update(...) }`.
 - `domain/services`: Pure domain services when a rule spans multiple entities or value objects and does not naturally belong to one entity. Keep them free of persistence, transport, logging, and workflow orchestration.
-- `usecase/<module>`: Application workflows, authorization decisions that are application-specific, transaction orchestration, calls to repository ports, and calls to explicit external capability contracts. Controllers depend on the module `Contract`. Usecases coordinate entities; they should not become storage adapters or HTTP handlers.
-- `interface/restful/controllers`: HTTP handlers. They bind/validate request input, authorize at the transport boundary when applicable, call usecase contracts, map errors, map entity/usecase results to response DTOs, and respond. They own transport mapping helpers when conversion is needed.
+- `usecase/<module>`: Application workflows, authorization decisions that are application-specific, transaction orchestration, calls to repository ports, and calls to usecase-owned external capability contracts. Controllers depend on the module `Contract`. Usecases coordinate entities; they should not become storage adapters or HTTP handlers.
+- `interface/restful/controllers`: HTTP handlers. They bind/validate request input, authorize at the transport boundary when applicable, call usecase contracts, map errors, map named usecase results to response DTOs, and respond. They own transport mapping helpers when conversion is needed.
 - `interface/restful/dto/requests`: Named request DTOs and reusable request fragments. Keep this package as transport schema only.
 - `interface/restful/dto/responses`: Named response DTOs, response envelope base types, and harmless response constants. Keep this package as transport schema only; do not put entity/usecase-to-DTO mapper constructors, factories, or business helpers here.
 - `infrastructure/gateways/persistence/postgres/models`: Database row/table models and storage-shape conversion. ORM/database models are not domain entities.
@@ -101,12 +103,12 @@ Data flow:
 
 ```text
 HTTP request -> request DTO -> usecase params -> entity/usecase workflow -> repository interface -> repository model -> database
-database -> repository model -> repository interface -> entity/usecase result -> response DTO -> HTTP response
+database -> repository model -> repository interface -> entity/usecase workflow -> usecase result -> response DTO -> HTTP response
 ```
 
 Conversion responsibility:
 
-- HTTP boundary converts REST request DTOs to usecase params and usecase/entity results to REST response DTOs. REST DTOs must not enter `usecase`.
+- HTTP boundary converts REST request DTOs to usecase params and named usecase results to REST response DTOs. REST DTOs must not enter `usecase`.
 - Usecases convert application params/results into entity operations and coordinate entities, domain services, repositories, and transactions.
 - Domain repository interfaces accept and return entities or domain value objects, not repository models. A method such as `FindByID` returns `*entities.Order`; `Save` accepts `*entities.Order`.
 - Infrastructure repository implementations convert repository models to entities on reads and entities to repository models on writes.
@@ -162,10 +164,17 @@ Use explicit contracts at real boundaries:
 
 - Usecase boundary: `internal/usecase/<module>/Contract`.
 - Repository boundary: `internal/domain/repositories.<Entity>`. Repository interfaces speak domain language and accept/return entities or domain value objects, never infrastructure repository models.
-- External capability boundary: package-local `Contract` interfaces in `infrastructure/gateways/*` or `infrastructure/support/*`.
+- External capability boundary consumed by a usecase: narrow interfaces owned by the consuming `internal/usecase/<module>` package, or `internal/usecase/shared` only after real reuse. Concrete adapters live in `infrastructure/gateways/*` or `infrastructure/support/*` and are wired to the usecase in `internal/wire`.
 - Engine boundary for swappable low-level implementations: `Engine` interfaces in support/gateway packages such as cache or storage.
 
 Avoid interfaces for private helpers or same-package pure functions. Add an interface only for a layer boundary, external capability, test seam, or multiple implementations.
+
+Forbidden external capability shortcuts:
+
+- Do not create `internal/domain/gateways`, `internal/domain/ports`, `internal/domain/adapters`, or `internal/domain/clients`.
+- Do not put payment, notification, storage, search, moderation, or SDK-oriented contracts in `domain/repositories`; repositories are persistence ports only.
+- Do not let domain entities or pure domain services depend on external capability contracts.
+- Do not mirror third-party SDK clients as broad shared interfaces. Define only the methods the usecase workflow needs.
 
 ## Constructor And Naming Patterns
 
@@ -290,7 +299,7 @@ Strict rules:
 - DTO packages must not import `internal/domain`, `internal/usecase`, repositories, database models, Gin, or database drivers for mapping.
 - Domain entities must not import `dto/responses` or expose response conversion methods. Do not add methods like `func (a ActivityCategory) ToDTO() responses.ActivityCategoryDTO`; that reverses the dependency direction.
 - Do not add constructors, factories, or mapper helpers only to satisfy this rule. Use direct struct literals unless the repository already has a helper pattern.
-- If conversion from entities or usecase results is nontrivial, place it at the HTTP boundary that owns the transport contract, usually `internal/interface/restful/controllers` or a focused mapper file in that package. Do not add functions like `responses.NewUser(entity)` or `responses.NewUserList(usecaseResult)`.
+- If conversion from usecase results to response DTOs is nontrivial, place it at the HTTP boundary that owns the transport contract, usually `internal/interface/restful/controllers` or a focused mapper file in that package. Do not add functions like `responses.NewUser(result)` or `responses.NewUserList(usecaseResult)`.
 
 ## Infrastructure Rules
 
