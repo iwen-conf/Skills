@@ -1,0 +1,4 @@
+interface:
+  display_name: "Task Doc Progress"
+  short_description: "Requirements and task progress docs"
+  default_prompt: "Use $arc:task-doc-progress to organize requirements, create task documents, split subtasks, and maintain progress tracking for large work."

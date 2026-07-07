@@ -1,47 +1,54 @@
 ---
 name: arc:task-doc-progress-conventions
-description: Create and update current-state task docs, pre-constraints, detailed subtasks, and progress tables for large work.
+description: Current-state 需求/任务 docs with pre-constraints, detailed subtasks, indexes, and progress gates.
 ---
 
 # Task Doc Progress Conventions
 
 ## Overview
 
-Use this skill to turn large or multi-step work into persistent task documents before implementation. The task docs must reflect the latest repository state at the time they are created or updated, so the next agent or later session can continue from `docs/` without rereading the whole codebase.
+Use this skill to turn large or multi-step work into persistent local docs before implementation. The docs must capture the latest repository state, so a later session can resume from `docs/` without rediscovering the whole codebase.
+
+Separate raw requirements from executable work:
+
+1. Put original requirements, product notes, data-range notes, and unresolved input under `docs/02-需求`.
+2. Put executable plans, implementation subtasks, migrations, fixes, verification work, and progress state under `docs/01-任务`.
+3. Do not copy large raw requirements into task docs. Link to the relevant requirement docs and restate only the actionable scope, constraints, and acceptance criteria.
 
 For small one-shot fixes, do not create this structure unless the user asks for task docs.
 
 ## When to Use
 
-- Use before coding when the request is a larger feature, migration, refactor, cleanup, bug-fix campaign, or any task likely to span multiple implementation passes.
-- Use when the user asks to "制定计划", "创建任务", "进度跟踪", "任务文档", "拆任务", or says future larger tasks must follow this convention.
-- Use when a task has meaningful prerequisites, non-goals, verification risk, cross-module impact, or open questions that should be captured before implementation.
+- Use before coding when the request is a larger feature, migration, refactor, cleanup, bug-fix campaign, audit follow-up, or any task likely to span multiple implementation passes.
+- Use when the user asks to "制定计划", "创建任务", "进度跟踪", "任务文档", "拆任务", "需求整理", or says future work must follow this convention.
+- Use when a task has prerequisites, non-goals, verification risk, cross-module impact, data migration, security/performance constraints, or open questions that should survive across sessions.
 - Skip for a single-file or obvious small edit unless it needs cross-session tracking.
 
 ## Pre-Implementation Gate
 
-Before changing production code for a large task:
+Before changing production code for large or tracked work:
 
-1. Inspect the latest repository state, including current files, existing docs, local conventions, tests, routes, configs, and affected call sites.
-2. Create or update the task document structure under `docs/`.
-3. Write `00-前置约束.md` before implementation.
-4. Write `进度跟踪表.md` with every planned subtask.
-5. Make every concrete subtask detailed enough for one implementation pass without hidden context.
-6. Mark the first active subtask as `[/]` in both the progress table and the subtask file.
+1. Inspect the latest repository state, including current docs, local task conventions, affected files, tests, routes, configs, migrations, and call sites.
+2. Resolve the requirement/task doc roots and read existing indexes before creating anything.
+3. Create or update the task document structure under the existing task category.
+4. Write `00-前置约束.md` before implementation.
+5. Write or update the central progress table with every planned subtask.
+6. Make every concrete subtask detailed enough for one implementation pass without hidden context.
+7. Mark the first active subtask as `[/]` in both the progress table and the subtask file.
 
 Only discovery commands, code reading, and task-document edits are allowed before this gate is complete.
 
-Task docs are stale if they are not updated immediately when project files, scope, assumptions, or status change.
+Task docs are stale if they are not updated immediately when project files, scope, assumptions, evidence, tests, or status change.
 
 ## Progress Tracking Hard Gate
 
-`进度跟踪表.md` and subtask `状态：...` are the authoritative local execution state for large or tracked work.
+The central progress table and subtask `状态：...` are the authoritative local execution state for large or tracked work.
 
 Hard rules:
 
 1. MUST update progress tracking immediately when starting, pausing, blocking, completing, or verifying a subtask.
 2. MUST update progress tracking immediately when the next action changes because project files, scope, assumptions, evidence, tests, or user decisions changed.
-3. MUST NOT continue implementation while `进度跟踪表.md` or the active subtask status is stale.
+3. MUST NOT continue implementation while the central progress table or active subtask status is stale.
 4. MUST NOT send a final delivery response for tracked work until progress tracking reflects the actual final state.
 5. If verification is skipped or blocked, the progress table completion note MUST record the reason and the next required action.
 
@@ -56,26 +63,47 @@ When another Arc skill is active, use this skill as the local task-planning gate
 5. Use `arc:security` after this skill for multi-finding remediation plans or security-sensitive implementation.
 6. Use `arc:docs` only for Lark synchronization when `.lark.json` exists or the user explicitly enables Lark. Local `docs/` task state still needs to stay current.
 
-If this skill and another skill conflict, keep the stricter gate: do not start implementation until the local task docs, status, and required upstream clarification are current.
+If this skill and another skill conflict, keep the stricter gate: do not start implementation until local task docs, status, and required upstream clarification are current.
 
-## Directory Structure
+## Directory Roots
 
-Resolve the task document root from the project, do not hardcode a fixed `docs/` child path.
+Resolve roots from the project. Do not hardcode paths if the repository already has a local convention.
 
 Rules for `docs/`:
 
-1. Treat immediate children of `docs/` as numbered document categories when they match `DD-分类名`, for example `00-任务` or `01-需求`.
-2. Use the existing task category directory when one exists, such as `DD-任务`.
-3. If `docs/` exists but has no task category, create `DD-任务` using the next available two-digit category number under `docs/`.
-4. If `docs/` does not exist, create `docs/00-任务`.
-5. Follow a project's existing category vocabulary if it uses a clear equivalent of "任务"; do not create a duplicate task category with a different number or name.
+1. Treat immediate children of `docs/` as numbered document categories when they match `DD-分类名`, for example `01-任务` and `02-需求`.
+2. Use the existing task category directory when one exists, such as `01-任务`, `00-任务`, or another clear equivalent of "任务".
+3. Use the existing requirement category directory when one exists, such as `02-需求`, `01-需求`, or another clear equivalent of "需求".
+4. If initializing a docs tree from scratch, prefer `docs/01-任务` and `docs/02-需求`.
+5. If `docs/` exists but has no task category, create `DD-任务` using the next available two-digit category number under `docs/`.
+6. Follow the project's existing category vocabulary and numbering. Do not create a duplicate task or requirement category with a different number or name.
 
-Default structure for a complex task:
+Task category rules:
+
+1. Keep the task category root for `README.md`, index directories such as `00-任务索引/`, local specs such as `00-任务文档与进度跟踪规范/`, and numbered task directories.
+2. For new work, do not add loose top-level topic `.md` files under the task category. Create or reuse a numbered task directory with a `README.md` entry.
+3. Scan `README.md`, `00-任务索引/README.md`, and existing numbered task directories before creating a new top-level task.
+4. Keep one top-level task directory per business domain. If a matching domain exists, add a task group, topic doc, or subtask inside it instead of creating another top-level number.
+5. Historical loose `.md` task entries may remain; update them only when they are the active local entry point.
+
+Requirement category rules:
+
+1. Store unresolved raw input and product/data notes in `docs/DD-需求`.
+2. Use `README.md` as the requirement category index when present.
+3. Promote requirements into `docs/DD-任务` only after they are executable: goals, scope, boundaries, and acceptance criteria are known.
+4. When a task comes from a requirement doc, link the source requirement in the task entry or pre-constraints.
+
+## Default Task Structure
+
+Use a directory entry by default:
 
 ```text
-docs/DD-任务/
-  NN-具体任务名.md
+docs/01-任务/
+  README.md
+  00-任务索引/
+    README.md
   NN-具体任务名/
+    README.md
     00-前置约束.md
     进度跟踪表.md
     tasks/
@@ -85,14 +113,20 @@ docs/DD-任务/
         T01-02-子任务名称.md
 ```
 
+Local compatibility:
+
+1. If the project spec uses `进度跟踪.md`, `00-总进度看板.md`, or direct `TNN-任务组名称/` directories without `tasks/`, follow that existing structure.
+2. If the project already uses paired loose entries such as `NN-具体任务名.md` plus `NN-具体任务名/`, update both when they are active.
+3. If both `进度跟踪.md` and `进度跟踪表.md` exist, update the one referenced by the task entry and do not create a second central table.
+4. If no local convention exists, use the default structure above.
+
 Rules:
 
 - Use two digits for `DD`, task `NN`, `TNN`, and subtask `MM`.
-- `DD` is the `docs/` category sequence; task `NN` is the sequence inside the resolved task category.
-- Pick the next available `NN` by scanning existing task entries.
+- Pick the next available `NN` by scanning existing task directories, loose legacy entries, and indexes.
 - Do not use suffixes such as "最终版", "新版", "临时版", or duplicate progress tables.
-- For simple tracked tasks, a single `NN-具体任务名.md` is acceptable, but it must include goal, scope, status, and acceptance criteria.
-- If the repository already has a stricter local task-document spec, obey the local spec while keeping the pre-constraint and progress-table requirements from this skill.
+- For simple tracked tasks, still create `NN-具体任务名/README.md`; include goal, scope, status, acceptance criteria, and the current state.
+- If the repository already has a stricter local task-document spec, obey the local spec while keeping this skill's pre-constraint and progress-tracking gates.
 
 ## Status Markers
 
@@ -110,47 +144,55 @@ Use these exact status markers:
 Keep statuses synchronized:
 
 - Each subtask file must have `状态：...` near the top.
-- `进度跟踪表.md` and each subtask file must agree.
+- The central progress table and each subtask file must agree.
 - Do not create a separate completed-history table. Put completion notes in the central progress table.
 
 ## Required Files
 
 ### Task Entry
 
-`NN-具体任务名.md` is the entry document. Include:
+`NN-具体任务名/README.md` is the preferred entry document. Include:
 
 1. Task summary.
 2. Usage instructions.
 3. Design boundaries or implementation constraints.
-4. Task group index.
-5. Links to `NN-具体任务名/00-前置约束.md` and `NN-具体任务名/进度跟踪表.md`.
+4. Source requirement links when relevant.
+5. Task group index.
+6. Links to `00-前置约束.md` and the central progress table.
 
 Template:
 
 ```markdown
 # 具体任务名
 
-本文是任务入口。具体任务和进度在 `NN-具体任务名/` 目录。
+本文是任务入口。具体任务和进度在当前目录。
 
 ## 使用方式
 
-1. 先看 `NN-具体任务名/00-前置约束.md`。
-2. 再看 `NN-具体任务名/进度跟踪表.md`。
-3. 只打开当前要做的子任务文件。
-4. 完成后同步更新进度表和子任务状态。
+1. 先看 `00-前置约束.md` 和 `进度跟踪表.md`。
+2. 再打开当前要做的任务组 README 和子任务文件。
+3. 完成后同步更新进度表和子任务状态。
+
+## 需求来源
+
+1. [需求名称](../../02-需求/NN-需求名称.md)
+
+## 设计边界
+
+1. ...
 
 ## 任务索引
 
 | 编号 | 任务组 | 优先级 |
 | --- | --- | --- |
-| T01 | [任务组名称](NN-具体任务名/tasks/T01-任务组名称/README.md) | P0 |
+| T01 | [任务组名称](tasks/T01-任务组名称/README.md) | P0 |
 ```
 
 ### Pre-Constraints
 
 `00-前置约束.md` is mandatory before coding. Include:
 
-1. 目标 and non-goals.
+1. Goal and non-goals.
 2. Scope boundaries and affected modules.
 3. Latest project-state snapshot used to generate the task.
 4. Assumptions that still need verification.
@@ -202,7 +244,7 @@ Template:
 
 ### Task Group README
 
-Each `tasks/TNN-任务组名称/README.md` must include:
+Each `tasks/TNN-任务组名称/README.md` or local equivalent must include:
 
 1. Goal.
 2. Known scope.
@@ -245,7 +287,7 @@ Each subtask must independently guide one implementation pass. Include:
 6. Execution checklist.
 7. Completion criteria.
 8. Latest project facts this subtask depends on.
-9. Files or symbols expected to be touched.
+9. Files, symbols, routes, migrations, data contracts, or UI states expected to be touched.
 10. Verification command or manual check.
 
 Every concrete subtask must be specific to the current project. Do not write generic items such as "实现接口", "补充测试", or "优化代码" without naming the affected files, call sites, data contracts, expected behavior, and verification.
@@ -283,7 +325,7 @@ Template:
 
 ### Progress Table
 
-`进度跟踪表.md` is the only central progress table for the task. It must include all subtasks.
+Use one central progress table per task. Name it according to the local convention, usually `进度跟踪表.md` or `进度跟踪.md`.
 
 Required columns:
 
@@ -291,7 +333,7 @@ Required columns:
 | --- | --- |
 | 状态 | Unified status marker |
 | 编号 | Subtask ID, for example `T01-01` |
-| 优先级 | `P0`, `P1`, or `P2` |
+| 优先级 | `P0`, `P1`, `P2`, `P3`, or `P4` |
 | 子任务 | Link to subtask file |
 | 上级 | Task group ID |
 | 下一步 | Next action for the current status |
@@ -302,8 +344,10 @@ Priority rules:
 | 优先级 | 含义 |
 | --- | --- |
 | P0 | Blocks the main flow, risks data correctness, or blocks task decomposition |
-| P1 | Clearly reduces follow-up maintenance cost but does not block the main flow |
-| P2 | Naming, tests, cleanup, or supplementary verification |
+| P1 | Core functionality or high-value governance that clearly reduces follow-up maintenance cost |
+| P2 | Normal implementation, tests, cleanup, documentation, or supplementary verification |
+| P3 | Schedulable optimization, experience polish, auxiliary tooling, or investigation |
+| P4 | Explicitly low-priority or convenience-only backlog |
 
 Template:
 
@@ -315,17 +359,27 @@ Template:
 | `[ ]` | T01-01 | P0 | [子任务名称](tasks/T01-任务组名称/T01-01-子任务名称.md) | T01 | 下一步动作 |  |
 ```
 
+## Index Maintenance
+
+When creating or moving task/requirement docs:
+
+1. Update the category `README.md` when it exists.
+2. Update `00-任务索引/README.md` when it exists.
+3. Keep task links relative and pointing at the active entry doc.
+4. Record why any historical duplicate or loose legacy task remains.
+5. Do not reorder unrelated historical entries unless the task is explicitly to reorganize docs.
+
 ## Update Flow
 
 Before starting or resuming any subtask:
 
-1. Re-check the affected files, docs, tests, and existing task status.
-2. If the repository changed since the task was written, update `00-前置约束.md`, `进度跟踪表.md`, and the affected subtask files before implementation.
-3. If the change invalidates scope or acceptance criteria, mark the affected rows `[!]` until clarified or rewrite the plan based on the latest state.
+1. Re-check affected files, docs, tests, and existing task status.
+2. If the repository changed since the task was written, update `00-前置约束.md`, the central progress table, and affected subtask files before implementation.
+3. If the change invalidates scope or acceptance criteria, mark affected rows `[!]` until clarified or rewrite the plan based on the latest state.
 
 When starting a subtask:
 
-1. Change its row in `进度跟踪表.md` to `[/]`.
+1. Change its row in the central progress table to `[/]`.
 2. Change the subtask file status to `状态：` `[/]`.
 
 When implementation is done but verification is not done:
@@ -336,7 +390,7 @@ When implementation is done but verification is not done:
 When verification is done:
 
 1. Change both statuses to `[x]`.
-2. Record verification commands and results in `进度跟踪表.md`.
+2. Record verification commands and results in the central progress table.
 3. If tests were not run, record the reason.
 
 When blocked:
@@ -354,17 +408,19 @@ When the project changes during implementation:
 1. Update the current subtask with the new files, symbols, contracts, and verification impact.
 2. Add new subtasks for newly discovered necessary work instead of hiding it in a broad checklist item.
 3. Mark obsolete subtasks `[-]` with the reason, or rewrite them if they remain valid under the new state.
-4. Update `进度跟踪表.md` immediately so status and next action match reality.
+4. Update the central progress table immediately so status and next action match reality.
 
 ## Final Check
 
 Before considering task-document setup complete, verify:
 
-1. The entry document links to the task directory.
-2. `00-前置约束.md` exists and states boundaries before coding.
-3. The docs record the latest repository state used to generate or update the plan.
-4. `进度跟踪表.md` contains every subtask.
-5. Every subtask file has `状态：...`.
-6. Every concrete subtask names current files, scope, outputs, and verification.
-7. The progress table and subtask statuses are consistent.
-8. There are no stale names, stale paths, obsolete assumptions, or duplicate progress tables.
+1. Requirement input, if any, is under the requirement category or linked from there.
+2. The task entry is a numbered directory `README.md` unless local history requires a loose entry.
+3. Existing category indexes are updated.
+4. `00-前置约束.md` exists and states boundaries before coding.
+5. The docs record the latest repository state used to generate or update the plan.
+6. The central progress table contains every subtask.
+7. Every subtask file has `状态：...`.
+8. Every concrete subtask names current files, scope, outputs, and verification.
+9. The progress table and subtask statuses are consistent.
+10. There are no stale names, stale paths, obsolete assumptions, duplicate progress tables, or duplicate top-level business-domain task entries.

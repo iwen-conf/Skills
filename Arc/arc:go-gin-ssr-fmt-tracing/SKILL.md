@@ -9,6 +9,17 @@ description: Add low-cost fmt/time or log.Printf timing probes to Go Gin SSR req
 
 Use this skill to add coarse performance timing to Go/Gin SSR code paths with minimal dependencies. Treat `fmt + time` as a low-cost instrumentation method, not as a profiler: it helps answer "which stage is slow", not "which function, allocation, goroutine, or lock is slow".
 
+## When to Use
+
+Use this skill when the user asks to:
+
+1. Add quick timing logs to a Go/Gin server-rendered page or template path.
+2. Diagnose slow SSR requests when full profiling is not yet available or would be too invasive.
+3. Split request latency into handler, data fetch, view-model build, template render, and response write stages.
+4. Produce temporary, AI-readable timing logs for a focused performance investigation.
+
+Skip this skill when the user needs CPU, heap, allocation, goroutine scheduling, blocking, or lock analysis. Use `pprof` or `go tool trace` for those deeper runtime questions.
+
 ## Positioning
 
 Use stage timing for:
