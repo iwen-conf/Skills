@@ -11,8 +11,8 @@ Use this skill to turn large or multi-step work into persistent local docs befor
 
 Separate raw requirements from executable work:
 
-1. Put original requirements, product notes, data-range notes, and unresolved input under `docs/02-需求`.
-2. Put executable plans, implementation subtasks, migrations, fixes, verification work, and progress state under `docs/01-任务`.
+1. Put original requirements, product notes, data-range notes, and unresolved input under the resolved requirement category such as `docs/DD-需求`.
+2. Put executable plans, implementation subtasks, migrations, fixes, verification work, and progress state under the resolved task category such as `docs/DD-任务`.
 3. Do not copy large raw requirements into task docs. Link to the relevant requirement docs and restate only the actionable scope, constraints, and acceptance criteria.
 
 For small one-shot fixes, do not create this structure unless the user asks for task docs.
@@ -33,22 +33,36 @@ Before changing production code for large or tracked work:
 3. Create or update the task document structure under the existing task category.
 4. Write `00-前置约束.md` before implementation.
 5. Write or update the central progress table with every planned subtask.
-6. Make every concrete subtask detailed enough for one implementation pass without hidden context.
+6. Make every concrete subtask detailed enough for one implementation pass by a low-capability downstream coding model without hidden context.
 7. Mark the first active subtask as `[/]` in both the progress table and the subtask file.
 
 Only discovery commands, code reading, and task-document edits are allowed before this gate is complete.
 
-Task docs are stale if they are not updated immediately when project files, scope, assumptions, evidence, tests, or status change.
+Task docs are stale if they are not updated immediately when project files, scope, assumptions, evidence, tests, or status change. They must be updated immediately when project files, scope, assumptions, or status change.
+
+## Downstream Coding Model Assumption
+
+Assume the plan and subtasks may be handed to a low-intelligence or low-context model for implementation. Therefore every executable task document MUST over-specify the implementation intent enough that the next model does not need to infer missing design decisions.
+
+Required detail:
+
+1. State the exact goal in project terms, not a generic engineering label.
+2. Name affected files, symbols, APIs, routes, tables, data contracts, commands, tests, or UI states.
+3. Describe the intended implementation sequence and where to stop.
+4. Spell out non-goals, invariants, compatibility constraints, and known edge cases.
+5. Describe expected behavior before and after the change, including error and empty states when relevant.
+6. Define verification commands or manual checks with expected results.
+7. Include "do not" instructions for tempting but incorrect shortcuts, broad fallbacks, paper-over fixes, or silent error handling.
 
 ## Progress Tracking Hard Gate
 
-The central progress table and subtask `状态：...` are the authoritative local execution state for large or tracked work.
+The central progress table and subtask `状态：...` are the authoritative local execution state for large or tracked work. `进度跟踪表.md` and subtask `状态：...` are the authoritative local execution state.
 
 Hard rules:
 
 1. MUST update progress tracking immediately when starting, pausing, blocking, completing, or verifying a subtask.
 2. MUST update progress tracking immediately when the next action changes because project files, scope, assumptions, evidence, tests, or user decisions changed.
-3. MUST NOT continue implementation while the central progress table or active subtask status is stale.
+3. MUST NOT continue implementation while the central progress table or active subtask status is stale. MUST NOT continue implementation while `进度跟踪表.md` or the active subtask status is stale.
 4. MUST NOT send a final delivery response for tracked work until progress tracking reflects the actual final state.
 5. If verification is skipped or blocked, the progress table completion note MUST record the reason and the next required action.
 
@@ -67,14 +81,14 @@ If this skill and another skill conflict, keep the stricter gate: do not start i
 
 ## Directory Roots
 
-Resolve roots from the project. Do not hardcode paths if the repository already has a local convention.
+Resolve roots from the project. Resolve the task document root from the project. Do not hardcode paths if the repository already has a local convention.
 
 Rules for `docs/`:
 
 1. Treat immediate children of `docs/` as numbered document categories when they match `DD-分类名`, for example `01-任务` and `02-需求`.
 2. Use the existing task category directory when one exists, such as `01-任务`, `00-任务`, or another clear equivalent of "任务".
 3. Use the existing requirement category directory when one exists, such as `02-需求`, `01-需求`, or another clear equivalent of "需求".
-4. If initializing a docs tree from scratch, prefer `docs/01-任务` and `docs/02-需求`.
+4. If initializing a docs tree from scratch, create numbered categories with the next available `DD`, such as `docs/DD-任务` and `docs/DD-需求`.
 5. If `docs/` exists but has no task category, create `DD-任务` using the next available two-digit category number under `docs/`.
 6. Follow the project's existing category vocabulary and numbering. Do not create a duplicate task or requirement category with a different number or name.
 
@@ -98,7 +112,7 @@ Requirement category rules:
 Use a directory entry by default:
 
 ```text
-docs/01-任务/
+docs/DD-任务/
   README.md
   00-任务索引/
     README.md
@@ -122,7 +136,7 @@ Local compatibility:
 
 Rules:
 
-- Use two digits for `DD`, task `NN`, `TNN`, and subtask `MM`.
+- Use two digits for `DD`, task `NN`, `TNN`, and subtask `MM`; `DD` is the `docs/` category sequence.
 - Pick the next available `NN` by scanning existing task directories, loose legacy entries, and indexes.
 - Do not use suffixes such as "最终版", "新版", "临时版", or duplicate progress tables.
 - For simple tracked tasks, still create `NN-具体任务名/README.md`; include goal, scope, status, acceptance criteria, and the current state.
@@ -159,6 +173,7 @@ Keep statuses synchronized:
 4. Source requirement links when relevant.
 5. Task group index.
 6. Links to `00-前置约束.md` and the central progress table.
+7. A note that downstream implementation may be performed by a low-capability model, so subtasks must be explicit and self-contained.
 
 Template:
 
@@ -172,6 +187,10 @@ Template:
 1. 先看 `00-前置约束.md` 和 `进度跟踪表.md`。
 2. 再打开当前要做的任务组 README 和子任务文件。
 3. 完成后同步更新进度表和子任务状态。
+
+## 执行模型假设
+
+本计划可能交给低智能或低上下文模型编码。任务文档必须把实现意图、影响文件、执行顺序、边界、反例和验证方式写清楚，不依赖执行者自行推断。
 
 ## 需求来源
 
@@ -200,6 +219,7 @@ Template:
 6. Data, compatibility, migration, security, and performance constraints when relevant.
 7. Verification commands or manual checks expected before marking work done.
 8. Blockers and required user decisions.
+9. Downstream coding model assumption and the extra detail required because of it.
 
 Template:
 
@@ -217,6 +237,11 @@ Template:
 ## 边界约束
 
 1. ...
+
+## 执行模型假设
+
+1. 本计划可能交给低智能或低上下文模型编码，后续子任务必须写到可按步骤执行。
+2. 不允许用模糊描述替代具体文件、调用点、数据契约、边界条件、错误处理和验证要求。
 
 ## 已知影响范围
 
@@ -289,6 +314,7 @@ Each subtask must independently guide one implementation pass. Include:
 8. Latest project facts this subtask depends on.
 9. Files, symbols, routes, migrations, data contracts, or UI states expected to be touched.
 10. Verification command or manual check.
+11. Downstream implementation notes for a low-capability coding model: exact sequence, invariants, edge cases, and shortcuts to avoid.
 
 Every concrete subtask must be specific to the current project. Do not write generic items such as "实现接口", "补充测试", or "优化代码" without naming the affected files, call sites, data contracts, expected behavior, and verification.
 
@@ -314,8 +340,13 @@ Template:
 
 ## 执行清单
 
-- [ ] 第一步。
-- [ ] 第二步。
+- [ ] 第一步：说明要改哪个文件/符号、为什么这样改、不要改什么。
+- [ ] 第二步：说明要处理的边界条件、错误路径或兼容行为。
+
+## 下游编码注意
+
+1. 本子任务可能由低智能或低上下文模型执行，必须按上面的文件、顺序和边界实现。
+2. 不要引入兜底逻辑吞掉错误，不要用宽泛重构替代本任务目标，不要修改未列入范围的模块。
 
 ## 完成标准
 

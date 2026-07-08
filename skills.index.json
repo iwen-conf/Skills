@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-07T08:56:33.966283Z",
-  "skill_count": 13,
+  "generated_at": "2026-07-08T10:19:04.937580Z",
+  "skill_count": 12,
   "skills": [
     {
       "name": "arc:audit",
@@ -1005,7 +1005,7 @@
         {
           "heading": "## Backend Architecture",
           "title": "Backend Architecture",
-          "body": "Use this backend architecture as the default for Go backend projects. Names may be adapted only when the host language or existing repository convention requires it; responsibilities and dependency direction must stay the same.\n\n```text\nbackend/\n├── cmd/server/\n├── configs/\n├── internal/\n│   ├── bootstrap/\n│   ├── constants/\n│   ├── domain/{entities,events,filters,repositories,services}/\n│   ├── usecase/<module>/\n│   ├── interface/restful/{controllers,dto/{requests,responses},middlewares,router/routes}/\n│   ├── infrastructure/{gateways,support}/\n│   └── wire/\n└── migrations/{up,down}/\n```\n\nThe `domain` directory is a strict whitelist: use only `entities`, `events`, `filters`, `repositories`, and `services` unless the host repository already has a deliberate stronger convention. Do not create `internal/domain/gateways`, `internal/domain/ports`, `internal/domain/adapters`, or `internal/domain/clients` to hold external integration interfaces. `gateways` is an infrastructure concept in this architecture.\n\nLayer responsibilities:\n\n- `domain/entities`: Business objects with identity, lifecycle state, and domain invariants. Entity is not DTO and not ORM model. Put entity-local business behavior here when it protects invariants, such as status transitions or validation that belongs to one aggregate. Entities must not contain transport conversion methods such as `ToDTO`, `ToResponse`, or methods returning `dto/responses` types.\n- `domain/repositories`: Persistence ports consumed by usecases. Define business persistence needs here; do not mention SQL tables, Mongo collections, HTTP, or driver types.\n- `domain/services`: Pure domain operations that do not naturally belong to one entity, especially rules involving multiple entities. Do not use this as an application workflow bucket.\n- `usecase/<module>`: Application/business workflows and transaction orchestration. Modules use `contract.go`, `main.go`, `params.go`, `results.go`, optional `errors.go`, and focused `service*.go` files. `Contract` is the controller-facing interface; `Service` implements it and depends on `domain/repositories` plus explicit external capability contracts owned by the usecase module. Controller-facing `Contract` methods return named usecase result types from `results.go`; do not return raw `domain/entities` from some methods and `*Result` types from others.\n- `interface/restful/controllers`: HTTP boundary. Controllers bind input, authorize, call usecase contracts, map errors, map named usecase results to response DTOs, and respond. Controllers must not touch repositories or database drivers directly.\n- `interface/restful/dto`: Transport schema only. Request DTOs describe incoming HTTP bodies/queries; response DTOs describe wire output. Do not put entity/usecase-to-DTO mapping constructors, factories, or business helpers there.\n- `infrastructure/gateways`: Concrete external gateways such as Postgres persistence, notification, storage, and recommendation. Persistence uses database models for storage shape and repository implementations for `domain/repositories`. Repositories translate between storage models and domain entities.\n- `infrastructure/support`: Cross-cutting support capabilities such as authorization, cache, logger, and security. Use `contract.go`, `engine.go`, `service.go`, and `main.go` to separate service contracts from concrete engines.\n- `wire`: Composition root. Construct repositories, support services, usecases, controllers, bootstrap, seeds, and application lifecycle. It may import concrete infrastructure; business layers may not.\n- `bootstrap`: Startup domain initialization such as ensuring seed data or super-admin prerequisites after migrations and repository construction."
+          "body": "Use this backend architecture as the default for Go backend projects. Names may be adapted only when the host language or existing repository convention requires it; responsibilities and dependency direction must stay the same.\n\n```text\nbackend/\n├── cmd/server/\n├── configs/\n├── internal/\n│   ├── bootstrap/\n│   ├── constants/\n│   ├── domain/{entities,events,filters,repositories,services}/\n│   ├── usecase/<module>/\n│   ├── interface/restful/{controllers,dto/{requests,responses},middlewares,router/routes}/\n│   ├── infrastructure/{gateways,support}/\n│   └── wire/\n└── migrations/{up,down}/\n```\n\nThe `domain` directory is a strict whitelist: use only `entities`, `events`, `filters`, `repositories`, and `services` unless the host repository already has a deliberate stronger convention. Do not create `internal/domain/gateways`, `internal/domain/ports`, `internal/domain/adapters`, or `internal/domain/clients` to hold external integration interfaces. `gateways` is an infrastructure concept in this architecture.\n\nLayer responsibilities:\n\n- `domain/entities`: Business objects with identity, lifecycle state, and domain invariants. Entity is not DTO and not ORM model. Put entity-local business behavior here when it protects invariants, such as status transitions or validation that belongs to one aggregate. Entities must not contain transport conversion methods such as `ToDTO`, `ToResponse`, or methods returning `dto/responses` types.\n- `domain/repositories`: Persistence ports consumed by usecases. Define business persistence needs here; do not mention SQL tables, Mongo collections, HTTP, or driver types.\n- `domain/services`: Pure domain operations that do not naturally belong to one entity, especially rules involving multiple entities. Do not use this as an application workflow bucket.\n- `usecase/<module>`: Application/business workflows and transaction orchestration. Modules use `contract.go`, `main.go`, `params.go`, `results.go`, optional `errors.go`, and focused `service*.go` files. `Contract` is the controller-facing interface; `Service` implements it and depends on `domain/repositories` plus explicit external capability contracts owned by the usecase module. Controller-facing `Contract` methods return named usecase result types from `results.go`; do not return raw `domain/entities` from some methods and `*Result` types from others.\n- `interface/restful/controllers`: HTTP boundary. Controllers bind input, authorize, call usecase contracts, map errors, map entity/usecase results to response DTOs, and respond. Controllers must not touch repositories or database drivers directly.\n- `interface/restful/dto`: Transport schema only. Request DTOs describe incoming HTTP bodies/queries; response DTOs describe wire output. Do not put entity/usecase-to-DTO mapping constructors, factories, or business helpers there.\n- `infrastructure/gateways`: Concrete external gateways such as Postgres persistence, notification, storage, and recommendation. Persistence uses database models for storage shape and repository implementations for `domain/repositories`. Repositories translate between storage models and domain entities.\n- `infrastructure/support`: Cross-cutting support capabilities such as authorization, cache, logger, and security. Use `contract.go`, `engine.go`, `service.go`, and `main.go` to separate service contracts from concrete engines.\n- `wire`: Composition root. Construct repositories, support services, usecases, controllers, bootstrap, seeds, and application lifecycle. It may import concrete infrastructure; business layers may not.\n- `bootstrap`: Startup domain initialization such as ensuring seed data or super-admin prerequisites after migrations and repository construction."
         },
         {
           "heading": "## DTO, Entity, And Repository Model Boundaries",
@@ -1015,7 +1015,7 @@
         {
           "heading": "## Go Response DTO Composition",
           "title": "Go Response DTO Composition",
-          "body": "For Go REST APIs, plan response bodies as named DTO compositions. Do not return dynamic maps or catch-all envelopes from controllers.\n\nDefine the shared response base in `internal/interface/restful/dto/responses/base.go`; if the host repository already uses singular `dto/response`, keep that local package name instead of renaming only for this rule. Preserve the repository's established base type name, such as `Base`, `BaseResponse`, or `ResponseBase`.\n\n```go\ntype Base struct {\n    Success bool   `json:\"success\"`\n    Message string `json:\"message\"`\n}\n\nvar SuccessBase = Base{\n    Success: true,\n    Message: \"ok\",\n}\n```\n\nEvery endpoint response must define its own named response struct in the response DTO package. Embed `Base` and use explicit concrete fields.\n\n```go\ntype User struct {\n    ID   int    `json:\"id\"`\n    Name string `json:\"name\"`\n}\n\ntype UserResp struct {\n    Base\n    Data User `json:\"data\"`\n}\n\ntype UserListResp struct {\n    Base\n    Data []User `json:\"data\"`\n}\n\ntype Page struct {\n    Page     int   `json:\"page\"`\n    PageSize int   `json:\"page_size\"`\n    Total    int64 `json:\"total\"`\n}\n\ntype UserPageResp struct {\n    Base\n    Data []User `json:\"data\"`\n    Page Page   `json:\"page\"`\n}\n\ntype UserCursorResp struct {\n    Base\n    Data   []User                    `json:\"data\"`\n    Cursor pagination.CursorResponse `json:\"cursor\"`\n}\n```\n\nUse `Base: SuccessBase` directly in the controller response literal.\n\nRules:\n\n- Split shared response schema by responsibility: `base.go` contains only the base envelope and base constants/helpers, `meta.go` contains shared response metadata such as `Meta`, `Pagination`, cursor, or page structs, and feature files such as `activity_category.go` contain only that resource's DTOs and endpoint response structs.\n- Do not put `BaseResponse`, `Meta`, `Pagination`, and feature DTOs in one feature response file. Shared schema belongs in shared files.\n- `Data` must be a concrete DTO type or slice of a concrete DTO type, such as `User` or `[]User`.\n- Page-number pagination uses `Page Page` metadata (`page`, `page_size`, `total`); cursor pagination uses cursor metadata (`next_cursor`, `prev_cursor`, `has_more`). Do not mix the two contracts.\n- Use `github.com/iwen-conf/utils-pkg/pagination` when available: `CursorRequest`, `CursorResponse`, and `NewHMACCodec` for cursor pagination; `OffsetRequest` and `OffsetResponse` for offset/limit APIs. If the public API is `page/page_size`, map it explicitly to query offset/limit instead of exposing cursor fields.\n- Runtime response bodies must not use `any`, `interface{}`, `map[string]any`, `gin.H`, anonymous structs, or generic catch-all envelopes such as `Response[T any]`.\n- Response DTO packages must not import `internal/domain`, `internal/usecase`, repositories, database models, Gin, or database drivers for mapping. Keep DTO files as named wire-contract structs plus harmless envelope constants/types.\n- Domain entities must not import `dto/responses` or expose response conversion methods. Do not add methods like `func (a ActivityCategory) ToDTO() responses.ActivityCategoryDTO`; that reverses the dependency direction.\n- Do not add constructors, factories, or mapper helpers only to satisfy this rule; direct struct literals are fine unless the repository already has a helper pattern.\n- If conversion from usecase results to response DTOs is nontrivial, put the mapper at the HTTP boundary that owns the transport contract, usually `internal/interface/restful/controllers` or a focused mapper file in that package. Do not add functions like `responses.NewUser(result)` or `responses.NewUserList(usecaseResult)`."
+          "body": "For Go REST APIs, plan response bodies as named DTO compositions. Do not return dynamic maps or catch-all envelopes from controllers.\n\nDefine the shared response base in `internal/interface/restful/dto/responses/base.go`; if the host repository already uses singular `dto/response`, keep that local package name instead of renaming only for this rule. Preserve the repository's established base type name, such as `Base`, `BaseResponse`, or `ResponseBase`.\n\n```go\ntype Base struct {\n    Success bool   `json:\"success\"`\n    Message string `json:\"message\"`\n}\n\nvar SuccessBase = Base{\n    Success: true,\n    Message: \"ok\",\n}\n```\n\nEvery endpoint response must define its own named response struct in the response DTO package. Embed `Base` and use explicit concrete fields.\n\n```go\ntype User struct {\n    ID   int    `json:\"id\"`\n    Name string `json:\"name\"`\n}\n\ntype UserResp struct {\n    Base\n    Data User `json:\"data\"`\n}\n\ntype UserListResp struct {\n    Base\n    Data []User `json:\"data\"`\n}\n\ntype Page struct {\n    Page     int   `json:\"page\"`\n    PageSize int   `json:\"page_size\"`\n    Total    int64 `json:\"total\"`\n}\n\ntype UserPageResp struct {\n    Base\n    Data []User `json:\"data\"`\n    Page Page   `json:\"page\"`\n}\n\ntype UserCursorResp struct {\n    Base\n    Data   []User                    `json:\"data\"`\n    Cursor pagination.CursorResponse `json:\"cursor\"`\n}\n```\n\nUse `Base: SuccessBase` directly in the controller response literal.\n\nRules:\n\n- Split shared response schema by responsibility: `base.go` contains only the base envelope and base constants/helpers, `meta.go` contains shared response metadata such as `Meta`, `Pagination`, cursor, or page structs, and feature files such as `activity_category.go` contain only that resource's DTOs and endpoint response structs.\n- Do not put `BaseResponse`, `Meta`, `Pagination`, and feature DTOs in one feature response file. Shared schema belongs in shared files.\n- `Data` must be a concrete DTO type or slice of a concrete DTO type, such as `User` or `[]User`.\n- Page-number pagination uses `Page Page` metadata (`page`, `page_size`, `total`); cursor pagination uses cursor metadata (`next_cursor`, `prev_cursor`, `has_more`). Do not mix the two contracts.\n- Use `github.com/iwen-conf/utils-pkg/pagination` when available: `CursorRequest`, `CursorResponse`, and `NewHMACCodec` for cursor pagination; `OffsetRequest` and `OffsetResponse` for offset/limit APIs. If the public API is `page/page_size`, map it explicitly to query offset/limit instead of exposing cursor fields.\n- Runtime response bodies must not use `any`, `interface{}`, `map[string]any`, `gin.H`, anonymous structs, or generic catch-all envelopes such as `Response[T any]`.\n- Response DTO packages must not import `internal/domain`, `internal/usecase`, repositories, database models, Gin, or database drivers for mapping. Keep DTO files as named wire-contract structs plus harmless envelope constants/types.\n- Domain entities must not import `dto/responses` or expose response conversion methods. Do not add methods like `func (a ActivityCategory) ToDTO() responses.ActivityCategoryDTO`; that reverses the dependency direction.\n- Do not add constructors, factories, or mapper helpers only to satisfy this rule; direct struct literals are fine unless the repository already has a helper pattern.\n- If conversion from usecase results to response DTOs is nontrivial, put the mapper at the HTTP boundary that owns the transport contract, usually `internal/interface/restful/controllers` or a focused mapper file in that package. Do not add functions like `responses.NewUser(entity)` or `responses.NewUserList(usecaseResult)`."
         },
         {
           "heading": "## Usecase Contract Results",
@@ -1194,186 +1194,6 @@
       }
     },
     {
-      "name": "arc:task-doc-progress",
-      "description": "Use for large work needing 需求/任务 docs, pre-constraints, subtasks, indexes, and progress tracking.",
-      "source_path": "Arc/arc:task-doc-progress/SKILL.md",
-      "sections": [
-        {
-          "heading": "## Overview",
-          "title": "Overview",
-          "body": "Use this skill to create and maintain persistent local requirement and task documents for large, multi-step work. The goal is to preserve enough current project context that a later session can resume from `docs/` without rereading the whole codebase.\n\nKeep raw requirements separate from executable tasks:\n\n1. Put original requirements, product notes, data-range notes, and unresolved input under `docs/02-需求`.\n2. Put implementation plans, migrations, refactors, fixes, verification work, and progress state under `docs/01-任务`.\n3. Do not copy long raw requirements into task docs. Link to requirement docs and restate only actionable scope, constraints, and acceptance criteria."
-        },
-        {
-          "heading": "## When to Use",
-          "title": "When to Use",
-          "body": "Use this skill when the user asks to:\n\n1. 整理需求, 创建任务, 拆任务, 制定计划, 建进度表, 更新任务文档, or 维护进度跟踪.\n2. Start a larger feature, migration, refactor, cleanup, bug-fix campaign, audit follow-up, or verification campaign.\n3. Record prerequisites, non-goals, data or migration constraints, security or performance boundaries, cross-module impact, or open questions before coding.\n4. Resume tracked work where `docs/01-任务` already contains progress state.\n\nSkip this skill for a small one-shot edit unless the user explicitly asks for task docs or cross-session tracking."
-        },
-        {
-          "heading": "## Decision Flow",
-          "title": "Decision Flow",
-          "body": "Before writing docs, choose the correct action:\n\n1. If the user gives raw or ambiguous product input, create or update `docs/DD-需求` first, then ask or infer only enough to make executable tasks.\n2. If the user gives an executable implementation goal, create or update `docs/DD-任务` directly and link source requirements when they exist.\n3. If a matching business-domain task already exists, reuse it and add a task group or subtask there.\n4. If the work is a new business domain, pick the next available `NN` and create a numbered task directory.\n5. If the repository has a local spec, follow it even when it differs from this default structure, unless it would break the hard gates in this skill.\n\nDo not create a new top-level task just because the wording is new. First check whether it belongs under an existing domain entry such as admin, author, reader, Android, security, testing, data, or observability."
-        },
-        {
-          "heading": "## Required Gate",
-          "title": "Required Gate",
-          "body": "Before changing production code for large or tracked work:\n\n1. Inspect the latest repository state: existing docs, local task spec, indexes, affected files, tests, routes, configs, migrations, and call sites.\n2. Resolve the requirement and task document roots. Do not hardcode paths if the repository has an existing convention.\n3. Read the task category `README.md`, task index, and matching existing task directories before creating a new top-level task.\n4. Create or update the task document structure.\n5. Write `00-前置约束.md` before implementation.\n6. Write or update the central progress table with every planned subtask.\n7. Make every concrete subtask detailed enough for one implementation pass without hidden context.\n8. Mark the first active subtask as `[/]` in both the progress table and the subtask file.\n\nOnly discovery commands, code reading, and task-document edits are allowed before this gate is complete."
-        },
-        {
-          "heading": "## Resume Flow",
-          "title": "Resume Flow",
-          "body": "When continuing existing tracked work:\n\n1. Read the task entry, `00-前置约束.md`, central progress table, and only the active or next candidate subtask files.\n2. Re-check the project files named by the active subtask before trusting old assumptions.\n3. If code, schema, route, config, tests, or user decisions changed, update the pre-constraints, progress table, and affected subtasks before implementation.\n4. Pick the next row in this order: `[/]`, then `[?]` if verification is the next action, then highest-priority `[ ]`, then `[!]` only after the blocker is resolved.\n5. Do not mark work complete from memory. Completion requires the subtask status, progress row, and verification note to match current evidence."
-        },
-        {
-          "heading": "## Directory Roots",
-          "title": "Directory Roots",
-          "body": "Resolve roots from the project:\n\n1. Treat immediate children of `docs/` as numbered categories when they match `DD-分类名`, for example `01-任务` and `02-需求`.\n2. Use the existing task category when present, such as `01-任务`, `00-任务`, or another clear equivalent of \"任务\".\n3. Use the existing requirement category when present, such as `02-需求`, `01-需求`, or another clear equivalent of \"需求\".\n4. If initializing a docs tree from scratch, prefer `docs/01-任务` and `docs/02-需求`.\n5. Follow local numbering and category vocabulary. Do not create duplicate task or requirement categories.\n\nRequirement category rules:\n\n1. Use the requirement category for raw inputs, product notes, and data-range notes.\n2. Maintain the category `README.md` as an index when it exists.\n3. Promote requirements into task docs only after goals, scope, boundaries, and acceptance criteria are executable.\n4. Link source requirement docs from task entries or `00-前置约束.md`.\n\nTask category rules:\n\n1. Keep the task category root for `README.md`, index directories such as `00-任务索引/`, local specs such as `00-任务文档与进度跟踪规范/`, and numbered task directories.\n2. For new work, prefer a numbered task directory with its own `README.md`; do not add loose top-level topic `.md` files unless local history already uses that active entry.\n3. Keep one top-level task directory per business domain. Put new topics under the matching existing domain task when one exists.\n4. Record why any historical duplicate or loose legacy task remains when touching related indexes."
-        },
-        {
-          "heading": "## Default Task Structure",
-          "title": "Default Task Structure",
-          "body": "Use this structure when the project has no stricter local spec:\n\n```text\ndocs/01-任务/\n  README.md\n  00-任务索引/\n    README.md\n  NN-具体任务名/\n    README.md\n    00-前置约束.md\n    进度跟踪表.md\n    tasks/\n      T01-任务组名称/\n        README.md\n        T01-01-子任务名称.md\n        T01-02-子任务名称.md\n```\n\nCompatibility rules:\n\n1. If the project uses `进度跟踪.md`, `00-总进度看板.md`, or direct `TNN-任务组名称/` directories without `tasks/`, follow that local structure.\n2. If the project uses paired loose entries such as `NN-具体任务名.md` plus `NN-具体任务名/`, update both when they are active.\n3. If both `进度跟踪.md` and `进度跟踪表.md` exist, update the one referenced by the task entry and do not create a second central table.\n4. Use two digits for category `DD`, task `NN`, task group `TNN`, and subtask `MM`.\n5. Never use suffixes such as \"最终版\", \"新版\", \"临时版\", or duplicate progress tables."
-        },
-        {
-          "heading": "## Status And Priority",
-          "title": "Status And Priority",
-          "body": "Use these exact status markers:\n\n| 状态 | 含义 | 使用时机 |\n| --- | --- | --- |\n| `[ ]` | 未开始 | 尚未分析或编码 |\n| `[/]` | 进行中 | 正在分析、编码或整理 |\n| `[?]` | 待验证 | 已完成改动，等待测试或人工确认 |\n| `[x]` | 已完成 | 已满足验收标准 |\n| `[!]` | 阻塞 | 需要用户输入、外部环境或前置任务 |\n| `[-]` | 暂缓 | 明确本阶段不做 |\n\nKeep statuses synchronized:\n\n1. Each subtask file must have `状态：...` near the top.\n2. The central progress table and subtask files must agree.\n3. Do not create a separate completed-history table. Put completion notes in the central progress table.\n\nUse these priorities:\n\n| 优先级 | 含义 |\n| --- | --- |\n| P0 | Blocks the main flow, risks data correctness, or blocks task decomposition |\n| P1 | Core functionality or high-value governance that reduces follow-up maintenance cost |\n| P2 | Normal implementation, tests, cleanup, documentation, or supplementary verification |\n| P3 | Schedulable optimization, experience polish, auxiliary tooling, or investigation |\n| P4 | Explicitly low-priority or convenience-only backlog |"
-        },
-        {
-          "heading": "## Required Documents",
-          "title": "Required Documents",
-          "body": "Keep documents factual and executable:\n\n1. Record only facts verified from current files, commands, user input, or linked docs.\n2. Mark assumptions as assumptions, not conclusions.\n3. Put detailed original discussions in requirement docs, not in task subtasks.\n4. Write each subtask so another agent can execute it by opening only the task entry, pre-constraints, progress table, task group README, and that subtask file.\n\n### Task Entry\n\n`NN-具体任务名/README.md` is the preferred task entry. Include:\n\n1. Task summary.\n2. Usage instructions.\n3. Design boundaries or implementation constraints.\n4. Source requirement links when relevant.\n5. Task group index.\n6. Links to `00-前置约束.md` and the central progress table.\n\nTemplate:\n\n```markdown\n# 具体任务名\n\n本文是任务入口。具体任务和进度在当前目录。"
-        },
-        {
-          "heading": "## 使用方式",
-          "title": "使用方式",
-          "body": "1. 先看 `00-前置约束.md` 和 `进度跟踪表.md`。\n2. 再打开当前要做的任务组 README 和子任务文件。\n3. 完成后同步更新进度表和子任务状态。"
-        },
-        {
-          "heading": "## 需求来源",
-          "title": "需求来源",
-          "body": "1. [需求名称](../../02-需求/NN-需求名称.md)"
-        },
-        {
-          "heading": "## 设计边界",
-          "title": "设计边界",
-          "body": "1. ..."
-        },
-        {
-          "heading": "## 任务索引",
-          "title": "任务索引",
-          "body": "| 编号 | 任务组 | 优先级 |\n| --- | --- | --- |\n| T01 | [任务组名称](tasks/T01-任务组名称/README.md) | P0 |\n```\n\n### Pre-Constraints\n\n`00-前置约束.md` is mandatory before coding. Include:\n\n1. Goals and non-goals.\n2. Scope boundaries and affected modules.\n3. Latest project-state snapshot used to generate the task.\n4. Assumptions that still need verification.\n5. Existing local conventions that must not be broken.\n6. Data, compatibility, migration, security, and performance constraints when relevant.\n7. Verification commands or manual checks expected before marking work done.\n8. Blockers and required user decisions.\n\nTemplate:\n\n```markdown\n# 前置约束"
-        },
-        {
-          "heading": "## 目标",
-          "title": "目标",
-          "body": "1. ..."
-        },
-        {
-          "heading": "## 不做范围",
-          "title": "不做范围",
-          "body": "1. ..."
-        },
-        {
-          "heading": "## 边界约束",
-          "title": "边界约束",
-          "body": "1. ..."
-        },
-        {
-          "heading": "## 已知影响范围",
-          "title": "已知影响范围",
-          "body": "1. `path/to/file`"
-        },
-        {
-          "heading": "## 最新项目状态",
-          "title": "最新项目状态",
-          "body": "1. 调研时间：YYYY-MM-DD HH:MM。\n2. 已确认文件/模块：`path/to/file`\n3. 已确认测试/命令：`command`\n4. 本次计划基于以上状态生成；项目变动后必须回写本文件和进度跟踪表。"
-        },
-        {
-          "heading": "## 待确认假设",
-          "title": "待确认假设",
-          "body": "1. ..."
-        },
-        {
-          "heading": "## 验证要求",
-          "title": "验证要求",
-          "body": "1. ..."
-        },
-        {
-          "heading": "## 阻塞项",
-          "title": "阻塞项",
-          "body": "1. 无。\n```\n\n### Task Group README\n\nEach task group `README.md` must include:\n\n1. Goal.\n2. Known scope.\n3. Subtask index.\n4. Acceptance criteria.\n\nTemplate:\n\n```markdown\n# T01 任务组名称"
-        },
-        {
-          "heading": "## 目标",
-          "title": "目标",
-          "body": "说明这个任务组要解决什么问题。"
-        },
-        {
-          "heading": "## 已知范围",
-          "title": "已知范围",
-          "body": "1. `path/to/file`"
-        },
-        {
-          "heading": "## 子任务索引",
-          "title": "子任务索引",
-          "body": "| 状态 | 子任务 | 说明 |\n| --- | --- | --- |\n| `[ ]` | [T01-01 子任务名称](T01-01-子任务名称.md) | 子任务说明 |"
-        },
-        {
-          "heading": "## 验收标准",
-          "title": "验收标准",
-          "body": "1. 标准一。\n```\n\n### Subtask File\n\nEach subtask must independently guide one implementation pass. Include:\n\n1. Title.\n2. Status.\n3. Goal.\n4. Inputs.\n5. Outputs.\n6. Execution checklist.\n7. Completion criteria.\n8. Latest project facts this subtask depends on.\n9. Files, symbols, routes, migrations, data contracts, UI states, or test cases expected to be touched.\n10. Verification command or manual check.\n\nDo not write generic items such as \"实现接口\", \"补充测试\", or \"优化代码\" without naming affected files, call sites, data contracts, expected behavior, and verification.\n\nSubtask quality bar:\n\n1. Name the exact current files, directories, APIs, routes, tables, collections, commands, or UI states involved.\n2. State observable behavior before and after the change.\n3. Define verification that can be run or manually checked.\n4. Keep one subtask to one coherent implementation pass. Split it if it spans unrelated modules or cannot be verified in one pass.\n5. Add newly discovered necessary work as a new subtask instead of hiding it inside a broad checklist item.\n\nTemplate:\n\n```markdown\n# T01-01 子任务名称\n\n状态：`[ ]`"
-        },
-        {
-          "heading": "## 目标",
-          "title": "目标",
-          "body": "一句话说明本子任务要完成什么。"
-        },
-        {
-          "heading": "## 输入",
-          "title": "输入",
-          "body": "1. 输入文件或上游任务。\n2. 最新项目状态依据：`path/to/file`、`command`、调用点或测试结果。"
-        },
-        {
-          "heading": "## 输出",
-          "title": "输出",
-          "body": "1. 产出文件、清单或代码改动。"
-        },
-        {
-          "heading": "## 执行清单",
-          "title": "执行清单",
-          "body": "- [ ] 第一步。\n- [ ] 第二步。"
-        },
-        {
-          "heading": "## 完成标准",
-          "title": "完成标准",
-          "body": "1. 可验证标准。\n2. 需要更新进度跟踪表。\n```\n\n### Progress Table\n\nUse one central progress table per task. Name it according to the local convention, usually `进度跟踪表.md` or `进度跟踪.md`.\n\nRequired columns:\n\n| 字段 | 含义 |\n| --- | --- |\n| 状态 | Unified status marker |\n| 编号 | Subtask ID, for example `T01-01` |\n| 优先级 | `P0`, `P1`, `P2`, `P3`, or `P4` |\n| 子任务 | Link to subtask file |\n| 上级 | Task group ID |\n| 下一步 | Next action for the current status |\n| 完成说明 | Verification command, result, or reason not verified |\n\nTemplate:\n\n```markdown\n# 进度跟踪表\n\n| 状态 | 编号 | 优先级 | 子任务 | 上级 | 下一步 | 完成说明 |\n| --- | --- | --- | --- | --- | --- | --- |\n| `[ ]` | T01-01 | P0 | [子任务名称](tasks/T01-任务组名称/T01-01-子任务名称.md) | T01 | 下一步动作 |  |\n```"
-        },
-        {
-          "heading": "## Index Maintenance",
-          "title": "Index Maintenance",
-          "body": "When creating or moving task or requirement docs:\n\n1. Update the category `README.md` when it exists.\n2. Update `00-任务索引/README.md` when it exists.\n3. Keep links relative and pointing at active entry docs.\n4. Do not reorder unrelated historical entries unless the user asks to reorganize docs."
-        },
-        {
-          "heading": "## Update Flow",
-          "title": "Update Flow",
-          "body": "Before starting or resuming any subtask:\n\n1. Re-check affected files, docs, tests, and existing task status.\n2. If the repository changed since the task was written, update `00-前置约束.md`, the central progress table, and affected subtask files before implementation.\n3. If the change invalidates scope or acceptance criteria, mark affected rows `[!]` until clarified or rewrite the plan based on the latest state.\n\nWhen starting a subtask:\n\n1. Change its row in the central progress table to `[/]`.\n2. Change the subtask file status to `状态：` `[/]`.\n\nWhen implementation is done but verification is not done:\n\n1. Change both statuses to `[?]`.\n2. Record pending verification in the subtask file or progress-table next step.\n\nWhen verification is done:\n\n1. Change both statuses to `[x]`.\n2. Record verification commands and results in the central progress table.\n3. If tests were not run, record the reason.\n\nWhen blocked:\n\n1. Change both statuses to `[!]`.\n2. Record what is blocked, who must provide input, and what is needed.\n\nWhen deferred:\n\n1. Change both statuses to `[-]`.\n2. Record the deferral reason and restart condition.\n\nWhen the project changes during implementation:\n\n1. Update the current subtask with the new files, symbols, contracts, and verification impact.\n2. Add new subtasks for newly discovered necessary work instead of hiding it in a broad checklist item.\n3. Mark obsolete subtasks `[-]` with the reason, or rewrite them if still valid.\n4. Update the central progress table immediately so status and next action match reality."
-        },
-        {
-          "heading": "## Common Failure Modes",
-          "title": "Common Failure Modes",
-          "body": "Avoid these mistakes:\n\n1. Creating a duplicate top-level task when an existing domain task should be reused.\n2. Writing tasks from stale memory without checking current files and indexes.\n3. Mixing raw requirements into execution subtasks.\n4. Creating more than one central progress table for the same task.\n5. Marking `[x]` without a verification command, manual check, or explicit reason verification could not run.\n6. Leaving the progress row at `[ ]` while editing code for that subtask.\n7. Writing broad subtasks that do not name files, contracts, or expected behavior."
-        },
-        {
-          "heading": "## Final Check",
-          "title": "Final Check",
-          "body": "Before considering task-document setup complete, verify:\n\n1. Requirement input, if any, is under the requirement category or linked from there.\n2. The task entry is a numbered directory `README.md` unless local history requires a loose entry.\n3. Existing category indexes are updated.\n4. `00-前置约束.md` exists and states boundaries before coding.\n5. Docs record the latest repository state used to generate or update the plan.\n6. The central progress table contains every subtask.\n7. Every subtask file has `状态：...`.\n8. Every concrete subtask names current files, scope, outputs, and verification.\n9. The progress table and subtask statuses are consistent.\n10. There are no stale names, stale paths, obsolete assumptions, duplicate progress tables, or duplicate top-level business-domain task entries."
-        }
-      ],
-      "quick_contract": null,
-      "input_arguments": null,
-      "outputs_section": null
-    },
-    {
       "name": "arc:task-doc-progress-conventions",
       "description": "Current-state 需求/任务 docs with pre-constraints, detailed subtasks, indexes, and progress gates.",
       "source_path": "Arc/arc:task-doc-progress-conventions/SKILL.md",
@@ -1381,7 +1201,7 @@
         {
           "heading": "## Overview",
           "title": "Overview",
-          "body": "Use this skill to turn large or multi-step work into persistent local docs before implementation. The docs must capture the latest repository state, so a later session can resume from `docs/` without rediscovering the whole codebase.\n\nSeparate raw requirements from executable work:\n\n1. Put original requirements, product notes, data-range notes, and unresolved input under `docs/02-需求`.\n2. Put executable plans, implementation subtasks, migrations, fixes, verification work, and progress state under `docs/01-任务`.\n3. Do not copy large raw requirements into task docs. Link to the relevant requirement docs and restate only the actionable scope, constraints, and acceptance criteria.\n\nFor small one-shot fixes, do not create this structure unless the user asks for task docs."
+          "body": "Use this skill to turn large or multi-step work into persistent local docs before implementation. The docs must capture the latest repository state, so a later session can resume from `docs/` without rediscovering the whole codebase.\n\nSeparate raw requirements from executable work:\n\n1. Put original requirements, product notes, data-range notes, and unresolved input under the resolved requirement category such as `docs/DD-需求`.\n2. Put executable plans, implementation subtasks, migrations, fixes, verification work, and progress state under the resolved task category such as `docs/DD-任务`.\n3. Do not copy large raw requirements into task docs. Link to the relevant requirement docs and restate only the actionable scope, constraints, and acceptance criteria.\n\nFor small one-shot fixes, do not create this structure unless the user asks for task docs."
         },
         {
           "heading": "## When to Use",
@@ -1391,12 +1211,17 @@
         {
           "heading": "## Pre-Implementation Gate",
           "title": "Pre-Implementation Gate",
-          "body": "Before changing production code for large or tracked work:\n\n1. Inspect the latest repository state, including current docs, local task conventions, affected files, tests, routes, configs, migrations, and call sites.\n2. Resolve the requirement/task doc roots and read existing indexes before creating anything.\n3. Create or update the task document structure under the existing task category.\n4. Write `00-前置约束.md` before implementation.\n5. Write or update the central progress table with every planned subtask.\n6. Make every concrete subtask detailed enough for one implementation pass without hidden context.\n7. Mark the first active subtask as `[/]` in both the progress table and the subtask file.\n\nOnly discovery commands, code reading, and task-document edits are allowed before this gate is complete.\n\nTask docs are stale if they are not updated immediately when project files, scope, assumptions, evidence, tests, or status change."
+          "body": "Before changing production code for large or tracked work:\n\n1. Inspect the latest repository state, including current docs, local task conventions, affected files, tests, routes, configs, migrations, and call sites.\n2. Resolve the requirement/task doc roots and read existing indexes before creating anything.\n3. Create or update the task document structure under the existing task category.\n4. Write `00-前置约束.md` before implementation.\n5. Write or update the central progress table with every planned subtask.\n6. Make every concrete subtask detailed enough for one implementation pass by a low-capability downstream coding model without hidden context.\n7. Mark the first active subtask as `[/]` in both the progress table and the subtask file.\n\nOnly discovery commands, code reading, and task-document edits are allowed before this gate is complete.\n\nTask docs are stale if they are not updated immediately when project files, scope, assumptions, evidence, tests, or status change. They must be updated immediately when project files, scope, assumptions, or status change."
+        },
+        {
+          "heading": "## Downstream Coding Model Assumption",
+          "title": "Downstream Coding Model Assumption",
+          "body": "Assume the plan and subtasks may be handed to a low-intelligence or low-context model for implementation. Therefore every executable task document MUST over-specify the implementation intent enough that the next model does not need to infer missing design decisions.\n\nRequired detail:\n\n1. State the exact goal in project terms, not a generic engineering label.\n2. Name affected files, symbols, APIs, routes, tables, data contracts, commands, tests, or UI states.\n3. Describe the intended implementation sequence and where to stop.\n4. Spell out non-goals, invariants, compatibility constraints, and known edge cases.\n5. Describe expected behavior before and after the change, including error and empty states when relevant.\n6. Define verification commands or manual checks with expected results.\n7. Include \"do not\" instructions for tempting but incorrect shortcuts, broad fallbacks, paper-over fixes, or silent error handling."
         },
         {
           "heading": "## Progress Tracking Hard Gate",
           "title": "Progress Tracking Hard Gate",
-          "body": "The central progress table and subtask `状态：...` are the authoritative local execution state for large or tracked work.\n\nHard rules:\n\n1. MUST update progress tracking immediately when starting, pausing, blocking, completing, or verifying a subtask.\n2. MUST update progress tracking immediately when the next action changes because project files, scope, assumptions, evidence, tests, or user decisions changed.\n3. MUST NOT continue implementation while the central progress table or active subtask status is stale.\n4. MUST NOT send a final delivery response for tracked work until progress tracking reflects the actual final state.\n5. If verification is skipped or blocked, the progress table completion note MUST record the reason and the next required action."
+          "body": "The central progress table and subtask `状态：...` are the authoritative local execution state for large or tracked work. `进度跟踪表.md` and subtask `状态：...` are the authoritative local execution state.\n\nHard rules:\n\n1. MUST update progress tracking immediately when starting, pausing, blocking, completing, or verifying a subtask.\n2. MUST update progress tracking immediately when the next action changes because project files, scope, assumptions, evidence, tests, or user decisions changed.\n3. MUST NOT continue implementation while the central progress table or active subtask status is stale. MUST NOT continue implementation while `进度跟踪表.md` or the active subtask status is stale.\n4. MUST NOT send a final delivery response for tracked work until progress tracking reflects the actual final state.\n5. If verification is skipped or blocked, the progress table completion note MUST record the reason and the next required action."
         },
         {
           "heading": "## Integration With Arc Skills",
@@ -1406,12 +1231,12 @@
         {
           "heading": "## Directory Roots",
           "title": "Directory Roots",
-          "body": "Resolve roots from the project. Do not hardcode paths if the repository already has a local convention.\n\nRules for `docs/`:\n\n1. Treat immediate children of `docs/` as numbered document categories when they match `DD-分类名`, for example `01-任务` and `02-需求`.\n2. Use the existing task category directory when one exists, such as `01-任务`, `00-任务`, or another clear equivalent of \"任务\".\n3. Use the existing requirement category directory when one exists, such as `02-需求`, `01-需求`, or another clear equivalent of \"需求\".\n4. If initializing a docs tree from scratch, prefer `docs/01-任务` and `docs/02-需求`.\n5. If `docs/` exists but has no task category, create `DD-任务` using the next available two-digit category number under `docs/`.\n6. Follow the project's existing category vocabulary and numbering. Do not create a duplicate task or requirement category with a different number or name.\n\nTask category rules:\n\n1. Keep the task category root for `README.md`, index directories such as `00-任务索引/`, local specs such as `00-任务文档与进度跟踪规范/`, and numbered task directories.\n2. For new work, do not add loose top-level topic `.md` files under the task category. Create or reuse a numbered task directory with a `README.md` entry.\n3. Scan `README.md`, `00-任务索引/README.md`, and existing numbered task directories before creating a new top-level task.\n4. Keep one top-level task directory per business domain. If a matching domain exists, add a task group, topic doc, or subtask inside it instead of creating another top-level number.\n5. Historical loose `.md` task entries may remain; update them only when they are the active local entry point.\n\nRequirement category rules:\n\n1. Store unresolved raw input and product/data notes in `docs/DD-需求`.\n2. Use `README.md` as the requirement category index when present.\n3. Promote requirements into `docs/DD-任务` only after they are executable: goals, scope, boundaries, and acceptance criteria are known.\n4. When a task comes from a requirement doc, link the source requirement in the task entry or pre-constraints."
+          "body": "Resolve roots from the project. Resolve the task document root from the project. Do not hardcode paths if the repository already has a local convention.\n\nRules for `docs/`:\n\n1. Treat immediate children of `docs/` as numbered document categories when they match `DD-分类名`, for example `01-任务` and `02-需求`.\n2. Use the existing task category directory when one exists, such as `01-任务`, `00-任务`, or another clear equivalent of \"任务\".\n3. Use the existing requirement category directory when one exists, such as `02-需求`, `01-需求`, or another clear equivalent of \"需求\".\n4. If initializing a docs tree from scratch, create numbered categories with the next available `DD`, such as `docs/DD-任务` and `docs/DD-需求`.\n5. If `docs/` exists but has no task category, create `DD-任务` using the next available two-digit category number under `docs/`.\n6. Follow the project's existing category vocabulary and numbering. Do not create a duplicate task or requirement category with a different number or name.\n\nTask category rules:\n\n1. Keep the task category root for `README.md`, index directories such as `00-任务索引/`, local specs such as `00-任务文档与进度跟踪规范/`, and numbered task directories.\n2. For new work, do not add loose top-level topic `.md` files under the task category. Create or reuse a numbered task directory with a `README.md` entry.\n3. Scan `README.md`, `00-任务索引/README.md`, and existing numbered task directories before creating a new top-level task.\n4. Keep one top-level task directory per business domain. If a matching domain exists, add a task group, topic doc, or subtask inside it instead of creating another top-level number.\n5. Historical loose `.md` task entries may remain; update them only when they are the active local entry point.\n\nRequirement category rules:\n\n1. Store unresolved raw input and product/data notes in `docs/DD-需求`.\n2. Use `README.md` as the requirement category index when present.\n3. Promote requirements into `docs/DD-任务` only after they are executable: goals, scope, boundaries, and acceptance criteria are known.\n4. When a task comes from a requirement doc, link the source requirement in the task entry or pre-constraints."
         },
         {
           "heading": "## Default Task Structure",
           "title": "Default Task Structure",
-          "body": "Use a directory entry by default:\n\n```text\ndocs/01-任务/\n  README.md\n  00-任务索引/\n    README.md\n  NN-具体任务名/\n    README.md\n    00-前置约束.md\n    进度跟踪表.md\n    tasks/\n      T01-任务组名称/\n        README.md\n        T01-01-子任务名称.md\n        T01-02-子任务名称.md\n```\n\nLocal compatibility:\n\n1. If the project spec uses `进度跟踪.md`, `00-总进度看板.md`, or direct `TNN-任务组名称/` directories without `tasks/`, follow that existing structure.\n2. If the project already uses paired loose entries such as `NN-具体任务名.md` plus `NN-具体任务名/`, update both when they are active.\n3. If both `进度跟踪.md` and `进度跟踪表.md` exist, update the one referenced by the task entry and do not create a second central table.\n4. If no local convention exists, use the default structure above.\n\nRules:\n\n- Use two digits for `DD`, task `NN`, `TNN`, and subtask `MM`.\n- Pick the next available `NN` by scanning existing task directories, loose legacy entries, and indexes.\n- Do not use suffixes such as \"最终版\", \"新版\", \"临时版\", or duplicate progress tables.\n- For simple tracked tasks, still create `NN-具体任务名/README.md`; include goal, scope, status, acceptance criteria, and the current state.\n- If the repository already has a stricter local task-document spec, obey the local spec while keeping this skill's pre-constraint and progress-tracking gates."
+          "body": "Use a directory entry by default:\n\n```text\ndocs/DD-任务/\n  README.md\n  00-任务索引/\n    README.md\n  NN-具体任务名/\n    README.md\n    00-前置约束.md\n    进度跟踪表.md\n    tasks/\n      T01-任务组名称/\n        README.md\n        T01-01-子任务名称.md\n        T01-02-子任务名称.md\n```\n\nLocal compatibility:\n\n1. If the project spec uses `进度跟踪.md`, `00-总进度看板.md`, or direct `TNN-任务组名称/` directories without `tasks/`, follow that existing structure.\n2. If the project already uses paired loose entries such as `NN-具体任务名.md` plus `NN-具体任务名/`, update both when they are active.\n3. If both `进度跟踪.md` and `进度跟踪表.md` exist, update the one referenced by the task entry and do not create a second central table.\n4. If no local convention exists, use the default structure above.\n\nRules:\n\n- Use two digits for `DD`, task `NN`, `TNN`, and subtask `MM`; `DD` is the `docs/` category sequence.\n- Pick the next available `NN` by scanning existing task directories, loose legacy entries, and indexes.\n- Do not use suffixes such as \"最终版\", \"新版\", \"临时版\", or duplicate progress tables.\n- For simple tracked tasks, still create `NN-具体任务名/README.md`; include goal, scope, status, acceptance criteria, and the current state.\n- If the repository already has a stricter local task-document spec, obey the local spec while keeping this skill's pre-constraint and progress-tracking gates."
         },
         {
           "heading": "## Status Markers",
@@ -1421,12 +1246,17 @@
         {
           "heading": "## Required Files",
           "title": "Required Files",
-          "body": "### Task Entry\n\n`NN-具体任务名/README.md` is the preferred entry document. Include:\n\n1. Task summary.\n2. Usage instructions.\n3. Design boundaries or implementation constraints.\n4. Source requirement links when relevant.\n5. Task group index.\n6. Links to `00-前置约束.md` and the central progress table.\n\nTemplate:\n\n```markdown\n# 具体任务名\n\n本文是任务入口。具体任务和进度在当前目录。"
+          "body": "### Task Entry\n\n`NN-具体任务名/README.md` is the preferred entry document. Include:\n\n1. Task summary.\n2. Usage instructions.\n3. Design boundaries or implementation constraints.\n4. Source requirement links when relevant.\n5. Task group index.\n6. Links to `00-前置约束.md` and the central progress table.\n7. A note that downstream implementation may be performed by a low-capability model, so subtasks must be explicit and self-contained.\n\nTemplate:\n\n```markdown\n# 具体任务名\n\n本文是任务入口。具体任务和进度在当前目录。"
         },
         {
           "heading": "## 使用方式",
           "title": "使用方式",
           "body": "1. 先看 `00-前置约束.md` 和 `进度跟踪表.md`。\n2. 再打开当前要做的任务组 README 和子任务文件。\n3. 完成后同步更新进度表和子任务状态。"
+        },
+        {
+          "heading": "## 执行模型假设",
+          "title": "执行模型假设",
+          "body": "本计划可能交给低智能或低上下文模型编码。任务文档必须把实现意图、影响文件、执行顺序、边界、反例和验证方式写清楚，不依赖执行者自行推断。"
         },
         {
           "heading": "## 需求来源",
@@ -1441,7 +1271,7 @@
         {
           "heading": "## 任务索引",
           "title": "任务索引",
-          "body": "| 编号 | 任务组 | 优先级 |\n| --- | --- | --- |\n| T01 | [任务组名称](tasks/T01-任务组名称/README.md) | P0 |\n```\n\n### Pre-Constraints\n\n`00-前置约束.md` is mandatory before coding. Include:\n\n1. Goal and non-goals.\n2. Scope boundaries and affected modules.\n3. Latest project-state snapshot used to generate the task.\n4. Assumptions that still need verification.\n5. Existing local conventions that must not be broken.\n6. Data, compatibility, migration, security, and performance constraints when relevant.\n7. Verification commands or manual checks expected before marking work done.\n8. Blockers and required user decisions.\n\nTemplate:\n\n```markdown\n# 前置约束"
+          "body": "| 编号 | 任务组 | 优先级 |\n| --- | --- | --- |\n| T01 | [任务组名称](tasks/T01-任务组名称/README.md) | P0 |\n```\n\n### Pre-Constraints\n\n`00-前置约束.md` is mandatory before coding. Include:\n\n1. Goal and non-goals.\n2. Scope boundaries and affected modules.\n3. Latest project-state snapshot used to generate the task.\n4. Assumptions that still need verification.\n5. Existing local conventions that must not be broken.\n6. Data, compatibility, migration, security, and performance constraints when relevant.\n7. Verification commands or manual checks expected before marking work done.\n8. Blockers and required user decisions.\n9. Downstream coding model assumption and the extra detail required because of it.\n\nTemplate:\n\n```markdown\n# 前置约束"
         },
         {
           "heading": "## 目标",
@@ -1457,6 +1287,11 @@
           "heading": "## 边界约束",
           "title": "边界约束",
           "body": "1. ..."
+        },
+        {
+          "heading": "## 执行模型假设",
+          "title": "执行模型假设",
+          "body": "1. 本计划可能交给低智能或低上下文模型编码，后续子任务必须写到可按步骤执行。\n2. 不允许用模糊描述替代具体文件、调用点、数据契约、边界条件、错误处理和验证要求。"
         },
         {
           "heading": "## 已知影响范围",
@@ -1501,7 +1336,7 @@
         {
           "heading": "## 验收标准",
           "title": "验收标准",
-          "body": "1. 标准一。\n```\n\n### Subtask File\n\nEach subtask must independently guide one implementation pass. Include:\n\n1. Title.\n2. Status.\n3. Goal.\n4. Inputs.\n5. Outputs.\n6. Execution checklist.\n7. Completion criteria.\n8. Latest project facts this subtask depends on.\n9. Files, symbols, routes, migrations, data contracts, or UI states expected to be touched.\n10. Verification command or manual check.\n\nEvery concrete subtask must be specific to the current project. Do not write generic items such as \"实现接口\", \"补充测试\", or \"优化代码\" without naming the affected files, call sites, data contracts, expected behavior, and verification.\n\nTemplate:\n\n```markdown\n# T01-01 子任务名称\n\n状态：`[ ]`"
+          "body": "1. 标准一。\n```\n\n### Subtask File\n\nEach subtask must independently guide one implementation pass. Include:\n\n1. Title.\n2. Status.\n3. Goal.\n4. Inputs.\n5. Outputs.\n6. Execution checklist.\n7. Completion criteria.\n8. Latest project facts this subtask depends on.\n9. Files, symbols, routes, migrations, data contracts, or UI states expected to be touched.\n10. Verification command or manual check.\n11. Downstream implementation notes for a low-capability coding model: exact sequence, invariants, edge cases, and shortcuts to avoid.\n\nEvery concrete subtask must be specific to the current project. Do not write generic items such as \"实现接口\", \"补充测试\", or \"优化代码\" without naming the affected files, call sites, data contracts, expected behavior, and verification.\n\nTemplate:\n\n```markdown\n# T01-01 子任务名称\n\n状态：`[ ]`"
         },
         {
           "heading": "## 目标",
@@ -1521,7 +1356,12 @@
         {
           "heading": "## 执行清单",
           "title": "执行清单",
-          "body": "- [ ] 第一步。\n- [ ] 第二步。"
+          "body": "- [ ] 第一步：说明要改哪个文件/符号、为什么这样改、不要改什么。\n- [ ] 第二步：说明要处理的边界条件、错误路径或兼容行为。"
+        },
+        {
+          "heading": "## 下游编码注意",
+          "title": "下游编码注意",
+          "body": "1. 本子任务可能由低智能或低上下文模型执行，必须按上面的文件、顺序和边界实现。\n2. 不要引入兜底逻辑吞掉错误，不要用宽泛重构替代本任务目标，不要修改未列入范围的模块。"
         },
         {
           "heading": "## 完成标准",
