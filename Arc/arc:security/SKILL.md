@@ -1,36 +1,42 @@
 ---
 name: arc:security
-description: "Security automation for SAST, SCA, secrets, Go, API fuzz, DAST scans, and readable Arc handoffs."
+description: "Local SAST/SCA/secrets/DAST automation with data-value re-ranking and Arc handoffs."
 ---
 
 # arc:security
 
 ## Overview
 
-`arc:security` runs local-first security automation for application repositories. It installs and orchestrates CLI scanners, produces human-readable reports, and routes remediation or durable project records through existing Arc skills.
+`arc:security` runs local-first security automation for application repositories. It installs and orchestrates CLI scanners, produces human-readable reports, re-ranks findings by obtainable data impact, and routes remediation or durable project records through existing Arc skills.
 
-Read [`references/security-tooling.md`](references/security-tooling.md) when choosing tools, interpreting scanner limits, or explaining coverage to a user.
+Read:
+
+- [`references/security-tooling.md`](references/security-tooling.md) for tool choice and scanner limits
+- [`references/data-value-ranking.md`](references/data-value-ranking.md) for re-ranking beyond CVSS
+- [`../arc:audit/references/appsec-playbook.md`](../arc:audit/references/appsec-playbook.md) for recon-first methodology shared with `arc:audit`
 
 ## Quick Contract
 
 - **Trigger**: The user asks for security scanning, vulnerability assessment, secure release checks, dependency/secrets review, API fuzzing, or a readable security report.
 - **Inputs**: Project path, optional target URL, optional OpenAPI spec, scan mode, installation preference, and expected report format.
-- **Outputs**: Local security reports, raw scanner artifacts, prioritized findings, remediation handoff, and optional Lark handoff.
-- **Quality Gate**: Scans are local-first, reproducible, evidence-backed, readable, and explicit about skipped tools and manual test gaps.
+- **Outputs**: Local security reports, raw scanner artifacts, data-value-prioritized findings, manual gaps, remediation handoff, and optional Lark handoff.
+- **Quality Gate**: Scans are local-first, reproducible, evidence-backed, readable, explicit about skipped tools and manual gaps, and re-ranked by reachability plus data yield—not scanner severity alone.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
 ## Routing Matrix
 
 - Use `arc:clarify` first if target environment, scan scope, authorization, or destructive-test boundaries are unclear.
-- Use `arc:audit` when the user wants a read-only security review without running active scanners.
-- Use `arc:build` when the task is to add security tooling, scripts, checks, or project configuration.
-- Use `arc:fix` when a concrete vulnerability, failing scanner result, or exploit path must be repaired.
+- Use `arc:audit` with mode `appsec` when the user wants methodology-first read-only security review (asset table, data map, finding cards) without running active scanners—or before scanning when inventory is missing.
+- Use `arc:task-doc-progress-conventions` as `R-task` after multi-finding scan results: merge re-ranked list into the Handoff Package (项目定位/口径/角色/findings) so subtasks stay detailed; do not jump from raw SARIF to code.
+- Use `arc:build` when the task is to add security tooling, scripts, checks, or project configuration—or when implementing a planned security subtask.
+- Use `arc:fix` when a concrete vulnerability, failing scanner result, or exploit path must be repaired under an existing subtask or as a single small fix.
 - Use `arc:frontend` for frontend-specific XSS, CSP, auth UI, route guard, token handling, or browser verification work.
 - Use `arc:docs` only when Lark is active for security reports, risk rows, remediation tasks, approval gates, artifacts, or `.lark.json.lifecycle[]`.
 
 ## Context Search
 
 - MUST inspect project type, package managers, API specs, Docker files, auth boundaries, and existing security tooling before scanning.
+- MUST build or reuse a minimal asset snapshot (entrypoints, OpenAPI, auth boundaries, config/secrets paths) before mass scanning when practical—do not start with unscoped AI monologues.
 - MUST use `.ai-code-index/search.sh` first for broad repository context when available.
 - MUST use `.ai-code-index/struct-search.sh` for risky code shapes such as raw SQL, shell execution, file upload, SSRF fetches, JWT parsing, or auth bypasses.
 - If `.lark.json` exists, MUST read it before security handoff and route durable reports through `arc:docs`.
@@ -48,6 +54,7 @@ NO MULTI-FINDING REMEDIATION PLAN WITHOUT CURRENT LOCAL TASK DOCS.
 NO ACTIVE DAST AGAINST A TARGET WITHOUT AUTHORIZATION.
 NO CLOUD SCAN OR PAID SERVICE WITHOUT USER CONFIRMATION.
 NO LARK SECURITY UPDATE OUTSIDE arc:docs.
+NO FINAL SEVERITY FROM SCANNER SCORE ALONE—RE-RANK BY DATA YIELD AND REACHABILITY.
 ```
 
 ## Hard Constraints
@@ -58,28 +65,33 @@ NO LARK SECURITY UPDATE OUTSIDE arc:docs.
 - MUST redact tokens, cookies, private keys, passwords, and internal secrets from final chat output.
 - MUST preserve raw scanner artifacts locally and summarize findings in Markdown/HTML/JSON.
 - MUST separate confirmed findings, tool warnings, skipped checks, and manual-test gaps.
+- MUST re-rank findings using [`references/data-value-ranking.md`](references/data-value-ranking.md) before remediation planning.
 - MUST apply `arc:task-doc-progress-conventions` before generating multi-finding remediation plans or code-changing security work; task docs must be generated from the latest project state and updated immediately when findings, reachability, affected files, scope, assumptions, or status change.
 - MUST route all Lark writes through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
 - NEVER claim business-logic coverage from automated scanners alone.
-- NEVER treat scanner severity as final severity without checking exploitability, reachability, auth context, and affected environment.
+- NEVER treat scanner severity as final severity without checking exploitability, reachability, auth context, data yield, and affected environment.
+- NEVER flood the machine with every POC/template on first pass when asset count is large—start with secrets/SCA/SAST quick mode, then expand.
 
 ## Workflow
 
 1. Confirm authorization, scan scope, target URL, OpenAPI spec, and whether CLI installation is allowed.
 2. Inspect the project with local index tools and detect stack markers such as `go.mod`, `package.json`, lockfiles, `Dockerfile`, and OpenAPI files.
-3. Install missing local CLI tools with [`scripts/install-security-tools.sh`](scripts/install-security-tools.sh) when requested or necessary.
-4. Run [`scripts/security-scan.py`](scripts/security-scan.py) with the project path and optional `--target-url` / `--openapi` arguments.
-5. Review generated `security-report.md`, `security-report.html`, `security-summary.json`, and raw tool outputs under `.arc/security/<timestamp>/`.
-6. Prioritize findings by confirmed exploitability, asset exposure, severity, reachability, and remediation cost.
-7. For multi-finding remediation plans or code-changing security work, apply `arc:task-doc-progress-conventions` and keep local task status current as findings or project state change.
-8. Route fixes to `arc:fix` or `arc:build`; route read-only review to `arc:audit`; route active Lark project records to `arc:docs`.
+3. **Recon gate (lightweight)**: note public vs authenticated surfaces, config/secret paths, and high-yield data stores. If the user needs a full asset/data map first, run or recommend `arc:audit` mode `appsec` Phase 1–2, then return.
+4. Install missing local CLI tools with [`scripts/install-security-tools.sh`](scripts/install-security-tools.sh) when requested or necessary.
+5. Run [`scripts/security-scan.py`](scripts/security-scan.py) with the project path and optional `--target-url` / `--openapi` arguments. Prefer `quick` before `full` on large trees.
+6. Review generated `security-report.md`, `security-report.html`, `security-summary.json`, and raw tool outputs under `.arc/security/<timestamp>/`.
+7. Prioritize findings by data yield, confirmed exploitability, asset exposure, reachability, and remediation cost—not raw tool severity alone (see data-value ranking).
+8. Append manual checklist gaps from [`references/security-tooling.md`](references/security-tooling.md) (AuthZ, payment, upload, SSRF, ops secrets).
+9. For multi-finding remediation: as `R-scan`, attach re-ranked output to the Handoff Package (or create a minimal package with 定位/口径 stubs marked 待确认), then run `arc:task-doc-progress-conventions` as `R-task` before code changes. Follow [`../arc:task-doc-progress-conventions/references/security-audit-task-pipeline.md`](../arc:task-doc-progress-conventions/references/security-audit-task-pipeline.md).
+10. Route per-subtask fixes to `arc:fix` or `arc:build`; route methodology-only expansion to `arc:audit`; optional post-fix re-scan stays in this skill with narrow path scope; route active Lark project records to `arc:docs`.
 
 ## Quality Gates
 
 - Report includes command status, skipped-tool reasons, raw artifact links, severity counts, and actionable next steps.
 - SAST, SCA, secrets, Go vulnerability, Go secure coding, package audit, API fuzz, and DAST coverage are selected only when relevant to the project.
 - AuthZ, ownership, payment amount, approval flow, tenant boundary, upload, SSRF, and role-bypass gaps are marked as manual checks.
+- Top findings include permission class and data-yield note when applicable.
 - Scanner findings are deduplicated or grouped before remediation planning when practical.
 - Multi-finding remediation or code-changing security work has current local task docs, detailed subtasks, and synchronized progress status from `arc:task-doc-progress-conventions`.
 - Security artifacts stay local unless `.lark.json` is active or the user explicitly asks for remote publication.
@@ -91,6 +103,7 @@ NO LARK SECURITY UPDATE OUTSIDE arc:docs.
 - Use `OWASP ASVS` thinking for authn, `AuthZ`, session, API, file upload, and business-logic checks.
 - Treat secrets exposure, supply-chain compromise, auth bypass, RCE, SQL injection, SSRF, and payment tampering as priority risk classes.
 - Validate scanner output against code reachability, deployment exposure, compensating controls, and exploit prerequisites.
+- Prefer **data-value ranking**: bulk PII/credentials/payment integrity over “admin foothold” narratives without a data path.
 
 ## Scripts & Commands
 
@@ -132,12 +145,14 @@ The scan script writes reports to `.arc/security/<timestamp>/` by default:
 - Creating remediation tasks from stale findings or leaving local security task status inconsistent with current reachability, affected files, or project state.
 - Ignoring nonzero scanner exit codes caused by findings.
 - Marking a Lark-active security task complete while `task_base` or risk records are stale.
+- Mass full-mode template scanning before secrets/SCA/SAST triage on huge monorepos.
+- Presenting CVSS-only priority when bulk data exposure is the real business risk.
 
 ## When to Use
 
 - **Preferred Trigger**: security scan, vulnerability scan, dependency audit, secrets audit, Go security check, API fuzzing, ZAP/Nuclei scan, or security report.
 - **Typical Scenario**: Go + React repository release check using Semgrep, Trivy, Gitleaks, Gosec, Govulncheck, package audit, Schemathesis, ZAP, and Nuclei.
-- **Boundary Tip**: use `arc:audit` for read-only review only; use `arc:fix` for confirmed vulnerabilities; use `arc:docs` only when Lark is active.
+- **Boundary Tip**: use `arc:audit` (mode `appsec`) for read-only methodology and data-map first review; use `arc:fix` for confirmed vulnerabilities; use `arc:docs` only when Lark is active.
 
 ## Input Arguments
 
@@ -149,6 +164,7 @@ The scan script writes reports to `.arc/security/<timestamp>/` by default:
 | `mode` | enum | no | `quick` for local repository checks, `full` for local checks plus API/DAST |
 | `install_missing` | boolean | no | Whether to install missing local CLI tools before scanning |
 | `output_dir` | string | no | Directory for reports and raw artifacts |
+| `prior_assets` | string | no | Optional path to appsec asset/data-map notes from `arc:audit` |
 
 ## Outputs
 
@@ -156,9 +172,10 @@ The scan script writes reports to `.arc/security/<timestamp>/` by default:
 Security Handoff
 - Report paths
 - Tool coverage and skipped checks
-- Severity summary
+- Severity summary (tool) + re-ranked priority (data yield)
 - Confirmed findings and evidence
 - Manual authz/business-logic gaps
-- Recommended arc:fix / arc:build / arc:audit / arc:docs next steps
+- Recommended next role: R-task (task docs) / R-fix / R-verify / arc:audit expansion
+- Handoff Package fields for task skill when multi-finding: 项目定位, 项目口径, 功能角色, re-ranked findings
 - Lark / .lark.json / task_base handoff, if applicable
 ```

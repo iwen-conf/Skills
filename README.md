@@ -37,8 +37,9 @@ Skills/
 | `arc:build` | 代码交付 | 在方案明确时做代码交付、验证和变更说明 |
 | `arc:frontend` | 前端工程 | 收敛 Web、移动、桌面和小程序默认技术栈并记录前端决策 |
 | `arc:fix` | 故障修复 | 基于失败证据和可持久化日志定位根因、修复并回归验证 |
-| `arc:audit` | 项目体检 | 做只读项目体检，输出风险和改进建议 |
-| `arc:security` | 安全自动化 | 本地安装和编排安全 CLI，生成可读安全报告，并把修复/审计/文档沉淀交回 Arc |
+| `arc:audit` | 项目体检 / AppSec 只读审计 | 只读项目体检；`mode=appsec` 时按资产表→敏感数据地图→软柿子→finding cards 做跨项目漏洞审计；多 finding 时产出 Handoff（定位/口径/角色）给任务技能 |
+| `arc:security` | 安全自动化 | 本地安装和编排安全 CLI，按数据价值重排严重度；多 finding 时并入 Handoff 再交给任务技能，不从 SARIF 直接改代码 |
+| `arc:task-doc-progress-conventions` | 任务文档与进度 | 大任务前置约束与细子任务；安全来源时强制项目定位/口径/功能角色，按 finding 拆可执行子任务（见 `security-audit-task-pipeline.md`） |
 
 ## 通用工程约束
 

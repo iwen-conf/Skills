@@ -47,3 +47,24 @@ Use this checklist after automation:
 - Data layer: ownership filters, soft-delete filters, pagination bounds, sort allowlists.
 - Frontend: route guards, sensitive data in local storage, reflected/stored XSS surfaces.
 - Operations: secrets in logs, debug endpoints, permissive CORS, missing security headers.
+- Config/deploy: sample configs with real-looking secrets, default admin bootstrap, pprof/debug in release bundles.
+- Half-finished auth: mounted forgot-password/reset/register paths without complete business logic.
+
+## Recon-First Scanning
+
+On multi-service or large monorepos:
+
+1. Inventory entrypoints, OpenAPI, lockfiles, Dockerfiles, and config paths first.
+2. Run secrets + SCA + language SAST (`quick`) before full DAST/template volume.
+3. Expand only after soft targets and high-yield data stores are identified.
+4. If inventory/data map is missing and the user wants methodology depth, hand off Phase 1–2 to `arc:audit` appsec mode (`../arc:audit/references/appsec-playbook.md`).
+5. Re-rank all tool output with [`data-value-ranking.md`](data-value-ranking.md).
+
+## Tool vs Manual Coverage
+
+| Covered well by tools | Still manual |
+|---|---|
+| Secrets in git, known CVE deps, many injection patterns, weak crypto flags | Object-level AuthZ, tenant isolation |
+| Container/IaC misconfig, missing security headers (DAST) | Payment amount/callback trust, credit double-spend |
+| Common XSS/SSRF patterns (partial) | Workflow approval bypass, race conditions |
+| Go vuln reachability (govulncheck) | Business “half-implemented feature” abuse |

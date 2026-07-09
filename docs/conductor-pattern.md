@@ -10,4 +10,6 @@ Arc skills can still be used as local working methods inside an `aitask` orchest
 - `arc:build`: deliver scoped code changes.
 - `arc:frontend`: handle frontend lifecycle work.
 - `arc:fix`: repair evidence-backed failures.
-- `arc:audit`: review quality and risk without editing code.
+- `arc:audit`: review quality and risk without editing code; use mode `appsec` for vulnerability methodology (assets, data map, finding cards).
+- `arc:security`: local scanners and data-value re-ranked security reports; not a substitute for AuthZ/business-logic review.
+- `arc:task-doc-progress-conventions`: create current-state task docs and expand audit/scan findings into detailed subtasks before tracked fixes.

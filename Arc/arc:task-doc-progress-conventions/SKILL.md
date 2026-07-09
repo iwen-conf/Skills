@@ -1,6 +1,6 @@
 ---
 name: arc:task-doc-progress-conventions
-description: Current-state 需求/任务 docs with pre-constraints, detailed subtasks, indexes, and progress gates.
+description: "Current-state task docs; security/audit handoff to detailed subtasks with roles and caliber."
 ---
 
 # Task Doc Progress Conventions
@@ -74,10 +74,33 @@ When another Arc skill is active, use this skill as the local task-planning gate
 2. Use this skill before `arc:build`, `arc:fix`, `arc:frontend`, or `arc:security` changes project code for large, multi-step, cross-module, or tracked work.
 3. Use `arc:project-architecture-conventions` after this skill and before backend code edits.
 4. Use `arc:frontend` after this skill for frontend platform, UI state, token, and verification constraints.
-5. Use `arc:security` after this skill for multi-finding remediation plans or security-sensitive implementation.
-6. Use `arc:docs` only for Lark synchronization when `.lark.json` exists or the user explicitly enables Lark. Local `docs/` task state still needs to stay current.
+5. Use `arc:security` **after** this skill only when implementing multi-finding remediation or re-scanning fixed paths; use `arc:security` **before** this skill when the user still needs scanner evidence for the handoff package.
+6. Use `arc:audit` mode `appsec` before this skill when remediation must be driven by assets, data map, and finding cards rather than ad-hoc bug lists.
+7. Use `arc:docs` only for Lark synchronization when `.lark.json` exists or the user explicitly enables Lark. Local `docs/` task state still needs to stay current.
 
 If this skill and another skill conflict, keep the stricter gate: do not start implementation until local task docs, status, and required upstream clarification are current.
+
+## Security / Audit Sourced Work (Narrow Pipeline)
+
+When the work comes from `arc:audit` (appsec), `arc:security`, multi-finding vulnerability repair, or the user asks to “把审计/扫描结果拆成任务”:
+
+1. MUST follow [`references/security-audit-task-pipeline.md`](references/security-audit-task-pipeline.md).
+2. MUST act as role `R-task` (任务作者): write docs only; do not implement production fixes in this role.
+3. MUST require a **Handoff Package** (or build a minimal one with user consent) containing project positioning, project caliber, findings, and optional re-ranked scan notes—not a chat-only bullet list.
+4. MUST put in `00-前置约束.md`:
+   - `## 项目定位` — product form, user roles, critical data, trust boundaries, why this engagement exists
+   - `## 项目口径` — deploy shape, naming/storage rules, protected paths, env order, architecture limits, test authorization, secrets handling
+   - `## 功能角色` — who is R-recon / R-scan / R-task / R-fix / R-verify for this engagement
+   - `## 上游 Handoff` — links to assets / data-map / findings / scan reports
+   - `## Finding 索引` — every in-scope finding → subtask id
+5. MUST split task groups by risk domain (config/secrets, AuthN, AuthZ, payment, upload, injection, dependency), never by “Semgrep/Trivy” tool names alone.
+6. MUST expand each **confirmed** finding into subtasks that name `finding_id`, files/symbols, permission class, data yield, step-by-step 执行清单, 不要做, and verify steps. Prefer one finding → one fix subtask (+ optional verify).
+7. MUST create research/false-positive subtasks for `likely` / `assumption` findings before fix subtasks.
+8. MUST NOT create vague subtasks such as “修复安全问题”, “加固鉴权”, “处理 High 漏洞” without finding ids and paths.
+9. MUST map data-value priority into P0–P3 using the pipeline table; do not copy CVSS blindly.
+10. After planning is complete, hand `R-fix` to `arc:fix` / `arc:build` **one subtask at a time**; hand re-scan requests back to `arc:security` only with explicit scope.
+
+For non-security large work, the security pipeline sections are optional; the rest of this skill still applies.
 
 ## Directory Roots
 
@@ -220,6 +243,7 @@ Template:
 7. Verification commands or manual checks expected before marking work done.
 8. Blockers and required user decisions.
 9. Downstream coding model assumption and the extra detail required because of it.
+10. When the source is security/audit: 项目定位, 项目口径, 功能角色, 上游 Handoff, Finding 索引 (see Security / Audit Sourced Work and the pipeline reference).
 
 Template:
 
@@ -455,3 +479,4 @@ Before considering task-document setup complete, verify:
 8. Every concrete subtask names current files, scope, outputs, and verification.
 9. The progress table and subtask statuses are consistent.
 10. There are no stale names, stale paths, obsolete assumptions, duplicate progress tables, or duplicate top-level business-domain task entries.
+11. For security/audit-sourced work: 项目定位, 项目口径, 功能角色, Finding 索引, and per-finding detailed subtasks exist per [`references/security-audit-task-pipeline.md`](references/security-audit-task-pipeline.md).

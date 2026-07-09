@@ -1,4 +1,4 @@
 interface:
   display_name: "Task Doc Progress Conventions"
   short_description: "Requirements, task docs, and progress gates"
-  default_prompt: "Use $arc:task-doc-progress-conventions to organize requirements, create current-state task docs, split detailed subtasks, and maintain progress before large implementation work."
+  default_prompt: "Use $arc:task-doc-progress-conventions to create current-state task docs. For audit/security follow-up, require handoff with 项目定位/项目口径/功能角色 and expand each finding into detailed subtasks before coding."
