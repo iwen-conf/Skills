@@ -196,6 +196,10 @@ when body
 def test_validate_text_accepts_arc_namespaced_constraint_skills() -> None:
     cases = [
         (
+            "arc:code-index",
+            "Use .ai-code-index for local search, symbols, profiles, files, stats, refresh, and diagnostics.",
+        ),
+        (
             "arc:code-comment-conventions",
             "Apply Chinese comment templates for functions and controllers.",
         ),

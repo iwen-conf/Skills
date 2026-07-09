@@ -1,6 +1,6 @@
 # Skills
 
-这个仓库保留一组统一使用 `arc:*` 命名空间的软件工程生命周期和通用工程约束 Skill 文档。代码库搜索默认走本地索引工具链：Zoekt、ast-grep、Universal Ctags；任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责；飞书项目空间只在用户明确要求创建/连接后由 `arc:docs` 创建/维护 `.lark.json`、项目资料、任务表、仪表盘、Wiki、画板和生命周期索引。
+这个仓库保留一组统一使用 `arc:*` 命名空间的软件工程生命周期和通用工程约束 Skill 文档。代码库搜索默认走 `arc:code-index` 约束下的本地索引工具链：Zoekt、ast-grep、Universal Ctags；任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责；飞书项目空间只在用户明确要求创建/连接后由 `arc:docs` 创建/维护 `.lark.json`、项目资料、任务表、仪表盘、Wiki、画板和生命周期索引。
 
 ## 当前保留
 
@@ -15,6 +15,7 @@ Skills/
 │   ├── arc:fix/
 │   ├── arc:audit/
 │   ├── arc:security/
+│   ├── arc:code-index/
 │   ├── arc:code-comment-conventions/
 │   ├── arc:go-gin-ssr-fmt-tracing/
 │   ├── arc:project-architecture-conventions/
@@ -46,6 +47,7 @@ Skills/
 | Skill ID | 用途 |
 |---|---|
 | `arc:code-comment-conventions` | 统一 Controller、接口/契约、普通函数、结构体/字段和函数内部编号步骤注释规范 |
+| `arc:code-index` | 统一 `.ai-code-index` 本地搜索、符号、结构搜索、profile、文件发现、代码统计、刷新和诊断用法 |
 | `arc:go-gin-ssr-fmt-tracing` | 为 Go Gin SSR 请求路径添加低成本 fmt/time 或 log.Printf 计时探针 |
 | `arc:project-architecture-conventions` | 统一默认后端架构命名/分层/接口设计、DIP、依赖注入位置、后端日志证据、Go 常量/枚举和 helper 抽取规范 |
 | `arc:task-doc-progress-conventions` | 大任务实施前创建任务文档、前置约束、子任务文件和中心进度跟踪表 |
@@ -58,10 +60,11 @@ Skills/
 
 ## 收敛原则
 
-- 所有 Skill 需要搜索代码库或定位上下文时，优先使用 `.ai-code-index/search.sh` 查询本地 Zoekt 索引。
+- 所有 Skill 需要搜索代码库或定位上下文时，优先使用 `arc:code-index` 约束下的 `.ai-code-index/search.sh` 查询本地 Zoekt 索引。
 - 搜索代码结构、调用形态或重构目标时，优先使用 `.ai-code-index/struct-search.sh`。
 - 查找符号定义或符号清单时，优先使用 `.ai-code-index/symbols.sh`。
-- 索引缺失或过期时先运行 `.ai-code-index/reindex.sh`；`rg` 只用于小范围精确补充、新建文件或索引兜底。
+- 查找候选文件或按 profile 缩小范围时，优先使用 `.ai-code-index/files.sh`；做规模盘点时优先使用 `.ai-code-index/stats.sh`。
+- 索引缺失、过期或结果不完整时先运行 `.ai-code-index/doctor.sh` 或 `.ai-code-index/reindex.sh`；`rg` 只用于小范围精确补充、新建文件、受保护/参考目录或索引兜底。
 - 不按项目大小自动创建飞书空间。只有用户明确说 `创建项目的飞书空间`、`创建飞书项目空间`、`初始化飞书项目空间`，或提供已有飞书项目空间链接时，才由 `arc:docs` 创建/连接项目空间。
 - 项目如果接入飞书，必须在项目根目录维护 `.lark.json`，记录项目文件空间地址、项目主页、PRD、需求、架构、任务表、仪表盘、进度、审计、交付、故障、资料来源和本地索引状态。
 - 创建/连接飞书项目空间后，必须把项目文件空间飞书地址写入 `.lark.json.resources.drive_folder.url`，后续启动 AI 或进入项目时先读取 `.lark.json`。
