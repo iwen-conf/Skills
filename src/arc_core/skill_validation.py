@@ -49,6 +49,7 @@ ARC_EXPERT_KEYWORDS: dict[str, list[KeywordVariant]] = {
     "arc:fix": [["SEV", "Severity Level", "severity level", "severity"], "5 Whys", "Fault Tree", "Blameless Postmortem", "Mandatory Hypothesis", "Rationalization Watch"],
     "arc:audit": ["Business Maturity", "Dependency Health", "Expert Review Card", "9 Tab"],
     "arc:security": ["SAST", "SCA", "DAST", "OpenAPI Fuzz", "SBOM", "SARIF", "CWE", "CVSS", "OWASP Top 10", "OWASP ASVS", "AuthZ"],
+    "arc:test": ["Test Pyramid", "Branch Coverage", "Fuzzing", "Property-Based", "Benchmark", "Flaky", "Regression", "SLA"],
 }
 
 LEGACY_TOKEN_PARTS = [

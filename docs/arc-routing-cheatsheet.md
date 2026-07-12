@@ -1,6 +1,6 @@
 # Arc Lifecycle Cheatsheet
 
-Arc now keeps nine software engineering lifecycle skills. Task orchestration, memory, and cross-agent collaboration stay in `aitask`; Lark project space is created only after an explicit user request or existing project link, and reused through `.lark.json`.
+Arc now keeps ten software engineering lifecycle skills. Task orchestration, memory, and cross-agent collaboration stay in `aitask`; Lark project space is created only after an explicit user request or existing project link, and reused through `.lark.json`.
 
 ## Selection Rules
 
@@ -17,6 +17,7 @@ Arc now keeps nine software engineering lifecycle skills. Task orchestration, me
 | Read-only health check, risk review, or code audit is needed | `arc:audit` |
 | Vulnerability / AppSec audit (assets, data map, no scanners) | `arc:audit` mode `appsec` |
 | Local security scanners / DAST / secrets / SCA report | `arc:security` |
+| Design/generate/run tests, coverage/regression gate, fuzz/property, or benchmark/load | `arc:test` |
 | Turn audit/scan findings into detailed local tasks | `arc:task-doc-progress-conventions` + security-audit-task-pipeline |
 | Multi-finding security fix campaign | handoff → task docs → `arc:fix`/`arc:build` per subtask |
 
@@ -34,3 +35,4 @@ Arc now keeps nine software engineering lifecycle skills. Task orchestration, me
 10. Use `arc:fix` when failure evidence exists.
 11. Use `arc:audit` for read-only risk and quality review; use mode `appsec` for vulnerability/project security methodology.
 12. Use `arc:security` for local scanner automation and data-value re-ranked security reports.
+13. Use `arc:test` for layered testing and quality gates: enable unit/integration/contract/E2E, coverage, fuzz/property, and performance by risk with platform-native tooling (Android=Maestro, Go/Rust native, HarmonyOS=arkxtest, frontend=Vitest/Playwright), running and judging performance separately from functional.

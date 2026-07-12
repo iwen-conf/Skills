@@ -15,6 +15,7 @@ Skills/
 │   ├── arc:fix/
 │   ├── arc:audit/
 │   ├── arc:security/
+│   ├── arc:test/
 │   ├── arc:code-index/
 │   ├── arc:code-comment-conventions/
 │   ├── arc:go-gin-ssr-fmt-tracing/
@@ -40,6 +41,7 @@ Skills/
 | `arc:fix` | 故障修复 | 基于失败证据和可持久化日志定位根因、修复并回归验证 |
 | `arc:audit` | 项目体检 / AppSec 只读审计 | 只读项目体检；`mode=appsec` 时按资产表→敏感数据地图→软柿子→finding cards 做跨项目漏洞审计；多 finding 时产出 Handoff（定位/口径/角色）给任务技能 |
 | `arc:security` | 安全自动化 | 本地安装和编排安全 CLI，按数据价值重排严重度；多 finding 时并入 Handoff 再交给任务技能，不从 SARIF 直接改代码 |
+| `arc:test` | 测试与质量门禁 | 按风险分层设计/生成/运行测试（单元/集成/契约/E2E、覆盖率、模糊/属性、性能），用平台原生工具（Android=Maestro、Go/Rust 原生、HarmonyOS=arkxtest、前端=Vitest/Playwright）；性能与功能分开判失败，失败交 `arc:fix`，安全/非功能交 `arc:security`/`arc:audit` |
 | `arc:task-doc-progress-conventions` | 任务文档与进度 | 大任务前置约束与细子任务；安全来源时强制项目定位/口径/功能角色，按 finding 拆可执行子任务（见 `security-audit-task-pipeline.md`） |
 
 ## 通用工程约束
@@ -85,6 +87,7 @@ Skills/
 - 所有 Skill 名称必须使用 `arc:*` 命名空间，并统一放在 `Arc/arc:*` 目录下。
 - 所有项目代码交付和修复必须遵守 `arc:project-architecture-conventions`：先看 ponytail；保持 DIP；默认按 `domain`、`usecase`、`interface/restful`、`infrastructure`、`wire` 的分层、命名和接口设计组织后端代码；后端排障必须用结构化日志和本地日志文件保留可复查证据；Go 常量必须使用 `MixedCaps` / `mixedCaps`、优先标准库语义常量、按最小作用域定义，枚举型业务状态必须用自定义类型建模，跨服务常量必须来自版本化契约或受治理的共享模块；Go 单文件私有函数上限为两个，原文件达到两个私有函数时必须拆到 `原文件名_helpers.go` 同包 helper 文件；DIP 边界接口是明确架构要求，但不得为私有 helper、同层代码或形式主义创建接口。
 - 大任务、跨多轮任务、迁移、重构、修复战役和需要持续跟踪的工作，必须先遵守 `arc:task-doc-progress-conventions`：按最新项目状态解析或创建 `docs/DD-任务` 这类数字序列化任务分类，再建立任务入口、`00-前置约束.md`、`tasks/` 子任务文件和 `进度跟踪表.md`；任务计划默认可能交给低智能或低上下文模型编码，因此每个具体任务都要额外写清当前文件/调用点/输出/执行顺序/边界/反例/验证；开始、暂停、阻塞、完成、验证或下一步变化时，必须立即更新 `进度跟踪表.md` 和子任务状态，未同步前不得继续实现或交付。
+- 需要测试或质量门禁的工作默认统一走 `arc:test`：按风险分层启用单元/集成/契约/E2E、覆盖率与回归门禁、模糊/属性、性能（基准/负载），用平台原生工具（Android=Maestro、Go/Rust 各自内置测试库、HarmonyOS=arkxtest、前端=Vitest/Playwright，且交互闭环/可见性/可点击/布局可读性经 `arc:frontend`）；性能与功能分开跑、分开判失败，覆盖率是缺口信号不是目标，禁止为凑类型全量铺开；安全/兼容/混沌/可观测性等非功能测试与 `arc:security`/`arc:audit` 协作、不重复建设；失败用例交 `arc:fix`，大型测试建设先走 `arc:task-doc-progress-conventions`。
 - Arc Skill 默认是纯 `SKILL.md` 契约；`arc:security` 这种需要可重复自动化的能力可以携带本地脚本。
 - 图表、浏览器、Lazycat、纯设计等垂直能力由对应专门 Skill 负责，不再在 Arc 内重复建设。
 

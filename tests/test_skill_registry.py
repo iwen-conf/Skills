@@ -36,6 +36,7 @@ def test_validate_registry_accepts_generated_registry() -> None:
         "arc:fix",
         "arc:audit",
         "arc:security",
+        "arc:test",
         "arc:code-index",
         "arc:code-comment-conventions",
         "arc:go-gin-ssr-fmt-tracing",
