@@ -38,9 +38,9 @@ def test_validate_registry_accepts_generated_registry() -> None:
         "arc:security",
         "arc:test",
         "arc:idx",
-        "arc:code-comment-conventions",
-        "arc:go-gin-ssr-fmt-tracing",
-        "arc:project-architecture-conventions",
+        "arc:comment",
+        "arc:trace",
+        "arc:arch",
         "arc:sdlc",
     }
 
@@ -51,9 +51,9 @@ def test_collect_skill_files_indexes_only_arc_namespaced_skills() -> None:
     assert ROOT / "Arc" / "arc:docs" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:frontend" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:idx" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:code-comment-conventions" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:go-gin-ssr-fmt-tracing" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:project-architecture-conventions" / "SKILL.md" in files
+    assert ROOT / "Arc" / "arc:comment" / "SKILL.md" in files
+    assert ROOT / "Arc" / "arc:trace" / "SKILL.md" in files
+    assert ROOT / "Arc" / "arc:arch" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:sdlc" / "SKILL.md" in files
     assert all(
         path.is_relative_to(ROOT / "Arc")
@@ -79,9 +79,9 @@ def test_update_context_hub_registers_skills_registry_artifact() -> None:
         assert artifact["producer_skill"] == "arc-registry"
         assert artifact["path"] == "skills.index.json"
         assert "arc:idx" in artifact["consumers"]
-        assert "arc:code-comment-conventions" in artifact["consumers"]
-        assert "arc:go-gin-ssr-fmt-tracing" in artifact["consumers"]
-        assert "arc:project-architecture-conventions" in artifact["consumers"]
+        assert "arc:comment" in artifact["consumers"]
+        assert "arc:trace" in artifact["consumers"]
+        assert "arc:arch" in artifact["consumers"]
         assert "arc:sdlc" in artifact["consumers"]
     finally:
         import shutil

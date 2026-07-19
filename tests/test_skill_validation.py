@@ -202,15 +202,15 @@ def test_validate_text_accepts_arc_namespaced_constraint_skills() -> None:
             "Use .ai-code-index for local search, symbols, profiles, files, stats, refresh, and diagnostics.",
         ),
         (
-            "arc:code-comment-conventions",
+            "arc:comment",
             "Apply Chinese comment templates for functions and controllers.",
         ),
         (
-            "arc:go-gin-ssr-fmt-tracing",
+            "arc:trace",
             "Add low-cost fmt/time or log.Printf timing probes to Go Gin SSR request paths.",
         ),
         (
-            "arc:project-architecture-conventions",
+            "arc:arch",
             "Apply mandatory backend architecture and DIP rules before coding.",
         ),
         (
@@ -235,7 +235,7 @@ when body
 
 
 def test_project_architecture_skill_locks_dip_architecture_and_ponytail_contract() -> None:
-    text = (ROOT / "Arc" / "arc:project-architecture-conventions" / "SKILL.md").read_text(encoding="utf-8")
+    text = (ROOT / "Arc" / "arc:arch" / "SKILL.md").read_text(encoding="utf-8")
 
     required_phrases = [
         "Dependency Inversion Principle (DIP)",
@@ -292,7 +292,7 @@ def test_project_architecture_skill_locks_dip_architecture_and_ponytail_contract
 def test_arc_code_editing_skills_require_project_architecture_conventions() -> None:
     for relative_path in ["Arc/arc:build/SKILL.md", "Arc/arc:fix/SKILL.md"]:
         text = (ROOT / relative_path).read_text(encoding="utf-8")
-        assert "MUST apply `arc:project-architecture-conventions` before" in text
+        assert "MUST apply `arc:arch` before" in text
         assert "stop and report if ponytail is required but unavailable or conflicting" in text
 
 
