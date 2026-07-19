@@ -73,6 +73,7 @@ def test_validate_text_reports_missing_required_heading_for_routed_skill() -> No
     text = """---
 name: "arc:build"
 description: "Code delivery."
+enforce_arc_profile: true
 ---
 # Skill
 ## Overview
