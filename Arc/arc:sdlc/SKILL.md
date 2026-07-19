@@ -1,5 +1,5 @@
 ---
-name: arc:task-doc-progress-conventions
+name: arc:sdlc
 description: "Current-state task docs; security/audit handoff to detailed subtasks with roles and caliber."
 ---
 
@@ -102,40 +102,50 @@ When the work comes from `arc:audit` (appsec), `arc:security`, multi-finding vul
 
 For non-security large work, the security pipeline sections are optional; the rest of this skill still applies.
 
-## Directory Roots
+## SDLC Document Architecture (Directory Roots)
 
-Resolve roots from the project. Resolve the task document root from the project. Do not hardcode paths if the repository already has a local convention.
+For new projects, or when upgrading a project's documentation architecture, enforce a strict, structurally rigorous Software Engineering Lifecycle (SDLC) partitioning under `docs/`. Every document must belong to a logical phase, and context must flow sequentially without duplication.
+
+Standard `docs/` SDLC Architecture (Comprehensive Agent & Developer Ready):
+Standard `docs/` SDLC Architecture (Comprehensive Agent & Developer Ready):
+- `docs/00-产品需求/`: PRDs, user stories, business rules, and domain glossaries. (The *Why* and *What*).
+- `docs/01-系统设计/`: High-level architecture, technical RFCs, sequence diagrams, and DB/Domain models. (The *How*).
+- `docs/02-API记录/`: API mapping and 3rd-party integration docs. **CRITICAL**: Do NOT write API contracts manually here. The single source of truth for APIs is Apifox (managed via `apifox-cli`). This folder holds exported syncs/indexes.
+- `docs/03-执行任务/`: Feature/bugfix task plans, execution subtasks, progress tables, and `00-前置约束.md`. (The active execution layer).
+- `docs/04-性能优化/`: Dedicated optimization plans (e.g., SQL tuning, latency reduction, memory profiling, UI responsiveness).
+- `docs/05-代码治理/`: Technical debt management, code standardization, refactoring plans, and deprecated API removal.
+- `docs/06-环境运维/`: CI/CD pipelines, Docker/K8s configs, DB migration records, and Runbooks.
+- `docs/07-测试质量/`: Test plans, E2E scenarios, test execution reports, and coverage metrics.
+- `docs/08-安全审计/`: SAST/DAST reports, permission models, audit findings, and data privacy notes.
+- `docs/09-线上缺陷/`: Production bug tracking, incident records, and troubleshooting guides.
+- `docs/10-复盘决策/`: Architectural decision records (ADRs), post-mortems, and sprint retrospectives.
+- `docs/11-参考备忘/`: Reference documents, external links, meeting minutes, and context notes.
 
 Rules for `docs/`:
 
-1. Treat immediate children of `docs/` as numbered document categories when they match `DD-分类名`, for example `01-任务` and `02-需求`.
-2. Use the existing task category directory when one exists, such as `01-任务`, `00-任务`, or another clear equivalent of "任务".
-3. Use the existing requirement category directory when one exists, such as `02-需求`, `01-需求`, or another clear equivalent of "需求".
-4. If initializing a docs tree from scratch, create numbered categories with the next available `DD`, such as `docs/DD-任务` and `docs/DD-需求`.
-5. If `docs/` exists but has no task category, create `DD-任务` using the next available two-digit category number under `docs/`.
-6. Follow the project's existing category vocabulary and numbering. Do not create a duplicate task or requirement category with a different number or name.
+1. **Scaffold on Initialization**: When asked to create docs for a new project, or when encountering an unformatted project, the AI MUST proactively scaffold the complete `00` through `11` directory tree (including `README.md` files for active folders) to initialize the SDLC structure.
+2. **Strict Placement**: Do not dump loose markdown files at the root of `docs/`. Every document must be placed into the appropriate numbered SDLC category.
+3. **Context Completeness**: Ensure rigorous cross-referencing. A task in `03-执行任务` MUST link back to the source requirement in `00-产品需求` and the architecture in `01-系统设计`. Do not copy-paste large blocks of text across phases; use relative links to maintain a single source of truth.
+4. **Index Maintenance**: Use `README.md` at the root of each category to act as the index and routing map for that phase.
 
-Task category rules:
+Task Category (`03-执行任务`) Rules:
 
 1. Keep the task category root for `README.md`, index directories such as `00-任务索引/`, local specs such as `00-任务文档与进度跟踪规范/`, and numbered task directories.
 2. For new work, do not add loose top-level topic `.md` files under the task category. Create or reuse a numbered task directory with a `README.md` entry.
 3. Scan `README.md`, `00-任务索引/README.md`, and existing numbered task directories before creating a new top-level task.
 4. Keep one top-level task directory per business domain. If a matching domain exists, add a task group, topic doc, or subtask inside it instead of creating another top-level number.
-5. Historical loose `.md` task entries may remain; update them only when they are the active local entry point.
 
-Requirement category rules:
+Requirement Category (`00-产品需求`) Rules:
 
-1. Store unresolved raw input and product/data notes in `docs/DD-需求`.
-2. Use `README.md` as the requirement category index when present.
-3. Promote requirements into `docs/DD-任务` only after they are executable: goals, scope, boundaries, and acceptance criteria are known.
-4. When a task comes from a requirement doc, link the source requirement in the task entry or pre-constraints.
+1. Store unresolved raw input and product/data notes in `docs/00-产品需求`.
+2. Promote requirements into `docs/03-执行任务` only after they are executable: goals, scope, boundaries, and acceptance criteria are known.
 
 ## Default Task Structure
 
 Use a directory entry by default:
 
 ```text
-docs/DD-任务/
+docs/03-执行任务/
   README.md
   00-任务索引/
     README.md
@@ -217,7 +227,7 @@ Template:
 
 ## 需求来源
 
-1. [需求名称](../../02-需求/NN-需求名称.md)
+1. [需求名称](../../00-产品需求/NN-需求名称.md)
 
 ## 设计边界
 

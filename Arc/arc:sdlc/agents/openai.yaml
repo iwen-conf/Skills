@@ -1,0 +1,4 @@
+interface:
+  display_name: "Task Doc Progress Conventions"
+  short_description: "Requirements, task docs, and progress gates"
+  default_prompt: "Use $arc:sdlc to create current-state task docs. For audit/security follow-up, require handoff with 项目定位/项目口径/功能角色 and expand each finding into detailed subtasks before coding."

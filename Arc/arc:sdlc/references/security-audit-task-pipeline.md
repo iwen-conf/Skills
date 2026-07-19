@@ -1,6 +1,6 @@
 # Security / Audit → Task Pipeline
 
-Narrow linkage between `arc:audit` (appsec), `arc:security`, and `arc:task-doc-progress-conventions`.
+Narrow linkage between `arc:audit` (appsec), `arc:security`, and `arc:sdlc`.
 
 **Goal:** audit and scan produce a fixed handoff; the task skill turns that handoff into **very detailed** local tasks—not vague “修安全问题”.
 
@@ -14,7 +14,7 @@ Exactly five roles. One human/agent may wear multiple hats, but **documents must
 |---|---|---|---|---|
 | `R-recon` | 侦察审计员 | `arc:audit` mode `appsec` | `assets`, `data-map`, finding cards, manual gaps | code edits; active DAST |
 | `R-scan` | 扫描操作员 | `arc:security` | tool reports under `.arc/security/`, re-ranked priority list | claim AuthZ coverage from scanners alone |
-| `R-task` | 任务作者 | `arc:task-doc-progress-conventions` | `00-前置约束.md` (含定位/口径/角色), 任务组, 过细子任务, 进度表 | implement production code in this role |
+| `R-task` | 任务作者 | `arc:sdlc` | `00-前置约束.md` (含定位/口径/角色), 任务组, 过细子任务, 进度表 | implement production code in this role |
 | `R-fix` | 修复实施员 | `arc:fix` / `arc:build` | code + tests per **one** subtask | rewrite whole plan mid-fix without updating task docs |
 | `R-verify` | 验证员 | fix/build + optional re-scan | verification notes in 进度跟踪表 | mark `[x]` without evidence |
 
@@ -249,7 +249,7 @@ Each **fix** subtask MUST contain:
 ```text
 arc:audit appsec
   → Handoff Package
-  → arc:task-doc-progress-conventions (R-task)
+  → arc:sdlc (R-task)
   → arc:fix / arc:build per subtask
   → R-verify
 ```
@@ -260,7 +260,7 @@ arc:audit appsec
 arc:audit appsec Phase1–2 (optional but preferred)
   → arc:security quick|full
   → merge re-ranked into handoff
-  → arc:task-doc-progress-conventions
+  → arc:sdlc
   → fix / verify
   → optional arc:security re-scan of fixed paths
 ```
