@@ -1,0 +1,17 @@
+{
+  "size_max": 1048576,
+  "profiles": {
+    "skills": {
+      "include": ["Arc/**"]
+    },
+    "docs": {
+      "include": ["docs/**", "README.md", "*.md"]
+    },
+    "code": {
+      "include": ["src/**", "scripts/**", "tools/**", "tests/**", "schemas/**"]
+    },
+    "meta": {
+      "include": ["*.md", "*.toml", "*.json", ".ai-code-index/**", "Arc/scripts/**", "Arc/templates/**"]
+    }
+  }
+}
