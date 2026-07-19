@@ -66,7 +66,7 @@ Rules:
 
 - Caliber turns into **subtask “不要做”** lines automatically.
 - Any subtask that would violate caliber is invalid until rewritten or caliber updated with user approval.
-- Prefer citing file paths: `Agents.md`, `arc:project-architecture-conventions`, local deploy scripts.
+- Prefer citing file paths: `Agents.md`, `arc:arch`, local deploy scripts.
 
 ## 4) Handoff Package (审计/扫描 → 任务作者)
 

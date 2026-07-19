@@ -72,7 +72,7 @@ When another Arc skill is active, use this skill as the local task-planning gate
 
 1. Use `arc:clarify` first if scope, acceptance criteria, or user decisions are unclear.
 2. Use this skill before `arc:build`, `arc:fix`, `arc:frontend`, or `arc:security` changes project code for large, multi-step, cross-module, or tracked work.
-3. Use `arc:project-architecture-conventions` after this skill and before backend code edits.
+3. Use `arc:arch` after this skill and before backend code edits.
 4. Use `arc:frontend` after this skill for frontend platform, UI state, token, and verification constraints.
 5. Use `arc:security` **after** this skill only when implementing multi-finding remediation or re-scanning fixed paths; use `arc:security` **before** this skill when the user still needs scanner evidence for the handoff package.
 6. Use `arc:audit` mode `appsec` before this skill when remediation must be driven by assets, data map, and finding cards rather than ad-hoc bug lists.

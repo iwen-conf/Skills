@@ -66,7 +66,7 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 - MUST state a concrete hypothesis before significant edits.
 - MUST patch the smallest safe surface.
 - MUST apply `arc:sdlc` before code edits for large, multi-step, cross-module, or tracked repair work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, failure evidence, or status change.
-- MUST apply `arc:project-architecture-conventions` before code edits, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
+- MUST apply `arc:arch` before code edits, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
 - MUST rerun the failing path when feasible.
 - MUST route all Lark incident/risk/task updates through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
@@ -82,7 +82,7 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 3. Search the saved evidence for exact error strings, request IDs, stack frames, network failures, and config keys.
 4. Form and test a root-cause hypothesis.
 5. For large, multi-step, cross-module, or tracked repair work, apply `arc:sdlc` before code edits and keep local task status current as evidence or project state changes.
-6. Apply `arc:project-architecture-conventions` before code edits; stop and report if ponytail is required but unavailable or conflicting.
+6. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.
 7. Patch the smallest safe surface.
 8. Rerun the failing check plus focused regressions, saving verification output when useful.
 9. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks.
