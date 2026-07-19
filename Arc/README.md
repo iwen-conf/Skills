@@ -13,4 +13,4 @@ Lean Arc keeps ten software engineering lifecycle skills:
 - `arc:security` — 本地安全 CLI 自动化、数据价值重排；多 finding 并入 Handoff 再拆任务
 - `arc:sdlc` — 任务文档；安全来源时按 finding 写细子任务（见 security-audit-task-pipeline）
 
-Repository search and code context discovery use `arc:code-index` plus the local `.ai-code-index/` helpers backed by Zoekt, ast-grep, Universal Ctags, and Rust/Go helper CLIs. Lark resources are optional: existing Lark projects live in each project root’s `.lark.json`, and new Lark resources are created only after an explicit trigger or confirmation. Coordination, Inbox, and cross-agent state are handled by `aitask`.
+Repository search and code context discovery use `arc:idx` plus the local `.ai-code-index/` helpers backed by Zoekt, ast-grep, Universal Ctags, and Rust/Go helper CLIs. Lark resources are optional: existing Lark projects live in each project root’s `.lark.json`, and new Lark resources are created only after an explicit trigger or confirmation. Coordination, Inbox, and cross-agent state are handled by `aitask`.
