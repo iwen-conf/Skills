@@ -1,5 +1,5 @@
 ---
-name: arc:go-gin-ssr-fmt-tracing
+name: arc:trace
 description: Add low-cost fmt/time or log.Printf timing probes to Go Gin SSR request paths.
 ---
 

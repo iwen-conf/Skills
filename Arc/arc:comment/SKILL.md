@@ -1,5 +1,5 @@
 ---
-name: arc:code-comment-conventions
+name: arc:comment
 description: Apply Chinese comment conventions; avoid noisy parameter/return boilerplate on obvious usecase contracts.
 ---
 
