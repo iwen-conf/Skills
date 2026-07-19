@@ -1,6 +1,6 @@
 # Skills
 
-这个仓库保留一组统一使用 `arc:*` 命名空间的软件工程生命周期和通用工程约束 Skill 文档。代码库搜索默认走 `arc:code-index` 约束下的本地索引工具链：Zoekt、ast-grep、Universal Ctags；任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责；飞书项目空间只在用户明确要求创建/连接后由 `arc:docs` 创建/维护 `.lark.json`、项目资料、任务表、仪表盘、Wiki、画板和生命周期索引。
+这个仓库保留一组统一使用 `arc:*` 命名空间的软件工程生命周期和通用工程约束 Skill 文档。代码库搜索默认走 `arc:idx` 约束下的高性能上下文引擎 `arc-idx`（编译型 Go CLI，内嵌 Zoekt，编排 ast-grep 与 Universal Ctags，源码在 `tools/arc-idx/`）；任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责；飞书项目空间只在用户明确要求创建/连接后由 `arc:docs` 创建/维护 `.lark.json`、项目资料、任务表、仪表盘、Wiki、画板和生命周期索引。
 
 ## 当前保留
 
@@ -16,12 +16,14 @@ Skills/
 │   ├── arc:audit/
 │   ├── arc:security/
 │   ├── arc:test/
-│   ├── arc:code-index/
+│   ├── arc:idx/
 │   ├── arc:code-comment-conventions/
 │   ├── arc:go-gin-ssr-fmt-tracing/
 │   ├── arc:project-architecture-conventions/
-│   └── arc:task-doc-progress-conventions/
+│   └── arc:sdlc/
 ├── .ai-code-index/
+├── tools/
+│   └── arc-idx/
 ├── docs/
 ├── schemas/
 ├── scripts/
@@ -42,17 +44,17 @@ Skills/
 | `arc:audit` | 项目体检 / AppSec 只读审计 | 只读项目体检；`mode=appsec` 时按资产表→敏感数据地图→软柿子→finding cards 做跨项目漏洞审计；多 finding 时产出 Handoff（定位/口径/角色）给任务技能 |
 | `arc:security` | 安全自动化 | 本地安装和编排安全 CLI，按数据价值重排严重度；多 finding 时并入 Handoff 再交给任务技能，不从 SARIF 直接改代码 |
 | `arc:test` | 测试与质量门禁 | 按风险分层设计/生成/运行测试（单元/集成/契约/E2E、覆盖率、模糊/属性、性能），用平台原生工具（Android=Maestro、Go/Rust 原生、HarmonyOS=arkxtest、前端=Vitest/Playwright）；性能与功能分开判失败，失败交 `arc:fix`，安全/非功能交 `arc:security`/`arc:audit` |
-| `arc:task-doc-progress-conventions` | 任务文档与进度 | 大任务前置约束与细子任务；安全来源时强制项目定位/口径/功能角色，按 finding 拆可执行子任务（见 `security-audit-task-pipeline.md`） |
+| `arc:sdlc` | 任务文档与进度 | 大任务前置约束与细子任务；安全来源时强制项目定位/口径/功能角色，按 finding 拆可执行子任务（见 `security-audit-task-pipeline.md`） |
 
 ## 通用工程约束
 
 | Skill ID | 用途 |
 |---|---|
 | `arc:code-comment-conventions` | 统一 Controller、接口/契约、普通函数、结构体/字段和函数内部编号步骤注释规范 |
-| `arc:code-index` | 统一 `.ai-code-index` 本地搜索、符号、结构搜索、profile、文件发现、代码统计、刷新和诊断用法 |
+| `arc:idx` | 统一 `arc-idx` 高性能上下文引擎用法：本地搜索、符号、结构搜索、profile、文件发现、代码统计、增量守护、刷新和诊断 |
 | `arc:go-gin-ssr-fmt-tracing` | 为 Go Gin SSR 请求路径添加低成本 fmt/time 或 log.Printf 计时探针 |
 | `arc:project-architecture-conventions` | 统一默认后端架构命名/分层/接口设计、DIP、依赖注入位置、后端日志证据、Go 常量/枚举和 helper 抽取规范 |
-| `arc:task-doc-progress-conventions` | 大任务实施前创建任务文档、前置约束、子任务文件和中心进度跟踪表 |
+| `arc:sdlc` | 大任务实施前创建任务文档、前置约束、子任务文件和中心进度跟踪表 |
 
 ## 共享参考
 
@@ -62,11 +64,11 @@ Skills/
 
 ## 收敛原则
 
-- 所有 Skill 需要搜索代码库或定位上下文时，优先使用 `arc:code-index` 约束下的 `.ai-code-index/search.sh` 查询本地 Zoekt 索引。
-- 搜索代码结构、调用形态或重构目标时，优先使用 `.ai-code-index/struct-search.sh`。
-- 查找符号定义或符号清单时，优先使用 `.ai-code-index/symbols.sh`。
-- 查找候选文件或按 profile 缩小范围时，优先使用 `.ai-code-index/files.sh`；做规模盘点时优先使用 `.ai-code-index/stats.sh`。
-- 索引缺失、过期或结果不完整时先运行 `.ai-code-index/doctor.sh` 或 `.ai-code-index/reindex.sh`；`rg` 只用于小范围精确补充、新建文件、受保护/参考目录或索引兜底。
+- 所有 Skill 需要搜索代码库或定位上下文时，优先使用 `arc:idx` 约束下的 `arc-idx search` 查询本地 Zoekt 索引（编译型 Go CLI，源码在 `tools/arc-idx/`，安装于 `~/.local/bin/arc-idx`）。
+- 搜索代码结构、调用形态或重构目标时，优先使用 `arc-idx ast`（ast-grep / Tree-sitter）。
+- 查找符号定义或符号清单时，优先使用 `arc-idx symbol`。
+- 查找候选文件或按 profile 缩小范围时，优先使用 `arc-idx files`；做规模盘点时优先使用 `arc-idx stats`。
+- 索引缺失、过期或结果不完整时先运行 `arc-idx doctor` 或 `arc-idx index`；长会话优先 `arc-idx daemon start` 做增量索引；`rg` 只用于小范围精确补充、新建文件、受保护/参考目录或索引兜底。
 - 不按项目大小自动创建飞书空间。只有用户明确说 `创建项目的飞书空间`、`创建飞书项目空间`、`初始化飞书项目空间`，或提供已有飞书项目空间链接时，才由 `arc:docs` 创建/连接项目空间。
 - 项目如果接入飞书，必须在项目根目录维护 `.lark.json`，记录项目文件空间地址、项目主页、PRD、需求、架构、任务表、仪表盘、进度、审计、交付、故障、资料来源和本地索引状态。
 - 创建/连接飞书项目空间后，必须把项目文件空间飞书地址写入 `.lark.json.resources.drive_folder.url`，后续启动 AI 或进入项目时先读取 `.lark.json`。
@@ -86,16 +88,16 @@ Skills/
 - Arc 只保留软件工程生命周期中的稳定判断框架和文档索引契约。
 - 所有 Skill 名称必须使用 `arc:*` 命名空间，并统一放在 `Arc/arc:*` 目录下。
 - 所有项目代码交付和修复必须遵守 `arc:project-architecture-conventions`：先看 ponytail；保持 DIP；默认按 `domain`、`usecase`、`interface/restful`、`infrastructure`、`wire` 的分层、命名和接口设计组织后端代码；后端排障必须用结构化日志和本地日志文件保留可复查证据；Go 常量必须使用 `MixedCaps` / `mixedCaps`、优先标准库语义常量、按最小作用域定义，枚举型业务状态必须用自定义类型建模，跨服务常量必须来自版本化契约或受治理的共享模块；Go 单文件私有函数上限为两个，原文件达到两个私有函数时必须拆到 `原文件名_helpers.go` 同包 helper 文件；DIP 边界接口是明确架构要求，但不得为私有 helper、同层代码或形式主义创建接口。
-- 大任务、跨多轮任务、迁移、重构、修复战役和需要持续跟踪的工作，必须先遵守 `arc:task-doc-progress-conventions`：按最新项目状态解析或创建 `docs/DD-任务` 这类数字序列化任务分类，再建立任务入口、`00-前置约束.md`、`tasks/` 子任务文件和 `进度跟踪表.md`；任务计划默认可能交给低智能或低上下文模型编码，因此每个具体任务都要额外写清当前文件/调用点/输出/执行顺序/边界/反例/验证；开始、暂停、阻塞、完成、验证或下一步变化时，必须立即更新 `进度跟踪表.md` 和子任务状态，未同步前不得继续实现或交付。
-- 需要测试或质量门禁的工作默认统一走 `arc:test`：按风险分层启用单元/集成/契约/E2E、覆盖率与回归门禁、模糊/属性、性能（基准/负载），用平台原生工具（Android=Maestro、Go/Rust 各自内置测试库、HarmonyOS=arkxtest、前端=Vitest/Playwright，且交互闭环/可见性/可点击/布局可读性经 `arc:frontend`）；性能与功能分开跑、分开判失败，覆盖率是缺口信号不是目标，禁止为凑类型全量铺开；安全/兼容/混沌/可观测性等非功能测试与 `arc:security`/`arc:audit` 协作、不重复建设；失败用例交 `arc:fix`，大型测试建设先走 `arc:task-doc-progress-conventions`。
+- 大任务、跨多轮任务、迁移、重构、修复战役和需要持续跟踪的工作，必须先遵守 `arc:sdlc`：按最新项目状态解析或创建 `docs/DD-任务` 这类数字序列化任务分类，再建立任务入口、`00-前置约束.md`、`tasks/` 子任务文件和 `进度跟踪表.md`；任务计划默认可能交给低智能或低上下文模型编码，因此每个具体任务都要额外写清当前文件/调用点/输出/执行顺序/边界/反例/验证；开始、暂停、阻塞、完成、验证或下一步变化时，必须立即更新 `进度跟踪表.md` 和子任务状态，未同步前不得继续实现或交付。
+- 需要测试或质量门禁的工作默认统一走 `arc:test`：按风险分层启用单元/集成/契约/E2E、覆盖率与回归门禁、模糊/属性、性能（基准/负载），用平台原生工具（Android=Maestro、Go/Rust 各自内置测试库、HarmonyOS=arkxtest、前端=Vitest/Playwright，且交互闭环/可见性/可点击/布局可读性经 `arc:frontend`）；性能与功能分开跑、分开判失败，覆盖率是缺口信号不是目标，禁止为凑类型全量铺开；安全/兼容/混沌/可观测性等非功能测试与 `arc:security`/`arc:audit` 协作、不重复建设；失败用例交 `arc:fix`，大型测试建设先走 `arc:sdlc`。
 - Arc Skill 默认是纯 `SKILL.md` 契约；`arc:security` 这种需要可重复自动化的能力可以携带本地脚本。
 - 图表、浏览器、Lazycat、纯设计等垂直能力由对应专门 Skill 负责，不再在 Arc 内重复建设。
 
 ## 校验
 
 ```bash
-.ai-code-index/reindex.sh
-uv run python scripts/validate_skills.py
-uv run pytest tests/test_skill_validation.py tests/test_skill_registry.py tests/test_arc_privacy.py -q
-uv run python scripts/build_skills_index.py
+arc-idx index
+.venv/bin/python scripts/validate_skills.py
+.venv/bin/python -m pytest tests/test_skill_validation.py tests/test_skill_registry.py tests/test_arc_privacy.py -q
+.venv/bin/python scripts/build_skills_index.py
 ```

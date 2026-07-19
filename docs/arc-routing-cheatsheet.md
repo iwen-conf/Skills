@@ -18,7 +18,7 @@ Arc now keeps ten software engineering lifecycle skills. Task orchestration, mem
 | Vulnerability / AppSec audit (assets, data map, no scanners) | `arc:audit` mode `appsec` |
 | Local security scanners / DAST / secrets / SCA report | `arc:security` |
 | Design/generate/run tests, coverage/regression gate, fuzz/property, or benchmark/load | `arc:test` |
-| Turn audit/scan findings into detailed local tasks | `arc:task-doc-progress-conventions` + security-audit-task-pipeline |
+| Turn audit/scan findings into detailed local tasks | `arc:sdlc` + security-audit-task-pipeline |
 | Multi-finding security fix campaign | handoff → task docs → `arc:fix`/`arc:build` per subtask |
 
 ## Default Order
@@ -29,7 +29,7 @@ Arc now keeps ten software engineering lifecycle skills. Task orchestration, mem
 4. Treat `创建项目的飞书空间` / `创建飞书项目空间` as full provisioning: create standard folders, docs, Base tables, dashboards, project flow, calendar, collaboration resources, whiteboards, automations, and index all durable links in `.lark.json`.
 5. Treat `更新飞书项目空间` as workspace update: verify `.lark.json`, repair broken links/index gaps, complete missing standard resources, refresh task tables, dashboards, Project flow, and automations without duplicating resources.
 6. Use `arc:clarify` when the task is not executable yet.
-7. Use `arc:task-doc-progress-conventions` before large tracked implementation work, and for audit/scan finding task expansion.
+7. Use `arc:sdlc` before large tracked implementation work, and for audit/scan finding task expansion.
 8. Use `arc:frontend` for frontend lifecycle work.
 9. Use `arc:build` for scoped implementation.
 10. Use `arc:fix` when failure evidence exists.

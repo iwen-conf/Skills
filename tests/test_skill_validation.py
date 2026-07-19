@@ -198,7 +198,7 @@ when body
 def test_validate_text_accepts_arc_namespaced_constraint_skills() -> None:
     cases = [
         (
-            "arc:code-index",
+            "arc:idx",
             "Use .ai-code-index for local search, symbols, profiles, files, stats, refresh, and diagnostics.",
         ),
         (
@@ -214,7 +214,7 @@ def test_validate_text_accepts_arc_namespaced_constraint_skills() -> None:
             "Apply mandatory backend architecture and DIP rules before coding.",
         ),
         (
-            "arc:task-doc-progress-conventions",
+            "arc:sdlc",
             "Create task docs, pre-constraints, and progress tables before large coding work.",
         ),
     ]
@@ -297,7 +297,7 @@ def test_arc_code_editing_skills_require_project_architecture_conventions() -> N
 
 
 def test_task_doc_progress_skill_requires_current_state_and_arc_integration() -> None:
-    text = (ROOT / "Arc" / "arc:task-doc-progress-conventions" / "SKILL.md").read_text(encoding="utf-8")
+    text = (ROOT / "Arc" / "arc:sdlc" / "SKILL.md").read_text(encoding="utf-8")
 
     required_phrases = [
         "latest repository state",
@@ -307,9 +307,9 @@ def test_task_doc_progress_skill_requires_current_state_and_arc_integration() ->
         "MUST update progress tracking immediately when starting, pausing, blocking, completing, or verifying a subtask",
         "MUST NOT continue implementation while `进度跟踪表.md` or the active subtask status is stale",
         "MUST NOT send a final delivery response for tracked work until progress tracking reflects the actual final state",
-        "Resolve the task document root from the project",
-        "immediate children of `docs/` as numbered document categories",
-        "next available two-digit category number",
+        "Software Engineering Lifecycle (SDLC) partitioning under `docs/`",
+        "`docs/00-产品需求/`",
+        "`docs/03-执行任务/`",
         "`DD` is the `docs/` category sequence",
         "Every concrete subtask must be specific to the current project",
         "If the repository changed since the task was written",
@@ -333,29 +333,29 @@ def test_all_skill_names_use_arc_namespace() -> None:
 def test_arc_skills_route_large_work_through_task_doc_progress_conventions() -> None:
     cases = {
         "Arc/arc:build/SKILL.md": [
-            "MUST apply `arc:task-doc-progress-conventions` before code edits",
+            "MUST apply `arc:sdlc` before code edits",
             "NO LARGE PROJECT CODE CHANGE WITHOUT CURRENT LOCAL TASK DOCS",
         ],
         "Arc/arc:fix/SKILL.md": [
-            "MUST apply `arc:task-doc-progress-conventions` before code edits",
+            "MUST apply `arc:sdlc` before code edits",
             "NO LARGE REPAIR WITHOUT CURRENT LOCAL TASK DOCS",
         ],
         "Arc/arc:frontend/SKILL.md": [
-            "MUST apply `arc:task-doc-progress-conventions` before code edits",
+            "MUST apply `arc:sdlc` before code edits",
             "NO LARGE FRONTEND CHANGE WITHOUT CURRENT LOCAL TASK DOCS",
         ],
         "Arc/arc:security/SKILL.md": [
-            "MUST apply `arc:task-doc-progress-conventions` before generating multi-finding remediation plans",
+            "MUST apply `arc:sdlc` before generating multi-finding remediation plans",
             "NO MULTI-FINDING REMEDIATION PLAN WITHOUT CURRENT LOCAL TASK DOCS",
         ],
         "Arc/arc:clarify/SKILL.md": [
-            "Use `arc:task-doc-progress-conventions` after clarification",
+            "Use `arc:sdlc` after clarification",
         ],
         "Arc/arc:define/SKILL.md": [
-            "Use `arc:task-doc-progress-conventions` before implementation",
+            "Use `arc:sdlc` before implementation",
         ],
         "Arc/arc:audit/SKILL.md": [
-            "Use `arc:task-doc-progress-conventions` before remediation",
+            "Use `arc:sdlc` before remediation",
         ],
         "Arc/arc:docs/SKILL.md": [
             "Lark task tables do not replace local task docs",

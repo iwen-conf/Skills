@@ -13,7 +13,7 @@ Arc 收敛为十个 `arc:*` 软件工程生命周期 Skill。若任务涉及代�
 | `arc:audit` | 需要只读体检、风险盘点、改进建议；或代码/项目/漏洞审计（AppSec 方法论：资产表→数据地图→finding cards） | 需要直接改代码；或需要安装/运行安全 CLI 扫描器 | `arc:clarify` / `arc:security` / `arc:build` / `arc:docs` |
 | `arc:security` | 需要本地安全扫描、依赖/密钥/Go/API/DAST 检查、按数据价值重排的可读安全报告 | 未授权的第三方目标、纯业务需求澄清、或只要人工只读审查/资产与数据地图 | `arc:fix` / `arc:build` / `arc:audit` / `arc:docs` |
 | `arc:test` | 需要设计/生成/运行测试、覆盖率/回归门禁、模糊/属性、基准/负载，或跨 Go/Rust/Android/HarmonyOS/前端的分层测试 | 只是单点实现的顺带验证（走 `arc:build` 自带验证）、纯安全扫描（走 `arc:security`）、纯只读体检（走 `arc:audit`） | `arc:fix` / `arc:build` / `arc:frontend` / `arc:security` / `arc:docs` |
-| `arc:task-doc-progress-conventions` | 大型/跨模块/需跟踪任务要先沉淀本地任务文档；或把审计/扫描 findings 拆成详细子任务 | 单点小改动、无需任务文档的轻量实现；或还缺少上游 handoff/项目口径 | `arc:fix` / `arc:build` / `arc:security` |
+| `arc:sdlc` | 大型/跨模块/需跟踪任务要先沉淀本地任务文档；或把审计/扫描 findings 拆成详细子任务 | 单点小改动、无需任务文档的轻量实现；或还缺少上游 handoff/项目口径 | `arc:fix` / `arc:build` / `arc:security` |
 
 ## Decision Tree
 
@@ -48,7 +48,7 @@ flowchart TD
 ## Fast Rules
 
 - 需要多人/多 Agent/跨会话/记忆：用 `aitask`，不要用 Arc。
-- 需要代码库搜索或上下文定位：用 `.ai-code-index/search.sh`、`struct-search.sh`、`symbols.sh`，不要在 Arc 内另建搜索机制。
+- 需要代码库搜索或上下文定位：用 `arc-idx search`、`arc-idx ast`、`arc-idx symbol`，不要在 Arc 内另建搜索机制。
 - 已存在 `.lark.json` 时，所有 Arc 生命周期工作都应先读取它；有交付、修复、审计或文档变更时追加 lifecycle 记录。
 - 没有 `.lark.json` 时，普通代码/修复/审查/资料搜索任务不询问、不创建飞书；只有用户明确说创建/连接飞书项目空间或提供飞书项目链接后才用 `arc:docs`。
 - 创建/连接项目空间后，必须把项目文件空间飞书地址写入 `.lark.json.resources.drive_folder.url`；下一次启动 AI 或进入项目时先读取 `.lark.json`。
@@ -62,6 +62,6 @@ flowchart TD
 - 需要 E2E：由 `arc:test` 编排，使用项目 E2E 工具或 `agent-browser`；前端交互闭环/可见性/可点击/布局可读性检查经 `arc:frontend`。
 - 需要代码/项目/漏洞只读审计、资产表或敏感数据地图：用 `arc:audit`（mode `appsec`，见 `Arc/arc:audit/references/appsec-playbook.md`）。
 - 需要安全扫描或安全报告：用 `arc:security`（先 quick 再 full，按 data-value 重排）。
-- 多 finding 修复战役：`R-recon`/`R-scan` 出 Handoff（项目定位+项目口径+功能角色+findings）→ `arc:task-doc-progress-conventions`（`R-task` 写细子任务）→ `arc:fix`/`arc:build`（`R-fix`）→ 验证/`arc:security` 复扫。契约见 `Arc/arc:task-doc-progress-conventions/references/security-audit-task-pipeline.md`。
+- 多 finding 修复战役：`R-recon`/`R-scan` 出 Handoff（项目定位+项目口径+功能角色+findings）→ `arc:sdlc`（`R-task` 写细子任务）→ `arc:fix`/`arc:build`（`R-fix`）→ 验证/`arc:security` 复扫。契约见 `Arc/arc:sdlc/references/security-audit-task-pipeline.md`。
 - 大仓库：优先 `arc:audit` 做资产与数据地图，再 `arc:security` 跑 CLI；不要一上来 AI 通读或全量 POC；不要从 SARIF 直接改代码。
 - 防范 AI 代码腐化：每个 Arc 技能在 `## Code Rot Gates` 引用 [`code-rot-taxonomy.md`](code-rot-taxonomy.md) 中各自负责的家族切片；define→命名，clarify→减枝/状态，docs→资料追踪，build→实施期门禁，frontend→前端一致性，fix→数据层/状态根因，test→回归/覆盖缺口门禁，audit→全 36 条复查。

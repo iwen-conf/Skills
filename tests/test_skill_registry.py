@@ -37,11 +37,11 @@ def test_validate_registry_accepts_generated_registry() -> None:
         "arc:audit",
         "arc:security",
         "arc:test",
-        "arc:code-index",
+        "arc:idx",
         "arc:code-comment-conventions",
         "arc:go-gin-ssr-fmt-tracing",
         "arc:project-architecture-conventions",
-        "arc:task-doc-progress-conventions",
+        "arc:sdlc",
     }
 
 
@@ -50,11 +50,11 @@ def test_collect_skill_files_indexes_only_arc_namespaced_skills() -> None:
     assert ROOT / "Arc" / "arc:build" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:docs" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:frontend" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:code-index" / "SKILL.md" in files
+    assert ROOT / "Arc" / "arc:idx" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:code-comment-conventions" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:go-gin-ssr-fmt-tracing" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:project-architecture-conventions" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:task-doc-progress-conventions" / "SKILL.md" in files
+    assert ROOT / "Arc" / "arc:sdlc" / "SKILL.md" in files
     assert all(
         path.is_relative_to(ROOT / "Arc")
         for path in files
@@ -78,11 +78,11 @@ def test_update_context_hub_registers_skills_registry_artifact() -> None:
         assert artifact["artifact_type"] == "skills-registry"
         assert artifact["producer_skill"] == "arc-registry"
         assert artifact["path"] == "skills.index.json"
-        assert "arc:code-index" in artifact["consumers"]
+        assert "arc:idx" in artifact["consumers"]
         assert "arc:code-comment-conventions" in artifact["consumers"]
         assert "arc:go-gin-ssr-fmt-tracing" in artifact["consumers"]
         assert "arc:project-architecture-conventions" in artifact["consumers"]
-        assert "arc:task-doc-progress-conventions" in artifact["consumers"]
+        assert "arc:sdlc" in artifact["consumers"]
     finally:
         import shutil
 

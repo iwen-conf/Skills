@@ -13,4 +13,4 @@ Arc skills can still be used as local working methods inside an `aitask` orchest
 - `arc:audit`: review quality and risk without editing code; use mode `appsec` for vulnerability methodology (assets, data map, finding cards).
 - `arc:security`: local scanners and data-value re-ranked security reports; not a substitute for AuthZ/business-logic review.
 - `arc:test`: design/generate/run tests by layer and by risk (unit/integration/contract/E2E, coverage, fuzz/property, performance) with platform-native tooling; performance judged separately from functional.
-- `arc:task-doc-progress-conventions`: create current-state task docs and expand audit/scan findings into detailed subtasks before tracked fixes.
+- `arc:sdlc`: create current-state task docs and expand audit/scan findings into detailed subtasks before tracked fixes.
