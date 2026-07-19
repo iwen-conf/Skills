@@ -36,8 +36,8 @@ expert_keywords:
 ## Context Search
 
 - MUST inspect existing code before editing unfamiliar files.
-- MUST use `.ai-code-index/search.sh` first for broad repository context.
-- MUST use `.ai-code-index/struct-search.sh` for structural patterns and `.ai-code-index/symbols.sh` for definitions when relevant.
+- MUST use `arc-idx search` first for broad repository context.
+- MUST use `arc-idx ast` for structural patterns and `arc-idx symbol` for definitions when relevant.
 - If `.lark.json` exists, MUST read it before final handoff.
 
 ## Announce

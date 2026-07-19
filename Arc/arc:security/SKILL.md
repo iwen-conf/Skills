@@ -53,8 +53,8 @@ Read:
 
 - MUST inspect project type, package managers, API specs, Docker files, auth boundaries, and existing security tooling before scanning.
 - MUST build or reuse a minimal asset snapshot (entrypoints, OpenAPI, auth boundaries, config/secrets paths) before mass scanning when practical—do not start with unscoped AI monologues.
-- MUST use `.ai-code-index/search.sh` first for broad repository context when available.
-- MUST use `.ai-code-index/struct-search.sh` for risky code shapes such as raw SQL, shell execution, file upload, SSRF fetches, JWT parsing, or auth bypasses.
+- MUST use `arc-idx search` first for broad repository context when available.
+- MUST use `arc-idx ast` for risky code shapes such as raw SQL, shell execution, file upload, SSRF fetches, JWT parsing, or auth bypasses.
 - If `.lark.json` exists, MUST read it before security handoff and route durable reports through `arc:docs`.
 
 ## Announce

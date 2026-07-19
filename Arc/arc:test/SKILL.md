@@ -50,8 +50,8 @@ Read:
 
 - MUST inspect existing test layout, test runners, CI config, coverage config, and fixtures before adding or running tests.
 - MUST detect stack markers (`go.mod`, `Cargo.toml`, `package.json`, `build.gradle`/`AndroidManifest.xml`, `oh-package.json5`/`.test.ets`, `.maestro/` flows) to choose native tooling.
-- MUST use `.ai-code-index/search.sh` first for broad repository context and existing test patterns.
-- MUST use `.ai-code-index/struct-search.sh` for the code shapes that most need tests: parsers, decoders, state machines, business rules, error branches, and boundary handling.
+- MUST use `arc-idx search` first for broad repository context and existing test patterns.
+- MUST use `arc-idx ast` for the code shapes that most need tests: parsers, decoders, state machines, business rules, error branches, and boundary handling.
 - If `.lark.json` exists, MUST read it before test-report handoff and route durable records through `arc:docs`.
 
 ## Announce

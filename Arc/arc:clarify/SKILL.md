@@ -34,7 +34,7 @@ expert_keywords:
 ## Context Search
 
 - MUST inspect available local context before asking broad questions.
-- MUST use `.ai-code-index/search.sh` first for repository context; use `rg` only for narrow exact follow-up.
+- MUST use `arc-idx search` first for repository context; use `rg` only for narrow exact follow-up.
 - If `.lark.json` exists, MUST read it before finalizing the brief.
 
 ## Announce

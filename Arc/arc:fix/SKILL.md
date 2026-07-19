@@ -39,7 +39,7 @@ expert_keywords:
 ## Context Search
 
 - MUST inspect the failure signal before editing.
-- MUST use `.ai-code-index/search.sh` first for related code paths and tests.
+- MUST use `arc-idx search` first for related code paths and tests.
 - MUST use exact search for error strings, stack frames, logs, and config keys.
 - If `.lark.json` exists, MUST read it before final incident handoff.
 

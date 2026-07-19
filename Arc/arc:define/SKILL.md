@@ -34,7 +34,7 @@ expert_keywords:
 
 ## Context Search
 
-- For brownfield work, MUST search existing terms first with `.ai-code-index/search.sh`, then `.ai-code-index/symbols.sh` if entity names matter.
+- For brownfield work, MUST search existing terms first with `arc-idx search`, then `arc-idx symbol` if entity names matter.
 - If `.lark.json` exists, MUST read it before drafting so PRD, owners, requirements, and Wiki links remain consistent.
 
 ## Announce

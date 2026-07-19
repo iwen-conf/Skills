@@ -46,8 +46,8 @@ AppSec methodology lives in [`references/appsec-playbook.md`](references/appsec-
 
 ## Context Search
 
-- MUST use `.ai-code-index/search.sh` first for relevant code paths, tests, dependencies, and architecture boundaries.
-- MUST use `.ai-code-index/struct-search.sh` for risky code shapes when relevant (auth, SQL, uploads, SSRF, JWT, payments).
+- MUST use `arc-idx search` first for relevant code paths, tests, dependencies, and architecture boundaries.
+- MUST use `arc-idx ast` for risky code shapes when relevant (auth, SQL, uploads, SSRF, JWT, payments).
 - MUST prefer inventory collectors (routers, OpenAPI, migrations, configs) over free-form AI “scan everything”.
 - If `.lark.json` exists, MUST read it before reporting prior risks, tasks, approvals, and audit records.
 
@@ -147,7 +147,7 @@ Do not spend the whole engagement on low-yield host/RCE fantasies while bulk dat
 
 No dedicated runtime scripts. Use:
 
-- `.ai-code-index/search.sh`, `struct-search.sh`, `symbols.sh`
+- `arc-idx search`, `arc-idx ast`, `arc-idx symbol`
 - project-native tests, linters, and package managers
 - static inspection of routers, migrations, configs, deploy scripts
 - `arc:security` scripts only after handoff / user request for automation
@@ -156,7 +156,7 @@ Suggested appsec collectors (adapt per stack):
 
 ```bash
 # examples — prefer project-native equivalents
-.ai-code-index/struct-search.sh 'raw SQL|ExecContext|Find\(|jwt|password|upload|webhook'
+arc-idx search 'raw SQL|ExecContext|jwt|password|upload|webhook'
 # list HTTP registrations, OpenAPI, permission matrices, *.yaml configs, deploy scripts
 ```
 

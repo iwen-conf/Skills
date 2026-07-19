@@ -107,7 +107,6 @@ For non-security large work, the security pipeline sections are optional; the re
 For new projects, or when upgrading a project's documentation architecture, enforce a strict, structurally rigorous Software Engineering Lifecycle (SDLC) partitioning under `docs/`. Every document must belong to a logical phase, and context must flow sequentially without duplication.
 
 Standard `docs/` SDLC Architecture (Comprehensive Agent & Developer Ready):
-Standard `docs/` SDLC Architecture (Comprehensive Agent & Developer Ready):
 - `docs/00-产品需求/`: PRDs, user stories, business rules, and domain glossaries. (The *Why* and *What*).
 - `docs/01-系统设计/`: High-level architecture, technical RFCs, sequence diagrams, and DB/Domain models. (The *How*).
 - `docs/02-API记录/`: API mapping and 3rd-party integration docs. **CRITICAL**: Do NOT write API contracts manually here. The single source of truth for APIs is Apifox (managed via `apifox-cli`). This folder holds exported syncs/indexes.

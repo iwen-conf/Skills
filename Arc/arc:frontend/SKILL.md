@@ -36,7 +36,7 @@ expert_keywords:
 ## Context Search
 
 - MUST inspect existing routes, layouts, components, theme files, API clients, stores, forms, and tests before changing them.
-- MUST use `.ai-code-index/search.sh` first; use `.ai-code-index/struct-search.sh typescript` for React patterns.
+- MUST use `arc-idx search` first; use `arc-idx ast --lang tsx` for React patterns.
 - If `.lark.json` exists, MUST read it before major frontend decisions.
 
 ## Announce

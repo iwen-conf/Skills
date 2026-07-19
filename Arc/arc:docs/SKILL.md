@@ -319,7 +319,7 @@ Use `tasklist` only for personal reminders; it cannot replace `task_base`.
 Use project-local commands and Lark CLI through the relevant Lark skill:
 
 ```bash
-.ai-code-index/reindex.sh
+arc-idx index
 lark-cli docs +create --api-version v2 --content '<title>Project Home</title>'
 lark-cli docs +update --api-version v2 --doc "<doc-url-or-token>" --command append --content '<p>...</p>'
 ```
