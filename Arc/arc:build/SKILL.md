@@ -1,6 +1,13 @@
 ---
 name: arc:build
 description: "Code delivery with verification; hand active Lark task_base, progress, delivery, and lifecycle to arc:docs."
+enforce_arc_profile: true
+expert_keywords:
+  - DoD
+  - SemVer
+  - Contract Test
+  - RTO/RPO
+  - SBOM
 ---
 
 # arc:build
@@ -52,7 +59,7 @@ NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
 
 - MUST preserve unrelated user changes.
 - MUST edit the smallest viable file set.
-- MUST apply `arc:task-doc-progress-conventions` before code edits for large, multi-step, cross-module, or tracked work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, or status change.
+- MUST apply `arc:sdlc` before code edits for large, multi-step, cross-module, or tracked work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, or status change.
 - MUST apply `arc:project-architecture-conventions` before writing project code, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
 - MUST route frontend platform decisions through `arc:frontend`; defaults are Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod, mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router, desktop = Tauri 2 + Web stack, mini-program = Taro 4 + React + TypeScript + Zustand, unless explicitly overridden by the user.
 - MUST preserve the product-state contract across backend and frontend: empty/no-data is a successful business state, not an error; list/query endpoints return success with an empty collection and pagination metadata, while real failures return typed errors.
@@ -69,7 +76,7 @@ NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
 ## Workflow
 
 1. Confirm task, scope, and verification target.
-2. For large, multi-step, cross-module, or tracked work, apply `arc:task-doc-progress-conventions` before code edits and keep local task status current as the project changes.
+2. For large, multi-step, cross-module, or tracked work, apply `arc:sdlc` before code edits and keep local task status current as the project changes.
 3. Apply `arc:project-architecture-conventions` before code edits; stop and report if ponytail is required but unavailable or conflicting.
 4. Search for existing patterns, call sites, tests, and contracts.
 5. Edit only the needed files.
@@ -80,7 +87,7 @@ NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
 ## Quality Gates
 
 - Requested behavior is implemented without speculative extra surface.
-- Large, multi-step, cross-module, or tracked work has current local task docs, detailed subtasks, and synchronized progress status from `arc:task-doc-progress-conventions`.
+- Large, multi-step, cross-module, or tracked work has current local task docs, detailed subtasks, and synchronized progress status from `arc:sdlc`.
 - Existing contracts, names, state shapes, and response envelopes are preserved unless explicitly changed.
 - Project architecture preserves DIP and the default backend architecture responsibilities from `arc:project-architecture-conventions` when backend architecture applies.
 - API/service contracts distinguish `empty`, `not found`, `permission denied`, validation failure, network/server failure, and loading/processing states; frontend consumers must not need to infer empty state from an error branch.

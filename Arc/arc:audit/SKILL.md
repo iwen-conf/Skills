@@ -1,6 +1,13 @@
 ---
 name: arc:audit
-description: "Read-only project/AppSec audit: assets, data map, vuln review; Lark risks via arc:docs."
+description: 'Read-only project/AppSec audit: assets, data map, vuln review; Lark
+  risks via arc:docs.'
+enforce_arc_profile: true
+expert_keywords:
+- Business Maturity
+- Dependency Health
+- Expert Review Card
+- 9 Tab
 ---
 
 # arc:audit
@@ -33,7 +40,7 @@ AppSec methodology lives in [`references/appsec-playbook.md`](references/appsec-
 - Use `arc:clarify` if audit scope, environment authorization, or active-test boundaries are vague.
 - Use `arc:security` when the user wants local scanner automation, dependency/secrets CLI reports, API fuzz, or authorized DAST—after recon when possible.
 - Use `arc:fix` if a concrete failure or confirmed vuln must be repaired.
-- Use `arc:task-doc-progress-conventions` before remediation when findings become large, multi-step, cross-module, or tracked implementation work; as role `R-task` after emitting a Handoff Package (项目定位 / 项目口径 / 功能角色 / findings)—never dump a vague “修安全” task list.
+- Use `arc:sdlc` before remediation when findings become large, multi-step, cross-module, or tracked implementation work; as role `R-task` after emitting a Handoff Package (项目定位 / 项目口径 / 功能角色 / findings)—never dump a vague “修安全” task list.
 - Use `arc:build` / `arc:fix` only after task docs exist for tracked remediation, or for a single small confirmed fix the user wants implemented immediately.
 - Use `arc:docs` only when Lark is active for audit reports, risk Base rows, remediation tasks, approval gates, or `.lark.json.lifecycle[]`.
 
@@ -72,7 +79,7 @@ NO MASS AI DEEP-DIVE BEFORE ASSET INVENTORY.
 - MUST mark inferred risks as assumptions.
 - MUST route all Lark audit/risk/task/approval updates through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
-- MUST route multi-finding or multi-step remediation planning through `arc:task-doc-progress-conventions` before execution starts.
+- MUST route multi-finding or multi-step remediation planning through `arc:sdlc` before execution starts.
 - MUST follow [`references/appsec-playbook.md`](references/appsec-playbook.md) when mode is `appsec` or risk_focus is security/vuln/appsec.
 - MUST treat config/secret/default-admin/debug exposure as first-class risks, not afterthoughts.
 - MUST NOT run active DAST, exploit payloads, or live attacks under `arc:audit`; authorize and route those to `arc:security`.
@@ -88,7 +95,7 @@ NO MASS AI DEEP-DIVE BEFORE ASSET INVENTORY.
 1. Confirm scope, constraints, mode (`general` vs `appsec`), and risk focus.
 2. Inspect structure, dependencies, critical paths, tests, and recent changes via local index tools.
 3. Produce severity-ordered findings with evidence and recommended action.
-4. If findings become large or tracked remediation work: as `R-recon`, write the Handoff Package (定位/口径/角色/assets/data-map/findings/task-seed), then hand to `arc:task-doc-progress-conventions` (`R-task`) before any `arc:build` / `arc:fix`. Pipeline: [`../arc:task-doc-progress-conventions/references/security-audit-task-pipeline.md`](../arc:task-doc-progress-conventions/references/security-audit-task-pipeline.md).
+4. If findings become large or tracked remediation work: as `R-recon`, write the Handoff Package (定位/口径/角色/assets/data-map/findings/task-seed), then hand to `arc:sdlc` (`R-task`) before any `arc:build` / `arc:fix`. Pipeline: [`../arc:sdlc/references/security-audit-task-pipeline.md`](../arc:sdlc/references/security-audit-task-pipeline.md).
 5. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with findings, risk rows, tasks, and approval needs.
 
 ### Mode `general`
@@ -117,7 +124,7 @@ Do not spend the whole engagement on low-yield host/RCE fantasies while bulk dat
 - Findings lead the report; summary is secondary.
 - Each confirmed finding has concrete evidence.
 - Recommendations are scoped and actionable.
-- Large remediation follow-up names `arc:task-doc-progress-conventions` as the required local planning gate.
+- Large remediation follow-up names `arc:sdlc` as the required local planning gate.
 - Security, data-layer, state, dependency, and test risks are considered when relevant.
 - Frontend audits check same-duty library duplication, state-layer mixing, and undocumented default-stack exceptions when relevant.
 - Lark audit state is linked through `.lark.json` only when Lark is active.

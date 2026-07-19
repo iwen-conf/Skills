@@ -33,6 +33,7 @@ For new backend modules and project skeletons, use this architecture by default.
 - MUST create a sibling helper file named from the original basename plus `_helpers.go` when an original file reaches two private functions, such as `order.go` -> `order_helpers.go`.
 - MUST move private helpers into the sibling helper file instead of adding a third private function to the original file.
 - MUST apply the same two-private-function limit to `_helpers.go` files; split by focused behavior instead of growing a dump file.
+- MUST NOT use compile-time interface assertions (e.g., `var _ Interface = (*Struct)(nil)`) to verify interface implementation. Instead, enforce the implementation at compile time by returning the interface type directly from the constructor (e.g., `func NewStruct() Interface { return &Struct{} }`).
 
 ## Ponytail Preflight
 
@@ -403,6 +404,7 @@ Follow this helper placement:
 4. Define REST response bodies as named DTO composition structs in `dto/responses` with embedded `Base` and explicit concrete fields such as `Data User`, `Data []User`, `Page Page`, or `Cursor pagination.CursorResponse`; do not define ad hoc response structs inside controllers.
 5. Keep controller helpers focused inside `internal/interface/restful/controllers` only when they are transport-boundary helpers. Move pure business helpers down into usecase.
 6. Avoid vague `common`, `misc`, `tools`, or broad `utils` buckets. Extract only after real reuse and with a specific package purpose.
+7. Semantic Reuse (DRY): If the final intent, operation, and outcome are identical, you MUST use the same set of code (do not duplicate identical operations). Always clarify the user's intent to distinguish between true business equivalence and coincidental similarity. If legacy divergent code exists for an identical operation and outcome, you MUST refactor and update it to use the single unified implementation.
 
 ## Review Checklist
 
@@ -426,5 +428,7 @@ Follow this helper placement:
 - No Go file contains more than two private functions; files that reach two private functions are split into `<original>_helpers.go` sibling files.
 - `helpers` are business-local unless proven reusable.
 - Shared application helpers live in `internal/usecase/shared` or another focused package and do not import interface or infrastructure packages.
+- Semantic reuse is enforced: code with identical operation and outcome shares one unified implementation, intent was clarified, and divergent legacy code was updated.
 - Go REST responses use `dto/responses.Base` composition plus per-endpoint named response structs; `Data` uses concrete DTO types or slices, page and cursor metadata stay separate, no response body uses `any`, `interface{}`, `map[string]any`, `gin.H`, anonymous structs, or `Response[T any]`, and DTO packages do not contain entity/usecase mapping constructors.
+- Interface implementations are verified by returning the interface from constructors, not through standalone `var _ Interface = (*Struct)(nil)` assertions.
 - `ponytail` was read before coding, or its absence was reported before editing.

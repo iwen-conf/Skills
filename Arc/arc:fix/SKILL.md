@@ -1,6 +1,18 @@
 ---
 name: arc:fix
-description: "Failure repair with root cause; hand active Lark incidents, risks, follow-ups, task_base, and lifecycle to arc:docs."
+description: Failure repair with root cause; hand active Lark incidents, risks, follow-ups,
+  task_base, and lifecycle to arc:docs.
+enforce_arc_profile: true
+expert_keywords:
+- - SEV
+  - Severity Level
+  - severity level
+  - severity
+- 5 Whys
+- Fault Tree
+- Blameless Postmortem
+- Mandatory Hypothesis
+- Rationalization Watch
 ---
 
 # arc:fix
@@ -53,7 +65,7 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 - MUST capture runnable or observable failures into local log/evidence files before large edits. Use paths such as `.arc/artifacts/<task>/logs/` or `tmp/logs/`.
 - MUST state a concrete hypothesis before significant edits.
 - MUST patch the smallest safe surface.
-- MUST apply `arc:task-doc-progress-conventions` before code edits for large, multi-step, cross-module, or tracked repair work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, failure evidence, or status change.
+- MUST apply `arc:sdlc` before code edits for large, multi-step, cross-module, or tracked repair work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, failure evidence, or status change.
 - MUST apply `arc:project-architecture-conventions` before code edits, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
 - MUST rerun the failing path when feasible.
 - MUST route all Lark incident/risk/task updates through `arc:docs`.
@@ -69,7 +81,7 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 2. Reproduce or inspect the failing path and persist available logs, command output, browser console, network traces, screenshots, or stack traces to a local evidence file.
 3. Search the saved evidence for exact error strings, request IDs, stack frames, network failures, and config keys.
 4. Form and test a root-cause hypothesis.
-5. For large, multi-step, cross-module, or tracked repair work, apply `arc:task-doc-progress-conventions` before code edits and keep local task status current as evidence or project state changes.
+5. For large, multi-step, cross-module, or tracked repair work, apply `arc:sdlc` before code edits and keep local task status current as evidence or project state changes.
 6. Apply `arc:project-architecture-conventions` before code edits; stop and report if ponytail is required but unavailable or conflicting.
 7. Patch the smallest safe surface.
 8. Rerun the failing check plus focused regressions, saving verification output when useful.
@@ -78,7 +90,7 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 ## Quality Gates
 
 - Fix targets cause, not only symptom.
-- Large, multi-step, cross-module, or tracked repair work has current local task docs, detailed subtasks, and synchronized progress status from `arc:task-doc-progress-conventions`.
+- Large, multi-step, cross-module, or tracked repair work has current local task docs, detailed subtasks, and synchronized progress status from `arc:sdlc`.
 - Runnable failures have persisted sanitized log/evidence files, or the reason evidence could not be captured is explicit.
 - Fix preserves DIP and default backend architecture responsibilities when backend architecture applies, unless the failure is explicitly caused by migrating toward them.
 - Verification covers the original failure.

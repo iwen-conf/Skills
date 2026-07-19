@@ -1,6 +1,13 @@
 ---
 name: arc:docs
-description: "Feishu/Lark project space and .lark.json owner for explicit setup and indexed document lifecycle."
+description: Feishu/Lark project space and .lark.json owner for explicit setup and
+  indexed document lifecycle.
+enforce_arc_profile: true
+expert_keywords:
+- Lark
+- .lark.json
+- Traceability Matrix
+- Information Architecture
 ---
 
 # arc:docs
@@ -23,7 +30,7 @@ Read [`references/lark-index-contract.md`](references/lark-index-contract.md) wh
 
 - Use `arc:define` before `arc:docs` if the PRD/project concept is missing.
 - Use `arc:clarify` before `arc:docs` if requirement acceptance criteria are missing.
-- Use `arc:task-doc-progress-conventions` before execution skills when local large-task planning, detailed subtasks, pre-constraints, and current progress status are required; Lark task tables do not replace local task docs.
+- Use `arc:sdlc` before execution skills when local large-task planning, detailed subtasks, pre-constraints, and current progress status are required; Lark task tables do not replace local task docs.
 - Use `arc:build`, `arc:frontend`, `arc:fix`, or `arc:audit` for delivery, UI, repair, or review; then update `.lark.json` here only when Lark is active.
 
 Lark activation:
@@ -81,7 +88,7 @@ Material capture contract:
 - Any durable project material discovered or produced during research, search, development, design, review, meetings, or handoff MUST be routed into the Lark project space when `.lark.json` exists.
 - Store source URLs, local file paths, titles, timestamps, owners, summary, and evidence links in the correct resource; never store access tokens or full secret-bearing document bodies in `.lark.json`.
 - Use Docx/Wiki for narrative findings, Base for structured requirements/tasks/risks/traceability, Drive for files/exports/attachments, Whiteboard/UML for visual models, Slides for presentation assets, and lifecycle entries for provenance.
-- When local `arc:task-doc-progress-conventions` files exist, sync from their current status and evidence instead of inventing task state in Lark; if project state changed, the local task docs must be updated before final Lark status claims.
+- When local `arc:sdlc` files exist, sync from their current status and evidence instead of inventing task state in Lark; if project state changed, the local task docs must be updated before final Lark status claims.
 - If `.lark.json` is absent, keep durable materials local unless the user explicitly asks to create/connect a Lark project space.
 
 Workspace update trigger phrases:

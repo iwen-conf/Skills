@@ -1,6 +1,11 @@
 ---
 name: arc:clarify
 description: "Requirement clarification; hand active Lark requirements, task_base, and lifecycle updates to arc:docs."
+enforce_arc_profile: true
+expert_keywords:
+  - IEEE 29148
+  - INVEST
+  - Given-When-Then
 ---
 
 # arc:clarify
@@ -20,7 +25,7 @@ description: "Requirement clarification; hand active Lark requirements, task_bas
 ## Routing Matrix
 
 - Use `arc:docs` only when Lark is active and clarified requirements must update Lark Docx, Base, `task_base`, or `.lark.json.lifecycle[]`.
-- Use `arc:task-doc-progress-conventions` after clarification and before execution when the result is large, multi-step, cross-module, or tracked implementation work.
+- Use `arc:sdlc` after clarification and before execution when the result is large, multi-step, cross-module, or tracked implementation work.
 - Use `arc:build` once the task is executable.
 - Use `arc:frontend` when the clarified scope includes Web, mobile, desktop, mini-program stack, UI architecture, routing, server state, client state, forms, or theme decisions.
 - Use `arc:audit` for read-only assessment.
@@ -50,7 +55,7 @@ NO LARK-ACTIVE FEATURE REQUIREMENT WITHOUT task_base ROW.
 - MUST separate facts, assumptions, and open questions.
 - MUST ask only blocking questions.
 - MUST define in-scope and out-of-scope work.
-- MUST make downstream concrete tasks specific enough to become `arc:task-doc-progress-conventions` subtasks without hidden context.
+- MUST make downstream concrete tasks specific enough to become `arc:sdlc` subtasks without hidden context.
 - MUST use `Given-When-Then` when behavior must be tested.
 - MUST record `arc:frontend` platform default stack as the frontend assumption unless the user explicitly specifies another stack: Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod; mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router; desktop = Tauri 2 + Web stack; mini-program = Taro 4 + React + TypeScript + Zustand.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
@@ -64,7 +69,7 @@ NO LARK-ACTIVE FEATURE REQUIREMENT WITHOUT task_base ROW.
 3. Define scope, constraints, assumptions, and success criteria.
 4. Ask only remaining blocking questions.
 5. Produce the brief.
-6. If the clarified work is large, multi-step, cross-module, or tracked, hand off to `arc:task-doc-progress-conventions` before any execution skill starts code edits.
+6. If the clarified work is large, multi-step, cross-module, or tracked, hand off to `arc:sdlc` before any execution skill starts code edits.
 7. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with requirement, acceptance criteria, task owner/status, and resource keys to update.
 
 ## Quality Gates
@@ -72,7 +77,7 @@ NO LARK-ACTIVE FEATURE REQUIREMENT WITHOUT task_base ROW.
 - Brief includes `Context`, `Task`, `Scope`, `Constraints`, `Assumptions`, `Open Questions`, and `Success Criteria`.
 - Ambiguous terms are resolved or explicitly open.
 - Acceptance criteria are testable.
-- Large implementation handoff names `arc:task-doc-progress-conventions` as the next local planning gate.
+- Large implementation handoff names `arc:sdlc` as the next local planning gate.
 - Lark requirement and `task_base` updates are linked through `.lark.json` via `arc:docs` only when Lark is active.
 
 ## Expert Standards

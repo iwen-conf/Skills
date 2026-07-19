@@ -1,13 +1,29 @@
 ---
 name: arc:security
-description: "Local SAST/SCA/secrets/DAST automation with data-value re-ranking and Arc handoffs."
+description: Local SAST/SCA/secrets/DAST automation with data-value re-ranking and
+  Arc handoffs.
+enforce_arc_profile: true
+expert_keywords:
+- SAST
+- SCA
+- DAST
+- OpenAPI Fuzz
+- SBOM
+- SARIF
+- CWE
+- CVSS
+- OWASP Top 10
+- OWASP ASVS
+- AuthZ
 ---
 
 # arc:security
 
 ## Overview
 
-`arc:security` runs local-first security automation for application repositories. It installs and orchestrates CLI scanners, produces human-readable reports, re-ranks findings by obtainable data impact, and routes remediation or durable project records through existing Arc skills.
+`arc:security` runs local-first security automation and enforces the **Security Gate (安全门禁)** for application repositories. The Security Gate strictly focuses on whether the system can be compromised (e.g., system penetration, RCE, injections) and whether authorization or permissions could leak. It does NOT cover business function correctness or performance.
+
+It installs and orchestrates CLI scanners, produces human-readable reports, re-ranks findings by obtainable data impact, and routes remediation or durable project records through existing Arc skills.
 
 Read:
 
@@ -27,7 +43,7 @@ Read:
 
 - Use `arc:clarify` first if target environment, scan scope, authorization, or destructive-test boundaries are unclear.
 - Use `arc:audit` with mode `appsec` when the user wants methodology-first read-only security review (asset table, data map, finding cards) without running active scanners—or before scanning when inventory is missing.
-- Use `arc:task-doc-progress-conventions` as `R-task` after multi-finding scan results: merge re-ranked list into the Handoff Package (项目定位/口径/角色/findings) so subtasks stay detailed; do not jump from raw SARIF to code.
+- Use `arc:sdlc` as `R-task` after multi-finding scan results: merge re-ranked list into the Handoff Package (项目定位/口径/角色/findings) so subtasks stay detailed; do not jump from raw SARIF to code.
 - Use `arc:build` when the task is to add security tooling, scripts, checks, or project configuration—or when implementing a planned security subtask.
 - Use `arc:fix` when a concrete vulnerability, failing scanner result, or exploit path must be repaired under an existing subtask or as a single small fix.
 - Use `arc:frontend` for frontend-specific XSS, CSP, auth UI, route guard, token handling, or browser verification work.
@@ -66,7 +82,7 @@ NO FINAL SEVERITY FROM SCANNER SCORE ALONE—RE-RANK BY DATA YIELD AND REACHABIL
 - MUST preserve raw scanner artifacts locally and summarize findings in Markdown/HTML/JSON.
 - MUST separate confirmed findings, tool warnings, skipped checks, and manual-test gaps.
 - MUST re-rank findings using [`references/data-value-ranking.md`](references/data-value-ranking.md) before remediation planning.
-- MUST apply `arc:task-doc-progress-conventions` before generating multi-finding remediation plans or code-changing security work; task docs must be generated from the latest project state and updated immediately when findings, reachability, affected files, scope, assumptions, or status change.
+- MUST apply `arc:sdlc` before generating multi-finding remediation plans or code-changing security work; task docs must be generated from the latest project state and updated immediately when findings, reachability, affected files, scope, assumptions, or status change.
 - MUST route all Lark writes through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
 - NEVER claim business-logic coverage from automated scanners alone.
@@ -83,7 +99,7 @@ NO FINAL SEVERITY FROM SCANNER SCORE ALONE—RE-RANK BY DATA YIELD AND REACHABIL
 6. Review generated `security-report.md`, `security-report.html`, `security-summary.json`, and raw tool outputs under `.arc/security/<timestamp>/`.
 7. Prioritize findings by data yield, confirmed exploitability, asset exposure, reachability, and remediation cost—not raw tool severity alone (see data-value ranking).
 8. Append manual checklist gaps from [`references/security-tooling.md`](references/security-tooling.md) (AuthZ, payment, upload, SSRF, ops secrets).
-9. For multi-finding remediation: as `R-scan`, attach re-ranked output to the Handoff Package (or create a minimal package with 定位/口径 stubs marked 待确认), then run `arc:task-doc-progress-conventions` as `R-task` before code changes. Follow [`../arc:task-doc-progress-conventions/references/security-audit-task-pipeline.md`](../arc:task-doc-progress-conventions/references/security-audit-task-pipeline.md).
+9. For multi-finding remediation: as `R-scan`, attach re-ranked output to the Handoff Package (or create a minimal package with 定位/口径 stubs marked 待确认), then run `arc:sdlc` as `R-task` before code changes. Follow [`../arc:sdlc/references/security-audit-task-pipeline.md`](../arc:sdlc/references/security-audit-task-pipeline.md).
 10. Route per-subtask fixes to `arc:fix` or `arc:build`; route methodology-only expansion to `arc:audit`; optional post-fix re-scan stays in this skill with narrow path scope; route active Lark project records to `arc:docs`.
 
 ## Quality Gates
@@ -93,7 +109,7 @@ NO FINAL SEVERITY FROM SCANNER SCORE ALONE—RE-RANK BY DATA YIELD AND REACHABIL
 - AuthZ, ownership, payment amount, approval flow, tenant boundary, upload, SSRF, and role-bypass gaps are marked as manual checks.
 - Top findings include permission class and data-yield note when applicable.
 - Scanner findings are deduplicated or grouped before remediation planning when practical.
-- Multi-finding remediation or code-changing security work has current local task docs, detailed subtasks, and synchronized progress status from `arc:task-doc-progress-conventions`.
+- Multi-finding remediation or code-changing security work has current local task docs, detailed subtasks, and synchronized progress status from `arc:sdlc`.
 - Security artifacts stay local unless `.lark.json` is active or the user explicitly asks for remote publication.
 
 ## Expert Standards

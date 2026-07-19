@@ -1,13 +1,26 @@
 ---
 name: arc:test
-description: "Layered testing: unit/integration/contract/E2E, coverage, fuzz/property, perf; Go/Rust/Android/HarmonyOS/frontend."
+description: 'Layered testing: unit/integration/contract/E2E, coverage, fuzz/property,
+  perf; Go/Rust/Android/HarmonyOS/frontend.'
+enforce_arc_profile: true
+expert_keywords:
+- Test Pyramid
+- Branch Coverage
+- Fuzzing
+- Property-Based
+- Benchmark
+- Flaky
+- Regression
+- SLA
 ---
 
 # arc:test
 
 ## Overview
 
-`arc:test` designs, generates, and runs a project's test suite by layer and by risk, then reports evidence-backed pass/fail and coverage gaps. It picks platform-native tooling instead of a bespoke cross-language framework, keeps functional and performance verdicts separate, and hands failures, security/non-functional checks, and large build-outs to the right Arc skill. It does not repair failing code directly or create Lark resources directly.
+`arc:test` strictly focuses on **Testing**: whether business functions meet expectations (functional correctness) and whether system performance/capacity meets requirements. It does NOT cover Security Gates (system compromise, permission leaks), which are delegated to `arc:security`.
+
+It designs, generates, and runs a project's test suite by layer and by risk, then reports evidence-backed pass/fail and coverage gaps. It picks platform-native tooling instead of a bespoke cross-language framework, keeps functional and performance verdicts separate, and hands failures, security checks, and large build-outs to the right Arc skill. It does not repair failing code directly or create Lark resources directly.
 
 Read:
 
@@ -18,7 +31,7 @@ Read:
 
 - **Trigger**: The user asks to add, generate, run, or review tests; set up coverage/regression gates; add fuzz, property, benchmark, or load tests; or verify a suite across Go, Rust, Android, HarmonyOS, or frontend.
 - **Inputs**: Project path, scope, platform/language, which layers to enable, optional SLA/hotspot, optional authorized target URL, expected commands.
-- **Outputs**: Per-layer commands and pass/fail, coverage summary with high-risk gaps, robustness and performance results judged separately, flaky list, and handoffs to `arc:fix` / `arc:security` / `arc:task-doc-progress-conventions` / `arc:docs`.
+- **Outputs**: Per-layer commands and pass/fail, coverage summary with high-risk gaps, robustness and performance results judged separately, flaky list, and handoffs to `arc:fix` / `arc:security` / `arc:sdlc` / `arc:docs`.
 - **Quality Gate**: Every "it works" claim is backed by an executed test with evidence; layers are enabled by risk, not to tick boxes; performance is judged apart from functional; coverage is treated as a gap signal, not a target.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
@@ -30,7 +43,7 @@ Read:
 - Use `arc:frontend` for frontend interaction/visual test surfaces so page interaction, visibility, clickability, and layout-readability checks stay aligned with the default frontend stack and its runnable-UI evidence rules.
 - Use `arc:security` for local SAST/SCA/secrets/DAST/API-fuzz automation, and `arc:audit` for read-only security/non-functional review; `arc:test` does not re-implement scanner automation.
 - Use `perfetto-trace-analysis` / `perfetto-sql` for Android and system-trace flame charts, and `web-perf` for frontend performance profiling; `arc:test` orchestrates and gates performance, it does not re-implement deep profilers.
-- Use `arc:task-doc-progress-conventions` before large, multi-module, or tracked test build-out (new test architecture, coverage-gate rollout, cross-platform suite) so subtasks stay detailed and progress stays current.
+- Use `arc:sdlc` before large, multi-module, or tracked test build-out (new test architecture, coverage-gate rollout, cross-platform suite) so subtasks stay detailed and progress stays current.
 - Use `arc:docs` only when Lark is active for test reports, coverage trends, regression status, `task_base`, or `.lark.json.lifecycle[]`.
 
 ## Context Search
@@ -74,7 +87,7 @@ NO LARK TEST REPORT UPDATE OUTSIDE arc:docs.
 - MUST hand security/non-functional testing (pen-test, SAST/dependency scan, chaos, compatibility, observability verification) to `arc:security`/`arc:audit` rather than rebuilding it here.
 - MUST, for frontend, verify the interaction closed-loop (a user journey completes and returns to a consistent state), element visibility, control clickability/enabled state, and layout readability (no overlapping/truncated text, adequate contrast, stable responsive layout) — routed through `arc:frontend`.
 - MUST get explicit authorization before running load, stress, or E2E against any shared or third-party target.
-- MUST apply `arc:task-doc-progress-conventions` before large, multi-module, cross-platform, or tracked test build-out; task docs must be generated from the latest project state and updated immediately when suites, gates, scope, assumptions, or status change.
+- MUST apply `arc:sdlc` before large, multi-module, cross-platform, or tracked test build-out; task docs must be generated from the latest project state and updated immediately when suites, gates, scope, assumptions, or status change.
 - MUST report skipped layers with a reason, and report failing or flaky tests instead of hiding them.
 - MUST route all Lark writes through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
@@ -126,7 +139,7 @@ Profiling *locates* CPU/allocation/lock hotspots and renders them as a **flame g
 1. Confirm scope, platform/language, which layers matter, any SLA/hotspot, and authorization for load/E2E targets.
 2. Inspect existing tests, runners, CI, coverage config, and fixtures with local index tools; detect stack markers to pick native tooling.
 3. Select layers by risk using the P0–P2 ladder; state explicitly which layers are enabled and which are skipped with a reason.
-4. For large, multi-module, cross-platform, or tracked build-out, apply `arc:task-doc-progress-conventions` before writing tests and keep local task status current.
+4. For large, multi-module, cross-platform, or tracked build-out, apply `arc:sdlc` before writing tests and keep local task status current.
 5. Write functional tests first (unit → integration → contract → curated E2E), covering error and boundary paths; follow the platform stack and existing patterns.
 6. Add robustness (fuzz/property) for parsing/boundary/security surfaces when present.
 7. Run functional layers and collect coverage; record line/branch coverage and uncovered key paths and error branches.
@@ -145,7 +158,7 @@ Profiling *locates* CPU/allocation/lock hotspots and renders them as a **flame g
 - Regression suite runs in CI as the default; smoke is a labeled subset, not a replacement.
 - Frontend deliverables prove interaction closed-loop, visibility, clickability, and layout readability through `arc:frontend`.
 - Flaky tests are quarantined or fixed, never masked with blanket retries or inflated timeouts.
-- Large, multi-module, cross-platform, or tracked test work has current local task docs and synchronized progress from `arc:task-doc-progress-conventions`.
+- Large, multi-module, cross-platform, or tracked test work has current local task docs and synchronized progress from `arc:sdlc`.
 - Security/non-functional coverage is delegated to `arc:security`/`arc:audit` and labeled, not duplicated here.
 - Lark test status and `task_base` are recorded via `.lark.json` only when Lark is active.
 
@@ -242,7 +255,7 @@ Test Handoff
 - Failing-code handoff to arc:fix
 - Non-functional/security handoff to arc:security / arc:audit
 - Frontend UI test handoff via arc:frontend
-- Task docs handoff (arc:task-doc-progress-conventions), when large
+- Task docs handoff (arc:sdlc), when large
 - Lark / .lark.json / task_base handoff, if applicable
 - Residual risks
 ```

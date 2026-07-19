@@ -167,7 +167,7 @@ Minimum outputs for any project:
 5. `manual-gaps.md` — what scanners cannot cover  
 6. Optional: `arc:security` for automation  
 
-When remediation will be multi-finding or tracked, also emit a **Handoff Package** for `arc:task-doc-progress-conventions` (role `R-task`). Do not skip straight to code.
+When remediation will be multi-finding or tracked, also emit a **Handoff Package** for `arc:sdlc` (role `R-task`). Do not skip straight to code.
 
 Handoff Package (narrow; see task pipeline):
 
@@ -192,11 +192,11 @@ security-handoff/
 Then:
 
 ```text
-arc:task-doc-progress-conventions  # expands seeds into very detailed subtasks
+arc:sdlc  # expands seeds into very detailed subtasks
   → arc:fix / arc:build per subtask
 ```
 
-Full field contracts: [`../../arc:task-doc-progress-conventions/references/security-audit-task-pipeline.md`](../../arc:task-doc-progress-conventions/references/security-audit-task-pipeline.md).
+Full field contracts: [`../../arc:sdlc/references/security-audit-task-pipeline.md`](../../arc:sdlc/references/security-audit-task-pipeline.md).
 
 Do **not** hide uncertainty behind fake numeric total scores. Optional compact score tables are allowed only when each cell cites evidence.
 
