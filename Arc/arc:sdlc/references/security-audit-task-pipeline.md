@@ -15,7 +15,7 @@ Exactly five roles. One human/agent may wear multiple hats, but **documents must
 | `R-recon` | 侦察审计员 | `arc:audit` mode `appsec` | `assets`, `data-map`, finding cards, manual gaps | code edits; active DAST |
 | `R-scan` | 扫描操作员 | `arc:security` | tool reports under `.arc/security/`, re-ranked priority list | claim AuthZ coverage from scanners alone |
 | `R-task` | 任务作者 | `arc:sdlc` | `00-前置约束.md` (含定位/口径/角色), 任务组, 过细子任务, 进度表 | implement production code in this role |
-| `R-fix` | 修复实施员 | `arc:fix` / `arc:build` | code + tests per **one** subtask | rewrite whole plan mid-fix without updating task docs |
+| `R-fix` | 修复实施员 | `arc:fix` / `arc:build` (+ `arc:prewalk` when multi-model) | code + tests per **one** subtask | rewrite whole plan mid-fix without updating task docs; cold-start cheap model from plan markdown alone |
 | `R-verify` | 验证员 | fix/build + optional re-scan | verification notes in 进度跟踪表 | mark `[x]` without evidence |
 
 ### Role handoff rules
@@ -24,6 +24,7 @@ Exactly five roles. One human/agent may wear multiple hats, but **documents must
 2. `R-task` finishes gate → only then `R-fix` starts first `[/]` subtask.
 3. Multi-finding work: one task directory, multiple `TNN` groups by **permission class + data domain**, not by tool name.
 4. If handoff lacks 项目定位 / 项目口径 / finding cards, `R-task` must pause (`[!]` blocker) or run a minimal discovery pass—not invent files.
+5. `R-fix` same-session multi-model routing uses **prewalk** (trajectory + todo + first production edit), not “read subtask md only on a cold cheap model”. Task docs remain the durable progress authority; they do not replace agent context. See [`docs/prewalk.md`](../../../docs/prewalk.md).
 
 ## 2) Project Positioning (项目定位)
 
@@ -224,6 +225,7 @@ Each **fix** subtask MUST contain:
 2. 禁止在日志/响应中打印密钥或完整 token。
 3. 禁止为通过编译而放宽鉴权。
 4. 若发现 handoff 证据过期：停写代码，回写前置约束与进度为 `[!]`。
+5. 同会话多模型：用 prewalk 保留探索轨迹；不要把本子任务 md 当作 cold cheap 模型的唯一上下文。
 
 ## 完成标准
 

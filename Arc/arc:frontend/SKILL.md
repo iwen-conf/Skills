@@ -29,6 +29,7 @@ expert_keywords:
 - Use `arc:define` if product concept or information architecture is missing.
 - Use `arc:clarify` if page scope, target users, or acceptance criteria are unclear.
 - Use `arc:build` for the implementation edit path.
+- Use `arc:prewalk` when multi-model cost routing is available for non-trivial UI implementation: Guide orients + first production edit, Executor inherits trajectory. See [`docs/prewalk.md`](../../docs/prewalk.md).
 - Use `arc:docs` only when Lark is active for frontend milestones, design decisions, page progress, `task_base` feature status, whiteboards, screenshots, or `.lark.json.lifecycle[]`.
 - Use `arc:audit` for read-only UI architecture or accessibility review.
 - Domain skills such as Lazycat, WeChat Mini Program, mobile apps, desktop apps, payments, dashboards, and internal tools MUST link to this skill for frontend platform decisions instead of redefining their own default stack.
@@ -49,6 +50,7 @@ Begin by stating clearly:
 ```text
 NO FRONTEND CHANGE WITHOUT USER WORKFLOW.
 NO LARGE FRONTEND CHANGE WITHOUT CURRENT LOCAL TASK DOCS.
+NO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF.
 NO UI DELIVERY WITHOUT DESIGN TOKENS, RESPONSIVE CONSTRAINTS, AND VERIFICATION.
 NO LARK FRONTEND UPDATE OUTSIDE arc:docs.
 NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
@@ -57,6 +59,7 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 ## Hard Constraints
 
 - MUST apply `arc:sdlc` before code edits for large, multi-page, cross-module, architectural, or tracked frontend work; task docs must be generated from the latest project state and updated immediately when routes, components, APIs, state models, scope, assumptions, or status change.
+- MUST apply `arc:prewalk` for same-session multi-model cost routing when the runtime supports mid-session model swap; MUST NOT default to plan-document cold handoff.
 - MUST use the default Web frontend stack for new Web frontends unless the user explicitly names another stack: `React 19` + `TypeScript` + `Vite` + `Tailwind CSS` + `shadcn/ui` + `Zustand` for client state + `TanStack Query` for server state + `TanStack Router` for type-safe routing + `React Hook Form` + `Zod`.
 - MUST use the default mobile stack for new iOS/Android apps unless the user explicitly names another stack: `React Native` + `Expo` + `TypeScript` + `NativeWind` + `Zustand` + `TanStack Query` + `Expo Router`.
 - MUST use the default desktop stack for new Mac/Windows/Linux apps unless the user explicitly names another stack: `Tauri 2` + the default React Web stack, reusing Web UI/state/query/form code where practical.
@@ -88,10 +91,11 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 2. For large, multi-page, cross-module, architectural, or tracked frontend work, apply `arc:sdlc` before code edits and keep local task status current as routes, components, APIs, or state models change.
 3. Inspect existing frontend stack and patterns.
 4. Choose route: apply the platform default stack, preserve an existing stack with a documented boundary, or document the explicit user-requested exception.
-5. Implement with tokenized styling, stable layout constraints, accessible states, explicit loading/empty/error/permission branches, and existing data/form/state patterns.
-6. For UI bugs, capture browser/runtime evidence to files before broad edits and use exact error strings or request IDs to drive the fix.
-7. Run project-native verification.
-8. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with pages, decisions, changed files, verification, screenshots/whiteboards, task status, lifecycle link, and resource keys.
+5. If multi-model routing is available and useful, follow `arc:prewalk` for implementation turns; otherwise oneshot.
+6. Implement with tokenized styling, stable layout constraints, accessible states, explicit loading/empty/error/permission branches, and existing data/form/state patterns.
+7. For UI bugs, capture browser/runtime evidence to files before broad edits and use exact error strings or request IDs to drive the fix.
+8. Run project-native verification.
+9. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with pages, decisions, changed files, verification, screenshots/whiteboards, task status, lifecycle link, and resource keys.
 
 ## Quality Gates
 
@@ -127,6 +131,7 @@ Use project-native scripts. For new React 19 + TypeScript + Vite projects, use [
 - Starting a new WeChat mini-program with native WXML/WXSS/Component as the default stack instead of Taro 4 without explicit user direction.
 - Decorative landing page instead of the requested usable UI.
 - Implementing from stale frontend task docs or leaving local page/task progress inconsistent with current routes, components, APIs, or state contracts.
+- Plan-postcard multi-model handoff that drops Guide trajectory and re-reads the UI surface cold on a cheap model.
 - Debugging only from source inspection while browser console, network, or runtime errors could be captured.
 - Leaving `console.log`, `debugger`, alert probes, or noisy debug output in delivered frontend code.
 - Hardcoded component colors.

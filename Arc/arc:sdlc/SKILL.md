@@ -9,6 +9,8 @@ description: "Current-state task docs; security/audit handoff to detailed subtas
 
 Use this skill to turn large or multi-step work into persistent local docs before implementation. The docs must capture the latest repository state, so a later session can resume from `docs/` without rediscovering the whole codebase.
 
+Task docs are the **cross-session / human / audit** memory. They are **not** the default vehicle for same-session multi-model cost routing. Live cheap-executor handoff belongs to `arc:prewalk` (trajectory + todo + first production edit)—see [`docs/prewalk.md`](../../docs/prewalk.md). Do not treat a detailed plan markdown as a substitute for handing off the agent context window.
+
 Separate raw requirements from executable work:
 
 1. Put original requirements, product notes, data-range notes, and unresolved input under the resolved requirement category such as `docs/DD-需求`.
@@ -33,18 +35,33 @@ Before changing production code for large or tracked work:
 3. Create or update the task document structure under the existing task category.
 4. Write `00-前置约束.md` before implementation.
 5. Write or update the central progress table with every planned subtask.
-6. Make every concrete subtask detailed enough for one implementation pass by a low-capability downstream coding model without hidden context.
+6. Make every concrete subtask specific enough to resume from disk: current files, scope, outputs, and verification—without pretending the markdown replaces a live agent trajectory.
 7. Mark the first active subtask as `[/]` in both the progress table and the subtask file.
 
 Only discovery commands, code reading, and task-document edits are allowed before this gate is complete.
 
 Task docs are stale if they are not updated immediately when project files, scope, assumptions, evidence, tests, or status change. They must be updated immediately when project files, scope, assumptions, or status change.
 
-## Downstream Coding Model Assumption
+## Execution Model: Docs vs Prewalk
 
-Assume the plan and subtasks may be handed to a low-intelligence or low-context model for implementation. Therefore every executable task document MUST over-specify the implementation intent enough that the next model does not need to infer missing design decisions.
+Two different handoffs must not be confused:
 
-Required detail:
+| Handoff | Mechanism | Use for |
+|---|---|---|
+| **Durable task docs** (this skill) | `00-前置约束.md`, subtasks, `进度跟踪表.md` | Humans, new sessions, audit campaigns, pause/resume days later |
+| **Same-session multi-model** (`arc:prewalk`) | Keep tool trajectory; Guide does recon + bounded todo + **first production edit**; swap to Executor; prune planning instruction | Cost/speed routing inside one agent run |
+
+Hard rules:
+
+1. MUST NOT market “frontier writes a plan document, cheap model implements from the document alone” as the Arc default cost optimization. That is the plan-postcard anti-pattern (`O(reads)` paid twice).
+2. MUST use `arc:prewalk` when the runtime can swap models mid-session and the parent skill wants a cheaper Executor after orientation.
+3. MUST keep progress tables and subtask checklists as **steering surfaces** after a prewalk swap (Executor may forget prose plans; it cannot ignore an active todo/progress row that is kept in context).
+4. When a **new session** cold-starts from docs only: either short Guide prewalk (re-ground + first edit then swap) or oneshot Guide—not cold cheap execution from plan text alone as the default.
+5. Security `R-task` may still author docs only; `R-fix` must apply prewalk (or oneshot) per subtask rather than treating the subtask file as a full substitute for repo exploration context.
+
+## Subtask Specificity (Still Required)
+
+Every concrete subtask must be specific to the current project so progress and verification stay honest. Required detail:
 
 1. State the exact goal in project terms, not a generic engineering label.
 2. Name affected files, symbols, APIs, routes, tables, data contracts, commands, tests, or UI states.
@@ -53,6 +70,8 @@ Required detail:
 5. Describe expected behavior before and after the change, including error and empty states when relevant.
 6. Define verification commands or manual checks with expected results.
 7. Include "do not" instructions for tempting but incorrect shortcuts, broad fallbacks, paper-over fixes, or silent error handling.
+
+These details support **resume, review, and acceptance**—not a claim that a cold low-context model can reconstruct full understanding from the postcard alone.
 
 ## Progress Tracking Hard Gate
 
@@ -72,11 +91,12 @@ When another Arc skill is active, use this skill as the local task-planning gate
 
 1. Use `arc:clarify` first if scope, acceptance criteria, or user decisions are unclear.
 2. Use this skill before `arc:build`, `arc:fix`, `arc:frontend`, or `arc:security` changes project code for large, multi-step, cross-module, or tracked work.
-3. Use `arc:arch` after this skill and before backend code edits.
-4. Use `arc:frontend` after this skill for frontend platform, UI state, token, and verification constraints.
-5. Use `arc:security` **after** this skill only when implementing multi-finding remediation or re-scanning fixed paths; use `arc:security` **before** this skill when the user still needs scanner evidence for the handoff package.
-6. Use `arc:audit` mode `appsec` before this skill when remediation must be driven by assets, data map, and finding cards rather than ad-hoc bug lists.
-7. Use `arc:docs` only for Lark synchronization when `.lark.json` exists or the user explicitly enables Lark. Local `docs/` task state still needs to stay current.
+3. After this skill’s docs gate, use `arc:prewalk` for same-session multi-model routing when the runtime supports model swap; do not replace prewalk with plan-document cold handoff.
+4. Use `arc:arch` after this skill and before backend code edits.
+5. Use `arc:frontend` after this skill for frontend platform, UI state, token, and verification constraints.
+6. Use `arc:security` **after** this skill only when implementing multi-finding remediation or re-scanning fixed paths; use `arc:security` **before** this skill when the user still needs scanner evidence for the handoff package.
+7. Use `arc:audit` mode `appsec` before this skill when remediation must be driven by assets, data map, and finding cards rather than ad-hoc bug lists.
+8. Use `arc:docs` only for Lark synchronization when `.lark.json` exists or the user explicitly enables Lark. Local `docs/` task state still needs to stay current.
 
 If this skill and another skill conflict, keep the stricter gate: do not start implementation until local task docs, status, and required upstream clarification are current.
 
@@ -98,7 +118,7 @@ When the work comes from `arc:audit` (appsec), `arc:security`, multi-finding vul
 7. MUST create research/false-positive subtasks for `likely` / `assumption` findings before fix subtasks.
 8. MUST NOT create vague subtasks such as “修复安全问题”, “加固鉴权”, “处理 High 漏洞” without finding ids and paths.
 9. MUST map data-value priority into P0–P3 using the pipeline table; do not copy CVSS blindly.
-10. After planning is complete, hand `R-fix` to `arc:fix` / `arc:build` **one subtask at a time**; hand re-scan requests back to `arc:security` only with explicit scope.
+10. After planning is complete, hand `R-fix` to `arc:fix` / `arc:build` **one subtask at a time**, preferring `arc:prewalk` inside each fix session when multi-model routing is available; hand re-scan requests back to `arc:security` only with explicit scope.
 
 For non-security large work, the security pipeline sections are optional; the rest of this skill still applies.
 
@@ -205,7 +225,7 @@ Keep statuses synchronized:
 4. Source requirement links when relevant.
 5. Task group index.
 6. Links to `00-前置约束.md` and the central progress table.
-7. A note that downstream implementation may be performed by a low-capability model, so subtasks must be explicit and self-contained.
+7. A note that docs are for durable progress/resume; same-session multi-model execution uses `arc:prewalk` (trajectory handoff), not plan-postcard cold start.
 
 Template:
 
@@ -222,7 +242,9 @@ Template:
 
 ## 执行模型假设
 
-本计划可能交给低智能或低上下文模型编码。任务文档必须把实现意图、影响文件、执行顺序、边界、反例和验证方式写清楚，不依赖执行者自行推断。
+1. 本文档用于跨会话恢复、进度权威和验收，不是便宜模型的唯一内存。
+2. 同会话多模型成本路由默认走 prewalk：Guide 探索 + 有界 todo + 第一笔生产代码 edit，再把 trajectory 交给 Executor。
+3. 子任务仍须写清影响文件、顺序、边界、反例和验证，以便恢复与评审。
 
 ## 需求来源
 
@@ -251,7 +273,7 @@ Template:
 6. Data, compatibility, migration, security, and performance constraints when relevant.
 7. Verification commands or manual checks expected before marking work done.
 8. Blockers and required user decisions.
-9. Downstream coding model assumption and the extra detail required because of it.
+9. Execution model note: durable docs vs prewalk (no plan-postcard default).
 10. When the source is security/audit: 项目定位, 项目口径, 功能角色, 上游 Handoff, Finding 索引 (see Security / Audit Sourced Work and the pipeline reference).
 
 Template:
@@ -273,8 +295,9 @@ Template:
 
 ## 执行模型假设
 
-1. 本计划可能交给低智能或低上下文模型编码，后续子任务必须写到可按步骤执行。
+1. 任务文档是跨会话与进度权威；同会话多模型默认 prewalk（trajectory + todo + first edit），禁止「只交 plan 文件给冷启动便宜模型」作为默认省钱法。
 2. 不允许用模糊描述替代具体文件、调用点、数据契约、边界条件、错误处理和验证要求。
+3. 新会话从文档恢复时：短 Guide 再 grounding + first edit，或 oneshot Guide；不要默认 cold cheap 只读 plan。
 
 ## 已知影响范围
 
@@ -347,7 +370,7 @@ Each subtask must independently guide one implementation pass. Include:
 8. Latest project facts this subtask depends on.
 9. Files, symbols, routes, migrations, data contracts, or UI states expected to be touched.
 10. Verification command or manual check.
-11. Downstream implementation notes for a low-capability coding model: exact sequence, invariants, edge cases, and shortcuts to avoid.
+11. Implementation notes: exact sequence, invariants, edge cases, and shortcuts to avoid; note that live multi-model runs should inherit trajectory via prewalk, not re-read this file as the sole memory.
 
 Every concrete subtask must be specific to the current project. Do not write generic items such as "实现接口", "补充测试", or "优化代码" without naming the affected files, call sites, data contracts, expected behavior, and verification.
 
@@ -375,11 +398,13 @@ Template:
 
 - [ ] 第一步：说明要改哪个文件/符号、为什么这样改、不要改什么。
 - [ ] 第二步：说明要处理的边界条件、错误路径或兼容行为。
+- [ ] 验证：命令或手工检查与期望结果。
 
-## 下游编码注意
+## 执行注意
 
-1. 本子任务可能由低智能或低上下文模型执行，必须按上面的文件、顺序和边界实现。
+1. 同会话执行优先 prewalk：保留探索轨迹与本清单，不要只把本文件丢给冷启动 Executor。
 2. 不要引入兜底逻辑吞掉错误，不要用宽泛重构替代本任务目标，不要修改未列入范围的模块。
+3. 完成后同步 `进度跟踪表.md`。
 
 ## 完成标准
 

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-19T04:06:28.268289Z",
-  "skill_count": 14,
+  "generated_at": "2026-07-24T10:41:30.689453Z",
+  "skill_count": 15,
   "skills": [
     {
       "name": "arc:arch",
@@ -252,7 +252,7 @@
         {
           "heading": "## Routing Matrix",
           "title": "Routing Matrix",
-          "body": "- Use `arc:clarify` first if scope or acceptance criteria are unclear.\n- Use `arc:fix` when the primary input is a failure, incident, or failing check.\n- Use `arc:frontend` for frontend baseline or UI lifecycle work.\n- For Web, mobile, desktop, or mini-program implementation, inherit the `arc:frontend` platform default stack unless the user explicitly specified another stack; do not define a separate stack in `arc:build`.\n- Use `arc:docs` only when Lark is active for delivery notes, `task_base` feature status, progress Base, Drive artifacts, or `.lark.json.lifecycle[]`.\n- Use `arc:audit` after delivery for read-only review."
+          "body": "- Use `arc:clarify` first if scope or acceptance criteria are unclear.\n- Use `arc:fix` when the primary input is a failure, incident, or failing check.\n- Use `arc:frontend` for frontend baseline or UI lifecycle work.\n- For Web, mobile, desktop, or mini-program implementation, inherit the `arc:frontend` platform default stack unless the user explicitly specified another stack; do not define a separate stack in `arc:build`.\n- Use `arc:prewalk` when the runtime can swap models mid-session and cost/speed routing is desired: Guide recon + bounded todo + first production edit, then Executor inherits the trajectory—never cold plan-postcard handoff. See [`docs/prewalk.md`](../../docs/prewalk.md).\n- Use `arc:docs` only when Lark is active for delivery notes, `task_base` feature status, progress Base, Drive artifacts, or `.lark.json.lifecycle[]`.\n- Use `arc:audit` after delivery for read-only review."
         },
         {
           "heading": "## Context Search",
@@ -267,17 +267,17 @@
         {
           "heading": "## The Iron Law",
           "title": "The Iron Law",
-          "body": "```text\nNO CODE CHANGE WITHOUT SCOPE.\nNO LARGE PROJECT CODE CHANGE WITHOUT CURRENT LOCAL TASK DOCS.\nNO DELIVERY WITHOUT VERIFICATION OR AN EXPLICIT BLOCKER.\nNO LARK DELIVERY UPDATE OUTSIDE arc:docs.\nNO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.\n```"
+          "body": "```text\nNO CODE CHANGE WITHOUT SCOPE.\nNO LARGE PROJECT CODE CHANGE WITHOUT CURRENT LOCAL TASK DOCS.\nNO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF.\nNO DELIVERY WITHOUT VERIFICATION OR AN EXPLICIT BLOCKER.\nNO LARK DELIVERY UPDATE OUTSIDE arc:docs.\nNO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.\n```"
         },
         {
           "heading": "## Hard Constraints",
           "title": "Hard Constraints",
-          "body": "- MUST preserve unrelated user changes.\n- MUST edit the smallest viable file set.\n- MUST apply `arc:sdlc` before code edits for large, multi-step, cross-module, or tracked work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, or status change.\n- MUST apply `arc:arch` before writing project code, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.\n- MUST route frontend platform decisions through `arc:frontend`; defaults are Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod, mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router, desktop = Tauri 2 + Web stack, mini-program = Taro 4 + React + TypeScript + Zustand, unless explicitly overridden by the user.\n- MUST preserve the product-state contract across backend and frontend: empty/no-data is a successful business state, not an error; list/query endpoints return success with an empty collection and pagination metadata, while real failures return typed errors.\n- MUST run targeted verification when feasible.\n- MUST report failed or skipped verification.\n- MUST route all Lark writes through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST hand off to `arc:docs` after every Lark-active tracked feature update so `task_base` records title, owner, status, related requirement, files, verification, lifecycle link, and `updated_at`.\n- MUST NOT claim a Lark-active tracked feature is complete until `task_base` is updated or the blocker is explicit.\n- NEVER broaden scope opportunistically.\n- NEVER suppress type, lint, test, or runtime failures to claim completion.\n- NEVER trust user-controlled SQL, payment, ownership, role, amount, sort field, or identifier without server-side validation."
+          "body": "- MUST preserve unrelated user changes.\n- MUST edit the smallest viable file set.\n- MUST apply `arc:sdlc` before code edits for large, multi-step, cross-module, or tracked work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, or status change.\n- MUST apply `arc:prewalk` for same-session multi-model cost routing when the runtime supports mid-session model swap; MUST NOT default to “frontier writes plan only → cheap model cold-starts from the plan file”.\n- MUST apply `arc:arch` before writing project code, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.\n- MUST route frontend platform decisions through `arc:frontend`; defaults are Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod, mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router, desktop = Tauri 2 + Web stack, mini-program = Taro 4 + React + TypeScript + Zustand, unless explicitly overridden by the user.\n- MUST preserve the product-state contract across backend and frontend: empty/no-data is a successful business state, not an error; list/query endpoints return success with an empty collection and pagination metadata, while real failures return typed errors.\n- MUST run targeted verification when feasible.\n- MUST report failed or skipped verification.\n- MUST route all Lark writes through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST hand off to `arc:docs` after every Lark-active tracked feature update so `task_base` records title, owner, status, related requirement, files, verification, lifecycle link, and `updated_at`.\n- MUST NOT claim a Lark-active tracked feature is complete until `task_base` is updated or the blocker is explicit.\n- NEVER broaden scope opportunistically.\n- NEVER suppress type, lint, test, or runtime failures to claim completion.\n- NEVER trust user-controlled SQL, payment, ownership, role, amount, sort field, or identifier without server-side validation."
         },
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. Confirm task, scope, and verification target.\n2. For large, multi-step, cross-module, or tracked work, apply `arc:sdlc` before code edits and keep local task status current as the project changes.\n3. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.\n4. Search for existing patterns, call sites, tests, and contracts.\n5. Edit only the needed files.\n6. Run targeted verification; broaden only when risk requires it.\n7. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.\n8. Summarize changes, verification, and residual risk."
+          "body": "1. Confirm task, scope, and verification target.\n2. For large, multi-step, cross-module, or tracked work, apply `arc:sdlc` before code edits and keep local task status current as the project changes.\n3. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.\n4. Search for existing patterns, call sites, tests, and contracts.\n5. If multi-model routing is available and useful, follow `arc:prewalk`: Guide orients + bounded todo + first production edit, then Executor continues in the same trajectory; otherwise oneshot a single profile.\n6. Edit only the needed files.\n7. Run targeted verification; broaden only when risk requires it.\n8. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.\n9. Summarize changes, verification, residual risk, and any prewalk swap/escalate notes."
         },
         {
           "heading": "## Quality Gates",
@@ -297,7 +297,7 @@
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Editing before understanding existing patterns.\n- Duplicating existing endpoints, helpers, formatters, or constants.\n- Putting business logic in controllers, adapters, `main`, or cross-business `helpers`.\n- Treating zero rows, empty search results, empty dashboards, or first-use setup as exceptions, failed requests, toast errors, or full-page error states.\n- Adding speculative APIs or states.\n- Implementing from stale task docs or leaving local progress status inconsistent with the actual project state.\n- Skipping verification silently.\n- Updating Lark delivery resources directly instead of through `arc:docs`.\n- Completing a Lark-active feature while the `task_base` row is missing or stale."
+          "body": "- Editing before understanding existing patterns.\n- Duplicating existing endpoints, helpers, formatters, or constants.\n- Putting business logic in controllers, adapters, `main`, or cross-business `helpers`.\n- Treating zero rows, empty search results, empty dashboards, or first-use setup as exceptions, failed requests, toast errors, or full-page error states.\n- Adding speculative APIs or states.\n- Implementing from stale task docs or leaving local progress status inconsistent with the actual project state.\n- Using plan-document cold handoff as the multi-model “optimization” (double-pay for reads).\n- Skipping verification silently.\n- Updating Lark delivery resources directly instead of through `arc:docs`.\n- Completing a Lark-active feature while the `task_base` row is missing or stale."
         },
         {
           "heading": "## When to Use",
@@ -799,7 +799,7 @@
         {
           "heading": "## Routing Matrix",
           "title": "Routing Matrix",
-          "body": "- Use `arc:clarify` only if the failure report lacks enough evidence to begin.\n- Use `arc:build` when the work is planned feature delivery, not repair.\n- Use `arc:docs` only when Lark is active for incident docs, risk Base, `task_base` feature status, follow-up Task, meeting records, or `.lark.json.lifecycle[]`.\n- Use `arc:audit` after repair for broader read-only review."
+          "body": "- Use `arc:clarify` only if the failure report lacks enough evidence to begin.\n- Use `arc:build` when the work is planned feature delivery, not repair.\n- Use `arc:prewalk` when multi-model cost routing is available for a non-trivial repair: Guide reproduces + hypothesizes + first fix edit, then Executor continues in the same trajectory. See [`docs/prewalk.md`](../../docs/prewalk.md).\n- Use `arc:docs` only when Lark is active for incident docs, risk Base, `task_base` feature status, follow-up Task, meeting records, or `.lark.json.lifecycle[]`.\n- Use `arc:audit` after repair for broader read-only review."
         },
         {
           "heading": "## Context Search",
@@ -814,17 +814,17 @@
         {
           "heading": "## The Iron Law",
           "title": "The Iron Law",
-          "body": "```text\nNO FIX WITHOUT ROOT CAUSE OR EXPLICIT UNCERTAINTY.\nNO LARGE REPAIR WITHOUT CURRENT LOCAL TASK DOCS.\nNO DEBUGGING WITHOUT PERSISTED EVIDENCE WHEN LOGS CAN BE CAPTURED.\nNO SUCCESS CLAIM WITHOUT RERUNNING THE FAILING CHECK OR NAMING THE BLOCKER.\nNO LARK INCIDENT UPDATE OUTSIDE arc:docs.\nNO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.\n```"
+          "body": "```text\nNO FIX WITHOUT ROOT CAUSE OR EXPLICIT UNCERTAINTY.\nNO LARGE REPAIR WITHOUT CURRENT LOCAL TASK DOCS.\nNO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF.\nNO DEBUGGING WITHOUT PERSISTED EVIDENCE WHEN LOGS CAN BE CAPTURED.\nNO SUCCESS CLAIM WITHOUT RERUNNING THE FAILING CHECK OR NAMING THE BLOCKER.\nNO LARK INCIDENT UPDATE OUTSIDE arc:docs.\nNO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.\n```"
         },
         {
           "heading": "## Hard Constraints",
           "title": "Hard Constraints",
-          "body": "- MUST preserve failure evidence.\n- MUST capture runnable or observable failures into local log/evidence files before large edits. Use paths such as `.arc/artifacts/<task>/logs/` or `tmp/logs/`.\n- MUST state a concrete hypothesis before significant edits.\n- MUST patch the smallest safe surface.\n- MUST apply `arc:sdlc` before code edits for large, multi-step, cross-module, or tracked repair work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, failure evidence, or status change.\n- MUST apply `arc:arch` before code edits, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.\n- MUST rerun the failing path when feasible.\n- MUST route all Lark incident/risk/task updates through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST update `task_base` through `arc:docs` when Lark is active and a fix changes a tracked feature or user-visible flow.\n- NEVER change tests only to make them pass.\n- NEVER broad-rewrite a localized failure.\n- NEVER hide uncertainty behind a confident root cause."
+          "body": "- MUST preserve failure evidence.\n- MUST capture runnable or observable failures into local log/evidence files before large edits. Use paths such as `.arc/artifacts/<task>/logs/` or `tmp/logs/`.\n- MUST state a concrete hypothesis before significant edits.\n- MUST patch the smallest safe surface.\n- MUST apply `arc:sdlc` before code edits for large, multi-step, cross-module, or tracked repair work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, failure evidence, or status change.\n- MUST apply `arc:prewalk` for same-session multi-model cost routing when the runtime supports mid-session model swap; MUST NOT default to plan-document cold handoff after Guide-only recon.\n- MUST apply `arc:arch` before code edits, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.\n- MUST rerun the failing path when feasible.\n- MUST route all Lark incident/risk/task updates through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST update `task_base` through `arc:docs` when Lark is active and a fix changes a tracked feature or user-visible flow.\n- NEVER change tests only to make them pass.\n- NEVER broad-rewrite a localized failure.\n- NEVER hide uncertainty behind a confident root cause."
         },
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. Capture failure, expected behavior, and reproduction path.\n2. Reproduce or inspect the failing path and persist available logs, command output, browser console, network traces, screenshots, or stack traces to a local evidence file.\n3. Search the saved evidence for exact error strings, request IDs, stack frames, network failures, and config keys.\n4. Form and test a root-cause hypothesis.\n5. For large, multi-step, cross-module, or tracked repair work, apply `arc:sdlc` before code edits and keep local task status current as evidence or project state changes.\n6. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.\n7. Patch the smallest safe surface.\n8. Rerun the failing check plus focused regressions, saving verification output when useful.\n9. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks."
+          "body": "1. Capture failure, expected behavior, and reproduction path.\n2. Reproduce or inspect the failing path and persist available logs, command output, browser console, network traces, screenshots, or stack traces to a local evidence file.\n3. Search the saved evidence for exact error strings, request IDs, stack frames, network failures, and config keys.\n4. Form and test a root-cause hypothesis.\n5. For large, multi-step, cross-module, or tracked repair work, apply `arc:sdlc` before code edits and keep local task status current as evidence or project state changes.\n6. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.\n7. If multi-model routing is available and useful, follow `arc:prewalk` after a grounded hypothesis: first production fix edit on Guide, then Executor inherits trajectory; otherwise oneshot.\n8. Patch the smallest safe surface.\n9. Rerun the failing check plus focused regressions, saving verification output when useful.\n10. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks."
         },
         {
           "heading": "## Quality Gates",
@@ -844,7 +844,7 @@
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Fixing before reading the error.\n- Debugging only by rereading code while runnable logs, browser console output, or command output were available but not captured.\n- Fixing by adding concrete infrastructure dependencies into business services.\n- Treating a retry as root cause.\n- Fixing from stale task docs or leaving local repair progress inconsistent with the actual project state.\n- Swallowing exceptions or masking logs.\n- Declaring success without verification.\n- Updating Lark incident resources directly instead of through `arc:docs`.\n- Fixing a Lark-active tracked feature while the `task_base` row is missing or stale."
+          "body": "- Fixing before reading the error.\n- Debugging only by rereading code while runnable logs, browser console output, or command output were available but not captured.\n- Fixing by adding concrete infrastructure dependencies into business services.\n- Treating a retry as root cause.\n- Fixing from stale task docs or leaving local repair progress inconsistent with the actual project state.\n- Plan-postcard multi-model handoff that forces the cheap model to re-read everything cold.\n- Swallowing exceptions or masking logs.\n- Declaring success without verification.\n- Updating Lark incident resources directly instead of through `arc:docs`.\n- Fixing a Lark-active tracked feature while the `task_base` row is missing or stale."
         },
         {
           "heading": "## When to Use",
@@ -918,7 +918,7 @@
         {
           "heading": "## Routing Matrix",
           "title": "Routing Matrix",
-          "body": "- Use `arc:define` if product concept or information architecture is missing.\n- Use `arc:clarify` if page scope, target users, or acceptance criteria are unclear.\n- Use `arc:build` for the implementation edit path.\n- Use `arc:docs` only when Lark is active for frontend milestones, design decisions, page progress, `task_base` feature status, whiteboards, screenshots, or `.lark.json.lifecycle[]`.\n- Use `arc:audit` for read-only UI architecture or accessibility review.\n- Domain skills such as Lazycat, WeChat Mini Program, mobile apps, desktop apps, payments, dashboards, and internal tools MUST link to this skill for frontend platform decisions instead of redefining their own default stack."
+          "body": "- Use `arc:define` if product concept or information architecture is missing.\n- Use `arc:clarify` if page scope, target users, or acceptance criteria are unclear.\n- Use `arc:build` for the implementation edit path.\n- Use `arc:prewalk` when multi-model cost routing is available for non-trivial UI implementation: Guide orients + first production edit, Executor inherits trajectory. See [`docs/prewalk.md`](../../docs/prewalk.md).\n- Use `arc:docs` only when Lark is active for frontend milestones, design decisions, page progress, `task_base` feature status, whiteboards, screenshots, or `.lark.json.lifecycle[]`.\n- Use `arc:audit` for read-only UI architecture or accessibility review.\n- Domain skills such as Lazycat, WeChat Mini Program, mobile apps, desktop apps, payments, dashboards, and internal tools MUST link to this skill for frontend platform decisions instead of redefining their own default stack."
         },
         {
           "heading": "## Context Search",
@@ -933,17 +933,17 @@
         {
           "heading": "## The Iron Law",
           "title": "The Iron Law",
-          "body": "```text\nNO FRONTEND CHANGE WITHOUT USER WORKFLOW.\nNO LARGE FRONTEND CHANGE WITHOUT CURRENT LOCAL TASK DOCS.\nNO UI DELIVERY WITHOUT DESIGN TOKENS, RESPONSIVE CONSTRAINTS, AND VERIFICATION.\nNO LARK FRONTEND UPDATE OUTSIDE arc:docs.\nNO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.\n```"
+          "body": "```text\nNO FRONTEND CHANGE WITHOUT USER WORKFLOW.\nNO LARGE FRONTEND CHANGE WITHOUT CURRENT LOCAL TASK DOCS.\nNO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF.\nNO UI DELIVERY WITHOUT DESIGN TOKENS, RESPONSIVE CONSTRAINTS, AND VERIFICATION.\nNO LARK FRONTEND UPDATE OUTSIDE arc:docs.\nNO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.\n```"
         },
         {
           "heading": "## Hard Constraints",
           "title": "Hard Constraints",
-          "body": "- MUST apply `arc:sdlc` before code edits for large, multi-page, cross-module, architectural, or tracked frontend work; task docs must be generated from the latest project state and updated immediately when routes, components, APIs, state models, scope, assumptions, or status change.\n- MUST use the default Web frontend stack for new Web frontends unless the user explicitly names another stack: `React 19` + `TypeScript` + `Vite` + `Tailwind CSS` + `shadcn/ui` + `Zustand` for client state + `TanStack Query` for server state + `TanStack Router` for type-safe routing + `React Hook Form` + `Zod`.\n- MUST use the default mobile stack for new iOS/Android apps unless the user explicitly names another stack: `React Native` + `Expo` + `TypeScript` + `NativeWind` + `Zustand` + `TanStack Query` + `Expo Router`.\n- MUST use the default desktop stack for new Mac/Windows/Linux apps unless the user explicitly names another stack: `Tauri 2` + the default React Web stack, reusing Web UI/state/query/form code where practical.\n- MUST use the default mini-program stack for WeChat and other mini-program targets unless the user explicitly names another stack: `Taro 4` + `React` + `TypeScript` + `Zustand`.\n- MUST use `wxskills` for WeChat platform APIs, privacy, payment, native component constraints, Skyline, and maintenance of existing native mini-program projects on WeChat; do not treat `wxskills` as a separate default project stack.\n- MUST preserve an existing frontend stack unless migration is explicitly requested; new modules in mixed legacy projects use the default stack when they can be isolated.\n- MUST NOT substitute same-duty defaults such as React Router, Redux, MobX, SWR, Formik, Yup, Ant Design, MUI, Chakra, or a custom component library unless the user explicitly requires it or the existing project already depends on it and the boundary is documented.\n- MUST separate state by responsibility: URL/search params in `TanStack Router`, server cache and mutations in `TanStack Query`, lightweight cross-page client state in `Zustand`, complex form state in `React Hook Form` with `Zod`, and component-only state in React local state.\n- MUST make vertical or business-domain skills call this default stack contract for frontend surfaces; business domain differences do not create a new default frontend or cross-platform stack.\n- MUST model UI state semantics explicitly: `loading` means a request or transition is pending; `empty` means the request succeeded but returned no usable records/content; `error` means the request or parsing failed; `permission-denied` means the user is not allowed to see or perform the action.\n- MUST design `empty` and `error` as different surfaces. Empty states use neutral tone, contextual next action, optional create/reset-filter guidance, and must not use destructive/error styling, error pages, exception boundaries, or failure toasts.\n- MUST derive empty state from successful data contracts such as `items.length === 0`, `total === 0`, or an explicit empty flag, not from thrown errors, rejected promises, HTTP 4xx/5xx branches, or generic catch handlers.\n- MUST keep styling behind `Design Token` or CSS variable paths.\n- MUST implement `Accessibility` basics: semantic controls, labels, focus states, keyboard reachability, and contrast.\n- MUST build `Responsive` layouts with explicit constraints; NEVER use viewport-scaled fonts as the layout solution.\n- MUST model `RBAC` at route and action level when roles or permissions exist.\n- MUST use project-native data/form/state patterns before introducing new libraries.\n- MUST persist frontend debugging evidence to local files when investigating runnable UI bugs: browser console output, network failures, runtime errors, screenshots, and relevant reproduction notes should go under `.arc/artifacts/<task>/logs/` or `tmp/logs/`.\n- MUST remove temporary `console.log`, `debugger`, alert-based probes, and noisy instrumentation before completion, or convert them into the project's level-gated logger/telemetry pattern.\n- MUST verify build/typecheck/lint/tests or report the blocker.\n- MUST route all Lark progress, whiteboard, screenshot, or `.lark.json` updates through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST hand off every Lark-active frontend feature/page update to `arc:docs` so `task_base` records title, owner, status, related requirement, changed files, verification, lifecycle link, and `updated_at`.\n- MUST NOT call Lark-active frontend work complete until `task_base` is updated or the blocker is explicit."
+          "body": "- MUST apply `arc:sdlc` before code edits for large, multi-page, cross-module, architectural, or tracked frontend work; task docs must be generated from the latest project state and updated immediately when routes, components, APIs, state models, scope, assumptions, or status change.\n- MUST apply `arc:prewalk` for same-session multi-model cost routing when the runtime supports mid-session model swap; MUST NOT default to plan-document cold handoff.\n- MUST use the default Web frontend stack for new Web frontends unless the user explicitly names another stack: `React 19` + `TypeScript` + `Vite` + `Tailwind CSS` + `shadcn/ui` + `Zustand` for client state + `TanStack Query` for server state + `TanStack Router` for type-safe routing + `React Hook Form` + `Zod`.\n- MUST use the default mobile stack for new iOS/Android apps unless the user explicitly names another stack: `React Native` + `Expo` + `TypeScript` + `NativeWind` + `Zustand` + `TanStack Query` + `Expo Router`.\n- MUST use the default desktop stack for new Mac/Windows/Linux apps unless the user explicitly names another stack: `Tauri 2` + the default React Web stack, reusing Web UI/state/query/form code where practical.\n- MUST use the default mini-program stack for WeChat and other mini-program targets unless the user explicitly names another stack: `Taro 4` + `React` + `TypeScript` + `Zustand`.\n- MUST use `wxskills` for WeChat platform APIs, privacy, payment, native component constraints, Skyline, and maintenance of existing native mini-program projects on WeChat; do not treat `wxskills` as a separate default project stack.\n- MUST preserve an existing frontend stack unless migration is explicitly requested; new modules in mixed legacy projects use the default stack when they can be isolated.\n- MUST NOT substitute same-duty defaults such as React Router, Redux, MobX, SWR, Formik, Yup, Ant Design, MUI, Chakra, or a custom component library unless the user explicitly requires it or the existing project already depends on it and the boundary is documented.\n- MUST separate state by responsibility: URL/search params in `TanStack Router`, server cache and mutations in `TanStack Query`, lightweight cross-page client state in `Zustand`, complex form state in `React Hook Form` with `Zod`, and component-only state in React local state.\n- MUST make vertical or business-domain skills call this default stack contract for frontend surfaces; business domain differences do not create a new default frontend or cross-platform stack.\n- MUST model UI state semantics explicitly: `loading` means a request or transition is pending; `empty` means the request succeeded but returned no usable records/content; `error` means the request or parsing failed; `permission-denied` means the user is not allowed to see or perform the action.\n- MUST design `empty` and `error` as different surfaces. Empty states use neutral tone, contextual next action, optional create/reset-filter guidance, and must not use destructive/error styling, error pages, exception boundaries, or failure toasts.\n- MUST derive empty state from successful data contracts such as `items.length === 0`, `total === 0`, or an explicit empty flag, not from thrown errors, rejected promises, HTTP 4xx/5xx branches, or generic catch handlers.\n- MUST keep styling behind `Design Token` or CSS variable paths.\n- MUST implement `Accessibility` basics: semantic controls, labels, focus states, keyboard reachability, and contrast.\n- MUST build `Responsive` layouts with explicit constraints; NEVER use viewport-scaled fonts as the layout solution.\n- MUST model `RBAC` at route and action level when roles or permissions exist.\n- MUST use project-native data/form/state patterns before introducing new libraries.\n- MUST persist frontend debugging evidence to local files when investigating runnable UI bugs: browser console output, network failures, runtime errors, screenshots, and relevant reproduction notes should go under `.arc/artifacts/<task>/logs/` or `tmp/logs/`.\n- MUST remove temporary `console.log`, `debugger`, alert-based probes, and noisy instrumentation before completion, or convert them into the project's level-gated logger/telemetry pattern.\n- MUST verify build/typecheck/lint/tests or report the blocker.\n- MUST route all Lark progress, whiteboard, screenshot, or `.lark.json` updates through `arc:docs`.\n- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.\n- MUST hand off every Lark-active frontend feature/page update to `arc:docs` so `task_base` records title, owner, status, related requirement, changed files, verification, lifecycle link, and `updated_at`.\n- MUST NOT call Lark-active frontend work complete until `task_base` is updated or the blocker is explicit."
         },
         {
           "heading": "## Workflow",
           "title": "Workflow",
-          "body": "1. Confirm user workflow, pages, audience, devices, and verification.\n2. For large, multi-page, cross-module, architectural, or tracked frontend work, apply `arc:sdlc` before code edits and keep local task status current as routes, components, APIs, or state models change.\n3. Inspect existing frontend stack and patterns.\n4. Choose route: apply the platform default stack, preserve an existing stack with a documented boundary, or document the explicit user-requested exception.\n5. Implement with tokenized styling, stable layout constraints, accessible states, explicit loading/empty/error/permission branches, and existing data/form/state patterns.\n6. For UI bugs, capture browser/runtime evidence to files before broad edits and use exact error strings or request IDs to drive the fix.\n7. Run project-native verification.\n8. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with pages, decisions, changed files, verification, screenshots/whiteboards, task status, lifecycle link, and resource keys."
+          "body": "1. Confirm user workflow, pages, audience, devices, and verification.\n2. For large, multi-page, cross-module, architectural, or tracked frontend work, apply `arc:sdlc` before code edits and keep local task status current as routes, components, APIs, or state models change.\n3. Inspect existing frontend stack and patterns.\n4. Choose route: apply the platform default stack, preserve an existing stack with a documented boundary, or document the explicit user-requested exception.\n5. If multi-model routing is available and useful, follow `arc:prewalk` for implementation turns; otherwise oneshot.\n6. Implement with tokenized styling, stable layout constraints, accessible states, explicit loading/empty/error/permission branches, and existing data/form/state patterns.\n7. For UI bugs, capture browser/runtime evidence to files before broad edits and use exact error strings or request IDs to drive the fix.\n8. Run project-native verification.\n9. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with pages, decisions, changed files, verification, screenshots/whiteboards, task status, lifecycle link, and resource keys."
         },
         {
           "heading": "## Quality Gates",
@@ -963,7 +963,7 @@
         {
           "heading": "## Red Flags",
           "title": "Red Flags",
-          "body": "- Replacing the stack without a migration request.\n- Introducing React Router, Redux, SWR, Formik, Yup, MUI, Ant Design, Chakra, or another same-duty library as a new default.\n- Treating a vertical business skill as permission to invent a separate Web, mobile, desktop, or mini-program frontend stack.\n- Starting a new WeChat mini-program with native WXML/WXSS/Component as the default stack instead of Taro 4 without explicit user direction.\n- Decorative landing page instead of the requested usable UI.\n- Implementing from stale frontend task docs or leaving local page/task progress inconsistent with current routes, components, APIs, or state contracts.\n- Debugging only from source inspection while browser console, network, or runtime errors could be captured.\n- Leaving `console.log`, `debugger`, alert probes, or noisy debug output in delivered frontend code.\n- Hardcoded component colors.\n- Global store used for server state by convenience.\n- Empty search results, first-use pages, zero-count dashboards, or filtered-out lists displayed as error pages, destructive alerts, or failed fetch states.\n- Frontend lifecycle progress left out of existing `.lark.json`.\n- Completed Lark-active frontend feature missing a current `task_base` row."
+          "body": "- Replacing the stack without a migration request.\n- Introducing React Router, Redux, SWR, Formik, Yup, MUI, Ant Design, Chakra, or another same-duty library as a new default.\n- Treating a vertical business skill as permission to invent a separate Web, mobile, desktop, or mini-program frontend stack.\n- Starting a new WeChat mini-program with native WXML/WXSS/Component as the default stack instead of Taro 4 without explicit user direction.\n- Decorative landing page instead of the requested usable UI.\n- Implementing from stale frontend task docs or leaving local page/task progress inconsistent with current routes, components, APIs, or state contracts.\n- Plan-postcard multi-model handoff that drops Guide trajectory and re-reads the UI surface cold on a cheap model.\n- Debugging only from source inspection while browser console, network, or runtime errors could be captured.\n- Leaving `console.log`, `debugger`, alert probes, or noisy debug output in delivered frontend code.\n- Hardcoded component colors.\n- Global store used for server state by convenience.\n- Empty search results, first-use pages, zero-count dashboards, or filtered-out lists displayed as error pages, destructive alerts, or failed fetch states.\n- Frontend lifecycle progress left out of existing `.lark.json`.\n- Completed Lark-active frontend feature missing a current `task_base` row."
         },
         {
           "heading": "## When to Use",
@@ -1132,6 +1132,131 @@
       }
     },
     {
+      "name": "arc:prewalk",
+      "description": "Same-session multi-model routing: frontier recon+todo+first edit, then executor inherits trajectory.",
+      "source_path": "Arc/arc:prewalk/SKILL.md",
+      "sections": [
+        {
+          "heading": "## Overview",
+          "title": "Overview",
+          "body": "`arc:prewalk` is the default **same-session multi-model cost routing** contract for Arc code work. A frontier **Guide** explores, writes a bounded todo, lands the first production edit, then an **Executor** continues in the **same trajectory**. It does not replace `arc:sdlc` task docs (cross-session/human progress) and does not implement product features by itself—it constrains how `arc:build` / `arc:fix` / `arc:frontend` should route models when the runtime can swap.\n\nFull contract: [`references/prewalk.md`](references/prewalk.md) (same text as monorepo [`docs/prewalk.md`](../../docs/prewalk.md))."
+        },
+        {
+          "heading": "## Quick Contract",
+          "title": "Quick Contract",
+          "body": "- **Trigger**: Implementation or repair will use more than one model class for cost/speed, or the user asks for prewalk / model handoff / cheap executor after planning.\n- **Inputs**: Task goal, optional `arc:sdlc` task docs, guide/executor capability profiles, runtime that can keep context across a model swap.\n- **Outputs**: Same worktree progress as the parent skill, with an explicit guide→executor swap after first production edit; residual risks if swap or escalate happened.\n- **Quality Gate**: Executor never cold-starts from a plan postcard; trajectory + todo survive the swap; planning-only instruction is pruned.\n- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+        },
+        {
+          "heading": "## Routing Matrix",
+          "title": "Routing Matrix",
+          "body": "- Use `arc:clarify` if scope or acceptance criteria are unclear.\n- Use `arc:sdlc` first for large, multi-step, cross-module, or tracked work so progress tables exist **before** code edits.\n- Use parent execution skills for the actual domain work: `arc:build`, `arc:fix`, `arc:frontend`.\n- Use `arc:arch` before backend production edits when those skills require it.\n- Use oneshot Guide (no swap) when the task is tiny, the runtime cannot swap models, or swap would cost more than finishing on Guide.\n- NEVER default to “Guide writes plan.md only → new cheap session reads plan.md”."
+        },
+        {
+          "heading": "## Context Search",
+          "title": "Context Search",
+          "body": "- MUST prefer `arc-idx search` / `ast` / `symbol` during the Guide phase so expensive reads are purposeful.\n- MUST NOT force the Executor to re-read the entire Guide corpus “to catch up” if the trajectory already contains those tool results.\n- If task docs exist, MUST read the active subtask and `进度跟踪表.md` during Guide, then keep them updated after swap."
+        },
+        {
+          "heading": "## Announce",
+          "title": "Announce",
+          "body": "Begin by stating clearly:\n\"I am using `arc:prewalk`: Guide explores, writes todos, lands the first production edit, then Executor inherits the trajectory.\""
+        },
+        {
+          "heading": "## The Iron Law",
+          "title": "The Iron Law",
+          "body": "```text\nNO PLAN-POSTCARD HANDOFF AS THE DEFAULT COST OPTIMIZATION.\nNO MODEL SWAP BEFORE FIRST PRODUCTION EDIT + BOUNDED TODO.\nNO CONTEXT WIPE AT SWAP.\nNO PLANNING INSTRUCTION LEFT IN EXECUTOR CONTEXT.\nNO CLAIM OF \"SAVED MONEY\" IF FRONTIER STILL PAID TO READ EVERYTHING AND EXECUTOR RE-READ IT COLD.\n```"
+        },
+        {
+          "heading": "## Hard Constraints",
+          "title": "Hard Constraints",
+          "body": "- MUST treat agent cost as approximately `O(reads)`, not `O(edits)`.\n- MUST run Guide with a hidden planning instruction equivalent to: plan deeply → capture plan as a bounded todo with per-item verification → start executing.\n- MUST initialize a **bounded** todo (prefer ≤ 12 items; hard stop well below vanity 60-item lists) with a validation step on each item when the runtime supports todos; otherwise use `arc:sdlc` progress rows as the steering surface.\n- MUST swap only after the first **production code** edit/write that advances the active subtask (docs-only, progress-table-only, or comment-only does not count).\n- MUST prune the hidden planning instruction at swap so the Executor does not stay in “planning identity”.\n- MUST preserve tool trajectory, todo/progress state, and the first edit as an in-context example.\n- MUST NOT use fixed-turn swap (e.g. “always after turn 4”).\n- MUST NOT schedule a fresh Executor `task_ref` whose only memory is a plan document path.\n- MUST escalate back to Guide (or oneshot Guide) when Executor loops on the same failure, invents “done”, or cannot recover after a small number of attempts.\n- MUST still obey `arc:sdlc` progress gates for tracked work after swap.\n- When the runtime cannot swap models mid-session, MUST oneshot on a single profile and MUST NOT fake prewalk via cold plan handoff."
+        },
+        {
+          "heading": "## Workflow",
+          "title": "Workflow",
+          "body": "1. Confirm the parent skill (`arc:build` / `arc:fix` / `arc:frontend`) and that scope is executable.\n2. If large/tracked: ensure `arc:sdlc` docs and progress table are current (Guide may update docs; that alone is not a swap gate).\n3. Start on **Guide** with the hidden planning instruction.\n4. Explore with search/read until a concrete approach is grounded in repo evidence.\n5. Write/update the bounded todo (and progress table rows for tracked work).\n6. Land the **first production edit** that starts the active checklist item.\n7. **Swap Gate**: todo present + first production edit landed → switch to **Executor**, prune planning instruction, keep trajectory.\n8. Executor continues edits, tests, and todo checkoffs; update `进度跟踪表.md` when tracked.\n9. On stuck/loop/premature-done: escalate to Guide briefly, or finish oneshot Guide for the remainder; record the escalate in the handoff summary.\n10. Parent skill still owns verification evidence and Lark handoff rules."
+        },
+        {
+          "heading": "## Quality Gates",
+          "title": "Quality Gates",
+          "body": "- Swap happened only at first production edit (or oneshot was chosen for a documented reason).\n- Executor context still contains Guide exploration results and the first edit.\n- Planning-only instruction is absent after swap.\n- Todo/progress steering remains active; Executor is not asked to “re-derive the plan from a postcard”.\n- Tracked work still has non-stale `进度跟踪表.md` / subtask `状态`.\n- No silent double-read tax: Guide did not dump a plan for a cold Executor to re-ingest as the primary memory."
+        },
+        {
+          "heading": "## Expert Standards",
+          "title": "Expert Standards",
+          "body": "- **Prewalk** beats plan-then-execute for cost and often for pass rate when the expensive part is reading.\n- **Trajectory Handoff** transfers understanding; prose plans transfer a summary only.\n- **First-Edit Swap** is the confidence gate: the Guide has already committed a valid move.\n- Agent spend is dominated by **O(reads)**; optimize who pays for reads after orientation.\n- **Todo Steering** keeps small Executors on rails when they forget long-horizon plans."
+        },
+        {
+          "heading": "## Scripts & Commands",
+          "title": "Scripts & Commands",
+          "body": "No dedicated scripts. Runtime adapters implement mid-session model swap + instruction prune. Local progress uses `arc:sdlc` files and in-harness todos when available."
+        },
+        {
+          "heading": "## Red Flags",
+          "title": "Red Flags",
+          "body": "- “Opus plans, Flash implements from the plan file.”\n- Swapping after N turns with no edit.\n- Swapping after only markdown task-doc writes.\n- Clearing context and pasting a plan into a new cheap agent.\n- 40–60 item todos with batch checkoffs and no verification.\n- Claiming cost savings while Guide already read the whole surface at frontier prices and Executor re-reads it cold.\n- Leaving “you are planning, do not edit” instructions in Executor context."
+        },
+        {
+          "heading": "## When to Use",
+          "title": "When to Use",
+          "body": "- **Preferred Trigger**: Multi-model cost routing for implementation/repair inside one session; user asks for prewalk, cheap executor after recon, or “贵模型只规划/起手”.\n- **Typical Scenario**: Medium SWE tasks where recon dominates tokens; Guide orients and cuts once, Executor finishes tests and polish.\n- **Boundary Tip**: Skip swap for trivial one-file edits, when the runtime cannot preserve trajectory across models, or when the user requires a single model end-to-end. Task-doc authoring alone is `arc:sdlc`, not prewalk."
+        },
+        {
+          "heading": "## Input Arguments",
+          "title": "Input Arguments",
+          "body": "| parameter | type | required | description |\n|---|---|---|---|\n| `task` | string | yes | Implementation or repair goal |\n| `guide_profile` | string | no | Frontier/deep capability profile |\n| `executor_profile` | string | no | Cheap/quick capability profile |\n| `project_path` | string | no | Repository root |\n| `task_docs_path` | string | no | Active `arc:sdlc` task directory when tracked |"
+        },
+        {
+          "heading": "## Outputs",
+          "title": "Outputs",
+          "body": "```text\nPrewalk Handoff\n- Guide phase summary (what was read, approach)\n- First production edit (files)\n- Swap point (or oneshot reason)\n- Executor continuation / escalate notes\n- Todo / progress status\n- Parent skill verification still required\n```"
+        }
+      ],
+      "quick_contract": {
+        "trigger": "Implementation or repair will use more than one model class for cost/speed, or the user asks for prewalk / model handoff / cheap executor after planning.",
+        "inputs": "Task goal, optional `arc:sdlc` task docs, guide/executor capability profiles, runtime that can keep context across a model swap.",
+        "outputs": "Same worktree progress as the parent skill, with an explicit guide→executor swap after first production edit; residual risks if swap or escalate happened.",
+        "quality_gate": "Executor never cold-starts from a plan postcard; trajectory + todo survive the swap; planning-only instruction is pruned.",
+        "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
+      },
+      "input_arguments": [
+        {
+          "parameter": "task",
+          "type": "string",
+          "required": "yes",
+          "description": "Implementation or repair goal"
+        },
+        {
+          "parameter": "guide_profile",
+          "type": "string",
+          "required": "no",
+          "description": "Frontier/deep capability profile"
+        },
+        {
+          "parameter": "executor_profile",
+          "type": "string",
+          "required": "no",
+          "description": "Cheap/quick capability profile"
+        },
+        {
+          "parameter": "project_path",
+          "type": "string",
+          "required": "no",
+          "description": "Repository root"
+        },
+        {
+          "parameter": "task_docs_path",
+          "type": "string",
+          "required": "no",
+          "description": "Active `arc:sdlc` task directory when tracked"
+        }
+      ],
+      "outputs_section": {
+        "format": "text",
+        "content": "Prewalk Handoff\n- Guide phase summary (what was read, approach)\n- First production edit (files)\n- Swap point (or oneshot reason)\n- Executor continuation / escalate notes\n- Todo / progress status\n- Parent skill verification still required"
+      }
+    },
+    {
       "name": "arc:sdlc",
       "description": "Current-state task docs; security/audit handoff to detailed subtasks with roles and caliber.",
       "source_path": "Arc/arc:sdlc/SKILL.md",
@@ -1139,7 +1264,7 @@
         {
           "heading": "## Overview",
           "title": "Overview",
-          "body": "Use this skill to turn large or multi-step work into persistent local docs before implementation. The docs must capture the latest repository state, so a later session can resume from `docs/` without rediscovering the whole codebase.\n\nSeparate raw requirements from executable work:\n\n1. Put original requirements, product notes, data-range notes, and unresolved input under the resolved requirement category such as `docs/DD-需求`.\n2. Put executable plans, implementation subtasks, migrations, fixes, verification work, and progress state under the resolved task category such as `docs/DD-任务`.\n3. Do not copy large raw requirements into task docs. Link to the relevant requirement docs and restate only the actionable scope, constraints, and acceptance criteria.\n\nFor small one-shot fixes, do not create this structure unless the user asks for task docs."
+          "body": "Use this skill to turn large or multi-step work into persistent local docs before implementation. The docs must capture the latest repository state, so a later session can resume from `docs/` without rediscovering the whole codebase.\n\nTask docs are the **cross-session / human / audit** memory. They are **not** the default vehicle for same-session multi-model cost routing. Live cheap-executor handoff belongs to `arc:prewalk` (trajectory + todo + first production edit)—see [`docs/prewalk.md`](../../docs/prewalk.md). Do not treat a detailed plan markdown as a substitute for handing off the agent context window.\n\nSeparate raw requirements from executable work:\n\n1. Put original requirements, product notes, data-range notes, and unresolved input under the resolved requirement category such as `docs/DD-需求`.\n2. Put executable plans, implementation subtasks, migrations, fixes, verification work, and progress state under the resolved task category such as `docs/DD-任务`.\n3. Do not copy large raw requirements into task docs. Link to the relevant requirement docs and restate only the actionable scope, constraints, and acceptance criteria.\n\nFor small one-shot fixes, do not create this structure unless the user asks for task docs."
         },
         {
           "heading": "## When to Use",
@@ -1149,12 +1274,17 @@
         {
           "heading": "## Pre-Implementation Gate",
           "title": "Pre-Implementation Gate",
-          "body": "Before changing production code for large or tracked work:\n\n1. Inspect the latest repository state, including current docs, local task conventions, affected files, tests, routes, configs, migrations, and call sites.\n2. Resolve the requirement/task doc roots and read existing indexes before creating anything.\n3. Create or update the task document structure under the existing task category.\n4. Write `00-前置约束.md` before implementation.\n5. Write or update the central progress table with every planned subtask.\n6. Make every concrete subtask detailed enough for one implementation pass by a low-capability downstream coding model without hidden context.\n7. Mark the first active subtask as `[/]` in both the progress table and the subtask file.\n\nOnly discovery commands, code reading, and task-document edits are allowed before this gate is complete.\n\nTask docs are stale if they are not updated immediately when project files, scope, assumptions, evidence, tests, or status change. They must be updated immediately when project files, scope, assumptions, or status change."
+          "body": "Before changing production code for large or tracked work:\n\n1. Inspect the latest repository state, including current docs, local task conventions, affected files, tests, routes, configs, migrations, and call sites.\n2. Resolve the requirement/task doc roots and read existing indexes before creating anything.\n3. Create or update the task document structure under the existing task category.\n4. Write `00-前置约束.md` before implementation.\n5. Write or update the central progress table with every planned subtask.\n6. Make every concrete subtask specific enough to resume from disk: current files, scope, outputs, and verification—without pretending the markdown replaces a live agent trajectory.\n7. Mark the first active subtask as `[/]` in both the progress table and the subtask file.\n\nOnly discovery commands, code reading, and task-document edits are allowed before this gate is complete.\n\nTask docs are stale if they are not updated immediately when project files, scope, assumptions, evidence, tests, or status change. They must be updated immediately when project files, scope, assumptions, or status change."
         },
         {
-          "heading": "## Downstream Coding Model Assumption",
-          "title": "Downstream Coding Model Assumption",
-          "body": "Assume the plan and subtasks may be handed to a low-intelligence or low-context model for implementation. Therefore every executable task document MUST over-specify the implementation intent enough that the next model does not need to infer missing design decisions.\n\nRequired detail:\n\n1. State the exact goal in project terms, not a generic engineering label.\n2. Name affected files, symbols, APIs, routes, tables, data contracts, commands, tests, or UI states.\n3. Describe the intended implementation sequence and where to stop.\n4. Spell out non-goals, invariants, compatibility constraints, and known edge cases.\n5. Describe expected behavior before and after the change, including error and empty states when relevant.\n6. Define verification commands or manual checks with expected results.\n7. Include \"do not\" instructions for tempting but incorrect shortcuts, broad fallbacks, paper-over fixes, or silent error handling."
+          "heading": "## Execution Model: Docs vs Prewalk",
+          "title": "Execution Model: Docs vs Prewalk",
+          "body": "Two different handoffs must not be confused:\n\n| Handoff | Mechanism | Use for |\n|---|---|---|\n| **Durable task docs** (this skill) | `00-前置约束.md`, subtasks, `进度跟踪表.md` | Humans, new sessions, audit campaigns, pause/resume days later |\n| **Same-session multi-model** (`arc:prewalk`) | Keep tool trajectory; Guide does recon + bounded todo + **first production edit**; swap to Executor; prune planning instruction | Cost/speed routing inside one agent run |\n\nHard rules:\n\n1. MUST NOT market “frontier writes a plan document, cheap model implements from the document alone” as the Arc default cost optimization. That is the plan-postcard anti-pattern (`O(reads)` paid twice).\n2. MUST use `arc:prewalk` when the runtime can swap models mid-session and the parent skill wants a cheaper Executor after orientation.\n3. MUST keep progress tables and subtask checklists as **steering surfaces** after a prewalk swap (Executor may forget prose plans; it cannot ignore an active todo/progress row that is kept in context).\n4. When a **new session** cold-starts from docs only: either short Guide prewalk (re-ground + first edit then swap) or oneshot Guide—not cold cheap execution from plan text alone as the default.\n5. Security `R-task` may still author docs only; `R-fix` must apply prewalk (or oneshot) per subtask rather than treating the subtask file as a full substitute for repo exploration context."
+        },
+        {
+          "heading": "## Subtask Specificity (Still Required)",
+          "title": "Subtask Specificity (Still Required)",
+          "body": "Every concrete subtask must be specific to the current project so progress and verification stay honest. Required detail:\n\n1. State the exact goal in project terms, not a generic engineering label.\n2. Name affected files, symbols, APIs, routes, tables, data contracts, commands, tests, or UI states.\n3. Describe the intended implementation sequence and where to stop.\n4. Spell out non-goals, invariants, compatibility constraints, and known edge cases.\n5. Describe expected behavior before and after the change, including error and empty states when relevant.\n6. Define verification commands or manual checks with expected results.\n7. Include \"do not\" instructions for tempting but incorrect shortcuts, broad fallbacks, paper-over fixes, or silent error handling.\n\nThese details support **resume, review, and acceptance**—not a claim that a cold low-context model can reconstruct full understanding from the postcard alone."
         },
         {
           "heading": "## Progress Tracking Hard Gate",
@@ -1164,12 +1294,12 @@
         {
           "heading": "## Integration With Arc Skills",
           "title": "Integration With Arc Skills",
-          "body": "When another Arc skill is active, use this skill as the local task-planning gate for large or tracked work:\n\n1. Use `arc:clarify` first if scope, acceptance criteria, or user decisions are unclear.\n2. Use this skill before `arc:build`, `arc:fix`, `arc:frontend`, or `arc:security` changes project code for large, multi-step, cross-module, or tracked work.\n3. Use `arc:arch` after this skill and before backend code edits.\n4. Use `arc:frontend` after this skill for frontend platform, UI state, token, and verification constraints.\n5. Use `arc:security` **after** this skill only when implementing multi-finding remediation or re-scanning fixed paths; use `arc:security` **before** this skill when the user still needs scanner evidence for the handoff package.\n6. Use `arc:audit` mode `appsec` before this skill when remediation must be driven by assets, data map, and finding cards rather than ad-hoc bug lists.\n7. Use `arc:docs` only for Lark synchronization when `.lark.json` exists or the user explicitly enables Lark. Local `docs/` task state still needs to stay current.\n\nIf this skill and another skill conflict, keep the stricter gate: do not start implementation until local task docs, status, and required upstream clarification are current."
+          "body": "When another Arc skill is active, use this skill as the local task-planning gate for large or tracked work:\n\n1. Use `arc:clarify` first if scope, acceptance criteria, or user decisions are unclear.\n2. Use this skill before `arc:build`, `arc:fix`, `arc:frontend`, or `arc:security` changes project code for large, multi-step, cross-module, or tracked work.\n3. After this skill’s docs gate, use `arc:prewalk` for same-session multi-model routing when the runtime supports model swap; do not replace prewalk with plan-document cold handoff.\n4. Use `arc:arch` after this skill and before backend code edits.\n5. Use `arc:frontend` after this skill for frontend platform, UI state, token, and verification constraints.\n6. Use `arc:security` **after** this skill only when implementing multi-finding remediation or re-scanning fixed paths; use `arc:security` **before** this skill when the user still needs scanner evidence for the handoff package.\n7. Use `arc:audit` mode `appsec` before this skill when remediation must be driven by assets, data map, and finding cards rather than ad-hoc bug lists.\n8. Use `arc:docs` only for Lark synchronization when `.lark.json` exists or the user explicitly enables Lark. Local `docs/` task state still needs to stay current.\n\nIf this skill and another skill conflict, keep the stricter gate: do not start implementation until local task docs, status, and required upstream clarification are current."
         },
         {
           "heading": "## Security / Audit Sourced Work (Narrow Pipeline)",
           "title": "Security / Audit Sourced Work (Narrow Pipeline)",
-          "body": "When the work comes from `arc:audit` (appsec), `arc:security`, multi-finding vulnerability repair, or the user asks to “把审计/扫描结果拆成任务”:\n\n1. MUST follow [`references/security-audit-task-pipeline.md`](references/security-audit-task-pipeline.md).\n2. MUST act as role `R-task` (任务作者): write docs only; do not implement production fixes in this role.\n3. MUST require a **Handoff Package** (or build a minimal one with user consent) containing project positioning, project caliber, findings, and optional re-ranked scan notes—not a chat-only bullet list.\n4. MUST put in `00-前置约束.md`:\n   - `## 项目定位` — product form, user roles, critical data, trust boundaries, why this engagement exists\n   - `## 项目口径` — deploy shape, naming/storage rules, protected paths, env order, architecture limits, test authorization, secrets handling\n   - `## 功能角色` — who is R-recon / R-scan / R-task / R-fix / R-verify for this engagement\n   - `## 上游 Handoff` — links to assets / data-map / findings / scan reports\n   - `## Finding 索引` — every in-scope finding → subtask id\n5. MUST split task groups by risk domain (config/secrets, AuthN, AuthZ, payment, upload, injection, dependency), never by “Semgrep/Trivy” tool names alone.\n6. MUST expand each **confirmed** finding into subtasks that name `finding_id`, files/symbols, permission class, data yield, step-by-step 执行清单, 不要做, and verify steps. Prefer one finding → one fix subtask (+ optional verify).\n7. MUST create research/false-positive subtasks for `likely` / `assumption` findings before fix subtasks.\n8. MUST NOT create vague subtasks such as “修复安全问题”, “加固鉴权”, “处理 High 漏洞” without finding ids and paths.\n9. MUST map data-value priority into P0–P3 using the pipeline table; do not copy CVSS blindly.\n10. After planning is complete, hand `R-fix` to `arc:fix` / `arc:build` **one subtask at a time**; hand re-scan requests back to `arc:security` only with explicit scope.\n\nFor non-security large work, the security pipeline sections are optional; the rest of this skill still applies."
+          "body": "When the work comes from `arc:audit` (appsec), `arc:security`, multi-finding vulnerability repair, or the user asks to “把审计/扫描结果拆成任务”:\n\n1. MUST follow [`references/security-audit-task-pipeline.md`](references/security-audit-task-pipeline.md).\n2. MUST act as role `R-task` (任务作者): write docs only; do not implement production fixes in this role.\n3. MUST require a **Handoff Package** (or build a minimal one with user consent) containing project positioning, project caliber, findings, and optional re-ranked scan notes—not a chat-only bullet list.\n4. MUST put in `00-前置约束.md`:\n   - `## 项目定位` — product form, user roles, critical data, trust boundaries, why this engagement exists\n   - `## 项目口径` — deploy shape, naming/storage rules, protected paths, env order, architecture limits, test authorization, secrets handling\n   - `## 功能角色` — who is R-recon / R-scan / R-task / R-fix / R-verify for this engagement\n   - `## 上游 Handoff` — links to assets / data-map / findings / scan reports\n   - `## Finding 索引` — every in-scope finding → subtask id\n5. MUST split task groups by risk domain (config/secrets, AuthN, AuthZ, payment, upload, injection, dependency), never by “Semgrep/Trivy” tool names alone.\n6. MUST expand each **confirmed** finding into subtasks that name `finding_id`, files/symbols, permission class, data yield, step-by-step 执行清单, 不要做, and verify steps. Prefer one finding → one fix subtask (+ optional verify).\n7. MUST create research/false-positive subtasks for `likely` / `assumption` findings before fix subtasks.\n8. MUST NOT create vague subtasks such as “修复安全问题”, “加固鉴权”, “处理 High 漏洞” without finding ids and paths.\n9. MUST map data-value priority into P0–P3 using the pipeline table; do not copy CVSS blindly.\n10. After planning is complete, hand `R-fix` to `arc:fix` / `arc:build` **one subtask at a time**, preferring `arc:prewalk` inside each fix session when multi-model routing is available; hand re-scan requests back to `arc:security` only with explicit scope.\n\nFor non-security large work, the security pipeline sections are optional; the rest of this skill still applies."
         },
         {
           "heading": "## SDLC Document Architecture (Directory Roots)",
@@ -1189,7 +1319,7 @@
         {
           "heading": "## Required Files",
           "title": "Required Files",
-          "body": "### Task Entry\n\n`NN-具体任务名/README.md` is the preferred entry document. Include:\n\n1. Task summary.\n2. Usage instructions.\n3. Design boundaries or implementation constraints.\n4. Source requirement links when relevant.\n5. Task group index.\n6. Links to `00-前置约束.md` and the central progress table.\n7. A note that downstream implementation may be performed by a low-capability model, so subtasks must be explicit and self-contained.\n\nTemplate:\n\n```markdown\n# 具体任务名\n\n本文是任务入口。具体任务和进度在当前目录。"
+          "body": "### Task Entry\n\n`NN-具体任务名/README.md` is the preferred entry document. Include:\n\n1. Task summary.\n2. Usage instructions.\n3. Design boundaries or implementation constraints.\n4. Source requirement links when relevant.\n5. Task group index.\n6. Links to `00-前置约束.md` and the central progress table.\n7. A note that docs are for durable progress/resume; same-session multi-model execution uses `arc:prewalk` (trajectory handoff), not plan-postcard cold start.\n\nTemplate:\n\n```markdown\n# 具体任务名\n\n本文是任务入口。具体任务和进度在当前目录。"
         },
         {
           "heading": "## 使用方式",
@@ -1199,7 +1329,7 @@
         {
           "heading": "## 执行模型假设",
           "title": "执行模型假设",
-          "body": "本计划可能交给低智能或低上下文模型编码。任务文档必须把实现意图、影响文件、执行顺序、边界、反例和验证方式写清楚，不依赖执行者自行推断。"
+          "body": "1. 本文档用于跨会话恢复、进度权威和验收，不是便宜模型的唯一内存。\n2. 同会话多模型成本路由默认走 prewalk：Guide 探索 + 有界 todo + 第一笔生产代码 edit，再把 trajectory 交给 Executor。\n3. 子任务仍须写清影响文件、顺序、边界、反例和验证，以便恢复与评审。"
         },
         {
           "heading": "## 需求来源",
@@ -1214,7 +1344,7 @@
         {
           "heading": "## 任务索引",
           "title": "任务索引",
-          "body": "| 编号 | 任务组 | 优先级 |\n| --- | --- | --- |\n| T01 | [任务组名称](tasks/T01-任务组名称/README.md) | P0 |\n```\n\n### Pre-Constraints\n\n`00-前置约束.md` is mandatory before coding. Include:\n\n1. Goal and non-goals.\n2. Scope boundaries and affected modules.\n3. Latest project-state snapshot used to generate the task.\n4. Assumptions that still need verification.\n5. Existing local conventions that must not be broken.\n6. Data, compatibility, migration, security, and performance constraints when relevant.\n7. Verification commands or manual checks expected before marking work done.\n8. Blockers and required user decisions.\n9. Downstream coding model assumption and the extra detail required because of it.\n10. When the source is security/audit: 项目定位, 项目口径, 功能角色, 上游 Handoff, Finding 索引 (see Security / Audit Sourced Work and the pipeline reference).\n\nTemplate:\n\n```markdown\n# 前置约束"
+          "body": "| 编号 | 任务组 | 优先级 |\n| --- | --- | --- |\n| T01 | [任务组名称](tasks/T01-任务组名称/README.md) | P0 |\n```\n\n### Pre-Constraints\n\n`00-前置约束.md` is mandatory before coding. Include:\n\n1. Goal and non-goals.\n2. Scope boundaries and affected modules.\n3. Latest project-state snapshot used to generate the task.\n4. Assumptions that still need verification.\n5. Existing local conventions that must not be broken.\n6. Data, compatibility, migration, security, and performance constraints when relevant.\n7. Verification commands or manual checks expected before marking work done.\n8. Blockers and required user decisions.\n9. Execution model note: durable docs vs prewalk (no plan-postcard default).\n10. When the source is security/audit: 项目定位, 项目口径, 功能角色, 上游 Handoff, Finding 索引 (see Security / Audit Sourced Work and the pipeline reference).\n\nTemplate:\n\n```markdown\n# 前置约束"
         },
         {
           "heading": "## 目标",
@@ -1234,7 +1364,7 @@
         {
           "heading": "## 执行模型假设",
           "title": "执行模型假设",
-          "body": "1. 本计划可能交给低智能或低上下文模型编码，后续子任务必须写到可按步骤执行。\n2. 不允许用模糊描述替代具体文件、调用点、数据契约、边界条件、错误处理和验证要求。"
+          "body": "1. 任务文档是跨会话与进度权威；同会话多模型默认 prewalk（trajectory + todo + first edit），禁止「只交 plan 文件给冷启动便宜模型」作为默认省钱法。\n2. 不允许用模糊描述替代具体文件、调用点、数据契约、边界条件、错误处理和验证要求。\n3. 新会话从文档恢复时：短 Guide 再 grounding + first edit，或 oneshot Guide；不要默认 cold cheap 只读 plan。"
         },
         {
           "heading": "## 已知影响范围",
@@ -1279,7 +1409,7 @@
         {
           "heading": "## 验收标准",
           "title": "验收标准",
-          "body": "1. 标准一。\n```\n\n### Subtask File\n\nEach subtask must independently guide one implementation pass. Include:\n\n1. Title.\n2. Status.\n3. Goal.\n4. Inputs.\n5. Outputs.\n6. Execution checklist.\n7. Completion criteria.\n8. Latest project facts this subtask depends on.\n9. Files, symbols, routes, migrations, data contracts, or UI states expected to be touched.\n10. Verification command or manual check.\n11. Downstream implementation notes for a low-capability coding model: exact sequence, invariants, edge cases, and shortcuts to avoid.\n\nEvery concrete subtask must be specific to the current project. Do not write generic items such as \"实现接口\", \"补充测试\", or \"优化代码\" without naming the affected files, call sites, data contracts, expected behavior, and verification.\n\nTemplate:\n\n```markdown\n# T01-01 子任务名称\n\n状态：`[ ]`"
+          "body": "1. 标准一。\n```\n\n### Subtask File\n\nEach subtask must independently guide one implementation pass. Include:\n\n1. Title.\n2. Status.\n3. Goal.\n4. Inputs.\n5. Outputs.\n6. Execution checklist.\n7. Completion criteria.\n8. Latest project facts this subtask depends on.\n9. Files, symbols, routes, migrations, data contracts, or UI states expected to be touched.\n10. Verification command or manual check.\n11. Implementation notes: exact sequence, invariants, edge cases, and shortcuts to avoid; note that live multi-model runs should inherit trajectory via prewalk, not re-read this file as the sole memory.\n\nEvery concrete subtask must be specific to the current project. Do not write generic items such as \"实现接口\", \"补充测试\", or \"优化代码\" without naming the affected files, call sites, data contracts, expected behavior, and verification.\n\nTemplate:\n\n```markdown\n# T01-01 子任务名称\n\n状态：`[ ]`"
         },
         {
           "heading": "## 目标",
@@ -1299,12 +1429,12 @@
         {
           "heading": "## 执行清单",
           "title": "执行清单",
-          "body": "- [ ] 第一步：说明要改哪个文件/符号、为什么这样改、不要改什么。\n- [ ] 第二步：说明要处理的边界条件、错误路径或兼容行为。"
+          "body": "- [ ] 第一步：说明要改哪个文件/符号、为什么这样改、不要改什么。\n- [ ] 第二步：说明要处理的边界条件、错误路径或兼容行为。\n- [ ] 验证：命令或手工检查与期望结果。"
         },
         {
-          "heading": "## 下游编码注意",
-          "title": "下游编码注意",
-          "body": "1. 本子任务可能由低智能或低上下文模型执行，必须按上面的文件、顺序和边界实现。\n2. 不要引入兜底逻辑吞掉错误，不要用宽泛重构替代本任务目标，不要修改未列入范围的模块。"
+          "heading": "## 执行注意",
+          "title": "执行注意",
+          "body": "1. 同会话执行优先 prewalk：保留探索轨迹与本清单，不要只把本文件丢给冷启动 Executor。\n2. 不要引入兜底逻辑吞掉错误，不要用宽泛重构替代本任务目标，不要修改未列入范围的模块。\n3. 完成后同步 `进度跟踪表.md`。"
         },
         {
           "heading": "## 完成标准",

@@ -67,6 +67,40 @@ collect_task(
 - 降级策略：重试失败后可降级到 `quick` 或单 Agent 串行路径，并在结果中标注“降级执行”。
 - 幂等要求：同一 `task_ref` 的后续调用只能续跑/补充，不得隐式开启新上下文。
 
+## 3.1) Prewalk 多模型会话（同 `task_ref` 轨迹交接）
+
+同会话成本路由默认遵守 [`docs/prewalk.md`](prewalk.md) 与 `arc:prewalk`，**禁止**用「新开 cheap `task_ref` + 只塞 plan 路径」冒充省钱。
+
+语义（适配层实现细节可变，语义不可变）：
+
+```text
+prewalk_session(
+  guide_profile: string,                 # deep / frontier
+  executor_profile: string,              # quick / flash
+  description: string,
+  prompt: string,
+  planning_instruction?: string,         # swap 时必须 prune
+  swap_on: "first_production_edit",
+  max_todo_items?: integer,              # 建议 ≤ 12
+  capabilities?: string[],
+  metadata?: map<string, string>
+) -> {
+  task_ref: string,                      # 全程同一轨迹 ID
+  phase: "guide" | "executor" | "escalated" | "done",
+  swap_at?: string,
+  status: "accepted" | "rejected",
+  ...
+}
+```
+
+约束：
+
+1. Guide→Executor 必须发生在**同一** `task_ref` / 同一 context 内；不得新建无 trajectory 的任务只交 plan 文档。
+2. 切换门闩：有界 todo（或等价进度表）已初始化 **且** 至少一笔 production code edit 已落地。
+3. Swap 时 prune 隐藏 planning 指令；保留 tool 结果、todo、第一笔 edit。
+4. Executor 连续失能可 `escalate` 回 `guide_profile`，仍用同一 `task_ref`。
+5. 运行时若不支持 mid-session swap：oneshot 单一 profile，并显式标注“无 prewalk 能力”，不得用 cold plan handoff 伪造。
+
 ## 4) 适配层映射清单（实现方）
 
 运行时适配层至少要完成下列映射：
@@ -92,6 +126,7 @@ collect_task(
 2. 所有并发任务均可被 `collect_task(...)` 收集。
 3. 失败分支具备重试/降级/中止中的至少一种。
 4. 最终报告包含 `task_ref` 或等价追踪标识。
+5. 若宣称多模型成本路由：符合 prewalk（同轨迹 + first production edit 后 swap），而非 plan-postcard 冷启动。
 
 ## 7) 输出范式（聊天表现层）
 

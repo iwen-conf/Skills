@@ -1,19 +1,20 @@
 # Arc Lifecycle Routing Matrix
 
-Arc 收敛为十个 `arc:*` 软件工程生命周期 Skill。若任务涉及代码库搜索或上下文定位，优先使用 `.ai-code-index/` 本地搜索脚本；若项目根目录已有 `.lark.json`，优先从索引找项目主页、项目文件空间、PRD、需求、架构、进度、资料和交付记录；若没有 `.lark.json`，只有在用户明确要求创建/连接飞书项目空间或提供飞书项目链接时才创建飞书资源；若任务涉及编排、Inbox 或跨 Agent 协作，优先使用 `aitask`。
+Arc 收敛为 `arc:*` 软件工程生命周期 Skill（含同会话多模型路由 `arc:prewalk`）。若任务涉及代码库搜索或上下文定位，优先使用 `.ai-code-index/` 本地搜索脚本；若项目根目录已有 `.lark.json`，优先从索引找项目主页、项目文件空间、PRD、需求、架构、进度、资料和交付记录；若没有 `.lark.json`，只有在用户明确要求创建/连接飞书项目空间或提供飞书项目链接时才创建飞书资源；若任务涉及编排、Inbox 或跨 Agent 协作，优先使用 `aitask`。
 
 | Skill | 首选触发 | 不建议使用时机 | 常见后续 |
 |---|---|---|---|
 | `arc:define` | 项目想法待结构化、需要 PRD/Blueprint | 任务级澄清或已有清晰项目定义 | `arc:docs` / `arc:clarify` |
 | `arc:clarify` | 需求不清、上下文缺失、验收标准缺失 | 需求已明确可直接执行 | `arc:docs` / `arc:build` |
 | `arc:docs` | 已有 `.lark.json`、用户给飞书项目链接、或明确要求创建/连接/同步飞书项目空间 | 只做本地代码实现且用户未触发飞书 | `arc:define` / `arc:build` / `arc:audit` |
-| `arc:build` | 方案明确，需要代码交付和验证 | 根因未知的失败修复 | `arc:docs` / `arc:audit` |
-| `arc:frontend` | 需要前端基线、UI 实现、主题或前端进度沉淀 | 纯后端/API/无前端工作 | `arc:build` / `arc:docs` |
-| `arc:fix` | 有失败证据、线上故障、测试失败 | 只是新功能开发 | `arc:docs` / `arc:audit` |
+| `arc:build` | 方案明确，需要代码交付和验证 | 根因未知的失败修复 | `arc:prewalk` / `arc:docs` / `arc:audit` |
+| `arc:frontend` | 需要前端基线、UI 实现、主题或前端进度沉淀 | 纯后端/API/无前端工作 | `arc:prewalk` / `arc:build` / `arc:docs` |
+| `arc:fix` | 有失败证据、线上故障、测试失败 | 只是新功能开发 | `arc:prewalk` / `arc:docs` / `arc:audit` |
+| `arc:prewalk` | 同会话多模型成本路由：Guide 探索+todo+第一笔生产 edit，Executor 继承 trajectory | 运行时不能保留 context 换模型；极小 oneshot；想用 plan 文件冷启动便宜模型（禁止） | `arc:build` / `arc:fix` / `arc:frontend` |
 | `arc:audit` | 需要只读体检、风险盘点、改进建议；或代码/项目/漏洞审计（AppSec 方法论：资产表→数据地图→finding cards） | 需要直接改代码；或需要安装/运行安全 CLI 扫描器 | `arc:clarify` / `arc:security` / `arc:build` / `arc:docs` |
 | `arc:security` | 需要本地安全扫描、依赖/密钥/Go/API/DAST 检查、按数据价值重排的可读安全报告 | 未授权的第三方目标、纯业务需求澄清、或只要人工只读审查/资产与数据地图 | `arc:fix` / `arc:build` / `arc:audit` / `arc:docs` |
 | `arc:test` | 需要设计/生成/运行测试、覆盖率/回归门禁、模糊/属性、基准/负载，或跨 Go/Rust/Android/HarmonyOS/前端的分层测试 | 只是单点实现的顺带验证（走 `arc:build` 自带验证）、纯安全扫描（走 `arc:security`）、纯只读体检（走 `arc:audit`） | `arc:fix` / `arc:build` / `arc:frontend` / `arc:security` / `arc:docs` |
-| `arc:sdlc` | 大型/跨模块/需跟踪任务要先沉淀本地任务文档；或把审计/扫描 findings 拆成详细子任务 | 单点小改动、无需任务文档的轻量实现；或还缺少上游 handoff/项目口径 | `arc:fix` / `arc:build` / `arc:security` |
+| `arc:sdlc` | 大型/跨模块/需跟踪任务要先沉淀本地任务文档；或把审计/扫描 findings 拆成详细子任务 | 单点小改动、无需任务文档的轻量实现；或还缺少上游 handoff/项目口径；**不要**把任务 md 当作同会话 cheap 模型的唯一内存 | `arc:prewalk` / `arc:fix` / `arc:build` / `arc:security` |
 
 ## Decision Tree
 
@@ -62,6 +63,7 @@ flowchart TD
 - 需要 E2E：由 `arc:test` 编排，使用项目 E2E 工具或 `agent-browser`；前端交互闭环/可见性/可点击/布局可读性检查经 `arc:frontend`。
 - 需要代码/项目/漏洞只读审计、资产表或敏感数据地图：用 `arc:audit`（mode `appsec`，见 `Arc/arc:audit/references/appsec-playbook.md`）。
 - 需要安全扫描或安全报告：用 `arc:security`（先 quick 再 full，按 data-value 重排）。
-- 多 finding 修复战役：`R-recon`/`R-scan` 出 Handoff（项目定位+项目口径+功能角色+findings）→ `arc:sdlc`（`R-task` 写细子任务）→ `arc:fix`/`arc:build`（`R-fix`）→ 验证/`arc:security` 复扫。契约见 `Arc/arc:sdlc/references/security-audit-task-pipeline.md`。
+- 多 finding 修复战役：`R-recon`/`R-scan` 出 Handoff（项目定位+项目口径+功能角色+findings）→ `arc:sdlc`（`R-task` 写细子任务）→ `arc:fix`/`arc:build`（`R-fix`，同会话多模型走 `arc:prewalk`）→ 验证/`arc:security` 复扫。契约见 `Arc/arc:sdlc/references/security-audit-task-pipeline.md`。
+- 多模型省成本：默认 `arc:prewalk`（同轨迹、first production edit 后 swap），禁止「frontier 只写 plan → cheap 冷启动读 plan」。细节见 [`prewalk.md`](prewalk.md)。
 - 大仓库：优先 `arc:audit` 做资产与数据地图，再 `arc:security` 跑 CLI；不要一上来 AI 通读或全量 POC；不要从 SARIF 直接改代码。
 - 防范 AI 代码腐化：每个 Arc 技能在 `## Code Rot Gates` 引用 [`code-rot-taxonomy.md`](code-rot-taxonomy.md) 中各自负责的家族切片；define→命名，clarify→减枝/状态，docs→资料追踪，build→实施期门禁，frontend→前端一致性，fix→数据层/状态根因，test→回归/覆盖缺口门禁，audit→全 36 条复查。

@@ -33,6 +33,7 @@ expert_keywords:
 
 - Use `arc:clarify` only if the failure report lacks enough evidence to begin.
 - Use `arc:build` when the work is planned feature delivery, not repair.
+- Use `arc:prewalk` when multi-model cost routing is available for a non-trivial repair: Guide reproduces + hypothesizes + first fix edit, then Executor continues in the same trajectory. See [`docs/prewalk.md`](../../docs/prewalk.md).
 - Use `arc:docs` only when Lark is active for incident docs, risk Base, `task_base` feature status, follow-up Task, meeting records, or `.lark.json.lifecycle[]`.
 - Use `arc:audit` after repair for broader read-only review.
 
@@ -53,6 +54,7 @@ Begin by stating clearly:
 ```text
 NO FIX WITHOUT ROOT CAUSE OR EXPLICIT UNCERTAINTY.
 NO LARGE REPAIR WITHOUT CURRENT LOCAL TASK DOCS.
+NO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF.
 NO DEBUGGING WITHOUT PERSISTED EVIDENCE WHEN LOGS CAN BE CAPTURED.
 NO SUCCESS CLAIM WITHOUT RERUNNING THE FAILING CHECK OR NAMING THE BLOCKER.
 NO LARK INCIDENT UPDATE OUTSIDE arc:docs.
@@ -66,6 +68,7 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 - MUST state a concrete hypothesis before significant edits.
 - MUST patch the smallest safe surface.
 - MUST apply `arc:sdlc` before code edits for large, multi-step, cross-module, or tracked repair work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, failure evidence, or status change.
+- MUST apply `arc:prewalk` for same-session multi-model cost routing when the runtime supports mid-session model swap; MUST NOT default to plan-document cold handoff after Guide-only recon.
 - MUST apply `arc:arch` before code edits, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
 - MUST rerun the failing path when feasible.
 - MUST route all Lark incident/risk/task updates through `arc:docs`.
@@ -83,9 +86,10 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 4. Form and test a root-cause hypothesis.
 5. For large, multi-step, cross-module, or tracked repair work, apply `arc:sdlc` before code edits and keep local task status current as evidence or project state changes.
 6. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.
-7. Patch the smallest safe surface.
-8. Rerun the failing check plus focused regressions, saving verification output when useful.
-9. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks.
+7. If multi-model routing is available and useful, follow `arc:prewalk` after a grounded hypothesis: first production fix edit on Guide, then Executor inherits trajectory; otherwise oneshot.
+8. Patch the smallest safe surface.
+9. Rerun the failing check plus focused regressions, saving verification output when useful.
+10. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks.
 
 ## Quality Gates
 
@@ -117,6 +121,7 @@ Use project-native tests, logs, build commands, browser tooling, and observabili
 - Fixing by adding concrete infrastructure dependencies into business services.
 - Treating a retry as root cause.
 - Fixing from stale task docs or leaving local repair progress inconsistent with the actual project state.
+- Plan-postcard multi-model handoff that forces the cheap model to re-read everything cold.
 - Swallowing exceptions or masking logs.
 - Declaring success without verification.
 - Updating Lark incident resources directly instead of through `arc:docs`.

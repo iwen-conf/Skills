@@ -8,6 +8,7 @@ Arc skills can still be used as local working methods inside an `aitask` orchest
 - `arc:clarify`: clarify task inputs and acceptance criteria.
 - `arc:docs`: initialize or maintain Lark resources only for existing `.lark.json`, a user-provided Lark project link, or explicit Lark project-space creation/update.
 - `arc:build`: deliver scoped code changes.
+- `arc:prewalk`: same-session multi-model routing (Guide recon + first edit → Executor trajectory).
 - `arc:frontend`: handle frontend lifecycle work.
 - `arc:fix`: repair evidence-backed failures.
 - `arc:audit`: review quality and risk without editing code; use mode `appsec` for vulnerability methodology (assets, data map, finding cards).

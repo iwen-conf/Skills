@@ -32,6 +32,7 @@ def test_validate_registry_accepts_generated_registry() -> None:
         "arc:clarify",
         "arc:docs",
         "arc:build",
+        "arc:prewalk",
         "arc:frontend",
         "arc:fix",
         "arc:audit",
@@ -55,6 +56,7 @@ def test_collect_skill_files_indexes_only_arc_namespaced_skills() -> None:
     assert ROOT / "Arc" / "arc:trace" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:arch" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:sdlc" / "SKILL.md" in files
+    assert ROOT / "Arc" / "arc:prewalk" / "SKILL.md" in files
     assert all(
         path.is_relative_to(ROOT / "Arc")
         for path in files
@@ -83,6 +85,7 @@ def test_update_context_hub_registers_skills_registry_artifact() -> None:
         assert "arc:trace" in artifact["consumers"]
         assert "arc:arch" in artifact["consumers"]
         assert "arc:sdlc" in artifact["consumers"]
+        assert "arc:prewalk" in artifact["consumers"]
     finally:
         import shutil
 

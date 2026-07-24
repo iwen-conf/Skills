@@ -217,6 +217,10 @@ def test_validate_text_accepts_arc_namespaced_constraint_skills() -> None:
             "arc:sdlc",
             "Create task docs, pre-constraints, and progress tables before large coding work.",
         ),
+        (
+            "arc:prewalk",
+            "Guide recon plus first edit, then executor inherits the same trajectory.",
+        ),
     ]
     for name, description in cases:
         text = f"""---
@@ -315,10 +319,29 @@ def test_task_doc_progress_skill_requires_current_state_and_arc_integration() ->
         "If the repository changed since the task was written",
         "updated immediately when project files, scope, assumptions, or status change",
         "current files, scope, outputs, and verification",
+        "## Execution Model: Docs vs Prewalk",
+        "arc:prewalk",
+        "plan-postcard",
     ]
     for phrase in required_phrases:
         assert phrase in text
     assert "docs/01-任务" not in text
+    assert "low-capability downstream coding model without hidden context" not in text
+
+
+def test_prewalk_skill_requires_trajectory_handoff_contract() -> None:
+    text = (ROOT / "Arc" / "arc:prewalk" / "SKILL.md").read_text(encoding="utf-8")
+    required_phrases = [
+        "First-Edit Swap",
+        "NO PLAN-POSTCARD HANDOFF",
+        "first **production code** edit",
+        "prune the hidden planning instruction",
+        "references/prewalk.md",
+        "O(reads)",
+        "Todo Steering",
+    ]
+    for phrase in required_phrases:
+        assert phrase in text
 
 
 def test_all_skill_names_use_arc_namespace() -> None:
@@ -335,14 +358,20 @@ def test_arc_skills_route_large_work_through_task_doc_progress_conventions() -> 
         "Arc/arc:build/SKILL.md": [
             "MUST apply `arc:sdlc` before code edits",
             "NO LARGE PROJECT CODE CHANGE WITHOUT CURRENT LOCAL TASK DOCS",
+            "MUST apply `arc:prewalk`",
+            "NO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF",
         ],
         "Arc/arc:fix/SKILL.md": [
             "MUST apply `arc:sdlc` before code edits",
             "NO LARGE REPAIR WITHOUT CURRENT LOCAL TASK DOCS",
+            "MUST apply `arc:prewalk`",
+            "NO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF",
         ],
         "Arc/arc:frontend/SKILL.md": [
             "MUST apply `arc:sdlc` before code edits",
             "NO LARGE FRONTEND CHANGE WITHOUT CURRENT LOCAL TASK DOCS",
+            "MUST apply `arc:prewalk`",
+            "NO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF",
         ],
         "Arc/arc:security/SKILL.md": [
             "MUST apply `arc:sdlc` before generating multi-finding remediation plans",
