@@ -1,5 +1,6 @@
 ---
 name: arc:define
+version: 0.2.0
 description: Project definition and PRD; hand active Lark project-home/Wiki/.lark.json
   updates to arc:docs.
 enforce_arc_profile: true

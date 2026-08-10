@@ -1,5 +1,6 @@
 ---
 name: arc:trace
+version: 0.2.0
 description: Add low-cost fmt/time or log.Printf timing probes to Go Gin SSR request paths.
 ---
 

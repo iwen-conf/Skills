@@ -1,5 +1,6 @@
 ---
 name: arc:audit
+version: 0.2.0
 description: 'Read-only project/AppSec audit: assets, data map, vuln review; Lark
   risks via arc:docs.'
 enforce_arc_profile: true

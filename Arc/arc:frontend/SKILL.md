@@ -1,5 +1,6 @@
 ---
 name: arc:frontend
+version: 0.2.0
 description: Frontend engineering; hand active Lark page progress, decisions, screenshots,
   task_base, and lifecycle to arc:docs.
 enforce_arc_profile: true

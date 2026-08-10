@@ -1,5 +1,6 @@
 ---
 name: arc:test
+version: 0.2.0
 description: 'Layered testing: unit/integration/contract/E2E, coverage, fuzz/property,
   perf; Go/Rust/Android/HarmonyOS/frontend.'
 enforce_arc_profile: true

@@ -1,5 +1,6 @@
 ---
 name: arc:fix
+version: 0.2.0
 description: Failure repair with root cause; hand active Lark incidents, risks, follow-ups,
   task_base, and lifecycle to arc:docs.
 enforce_arc_profile: true
@@ -59,6 +60,8 @@ NO DEBUGGING WITHOUT PERSISTED EVIDENCE WHEN LOGS CAN BE CAPTURED.
 NO SUCCESS CLAIM WITHOUT RERUNNING THE FAILING CHECK OR NAMING THE BLOCKER.
 NO LARK INCIDENT UPDATE OUTSIDE arc:docs.
 NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
+NO PAPER-OVER OR TEST-ONLY GREEN.
+NO DIAGNOSIS ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 ```
 
 ## Hard Constraints
@@ -67,6 +70,9 @@ NO LARK-ACTIVE FEATURE FIX WITHOUT task_base UPDATE.
 - MUST capture runnable or observable failures into local log/evidence files before large edits. Use paths such as `.arc/artifacts/<task>/logs/` or `tmp/logs/`.
 - MUST state a concrete hypothesis before significant edits.
 - MUST patch the smallest safe surface.
+- MUST apply the gates in [`docs/execution-truth.md`](../../docs/execution-truth.md): name the failing surface, fix cause not symptom, no matrix-only success, no invented domain keys, no temporary var flags or type-assert paper-overs.
+- MUST reproduce or inspect on the same env/branch/deploy surface that produced the signal when dual tracks exist; re-state if production differs from the working tree.
+- MUST re-verify claimed prior fixes on current code and evidence before closing residual risk.
 - MUST apply `arc:sdlc` before code edits for large, multi-step, cross-module, or tracked repair work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, failure evidence, or status change.
 - MUST apply `arc:prewalk` for same-session multi-model cost routing when the runtime supports mid-session model swap; MUST NOT default to plan-document cold handoff after Guide-only recon.
 - MUST apply `arc:arch` before code edits, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
@@ -121,6 +127,9 @@ Use project-native tests, logs, build commands, browser tooling, and observabili
 - Fixing by adding concrete infrastructure dependencies into business services.
 - Treating a retry as root cause.
 - Fixing from stale task docs or leaving local repair progress inconsistent with the actual project state.
+- Diagnosing production on a non-production track/branch, or packaging the wrong dual-track client.
+- Closing bugs because docs/matrix say fixed while the failing path still reproduces.
+- Paper-overs: tests changed only to pass, swallowed errors, temporary package-level flags, hard-coded epochs/IDs.
 - Plan-postcard multi-model handoff that forces the cheap model to re-read everything cold.
 - Swallowing exceptions or masking logs.
 - Declaring success without verification.

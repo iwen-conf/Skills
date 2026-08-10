@@ -246,6 +246,10 @@ def test_project_architecture_skill_locks_dip_architecture_and_ponytail_contract
         "Use this backend architecture as the default for Go backend projects.",
         "Read `references/backend-architecture.md` when deeper file-level or interface-level guidance is needed.",
         "Do not invent extra layers, factories, interfaces, or helpers beyond the boundaries described here.",
+        "## Common Drift Patterns",
+        "Temporary package-level `var` flags",
+        "Invented domain identity / routing keys",
+        "docs/execution-truth.md",
         "Ponytail Conflict Resolution",
         "Required DIP boundary interfaces are not \"unrequested abstraction\"",
         "Do not create service interfaces, factories, config objects, or adapter interfaces solely because a folder exists.",
@@ -298,6 +302,8 @@ def test_arc_code_editing_skills_require_project_architecture_conventions() -> N
         text = (ROOT / relative_path).read_text(encoding="utf-8")
         assert "MUST apply `arc:arch` before" in text
         assert "stop and report if ponytail is required but unavailable or conflicting" in text
+        assert "docs/execution-truth.md" in text
+        assert "NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE" in text or "NO DIAGNOSIS ON THE WRONG ENV/BRANCH/DEPLOY SURFACE" in text
 
 
 def test_task_doc_progress_skill_requires_current_state_and_arc_integration() -> None:
@@ -307,6 +313,11 @@ def test_task_doc_progress_skill_requires_current_state_and_arc_integration() ->
         "latest repository state",
         "## Integration With Arc Skills",
         "## Progress Tracking Hard Gate",
+        "## Completion Definition",
+        "## Explicit Non-Goals",
+        "## Downstream Task Authoring",
+        "docs/execution-truth.md",
+        "code path + project gate + reachable behavior",
         "`进度跟踪表.md` and subtask `状态：...` are the authoritative local execution state",
         "MUST update progress tracking immediately when starting, pausing, blocking, completing, or verifying a subtask",
         "MUST NOT continue implementation while `进度跟踪表.md` or the active subtask status is stale",

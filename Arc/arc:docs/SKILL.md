@@ -1,5 +1,6 @@
 ---
 name: arc:docs
+version: 0.2.0
 description: Feishu/Lark project space and .lark.json owner for explicit setup and
   indexed document lifecycle.
 enforce_arc_profile: true

@@ -1,5 +1,6 @@
 ---
 name: arc:arch
+version: 0.2.0
 description: Apply backend architecture, DIP, usecase result boundaries, zap logging, Go constants, and helper limits.
 ---
 
@@ -26,6 +27,19 @@ For new backend modules and project skeletons, use this architecture by default.
 3. For migrations, change the smallest slice that can preserve behavior while moving toward the default architecture.
 4. Read `references/backend-architecture.md` when deeper file-level or interface-level guidance is needed.
 5. Do not invent extra layers, factories, interfaces, or helpers beyond the boundaries described here.
+6. Apply shared anti-drift gates in [`docs/execution-truth.md`](../../docs/execution-truth.md) when identity keys, env/branch surface, or paper-over risks appear.
+
+## Common Drift Patterns
+
+Reject these patterns even when they "make the build green":
+
+1. **Workflow in `domain/services`**: application orchestration, multi-step use cases, or transport-aware logic belongs in `usecase/<module>`, not as a domain service dump.
+2. **Temporary package-level `var` flags** that bypass product rules (auth, anti-abuse, session requirements) without an explicit task and reviewable config path.
+3. **Type assertions** to grab optional infrastructure writers/capabilities that should be constructor-injected contracts.
+4. **Hard-coded epochs, auth schemes, magic principal IDs, or "default 1"** where typed constants, config, or domain values are required.
+5. **Invented domain identity / routing keys** not present in project contracts or docs (see execution-truth §4). Prefer current semantic names over retired shorthand when the project has converged (for example event prefixes, resource names).
+6. **Compatibility shims and Issue\* naming** kept "for history" when the user forbids compatibility and the product is not shipped.
+7. **Compile-time `var _ Interface = (*T)(nil)` assertions** instead of returning the interface from constructors (already forbidden under Go File Constraints).
 
 ## Go File Constraints
 
@@ -409,6 +423,7 @@ Follow this helper placement:
 ## Review Checklist
 
 - Host repository patterns were inspected before applying the default backend architecture.
+- Common drift patterns above are absent (domain service dumps, temp var flags, type asserts, invented identity keys, forbidden compatibility shims).
 - Business logic is in `usecase/<module>`, not controllers, infrastructure, or `wire`.
 - Business code depends on `domain/repositories` or explicit capability contracts instead of concrete infrastructure.
 - Each interface is justified by a layer boundary, external capability, test seam, or multiple implementations.

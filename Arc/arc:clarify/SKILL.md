@@ -1,5 +1,6 @@
 ---
 name: arc:clarify
+version: 0.2.0
 description: "Requirement clarification; hand active Lark requirements, task_base, and lifecycle updates to arc:docs."
 enforce_arc_profile: true
 expert_keywords:

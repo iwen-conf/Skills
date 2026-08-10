@@ -1,5 +1,6 @@
 ---
 name: arc:idx
+version: 0.2.0
 description: Use the arc-idx CLI for local search, symbols, structural queries, profiles, files, stats, refresh, and diagnostics.
 ---
 

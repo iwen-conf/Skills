@@ -1,5 +1,6 @@
 ---
 name: arc:build
+version: 0.2.0
 description: "Code delivery with verification; hand active Lark task_base, progress, delivery, and lifecycle to arc:docs."
 enforce_arc_profile: true
 expert_keywords:
@@ -55,12 +56,18 @@ NO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF.
 NO DELIVERY WITHOUT VERIFICATION OR AN EXPLICIT BLOCKER.
 NO LARK DELIVERY UPDATE OUTSIDE arc:docs.
 NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
+NO DONE CLAIM FROM DOCS OR MATRIX ALONE.
+NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 ```
 
 ## Hard Constraints
 
 - MUST preserve unrelated user changes.
 - MUST edit the smallest viable file set.
+- MUST apply the gates in [`docs/execution-truth.md`](../../docs/execution-truth.md): runtime/env/branch surface, completion definition (code + gate + reachable behavior), scope lock, and no invented domain identity keys.
+- MUST name the target surface (local / `.26` / `.31` / production / other) before deploy, package, or production diagnosis; MUST follow that surface's branch/track when the repo has dual tracks.
+- MUST honor explicit scope locks (read-only, docs-only, frontend-only, no-restart, explicit non-goals) without opportunistic expansion.
+- MUST NOT mark delivery complete from task checkboxes, ability-matrix cells, or second-hand "already fixed" claims without current verification.
 - MUST apply `arc:sdlc` before code edits for large, multi-step, cross-module, or tracked work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, or status change.
 - MUST apply `arc:prewalk` for same-session multi-model cost routing when the runtime supports mid-session model swap; MUST NOT default to “frontier writes plan only → cheap model cold-starts from the plan file”.
 - MUST apply `arc:arch` before writing project code, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
@@ -78,7 +85,7 @@ NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
 
 ## Workflow
 
-1. Confirm task, scope, and verification target.
+1. Confirm task, scope, verification target, and target env/branch/deploy surface ([`docs/execution-truth.md`](../../docs/execution-truth.md)).
 2. For large, multi-step, cross-module, or tracked work, apply `arc:sdlc` before code edits and keep local task status current as the project changes.
 3. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.
 4. Search for existing patterns, call sites, tests, and contracts.
@@ -86,7 +93,7 @@ NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
 6. Edit only the needed files.
 7. Run targeted verification; broaden only when risk requires it.
 8. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.
-9. Summarize changes, verification, residual risk, and any prewalk swap/escalate notes.
+9. Summarize changes, verification, residual risk, and any prewalk swap/escalate notes. Mark complete only under the completion definition in execution-truth (code + gate + reachable behavior).
 
 ## Quality Gates
 
@@ -120,6 +127,9 @@ Use project-native build, lint, test, typecheck, and migration commands. Use `Ar
 - Treating zero rows, empty search results, empty dashboards, or first-use setup as exceptions, failed requests, toast errors, or full-page error states.
 - Adding speculative APIs or states.
 - Implementing from stale task docs or leaving local progress status inconsistent with the actual project state.
+- Building, diagnosing, or packaging against the wrong env/branch/deploy surface or dual-track sibling.
+- Claiming done from matrix/docs while the path is unimplemented, gated-failing, or unreachable.
+- Expanding past read-only / docs-only / frontend-only / no-restart / explicit non-goals.
 - Using plan-document cold handoff as the multi-model “optimization” (double-pay for reads).
 - Skipping verification silently.
 - Updating Lark delivery resources directly instead of through `arc:docs`.

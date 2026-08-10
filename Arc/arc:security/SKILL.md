@@ -1,5 +1,6 @@
 ---
 name: arc:security
+version: 0.2.0
 description: Local SAST/SCA/secrets/DAST automation with data-value re-ranking and
   Arc handoffs.
 enforce_arc_profile: true

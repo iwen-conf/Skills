@@ -1,5 +1,6 @@
 ---
 name: arc:comment
+version: 0.2.0
 description: Apply Chinese comment conventions; avoid noisy parameter/return boilerplate on obvious usecase contracts.
 ---
 

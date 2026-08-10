@@ -65,7 +65,9 @@ Skills/
 |---|---|
 | [`docs/code-rot-taxonomy.md`](docs/code-rot-taxonomy.md) | AI 代码腐化 36 条权威清单(6 大家族),各 Arc 技能引用各自负责的切片作为可执行门禁 |
 | [`docs/prewalk.md`](docs/prewalk.md) | 同会话多模型成本路由：轨迹交接、first-edit swap、禁止 plan 冷启动 |
+| [`docs/execution-truth.md`](docs/execution-truth.md) | 跨技能反漂移：环境/分支/部署面、完成定义、范围锁定、域主键、假修禁令、弱执行任务写作 |
 | [`docs/orchestration-contract.md`](docs/orchestration-contract.md) | Runtime 调度语义；含 `prewalk_session` |
+| [`CHANGELOG.md`](CHANGELOG.md) | 技能版本与发布说明（当前 0.2.0） |
 
 ## 收敛原则
 
@@ -107,3 +109,24 @@ arc-idx index
 .venv/bin/python -m pytest tests/test_skill_validation.py tests/test_skill_registry.py tests/test_arc_privacy.py -q
 .venv/bin/python scripts/build_skills_index.py
 ```
+
+## 发布 / 同步到 Agent
+
+SSOT 始终是本仓 `Arc/arc:*`。Claude / Grok 等通常通过 `~/.agents/skills`（或指向该目录的符号链接）加载技能。
+
+```bash
+# 改完技能后：校验 → 索引 → 同步到运行时
+.venv/bin/python scripts/validate_skills.py
+.venv/bin/python -m pytest tests/test_skill_validation.py tests/test_skill_registry.py tests/test_arc_privacy.py -q
+.venv/bin/python scripts/build_skills_index.py
+.venv/bin/python scripts/sync_skills.py              # → ~/.agents/skills（colon + dash 双写）
+.venv/bin/python scripts/sync_skills.py --dry-run    # 仅预览
+.venv/bin/python scripts/sync_skills.py --only arc:build --only arc:fix
+```
+
+规则：
+
+1. **先改本仓，再 sync**；禁止只改 `~/.agents/skills` 而不回写 `Arc/`。
+2. `sync_skills.py` 会同时写入 `arc:name` 与 `arc-name`（dash 别名，frontmatter `name` 与正文引用会改写）。
+3. 每个 `SKILL.md` 带 `version`（semver）；破坏性约定变更时升 minor/major 并更新 `CHANGELOG.md`。
+4. 若改动了 `tools/arc-idx`，另执行 `go build -o ~/.local/bin/arc-idx ./tools/arc-idx`。

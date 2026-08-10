@@ -1,5 +1,6 @@
 ---
 name: arc:prewalk
+version: 0.2.0
 description: "Same-session multi-model routing: frontier recon+todo+first edit, then executor inherits trajectory."
 enforce_arc_profile: true
 expert_keywords:

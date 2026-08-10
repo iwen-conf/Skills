@@ -1,5 +1,6 @@
 ---
 name: arc:sdlc
+version: 0.2.0
 description: "Current-state task docs; security/audit handoff to detailed subtasks with roles and caliber."
 ---
 
@@ -72,6 +73,34 @@ Every concrete subtask must be specific to the current project so progress and v
 7. Include "do not" instructions for tempting but incorrect shortcuts, broad fallbacks, paper-over fixes, or silent error handling.
 
 These details support **resume, review, and acceptance**—not a claim that a cold low-context model can reconstruct full understanding from the postcard alone.
+
+## Completion Definition
+
+Use [`docs/execution-truth.md`](../../docs/execution-truth.md) as the shared rule. For task docs specifically:
+
+1. Mark `[x]` only when **code path + project gate + reachable behavior** all match the claim on the intended env/branch surface.
+2. MUST NOT promote to `[x]` from ability-matrix cells, README claims, or "already fixed" chat without re-check on current repository state.
+3. Prefer `[?]` when implementation exists but verification is pending; prefer `[-]` for explicit non-goals; prefer `[!]` when blocked on environment or decisions.
+4. When re-auditing status, re-read code and gates first; treat stale task docs as suspects, not authority over the tree.
+
+## Explicit Non-Goals
+
+`00-前置约束.md` and the task entry MUST keep a visible **不做范围** list for large or tracked work.
+
+1. Copy user-stated non-goals (Hold, P4, "明确不做", deferred migration stages, payment freeze, read-only, docs-only) into that list without reinterpretation.
+2. Subtasks MUST NOT implement items listed as non-goals "while we are here".
+3. If new work is discovered that was not in scope, add a subtask or mark `[!]` / open a new task—do not silently expand the active row.
+4. Environment/branch/deploy surface for verification and packaging belongs in 前置约束 when dual tracks or multiple hosts exist.
+
+## Downstream Task Authoring
+
+When the user will hand subtasks to a cheaper or lower-context executor:
+
+1. Bound each subtask: in-scope files/symbols, out-of-scope, ordered steps, acceptance checks, and forbidden shortcuts (see execution-truth §6).
+2. One subtask = one verifiable outcome; ban vague titles such as "修复安全问题" or "补测试".
+3. Name the env/branch surface and dual-track choice when relevant.
+4. Include "do not" for invented domain identity keys, wrong deploy surface, compatibility shims the project forbids, and paper-over fixes.
+5. Author as role that can be resumed from disk; still require prewalk or oneshot Guide for live multi-model runs—docs are not a plan-postcard substitute.
 
 ## Progress Tracking Hard Gate
 
@@ -288,16 +317,24 @@ Template:
 ## 不做范围
 
 1. ...
+2. （用户明确 Hold / P4 / 只读 / 禁止项必须原样写入）
 
 ## 边界约束
 
 1. ...
+2. 目标环境/分支/部署面：local / `.26` / production / 双轨选择（如有）
+
+## 完成定义
+
+1. `[x]` 需要：代码路径 + 项目门禁 + 目标面上的可达行为（见 `docs/execution-truth.md`）。
+2. 禁止仅凭能力矩阵、文档勾选或口头「已修好」结案。
 
 ## 执行模型假设
 
 1. 任务文档是跨会话与进度权威；同会话多模型默认 prewalk（trajectory + todo + first edit），禁止「只交 plan 文件给冷启动便宜模型」作为默认省钱法。
 2. 不允许用模糊描述替代具体文件、调用点、数据契约、边界条件、错误处理和验证要求。
 3. 新会话从文档恢复时：短 Guide 再 grounding + first edit，或 oneshot Guide；不要默认 cold cheap 只读 plan。
+4. 若下游为弱执行模型：子任务必须含范围、顺序、验收、反例与禁止捷径。
 
 ## 已知影响范围
 
@@ -506,11 +543,12 @@ Before considering task-document setup complete, verify:
 1. Requirement input, if any, is under the requirement category or linked from there.
 2. The task entry is a numbered directory `README.md` unless local history requires a loose entry.
 3. Existing category indexes are updated.
-4. `00-前置约束.md` exists and states boundaries before coding.
+4. `00-前置约束.md` exists and states boundaries before coding, including 不做范围 and completion definition.
 5. The docs record the latest repository state used to generate or update the plan.
 6. The central progress table contains every subtask.
 7. Every subtask file has `状态：...`.
 8. Every concrete subtask names current files, scope, outputs, and verification.
-9. The progress table and subtask statuses are consistent.
+9. The progress table and subtask statuses are consistent; `[x]` rows meet the completion definition (code + gate + reachable behavior).
 10. There are no stale names, stale paths, obsolete assumptions, duplicate progress tables, or duplicate top-level business-domain task entries.
 11. For security/audit-sourced work: 项目定位, 项目口径, 功能角色, Finding 索引, and per-finding detailed subtasks exist per [`references/security-audit-task-pipeline.md`](references/security-audit-task-pipeline.md).
+12. Downstream/cheap-executor tasks include ordered steps, acceptance checks, and forbidden shortcuts when the user will hand them off.
