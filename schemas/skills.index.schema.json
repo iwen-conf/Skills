@@ -69,17 +69,31 @@
         "content": {"type": "string"}
       }
     },
+    "intent_router_row": {
+      "type": "object",
+      "minProperties": 2,
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
     "skill_entry": {
       "type": "object",
-      "required": ["name", "description", "source_path", "sections"],
+      "required": ["name", "description", "version", "source_path"],
       "additionalProperties": false,
       "properties": {
         "name": {"type": "string"},
         "description": {"type": "string"},
+        "version": {"type": "string"},
         "source_path": {"type": "string"},
-        "sections": {
-          "type": "array",
-          "items": {"$ref": "#/$defs/section"}
+        "line_count": {"type": "integer", "minimum": 1},
+        "intent_router": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "array",
+              "items": {"$ref": "#/$defs/intent_router_row"}
+            }
+          ]
         },
         "quick_contract": {
           "oneOf": [

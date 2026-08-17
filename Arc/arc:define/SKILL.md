@@ -1,15 +1,11 @@
 ---
 name: arc:define
-version: 0.2.0
-description: Project definition and PRD; hand active Lark project-home/Wiki/.lark.json
-  updates to arc:docs.
-enforce_arc_profile: true
-expert_keywords:
-- IEEE 29148
-- Domain-Driven Design
-- Positioning Statement
+version: 1.0.0
+description: >
+  Turns a project idea into a PRD or Blueprint with positioning, users, scope, and
+  acceptance. Use when the user asks to 写PRD, 立项, 产品定义, blueprint, or project definition.
+  Not for task-level clarification or code delivery.
 ---
-
 # arc:define
 
 ## Overview
@@ -24,26 +20,24 @@ expert_keywords:
 - **Quality Gate**: Every section is concrete, named, and verifiable; unknowns stay explicit.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
-## Routing Matrix
+## Intent Router
 
-- Use `arc:docs` only when Lark is active or the user confirms Lark for PRD, project home, Wiki node, or `.lark.json` entry.
-- Use `arc:clarify` for task-level acceptance criteria after the project is defined.
-- Use `arc:sdlc` before implementation when the defined work becomes a large, multi-step, cross-module, or tracked task set.
-- Use `arc:frontend` for Web, mobile, desktop, mini-program stack, UI architecture, theme, routing, state, and form baseline decisions.
-- Use `arc:build` only after scope is implementation-ready.
-- Use `arc:audit` for read-only review of an existing definition.
+| When | Load |
+|---|---|
+| Idea needs PRD/Blueprint | [`references/template.md`](references/template.md) |
+| Task-level acceptance after definition | `arc:clarify` |
+| Large implementation follow-up | `arc:sdlc` |
+| Frontend surface decisions | `arc:frontend` |
+| Lark PRD / project home | `arc:docs` |
+| Implementation-ready scope | `arc:build` |
 
 ## Context Search
 
 - For brownfield work, MUST search existing terms first with `arc-idx search`, then `arc-idx symbol` if entity names matter.
 - If `.lark.json` exists, MUST read it before drafting so PRD, owners, requirements, and Wiki links remain consistent.
 
-## Announce
 
-Begin by stating clearly:
-"I am using `arc:define` to produce a structured project definition."
-
-## The Iron Law
+## Red Lines
 
 ```text
 NO GENERIC PRD.
@@ -82,11 +76,6 @@ NO PASSIVE LARK PRD OR .lark.json CREATION.
 - Large implementation follow-up is routed to `arc:sdlc`, not hidden inside generic PRD task bullets.
 - `.lark.json.resources.prd` is updated through `arc:docs` only when Lark is active.
 
-## Expert Standards
-
-- Requirements quality follows `IEEE 29148`.
-- Naming uses `Domain-Driven Design` ubiquitous language.
-- Differentiation follows a `Positioning Statement`: for whom, what need, what product, why different.
 
 ## Scripts & Commands
 

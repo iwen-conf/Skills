@@ -64,10 +64,11 @@ Skills/
 | 文档 | 用途 |
 |---|---|
 | [`docs/code-rot-taxonomy.md`](docs/code-rot-taxonomy.md) | AI 代码腐化 36 条权威清单(6 大家族),各 Arc 技能引用各自负责的切片作为可执行门禁 |
+| [`docs/skill-engineering.md`](docs/skill-engineering.md) | Skill 工程契约：路由器、渐进披露、触发语料、500 行门禁 |
 | [`docs/prewalk.md`](docs/prewalk.md) | 同会话多模型成本路由：轨迹交接、first-edit swap、禁止 plan 冷启动 |
 | [`docs/execution-truth.md`](docs/execution-truth.md) | 跨技能反漂移：环境/分支/部署面、完成定义、范围锁定、域主键、假修禁令、弱执行任务写作 |
 | [`docs/orchestration-contract.md`](docs/orchestration-contract.md) | Runtime 调度语义；含 `prewalk_session` |
-| [`CHANGELOG.md`](CHANGELOG.md) | 技能版本与发布说明（当前 0.2.0） |
+| [`CHANGELOG.md`](CHANGELOG.md) | 技能版本与发布说明（当前 1.0.0） |
 
 ## 收敛原则
 
@@ -98,7 +99,7 @@ Skills/
 - 大任务、跨多轮任务、迁移、重构、修复战役和需要持续跟踪的工作，必须先遵守 `arc:sdlc`：按最新项目状态解析或创建 `docs/DD-任务` 这类数字序列化任务分类，再建立任务入口、`00-前置约束.md`、`tasks/` 子任务文件和 `进度跟踪表.md`；子任务须写清当前文件/调用点/输出/执行顺序/边界/反例/验证，作为跨会话恢复与验收权威。开始、暂停、阻塞、完成、验证或下一步变化时，必须立即更新 `进度跟踪表.md` 和子任务状态，未同步前不得继续实现或交付。
 - 同会话多模型成本路由默认遵守 `arc:prewalk` / [`docs/prewalk.md`](docs/prewalk.md)：账单近似 `O(reads)`；Guide（frontier）探索并初始化有界 todo、落地第一笔**生产代码** edit 后，再在同一 trajectory 上切到 Executor，并 prune planning 指令。禁止「frontier 只写 plan 文档 → 新开 cheap 会话冷读 plan」作为默认省钱法；运行时不能 swap 时 oneshot 单一模型，不得伪造 cold plan handoff。
 - 需要测试或质量门禁的工作默认统一走 `arc:test`：按风险分层启用单元/集成/契约/E2E、覆盖率与回归门禁、模糊/属性、性能（基准/负载），用平台原生工具（Android=Maestro、Go/Rust 各自内置测试库、HarmonyOS=arkxtest、前端=Vitest/Playwright，且交互闭环/可见性/可点击/布局可读性经 `arc:frontend`）；性能与功能分开跑、分开判失败，覆盖率是缺口信号不是目标，禁止为凑类型全量铺开；安全/兼容/混沌/可观测性等非功能测试与 `arc:security`/`arc:audit` 协作、不重复建设；失败用例交 `arc:fix`，大型测试建设先走 `arc:sdlc`。
-- Arc Skill 默认是纯 `SKILL.md` 契约；`arc:security` 这种需要可重复自动化的能力可以携带本地脚本。
+- Arc Skill 默认是路由器：`SKILL.md` 只保留意图路由表和红线，细节按需加载 `modules/` 与 `references/`。确定性检查走 `scripts/validate_skills.py` 与触发语料 `schemas/trigger_corpus.yaml`。`arc:security` 这种需要可重复自动化的能力可以携带本地脚本。
 - 图表、浏览器、Lazycat、纯设计等垂直能力由对应专门 Skill 负责，不再在 Arc 内重复建设。
 
 ## 校验
@@ -128,5 +129,5 @@ SSOT 始终是本仓 `Arc/arc:*`。Claude / Grok 等通常通过 `~/.agents/skil
 
 1. **先改本仓，再 sync**；禁止只改 `~/.agents/skills` 而不回写 `Arc/`。
 2. `sync_skills.py` 会同时写入 `arc:name` 与 `arc-name`（dash 别名，frontmatter `name` 与正文引用会改写）。
-3. 每个 `SKILL.md` 带 `version`（semver）；破坏性约定变更时升 minor/major 并更新 `CHANGELOG.md`。
+3. 每个 `SKILL.md` 带 `version`（semver）；破坏性约定变更时升 minor/major 并更新 `CHANGELOG.md`。当前族版本 **1.0.0**。
 4. 若改动了 `tools/arc-idx`，另执行 `go build -o ~/.local/bin/arc-idx ./tools/arc-idx`。

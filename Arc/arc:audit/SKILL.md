@@ -1,16 +1,11 @@
 ---
 name: arc:audit
-version: 0.2.0
-description: 'Read-only project/AppSec audit: assets, data map, vuln review; Lark
-  risks via arc:docs.'
-enforce_arc_profile: true
-expert_keywords:
-- Business Maturity
-- Dependency Health
-- Expert Review Card
-- 9 Tab
+version: 1.0.0
+description: >
+  Performs a read-only project health or AppSec audit (assets, data map, finding cards).
+  Use when the user says 体检, 审计, AppSec, 只读审查, scorecard, or project audit. Not for
+  installing scanners or editing production code.
 ---
-
 # arc:audit
 
 ## Overview
@@ -36,14 +31,16 @@ AppSec methodology lives in [`references/appsec-playbook.md`](references/appsec-
 - **Quality Gate**: Every finding has concrete evidence or is explicitly marked as an assumption. AppSec findings include permission class and data yield.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
-## Routing Matrix
+## Intent Router
 
-- Use `arc:clarify` if audit scope, environment authorization, or active-test boundaries are vague.
-- Use `arc:security` when the user wants local scanner automation, dependency/secrets CLI reports, API fuzz, or authorized DAST—after recon when possible.
-- Use `arc:fix` if a concrete failure or confirmed vuln must be repaired.
-- Use `arc:sdlc` before remediation when findings become large, multi-step, cross-module, or tracked implementation work; as role `R-task` after emitting a Handoff Package (项目定位 / 项目口径 / 功能角色 / findings)—never dump a vague “修安全” task list.
-- Use `arc:build` / `arc:fix` only after task docs exist for tracked remediation, or for a single small confirmed fix the user wants implemented immediately.
-- Use `arc:docs` only when Lark is active for audit reports, risk Base rows, remediation tasks, approval gates, or `.lark.json.lifecycle[]`.
+| When | Load |
+|---|---|
+| AppSec assets/data map/findings | [`references/appsec-playbook.md`](references/appsec-playbook.md) |
+| Local scanners | `arc:security` |
+| Multi-finding task split | `arc:sdlc` |
+| Repair after handoff | `arc:fix` / `arc:build` |
+| Lark-active risks | `arc:docs` |
+| Need code edits now | stop; this skill is read-only |
 
 ## Context Search
 
@@ -52,15 +49,8 @@ AppSec methodology lives in [`references/appsec-playbook.md`](references/appsec-
 - MUST prefer inventory collectors (routers, OpenAPI, migrations, configs) over free-form AI “scan everything”.
 - If `.lark.json` exists, MUST read it before reporting prior risks, tasks, approvals, and audit records.
 
-## Announce
 
-Begin by stating clearly:
-"I am using `arc:audit` to perform a read-only, evidence-backed project review."
-
-When `mode=appsec` or the user asked for vulnerability/security audit, also state:
-"AppSec mode follows the asset → data-map → soft-target playbook; scanners stay in `arc:security` unless already requested."
-
-## The Iron Law
+## Red Lines
 
 ```text
 NO FINDING WITHOUT EVIDENCE.
@@ -134,15 +124,6 @@ Do not spend the whole engagement on low-yield host/RCE fantasies while bulk dat
 - Manual AuthZ / payment / business-logic gaps are listed even when no bug is proven.
 - Scanner-only statements are deferred to `arc:security` or labeled non-coverage.
 
-## Expert Standards
-
-- Business impact is described with `Business Maturity` when relevant.
-- Dependency risk uses `Dependency Health`.
-- Major findings can be summarized as an `Expert Review Card`.
-- If scoring is useful, use a compact `9 Tab` summary only when evidence supports it.
-- AppSec prioritization uses **data-value thinking**: bulk multi-field PII/credentials/payment integrity outranks isolated low-priv footholds with no data path.
-- Use OWASP ASVS-style coverage questions for AuthN, AuthZ, session, files, and business logic without pretending scanners answered them.
-- Treat half-implemented auth features (e.g. mounted reset-password without business logic) as soft targets.
 
 ## Scripts & Commands
 

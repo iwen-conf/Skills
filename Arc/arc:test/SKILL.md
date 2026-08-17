@@ -1,20 +1,12 @@
 ---
 name: arc:test
-version: 0.2.0
-description: 'Layered testing: unit/integration/contract/E2E, coverage, fuzz/property,
-  perf; Go/Rust/Android/HarmonyOS/frontend.'
-enforce_arc_profile: true
-expert_keywords:
-- Test Pyramid
-- Branch Coverage
-- Fuzzing
-- Property-Based
-- Benchmark
-- Flaky
-- Regression
-- SLA
+version: 1.0.0
+description: >
+  Designs and runs layered tests (unit, integration, contract, E2E, coverage, fuzz,
+  property, performance) with platform-native tools. Use when the user says 写测试, 覆盖率, 回归,
+  E2E, fuzz, benchmark, Maestro, or quality gate. Not for repairing production code or
+  security scanning.
 ---
-
 # arc:test
 
 ## Overview
@@ -36,16 +28,17 @@ Read:
 - **Quality Gate**: Every "it works" claim is backed by an executed test with evidence; layers are enabled by risk, not to tick boxes; performance is judged apart from functional; coverage is treated as a gap signal, not a target.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
-## Routing Matrix
+## Intent Router
 
-- Use `arc:clarify` first if test scope, target environment, acceptance criteria, or authorization for load/E2E targets are unclear.
-- Use `arc:fix` when a test reproduces a concrete failure that must be repaired; `arc:test` writes the failing/regression test, `arc:fix` roots-causes and fixes it.
-- Use `arc:build` for the feature/refactor edit itself; `arc:build` still runs its own targeted verification, while `arc:test` owns suite design, coverage/CI gates, and non-trivial test build-out.
-- Use `arc:frontend` for frontend interaction/visual test surfaces so page interaction, visibility, clickability, and layout-readability checks stay aligned with the default frontend stack and its runnable-UI evidence rules.
-- Use `arc:security` for local SAST/SCA/secrets/DAST/API-fuzz automation, and `arc:audit` for read-only security/non-functional review; `arc:test` does not re-implement scanner automation.
-- Use `perfetto-trace-analysis` / `perfetto-sql` for Android and system-trace flame charts, and `web-perf` for frontend performance profiling; `arc:test` orchestrates and gates performance, it does not re-implement deep profilers.
-- Use `arc:sdlc` before large, multi-module, or tracked test build-out (new test architecture, coverage-gate rollout, cross-platform suite) so subtasks stay detailed and progress stays current.
-- Use `arc:docs` only when Lark is active for test reports, coverage trends, regression status, `task_base`, or `.lark.json.lifecycle[]`.
+| When | Load |
+|---|---|
+| Which layers to enable | [`references/test-scope-matrix.md`](references/test-scope-matrix.md) |
+| Platform commands | [`references/test-stacks.md`](references/test-stacks.md) |
+| Failing test needs repair | `arc:fix` |
+| Feature edit itself | `arc:build` |
+| Security scanners | `arc:security` |
+| Large test build-out | `arc:sdlc` |
+| Frontend interaction checks | `arc:frontend` |
 
 ## Context Search
 
@@ -55,12 +48,8 @@ Read:
 - MUST use `arc-idx ast` for the code shapes that most need tests: parsers, decoders, state machines, business rules, error branches, and boundary handling.
 - If `.lark.json` exists, MUST read it before test-report handoff and route durable records through `arc:docs`.
 
-## Announce
 
-Begin by stating clearly:
-"I am using `arc:test` to build and run tests by layer and by risk, with platform-native tooling and separate functional and performance verdicts."
-
-## The Iron Law
+## Red Lines
 
 ```text
 NO FUNCTIONAL "IT WORKS" CLAIM WITHOUT EXECUTED TESTS AND EVIDENCE.
@@ -163,16 +152,6 @@ Profiling *locates* CPU/allocation/lock hotspots and renders them as a **flame g
 - Security/non-functional coverage is delegated to `arc:security`/`arc:audit` and labeled, not duplicated here.
 - Lark test status and `task_base` are recorded via `.lark.json` only when Lark is active.
 
-## Expert Standards
-
-- Shape the suite as a `Test Pyramid`: many fast unit tests, fewer integration/contract tests, and a thin, curated E2E tier for critical journeys.
-- Report `Branch Coverage` alongside line coverage; branch/condition coverage is closer to real risk, and key modules may warrant a higher bar — but the number is a signal, never the objective.
-- Use `Fuzzing` (Go `testing.F`, Rust `cargo-fuzz`/libFuzzer) for malformed input, parsers, protocols, and deserialization, and pair it with `Property-Based` tests for invariants such as encode/decode round-trip, ordering stability, and idempotence.
-- Keep performance a separate discipline: run `Benchmark`/micro-benchmarks for hotspot functions and allocation regressions, gate against a baseline, and reserve load/stress/capacity work for real `SLA` or hotspot cases — never mixed into the functional pass.
-- Detect before optimizing: capture a CPU or allocation profile and read it as a flame graph to find the true hotspot, fix it, then re-run the `Benchmark` to confirm — profiling localizes, benchmarking quantifies, and neither is a guess. Use `go tool pprof`/`go tool trace`, `cargo flamegraph`/`samply`, `perf` + `inferno`, and route Android/system traces to `perfetto-trace-analysis` and frontend to `web-perf`.
-- Treat the `Regression` suite as the memory of past bugs: it is the CI default, smoke is its subset, and high coverage never replaces historical cases.
-- Manage `Flaky` tests explicitly — quarantine, deterministic seeds, controlled clocks/IO, and root-cause fixes — rather than retrying into green.
-- Reserve mutation testing for mature suites (it measures whether the tests themselves are good, at high cost) and hand security, chaos, compatibility, and observability verification to `arc:security`/`arc:audit`.
 
 ## Scripts & Commands
 

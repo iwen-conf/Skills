@@ -2,13 +2,32 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from ..domain.skill import (
-    is_supported_skill, REQUIRED_HEADINGS, ARC_REQUIRED_HEADINGS,
-    WHEN_TO_USE_MARKER_VARIANTS, ARC_ROUTING_MATRIX_LINK, BANNED_TOKENS
+    BANNED_FRONTMATTER_KEYS,
+    BANNED_TOKENS,
+    REQUIRED_HEADINGS,
+    is_supported_skill,
 )
-from ..infrastructure.markdown import parse_frontmatter, build_skill_document, find_section, extract_section
+from ..domain.engineering import (
+    iter_skill_markdown,
+    validate_description,
+    validate_intent_router,
+    validate_line_budget,
+    validate_red_lines,
+    validate_relative_links,
+    validate_trigger_terms,
+)
+from ..infrastructure.markdown import parse_frontmatter, build_skill_document, find_section
 from ..infrastructure.schema import validate_skill_schema
 
-def validate_text(text: str, path_label: str, root: Path | None = None) -> tuple[list[str], list[str]]:
+SEMVER_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+
+
+def validate_text(
+    text: str,
+    path_label: str,
+    root: Path | None = None,
+    skill_path: Path | None = None,
+) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
     fm, err = parse_frontmatter(text)
@@ -31,60 +50,46 @@ def validate_text(text: str, path_label: str, root: Path | None = None) -> tuple
         errors.append(f"{path_label}: missing frontmatter name")
     if "description" not in fm or not fm["description"]:
         errors.append(f"{path_label}: missing frontmatter description")
-    if "name" in fm and not re.fullmatch(r"[a-z0-9:-]+", fm["name"]):
+    if "version" not in fm or not fm["version"]:
+        errors.append(f"{path_label}: missing frontmatter version")
+    elif not SEMVER_RE.fullmatch(str(fm["version"])):
+        errors.append(f"{path_label}: version must be semver X.Y.Z")
+    if "name" in fm and not re.fullmatch(r"[a-z0-9:-]+", str(fm["name"])):
         errors.append(f"{path_label}: name contains unsupported characters")
-    if "name" in fm and fm["name"] and not is_supported_skill(fm["name"]):
+    if "name" in fm and fm["name"] and not is_supported_skill(str(fm["name"])):
         errors.append(f"{path_label}: skill name must use arc:xxx namespace")
-    description = fm.get("description", "")
-    if description and len(description) > 120:
-        errors.append(f"{path_label}: description must be short, at most 120 characters")
 
-    skill_name = fm.get("name", "")
-    enforce_arc_profile = fm.get("enforce_arc_profile", False)
+    banned_keys = sorted(key for key in fm.keys() if key in BANNED_FRONTMATTER_KEYS)
+    if banned_keys:
+        errors.append(
+            f"{path_label}: frontmatter contains retired keys: {', '.join(banned_keys)}"
+        )
 
-    if enforce_arc_profile:
-        allowed_keys = {"name", "description", "version", "allowed_tools", "hooks", "enforce_arc_profile", "expert_keywords"}
-        extra_keys = sorted(key for key in fm.keys() if key not in allowed_keys)
-        if extra_keys:
-            errors.append(
-                f"{path_label}: arc frontmatter contains unsupported keys: {', '.join(extra_keys)}"
-            )
+    description = str(fm.get("description", "") or "")
+    errors.extend(validate_description(description, path_label))
+
+    skill_name = str(fm.get("name", "") or "")
+    if root is not None and skill_path is not None and skill_name:
+        errors.extend(validate_trigger_terms(description, skill_name, path_label, root))
 
     for heading in REQUIRED_HEADINGS:
         if heading not in text:
-            message = f"{path_label}: missing heading {heading}"
-            if enforce_arc_profile:
-                errors.append(message)
-            else:
-                warnings.append(message)
+            errors.append(f"{path_label}: missing heading {heading}")
 
-    if enforce_arc_profile:
-        for heading in ARC_REQUIRED_HEADINGS:
-            if heading not in text:
-                errors.append(f"{path_label}: missing heading {heading}")
-        for marker_variants in WHEN_TO_USE_MARKER_VARIANTS:
-            if not any(variant in text for variant in marker_variants):
-                errors.append(f"{path_label}: arc when-to-use missing marker {marker_variants[0]} (or English equivalent)")
-        if ARC_ROUTING_MATRIX_LINK not in text:
-            errors.append(f"{path_label}: missing routing matrix link {ARC_ROUTING_MATRIX_LINK}")
-        expert_section = extract_section(text, "## Expert Standards")
-        if expert_section is None:
-            errors.append(f"{path_label}: missing expert standards section body")
-        else:
-            required_keywords = fm.get("expert_keywords", [])
-            missing_keywords: list[str] = []
-            expert_lower = expert_section.lower()
-            for kw in required_keywords:
-                if isinstance(kw, list):
-                    if not any(variant.lower() in expert_lower for variant in kw):
-                        missing_keywords.append(kw[0])
-                else:
-                    if kw.lower() not in expert_lower:
-                        missing_keywords.append(kw)
-            if missing_keywords:
-                errors.append(
-                    f"{path_label}: expert standards missing skill-specific keywords: {', '.join(missing_keywords)}"
-                )
+    errors.extend(validate_intent_router(document, path_label))
+    errors.extend(validate_red_lines(document, path_label))
+    errors.extend(validate_line_budget(text, path_label, is_skill_md=True))
+
+    if skill_path is not None:
+        skill_dir = skill_path.parent
+        errors.extend(validate_relative_links(text, path_label, skill_dir))
+        for markdown_path in iter_skill_markdown(skill_dir):
+            if markdown_path == skill_path:
+                continue
+            module_text = markdown_path.read_text(encoding="utf-8")
+            rel = str(markdown_path)
+            errors.extend(validate_line_budget(module_text, rel, is_skill_md=False))
+            errors.extend(validate_relative_links(module_text, rel, markdown_path.parent))
 
     for token in BANNED_TOKENS:
         if token in text:

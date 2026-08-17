@@ -1,0 +1,116 @@
+cases:
+  - id: objectlink-vs-state
+    prompt: "解释 ArkUI 中 ObjectLink 是什么，什么时候用它代替 State？"
+    must_include:
+      - "Observed"
+      - "ObjectLink"
+      - "父子组件"
+      - "对象属性"
+    must_not_include:
+      - "useState"
+      - "React Hook"
+
+  - id: api24-production-default
+    prompt: "帮我写一个生产可用的鸿蒙相机功能方案。"
+    must_include:
+      - "API 24"
+      - "生产"
+      - "module.json5"
+    must_not_include:
+      - "默认使用 API 26"
+      - "HarmonyOS 7 Beta 默认"
+
+  - id: api26-preview-boundary
+    prompt: "HarmonyOS 7 / API 26 适配要注意什么？"
+    must_include:
+      - "预览"
+      - "Beta"
+      - "API 26"
+      - "适配"
+    must_not_include:
+      - "API 24 默认使用 API 26"
+
+  - id: stage-model-new-app
+    prompt: "新建鸿蒙应用应该用 FA 模型还是 Stage 模型？"
+    must_include:
+      - "Stage"
+      - "FA"
+      - "legacy"
+    must_not_include:
+      - "新项目优先 FA"
+
+  - id: permission-camera
+    prompt: "ArkTS 里申请相机权限怎么写？"
+    must_include:
+      - "module.json5"
+      - "ohos.permission.CAMERA"
+      - "requestPermissionsFromUser"
+    must_not_include:
+      - "AndroidManifest.xml"
+
+  - id: lazyforeach-performance
+    prompt: "鸿蒙大列表卡顿怎么优化？"
+    must_include:
+      - "LazyForEach"
+      - "稳定 key"
+      - "渲染"
+    must_not_include:
+      - "RecyclerView"
+
+  - id: arkts-strict-review
+    prompt: "帮我 review 一段 ArkTS 代码，看看有没有类型问题。"
+    must_include:
+      - "strict"
+      - "类型"
+      - "ArkTS"
+    must_not_include:
+      - "any 随便用"
+
+  - id: build-error-routing
+    prompt: "DevEco Studio 编译报错，我应该先提供哪些信息？"
+    must_include:
+      - "DevEco Studio"
+      - "compileSdkVersion"
+      - "module.json5"
+      - "oh-package.json5"
+    must_not_include:
+      - "只重启电脑"
+
+  - id: native-api-compatibility
+    prompt: "compatibleSdkVersion 是 API 20，但 Native 代码调用了更高版本 C API，怎样避免低版本设备崩溃？"
+    must_include:
+      - "APIAVAILABLE"
+      - "弱引用"
+      - "依赖库"
+      - "低版本设备"
+    must_not_include:
+      - "只判断 SystemCapability"
+
+  - id: linux-ci-pipeline
+    prompt: "给我一套 HarmonyOS Linux CI 构建、签名和真机安装的关键步骤。"
+    must_include:
+      - "JDK 17"
+      - "ohpm install"
+      - "--no-daemon"
+      - "caseSensitiveCheck"
+      - "hdc"
+    must_not_include:
+      - "提交明文签名密码"
+
+  - id: arkts-leak-detection
+    prompt: "ArkTS 页面对象疑似泄漏，应该怎么检测？可以在线上长期打开吗？"
+    must_include:
+      - "jsLeakWatcher"
+      - "开发态"
+      - "灰度"
+    must_not_include:
+      - "生产环境长期常驻"
+
+  - id: container-reader-layout
+    prompt: "组件需要根据自身容器宽度而不是窗口宽度切换布局，应该用什么？"
+    must_include:
+      - "ContainerReader"
+      - "容器"
+      - "断点"
+    must_not_include:
+      - "只能使用窗口断点"

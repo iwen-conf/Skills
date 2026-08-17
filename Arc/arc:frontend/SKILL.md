@@ -1,16 +1,11 @@
 ---
 name: arc:frontend
-version: 0.2.0
-description: Frontend engineering; hand active Lark page progress, decisions, screenshots,
-  task_base, and lifecycle to arc:docs.
-enforce_arc_profile: true
-expert_keywords:
-- Design Token
-- Accessibility
-- Responsive
-- RBAC
+version: 1.0.0
+description: >
+  Delivers frontend and UI work on the default Web, mobile, desktop, and mini-program
+  stacks. Use when the user says 前端, UI, 页面, React, 小程序, shadcn, Tailwind, or frontend
+  baseline. Not for backend-only API work.
 ---
-
 # arc:frontend
 
 ## Overview
@@ -25,15 +20,17 @@ expert_keywords:
 - **Quality Gate**: UI follows the default stack unless explicitly exempted, existing patterns, tokenized styling, accessibility basics, responsive constraints, and verified checks.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
-## Routing Matrix
+## Intent Router
 
-- Use `arc:define` if product concept or information architecture is missing.
-- Use `arc:clarify` if page scope, target users, or acceptance criteria are unclear.
-- Use `arc:build` for the implementation edit path.
-- Use `arc:prewalk` when multi-model cost routing is available for non-trivial UI implementation: Guide orients + first production edit, Executor inherits trajectory. See [`docs/prewalk.md`](../../docs/prewalk.md).
-- Use `arc:docs` only when Lark is active for frontend milestones, design decisions, page progress, `task_base` feature status, whiteboards, screenshots, or `.lark.json.lifecycle[]`.
-- Use `arc:audit` for read-only UI architecture or accessibility review.
-- Domain skills such as Lazycat, WeChat Mini Program, mobile apps, desktop apps, payments, dashboards, and internal tools MUST link to this skill for frontend platform decisions instead of redefining their own default stack.
+| When | Load |
+|---|---|
+| Stack, tokens, scaffold | [`references/scaffold-commands.md`](references/scaffold-commands.md) / [`references/color-tokens.md`](references/color-tokens.md) |
+| UI implementation | this SKILL.md Workflow |
+| Unclear scope | `arc:clarify` |
+| Large tracked frontend work | `arc:sdlc` |
+| Same-session multi-model routing | `arc:prewalk` |
+| Backend/API only | `arc:build` + `arc:arch` |
+| Lark-active page progress | `arc:docs` |
 
 ## Context Search
 
@@ -41,12 +38,8 @@ expert_keywords:
 - MUST use `arc-idx search` first; use `arc-idx ast --lang tsx` for React patterns.
 - If `.lark.json` exists, MUST read it before major frontend decisions.
 
-## Announce
 
-Begin by stating clearly:
-"I am using `arc:frontend` to apply frontend engineering constraints and keep UI decisions traceable."
-
-## The Iron Law
+## Red Lines
 
 ```text
 NO FRONTEND CHANGE WITHOUT USER WORKFLOW.
@@ -112,13 +105,6 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 - Temporary debug probes are removed or converted into approved level-gated logging/telemetry before delivery.
 - Significant frontend progress and `task_base` are linked through `.lark.json` only when Lark is active.
 
-## Expert Standards
-
-- `Design Token` decisions are centralized and auditable.
-- `Accessibility` checks are part of done.
-- `Responsive` behavior uses explicit constraints.
-- `RBAC` protects routes and action-level controls when applicable.
-- `Empty State` is a normal product state with a recovery path; it is never represented as an exception, crash, failed route, or full-page error unless the underlying request actually failed.
 
 ## Scripts & Commands
 

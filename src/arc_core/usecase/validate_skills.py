@@ -2,11 +2,12 @@ from __future__ import annotations
 from pathlib import Path
 from ..domain.validation import validate_text
 from ..infrastructure.markdown import parse_frontmatter
-from ..domain.skill import is_supported_skill, get_namespace_dir
+from ..domain.skill import is_arc_skill, get_namespace_dir
+from ..domain.triggers import load_trigger_corpus
 
 def validate_file(path: Path, root: Path | None = None) -> tuple[list[str], list[str]]:
     text = path.read_text(encoding="utf-8")
-    return validate_text(text, str(path), root=root)
+    return validate_text(text, str(path), root=root, skill_path=path)
 
 def validate_repo_policies(root: Path) -> list[str]:
     errors: list[str] = []
@@ -29,17 +30,44 @@ def validate_repo_policies(root: Path) -> list[str]:
             errors.append(
                 "repository policy violation: empty .github/workflows directory is not allowed in this skills repository"
             )
+    corpus = load_trigger_corpus(root)
+    skill_names: set[str] = set()
+    for path in collect_skill_files(root):
+        text = path.read_text(encoding="utf-8")
+        frontmatter, error = parse_frontmatter(text)
+        if error:
+            continue
+        name = str(frontmatter.get("name", "") or "")
+        if not name:
+            continue
+        skill_names.add(name)
+        if name not in corpus:
+            errors.append(f"trigger corpus missing skill {name}")
+    extra = sorted(set(corpus) - skill_names)
+    if extra:
+        errors.append(f"trigger corpus has unknown skills: {', '.join(extra)}")
+    for name, entry in corpus.items():
+        terms = [str(term).strip() for term in entry.get("must_contain", []) if str(term).strip()]
+        positives = entry.get("positive", [])
+        negatives = entry.get("negative", [])
+        if len(terms) < 3:
+            errors.append(f"trigger corpus {name} needs at least 3 must_contain terms")
+        if len(positives) < 8:
+            errors.append(f"trigger corpus {name} needs at least 8 positive utterances")
+        if len(negatives) < 3:
+            errors.append(f"trigger corpus {name} needs at least 3 negative utterances")
     return errors
 
 def collect_skill_files(root: Path) -> list[Path]:
+    search_root = root / "Arc" if (root / "Arc").is_dir() else root
     collected: list[Path] = []
-    for path in sorted(root.rglob("SKILL.md")):
+    for path in sorted(search_root.rglob("SKILL.md")):
         text = path.read_text(encoding="utf-8")
         frontmatter, error = parse_frontmatter(text)
         if error:
             continue
         skill_name = frontmatter.get("name", "")
-        if is_supported_skill(skill_name):
+        if is_arc_skill(skill_name):
             collected.append(path)
     return collected
 

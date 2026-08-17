@@ -11,54 +11,30 @@ from arc_core.skill_validation import (
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _arc_skill_text(name: str, expert: str) -> str:
+def _router_skill_text(name: str, description: str) -> str:
     return f'''---
 name: {name}
-description: "Short description."
+version: 1.0.0
+description: "{description}"
 ---
 # Skill
-## Overview
-overview body
-## Quick Contract
-- **Trigger**: trigger body
-- **Inputs**: input summary
-- **Outputs**: output summary
-- **Quality Gate**: gate summary
-- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
-## Routing Matrix
-- For routing, see [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
-## Announce
-announce body
-## The Iron Law
-rule body
-## Workflow
-workflow body
-## Quality Gates
-quality body
-## Expert Standards
-{expert}
-## Scripts & Commands
-scripts body
-## Red Flags
-flags body
+## Intent Router
+| When | Load |
+|---|---|
+| matching work | this SKILL.md |
+| unclear scope | `arc:clarify` |
+## Red Lines
+NO GUESSING.
+NO SILENT SCOPE EXPANSION.
 ## When to Use
-- **Preferred Trigger**: preferred trigger body
-- **Typical Scenario**: typical scenario body
-- **Boundary Tip**: boundary tip body
-## Input Arguments
-| parameter | type | required | description |
-|---|---|---|---|
-| `project_path` | string | yes | root path |
-## Outputs
-```text
-output.md
-```
+Use for the described work. Not for unrelated tasks.
 '''
 
 
 def test_parse_frontmatter_extracts_core_fields() -> None:
     text = """---
 name: "arc:build"
+version: "1.0.0"
 description: "Code delivery."
 ---
 # Title
@@ -67,296 +43,108 @@ description: "Code delivery."
     assert error is None
     assert frontmatter["name"] == "arc:build"
     assert frontmatter["description"] == "Code delivery."
+    assert frontmatter["version"] == "1.0.0"
 
 
-def test_validate_text_reports_missing_required_heading_for_routed_skill() -> None:
+def test_validate_text_reports_missing_intent_router() -> None:
     text = """---
 name: "arc:build"
-description: "Code delivery."
+version: "1.0.0"
+description: "Implements scoped code changes and verifies them when the scheme is already clear enough to start."
+---
+# Skill
+## Overview
+overview body
+"""
+    errors, _warnings = validate_text(text, "virtual/SKILL.md")
+    assert "virtual/SKILL.md: missing heading ## Intent Router" in errors
+
+
+def test_validate_text_rejects_short_or_first_person_description() -> None:
+    text = _router_skill_text("arc:build", "I can help you write code.")
+    errors, _warnings = validate_text(text, "virtual/SKILL.md")
+    assert any("third person" in item or "at least 80" in item for item in errors)
+
+
+def test_validate_text_rejects_retired_frontmatter_keys() -> None:
+    text = """---
+name: arc:build
+version: 1.0.0
+description: "Implements scoped code changes and verifies them when the scheme is already clear enough to start."
 enforce_arc_profile: true
 ---
 # Skill
-## Overview
+## Intent Router
+| When | Load |
+|---|---|
+| matching work | this SKILL.md |
+| unclear scope | `arc:clarify` |
+## Red Lines
+NO GUESSING.
+## When to Use
+Use for delivery.
 """
-    errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
-    assert "virtual/SKILL.md: missing heading ## When to Use" in errors
+    errors, _warnings = validate_text(text, "virtual/SKILL.md")
+    assert any("retired keys" in item for item in errors)
 
 
-def test_build_skill_document_extracts_sections() -> None:
-    text = """---
-name: "arc:build"
-description: "Code delivery."
----
-# Skill
-## Overview
-overview body
-## Workflow
-workflow body
-"""
+def test_build_skill_document_extracts_intent_router() -> None:
+    text = _router_skill_text(
+        "arc:build",
+        "Implements scoped code changes and verifies them when the scheme is already clear enough to start.",
+    )
     document = build_skill_document(text)
     assert document["frontmatter"]["name"] == "arc:build"
-    assert document["sections"][0]["heading"] == "## Overview"
-    assert document["section_index"]["## Workflow"]["body"] == "workflow body"
+    assert document["intent_router"][0]["When"] == "matching work"
 
 
-def test_validate_skill_schema_accepts_minimal_structured_document() -> None:
-    text = """---
-name: "arc:build"
-description: "Code delivery."
----
-# Skill
-## Overview
-overview body
-## When to Use
-when-to-use body
-"""
+def test_validate_skill_schema_accepts_router_document() -> None:
+    text = _router_skill_text(
+        "arc:build",
+        "Implements scoped code changes and verifies them when the scheme is already clear enough to start.",
+    )
     document = build_skill_document(text)
     assert validate_skill_schema(document, "virtual/SKILL.md", ROOT) == []
 
 
-def test_build_skill_document_extracts_quick_contract_inputs_and_outputs() -> None:
-    text = """---
-name: "arc:build"
-description: "Code delivery."
----
-# Skill
-## Quick Contract
-- **Trigger**: build trigger
-- **Inputs**: input summary
-- **Outputs**: output summary
-- **Quality Gate**: gate summary
-- **Decision Tree**: tree summary
-## Input Arguments
-| parameter | type | required | description |
-|---|---|---|---|
-| `project_path` | string | yes | root path |
-## Outputs
-```text
-project/.arc/example/
-└── report.md
-```
-"""
-    document = build_skill_document(text)
-    assert document["quick_contract"]["trigger"] == "build trigger"
-    assert document["input_arguments"][0]["parameter"] == "project_path"
-    assert document["outputs_section"]["format"] == "text"
-    assert "report.md" in document["outputs_section"]["content"]
-
-
-def test_build_skill_document_extracts_numbered_input_arguments() -> None:
-    text = """---
-name: "arc:fix"
-description: "Failure repair."
----
-# Skill
-## **Input Arguments**
-1. **failure** (string, required)
-   * Description: failure signal
-2. **verification** (string, optional)
-   * Description: verification command
-"""
-    document = build_skill_document(text)
-    assert document["input_arguments"][0]["parameter"] == "failure"
-    assert document["input_arguments"][0]["type"] == "string"
-    assert document["input_arguments"][0]["required"] == "required"
-    assert document["input_arguments"][1]["description"] == "verification command"
-
-
-def test_validate_text_accepts_lean_arc_skills() -> None:
-    cases = {
-        "arc:clarify": "IEEE 29148 INVEST Given-When-Then",
-        "arc:build": "DoD SemVer Contract Test RTO/RPO SBOM",
-        "arc:define": "IEEE 29148 Domain-Driven Design Positioning Statement",
-        "arc:docs": "Lark .lark.json Traceability Matrix Information Architecture",
-        "arc:frontend": "Design Token Accessibility Responsive RBAC",
-        "arc:fix": "SEV 5 Whys Fault Tree Blameless Postmortem Mandatory Hypothesis Rationalization Watch",
-        "arc:audit": "Business Maturity Dependency Health Expert Review Card 9 Tab",
-        "arc:security": "SAST SCA DAST OpenAPI Fuzz SBOM SARIF CWE CVSS OWASP Top 10 OWASP ASVS AuthZ",
-        "arc:test": "Test Pyramid Branch Coverage Fuzzing Property-Based Benchmark Flaky Regression SLA",
-    }
-    for name, expert in cases.items():
-        errors, warnings = validate_text(_arc_skill_text(name, expert), "virtual/SKILL.md", root=ROOT)
-        assert errors == []
-        assert warnings == []
+def test_validate_text_accepts_router_arc_skills() -> None:
+    description = (
+        "Implements scoped code changes and verifies them when the scheme is already "
+        "clear enough to start writing production files."
+    )
+    errors, warnings = validate_text(
+        _router_skill_text("arc:build", description),
+        "virtual/SKILL.md",
+    )
+    assert errors == []
+    assert warnings == []
 
 
 def test_validate_text_rejects_non_arc_skill_name() -> None:
-    text = """---
-name: "plain-skill"
-description: "Non-arc namespace."
----
-# Skill
-## Overview
-overview body
-## When to Use
-when body
-"""
-    errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
+    text = _router_skill_text(
+        "plain-skill",
+        "Implements scoped code changes and verifies them when the scheme is already clear enough to start.",
+    )
+    errors, _warnings = validate_text(text, "virtual/SKILL.md")
     assert "virtual/SKILL.md: skill name must use arc:xxx namespace" in errors
 
 
-def test_validate_text_accepts_arc_namespaced_constraint_skills() -> None:
-    cases = [
-        (
-            "arc:idx",
-            "Use .ai-code-index for local search, symbols, profiles, files, stats, refresh, and diagnostics.",
-        ),
-        (
-            "arc:comment",
-            "Apply Chinese comment templates for functions and controllers.",
-        ),
-        (
-            "arc:trace",
-            "Add low-cost fmt/time or log.Printf timing probes to Go Gin SSR request paths.",
-        ),
-        (
-            "arc:arch",
-            "Apply mandatory backend architecture and DIP rules before coding.",
-        ),
-        (
-            "arc:sdlc",
-            "Create task docs, pre-constraints, and progress tables before large coding work.",
-        ),
-        (
-            "arc:prewalk",
-            "Guide recon plus first edit, then executor inherits the same trajectory.",
-        ),
-    ]
-    for name, description in cases:
-        text = f"""---
-name: "{name}"
-description: "{description}"
----
-# Skill
-## Overview
-overview body
-## When to Use
-when body
-"""
-        errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
+def test_validate_text_accepts_constraint_skill_names() -> None:
+    description = (
+        "Applies default backend architecture, DIP, layering, and helper limits when "
+        "writing or reviewing Go services."
+    )
+    for name in ("arc:idx", "arc:comment", "arc:trace", "arc:arch", "arc:sdlc", "arc:prewalk"):
+        errors, warnings = validate_text(
+            _router_skill_text(name, description),
+            "virtual/SKILL.md",
+        )
         assert errors == []
         assert warnings == []
 
 
-def test_project_architecture_skill_locks_dip_architecture_and_ponytail_contract() -> None:
-    text = (ROOT / "Arc" / "arc:arch" / "SKILL.md").read_text(encoding="utf-8")
-
-    required_phrases = [
-        "Dependency Inversion Principle (DIP)",
-        "Use this backend architecture as the default for Go backend projects.",
-        "Read `references/backend-architecture.md` when deeper file-level or interface-level guidance is needed.",
-        "Do not invent extra layers, factories, interfaces, or helpers beyond the boundaries described here.",
-        "## Common Drift Patterns",
-        "Temporary package-level `var` flags",
-        "Invented domain identity / routing keys",
-        "docs/execution-truth.md",
-        "Ponytail Conflict Resolution",
-        "Required DIP boundary interfaces are not \"unrequested abstraction\"",
-        "Do not create service interfaces, factories, config objects, or adapter interfaces solely because a folder exists.",
-        "`domain/entities`: Business objects with identity, lifecycle state, and domain invariants.",
-        "`usecase/<module>`: Application/business workflows and transaction orchestration.",
-        "`interface/restful/controllers`: HTTP boundary.",
-        "`wire`: Composition root.",
-        "cmd -> internal/wire -> internal/interface/restful -> internal/usecase -> internal/domain",
-        "Use zap as the default structured logging backend",
-        "Do not log these by default:",
-        "Zap logging is initialized once, injected explicitly",
-        "internal/usecase/shared",
-        "If a ponytail simplification would remove a required DIP boundary, keep the boundary",
-        "`interface/restful/dto`: Transport schema only.",
-        "Do not add functions like `responses.NewUser(entity)` or `responses.NewUserList(usecaseResult)`.",
-        "internal/interface/restful/dto -> internal/domain, internal/usecase, internal/infrastructure, framework/driver SDKs",
-        "`base.go` contains only the base envelope",
-        "`meta.go` contains shared response metadata",
-        "Do not put `BaseResponse`, `Meta`, `Pagination`, and feature DTOs in one feature response file.",
-        "Entities must not contain transport conversion methods such as `ToDTO`, `ToResponse`",
-        "Do not add methods like `func (a ActivityCategory) ToDTO() responses.ActivityCategoryDTO`",
-        "Entity is not DTO and not ORM model.",
-        "Controllers bind input, authorize, call usecase contracts, map errors, map entity/usecase results to response DTOs, and respond.",
-        "Repositories translate between storage models and domain entities.",
-        "DTO is the external communication contract.",
-        "Entity is the domain model.",
-        "Repository Model is the persistence shape.",
-        "Repository implementations convert repository models to domain entities on reads and domain entities to repository models on writes.",
-        "Usecases and controllers must never receive repository models.",
-        "REST DTOs must not enter `usecase`.",
-        "Domain repository interfaces accept and return entities or domain value objects, not repository models.",
-        "Repository models are internal to infrastructure repository implementations.",
-        "Read-optimized projections may bypass entities only in explicit query/read-model paths",
-        "Do not create broad packages such as `internal/mapper`",
-        "That file crosses transport, domain, and persistence boundaries.",
-        "Put REST DTO mapping beside the HTTP boundary",
-        "Put repository model mapping beside the persistence implementation",
-        "Accept small repeated field assignments across HTTP and persistence mappers when they protect dependency direction.",
-        "move that behavior to domain constructors, value objects, or entity methods",
-        "## Go File Constraints",
-        "MUST keep every Go file at no more than two unexported/private `func` declarations.",
-        "MUST create a sibling helper file named from the original basename plus `_helpers.go`",
-    ]
-    for phrase in required_phrases:
-        assert phrase in text
-
-
-def test_arc_code_editing_skills_require_project_architecture_conventions() -> None:
-    for relative_path in ["Arc/arc:build/SKILL.md", "Arc/arc:fix/SKILL.md"]:
-        text = (ROOT / relative_path).read_text(encoding="utf-8")
-        assert "MUST apply `arc:arch` before" in text
-        assert "stop and report if ponytail is required but unavailable or conflicting" in text
-        assert "docs/execution-truth.md" in text
-        assert "NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE" in text or "NO DIAGNOSIS ON THE WRONG ENV/BRANCH/DEPLOY SURFACE" in text
-
-
-def test_task_doc_progress_skill_requires_current_state_and_arc_integration() -> None:
-    text = (ROOT / "Arc" / "arc:sdlc" / "SKILL.md").read_text(encoding="utf-8")
-
-    required_phrases = [
-        "latest repository state",
-        "## Integration With Arc Skills",
-        "## Progress Tracking Hard Gate",
-        "## Completion Definition",
-        "## Explicit Non-Goals",
-        "## Downstream Task Authoring",
-        "docs/execution-truth.md",
-        "code path + project gate + reachable behavior",
-        "`进度跟踪表.md` and subtask `状态：...` are the authoritative local execution state",
-        "MUST update progress tracking immediately when starting, pausing, blocking, completing, or verifying a subtask",
-        "MUST NOT continue implementation while `进度跟踪表.md` or the active subtask status is stale",
-        "MUST NOT send a final delivery response for tracked work until progress tracking reflects the actual final state",
-        "Software Engineering Lifecycle (SDLC) partitioning under `docs/`",
-        "`docs/00-产品需求/`",
-        "`docs/03-执行任务/`",
-        "`DD` is the `docs/` category sequence",
-        "Every concrete subtask must be specific to the current project",
-        "If the repository changed since the task was written",
-        "updated immediately when project files, scope, assumptions, or status change",
-        "current files, scope, outputs, and verification",
-        "## Execution Model: Docs vs Prewalk",
-        "arc:prewalk",
-        "plan-postcard",
-    ]
-    for phrase in required_phrases:
-        assert phrase in text
-    assert "docs/01-任务" not in text
-    assert "low-capability downstream coding model without hidden context" not in text
-
-
-def test_prewalk_skill_requires_trajectory_handoff_contract() -> None:
-    text = (ROOT / "Arc" / "arc:prewalk" / "SKILL.md").read_text(encoding="utf-8")
-    required_phrases = [
-        "First-Edit Swap",
-        "NO PLAN-POSTCARD HANDOFF",
-        "first **production code** edit",
-        "prune the hidden planning instruction",
-        "references/prewalk.md",
-        "O(reads)",
-        "Todo Steering",
-    ]
-    for phrase in required_phrases:
-        assert phrase in text
-
-
 def test_all_skill_names_use_arc_namespace() -> None:
-    for path in ROOT.rglob("SKILL.md"):
+    for path in (ROOT / "Arc").rglob("SKILL.md"):
         text = path.read_text(encoding="utf-8")
         frontmatter, error = parse_frontmatter(text)
         if error:
@@ -364,94 +152,25 @@ def test_all_skill_names_use_arc_namespace() -> None:
         assert frontmatter.get("name", "").startswith("arc:"), path
 
 
-def test_arc_skills_route_large_work_through_task_doc_progress_conventions() -> None:
+def test_skill_packages_keep_lifecycle_invariants() -> None:
     cases = {
-        "Arc/arc:build/SKILL.md": [
-            "MUST apply `arc:sdlc` before code edits",
-            "NO LARGE PROJECT CODE CHANGE WITHOUT CURRENT LOCAL TASK DOCS",
-            "MUST apply `arc:prewalk`",
-            "NO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF",
-        ],
-        "Arc/arc:fix/SKILL.md": [
-            "MUST apply `arc:sdlc` before code edits",
-            "NO LARGE REPAIR WITHOUT CURRENT LOCAL TASK DOCS",
-            "MUST apply `arc:prewalk`",
-            "NO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF",
-        ],
-        "Arc/arc:frontend/SKILL.md": [
-            "MUST apply `arc:sdlc` before code edits",
-            "NO LARGE FRONTEND CHANGE WITHOUT CURRENT LOCAL TASK DOCS",
-            "MUST apply `arc:prewalk`",
-            "NO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF",
-        ],
-        "Arc/arc:security/SKILL.md": [
-            "MUST apply `arc:sdlc` before generating multi-finding remediation plans",
-            "NO MULTI-FINDING REMEDIATION PLAN WITHOUT CURRENT LOCAL TASK DOCS",
-        ],
-        "Arc/arc:clarify/SKILL.md": [
-            "Use `arc:sdlc` after clarification",
-        ],
-        "Arc/arc:define/SKILL.md": [
-            "Use `arc:sdlc` before implementation",
-        ],
-        "Arc/arc:audit/SKILL.md": [
-            "Use `arc:sdlc` before remediation",
-        ],
-        "Arc/arc:docs/SKILL.md": [
-            "Lark task tables do not replace local task docs",
-        ],
+        "arc:build": ["arc:arch", "arc:sdlc", "arc:prewalk", "execution-truth.md"],
+        "arc:fix": ["arc:arch", "arc:sdlc", "arc:prewalk", "execution-truth.md"],
+        "arc:frontend": ["arc:sdlc", "arc:prewalk"],
+        "arc:security": ["arc:sdlc"],
+        "arc:clarify": ["arc:sdlc"],
+        "arc:define": ["arc:sdlc"],
+        "arc:audit": ["arc:sdlc"],
+        "arc:docs": ["task docs"],
+        "arc:sdlc": ["进度跟踪表.md", "00-前置约束.md", "arc:prewalk"],
+        "arc:arch": ["DIP", "ponytail", "_helpers.go"],
+        "arc:prewalk": ["First-Edit", "plan-postcard", "production code"],
     }
-
-    for relative_path, phrases in cases.items():
-        text = (ROOT / relative_path).read_text(encoding="utf-8")
+    for name, phrases in cases.items():
+        folder = ROOT / "Arc" / name
+        package = "\n".join(path.read_text(encoding="utf-8") for path in sorted(folder.rglob("*.md")))
         for phrase in phrases:
-            assert phrase in text
-
-
-def test_validate_text_accepts_arc_frontend_skill() -> None:
-    text = """---
-name: "arc:frontend"
-description: "Frontend engineering."
----
-# Skill
-## Overview
-overview body
-## Quick Contract
-- **Trigger**: frontend baseline trigger
-- **Inputs**: product type and palette
-- **Outputs**: stack and token artifacts
-- **Quality Gate**: baseline dependencies and theme tokens match
-- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
-## Announce
-announce body
-## Input Arguments
-| parameter | type | required | description |
-|---|---|---|---|
-| `product_type` | string | yes | target product type |
-## The Iron Law
-rule body
-## Workflow
-workflow body
-## Quality Gates
-quality body
-## Expert Standards
-Design Token Accessibility Responsive RBAC
-## Scripts & Commands
-scripts body
-## Red Flags
-flags body
-## When to Use
-- **Preferred Trigger**: frontend lifecycle work
-- **Typical Scenario**: React, Vite, Tailwind, shadcn/ui project
-- **Boundary Tip**: use another skill for backend-only work
-## Outputs
-```text
-stack and palette summary
-```
-"""
-    errors, warnings = validate_text(text, "virtual/SKILL.md", root=ROOT)
-    assert errors == []
-    assert warnings == []
+            assert phrase in package, f"{name} missing {phrase}"
 
 
 def test_run_validation_rejects_github_workflows_directory(tmp_path: Path) -> None:

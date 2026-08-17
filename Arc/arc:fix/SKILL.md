@@ -1,21 +1,11 @@
 ---
 name: arc:fix
-version: 0.2.0
-description: Failure repair with root cause; hand active Lark incidents, risks, follow-ups,
-  task_base, and lifecycle to arc:docs.
-enforce_arc_profile: true
-expert_keywords:
-- - SEV
-  - Severity Level
-  - severity level
-  - severity
-- 5 Whys
-- Fault Tree
-- Blameless Postmortem
-- Mandatory Hypothesis
-- Rationalization Watch
+version: 1.0.0
+description: >
+  Diagnoses and repairs failures from logs, stack traces, failing tests, or incidents. Use
+  when the user says 报错, 修复, 故障, bug, 根因, incident, or failing test. Not for greenfield
+  feature delivery.
 ---
-
 # arc:fix
 
 ## Overview
@@ -30,13 +20,17 @@ expert_keywords:
 - **Quality Gate**: The original failure is explained and rechecked, or the blocker is explicit.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
-## Routing Matrix
+## Intent Router
 
-- Use `arc:clarify` only if the failure report lacks enough evidence to begin.
-- Use `arc:build` when the work is planned feature delivery, not repair.
-- Use `arc:prewalk` when multi-model cost routing is available for a non-trivial repair: Guide reproduces + hypothesizes + first fix edit, then Executor continues in the same trajectory. See [`docs/prewalk.md`](../../docs/prewalk.md).
-- Use `arc:docs` only when Lark is active for incident docs, risk Base, `task_base` feature status, follow-up Task, meeting records, or `.lark.json.lifecycle[]`.
-- Use `arc:audit` after repair for broader read-only review.
+| When | Load |
+|---|---|
+| Failure with evidence | this SKILL.md Workflow |
+| No failure evidence, new feature | `arc:build` |
+| Unclear acceptance | `arc:clarify` |
+| Same-session multi-model routing | `arc:prewalk` |
+| Large repair campaign | `arc:sdlc` |
+| Backend architecture | `arc:arch` |
+| Lark-active incident notes | `arc:docs` |
 
 ## Context Search
 
@@ -45,12 +39,8 @@ expert_keywords:
 - MUST use exact search for error strings, stack frames, logs, and config keys.
 - If `.lark.json` exists, MUST read it before final incident handoff.
 
-## Announce
 
-Begin by stating clearly:
-"I am using `arc:fix` to inspect the failure, identify root cause, patch it, and verify the result."
-
-## The Iron Law
+## Red Lines
 
 ```text
 NO FIX WITHOUT ROOT CAUSE OR EXPLICIT UNCERTAINTY.
@@ -108,13 +98,6 @@ NO DIAGNOSIS ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 - Data-layer fixes check rows affected, transaction boundaries, state guards, soft-delete filters, and query bounds when relevant.
 - Incident records and affected `task_base` rows are linked through `.lark.json` only when Lark is active.
 
-## Expert Standards
-
-- Severity is described with `SEV` or an equivalent impact scale when relevant.
-- Root cause uses `5 Whys` or equivalent causal reasoning.
-- Complex incidents may use a lightweight `Fault Tree`.
-- Communication remains compatible with `Blameless Postmortem`.
-- Maintain a `Mandatory Hypothesis`; apply `Rationalization Watch` against easy but unsupported fixes.
 
 ## Scripts & Commands
 

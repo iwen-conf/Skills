@@ -1,8 +1,10 @@
 from __future__ import annotations
 import re
-import yaml
+import yaml  # type: ignore[import-untyped]
 from typing import Any
 from ..domain.skill import SkillDocument, QUICK_CONTRACT_KEY_MAP, INPUT_ARGUMENT_HEADER_MAP
+
+MARKDOWN_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
 def parse_frontmatter(text: str) -> tuple[dict[str, Any], str | None]:
     if not text.startswith("---\n"):
@@ -117,6 +119,42 @@ def parse_input_arguments(body: str) -> list[dict[str, str]] | None:
             rows.append(row)
     return rows or None
 
+def parse_intent_router(body: str) -> list[dict[str, str]] | None:
+    table_lines = [line.strip() for line in body.splitlines() if line.strip().startswith("|")]
+    if len(table_lines) < 3:
+        return None
+    header_cells = [_strip_inline_code(cell) for cell in _parse_pipe_row(table_lines[0])]
+    if len(header_cells) < 2:
+        return None
+    rows: list[dict[str, str]] = []
+    for line in table_lines[2:]:
+        cells = [_strip_inline_code(cell) for cell in _parse_pipe_row(line)]
+        if len(cells) != len(header_cells):
+            continue
+        row = {header_cells[index]: cells[index] for index in range(len(header_cells))}
+        if sum(1 for value in row.values() if value) >= 2:
+            rows.append(row)
+    return rows or None
+
+
+def extract_relative_links(text: str) -> list[str]:
+    stripped = re.sub(r"```.*?```", "", text, flags=re.S)
+    links: list[str] = []
+    seen: set[str] = set()
+    for raw in MARKDOWN_LINK_RE.findall(stripped):
+        target = raw.split()[0].strip("<>")
+        target = target.split("#", 1)[0]
+        if not target or target.startswith(("#", "http://", "https://", "mailto:")):
+            continue
+        if "://" in target:
+            continue
+        if target in seen:
+            continue
+        seen.add(target)
+        links.append(target)
+    return links
+
+
 def parse_outputs_section(body: str) -> dict[str, str] | None:
     fenced_match = re.search(r"```([a-zA-Z0-9_-]*)\n(.*?)\n```", body, re.DOTALL)
     if not fenced_match:
@@ -155,6 +193,12 @@ def build_skill_document(text: str) -> SkillDocument:
         parsed_outputs = parse_outputs_section(outputs_section["body"])
         if parsed_outputs is not None:
             document["outputs_section"] = parsed_outputs
+
+    intent_router_section = find_section(sections, "Intent Router")
+    if intent_router_section is not None:
+        intent_router = parse_intent_router(intent_router_section["body"])
+        if intent_router is not None:
+            document["intent_router"] = intent_router
 
     return document
 

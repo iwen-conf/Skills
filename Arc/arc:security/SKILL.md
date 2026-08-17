@@ -1,23 +1,11 @@
 ---
 name: arc:security
-version: 0.2.0
-description: Local SAST/SCA/secrets/DAST automation with data-value re-ranking and
-  Arc handoffs.
-enforce_arc_profile: true
-expert_keywords:
-- SAST
-- SCA
-- DAST
-- OpenAPI Fuzz
-- SBOM
-- SARIF
-- CWE
-- CVSS
-- OWASP Top 10
-- OWASP ASVS
-- AuthZ
+version: 1.0.0
+description: >
+  Runs local SAST, SCA, secrets, and DAST automation, then re-ranks findings by data
+  value. Use when the user says 安全扫描, Semgrep, Trivy, DAST, 密钥扫描, SCA, or security report.
+  Not for unauthorized third-party targets or methodology-only read-only audits.
 ---
-
 # arc:security
 
 ## Overview
@@ -40,15 +28,16 @@ Read:
 - **Quality Gate**: Scans are local-first, reproducible, evidence-backed, readable, explicit about skipped tools and manual gaps, and re-ranked by reachability plus data yield—not scanner severity alone.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
-## Routing Matrix
+## Intent Router
 
-- Use `arc:clarify` first if target environment, scan scope, authorization, or destructive-test boundaries are unclear.
-- Use `arc:audit` with mode `appsec` when the user wants methodology-first read-only security review (asset table, data map, finding cards) without running active scanners—or before scanning when inventory is missing.
-- Use `arc:sdlc` as `R-task` after multi-finding scan results: merge re-ranked list into the Handoff Package (项目定位/口径/角色/findings) so subtasks stay detailed; do not jump from raw SARIF to code.
-- Use `arc:build` when the task is to add security tooling, scripts, checks, or project configuration—or when implementing a planned security subtask.
-- Use `arc:fix` when a concrete vulnerability, failing scanner result, or exploit path must be repaired under an existing subtask or as a single small fix.
-- Use `arc:frontend` for frontend-specific XSS, CSP, auth UI, route guard, token handling, or browser verification work.
-- Use `arc:docs` only when Lark is active for security reports, risk rows, remediation tasks, approval gates, artifacts, or `.lark.json.lifecycle[]`.
+| When | Load |
+|---|---|
+| Tool install / scan commands | [`scripts/install-security-tools.sh`](scripts/install-security-tools.sh), [`scripts/security-scan.py`](scripts/security-scan.py) |
+| Data-value re-rank | [`references/data-value-ranking.md`](references/data-value-ranking.md) |
+| Tool catalog | [`references/security-tooling.md`](references/security-tooling.md) |
+| Read-only AppSec methodology | `arc:audit` |
+| Multi-finding remediation plan | `arc:sdlc` |
+| Repair a confirmed finding | `arc:fix` / `arc:build` |
 
 ## Context Search
 
@@ -58,12 +47,8 @@ Read:
 - MUST use `arc-idx ast` for risky code shapes such as raw SQL, shell execution, file upload, SSRF fetches, JWT parsing, or auth bypasses.
 - If `.lark.json` exists, MUST read it before security handoff and route durable reports through `arc:docs`.
 
-## Announce
 
-Begin by stating clearly:
-"I am using `arc:security` to run local-first security automation and produce readable evidence-backed reports."
-
-## The Iron Law
+## Red Lines
 
 ```text
 NO SECURITY CLAIM WITHOUT EVIDENCE.
@@ -113,14 +98,6 @@ NO FINAL SEVERITY FROM SCANNER SCORE ALONE—RE-RANK BY DATA YIELD AND REACHABIL
 - Multi-finding remediation or code-changing security work has current local task docs, detailed subtasks, and synchronized progress status from `arc:sdlc`.
 - Security artifacts stay local unless `.lark.json` is active or the user explicitly asks for remote publication.
 
-## Expert Standards
-
-- Use `SAST` for source scanning, `SCA` for dependency and container risk, `DAST` for running services, and `OpenAPI Fuzz` for API robustness.
-- Track `SBOM`, `SARIF`, `CWE`, `CVSS`, and `OWASP Top 10` metadata when tools provide it.
-- Use `OWASP ASVS` thinking for authn, `AuthZ`, session, API, file upload, and business-logic checks.
-- Treat secrets exposure, supply-chain compromise, auth bypass, RCE, SQL injection, SSRF, and payment tampering as priority risk classes.
-- Validate scanner output against code reachability, deployment exposure, compensating controls, and exploit prerequisites.
-- Prefer **data-value ranking**: bulk PII/credentials/payment integrity over “admin foothold” narratives without a data path.
 
 ## Scripts & Commands
 

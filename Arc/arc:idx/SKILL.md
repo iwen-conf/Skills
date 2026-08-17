@@ -1,9 +1,11 @@
 ---
 name: arc:idx
-version: 0.2.0
-description: Use the arc-idx CLI for local search, symbols, structural queries, profiles, files, stats, refresh, and diagnostics.
+version: 1.0.0
+description: >
+  Uses the arc-idx CLI for local search, symbols, structural queries, files, stats,
+  daemon, refresh, and diagnostics. Use when searching the repo, 搜代码, 找符号, arc-idx,
+  ast-grep, zoekt, or locating call sites. Not for editing code.
 ---
-
 # AI Code Index
 
 ## Overview
@@ -13,6 +15,26 @@ description: Use the arc-idx CLI for local search, symbols, structural queries, 
 The legacy `.ai-code-index/*.sh` bash scripts are **removed**, not just deprecated. `arc-idx` embeds the Zoekt index/search engine in-process, drives universal-ctags for symbols, wraps ast-grep for AST queries, and saturates all available cores. **MCP (Model Context Protocol) is STRICTLY BANNED** for this context engine: the user's hardware handles high-concurrency CLI execution optimally, and every query must stay a zero-negotiation subprocess call.
 
 Default behavior: Agents MUST use `arc-idx` as their primary context discovery tool. Fallback to `rg`/`fd` ONLY when the index is unavailable, the target is outside the repo, or `arc-idx doctor` reports corruption — and the fallback reason must be reported.
+
+## Intent Router
+
+| When | Load |
+|---|---|
+| Text/regex/symbol/AST search | this SKILL.md Commands |
+| Daemon / freshness | this SKILL.md Auto Refresh |
+| Incomplete results | `arc-idx doctor` |
+| After discovery, implement | `arc:build` / `arc:fix` / `arc:audit` |
+| Task docs need Context-Queries | `arc:sdlc` |
+
+## Red Lines
+
+```text
+NO WHOLE-REPO rg WHILE arc-idx INDEX EXISTS.
+NO MCP FOR THIS CONTEXT ENGINE.
+NO TERMINAL COLOR / ZOEK LOG DUMP IN AGENT CONTEXT.
+NO RESURRECTED search.sh WRAPPERS.
+NO DAEMON WITHOUT PID FILE; NO STALE INDEX WITHOUT doctor.
+```
 
 ## Quick Contract
 

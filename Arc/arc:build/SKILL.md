@@ -1,16 +1,11 @@
 ---
 name: arc:build
-version: 0.2.0
-description: "Code delivery with verification; hand active Lark task_base, progress, delivery, and lifecycle to arc:docs."
-enforce_arc_profile: true
-expert_keywords:
-  - DoD
-  - SemVer
-  - Contract Test
-  - RTO/RPO
-  - SBOM
+version: 1.0.0
+description: >
+  Implements scoped code changes and verifies them. Use when the user says 写代码, 开发功能,
+  落地改动, implement a known scheme, or deliver a scoped change. Not for unknown-failure
+  repair or requirement clarification.
 ---
-
 # arc:build
 
 ## Overview
@@ -25,15 +20,18 @@ expert_keywords:
 - **Quality Gate**: The change is minimal, verified, and explainable.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
-## Routing Matrix
+## Intent Router
 
-- Use `arc:clarify` first if scope or acceptance criteria are unclear.
-- Use `arc:fix` when the primary input is a failure, incident, or failing check.
-- Use `arc:frontend` for frontend baseline or UI lifecycle work.
-- For Web, mobile, desktop, or mini-program implementation, inherit the `arc:frontend` platform default stack unless the user explicitly specified another stack; do not define a separate stack in `arc:build`.
-- Use `arc:prewalk` when the runtime can swap models mid-session and cost/speed routing is desired: Guide recon + bounded todo + first production edit, then Executor inherits the trajectory—never cold plan-postcard handoff. See [`docs/prewalk.md`](../../docs/prewalk.md).
-- Use `arc:docs` only when Lark is active for delivery notes, `task_base` feature status, progress Base, Drive artifacts, or `.lark.json.lifecycle[]`.
-- Use `arc:audit` after delivery for read-only review.
+| When | Load |
+|---|---|
+| Scoped implementation | this SKILL.md Workflow |
+| Unclear scope or acceptance | `arc:clarify` |
+| Failure/incident/failing check | `arc:fix` |
+| Frontend/UI work | `arc:frontend` |
+| Same-session multi-model routing | `arc:prewalk` |
+| Large tracked work | `arc:sdlc` |
+| Backend architecture | `arc:arch` |
+| Lark-active delivery notes | `arc:docs` |
 
 ## Context Search
 
@@ -42,12 +40,8 @@ expert_keywords:
 - MUST use `arc-idx ast` for structural patterns and `arc-idx symbol` for definitions when relevant.
 - If `.lark.json` exists, MUST read it before final handoff.
 
-## Announce
 
-Begin by stating clearly:
-"I am using `arc:build` to implement the scoped change and verify it."
-
-## The Iron Law
+## Red Lines
 
 ```text
 NO CODE CHANGE WITHOUT SCOPE.
@@ -107,13 +101,6 @@ NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 - No placeholders, half-migrated call sites, or knowingly broken builds remain.
 - Lark delivery status and `task_base` are recorded via `.lark.json` only when Lark is active.
 
-## Expert Standards
-
-- Definition of Done (`DoD`) covers behavior, tests, and documentation.
-- Compatibility-impacting changes consider `SemVer`.
-- Contract-sensitive changes include a `Contract Test` or equivalent check when practical.
-- Reliability-sensitive changes mention `RTO/RPO` only when actually relevant.
-- Dependency changes consider `SBOM` and supply-chain risk.
 
 ## Scripts & Commands
 

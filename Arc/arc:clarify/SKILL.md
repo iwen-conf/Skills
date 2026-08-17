@@ -1,14 +1,11 @@
 ---
 name: arc:clarify
-version: 0.2.0
-description: "Requirement clarification; hand active Lark requirements, task_base, and lifecycle updates to arc:docs."
-enforce_arc_profile: true
-expert_keywords:
-  - IEEE 29148
-  - INVEST
-  - Given-When-Then
+version: 1.0.0
+description: >
+  Clarifies a fuzzy request into executable context, constraints, and acceptance criteria.
+  Use when the user says 澄清, 需求不清, 验收标准, clarify, or the task cannot be executed yet. Not
+  for writing a PRD or delivering code.
 ---
-
 # arc:clarify
 
 ## Overview
@@ -23,14 +20,16 @@ expert_keywords:
 - **Quality Gate**: A downstream engineer can start without guessing.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
-## Routing Matrix
+## Intent Router
 
-- Use `arc:docs` only when Lark is active and clarified requirements must update Lark Docx, Base, `task_base`, or `.lark.json.lifecycle[]`.
-- Use `arc:sdlc` after clarification and before execution when the result is large, multi-step, cross-module, or tracked implementation work.
-- Use `arc:build` once the task is executable.
-- Use `arc:frontend` when the clarified scope includes Web, mobile, desktop, mini-program stack, UI architecture, routing, server state, client state, forms, or theme decisions.
-- Use `arc:audit` for read-only assessment.
-- Use `aitask` only for cross-agent ownership or coordination.
+| When | Load |
+|---|---|
+| Vague request, missing acceptance | this SKILL.md Workflow |
+| Large tracked follow-up | `arc:sdlc` |
+| Frontend in the clarified scope | `arc:frontend` |
+| Executable implementation | `arc:build` |
+| Lark-active requirements | `arc:docs` |
+| Read-only assessment | `arc:audit` |
 
 ## Context Search
 
@@ -38,12 +37,8 @@ expert_keywords:
 - MUST use `arc-idx search` first for repository context; use `rg` only for narrow exact follow-up.
 - If `.lark.json` exists, MUST read it before finalizing the brief.
 
-## Announce
 
-Begin by stating clearly:
-"I am using `arc:clarify` to turn the request into an executable task brief."
-
-## The Iron Law
+## Red Lines
 
 ```text
 NO EXECUTION WITHOUT CONTEXT, CONSTRAINTS, AND SUCCESS CRITERIA.
@@ -81,11 +76,6 @@ NO LARK-ACTIVE FEATURE REQUIREMENT WITHOUT task_base ROW.
 - Large implementation handoff names `arc:sdlc` as the next local planning gate.
 - Lark requirement and `task_base` updates are linked through `.lark.json` via `arc:docs` only when Lark is active.
 
-## Expert Standards
-
-- Requirements quality follows `IEEE 29148`.
-- User stories should satisfy `INVEST` when relevant.
-- Behavioral acceptance criteria use `Given-When-Then`.
 
 ## Scripts & Commands
 

@@ -1,14 +1,34 @@
 ---
 name: arc:trace
-version: 0.2.0
-description: Add low-cost fmt/time or log.Printf timing probes to Go Gin SSR request paths.
+version: 1.0.0
+description: >
+  Adds low-cost fmt/time or log.Printf timing probes to Go Gin SSR request paths. Use when
+  the user says 加日志, 计时, 慢请求, Gin SSR, tracing, 探针, or request timing. Not for pprof,
+  heap, or generic observability platforms.
 ---
-
 # Go Gin SSR fmt Tracing
 
 ## Overview
 
 Use this skill to add coarse performance timing to Go/Gin SSR code paths with minimal dependencies. Treat `fmt + time` as a low-cost instrumentation method, not as a profiler: it helps answer "which stage is slow", not "which function, allocation, goroutine, or lock is slow".
+
+## Intent Router
+
+| When | Load |
+|---|---|
+| Add Gin SSR stage timing | this SKILL.md Workflow and helper |
+| CPU/heap/goroutine detail | `pprof` / `go tool trace`, not this skill |
+| Frontend performance | `arc:frontend` / `web-perf` |
+| Failure diagnosis beyond timing | `arc:fix` |
+
+## Red Lines
+
+```text
+NO PPROF COSPLAY — THIS IS STAGE TIMING, NOT A PROFILER.
+NO fmt.Println FOR TIMING — USE log.Printf / stderr / PROJECT LOGGER.
+NO BROAD OBSERVABILITY STACK FOR A FOCUSED SSR PROBE.
+NO SECRET OR FULL PAYLOAD IN TIMING LOGS.
+```
 
 ## When to Use
 

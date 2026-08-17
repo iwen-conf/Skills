@@ -19,8 +19,10 @@ def test_build_registry_includes_structured_skill_fields() -> None:
     assert registry["skill_count"] >= 1
     build_entry = next(item for item in registry["skills"] if item["name"] == "arc:build")
     assert build_entry["source_path"] == "Arc/arc:build/SKILL.md"
-    assert build_entry["quick_contract"]["trigger"]
-    assert build_entry["input_arguments"][0]["parameter"] == "project_path"
+    assert build_entry["version"]
+    assert build_entry["line_count"] <= 500
+    assert build_entry["intent_router"]
+    assert len(build_entry["intent_router"]) >= 2
 
 
 def test_validate_registry_accepts_generated_registry() -> None:

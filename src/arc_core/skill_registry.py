@@ -9,6 +9,7 @@ from typing import Any
 from jsonschema import ValidationError, validate
 
 from .artifact_manifest import write_manifest
+from .domain.engineering import count_lines
 from .skill_validation import build_skill_document, collect_skill_files
 
 RegistryDocument = dict[str, Any]
@@ -28,13 +29,16 @@ def _sha256_file(path: Path) -> str:
 
 
 def build_skill_entry(path: Path, root: Path) -> dict[str, Any]:
-    document = build_skill_document(path.read_text(encoding="utf-8"))
+    text = path.read_text(encoding="utf-8")
+    document = build_skill_document(text)
     frontmatter = document["frontmatter"]
     return {
         "name": frontmatter.get("name", ""),
         "description": frontmatter.get("description", ""),
+        "version": str(frontmatter.get("version", "")),
         "source_path": str(path.relative_to(root)),
-        "sections": document["sections"],
+        "line_count": count_lines(text),
+        "intent_router": document.get("intent_router"),
         "quick_contract": document.get("quick_contract"),
         "input_arguments": document.get("input_arguments"),
         "outputs_section": document.get("outputs_section"),

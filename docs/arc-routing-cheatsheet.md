@@ -1,6 +1,6 @@
 # Arc Lifecycle Cheatsheet
 
-Arc now keeps ten software engineering lifecycle skills. Task orchestration, memory, and cross-agent collaboration stay in `aitask`; Lark project space is created only after an explicit user request or existing project link, and reused through `.lark.json`.
+Arc keeps fifteen software engineering lifecycle and constraint skills. Task orchestration, memory, and cross-agent collaboration stay in `aitask`; Lark project space is created only after an explicit user request or existing project link, and reused through `.lark.json`. Skill authoring follows [`skill-engineering.md`](skill-engineering.md).
 
 ## Selection Rules
 
@@ -20,6 +20,11 @@ Arc now keeps ten software engineering lifecycle skills. Task orchestration, mem
 | Local security scanners / DAST / secrets / SCA report | `arc:security` |
 | Design/generate/run tests, coverage/regression gate, fuzz/property, or benchmark/load | `arc:test` |
 | Turn audit/scan findings into detailed local tasks | `arc:sdlc` + security-audit-task-pipeline |
+| Large tracked implementation needs task docs / 进度跟踪 | `arc:sdlc` |
+| Backend architecture, DIP, layering, Go helpers | `arc:arch` |
+| Repo search, symbols, AST, zoekt index | `arc:idx` |
+| Chinese comment conventions | `arc:comment` |
+| Go Gin SSR timing probes | `arc:trace` |
 | Multi-finding security fix campaign | handoff → task docs → `arc:fix`/`arc:build` per subtask |
 
 ## Default Order

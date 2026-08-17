@@ -1,16 +1,11 @@
 ---
 name: arc:docs
-version: 0.2.0
-description: Feishu/Lark project space and .lark.json owner for explicit setup and
-  indexed document lifecycle.
-enforce_arc_profile: true
-expert_keywords:
-- Lark
-- .lark.json
-- Traceability Matrix
-- Information Architecture
+version: 1.0.0
+description: >
+  Owns Feishu/Lark project space and the project-root .lark.json index. Use when the user
+  says 创建飞书项目空间, 同步到飞书, 更新飞书, create Lark workspace, or the repo already has .lark.json.
+  Not for local-only code work with no Lark trigger.
 ---
-
 # arc:docs
 
 ## Overview
@@ -27,126 +22,17 @@ Read [`references/lark-index-contract.md`](references/lark-index-contract.md) wh
 - **Quality Gate**: Every indexed resource exists, every claim has evidence, every lifecycle event is traceable.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
-## Routing Matrix
+## Intent Router
 
-- Use `arc:define` before `arc:docs` if the PRD/project concept is missing.
-- Use `arc:clarify` before `arc:docs` if requirement acceptance criteria are missing.
-- Use `arc:sdlc` before execution skills when local large-task planning, detailed subtasks, pre-constraints, and current progress status are required; Lark task tables do not replace local task docs.
-- Use `arc:build`, `arc:frontend`, `arc:fix`, or `arc:audit` for delivery, UI, repair, or review; then update `.lark.json` here only when Lark is active.
-
-Lark activation:
-
-| State | Condition | Required behavior |
-|---|---|---|
-| Active existing | Project root has `.lark.json` | Read it first, use indexed resource URLs/IDs as the entry point, verify resources when relevant, then update through `arc:docs`. |
-| Existing Lark link provided | User provides a Lark project home, Drive folder, Wiki/Base, or project-space link | Resolve the link, create/update `.lark.json`, and avoid duplicate resources. |
-| Project space create requested | User says `创建项目的飞书空间`, `创建飞书项目空间`, `初始化飞书项目空间`, or `create Lark project space` | Create the standard project workspace in one pass, store the project file-space URL in `.lark.json.resources.drive_folder.url`, and index every created/resolved resource. |
-| Full workspace update requested | User says `更新飞书项目空间` or `refresh Lark project space` | Verify the existing workspace, repair/index gaps, refresh SDLC resources, and never create duplicates. |
-| Inactive | No `.lark.json`, no user-provided Lark project link, and no explicit project-space request | Do not create Lark resources, do not create `.lark.json`, and do not prompt just because the project is large. |
-
-Explicit trigger phrases include:
-
-- `创建项目的飞书空间`
-- `初始化飞书项目空间`
-- `启用飞书项目空间`
-- `接入飞书`
-- `创建飞书文档`
-- `创建飞书项目文档`
-- `创建飞书任务表`
-- `创建飞书仪表盘`
-- `同步到飞书`
-- `索引飞书资源`
-- `生成飞书PRD`
-- `把这个项目纳入飞书`
-- `初始化项目空间`
-- `enable Lark`
-- `initialize Lark project space`
-- `create Lark workspace`
-- `create Lark docs`
-- `create Lark task table`
-- `create Lark dashboard`
-- `sync to Lark`
-
-Project-space creation trigger phrases:
-
-- `创建项目的飞书空间`
-- `创建飞书项目空间`
-- `创建完整飞书项目空间`
-- `一键创建飞书项目空间`
-- `初始化飞书项目空间`
-- `create Lark project space`
-- `create full Lark workspace`
-
-Explicit creation rule:
-
-- Do not infer project-space creation from project size, repository structure, long-running work, or docs/tracking needs.
-- If `.lark.json` is absent, only explicit project-space creation/connect/index/update wording can create or update `.lark.json`.
-- A request like `创建飞书文档` or `创建飞书任务表` creates only the requested resource unless the user also asks to create/connect the project space.
-- If required auth, owner, project name, or remote-write confirmation is missing, stop Lark writes and ask only for the missing setup detail.
-
-Material capture contract:
-
-- Any durable project material discovered or produced during research, search, development, design, review, meetings, or handoff MUST be routed into the Lark project space when `.lark.json` exists.
-- Store source URLs, local file paths, titles, timestamps, owners, summary, and evidence links in the correct resource; never store access tokens or full secret-bearing document bodies in `.lark.json`.
-- Use Docx/Wiki for narrative findings, Base for structured requirements/tasks/risks/traceability, Drive for files/exports/attachments, Whiteboard/UML for visual models, Slides for presentation assets, and lifecycle entries for provenance.
-- When local `arc:sdlc` files exist, sync from their current status and evidence instead of inventing task state in Lark; if project state changed, the local task docs must be updated before final Lark status claims.
-- If `.lark.json` is absent, keep durable materials local unless the user explicitly asks to create/connect a Lark project space.
-
-Workspace update trigger phrases:
-
-- `更新飞书项目空间`
-- `刷新飞书项目空间`
-- `补齐飞书项目空间`
-- `同步飞书项目空间`
-- `update Lark project space`
-- `refresh Lark project space`
-- `complete Lark project space`
-
-Lark resource router:
-
-| Resource | Required Lark skill | `.lark.json` key |
-|---|---|---|
-| Auth, identity, high-risk write protocol | `lark-shared` | `lark` |
-| Project home, PRD, requirements, architecture, delivery, audit, incident docs | `lark-doc` | `project_home`, `prd`, `requirements`, `architecture`, `delivery`, `audits`, `incidents` |
-| Wiki hierarchy | `lark-wiki` | `wiki_space`, `wiki_node` |
-| Drive root and project subfolders | `lark-drive` | `drive_folder`, `drive_folders` |
-| Structured requirements, sprints, tasks, bugs, releases, progress, risks, traceability | `lark-base` | `requirements_base`, `sprint_base`, `task_base`, `bug_base`, `release_base`, `progress_base`, `risk_base`, `traceability_base` |
-| Feature task table and delivery state | `lark-base` | `task_base` |
-| Dashboards from structured Base/Project data | `lark-base` | `dashboards` |
-| Personal reminders and lightweight follow-up | `lark-task` | `tasklist` |
-| Sprint board, project flow, milestones | `lark-openapi-explorer` if no dedicated Project skill exists | `lark_project` |
-| Future meetings and milestones | `lark-calendar` | `calendar`, `meetings` |
-| Live meeting participation | `lark-vc-agent` | `live_meetings` |
-| Ended meeting notes and transcripts | `lark-vc`, `lark-minutes` | `meetings`, `minutes` |
-| Project chat and notifications | `lark-im` | `im_chat` |
-| Formal external or email handoff | `lark-mail` | `mail_threads` |
-| Files, exports, attachments | `lark-drive` | `drive_folder`, `drive_folders` |
-| Architecture, flow, ER, sequence, class, use-case diagrams | `lark-whiteboard`, `lark-uml:*` | `whiteboards` |
-| Lightweight tables | `lark-sheets` | `sheets` |
-| Formal gates | `lark-approval` | `approvals` |
-| Objectives and measurable project outcomes | `lark-okr` | `okrs` |
-| Published static prototype or app | `lark-apps` | `apps` |
-| Markdown source docs | `lark-markdown` | `markdown_files` |
-| Slides and presentation handoff | `lark-slides`, `lark-uml:ppt` | `slides` |
-| Workflow summaries | `lark-workflow-meeting-summary`, `lark-workflow-standup-report` | `workflow_reports` |
-| Status automation, notifications, webhooks | `lark-base` workflow or `lark-openapi-explorer` | `workflow_automations` |
-| Real-time Lark events | `lark-event` | `event_subscriptions` |
-| Attendance/compliance evidence | `lark-attendance` | `attendance_records` |
-| Missing native API capability | `lark-openapi-explorer` | `native_openapi` |
-| Repeated custom Lark operation | `lark-skill-maker` | `custom_lark_skills` |
-| Owner and attendee IDs | `lark-contact` | resource owners |
-
-Core component boundaries:
-
-| Component | Use for | NEVER use for |
-|---|---|---|
-| Doc | PRD, technical plan, architecture narrative, meeting notes, design discussion | SDLC state machine, issue tracking, dashboard data |
-| Base | Requirement records, feature task table, Sprint data, bugs, releases, risks, traceability, dashboard source data | Long-form discussion or prose-only knowledge |
-| Tasks | Personal or small-team reminders | Feature delivery state, complex SDLC model, sprint source of truth |
-| Project | Sprint board, milestone flow, workflow-driven project progress | Knowledge archive or loose discussion |
-| Wiki | Long-term architecture/API/process archive | Active issue state or transient execution |
-| Workflow | Status transitions, approval glue, notifications, webhooks | Hidden business state or undocumented side effects |
-| Dashboard | Project health, sprint, risk, release, and quality visibility | Manual Doc summaries without structured backing data |
+| When | Load |
+|---|---|
+| `.lark.json` schema | `references/lark-index-contract.md` |
+| Evidence / capture checklist | `references/evidence-checklist.md` |
+| Trigger phrases and activation | [`modules/triggers.md`](modules/triggers.md) |
+| Full/update/task_base contracts | [`modules/workspace.md`](modules/workspace.md) |
+| PRD still missing | `arc:define` |
+| Local large-task planning | `arc:sdlc` (Lark tables do not replace local task docs) |
+| No `.lark.json` and no trigger | stop Lark work |
 
 ## Context Search
 
@@ -156,12 +42,8 @@ Core component boundaries:
 - If `.lark.json` exists, MUST use its indexed Lark addresses before searching or changing remote Lark resources.
 - If `.lark.json` is absent and no explicit project-space request or existing Lark project link exists, Lark is inactive.
 
-## Announce
 
-Begin by stating clearly:
-"I am using `arc:docs` to initialize or maintain the Lark project workspace and `.lark.json` index."
-
-## The Iron Law
+## Red Lines
 
 ```text
 NO LARK PROJECT RESOURCE WITHOUT .lark.json.
@@ -308,12 +190,6 @@ Use `tasklist` only for personal reminders; it cannot replace `task_base`.
 - Thesis-support claims trace to code, SQL, routes, tests, config, or explicit source docs.
 - Every selected Lark tool has a lifecycle reason; unused "nice to have" resources are omitted.
 
-## Expert Standards
-
-- Treat the workspace as `Information Architecture`: one project home, stable hierarchy, clear ownership.
-- Maintain a `Traceability Matrix` across requirements, code, tests, risks, tasks, meetings, and handoffs when the project is non-trivial.
-- Use Lark as collaboration infrastructure: Doc for narrative, Base for structured SDLC data, Project for flow, Dashboard for visibility, Task for execution, Wiki for archive, Workflow for glue, Calendar/VC/Minutes for meetings, IM/Mail for communication, Drive for files, Whiteboard for diagrams, Approval for gates.
-- Keep `.lark.json` small, reviewable, and machine-readable.
 
 ## Scripts & Commands
 

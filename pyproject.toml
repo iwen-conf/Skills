@@ -39,6 +39,7 @@ files = [
     "src/arc_core",
     "tests/test_skill_validation.py",
     "tests/test_skill_registry.py",
+    "tests/test_triggers.py",
 ]
 warn_unused_configs = true
 

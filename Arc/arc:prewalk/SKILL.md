@@ -1,16 +1,12 @@
 ---
 name: arc:prewalk
-version: 0.2.0
-description: "Same-session multi-model routing: frontier recon+todo+first edit, then executor inherits trajectory."
-enforce_arc_profile: true
-expert_keywords:
-  - Prewalk
-  - Trajectory Handoff
-  - First-Edit Swap
-  - O(reads)
-  - Todo Steering
+version: 1.0.0
+description: >
+  Routes same-session work from a frontier Guide to a cheaper Executor after recon, a
+  bounded todo, and the first production edit. Use when the user asks for prewalk, 省token,
+  多模型, Guide/Executor swap, or same-session cost routing. Not for cold plan-postcard
+  handoff across a new session.
 ---
-
 # arc:prewalk
 
 ## Overview
@@ -27,14 +23,15 @@ Full contract: [`references/prewalk.md`](references/prewalk.md) (same text as mo
 - **Quality Gate**: Executor never cold-starts from a plan postcard; trajectory + todo survive the swap; planning-only instruction is pruned.
 - **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
 
-## Routing Matrix
+## Intent Router
 
-- Use `arc:clarify` if scope or acceptance criteria are unclear.
-- Use `arc:sdlc` first for large, multi-step, cross-module, or tracked work so progress tables exist **before** code edits.
-- Use parent execution skills for the actual domain work: `arc:build`, `arc:fix`, `arc:frontend`.
-- Use `arc:arch` before backend production edits when those skills require it.
-- Use oneshot Guide (no swap) when the task is tiny, the runtime cannot swap models, or swap would cost more than finishing on Guide.
-- NEVER default to “Guide writes plan.md only → new cheap session reads plan.md”.
+| When | Load |
+|---|---|
+| Same-session Guide→Executor routing | [`references/prewalk.md`](references/prewalk.md) |
+| Unclear scope | `arc:clarify` |
+| Large tracked work first | `arc:sdlc` |
+| Domain implementation | parent `arc:build` / `arc:fix` / `arc:frontend` |
+| Runtime cannot swap models | oneshot Guide, no fake plan-postcard |
 
 ## Context Search
 
@@ -42,12 +39,8 @@ Full contract: [`references/prewalk.md`](references/prewalk.md) (same text as mo
 - MUST NOT force the Executor to re-read the entire Guide corpus “to catch up” if the trajectory already contains those tool results.
 - If task docs exist, MUST read the active subtask and `进度跟踪表.md` during Guide, then keep them updated after swap.
 
-## Announce
 
-Begin by stating clearly:
-"I am using `arc:prewalk`: Guide explores, writes todos, lands the first production edit, then Executor inherits the trajectory."
-
-## The Iron Law
+## Red Lines
 
 ```text
 NO PLAN-POSTCARD HANDOFF AS THE DEFAULT COST OPTIMIZATION.
@@ -56,6 +49,8 @@ NO CONTEXT WIPE AT SWAP.
 NO PLANNING INSTRUCTION LEFT IN EXECUTOR CONTEXT.
 NO CLAIM OF "SAVED MONEY" IF FRONTIER STILL PAID TO READ EVERYTHING AND EXECUTOR RE-READ IT COLD.
 ```
+
+First-Edit Swap: Guide orients, writes a bounded todo, lands the first **production code** edit, then Executor inherits the same trajectory. Docs-only or progress-table-only edits do not count.
 
 ## Hard Constraints
 
@@ -93,13 +88,6 @@ NO CLAIM OF "SAVED MONEY" IF FRONTIER STILL PAID TO READ EVERYTHING AND EXECUTOR
 - Tracked work still has non-stale `进度跟踪表.md` / subtask `状态`.
 - No silent double-read tax: Guide did not dump a plan for a cold Executor to re-ingest as the primary memory.
 
-## Expert Standards
-
-- **Prewalk** beats plan-then-execute for cost and often for pass rate when the expensive part is reading.
-- **Trajectory Handoff** transfers understanding; prose plans transfer a summary only.
-- **First-Edit Swap** is the confidence gate: the Guide has already committed a valid move.
-- Agent spend is dominated by **O(reads)**; optimize who pays for reads after orientation.
-- **Todo Steering** keeps small Executors on rails when they forget long-horizon plans.
 
 ## Scripts & Commands
 
