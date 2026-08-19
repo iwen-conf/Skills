@@ -21,6 +21,13 @@ tags:
 
 ---
 
+## Evidence Gate
+
+For compile-error resolution or performance optimization, MUST load the evidence-first root-cause repair
+gate in [`docs/execution-truth.md`](../../docs/execution-truth.md). Preserve the exact build error or
+measured baseline, verify the target SDK/toolchain and owning language or component boundary, and do
+not use casts, compatibility shims, or syntax-only rewrites to hide an unconfirmed cause.
+
 ## Overview
 
 ArkTS is the default development language for OpenHarmony applications. It builds

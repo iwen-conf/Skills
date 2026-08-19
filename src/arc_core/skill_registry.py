@@ -78,10 +78,23 @@ def validate_registry(document: RegistryDocument, root: Path) -> list[str]:
 
 def write_registry(root: Path, output_path: Path | None = None) -> Path:
     registry = build_registry(root)
+    target = output_path or (root / "skills.index.json")
+    if target.exists():
+        try:
+            previous = json.loads(target.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            previous = None
+        if isinstance(previous, dict):
+            previous_payload = dict(previous)
+            previous_payload.pop("generated_at", None)
+            current_payload = dict(registry)
+            current_payload.pop("generated_at", None)
+            if previous_payload == current_payload and isinstance(previous.get("generated_at"), str):
+                registry["generated_at"] = previous["generated_at"]
+
     errors = validate_registry(registry, root)
     if errors:
         raise ValueError("; ".join(errors))
-    target = output_path or (root / "skills.index.json")
     target.write_text(json.dumps(registry, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return target
 

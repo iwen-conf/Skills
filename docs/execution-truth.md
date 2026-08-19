@@ -52,7 +52,45 @@ When `arc:arch` / `arc:fix` apply:
 4. No domain/application workflow dumped into `domain/services` when it belongs in `usecase`.
 5. No paper-over: changing tests only, swallowing errors, or documenting aspirational behavior as shipped.
 
-## 6. Downstream task authoring (cheap executors)
+## 6. Evidence-first root-cause repair
+
+This gate applies whenever a request diagnoses a suspected bug, regression, incident,
+security finding, performance problem, or asks for an optimization justified by a failure.
+The signal is not the defect; it is only a reason to investigate.
+
+1. **Confirm the claim first.** State the observed behavior, expected behavior, data, and
+   environment/branch surface. Reproduce it or preserve concrete evidence (logs, test output,
+   traces, screenshots, or a contract mismatch). If the issue cannot be confirmed, do not edit
+   production behavior; report the evidence gap or continue with read-only investigation.
+2. **Separate facts from hypotheses.** Record the exact failure and each hypothesis. Do not
+   turn a plausible explanation, scanner warning, flaky test, or user suspicion into a confirmed
+   defect without a check that could disprove it.
+3. **Trace architecture before patching.** Map the owning boundary, control/data flow,
+   state transitions, dependency direction, and shared invariants. Then compare that model with
+   the current business contract, user-visible semantics, and domain rules. Architecture is the
+   search order; the business contract determines what is correct.
+4. **Name the root cause and affected siblings.** Distinguish the cause from its symptom,
+   identify other call sites or flows governed by the same boundary, and state why the proposed
+   change will not silently leave the same defect elsewhere.
+5. **Plan the smallest complete fix.** Change the owning layer and shared contract when the
+   evidence requires it. A small diff is not a valid fix if it leaves the cause, adds a retry or
+   compatibility shim, weakens an assertion, or hides an error. Do not broaden the change for
+   hypothetical problems that have no evidence.
+6. **Implement only a confirmed repair.** If the issue or root cause remains unconfirmed,
+   do not change production behavior or claim a fix. Bounded, behavior-preserving logs, traces,
+   or reproducer coverage may be added only to collect the missing evidence; label that work as
+   investigation, then report the remaining blocker instead of using a speculative workaround
+   to make a check green.
+7. **Verify the original path and sibling risk.** Re-run the reproducer or equivalent check,
+   then test the affected invariant and the most relevant analogous paths. Preserve the
+   verification evidence and state residual uncertainty explicitly.
+
+### Required repair packet
+
+`Observed → Expected → Surface → Evidence → Hypothesis → Root cause → Affected siblings →
+Complete fix boundary → Verification → Residual risk`.
+
+## 7. Downstream task authoring (cheap executors)
 
 When writing tasks for a lower-capability model:
 

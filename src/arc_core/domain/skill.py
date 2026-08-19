@@ -12,6 +12,34 @@ DESCRIPTION_MIN_CHARS = 80
 DESCRIPTION_MAX_CHARS = 1024
 INTENT_ROUTER_MIN_ROWS = 2
 
+# These entrypoints explicitly advertise diagnosis, repair, or failure-driven
+# optimization. They must load the repository-wide evidence-first repair gate
+# instead of re-inventing a weaker local version of it.
+ROOT_CAUSE_GATED_SKILLS = frozenset(
+    {
+        "android-intent-security",
+        "arkts-syntax-assistant",
+        "arc:arch",
+        "arc:audit",
+        "arc:build",
+        "arc:fix",
+        "arc:frontend",
+        "arc:security",
+        "arc:test",
+        "arc:trace",
+        "cnb-code-commit",
+        "cnb-code-review",
+        "cnb-pipeline",
+        "edge-to-edge",
+        "engage-sdk-integration",
+        "harmonyos-development",
+        "perfetto-trace-analysis",
+        "r8-analyzer",
+    }
+)
+ROOT_CAUSE_GATE_REFERENCE = "execution-truth.md"
+ROOT_CAUSE_GATE_HEADING = "root-cause repair"
+
 REQUIRED_HEADINGS = [
     "## Intent Router",
     "## Red Lines",
@@ -32,6 +60,7 @@ SUPPORTED_SKILL_PREFIXES = ("arc:", "lark-", "wxskills:")
 SKILL_NAMESPACE_DIRS = {
     "arc": "Arc",
 }
+VERTICAL_SKILL_ROOTS = ("Android", "HarmonyOS", "CNB", "Lark")
 
 LEGACY_TOKEN_PARTS = [
     ("Ta", "sk("),

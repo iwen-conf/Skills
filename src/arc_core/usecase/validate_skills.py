@@ -1,8 +1,10 @@
 from __future__ import annotations
+import re
 from pathlib import Path
-from ..domain.validation import validate_text
+from ..domain.validation import validate_root_cause_gate, validate_text
 from ..infrastructure.markdown import parse_frontmatter
-from ..domain.skill import is_arc_skill, get_namespace_dir
+from ..domain.skill import VERTICAL_SKILL_ROOTS, is_arc_skill, get_namespace_dir
+from ..domain.engineering import validate_line_budget, validate_relative_links
 from ..domain.triggers import load_trigger_corpus
 
 def validate_file(path: Path, root: Path | None = None) -> tuple[list[str], list[str]]:
@@ -56,6 +58,20 @@ def validate_repo_policies(root: Path) -> list[str]:
             errors.append(f"trigger corpus {name} needs at least 8 positive utterances")
         if len(negatives) < 3:
             errors.append(f"trigger corpus {name} needs at least 3 negative utterances")
+
+    seen_names: dict[str, Path] = {}
+    for path in [*collect_skill_files(root), *collect_vertical_skill_files(root)]:
+        frontmatter, error = parse_frontmatter(path.read_text(encoding="utf-8"))
+        if error:
+            continue
+        name = str(frontmatter.get("name", "") or "")
+        if not name:
+            continue
+        previous = seen_names.get(name)
+        if previous is not None:
+            errors.append(f"duplicate skill name {name}: {previous} and {path}")
+        else:
+            seen_names[name] = path
     return errors
 
 def collect_skill_files(root: Path) -> list[Path]:
@@ -70,6 +86,40 @@ def collect_skill_files(root: Path) -> list[Path]:
         if is_arc_skill(skill_name):
             collected.append(path)
     return collected
+
+
+def collect_vertical_skill_files(root: Path) -> list[Path]:
+    """Collect bundled vertical entrypoints without applying the Arc router contract."""
+    files: list[Path] = []
+    for directory in VERTICAL_SKILL_ROOTS:
+        search_root = root / directory
+        if not search_root.is_dir():
+            continue
+        files.extend(sorted(path for path in search_root.glob("*/SKILL.md") if path.is_file()))
+    return files
+
+
+def validate_vertical_skill_files(root: Path) -> list[str]:
+    errors: list[str] = []
+    for path in collect_vertical_skill_files(root):
+        label = str(path)
+        text = path.read_text(encoding="utf-8")
+        frontmatter, error = parse_frontmatter(text)
+        if error:
+            errors.append(f"{label}: {error}")
+            continue
+        name = str(frontmatter.get("name", "") or "")
+        description = str(frontmatter.get("description", "") or "")
+        if not name:
+            errors.append(f"{label}: missing frontmatter name")
+        elif not re.fullmatch(r"[a-z0-9-]+", name):
+            errors.append(f"{label}: vertical skill name contains unsupported characters")
+        if not description:
+            errors.append(f"{label}: missing frontmatter description")
+        errors.extend(validate_root_cause_gate(text, name, label))
+        errors.extend(validate_line_budget(text, label, is_skill_md=True))
+        errors.extend(validate_relative_links(text, label, path.parent))
+    return errors
 
 def find_skill_file(root: Path, skill_name: str) -> Path | None:
     namespace_dir = get_namespace_dir(skill_name)
@@ -97,10 +147,12 @@ def find_skill_file(root: Path, skill_name: str) -> Path | None:
 
 def run_validation(root: Path) -> tuple[list[str], list[str], int]:
     skill_files = collect_skill_files(root)
+    vertical_skill_files = collect_vertical_skill_files(root)
     all_errors: list[str] = validate_repo_policies(root)
+    all_errors.extend(validate_vertical_skill_files(root))
     all_warnings: list[str] = []
     for path in skill_files:
         errors, warnings = validate_file(path, root=root)
         all_errors.extend(errors)
         all_warnings.extend(warnings)
-    return all_errors, all_warnings, len(skill_files)
+    return all_errors, all_warnings, len(skill_files) + len(vertical_skill_files)

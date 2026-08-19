@@ -37,10 +37,17 @@ For new backend modules, use this architecture by default. For existing reposito
 | Large tracked change | `arc:sdlc` then this skill |
 | Comments | `arc:comment` |
 
+## Context Search
+
+- MUST load the **Evidence-first root-cause repair** section in [`docs/execution-truth.md`](../../docs/execution-truth.md) when reviewing or changing a suspected defect, regression, or performance issue.
+- MUST inspect the host repository before proposing an architectural change: package layout, constructors, contracts, DTOs, tests, and dependency direction.
+
 ## Red Lines
 
 ```text
 NO INFRASTRUCTURE INSIDE BUSINESS POLICY.
+NO ARCHITECTURE CHANGE FOR AN UNCONFIRMED FAILURE.
+TRACE OWNERSHIP AND INVARIANTS BEFORE PROPOSING A PATCH.
 NO THIRD PRIVATE FUNC IN ONE GO FILE — SPLIT TO <name>_helpers.go.
 NO DOMAIN/GATEWAYS PACKAGE.
 NO ENTITY ToDTO / ToResponse.
@@ -53,6 +60,8 @@ NO PONETAIL SILENCE — REPORT ABSENCE OR CONFLICT.
 - MUST create a sibling `<original>_helpers.go` when an original file reaches two private functions.
 - MUST NOT use `var _ Interface = (*Struct)(nil)`; return the interface from the constructor.
 - MUST apply [`docs/execution-truth.md`](../../docs/execution-truth.md) when identity keys, env/branch surface, or paper-over risks appear.
+- MUST separate an architectural hypothesis from the business contract: trace the owning boundary first, then confirm the proposed behavior against real domain rules and user-visible semantics before changing code.
+- MUST identify analogous call sites governed by the same boundary before declaring a localized change complete.
 
 ## Architecture Preflight
 

@@ -4,7 +4,7 @@ import yaml  # type: ignore[import-untyped]
 from typing import Any
 from ..domain.skill import SkillDocument, QUICK_CONTRACT_KEY_MAP, INPUT_ARGUMENT_HEADER_MAP
 
-MARKDOWN_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
+MARKDOWN_LINK_OR_IMAGE_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
 
 def parse_frontmatter(text: str) -> tuple[dict[str, Any], str | None]:
     if not text.startswith("---\n"):
@@ -70,7 +70,7 @@ def _parse_pipe_row(line: str) -> list[str]:
 
 def _strip_inline_code(text: str) -> str:
     value = text.strip()
-    if value.startswith("`") and value.endswith("`") and len(value) >= 2:
+    if value.startswith("`") and value.endswith("`") and value.count("`") == 2 and len(value) >= 2:
         return value[1:-1]
     return value
 
@@ -139,9 +139,10 @@ def parse_intent_router(body: str) -> list[dict[str, str]] | None:
 
 def extract_relative_links(text: str) -> list[str]:
     stripped = re.sub(r"```.*?```", "", text, flags=re.S)
+    stripped = re.sub(r"`[^`\n]*`", "", stripped)
     links: list[str] = []
     seen: set[str] = set()
-    for raw in MARKDOWN_LINK_RE.findall(stripped):
+    for raw in MARKDOWN_LINK_OR_IMAGE_RE.findall(stripped):
         target = raw.split()[0].strip("<>")
         target = target.split("#", 1)[0]
         if not target or target.startswith(("#", "http://", "https://", "mailto:")):

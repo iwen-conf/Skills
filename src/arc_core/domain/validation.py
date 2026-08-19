@@ -4,6 +4,9 @@ from pathlib import Path
 from ..domain.skill import (
     BANNED_FRONTMATTER_KEYS,
     BANNED_TOKENS,
+    ROOT_CAUSE_GATE_HEADING,
+    ROOT_CAUSE_GATE_REFERENCE,
+    ROOT_CAUSE_GATED_SKILLS,
     REQUIRED_HEADINGS,
     is_supported_skill,
 )
@@ -20,6 +23,18 @@ from ..infrastructure.markdown import parse_frontmatter, build_skill_document, f
 from ..infrastructure.schema import validate_skill_schema
 
 SEMVER_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+
+
+def validate_root_cause_gate(text: str, skill_name: str, path_label: str) -> list[str]:
+    if skill_name not in ROOT_CAUSE_GATED_SKILLS:
+        return []
+    normalized_text = text.lower()
+    if ROOT_CAUSE_GATE_REFERENCE in normalized_text and ROOT_CAUSE_GATE_HEADING in normalized_text:
+        return []
+    return [
+        f"{path_label}: diagnosis/repair skills must load the evidence-first root-cause repair gate in "
+        "docs/execution-truth.md"
+    ]
 
 
 def validate_text(
@@ -71,6 +86,9 @@ def validate_text(
     skill_name = str(fm.get("name", "") or "")
     if root is not None and skill_path is not None and skill_name:
         errors.extend(validate_trigger_terms(description, skill_name, path_label, root))
+
+    if root is not None and skill_path is not None:
+        errors.extend(validate_root_cause_gate(text, skill_name, path_label))
 
     for heading in REQUIRED_HEADINGS:
         if heading not in text:

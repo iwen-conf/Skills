@@ -27,7 +27,7 @@ def main() -> int:
         print("Skill validation warnings:")
         for item in warnings:
             print(f"- {item}")
-    print(f"Skill validation passed for {count} files.")
+    print(f"Skill validation passed for {count} skill entrypoints.")
     return 0
 
 

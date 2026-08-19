@@ -37,10 +37,11 @@ Read:
 | Tool catalog | [`references/security-tooling.md`](references/security-tooling.md) |
 | Read-only AppSec methodology | `arc:audit` |
 | Multi-finding remediation plan | `arc:sdlc` |
-| Repair a confirmed finding | `arc:fix` / `arc:build` |
+| Repair a confirmed finding | `arc:fix` / `arc:build` + [`docs/execution-truth.md`](../../docs/execution-truth.md) |
 
 ## Context Search
 
+- MUST load the **Evidence-first root-cause repair** section in [`docs/execution-truth.md`](../../docs/execution-truth.md) before routing a scanner finding to code changes.
 - MUST inspect project type, package managers, API specs, Docker files, auth boundaries, and existing security tooling before scanning.
 - MUST build or reuse a minimal asset snapshot (entrypoints, OpenAPI, auth boundaries, config/secrets paths) before mass scanning when practical—do not start with unscoped AI monologues.
 - MUST use `arc-idx search` first for broad repository context when available.
@@ -52,6 +53,8 @@ Read:
 
 ```text
 NO SECURITY CLAIM WITHOUT EVIDENCE.
+NO CODE FIX FROM A SCANNER SIGNAL BEFORE REACHABILITY AND ROOT CAUSE ARE CONFIRMED.
+NO PATCH THAT ONLY HIDES A FINDING OR WEAKENS A SECURITY ASSERTION.
 NO MULTI-FINDING REMEDIATION PLAN WITHOUT CURRENT LOCAL TASK DOCS.
 NO ACTIVE DAST AGAINST A TARGET WITHOUT AUTHORIZATION.
 NO CLOUD SCAN OR PAID SERVICE WITHOUT USER CONFIRMATION.
@@ -67,6 +70,8 @@ NO FINAL SEVERITY FROM SCANNER SCORE ALONE—RE-RANK BY DATA YIELD AND REACHABIL
 - MUST redact tokens, cookies, private keys, passwords, and internal secrets from final chat output.
 - MUST preserve raw scanner artifacts locally and summarize findings in Markdown/HTML/JSON.
 - MUST separate confirmed findings, tool warnings, skipped checks, and manual-test gaps.
+- MUST treat scanner findings as hypotheses until reachability, permission context, affected business/data boundary, and root cause are confirmed; route only confirmed repairs to `arc:fix` / `arc:build`.
+- MUST inspect analogous endpoints or shared security boundaries before limiting a confirmed fix to one finding location.
 - MUST re-rank findings using [`references/data-value-ranking.md`](references/data-value-ranking.md) before remediation planning.
 - MUST apply `arc:sdlc` before generating multi-finding remediation plans or code-changing security work; task docs must be generated from the latest project state and updated immediately when findings, reachability, affected files, scope, assumptions, or status change.
 - MUST route all Lark writes through `arc:docs`.

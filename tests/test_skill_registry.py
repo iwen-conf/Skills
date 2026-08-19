@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from arc_core.artifact_manifest import validate_manifest
@@ -46,6 +47,31 @@ def test_validate_registry_accepts_generated_registry() -> None:
         "arc:arch",
         "arc:sdlc",
     }
+
+
+def test_write_registry_preserves_timestamp_when_content_is_unchanged(tmp_path: Path) -> None:
+    target = tmp_path / "skills.index.json"
+    first = write_registry(ROOT, output_path=target)
+    first_generated_at = json.loads(first.read_text(encoding="utf-8"))["generated_at"]
+
+    second = write_registry(ROOT, output_path=target)
+    second_generated_at = json.loads(second.read_text(encoding="utf-8"))["generated_at"]
+
+    assert second_generated_at == first_generated_at
+
+
+def test_write_registry_refreshes_timestamp_when_content_changes(tmp_path: Path) -> None:
+    target = tmp_path / "skills.index.json"
+    stale = build_registry(ROOT)
+    stale["generated_at"] = "2000-01-01T00:00:00Z"
+    stale["skills"][0]["description"] = "stale generated content"
+    target.write_text(json.dumps(stale), encoding="utf-8")
+
+    refreshed = write_registry(ROOT, output_path=target)
+    document = json.loads(refreshed.read_text(encoding="utf-8"))
+
+    assert document["generated_at"] != "2000-01-01T00:00:00Z"
+    assert document["skills"][0]["description"] != "stale generated content"
 
 
 def test_collect_skill_files_indexes_only_arc_namespaced_skills() -> None:

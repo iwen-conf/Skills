@@ -43,7 +43,7 @@ Temporary Items
 
 .arc/
 
-# Host-local skill discovery links (SSOT is Android/ HarmonyOS/ CNB/ Arc/)
+# Host-local skill discovery links (SSOT is Android/ HarmonyOS/ CNB/ Lark/ Arc/)
 .agents/
 .claude/
 .codex/

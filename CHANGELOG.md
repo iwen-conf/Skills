@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add one evidence-first root-cause repair gate: confirm the issue before changing production behavior, allow only bounded evidence instrumentation while unconfirmed, trace the owning architecture and shared invariants, compare the real business contract, implement the smallest complete fix, and verify analogous paths.
+- Require repair-capable Arc and vertical entrypoints to load that gate; preserve multi-inline-code router values during index generation.
+- Enforce the 500-line progressive-disclosure budget and relative-link checks for bundled Android, HarmonyOS, CNB, and Lark entrypoints without forcing Arc frontmatter on them.
+- Split the oversized HarmonyOS and Android Intent Security entrypoints into concise routers while preserving their complete guides under `references/`.
+- Keep `skills.index.json.generated_at` stable when generated content has not changed, avoiding timestamp-only worktree and commit noise.
+
 ## 1.0.0 — 2026-08-17
 
 Breaking Skill engineering upgrade. No historical compatibility.

@@ -15,3 +15,5 @@ Lean Arc keeps software engineering lifecycle skills:
 - `arc:sdlc` — 跨会话任务文档与进度；安全来源时按 finding 写细子任务（见 security-audit-task-pipeline）；同会话成本路由走 `arc:prewalk`，不是 plan 冷启动
 
 Repository search and code context discovery use `arc:idx` plus the local `.ai-code-index/` helpers backed by Zoekt, ast-grep, Universal Ctags, and Rust/Go helper CLIs. Lark resources are optional: existing Lark projects live in each project root’s `.lark.json`, and new Lark resources are created only after an explicit trigger or confirmation. Coordination, Inbox, and cross-agent state are handled by `aitask`. Multi-model cost routing inside one session follows [`docs/prewalk.md`](../docs/prewalk.md).
+
+Any Arc or vertical skill that diagnoses a suspected defect, regression, performance problem, or security finding must load the repository-wide [evidence-first root-cause repair gate](../docs/execution-truth.md#6-evidence-first-root-cause-repair). A signal is not proof: confirm the issue, trace architecture ownership and shared invariants, compare with the business contract, then apply and verify only a complete root-cause fix.

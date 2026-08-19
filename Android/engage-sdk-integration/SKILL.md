@@ -19,6 +19,11 @@ This skill guides you through integrating the Play Engage SDK into an Android
 app. It ensures that the code follows the mandatory structure and uses the
 required Engage entities for each vertical.
 
+For debugging or repair work, MUST load the evidence-first root-cause repair gate in
+[`docs/execution-truth.md`](../../docs/execution-truth.md). Preserve the exact Gradle/build/runtime
+error, SDK version, vertical, cluster, build variant, and manifest surface; do not regenerate the
+integration or add retries until the failing contract and owning boundary are confirmed.
+
 ## Workflow
 
 Follow these steps to assist the developer:
@@ -68,9 +73,11 @@ Follow these steps to assist the developer:
 6. **Debugging:**
 
    - Perform a Gradle sync.
+   - Confirm the original error and trace it through the generated code, schema, dependency,
+     manifest, and publishing contract before editing.
    - If errors occur, follow this resolution order:
      - Fix import errors. For package `com.google.android.engage` or classes starting with `AppEngage`, verify the package name in the `{VERTICAL}.md` in **[references/schemas/](references/schemas)** directory or [common.md](references/common.md).
-     - Fix any other errors.
+     - For any other error, preserve the output, confirm its root cause, and repair the owning boundary rather than applying a compile-only workaround.
    - Execute a full Gradle build and resolve any remaining compilation issues. Repeat this step until the Gradle build is successful.
 7. **User Checklist:**
    At the end of code generation, notify the user to go through this checklist

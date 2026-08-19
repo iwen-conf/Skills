@@ -29,11 +29,13 @@ description: >
 | Unclear scope | `arc:clarify` |
 | Large tracked frontend work | `arc:sdlc` |
 | Same-session multi-model routing | `arc:prewalk` |
+| UI bug or performance diagnosis | [`docs/execution-truth.md`](../../docs/execution-truth.md) + `arc:fix` |
 | Backend/API only | `arc:build` + `arc:arch` |
 | Lark-active page progress | `arc:docs` |
 
 ## Context Search
 
+- MUST load the **Evidence-first root-cause repair** section in [`docs/execution-truth.md`](../../docs/execution-truth.md) before changing behavior to address a UI bug, regression, or performance claim.
 - MUST inspect existing routes, layouts, components, theme files, API clients, stores, forms, and tests before changing them.
 - MUST use `arc-idx search` first; use `arc-idx ast --lang tsx` for React patterns.
 - If `.lark.json` exists, MUST read it before major frontend decisions.
@@ -43,6 +45,8 @@ description: >
 
 ```text
 NO FRONTEND CHANGE WITHOUT USER WORKFLOW.
+NO UI REPAIR BEFORE THE REPORTED FAILURE IS CONFIRMED.
+NO CSS OR STATE PATCH THAT HIDES A SHARED CONTRACT OR ARCHITECTURE CAUSE.
 NO LARGE FRONTEND CHANGE WITHOUT CURRENT LOCAL TASK DOCS.
 NO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF.
 NO UI DELIVERY WITHOUT DESIGN TOKENS, RESPONSIVE CONSTRAINTS, AND VERIFICATION.
@@ -72,6 +76,8 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 - MUST model `RBAC` at route and action level when roles or permissions exist.
 - MUST use project-native data/form/state patterns before introducing new libraries.
 - MUST persist frontend debugging evidence to local files when investigating runnable UI bugs: browser console output, network failures, runtime errors, screenshots, and relevant reproduction notes should go under `.arc/artifacts/<task>/logs/` or `tmp/logs/`.
+- MUST trace the owning UI/data/state boundary first, then confirm the expected business and user-visible semantics before editing a suspected defect; inspect analogous routes/components sharing that boundary.
+- MUST route unconfirmed UI failures to read-only investigation or `arc:fix` rather than applying speculative style/state workarounds.
 - MUST remove temporary `console.log`, `debugger`, alert-based probes, and noisy instrumentation before completion, or convert them into the project's level-gated logger/telemetry pattern.
 - MUST verify build/typecheck/lint/tests or report the blocker.
 - MUST route all Lark progress, whiteboard, screenshot, or `.lark.json` updates through `arc:docs`.

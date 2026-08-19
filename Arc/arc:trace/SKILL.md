@@ -19,12 +19,14 @@ Use this skill to add coarse performance timing to Go/Gin SSR code paths with mi
 | Add Gin SSR stage timing | this SKILL.md Workflow and helper |
 | CPU/heap/goroutine detail | `pprof` / `go tool trace`, not this skill |
 | Frontend performance | `arc:frontend` / `web-perf` |
-| Failure diagnosis beyond timing | `arc:fix` |
+| Failure diagnosis beyond timing | `arc:fix` + [`docs/execution-truth.md`](../../docs/execution-truth.md) |
 
 ## Red Lines
 
 ```text
 NO PPROF COSPLAY — THIS IS STAGE TIMING, NOT A PROFILER.
+NO TIMING-BASED OPTIMIZATION WITHOUT A REPRODUCED BASELINE.
+NO CODE PATCH FROM A SLOW-SIGNAL GUESS; CONFIRM THE BOTTLENECK AND ROOT CAUSE FIRST.
 NO fmt.Println FOR TIMING — USE log.Printf / stderr / PROJECT LOGGER.
 NO BROAD OBSERVABILITY STACK FOR A FOCUSED SSR PROBE.
 NO SECRET OR FULL PAYLOAD IN TIMING LOGS.
@@ -61,13 +63,15 @@ Escalate to `pprof` for CPU/heap detail and to `go tool trace` for goroutine sch
 
 ## Workflow
 
-1. Inspect the existing Go project before editing: router, Gin handlers, service calls, template renderer, logger convention, request ID middleware, and tests.
-2. Identify the SSR path and split it into these stages: handler entry, data fetch, view-model build, template render, and response write.
-3. Add a tiny trace helper close to the owning package unless the repo already has an observability helper package.
-4. Prefer structured output with stable keys. Use the project's logger if one exists; otherwise use `log.Printf` or `fmt.Fprintf(os.Stderr, ...)`, not plain `fmt.Println`.
-5. Include a request ID when available. If the project has no request ID, add Gin middleware only when that is inside the task scope.
-6. Keep probes temporary or clearly scoped. Avoid broad refactors, new metrics stacks, or pprof setup unless the user asks.
-7. Run focused tests or a local request when possible, then explain where the logs appear and how to interpret them.
+1. Load the **Evidence-first root-cause repair** section in [`docs/execution-truth.md`](../../docs/execution-truth.md) and capture a reproducible latency signal or baseline before editing.
+2. Inspect the existing Go project before editing: router, Gin handlers, service calls, template renderer, logger convention, request ID middleware, and tests.
+3. Identify the SSR path and split it into these stages: handler entry, data fetch, view-model build, template render, and response write.
+4. Confirm the owning stage and business latency target before changing code; if the bottleneck is not confirmed, keep the work observational.
+5. Add a tiny trace helper close to the owning package unless the repo already has an observability helper package.
+6. Prefer structured output with stable keys. Use the project's logger if one exists; otherwise use `log.Printf` or `fmt.Fprintf(os.Stderr, ...)`, not plain `fmt.Println`.
+7. Include a request ID when available. If the project has no request ID, add Gin middleware only when that is inside the task scope.
+8. Keep probes temporary or clearly scoped. Avoid broad refactors, new metrics stacks, or pprof setup unless the user asks.
+9. Run focused tests or a local request when possible, compare the baseline, then explain where the logs appear and how to interpret them.
 
 ## Minimal Trace Helper
 

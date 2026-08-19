@@ -29,6 +29,9 @@ exclude = [
     ".arc",
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"src/arc_core/skill_validation.py" = ["F403"]
+
 [tool.mypy]
 python_version = "3.12"
 mypy_path = "$MYPY_CONFIG_FILE_DIR/src"

@@ -25,7 +25,8 @@ description: >
 | When | Load |
 |---|---|
 | Failure with evidence | this SKILL.md Workflow |
-| No failure evidence, new feature | `arc:build` |
+| Suspected issue without evidence | `arc:audit` / `arc:clarify`; no repair edit |
+| Confirmed failure requiring repair | this SKILL.md Workflow |
 | Unclear acceptance | `arc:clarify` |
 | Same-session multi-model routing | `arc:prewalk` |
 | Large repair campaign | `arc:sdlc` |
@@ -34,6 +35,7 @@ description: >
 
 ## Context Search
 
+- MUST load the **Evidence-first root-cause repair** section in [`docs/execution-truth.md`](../../docs/execution-truth.md) before diagnosing or editing.
 - MUST inspect the failure signal before editing.
 - MUST use `arc-idx search` first for related code paths and tests.
 - MUST use exact search for error strings, stack frames, logs, and config keys.
@@ -43,7 +45,10 @@ description: >
 ## Red Lines
 
 ```text
-NO FIX WITHOUT ROOT CAUSE OR EXPLICIT UNCERTAINTY.
+NO BEHAVIORAL REPAIR BEFORE THE FAILURE IS CONFIRMED.
+NO FIX WHILE THE ROOT CAUSE IS ONLY A HYPOTHESIS.
+NO SYMPTOM PATCH, RETRY, COMPATIBILITY SHIM, OR WEAKENED ASSERTION AS A REPAIR.
+ARCHITECTURE TRACE FIRST, BUSINESS CONTRACT SECOND, THEN EDIT.
 NO LARGE REPAIR WITHOUT CURRENT LOCAL TASK DOCS.
 NO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF.
 NO DEBUGGING WITHOUT PERSISTED EVIDENCE WHEN LOGS CAN BE CAPTURED.
@@ -57,6 +62,10 @@ NO DIAGNOSIS ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 ## Hard Constraints
 
 - MUST preserve failure evidence.
+- MUST use the **Observed → Expected → Surface → Evidence → Hypothesis → Root cause → Affected siblings → Complete fix boundary → Verification → Residual risk** packet from [`docs/execution-truth.md`](../../docs/execution-truth.md).
+- MUST stop without a behavioral repair when the failure cannot be reproduced or the root cause cannot be confirmed; bounded behavior-preserving logs, traces, or reproducer coverage are allowed only to collect missing evidence and MUST NOT be presented as the fix.
+- MUST trace the owning architecture boundary and shared invariants before comparing the behavior with the actual business contract.
+- MUST inspect analogous call sites/flows governed by the same boundary and add focused regression coverage where the defect could recur.
 - MUST capture runnable or observable failures into local log/evidence files before large edits. Use paths such as `.arc/artifacts/<task>/logs/` or `tmp/logs/`.
 - MUST state a concrete hypothesis before significant edits.
 - MUST patch the smallest safe surface.
@@ -76,20 +85,24 @@ NO DIAGNOSIS ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 
 ## Workflow
 
-1. Capture failure, expected behavior, and reproduction path.
+1. Load the evidence-first root-cause repair gate and capture the failure, expected behavior, surface, and reproduction path.
 2. Reproduce or inspect the failing path and persist available logs, command output, browser console, network traces, screenshots, or stack traces to a local evidence file.
-3. Search the saved evidence for exact error strings, request IDs, stack frames, network failures, and config keys.
-4. Form and test a root-cause hypothesis.
-5. For large, multi-step, cross-module, or tracked repair work, apply `arc:sdlc` before code edits and keep local task status current as evidence or project state changes.
-6. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.
-7. If multi-model routing is available and useful, follow `arc:prewalk` after a grounded hypothesis: first production fix edit on Guide, then Executor inherits trajectory; otherwise oneshot.
-8. Patch the smallest safe surface.
-9. Rerun the failing check plus focused regressions, saving verification output when useful.
-10. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks.
+3. If the failure is not confirmed, stop before any behavioral repair and report the evidence gap; add only bounded behavior-preserving instrumentation or reproducer coverage when it is required to collect evidence.
+4. Search the saved evidence for exact error strings, request IDs, stack frames, network failures, and config keys.
+5. Trace architecture ownership and shared invariants, then compare them with the actual business contract and user-visible semantics.
+6. Form and test a root-cause hypothesis; name affected sibling paths and the complete fix boundary.
+7. For large, multi-step, cross-module, or tracked repair work, apply `arc:sdlc` before code edits and keep local task status current as evidence or project state changes.
+8. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.
+9. If multi-model routing is available and useful, follow `arc:prewalk` only after a grounded hypothesis: first production fix edit on Guide, then Executor inherits trajectory; otherwise oneshot.
+10. Patch the smallest **complete** safe surface; if a shared boundary is the cause, do not constrain the edit to one symptom site.
+11. Rerun the failing check plus focused regressions for analogous paths, saving verification output when useful.
+12. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with incident summary, severity, root cause, changed feature/flow, verification, task status, and follow-up tasks.
 
 ## Quality Gates
 
 - Fix targets cause, not only symptom.
+- The original issue and root cause are confirmed before a behavioral repair; an unconfirmed hypothesis is reported, not patched, and any evidence instrumentation is explicitly labeled as investigation.
+- Architecture ownership, business semantics, and analogous-path impact are explicit.
 - Large, multi-step, cross-module, or tracked repair work has current local task docs, detailed subtasks, and synchronized progress status from `arc:sdlc`.
 - Runnable failures have persisted sanitized log/evidence files, or the reason evidence could not be captured is explicit.
 - Fix preserves DIP and default backend architecture responsibilities when backend architecture applies, unless the failure is explicitly caused by migrating toward them.
@@ -123,7 +136,7 @@ Use project-native tests, logs, build commands, browser tooling, and observabili
 
 - **Preferred Trigger**: There is concrete failure evidence or reproducible broken behavior.
 - **Typical Scenario**: CI failure, runtime exception, regression, flaky path, broken flow, or incident follow-up.
-- **Boundary Tip**: If there is no failure evidence, use `arc:build`.
+- **Boundary Tip**: If there is no failure evidence, use `arc:audit` / `arc:clarify`; use `arc:build` only for an implementation-ready change that is not being presented as a repair.
 
 ## Input Arguments
 

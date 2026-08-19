@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-08-17T11:35:39.719835Z",
+  "generated_at": "2026-08-19T18:04:41.004775Z",
   "skill_count": 15,
   "skills": [
     {
@@ -8,7 +8,7 @@
       "description": "Applies the default backend architecture, DIP, layering, zap logging, Go constants, and helper limits. Use when writing backend or Go services, 架构, DIP, usecase, repository, 分层, or reviewing layering. Not for frontend stack choices.",
       "version": "1.0.0",
       "source_path": "Arc/arc:arch/SKILL.md",
-      "line_count": 113,
+      "line_count": 122,
       "intent_router": [
         {
           "When": "Any backend edit",
@@ -44,7 +44,7 @@
       "description": "Performs a read-only project health or AppSec audit (assets, data map, finding cards). Use when the user says 体检, 审计, AppSec, 只读审查, scorecard, or project audit. Not for installing scanners or editing production code.",
       "version": "1.0.0",
       "source_path": "Arc/arc:audit/SKILL.md",
-      "line_count": 195,
+      "line_count": 201,
       "intent_router": [
         {
           "When": "AppSec assets/data map/findings",
@@ -60,7 +60,11 @@
         },
         {
           "When": "Repair after handoff",
-          "Load": "arc:fix` / `arc:build"
+          "Load": "`arc:fix` / `arc:build`"
+        },
+        {
+          "When": "Root-cause evidence and repair boundary",
+          "Load": "[`docs/execution-truth.md`](../../docs/execution-truth.md)"
         },
         {
           "When": "Lark-active risks",
@@ -126,7 +130,7 @@
       "description": "Implements scoped code changes and verifies them. Use when the user says 写代码, 开发功能, 落地改动, implement a known scheme, or deliver a scoped change. Not for unknown-failure repair or requirement clarification.",
       "version": "1.0.0",
       "source_path": "Arc/arc:build/SKILL.md",
-      "line_count": 149,
+      "line_count": 158,
       "intent_router": [
         {
           "When": "Scoped implementation",
@@ -139,6 +143,10 @@
         {
           "When": "Failure/incident/failing check",
           "Load": "arc:fix"
+        },
+        {
+          "When": "Suspected bug or optimization without proof",
+          "Load": "`arc:audit` / `arc:fix`; no repair edit"
         },
         {
           "When": "Frontend/UI work",
@@ -431,7 +439,7 @@
           "parameter": "workspace_scope",
           "type": "string",
           "required": "no",
-          "description": "minimum`, `normal`, `full`, or `workspace_update"
+          "description": "`minimum`, `normal`, `full`, or `workspace_update`"
         },
         {
           "parameter": "doc_scope",
@@ -443,7 +451,7 @@
           "parameter": "progress_mode",
           "type": "enum",
           "required": "no",
-          "description": "doc`, `base`, `task`, or `none"
+          "description": "`doc`, `base`, `task`, or `none`"
         }
       ],
       "outputs_section": {
@@ -456,15 +464,19 @@
       "description": "Diagnoses and repairs failures from logs, stack traces, failing tests, or incidents. Use when the user says 报错, 修复, 故障, bug, 根因, incident, or failing test. Not for greenfield feature delivery.",
       "version": "1.0.0",
       "source_path": "Arc/arc:fix/SKILL.md",
-      "line_count": 148,
+      "line_count": 161,
       "intent_router": [
         {
           "When": "Failure with evidence",
           "Load": "this SKILL.md Workflow"
         },
         {
-          "When": "No failure evidence, new feature",
-          "Load": "arc:build"
+          "When": "Suspected issue without evidence",
+          "Load": "`arc:audit` / `arc:clarify`; no repair edit"
+        },
+        {
+          "When": "Confirmed failure requiring repair",
+          "Load": "this SKILL.md Workflow"
         },
         {
           "When": "Unclear acceptance",
@@ -530,7 +542,7 @@
       "description": "Delivers frontend and UI work on the default Web, mobile, desktop, and mini-program stacks. Use when the user says 前端, UI, 页面, React, 小程序, shadcn, Tailwind, or frontend baseline. Not for backend-only API work.",
       "version": "1.0.0",
       "source_path": "Arc/arc:frontend/SKILL.md",
-      "line_count": 159,
+      "line_count": 165,
       "intent_router": [
         {
           "When": "Stack, tokens, scaffold",
@@ -553,8 +565,12 @@
           "Load": "arc:prewalk"
         },
         {
+          "When": "UI bug or performance diagnosis",
+          "Load": "[`docs/execution-truth.md`](../../docs/execution-truth.md) + `arc:fix`"
+        },
+        {
           "When": "Backend/API only",
-          "Load": "arc:build` + `arc:arch"
+          "Load": "`arc:build` + `arc:arch`"
         },
         {
           "When": "Lark-active page progress",
@@ -626,7 +642,7 @@
         },
         {
           "When": "After discovery, implement",
-          "Load": "arc:build` / `arc:fix` / `arc:audit"
+          "Load": "`arc:build` / `arc:fix` / `arc:audit`"
         },
         {
           "When": "Task docs need Context-Queries",
@@ -792,7 +808,7 @@
         },
         {
           "When": "Implementation after docs are current",
-          "Load": "arc:build` / `arc:fix` / `arc:frontend"
+          "Load": "`arc:build` / `arc:fix` / `arc:frontend`"
         }
       ],
       "quick_contract": null,
@@ -804,7 +820,7 @@
       "description": "Runs local SAST, SCA, secrets, and DAST automation, then re-ranks findings by data value. Use when the user says 安全扫描, Semgrep, Trivy, DAST, 密钥扫描, SCA, or security report. Not for unauthorized third-party targets or methodology-only read-only audits.",
       "version": "1.0.0",
       "source_path": "Arc/arc:security/SKILL.md",
-      "line_count": 175,
+      "line_count": 180,
       "intent_router": [
         {
           "When": "Tool install / scan commands",
@@ -828,7 +844,7 @@
         },
         {
           "When": "Repair a confirmed finding",
-          "Load": "arc:fix` / `arc:build"
+          "Load": "`arc:fix` / `arc:build` + [`docs/execution-truth.md`](../../docs/execution-truth.md)"
         }
       ],
       "quick_contract": {
@@ -892,7 +908,7 @@
       "description": "Designs and runs layered tests (unit, integration, contract, E2E, coverage, fuzz, property, performance) with platform-native tools. Use when the user says 写测试, 覆盖率, 回归, E2E, fuzz, benchmark, Maestro, or quality gate. Not for repairing production code or security scanning.",
       "version": "1.0.0",
       "source_path": "Arc/arc:test/SKILL.md",
-      "line_count": 241,
+      "line_count": 246,
       "intent_router": [
         {
           "When": "Which layers to enable",
@@ -905,6 +921,10 @@
         {
           "When": "Failing test needs repair",
           "Load": "arc:fix"
+        },
+        {
+          "When": "Repair boundary for a confirmed failure",
+          "Load": "[`docs/execution-truth.md`](../../docs/execution-truth.md) + `arc:fix`"
         },
         {
           "When": "Feature edit itself",
@@ -947,7 +967,7 @@
           "parameter": "platform",
           "type": "enum",
           "required": "no",
-          "description": "go`, `rust`, `android`, `harmonyos`, `frontend`, or `auto"
+          "description": "`go`, `rust`, `android`, `harmonyos`, `frontend`, or `auto`"
         },
         {
           "parameter": "layers",
@@ -990,7 +1010,7 @@
       "description": "Adds low-cost fmt/time or log.Printf timing probes to Go Gin SSR request paths. Use when the user says 加日志, 计时, 慢请求, Gin SSR, tracing, 探针, or request timing. Not for pprof, heap, or generic observability platforms.",
       "version": "1.0.0",
       "source_path": "Arc/arc:trace/SKILL.md",
-      "line_count": 209,
+      "line_count": 213,
       "intent_router": [
         {
           "When": "Add Gin SSR stage timing",
@@ -1002,11 +1022,11 @@
         },
         {
           "When": "Frontend performance",
-          "Load": "arc:frontend` / `web-perf"
+          "Load": "`arc:frontend` / `web-perf`"
         },
         {
           "When": "Failure diagnosis beyond timing",
-          "Load": "arc:fix"
+          "Load": "`arc:fix` + [`docs/execution-truth.md`](../../docs/execution-truth.md)"
         }
       ],
       "quick_contract": null,

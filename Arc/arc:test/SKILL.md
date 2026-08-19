@@ -35,6 +35,7 @@ Read:
 | Which layers to enable | [`references/test-scope-matrix.md`](references/test-scope-matrix.md) |
 | Platform commands | [`references/test-stacks.md`](references/test-stacks.md) |
 | Failing test needs repair | `arc:fix` |
+| Repair boundary for a confirmed failure | [`docs/execution-truth.md`](../../docs/execution-truth.md) + `arc:fix` |
 | Feature edit itself | `arc:build` |
 | Security scanners | `arc:security` |
 | Large test build-out | `arc:sdlc` |
@@ -42,6 +43,7 @@ Read:
 
 ## Context Search
 
+- MUST load the **Evidence-first root-cause repair** section in [`docs/execution-truth.md`](../../docs/execution-truth.md) before recommending a production fix for a failing or flaky test.
 - MUST inspect existing test layout, test runners, CI config, coverage config, and fixtures before adding or running tests.
 - MUST detect stack markers (`go.mod`, `Cargo.toml`, `package.json`, `build.gradle`/`AndroidManifest.xml`, `oh-package.json5`/`.test.ets`, `.maestro/` flows) to choose native tooling.
 - MUST use `arc-idx search` first for broad repository context and existing test patterns.
@@ -58,6 +60,8 @@ NO BESPOKE CROSS-LANGUAGE TEST FRAMEWORK—USE PLATFORM-NATIVE TOOLING.
 NO TEST-TYPE SPRAWL TO TICK BOXES—ENABLE LAYERS BY RISK.
 NO COVERAGE NUMBER TREATED AS THE GOAL—IT IS A GAP SIGNAL FOR KEY PATHS AND ERROR BRANCHES.
 NO GREEN FROM RETRYING FLAKY TESTS—QUARANTINE OR FIX THE ROOT CAUSE.
+NO PRODUCTION FIX FROM A TEST SIGNAL UNTIL THE FAILURE AND ROOT CAUSE ARE CONFIRMED.
+NO TEST-ONLY PATCH, ASSERTION WEAKENING, OR BLANKET RETRY TO HIDE A PRODUCT DEFECT.
 NO LARGE TEST BUILD-OUT WITHOUT CURRENT LOCAL TASK DOCS.
 NO LARK TEST REPORT UPDATE OUTSIDE arc:docs.
 ```
@@ -79,6 +83,7 @@ NO LARK TEST REPORT UPDATE OUTSIDE arc:docs.
 - MUST get explicit authorization before running load, stress, or E2E against any shared or third-party target.
 - MUST apply `arc:sdlc` before large, multi-module, cross-platform, or tracked test build-out; task docs must be generated from the latest project state and updated immediately when suites, gates, scope, assumptions, or status change.
 - MUST report skipped layers with a reason, and report failing or flaky tests instead of hiding them.
+- MUST distinguish a test-harness defect from a product defect, then hand only confirmed product failures to `arc:fix` with the observed/expected behavior, root cause, and analogous-path scope.
 - MUST route all Lark writes through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
 - NEVER weaken assertions, delete failing tests, add blanket retries, or raise timeouts just to make a suite green.

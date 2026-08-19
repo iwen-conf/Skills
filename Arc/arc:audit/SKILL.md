@@ -39,11 +39,13 @@ AppSec methodology lives in [`references/appsec-playbook.md`](references/appsec-
 | Local scanners | `arc:security` |
 | Multi-finding task split | `arc:sdlc` |
 | Repair after handoff | `arc:fix` / `arc:build` |
+| Root-cause evidence and repair boundary | [`docs/execution-truth.md`](../../docs/execution-truth.md) |
 | Lark-active risks | `arc:docs` |
 | Need code edits now | stop; this skill is read-only |
 
 ## Context Search
 
+- MUST load the **Evidence-first root-cause repair** section in [`docs/execution-truth.md`](../../docs/execution-truth.md) when a finding may lead to a repair recommendation.
 - MUST use `arc-idx search` first for relevant code paths, tests, dependencies, and architecture boundaries.
 - MUST use `arc-idx ast` for risky code shapes when relevant (auth, SQL, uploads, SSRF, JWT, payments).
 - MUST prefer inventory collectors (routers, OpenAPI, migrations, configs) over free-form AI “scan everything”.
@@ -54,6 +56,8 @@ AppSec methodology lives in [`references/appsec-playbook.md`](references/appsec-
 
 ```text
 NO FINDING WITHOUT EVIDENCE.
+NO CONFIRMED-FIX LANGUAGE FOR AN UNCONFIRMED ISSUE.
+NO REMEDIATION RECOMMENDATION WITHOUT A NAMED ROOT-CAUSE CHECK.
 NO CODE EDIT DURING AUDIT.
 NO LARK AUDIT UPDATE OUTSIDE arc:docs.
 NO APPSEC CLAIM WITHOUT PERMISSION CLASS AND DATA YIELD (OR EXPLICIT CAPABILITY-ONLY).
@@ -66,6 +70,8 @@ NO MASS AI DEEP-DIVE BEFORE ASSET INVENTORY.
 - MUST inspect the project before giving findings.
 - MUST order findings by severity (and for appsec, by data yield when severities tie).
 - MUST include file path, command output, config, behavior, or other evidence for each confirmed issue.
+- MUST separate observed issue, hypothesis, root cause, and remediation boundary; scanner output or a plausible code smell alone is not proof.
+- MUST identify analogous paths that share the suspected boundary and mark them as checked, out of scope, or unverified.
 - MUST check frontend platform stack drift against `arc:frontend` when relevant: Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod; mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router; desktop = Tauri 2 + Web stack; mini-program = Taro 4 + React + TypeScript + Zustand, unless an explicit project exception exists.
 - MUST mark inferred risks as assumptions.
 - MUST route all Lark audit/risk/task/approval updates through `arc:docs`.

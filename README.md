@@ -1,6 +1,6 @@
 # Skills
 
-这个仓库保留一组统一使用 `arc:*` 命名空间的软件工程生命周期和通用工程约束 Skill 文档。代码库搜索默认走 `arc:idx` 约束下的高性能上下文引擎 `arc-idx`（编译型 Go CLI，内嵌 Zoekt，编排 ast-grep 与 Universal Ctags，源码在 `tools/arc-idx/`）；任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责；飞书项目空间只在用户明确要求创建/连接后由 `arc:docs` 创建/维护 `.lark.json`、项目资料、任务表、仪表盘、Wiki、画板和生命周期索引。
+这个仓库包含两层 Skill：`Arc/arc:*` 负责跨项目的软件工程生命周期和治理契约，`Android/`、`HarmonyOS/`、`CNB/`、`Lark/` 保留各自平台的垂直能力与参考资料。代码库搜索默认走 `arc:idx` 约束下的高性能上下文引擎 `arc-idx`（编译型 Go CLI，内嵌 Zoekt，编排 ast-grep 与 Universal Ctags，源码在 `tools/arc-idx/`）；任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责；飞书项目空间只在用户明确要求创建/连接后由 `arc:docs` 创建/维护 `.lark.json`、项目资料、任务表、仪表盘、Wiki、画板和生命周期索引。
 
 ## 当前保留
 
@@ -22,6 +22,10 @@ Skills/
 │   ├── arc:trace/
 │   ├── arc:arch/
 │   └── arc:sdlc/
+├── Android/       # Android/Compose 垂直技能
+├── HarmonyOS/     # HarmonyOS/ArkTS 垂直技能
+├── CNB/           # CNB 平台技能
+├── Lark/          # 飞书/Lark 技能
 ├── .ai-code-index/
 ├── tools/
 │   └── arc-idx/
@@ -31,6 +35,8 @@ Skills/
 ├── src/
 └── tests/
 ```
+
+`skills.index.json` 和触发语料只覆盖 `Arc/arc:*` 路由器；仓库校验器同时检查垂直 `SKILL.md` 的 500 行入口预算与相对链接。垂直目录保留各自的原生 frontmatter、`references/` 和 `.cursor/skills` 链接，不被强行改写成同一套业务文档格式。
 
 ## Arc 边界
 
@@ -66,9 +72,9 @@ Skills/
 | [`docs/code-rot-taxonomy.md`](docs/code-rot-taxonomy.md) | AI 代码腐化 36 条权威清单(6 大家族),各 Arc 技能引用各自负责的切片作为可执行门禁 |
 | [`docs/skill-engineering.md`](docs/skill-engineering.md) | Skill 工程契约：路由器、渐进披露、触发语料、500 行门禁 |
 | [`docs/prewalk.md`](docs/prewalk.md) | 同会话多模型成本路由：轨迹交接、first-edit swap、禁止 plan 冷启动 |
-| [`docs/execution-truth.md`](docs/execution-truth.md) | 跨技能反漂移：环境/分支/部署面、完成定义、范围锁定、域主键、假修禁令、弱执行任务写作 |
+| [`docs/execution-truth.md`](docs/execution-truth.md) | 跨技能反漂移与诊断/修复统一门禁：环境/分支/部署面、完成定义、范围锁定、域主键、先确认问题、架构→业务根因分析、完整修复及同类路径验证 |
 | [`docs/orchestration-contract.md`](docs/orchestration-contract.md) | Runtime 调度语义；含 `prewalk_session` |
-| [`CHANGELOG.md`](CHANGELOG.md) | 技能版本与发布说明（当前 1.0.0） |
+| [`CHANGELOG.md`](CHANGELOG.md) | 技能版本与发布说明（当前已发布 1.0.0，待发布改动见 Unreleased） |
 
 ## 收敛原则
 
@@ -85,6 +91,7 @@ Skills/
 - Web 前端默认统一走 `arc:frontend`：除非用户明确指定其他技术，默认栈固定为 React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod。
 - 所有前后端交付必须区分状态语义：无数据/空状态是成功业务状态，错误是失败状态，权限不足和单资源不存在也要独立建模；前端不得把空列表、空搜索、空仪表盘或首次使用页面展示成错误页。
 - 所有可复现或可观察的前后端 Bug 排查必须优先保存可搜索的日志/证据文件，再基于错误字符串、请求 ID、堆栈、网络失败或运行时输出定位问题；后端保存应用日志和命令 stdout/stderr，前端保存 browser console、network、runtime error 和截图证据。临时 debug 输出不得留在交付代码中。
+- 任何 Skill 诊断疑似缺陷、回归、性能或安全问题时，必须先加载 [`docs/execution-truth.md`](docs/execution-truth.md#6-evidence-first-root-cause-repair)：未确认问题或未确认根因不得修改生产行为或宣称已修复；只允许为取证增加有界、行为保持的日志/探针/复现覆盖。先从架构边界和共享不变量追踪，再对照真实业务契约；最小改动必须是完整根因修复，不能用补丁、重试、兼容垫片或弱化断言掩盖问题。
 - 移动端 iOS/Android 默认统一走 `arc:frontend`：React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router。
 - 桌面端 Mac/Windows/Linux 默认统一走 `arc:frontend`：Tauri 2 + 现有 React Web 默认栈，优先复用 Web 代码。
 - 小程序默认统一走 `arc:frontend`：Taro 4 + React + TypeScript + Zustand；`wxskills` 只提供微信 API、隐私、支付、组件、Skyline 和既有原生微信项目维护约束。
@@ -94,7 +101,7 @@ Skills/
 - 飞书操作由 `arc:docs` 路由到 `lark-doc` / `lark-base` / `lark-shared` 等对应技能，遵守认证、API 版本和高风险写入规则。
 - `aitask` 仅负责任务编排、协作、Inbox 和跨 Agent 状态。
 - Arc 只保留软件工程生命周期中的稳定判断框架和文档索引契约。
-- 所有 Skill 名称必须使用 `arc:*` 命名空间，并统一放在 `Arc/arc:*` 目录下。
+- Arc Skill 名称使用 `arc:*` 命名空间并放在 `Arc/arc:*` 目录下；Android、HarmonyOS、CNB、Lark Skill 保留各自的领域命名空间和目录，不把垂直能力伪装成 Arc 生命周期技能。
 - 所有项目代码交付和修复必须遵守 `arc:arch`：先看 ponytail；保持 DIP；默认按 `domain`、`usecase`、`interface/restful`、`infrastructure`、`wire` 的分层、命名和接口设计组织后端代码；后端排障必须用结构化日志和本地日志文件保留可复查证据；Go 常量必须使用 `MixedCaps` / `mixedCaps`、优先标准库语义常量、按最小作用域定义，枚举型业务状态必须用自定义类型建模，跨服务常量必须来自版本化契约或受治理的共享模块；Go 单文件私有函数上限为两个，原文件达到两个私有函数时必须拆到 `原文件名_helpers.go` 同包 helper 文件；DIP 边界接口是明确架构要求，但不得为私有 helper、同层代码或形式主义创建接口。
 - 大任务、跨多轮任务、迁移、重构、修复战役和需要持续跟踪的工作，必须先遵守 `arc:sdlc`：按最新项目状态解析或创建 `docs/DD-任务` 这类数字序列化任务分类，再建立任务入口、`00-前置约束.md`、`tasks/` 子任务文件和 `进度跟踪表.md`；子任务须写清当前文件/调用点/输出/执行顺序/边界/反例/验证，作为跨会话恢复与验收权威。开始、暂停、阻塞、完成、验证或下一步变化时，必须立即更新 `进度跟踪表.md` 和子任务状态，未同步前不得继续实现或交付。
 - 同会话多模型成本路由默认遵守 `arc:prewalk` / [`docs/prewalk.md`](docs/prewalk.md)：账单近似 `O(reads)`；Guide（frontier）探索并初始化有界 todo、落地第一笔**生产代码** edit 后，再在同一 trajectory 上切到 Executor，并 prune planning 指令。禁止「frontier 只写 plan 文档 → 新开 cheap 会话冷读 plan」作为默认省钱法；运行时不能 swap 时 oneshot 单一模型，不得伪造 cold plan handoff。
@@ -113,7 +120,7 @@ arc-idx index
 
 ## 发布 / 同步到 Agent
 
-SSOT 始终是本仓 `Arc/arc:*`。Claude / Grok 等通常通过 `~/.agents/skills`（或指向该目录的符号链接）加载技能。
+Arc 治理技能的 SSOT 是本仓 `Arc/arc:*`；垂直技能的 SSOT 分别是本仓 `Android/`、`HarmonyOS/`、`CNB/`、`Lark/`。Claude / Grok 等通常通过 `~/.agents/skills` 或项目内 `.cursor/skills` 的符号链接加载技能。
 
 ```bash
 # 改完技能后：校验 → 索引 → 同步到运行时
@@ -127,7 +134,7 @@ SSOT 始终是本仓 `Arc/arc:*`。Claude / Grok 等通常通过 `~/.agents/skil
 
 规则：
 
-1. **先改本仓，再 sync**；禁止只改 `~/.agents/skills` 而不回写 `Arc/`。
+1. **先改本仓，再 sync**；Arc 技能禁止只改 `~/.agents/skills` 而不回写 `Arc/`，垂直技能禁止只改其运行时链接而不回写对应领域目录。
 2. `sync_skills.py` 会同时写入 `arc:name` 与 `arc-name`（dash 别名，frontmatter `name` 与正文引用会改写）。
-3. 每个 `SKILL.md` 带 `version`（semver）；破坏性约定变更时升 minor/major 并更新 `CHANGELOG.md`。当前族版本 **1.0.0**。
+3. Arc `SKILL.md` 带 `version`（semver）；破坏性约定变更时升 minor/major 并更新 `CHANGELOG.md`。垂直技能沿用其原生 frontmatter 版本策略。
 4. 若改动了 `tools/arc-idx`，另执行 `go build -o ~/.local/bin/arc-idx ./tools/arc-idx`。

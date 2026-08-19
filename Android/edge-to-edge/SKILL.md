@@ -17,6 +17,13 @@ metadata:
   - navigation bar
 ---
 
+## Evidence Gate
+
+For troubleshooting or repair work, MUST load the evidence-first root-cause repair gate in
+[`docs/execution-truth.md`](../../docs/execution-truth.md). Confirm the affected build variant,
+device/window state, insets owner, and reproducible overlap before editing; do not add padding at
+a symptom site until the shared layout or system-bar boundary is known.
+
 ## Prerequisites
 
 - Project **MUST** use Android Jetpack Compose.

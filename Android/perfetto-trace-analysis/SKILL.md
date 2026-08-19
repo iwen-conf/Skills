@@ -18,6 +18,14 @@ metadata:
   - SQL
 ---
 
+## Evidence Gate
+
+MUST load the evidence-first root-cause repair gate in
+[`docs/execution-truth.md`](../../docs/execution-truth.md). Treat a long slice, metric outlier, or
+user suspicion as a signal rather than a confirmed defect; keep facts and hypotheses separate,
+follow the dependency chain to the owning boundary, and recommend a repair only when the trace
+evidence and expected app behavior confirm the cause.
+
 ## Resources
 
 - **Domain Hints:** Reference files for specific performance areas: [`CPU`](references/hints_cpu.md), [`Graphics`](references/hints_graphics.md), [`I/O`](references/hints_io.md), [`IPC`](references/hints_ipc.md), [`Memory`](references/hints_memory.md), [`Power`](references/hints_power.md). These files each contain multiple expert-vetted, powerful trace analysis techniques to steer and aid in the analysis.

@@ -16,6 +16,13 @@ metadata:
   - optimization
 ---
 
+## Evidence Gate
+
+MUST load the evidence-first root-cause repair gate in
+[`docs/execution-truth.md`](../../docs/execution-truth.md). Distinguish measured rule impact from a
+heuristic suspicion, confirm reflection/serialization/native entry points and the release variant,
+and do not recommend removing or narrowing a rule until the affected runtime contract is known.
+
 ## Step 1. Setup and configuration check
 
 - Inspect `build.gradle`, `build.gradle.kts`, and `gradle.properties`.

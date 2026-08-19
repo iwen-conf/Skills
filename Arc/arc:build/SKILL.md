@@ -27,6 +27,7 @@ description: >
 | Scoped implementation | this SKILL.md Workflow |
 | Unclear scope or acceptance | `arc:clarify` |
 | Failure/incident/failing check | `arc:fix` |
+| Suspected bug or optimization without proof | `arc:audit` / `arc:fix`; no repair edit |
 | Frontend/UI work | `arc:frontend` |
 | Same-session multi-model routing | `arc:prewalk` |
 | Large tracked work | `arc:sdlc` |
@@ -35,6 +36,7 @@ description: >
 
 ## Context Search
 
+- MUST load the **Evidence-first root-cause repair** section in [`docs/execution-truth.md`](../../docs/execution-truth.md) when the request is framed as a bug fix, diagnosis, regression repair, or optimization.
 - MUST inspect existing code before editing unfamiliar files.
 - MUST use `arc-idx search` first for broad repository context.
 - MUST use `arc-idx ast` for structural patterns and `arc-idx symbol` for definitions when relevant.
@@ -45,6 +47,8 @@ description: >
 
 ```text
 NO CODE CHANGE WITHOUT SCOPE.
+NO REPAIR EDIT BEFORE THE REPORTED ISSUE IS CONFIRMED.
+NO SYMPTOM PATCH WHEN A SHARED ARCHITECTURE OR BUSINESS-CONTRACT CAUSE IS UNCHECKED.
 NO LARGE PROJECT CODE CHANGE WITHOUT CURRENT LOCAL TASK DOCS.
 NO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF.
 NO DELIVERY WITHOUT VERIFICATION OR AN EXPLICIT BLOCKER.
@@ -58,6 +62,9 @@ NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 
 - MUST preserve unrelated user changes.
 - MUST edit the smallest viable file set.
+- MUST route any suspected-failure or optimization work through the evidence-first root-cause repair gate in [`docs/execution-truth.md`](../../docs/execution-truth.md); if the issue is not confirmed, do not change production behavior, except for bounded behavior-preserving instrumentation or reproducer coverage used only to collect evidence.
+- MUST distinguish an implementation request from a repair request before editing, and for repairs record the observed behavior, expected contract, root cause, affected siblings, and complete fix boundary.
+- MUST not reduce the change merely to one symptom site when the confirmed cause is shared; conversely, MUST not broaden it for unverified hypothetical cases.
 - MUST apply the gates in [`docs/execution-truth.md`](../../docs/execution-truth.md): runtime/env/branch surface, completion definition (code + gate + reachable behavior), scope lock, and no invented domain identity keys.
 - MUST name the target surface (local / `.26` / `.31` / production / other) before deploy, package, or production diagnosis; MUST follow that surface's branch/track when the repo has dual tracks.
 - MUST honor explicit scope locks (read-only, docs-only, frontend-only, no-restart, explicit non-goals) without opportunistic expansion.
@@ -80,18 +87,20 @@ NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 ## Workflow
 
 1. Confirm task, scope, verification target, and target env/branch/deploy surface ([`docs/execution-truth.md`](../../docs/execution-truth.md)).
-2. For large, multi-step, cross-module, or tracked work, apply `arc:sdlc` before code edits and keep local task status current as the project changes.
-3. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.
-4. Search for existing patterns, call sites, tests, and contracts.
-5. If multi-model routing is available and useful, follow `arc:prewalk`: Guide orients + bounded todo + first production edit, then Executor continues in the same trajectory; otherwise oneshot a single profile.
-6. Edit only the needed files.
-7. Run targeted verification; broaden only when risk requires it.
-8. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.
-9. Summarize changes, verification, residual risk, and any prewalk swap/escalate notes. Mark complete only under the completion definition in execution-truth (code + gate + reachable behavior).
+2. Classify the request as implementation or repair. For repair/optimization language, load the evidence-first root-cause gate and confirm the issue before any behavior edit; route an unconfirmed issue to `arc:audit` / `arc:fix`.
+3. For large, multi-step, cross-module, or tracked work, apply `arc:sdlc` before code edits and keep local task status current as the project changes.
+4. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.
+5. Search for existing patterns, call sites, tests, and contracts.
+6. If multi-model routing is available and useful, follow `arc:prewalk`: Guide orients + bounded todo + first production edit, then Executor continues in the same trajectory; otherwise oneshot a single profile.
+7. Edit only the needed files and the complete owning boundary identified by evidence.
+8. Run targeted verification, including analogous paths when the change repairs a shared invariant; broaden only when risk requires it.
+9. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.
+10. Summarize changes, verification, residual risk, and any prewalk swap/escalate notes. Mark complete only under the completion definition in execution-truth (code + gate + reachable behavior).
 
 ## Quality Gates
 
 - Requested behavior is implemented without speculative extra surface.
+- Repair/optimization claims include confirmed observed behavior, root cause, complete fix boundary, and analogous-path verification; an unconfirmed issue may receive only bounded behavior-preserving instrumentation or reproducer coverage, never a claimed repair.
 - Large, multi-step, cross-module, or tracked work has current local task docs, detailed subtasks, and synchronized progress status from `arc:sdlc`.
 - Existing contracts, names, state shapes, and response envelopes are preserved unless explicitly changed.
 - Project architecture preserves DIP and the default backend architecture responsibilities from `arc:arch` when backend architecture applies.

@@ -7,6 +7,13 @@ description: PR 代码评审，检查安全漏洞、Bug 和代码质量，输出
 
 对 PR 的代码变更进行专业评审，发现安全漏洞、Bug、代码质量和性能问题，并通过 PR Review API 发送行级评论。
 
+## 证据门禁
+
+必须加载 [`docs/execution-truth.md`](../../docs/execution-truth.md) 的 evidence-first
+root-cause repair 门禁。代码气味、扫描器结果或 diff 片段只是调查信号；只有在读取必要
+上下文、确认可达路径、业务契约和根因后，才能作为确定性问题发送评论。证据不足时标记为
+假设或不评论，禁止用泛化建议制造误报。
+
 ## 评审步骤
 
 ### 1. 获取 PR 变更
