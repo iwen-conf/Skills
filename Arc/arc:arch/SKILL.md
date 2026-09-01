@@ -1,6 +1,6 @@
 ---
 name: arc:arch
-version: 1.0.0
+version: 1.1.0
 description: >
   Applies the default backend architecture, DIP, layering, zap logging, Go
   constants, and helper limits. Use when writing backend or Go services, 架构,
@@ -70,6 +70,7 @@ NO PONETAIL SILENCE — REPORT ABSENCE OR CONFLICT.
 3. For migrations, change the smallest slice that preserves behavior.
 4. Read `references/backend-architecture.md` when file-level or interface-level guidance is needed.
 5. Do not invent extra layers, factories, interfaces, or helpers beyond the boundaries described here and in the reference.
+6. Run the **Simplicity ladder** in [`docs/execution-truth.md`](../../docs/execution-truth.md) before adding new code paths: reuse > standard library > platform-native > installed dependency > one line > minimal new code. Required DIP boundary interfaces are the explicit exception — keep the boundary, shrink everything around it.
 
 ## Common Drift Patterns
 

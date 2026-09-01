@@ -1,6 +1,6 @@
 ---
 name: arc:sdlc
-version: 1.0.0
+version: 1.1.0
 description: >
   Creates current-state local task docs, pre-constraints, subtasks, and progress
   tables. Use when the user says 拆任务, 进度跟踪, 任务文档, 制定计划, 创建任务,
@@ -23,6 +23,12 @@ Separate raw requirements from executable work:
 3. Do not copy large raw requirements into task docs. Link them and restate only actionable scope, constraints, and acceptance.
 
 Skip this structure for a single-file or obvious small edit unless the user asks for task docs.
+
+Task tiering (planning is the default for non-trivial work, docs are the escalation):
+
+1. **Trivial** (1–2 obvious steps): execute directly, no plan artifact.
+2. **Non-trivial** (3+ steps, 3+ files, or an architecture decision): write an in-session plan — a bounded todo with a verification check per step — before edits. The moment execution goes off-track, stop and re-plan; do not push through a stale plan.
+3. **Large / cross-session / tracked**: this skill's persistent docs, on top of the in-session plan.
 
 ## When to Use
 

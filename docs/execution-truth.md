@@ -98,3 +98,72 @@ When writing tasks for a lower-capability model:
 2. One subtask = one verifiable outcome; no "fix all security issues".
 3. Point at current paths from latest repo state; re-check before mark complete.
 4. Include "do not" for compatibility shims, wrong deploy surface, and invented domain keys.
+
+## 8. Think before coding
+
+Applies to every implementation or repair request before the first edit.
+
+1. **State assumptions.** Name the assumptions the plan depends on. If multiple readings of the
+   request exist, present them — do not silently pick one.
+2. **Offer the simpler path.** If a materially simpler approach exists, say so before building the
+   requested one. Push back when the request itself looks wrong.
+3. **Ask/autonomy boundary.** Proceed end-to-end without asking for bug fixes and for work with one
+   clearly correct answer. Stop and ask only when the tradeoff touches interfaces, persisted data,
+   or architecture — or when a blocking ambiguity survives reading the available context.
+4. **Verifiable goal first.** Convert the task into a checkable success criterion before editing
+   ("fix bug" → "write the failing reproducer, then make it pass"; "refactor X" → "tests pass
+   before and after"). A strong criterion lets the agent loop autonomously; "make it work" does not.
+
+## 9. Simplicity ladder
+
+Solve the problem with the least code. Run the ladder only **after** understanding the problem —
+read the code the change touches and trace the real flow first; the ladder does not replace
+understanding. Stop at the first rung that holds:
+
+1. Does this need to exist at all? If not, skip it (YAGNI).
+2. Does the codebase already have it? Reuse the existing helper/util/pattern — do not rewrite.
+3. Can the standard library do it? Use it.
+4. Can a platform-native feature cover it? Prefer it (`<input type="date">` over a date-picker
+   library, CSS over JS, DB constraints over app-layer checks).
+5. Can an already-installed dependency solve it? Use it. Never add a new dependency for something
+   a few lines of code can do.
+6. Can one line do it? Write one line.
+7. Only then write the minimal new code.
+
+Boundaries:
+
+1. Never simplify away: input validation at trust boundaries, error handling that prevents data
+   loss, security measures, accessibility basics, or anything the user explicitly asked for.
+2. A deliberate simplification with a known ceiling (global lock, O(n²) scan, naive heuristic)
+   gets a `debt:` comment naming the ceiling and the upgrade path
+   (e.g. `# debt: 全局锁，吞吐量成瓶颈时改每账户锁`).
+3. Required DIP boundary interfaces from `arc:arch` are not "unrequested abstraction"; keep the
+   boundary and shrink everything around it.
+4. Self-check: would a senior engineer call this over-engineered? If yes, simplify. If 200 lines
+   could be 50, rewrite before delivering.
+
+## 10. Surgical edits
+
+1. Do not "improve" adjacent code, comments, or formatting outside the request. Match the existing
+   style even when you prefer another.
+2. Do not refactor what is not broken unless the refactor is the task.
+3. Delete the imports/variables/functions that **your change** orphaned, in the same change.
+4. Do not delete pre-existing dead code; mention it instead (cleanup becomes its own task,
+   see `code-rot-taxonomy` item 14).
+5. Traceability test: every changed line maps to the user's request or to an orphan the change
+   created.
+6. Bounded elegance pass: for a non-trivial change, before delivery ask "knowing everything I know
+   now, is there a more elegant way?" If the fix feels hacky, rewrite — but only the code this
+   change introduced, never expanding into pre-existing code. Skip the pass for simple, obvious
+   fixes; do not over-design.
+
+## 11. Self-improvement loop
+
+1. After every user correction, record a rule that prevents the same mistake: repo-specific
+   lessons go to that repository's `tasks/lessons.md`; cross-project preferences and working
+   styles go to persistent memory.
+2. At session start in a repository that has `tasks/lessons.md`, review the lessons relevant to
+   the task.
+3. Skills in this repository are the source of truth: when a lesson invalidates a skill rule,
+   update the skill under `Arc/` (or the vertical directory) here first, not only the installed
+   copy.

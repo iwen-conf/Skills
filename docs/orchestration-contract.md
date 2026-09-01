@@ -101,6 +101,13 @@ prewalk_session(
 4. Executor 连续失能可 `escalate` 回 `guide_profile`，仍用同一 `task_ref`。
 5. 运行时若不支持 mid-session swap：oneshot 单一 profile，并显式标注“无 prewalk 能力”，不得用 cold plan handoff 伪造。
 
+## 3.2) 子代理使用策略
+
+- 大胆下放：研究、探索、并行分析等「重读轻写」的工作交给子代理（`schedule_task`），保持主上下文窗口整洁——账单与上下文污染都近似 `O(reads)`。
+- 一个子代理只做一件事，保持聚焦；按需并行，不为堆算力而多开。
+- 子代理结论回收（`collect_task`）后，验证与交付责任仍在主轨迹；`failed/timed_out/partial` 不得静默吞掉（见 §2.2 约束）。
+- 同会话省钱路由不属于本节：那是 `prewalk_session`（§3.1），不是「多开子代理」。
+
 ## 4) 适配层映射清单（实现方）
 
 运行时适配层至少要完成下列映射：

@@ -1,6 +1,6 @@
 ---
 name: arc:build
-version: 1.0.0
+version: 1.1.0
 description: >
   Implements scoped code changes and verifies them. Use when the user says 写代码, 开发功能,
   落地改动, implement a known scheme, or deliver a scoped change. Not for unknown-failure
@@ -62,6 +62,9 @@ NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 
 - MUST preserve unrelated user changes.
 - MUST edit the smallest viable file set.
+- MUST apply the **Think before coding** gate in [`docs/execution-truth.md`](../../docs/execution-truth.md): state load-bearing assumptions, present competing interpretations or a materially simpler approach instead of silently choosing, convert the task into a verifiable success criterion before editing, and ask only when the tradeoff touches interfaces, persisted data, or architecture.
+- MUST run the **Simplicity ladder** in [`docs/execution-truth.md`](../../docs/execution-truth.md) before writing new code: reuse existing code > standard library > platform-native feature > installed dependency > one line > minimal new code; NEVER add a new dependency for something a few lines can do; mark deliberate ceiling-bound simplifications with a `debt:` comment; NEVER simplify away trust-boundary validation, data-loss protection, security, or accessibility basics.
+- MUST follow the **Surgical edits** gate in [`docs/execution-truth.md`](../../docs/execution-truth.md): no "improving" adjacent code, comments, or formatting; delete only the imports/variables/functions this change orphaned; mention pre-existing dead code instead of deleting it.
 - MUST route any suspected-failure or optimization work through the evidence-first root-cause repair gate in [`docs/execution-truth.md`](../../docs/execution-truth.md); if the issue is not confirmed, do not change production behavior, except for bounded behavior-preserving instrumentation or reproducer coverage used only to collect evidence.
 - MUST distinguish an implementation request from a repair request before editing, and for repairs record the observed behavior, expected contract, root cause, affected siblings, and complete fix boundary.
 - MUST not reduce the change merely to one symptom site when the confirmed cause is shared; conversely, MUST not broaden it for unverified hypothetical cases.
@@ -90,7 +93,7 @@ NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 2. Classify the request as implementation or repair. For repair/optimization language, load the evidence-first root-cause gate and confirm the issue before any behavior edit; route an unconfirmed issue to `arc:audit` / `arc:fix`.
 3. For large, multi-step, cross-module, or tracked work, apply `arc:sdlc` before code edits and keep local task status current as the project changes.
 4. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.
-5. Search for existing patterns, call sites, tests, and contracts.
+5. Search for existing patterns, call sites, tests, and contracts; then run the simplicity ladder before writing any new code.
 6. If multi-model routing is available and useful, follow `arc:prewalk`: Guide orients + bounded todo + first production edit, then Executor continues in the same trajectory; otherwise oneshot a single profile.
 7. Edit only the needed files and the complete owning boundary identified by evidence.
 8. Run targeted verification, including analogous paths when the change repairs a shared invariant; broaden only when risk requires it.
@@ -100,6 +103,7 @@ NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 ## Quality Gates
 
 - Requested behavior is implemented without speculative extra surface.
+- Every changed line traces to the request or to an orphan the change created; non-trivial changes passed the bounded elegance pass limited to code introduced by this change.
 - Repair/optimization claims include confirmed observed behavior, root cause, complete fix boundary, and analogous-path verification; an unconfirmed issue may receive only bounded behavior-preserving instrumentation or reproducer coverage, never a claimed repair.
 - Large, multi-step, cross-module, or tracked work has current local task docs, detailed subtasks, and synchronized progress status from `arc:sdlc`.
 - Existing contracts, names, state shapes, and response envelopes are preserved unless explicitly changed.
@@ -122,6 +126,8 @@ Use project-native build, lint, test, typecheck, and migration commands. Use `Ar
 - Putting business logic in controllers, adapters, `main`, or cross-business `helpers`.
 - Treating zero rows, empty search results, empty dashboards, or first-use setup as exceptions, failed requests, toast errors, or full-page error states.
 - Adding speculative APIs or states.
+- Writing 200 lines where 50 suffice, or adding a new dependency for a few lines of code.
+- "Improving" adjacent code, comments, or formatting outside the request.
 - Implementing from stale task docs or leaving local progress status inconsistent with the actual project state.
 - Building, diagnosing, or packaging against the wrong env/branch/deploy surface or dual-track sibling.
 - Claiming done from matrix/docs while the path is unimplemented, gated-failing, or unreachable.

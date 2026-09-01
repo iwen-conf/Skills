@@ -1,6 +1,6 @@
 ---
 name: arc:fix
-version: 1.0.0
+version: 1.1.0
 description: >
   Diagnoses and repairs failures from logs, stack traces, failing tests, or incidents. Use
   when the user says 报错, 修复, 故障, bug, 根因, incident, or failing test. Not for greenfield
@@ -69,6 +69,8 @@ NO DIAGNOSIS ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 - MUST capture runnable or observable failures into local log/evidence files before large edits. Use paths such as `.arc/artifacts/<task>/logs/` or `tmp/logs/`.
 - MUST state a concrete hypothesis before significant edits.
 - MUST patch the smallest safe surface.
+- MUST drive the repair autonomously once evidence exists: follow the logs, errors, and failing tests to root cause and resolution without asking the user to hand-hold steps the agent can discover itself; a failing CI check is sufficient mandate to start, and the evidence-first gate — not user turn-taking — is what pauses a repair.
+- MUST keep the surgical-edit gate from [`docs/execution-truth.md`](../../docs/execution-truth.md): the fix touches only the confirmed boundary, never "improves" adjacent code, and cleans up only orphans this change created.
 - MUST apply the gates in [`docs/execution-truth.md`](../../docs/execution-truth.md): name the failing surface, fix cause not symptom, no matrix-only success, no invented domain keys, no temporary var flags or type-assert paper-overs.
 - MUST reproduce or inspect on the same env/branch/deploy surface that produced the signal when dual tracks exist; re-state if production differs from the working tree.
 - MUST re-verify claimed prior fixes on current code and evidence before closing residual risk.
@@ -119,6 +121,7 @@ Use project-native tests, logs, build commands, browser tooling, and observabili
 ## Red Flags
 
 - Fixing before reading the error.
+- Waiting for the user to dictate each debugging step when logs, errors, and failing tests already point the way.
 - Debugging only by rereading code while runnable logs, browser console output, or command output were available but not captured.
 - Fixing by adding concrete infrastructure dependencies into business services.
 - Treating a retry as root cause.

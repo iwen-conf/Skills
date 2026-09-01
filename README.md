@@ -72,7 +72,7 @@ Skills/
 | [`docs/code-rot-taxonomy.md`](docs/code-rot-taxonomy.md) | AI 代码腐化 36 条权威清单(6 大家族),各 Arc 技能引用各自负责的切片作为可执行门禁 |
 | [`docs/skill-engineering.md`](docs/skill-engineering.md) | Skill 工程契约：路由器、渐进披露、触发语料、500 行门禁 |
 | [`docs/prewalk.md`](docs/prewalk.md) | 同会话多模型成本路由：轨迹交接、first-edit swap、禁止 plan 冷启动 |
-| [`docs/execution-truth.md`](docs/execution-truth.md) | 跨技能反漂移与诊断/修复统一门禁：环境/分支/部署面、完成定义、范围锁定、域主键、先确认问题、架构→业务根因分析、完整修复及同类路径验证 |
+| [`docs/execution-truth.md`](docs/execution-truth.md) | 跨技能反漂移与诊断/修复统一门禁：环境/分支/部署面、完成定义、范围锁定、域主键、先确认问题、架构→业务根因分析、完整修复及同类路径验证；编码纪律：编码前思考与询问/自主边界、来源优先级梯子与 `debt:` 注释、精准修改与有度的优雅、lessons 自我改进闭环 |
 | [`docs/orchestration-contract.md`](docs/orchestration-contract.md) | Runtime 调度语义；含 `prewalk_session` |
 | [`CHANGELOG.md`](CHANGELOG.md) | 技能版本与发布说明（当前已发布 1.0.0，待发布改动见 Unreleased） |
 
@@ -91,6 +91,7 @@ Skills/
 - Web 前端默认统一走 `arc:frontend`：除非用户明确指定其他技术，默认栈固定为 React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod。
 - 所有前后端交付必须区分状态语义：无数据/空状态是成功业务状态，错误是失败状态，权限不足和单资源不存在也要独立建模；前端不得把空列表、空搜索、空仪表盘或首次使用页面展示成错误页。
 - 所有可复现或可观察的前后端 Bug 排查必须优先保存可搜索的日志/证据文件，再基于错误字符串、请求 ID、堆栈、网络失败或运行时输出定位问题；后端保存应用日志和命令 stdout/stderr，前端保存 browser console、network、runtime error 和截图证据。临时 debug 输出不得留在交付代码中。
+- 所有实现与修复默认遵守 [`docs/execution-truth.md`](docs/execution-truth.md) 的编码纪律门禁：编码前先陈述假设、呈现多种解释与更简单方案，把任务转成可验证的成功标准；bug 修复和有明确正确答案的工作自主推进到底，只有接口、数据或架构取舍才停下询问；写新代码前先跑来源优先级梯子（复用现有 > 标准库 > 平台原生 > 已装依赖 > 一行 > 最少新代码），几行代码能解决的事不引入新依赖，刻意留天花板的简化用 `debt:` 注释标明升级路径；只动该动的行，不「顺手改进」相邻代码，只清理本次改动产生的孤儿代码，预先存在的死代码提及但不删除；非琐碎改动交付前做限定在本次新增代码内的优雅重审；被用户纠正后把教训写入对应仓库 `tasks/lessons.md` 或持久记忆，会话开始时回顾相关 lesson。
 - 任何 Skill 诊断疑似缺陷、回归、性能或安全问题时，必须先加载 [`docs/execution-truth.md`](docs/execution-truth.md#6-evidence-first-root-cause-repair)：未确认问题或未确认根因不得修改生产行为或宣称已修复；只允许为取证增加有界、行为保持的日志/探针/复现覆盖。先从架构边界和共享不变量追踪，再对照真实业务契约；最小改动必须是完整根因修复，不能用补丁、重试、兼容垫片或弱化断言掩盖问题。
 - 移动端 iOS/Android 默认统一走 `arc:frontend`：React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router。
 - 桌面端 Mac/Windows/Linux 默认统一走 `arc:frontend`：Tauri 2 + 现有 React Web 默认栈，优先复用 Web 代码。

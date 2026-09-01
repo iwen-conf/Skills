@@ -1,14 +1,14 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-08-19T18:04:41.004775Z",
+  "generated_at": "2026-09-01T04:32:54.138270Z",
   "skill_count": 15,
   "skills": [
     {
       "name": "arc:arch",
       "description": "Applies the default backend architecture, DIP, layering, zap logging, Go constants, and helper limits. Use when writing backend or Go services, 架构, DIP, usecase, repository, 分层, or reviewing layering. Not for frontend stack choices.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source_path": "Arc/arc:arch/SKILL.md",
-      "line_count": 122,
+      "line_count": 123,
       "intent_router": [
         {
           "When": "Any backend edit",
@@ -128,9 +128,9 @@
     {
       "name": "arc:build",
       "description": "Implements scoped code changes and verifies them. Use when the user says 写代码, 开发功能, 落地改动, implement a known scheme, or deliver a scoped change. Not for unknown-failure repair or requirement clarification.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source_path": "Arc/arc:build/SKILL.md",
-      "line_count": 158,
+      "line_count": 164,
       "intent_router": [
         {
           "When": "Scoped implementation",
@@ -210,9 +210,9 @@
     {
       "name": "arc:clarify",
       "description": "Clarifies a fuzzy request into executable context, constraints, and acceptance criteria. Use when the user says 澄清, 需求不清, 验收标准, clarify, or the task cannot be executed yet. Not for writing a PRD or delivering code.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source_path": "Arc/arc:clarify/SKILL.md",
-      "line_count": 118,
+      "line_count": 120,
       "intent_router": [
         {
           "When": "Vague request, missing acceptance",
@@ -462,9 +462,9 @@
     {
       "name": "arc:fix",
       "description": "Diagnoses and repairs failures from logs, stack traces, failing tests, or incidents. Use when the user says 报错, 修复, 故障, bug, 根因, incident, or failing test. Not for greenfield feature delivery.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source_path": "Arc/arc:fix/SKILL.md",
-      "line_count": 161,
+      "line_count": 164,
       "intent_router": [
         {
           "When": "Failure with evidence",
@@ -774,9 +774,9 @@
     {
       "name": "arc:sdlc",
       "description": "Creates current-state local task docs, pre-constraints, subtasks, and progress tables. Use when the user says 拆任务, 进度跟踪, 任务文档, 制定计划, 创建任务, or before large tracked implementation. Not the default memory for same-session cheap-model routing; that belongs to arc:prewalk.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source_path": "Arc/arc:sdlc/SKILL.md",
-      "line_count": 100,
+      "line_count": 106,
       "intent_router": [
         {
           "When": "Start or resume large tracked work",

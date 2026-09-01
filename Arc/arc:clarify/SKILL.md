@@ -1,6 +1,6 @@
 ---
 name: arc:clarify
-version: 1.0.0
+version: 1.1.0
 description: >
   Clarifies a fuzzy request into executable context, constraints, and acceptance criteria.
   Use when the user says 澄清, 需求不清, 验收标准, clarify, or the task cannot be executed yet. Not
@@ -50,6 +50,8 @@ NO LARK-ACTIVE FEATURE REQUIREMENT WITHOUT task_base ROW.
 
 - MUST separate facts, assumptions, and open questions.
 - MUST ask only blocking questions.
+- MUST present competing interpretations of the request instead of silently choosing one, and name a materially simpler alternative when it exists.
+- MUST respect the ask/autonomy boundary in [`docs/execution-truth.md`](../../docs/execution-truth.md): bug fixes and clear-answer work proceed without questions; only interface, persisted-data, or architecture tradeoffs justify stopping the flow.
 - MUST define in-scope and out-of-scope work.
 - MUST make downstream concrete tasks specific enough to become `arc:sdlc` subtasks without hidden context.
 - MUST use `Given-When-Then` when behavior must be tested.
