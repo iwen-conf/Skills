@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-09-01T04:32:54.138270Z",
+  "generated_at": "2026-09-04T02:30:15.909230Z",
   "skill_count": 15,
   "skills": [
     {
@@ -623,10 +623,10 @@
     },
     {
       "name": "arc:idx",
-      "description": "Uses the arc-idx CLI for local search, symbols, structural queries, files, stats, daemon, refresh, and diagnostics. Use when searching the repo, 搜代码, 找符号, arc-idx, ast-grep, zoekt, or locating call sites. Not for editing code.",
-      "version": "1.0.0",
+      "description": "First step of any local repo work: implement, debug, review, 搜代码, 找符号, or locate files. Runs ~/.local/bin/arc-idx (zoekt search, ctags symbol, ast-grep ast, files, stats, daemon, doctor) before guessing paths. Not rg/find/MCP as primary search. Not for editing code.",
+      "version": "1.1.0",
       "source_path": "Arc/arc:idx/SKILL.md",
-      "line_count": 163,
+      "line_count": 172,
       "intent_router": [
         {
           "When": "Text/regex/symbol/AST search",
@@ -650,7 +650,7 @@
         }
       ],
       "quick_contract": {
-        "trigger": "The user asks about `.ai-code-index`, code search coverage, stale indexes, local search workflow, symbol lookup, structural search, file discovery, or code inventory.",
+        "trigger": "Any local repo task (implement, debug, review, locate files). Do not wait for the user to name `arc-idx`. Guessing paths is a failure.",
         "inputs": "Project path, target scope/profile, search intent, optional language/symbol/pattern, freshness concern.",
         "outputs": "A working `arc-idx` command sequence, index structure guidance, refresh/diagnose commands, and any missing-tool or stale-index risks.",
         "quality_gate": "Agent uses `arc-idx search|symbol|ast|files|stats` before broad `rg`, and runs `arc-idx doctor` when results look incomplete.",

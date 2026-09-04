@@ -1,10 +1,10 @@
 ---
 name: arc:idx
-version: 1.0.0
+version: 1.1.0
 description: >
-  Uses the arc-idx CLI for local search, symbols, structural queries, files, stats,
-  daemon, refresh, and diagnostics. Use when searching the repo, 搜代码, 找符号, arc-idx,
-  ast-grep, zoekt, or locating call sites. Not for editing code.
+  First step of any local repo work: implement, debug, review, 搜代码, 找符号, or locate
+  files. Runs ~/.local/bin/arc-idx (zoekt search, ctags symbol, ast-grep ast, files, stats,
+  daemon, doctor) before guessing paths. Not rg/find/MCP as primary search. Not for editing code.
 ---
 # AI Code Index
 
@@ -29,16 +29,22 @@ Default behavior: Agents MUST use `arc-idx` as their primary context discovery t
 ## Red Lines
 
 ```text
+NO GUESSING PATHS / SYMBOLS / MISSING FILES.
 NO WHOLE-REPO rg WHILE arc-idx INDEX EXISTS.
 NO MCP FOR THIS CONTEXT ENGINE.
 NO TERMINAL COLOR / ZOEK LOG DUMP IN AGENT CONTEXT.
 NO RESURRECTED search.sh WRAPPERS.
 NO DAEMON WITHOUT PID FILE; NO STALE INDEX WITHOUT doctor.
+NO SED/FIND UNTIL arc-idx files OR search HIT.
+NO rg / grep / fd / find / ls -R / python / node TREE WALKS AS PRIMARY SEARCH.
+NO FOREIGN BINARY: `arc-idx version` MUST MATCH THE IDENTITY LINE.
 ```
 
 ## Quick Contract
 
-- **Trigger**: The user asks about `.ai-code-index`, code search coverage, stale indexes, local search workflow, symbol lookup, structural search, file discovery, or code inventory.
+- **Trigger**: Any local repo task (implement, debug, review, locate files). Do not wait for the user to name `arc-idx`. Guessing paths is a failure.
+- **Identity**: `arc-idx version` MUST print `arc-idx 1.0.0 — local AI context engine (zoekt + ctags + ast-grep)`. Any other output means a foreign binary: stop, report the path and output, never switch engines.
+- **Session start**: `arc-idx doctor --format json` (unhealthy/stale → `arc-idx index --quiet`), then `arc-idx daemon status`; if `alive=false`, `arc-idx daemon start`. Every repo session, not only long ones.
 - **Inputs**: Project path, target scope/profile, search intent, optional language/symbol/pattern, freshness concern.
 - **Outputs**: A working `arc-idx` command sequence, index structure guidance, refresh/diagnose commands, and any missing-tool or stale-index risks.
 - **Quality Gate**: Agent uses `arc-idx search|symbol|ast|files|stats` before broad `rg`, and runs `arc-idx doctor` when results look incomplete.
@@ -90,6 +96,9 @@ arc-idx stats --profile code --format json
 
 # Health: tools present, shard age vs source mtimes, daemon state, advice
 arc-idx doctor --format json
+
+# Identity: must print the exact engine fingerprint line
+arc-idx version
 ```
 
 Flags may appear before or after positional arguments. `search` falls back to `rg --json` automatically when no shards exist (reported as `"engine": "rg-fallback"`).
@@ -113,7 +122,7 @@ Safeguards (all implemented, all defaults overridable):
 - **Zombie Prevention**: pid file at `.ai-code-index/daemon.pid`; a watcher re-parented to PID 1 self-terminates; `doctor` flags stale pid files.
 - **Debounced Rebuilds**: bursts of file events collapse into one rebuild after `--debounce` quiet time.
 
-The AI does NOT need to run manual reindex loops. Prefer `arc-idx daemon start` at the beginning of a long session and `arc-idx daemon stop` when a massive refactor task is completely finished. For one-shot sessions, `arc-idx index` is fast enough to run before querying.
+The AI does NOT need to run manual reindex loops. Run `arc-idx daemon status` at the start of every repo session and `arc-idx daemon start` when it is not alive (`start` on an already-running daemon exits 1 with `already running`; that is expected). Use `arc-idx daemon stop` only when a massive refactor task is completely finished.
 
 ## Quality Gates
 
@@ -134,9 +143,9 @@ The AI does NOT need to run manual reindex loops. Prefer `arc-idx daemon start` 
 
 ## When to Use
 
-- **Preferred Trigger**: The user mentions `.ai-code-index`, `arc-idx`, local code search, index coverage, stale search results, symbol lookup, ast-grep, Zoekt, ctags, profile search, code inventory, or replacing repeated `rg`.
-- **Typical Scenario**: Starting work in a large repo, improving agent search behavior, adding project profiles, diagnosing incomplete results, or documenting index structure and commands.
-- **Boundary Tip**: Use this skill for discovery and maintenance of local search tooling. Use the relevant Arc lifecycle skill for the actual code change, repair, audit, or documentation work that follows.
+- **Preferred Trigger**: Any local codebase work: start of a session, before Read, before claiming a file is missing, before editing, and when the user mentions search / 搜代码 / 找符号 / arc-idx.
+- **Typical Scenario**: Efficient development — `doctor` (and `daemon start` on long sessions), then `files` / `search` / `symbol` / `ast` with profiles, then surgical Read/edit.
+- **Boundary Tip**: This skill is the discovery step of implementation, not a substitute for editing. After hits, use `arc:build` / `arc:fix` / `arc:audit` as needed. Do not skip discovery.
 
 ## Input Arguments
 

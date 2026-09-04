@@ -15,7 +15,11 @@ import (
 
 const version = "1.0.0"
 
-const usage = `arc-idx %s — local AI context engine (zoekt + ctags + ast-grep)
+// identity is the single-line fingerprint agents compare against before
+// trusting this binary as the mandated local context engine.
+const identity = "arc-idx %s — local AI context engine (zoekt + ctags + ast-grep)"
+
+const usage = identity + `
 
 Usage:
   arc-idx index    [--repo DIR]                        rebuild zoekt shards + ctags symbols
@@ -73,7 +77,7 @@ func main() {
 	case "daemon":
 		err = cmdDaemon(args)
 	case "version", "--version", "-v":
-		fmt.Println(version)
+		fmt.Printf(identity+"\n", version)
 	case "help", "--help", "-h":
 		fmt.Printf(usage, version)
 	default:
