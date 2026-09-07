@@ -8,7 +8,7 @@ For new projects, or when upgrading a project's documentation architecture, enfo
 
 - `docs/00-产品需求/`: PRDs, user stories, business rules, and domain glossaries.
 - `docs/01-系统设计/`: Architecture, RFCs, sequence diagrams, and DB/domain models.
-- `docs/02-API记录/`: API mapping and third-party integration indexes. Do not write API contracts by hand here; Apifox (`apifox-cli`) is the contract SSOT. This folder holds exported syncs/indexes.
+- `docs/02-API记录/`: Markdown API contracts, module indexes, and third-party integration notes. Repository documents are the authority for implementation and acceptance; follow [`../../arc:build/references/api-contract.md`](../../arc:build/references/api-contract.md). Apifox is an optional downstream sync only when explicitly requested, never a required source or workflow step.
 - `docs/03-执行任务/`: Feature/bugfix task plans, execution subtasks, progress tables, and `00-前置约束.md`.
 - `docs/04-性能优化/`: SQL tuning, latency, memory, UI responsiveness plans.
 - `docs/05-代码治理/`: Technical debt, standardization, refactoring, deprecated API removal.
@@ -25,6 +25,7 @@ Rules:
 2. Do not dump loose markdown files at the root of `docs/`.
 3. A task in `03-执行任务` MUST link back to the source requirement in `00-产品需求` and the architecture in `01-系统设计`. Use relative links; do not copy-paste large blocks.
 4. Use `README.md` at the root of each category as the index.
+5. Author requirements, API contracts, task decomposition, and progress as Markdown, not JSON documents. Use relative links from BE/FE tasks to the same API contract rather than copying a specification into each task.
 
 ## Task Category Rules (`03-执行任务`)
 
@@ -52,19 +53,26 @@ docs/03-执行任务/
     tasks/
       T01-任务组名称/
         README.md
-        T01-01-子任务名称.md
+        backend/
+          README.md
+          T01-BE-01-后端行为.md
+        frontend/
+          README.md
+          T01-FE-01-前端行为.md
 ```
+
+The hierarchy is business group (`T01`) → side work package (`T01-BE` / `T01-FE`) → executable leaf (`T01-BE-01` / `T01-FE-01`). Create only the sides in scope. Add `integration/` with `T01-INT-MM` tasks only when a separate cross-end acceptance outcome is needed. Difficulty determines how leaves are split; see [`authoring.md`](authoring.md).
 
 Local compatibility:
 
-1. If the project spec uses `进度跟踪.md`, `00-总进度看板.md`, or direct `TNN-任务组名称/` directories without `tasks/`, follow that existing structure.
+1. If the project spec uses `进度跟踪.md`, `00-总进度看板.md`, or direct `TNN-任务组名称/` directories without `tasks/`, follow that existing structure while preserving the hierarchy, separate frontend/backend task files, and difficulty/dependency fields.
 2. If the project already uses paired loose entries such as `NN-具体任务名.md` plus `NN-具体任务名/`, update both when they are active.
 3. If both `进度跟踪.md` and `进度跟踪表.md` exist, update the one referenced by the task entry.
 4. If no local convention exists, use the default structure above.
 
 Rules:
 
-- Use two digits for `DD`, task `NN`, `TNN`, and subtask `MM`.
+- Use two digits for `DD`, task `NN`, group `TNN`, and subtask `MM`; new leaf IDs are `TNN-BE-MM` / `TNN-FE-MM` (or `TNN-INT-MM` for integration verification).
 - Pick the next available `NN` by scanning existing task directories, loose legacy entries, and indexes.
 - Do not use suffixes such as "最终版", "新版", "临时版", or duplicate progress tables.
 - If the repository already has a stricter local task-document spec, obey the local spec while keeping pre-constraint and progress-tracking gates.

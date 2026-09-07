@@ -1,6 +1,6 @@
 ---
 name: arc:build
-version: 1.1.0
+version: 1.2.0
 description: >
   Implements scoped code changes and verifies them. Use when the user says 写代码, 开发功能,
   落地改动, implement a known scheme, or deliver a scoped change. Not for unknown-failure
@@ -25,6 +25,7 @@ description: >
 | When | Load |
 |---|---|
 | Scoped implementation | this SKILL.md Workflow |
+| Write/change an API or its documentation | [`references/api-contract.md`](references/api-contract.md) |
 | Unclear scope or acceptance | `arc:clarify` |
 | Failure/incident/failing check | `arc:fix` |
 | Suspected bug or optimization without proof | `arc:audit` / `arc:fix`; no repair edit |
@@ -47,6 +48,7 @@ description: >
 
 ```text
 NO CODE CHANGE WITHOUT SCOPE.
+NO API OR TASK DOCUMENTS DELIVERED AS JSON.
 NO REPAIR EDIT BEFORE THE REPORTED ISSUE IS CONFIRMED.
 NO SYMPTOM PATCH WHEN A SHARED ARCHITECTURE OR BUSINESS-CONTRACT CAUSE IS UNCHECKED.
 NO LARGE PROJECT CODE CHANGE WITHOUT CURRENT LOCAL TASK DOCS.
@@ -62,6 +64,8 @@ NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 
 - MUST preserve unrelated user changes.
 - MUST edit the smallest viable file set.
+- MUST write and maintain API contracts as Markdown under the project's API docs directory (default `docs/02-API记录/`), following [`references/api-contract.md`](references/api-contract.md) before implementing or changing an endpoint. Use field and behavior tables, not JSON/OpenAPI JSON documents or JSON blocks as the specification.
+- MUST use `arc:sdlc`'s hierarchy and difficulty assessment when decomposing work: separate frontend and backend tasks, each with its own ID, dependencies, acceptance, and status; priority is not difficulty.
 - MUST apply the **Think before coding** gate in [`docs/execution-truth.md`](../../docs/execution-truth.md): state load-bearing assumptions, present competing interpretations or a materially simpler approach instead of silently choosing, convert the task into a verifiable success criterion before editing, and ask only when the tradeoff touches interfaces, persisted data, or architecture.
 - MUST run the **Simplicity ladder** in [`docs/execution-truth.md`](../../docs/execution-truth.md) before writing new code: reuse existing code > standard library > platform-native feature > installed dependency > one line > minimal new code; NEVER add a new dependency for something a few lines can do; mark deliberate ceiling-bound simplifications with a `debt:` comment; NEVER simplify away trust-boundary validation, data-loss protection, security, or accessibility basics.
 - MUST follow the **Surgical edits** gate in [`docs/execution-truth.md`](../../docs/execution-truth.md): no "improving" adjacent code, comments, or formatting; delete only the imports/variables/functions this change orphaned; mention pre-existing dead code instead of deleting it.
@@ -93,7 +97,7 @@ NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 2. Classify the request as implementation or repair. For repair/optimization language, load the evidence-first root-cause gate and confirm the issue before any behavior edit; route an unconfirmed issue to `arc:audit` / `arc:fix`.
 3. For large, multi-step, cross-module, or tracked work, apply `arc:sdlc` before code edits and keep local task status current as the project changes.
 4. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.
-5. Search for existing patterns, call sites, tests, and contracts; then run the simplicity ladder before writing any new code.
+5. Search for existing patterns, call sites, tests, and contracts; for API work, align the Markdown contract and link any associated backend/frontend tasks before dependent code edits. Then run the simplicity ladder before writing any new code.
 6. If multi-model routing is available and useful, follow `arc:prewalk`: Guide orients + bounded todo + first production edit, then Executor continues in the same trajectory; otherwise oneshot a single profile.
 7. Edit only the needed files and the complete owning boundary identified by evidence.
 8. Run targeted verification, including analogous paths when the change repairs a shared invariant; broaden only when risk requires it.
@@ -107,6 +111,7 @@ NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 - Repair/optimization claims include confirmed observed behavior, root cause, complete fix boundary, and analogous-path verification; an unconfirmed issue may receive only bounded behavior-preserving instrumentation or reproducer coverage, never a claimed repair.
 - Large, multi-step, cross-module, or tracked work has current local task docs, detailed subtasks, and synchronized progress status from `arc:sdlc`.
 - Existing contracts, names, state shapes, and response envelopes are preserved unless explicitly changed.
+- Changed APIs have current Markdown contracts covering request/response fields, permissions, business behavior, error/empty states, and verification; associated backend/frontend tasks reference the same contract.
 - Project architecture preserves DIP and the default backend architecture responsibilities from `arc:arch` when backend architecture applies.
 - API/service contracts distinguish `empty`, `not found`, `permission denied`, validation failure, network/server failure, and loading/processing states; frontend consumers must not need to infer empty state from an error branch.
 - Security-sensitive work checks authz, ownership, server-side amount/price computation, and secret handling.

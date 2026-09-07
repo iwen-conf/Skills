@@ -18,6 +18,8 @@ Keep statuses synchronized:
 - Each subtask file must have `状态：...` near the top.
 - The central progress table and each subtask file must agree.
 - Do not create a separate completed-history table. Put completion notes in the central progress table.
+- Keep frontend/backend leaf status independent. Parent completion requires all in-scope children plus the parent's acceptance (including real integration when required); completing one side never completes the other.
+- If an index displays summary status, refresh it from the same leaf evidence. Do not count parent groups as additional completed executable tasks.
 
 ## Index Maintenance
 
@@ -36,10 +38,11 @@ Before starting or resuming any subtask:
 1. Re-check affected files, docs, tests, and existing task status.
 2. If the repository changed since the task was written, update `00-前置约束.md`, the central progress table, and affected subtask files before implementation.
 3. If the change invalidates scope or acceptance criteria, mark affected rows `[!]` until clarified.
+4. Run the task's `<Context-Queries>` before edits, verify dependency readiness, and reassess difficulty when scope, contract risk, or verification cost changed.
 
 When starting a subtask: change both the progress-table row and the subtask file to `[/]`.
 
-When implementation is done but verification is not: change both to `[?]` and record the pending check.
+When implementation is done but verification is not: change both to `[?]` and record the pending check. This includes frontend tasks that passed Mock checks but whose acceptance still requires a real API.
 
 When verification is done: change both to `[x]` and record commands/results. If tests were not run, record the reason.
 
@@ -50,7 +53,7 @@ When deferred: change both to `[-]` and record the deferral reason and restart c
 When the project changes during implementation:
 
 1. Update the current subtask with the new files, symbols, contracts, and verification impact.
-2. Add new subtasks for newly discovered necessary work.
+2. Add new subtasks for newly discovered necessary work under the correct frontend/backend work package; split complex work again when new evidence changes its difficulty.
 3. Mark obsolete subtasks `[-]` with the reason, or rewrite them.
 4. Update the central progress table immediately.
 
@@ -68,3 +71,6 @@ When the project changes during implementation:
 10. There are no stale names, stale paths, obsolete assumptions, or duplicate top-level business-domain task entries.
 11. For security/audit-sourced work: 项目定位, 项目口径, 功能角色, Finding 索引, and per-finding subtasks exist.
 12. Downstream/cheap-executor tasks include ordered steps, acceptance checks, and forbidden shortcuts when they will be handed off.
+13. Task and API documents are Markdown, with business-group → side-work-package → executable-leaf links and separate frontend/backend cards when both ends are in scope.
+14. Every leaf records difficulty with reasons, priority, dependency readiness, and exact `<Context-Queries>`; parent and leaf metadata are consistent with the latest split.
+15. API-dependent frontend/backend tasks reference the same current Markdown contract; no task is blocked merely by the absence of Apifox.

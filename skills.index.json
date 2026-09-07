@@ -1,18 +1,22 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-09-04T02:30:15.909230Z",
+  "generated_at": "2026-09-07T09:23:07.632562Z",
   "skill_count": 15,
   "skills": [
     {
       "name": "arc:arch",
       "description": "Applies the default backend architecture, DIP, layering, zap logging, Go constants, and helper limits. Use when writing backend or Go services, 架构, DIP, usecase, repository, 分层, or reviewing layering. Not for frontend stack choices.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "source_path": "Arc/arc:arch/SKILL.md",
-      "line_count": 123,
+      "line_count": 125,
       "intent_router": [
         {
           "When": "Any backend edit",
           "Load": "this SKILL.md Red Lines, DIP, Go file constraints, ponytail"
+        },
+        {
+          "When": "API endpoint or transport contract",
+          "Load": "[`../arc:build/references/api-contract.md`](../arc:build/references/api-contract.md)"
         },
         {
           "When": "Directory layout, DTO/entity/model, usecase results, wire, zap, constants",
@@ -128,13 +132,17 @@
     {
       "name": "arc:build",
       "description": "Implements scoped code changes and verifies them. Use when the user says 写代码, 开发功能, 落地改动, implement a known scheme, or deliver a scoped change. Not for unknown-failure repair or requirement clarification.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "source_path": "Arc/arc:build/SKILL.md",
-      "line_count": 164,
+      "line_count": 169,
       "intent_router": [
         {
           "When": "Scoped implementation",
           "Load": "this SKILL.md Workflow"
+        },
+        {
+          "When": "Write/change an API or its documentation",
+          "Load": "[`references/api-contract.md`](references/api-contract.md)"
         },
         {
           "When": "Unclear scope or acceptance",
@@ -540,9 +548,9 @@
     {
       "name": "arc:frontend",
       "description": "Delivers frontend and UI work on the default Web, mobile, desktop, and mini-program stacks. Use when the user says 前端, UI, 页面, React, 小程序, shadcn, Tailwind, or frontend baseline. Not for backend-only API work.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source_path": "Arc/arc:frontend/SKILL.md",
-      "line_count": 165,
+      "line_count": 167,
       "intent_router": [
         {
           "When": "Stack, tokens, scaffold",
@@ -551,6 +559,10 @@
         {
           "When": "UI implementation",
           "Load": "this SKILL.md Workflow"
+        },
+        {
+          "When": "API integration or contract changes",
+          "Load": "[`../arc:build/references/api-contract.md`](../arc:build/references/api-contract.md)"
         },
         {
           "When": "Unclear scope",
@@ -774,13 +786,21 @@
     {
       "name": "arc:sdlc",
       "description": "Creates current-state local task docs, pre-constraints, subtasks, and progress tables. Use when the user says 拆任务, 进度跟踪, 任务文档, 制定计划, 创建任务, or before large tracked implementation. Not the default memory for same-session cheap-model routing; that belongs to arc:prewalk.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "source_path": "Arc/arc:sdlc/SKILL.md",
-      "line_count": 106,
+      "line_count": 116,
       "intent_router": [
         {
           "When": "Start or resume large tracked work",
           "Load": "[`modules/authoring.md`](modules/authoring.md) then [`modules/docs-architecture.md`](modules/docs-architecture.md)"
+        },
+        {
+          "When": "Split frontend/backend work or assess task difficulty",
+          "Load": "[`modules/authoring.md`](modules/authoring.md)"
+        },
+        {
+          "When": "API contracts and cross-end dependencies",
+          "Load": "[`../arc:build/references/api-contract.md`](../arc:build/references/api-contract.md)"
         },
         {
           "When": "Create numbered task dirs, indexes, or `docs/00`–`11`",

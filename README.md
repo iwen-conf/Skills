@@ -45,14 +45,14 @@ Skills/
 | `arc:define` | 项目定义 | 把模糊想法整理为 PRD / Blueprint，并可在用户启用飞书后交给 `arc:docs` 建立项目文档中心 |
 | `arc:clarify` | 需求澄清 | 把模糊需求收敛成可执行上下文、约束和验收标准 |
 | `arc:docs` | 飞书项目空间 | 在用户明确创建/连接飞书空间或项目已有 `.lark.json` 时，维护飞书项目文档、`.lark.json` 索引、进度、资料和生命周期资料 |
-| `arc:build` | 代码交付 | 在方案明确时做代码交付、验证和变更说明 |
+| `arc:build` | 代码交付 | 在方案明确时做代码交付、验证和变更说明；接口以仓库 Markdown 契约为基准 |
 | `arc:prewalk` | 同会话多模型路由 | Guide 探索 + 有界 todo + 第一笔生产 edit 后，Executor 继承 trajectory；禁止 plan 冷启动 |
 | `arc:frontend` | 前端工程 | 收敛 Web、移动、桌面和小程序默认技术栈并记录前端决策 |
 | `arc:fix` | 故障修复 | 基于失败证据和可持久化日志定位根因、修复并回归验证 |
 | `arc:audit` | 项目体检 / AppSec 只读审计 | 只读项目体检；`mode=appsec` 时按资产表→敏感数据地图→软柿子→finding cards 做跨项目漏洞审计；多 finding 时产出 Handoff（定位/口径/角色）给任务技能 |
 | `arc:security` | 安全自动化 | 本地安装和编排安全 CLI，按数据价值重排严重度；多 finding 时并入 Handoff 再交给任务技能，不从 SARIF 直接改代码 |
 | `arc:test` | 测试与质量门禁 | 按风险分层设计/生成/运行测试（单元/集成/契约/E2E、覆盖率、模糊/属性、性能），用平台原生工具（Android=Maestro、Go/Rust 原生、HarmonyOS=arkxtest、前端=Vitest/Playwright）；性能与功能分开判失败，失败交 `arc:fix`，安全/非功能交 `arc:security`/`arc:audit` |
-| `arc:sdlc` | 任务文档与进度 | 跨会话/人类可读进度与细子任务；安全来源时强制项目定位/口径/功能角色；同会话成本路由交给 `arc:prewalk`，文档不是 cheap 模型的唯一内存 |
+| `arc:sdlc` | 任务文档与进度 | Markdown 任务按业务组、前后端工作包、独立子任务分层，按难度和依赖拆分；安全来源时补充定位/口径/角色；同会话成本路由交给 `arc:prewalk` |
 
 ## 通用工程约束
 
@@ -90,6 +90,7 @@ Skills/
 - 后续搜索到的资料、新增文档、外部链接、接口说明、架构事实、决策、截图、报告、会议纪要和交付证据，只要项目已有 `.lark.json`，都必须通过 `arc:docs` 写入对应飞书 Doc/Wiki/Base/Drive/Whiteboard/Slides，并在 `.lark.json.lifecycle[]` 保留来源和时间。
 - Web 前端默认统一走 `arc:frontend`：除非用户明确指定其他技术，默认栈固定为 React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod。
 - 所有前后端交付必须区分状态语义：无数据/空状态是成功业务状态，错误是失败状态，权限不足和单资源不存在也要独立建模；前端不得把空列表、空搜索、空仪表盘或首次使用页面展示成错误页。
+- 接口以仓库 Markdown 文档为开发、联调和验收基准，默认维护在 `docs/02-API记录/`，遵循 [`Markdown 接口契约`](Arc/arc:build/references/api-contract.md)。用字段表、行为表和验收说明写清契约，不用 JSON 文档或整段 JSON 代码块代替说明；默认不使用 Apifox，仅在用户明确要求时同步为下游副本。
 - 所有可复现或可观察的前后端 Bug 排查必须优先保存可搜索的日志/证据文件，再基于错误字符串、请求 ID、堆栈、网络失败或运行时输出定位问题；后端保存应用日志和命令 stdout/stderr，前端保存 browser console、network、runtime error 和截图证据。临时 debug 输出不得留在交付代码中。
 - 所有实现与修复默认遵守 [`docs/execution-truth.md`](docs/execution-truth.md) 的编码纪律门禁：编码前先陈述假设、呈现多种解释与更简单方案，把任务转成可验证的成功标准；bug 修复和有明确正确答案的工作自主推进到底，只有接口、数据或架构取舍才停下询问；写新代码前先跑来源优先级梯子（复用现有 > 标准库 > 平台原生 > 已装依赖 > 一行 > 最少新代码），几行代码能解决的事不引入新依赖，刻意留天花板的简化用 `debt:` 注释标明升级路径；只动该动的行，不「顺手改进」相邻代码，只清理本次改动产生的孤儿代码，预先存在的死代码提及但不删除；非琐碎改动交付前做限定在本次新增代码内的优雅重审；被用户纠正后把教训写入对应仓库 `tasks/lessons.md` 或持久记忆，会话开始时回顾相关 lesson。
 - 任何 Skill 诊断疑似缺陷、回归、性能或安全问题时，必须先加载 [`docs/execution-truth.md`](docs/execution-truth.md#6-evidence-first-root-cause-repair)：未确认问题或未确认根因不得修改生产行为或宣称已修复；只允许为取证增加有界、行为保持的日志/探针/复现覆盖。先从架构边界和共享不变量追踪，再对照真实业务契约；最小改动必须是完整根因修复，不能用补丁、重试、兼容垫片或弱化断言掩盖问题。
@@ -105,6 +106,7 @@ Skills/
 - Arc Skill 名称使用 `arc:*` 命名空间并放在 `Arc/arc:*` 目录下；Android、HarmonyOS、CNB、Lark Skill 保留各自的领域命名空间和目录，不把垂直能力伪装成 Arc 生命周期技能。
 - 所有项目代码交付和修复必须遵守 `arc:arch`：先看 ponytail；保持 DIP；默认按 `domain`、`usecase`、`interface/restful`、`infrastructure`、`wire` 的分层、命名和接口设计组织后端代码；后端排障必须用结构化日志和本地日志文件保留可复查证据；Go 常量必须使用 `MixedCaps` / `mixedCaps`、优先标准库语义常量、按最小作用域定义，枚举型业务状态必须用自定义类型建模，跨服务常量必须来自版本化契约或受治理的共享模块；Go 单文件私有函数上限为两个，原文件达到两个私有函数时必须拆到 `原文件名_helpers.go` 同包 helper 文件；DIP 边界接口是明确架构要求，但不得为私有 helper、同层代码或形式主义创建接口。
 - 大任务、跨多轮任务、迁移、重构、修复战役和需要持续跟踪的工作，必须先遵守 `arc:sdlc`：按最新项目状态解析或创建 `docs/DD-任务` 这类数字序列化任务分类，再建立任务入口、`00-前置约束.md`、`tasks/` 子任务文件和 `进度跟踪表.md`；子任务须写清当前文件/调用点/输出/执行顺序/边界/反例/验证，作为跨会话恢复与验收权威。开始、暂停、阻塞、完成、验证或下一步变化时，必须立即更新 `进度跟踪表.md` 和子任务状态，未同步前不得继续实现或交付。
+- 任务文档统一 Markdown，按“业务任务组 → 后端/前端工作包 → 可独立验收子任务”分级；跨端工作必须分为独立文件、编号和状态。按范围、状态复杂度、契约/数据风险、依赖未知项与验证成本评估 D1–D4 难度，和 P0–P4 优先级分开记录。D3 按合理验收边界继续拆，D4 先安排有明确出口的调研/验证；每张任务卡包含难度依据、依赖就绪条件和精确 `<Context-Queries>`，仅单端的任务不生成另一端空任务。
 - 同会话多模型成本路由默认遵守 `arc:prewalk` / [`docs/prewalk.md`](docs/prewalk.md)：账单近似 `O(reads)`；Guide（frontier）探索并初始化有界 todo、落地第一笔**生产代码** edit 后，再在同一 trajectory 上切到 Executor，并 prune planning 指令。禁止「frontier 只写 plan 文档 → 新开 cheap 会话冷读 plan」作为默认省钱法；运行时不能 swap 时 oneshot 单一模型，不得伪造 cold plan handoff。
 - 需要测试或质量门禁的工作默认统一走 `arc:test`：按风险分层启用单元/集成/契约/E2E、覆盖率与回归门禁、模糊/属性、性能（基准/负载），用平台原生工具（Android=Maestro、Go/Rust 各自内置测试库、HarmonyOS=arkxtest、前端=Vitest/Playwright，且交互闭环/可见性/可点击/布局可读性经 `arc:frontend`）；性能与功能分开跑、分开判失败，覆盖率是缺口信号不是目标，禁止为凑类型全量铺开；安全/兼容/混沌/可观测性等非功能测试与 `arc:security`/`arc:audit` 协作、不重复建设；失败用例交 `arc:fix`，大型测试建设先走 `arc:sdlc`。
 - Arc Skill 默认是路由器：`SKILL.md` 只保留意图路由表和红线，细节按需加载 `modules/` 与 `references/`。确定性检查走 `scripts/validate_skills.py` 与触发语料 `schemas/trigger_corpus.yaml`。`arc:security` 这种需要可重复自动化的能力可以携带本地脚本。

@@ -1,6 +1,6 @@
 ---
 name: arc:sdlc
-version: 1.1.0
+version: 1.2.0
 description: >
   Creates current-state local task docs, pre-constraints, subtasks, and progress
   tables. Use when the user says 拆任务, 进度跟踪, 任务文档, 制定计划, 创建任务,
@@ -15,6 +15,8 @@ description: >
 Turn large or multi-step work into persistent local docs before implementation. Docs capture the latest repository state so a later session can resume from `docs/` without rediscovering the codebase.
 
 Task docs are the **cross-session / human / audit** memory. They are not the default vehicle for same-session multi-model cost routing. Live cheap-executor handoff belongs to `arc:prewalk`.
+
+All authored task and API documents are Markdown. Decompose tasks as **business group → separate backend/frontend work packages → independently verifiable subtasks**, and assess difficulty before deciding their size. See [`modules/authoring.md`](modules/authoring.md) for the hierarchy and difficulty rules; priority and difficulty are separate fields.
 
 Separate raw requirements from executable work:
 
@@ -42,6 +44,8 @@ Task tiering (planning is the default for non-trivial work, docs are the escalat
 | When | Load |
 |---|---|
 | Start or resume large tracked work | [`modules/authoring.md`](modules/authoring.md) then [`modules/docs-architecture.md`](modules/docs-architecture.md) |
+| Split frontend/backend work or assess task difficulty | [`modules/authoring.md`](modules/authoring.md) |
+| API contracts and cross-end dependencies | [`../arc:build/references/api-contract.md`](../arc:build/references/api-contract.md) |
 | Create numbered task dirs, indexes, or `docs/00`–`11` | [`modules/docs-architecture.md`](modules/docs-architecture.md) |
 | Write README / 前置约束 / 子任务 / 进度表 | [`modules/templates.md`](modules/templates.md) |
 | Change status, next action, or index links | [`modules/lifecycle.md`](modules/lifecycle.md) |
@@ -61,6 +65,9 @@ NO PLAN-POSTCARD HANDOFF AS SAME-SESSION MEMORY.
 NO [x] FROM DOCS OR MATRIX ALONE.
 NO SILENT SCOPE EXPANSION PAST 不做范围.
 NO VAGUE SUBTASKS WITHOUT FILES, SEQUENCE, AND VERIFICATION.
+NO JSON TASK TREES OR JSON API DOCUMENTS.
+NO MIXED FRONTEND/BACKEND IMPLEMENTATION IN ONE SUBTASK.
+NO TASK SIZING WITHOUT DIFFICULTY REASONS AND DEPENDENCIES.
 ```
 
 ## Execution Model: Docs vs Prewalk
@@ -80,7 +87,7 @@ NO VAGUE SUBTASKS WITHOUT FILES, SEQUENCE, AND VERIFICATION.
 ## Workflow
 
 1. Inspect latest repository state, existing `docs/` indexes, affected files, tests, and call sites. Discovery only.
-2. Load `modules/authoring.md` and complete the pre-implementation gate.
+2. Load `modules/authoring.md`, assess difficulty and dependencies, split the hierarchy into backend/frontend work packages and executable leaves, and complete the pre-implementation gate.
 3. Load `modules/docs-architecture.md` to resolve or scaffold category roots. `DD` is the `docs/` category sequence (`00`–`11`).
 4. Load `modules/templates.md` and write `00-前置约束.md`, the task entry, subtasks, and `进度跟踪表.md`.
 5. Mark the first active subtask `[/]` in both the progress table and the subtask file.
@@ -102,5 +109,8 @@ NO VAGUE SUBTASKS WITHOUT FILES, SEQUENCE, AND VERIFICATION.
 - Task entry is a numbered directory `README.md` unless local history requires a loose entry.
 - `00-前置约束.md` exists with 不做范围 and the completion definition from [`docs/execution-truth.md`](../../docs/execution-truth.md).
 - Every concrete subtask names current files, scope, outputs, and verification.
+- Task docs use Markdown with explicit parent/child links; frontend and backend have separate task files, IDs, acceptance, and status when both are in scope.
+- Every executable leaf has difficulty and its evidence-based reason, priority, dependencies with readiness conditions, and executable `<Context-Queries>`; complex or uncertain work is split by the authoring rules.
+- API-related tasks reference the same Markdown contract; Apifox is optional and is not a planning or implementation prerequisite.
 - `进度跟踪表.md` and subtask statuses agree; `[x]` means code path + project gate + reachable behavior.
 - Security-sourced work has 项目定位, 项目口径, 功能角色, Finding 索引, and per-finding subtasks.

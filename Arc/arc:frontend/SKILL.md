@@ -1,6 +1,6 @@
 ---
 name: arc:frontend
-version: 1.0.0
+version: 1.1.0
 description: >
   Delivers frontend and UI work on the default Web, mobile, desktop, and mini-program
   stacks. Use when the user says 前端, UI, 页面, React, 小程序, shadcn, Tailwind, or frontend
@@ -26,6 +26,7 @@ description: >
 |---|---|
 | Stack, tokens, scaffold | [`references/scaffold-commands.md`](references/scaffold-commands.md) / [`references/color-tokens.md`](references/color-tokens.md) |
 | UI implementation | this SKILL.md Workflow |
+| API integration or contract changes | [`../arc:build/references/api-contract.md`](../arc:build/references/api-contract.md) |
 | Unclear scope | `arc:clarify` |
 | Large tracked frontend work | `arc:sdlc` |
 | Same-session multi-model routing | `arc:prewalk` |
@@ -57,6 +58,7 @@ NO LARK-ACTIVE FRONTEND FEATURE COMPLETION WITHOUT task_base UPDATE.
 ## Hard Constraints
 
 - MUST apply `arc:sdlc` before code edits for large, multi-page, cross-module, architectural, or tracked frontend work; task docs must be generated from the latest project state and updated immediately when routes, components, APIs, state models, scope, assumptions, or status change.
+- MUST keep frontend tasks separate from backend tasks when decomposing work, with independent IDs, difficulty reasons, dependencies, acceptance, and status. API consumers reference the shared Markdown contract; Mock-only checks cannot complete a task whose acceptance requires the real API.
 - MUST apply `arc:prewalk` for same-session multi-model cost routing when the runtime supports mid-session model swap; MUST NOT default to plan-document cold handoff.
 - MUST use the default Web frontend stack for new Web frontends unless the user explicitly names another stack: `React 19` + `TypeScript` + `Vite` + `Tailwind CSS` + `shadcn/ui` + `Zustand` for client state + `TanStack Query` for server state + `TanStack Router` for type-safe routing + `React Hook Form` + `Zod`.
 - MUST use the default mobile stack for new iOS/Android apps unless the user explicitly names another stack: `React Native` + `Expo` + `TypeScript` + `NativeWind` + `Zustand` + `TanStack Query` + `Expo Router`.

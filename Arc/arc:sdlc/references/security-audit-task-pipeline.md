@@ -22,7 +22,7 @@ Exactly five roles. One human/agent may wear multiple hats, but **documents must
 
 1. `R-recon` / `R-scan` finish → write **Handoff Package** (section 4) → only then `R-task`.
 2. `R-task` finishes gate → only then `R-fix` starts first `[/]` subtask.
-3. Multi-finding work: one task directory, multiple `TNN` groups by **permission class + data domain**, not by tool name.
+3. Multi-finding work: one task directory, multiple `TNN` groups by **permission class + data domain**, not by tool name. Within each group, use the base frontend/backend work-package hierarchy and difficulty-based leaf sizing from [`../modules/authoring.md`](../modules/authoring.md).
 4. If handoff lacks 项目定位 / 项目口径 / finding cards, `R-task` must pause (`[!]` blocker) or run a minimal discovery pass—not invent files.
 5. `R-fix` same-session multi-model routing uses **prewalk** (trajectory + todo + first production edit), not “read subtask md only on a cold cheap model”. Task docs remain the durable progress authority; they do not replace agent context. See [`docs/prewalk.md`](../../../docs/prewalk.md).
 
@@ -119,7 +119,7 @@ Every finding used to create a subtask must have:
 1. ...
 ```
 
-`R-task` expands seeds into full subtasks; it must not treat seeds as complete.
+`R-task` expands seeds into full subtasks; it must not treat seeds as complete. Seed priorities do not determine difficulty: assess each leaf from its actual contracts, affected sides, data risk, and verification cost.
 
 ## 5) How `R-task` Writes Docs (非常详细)
 
@@ -134,6 +134,13 @@ NN-安全修复-<短主题>/   # or NN-AppSec审计跟进-<短主题>/
   进度跟踪表.md
   tasks/
     T01-.../
+      README.md
+      backend/
+        README.md
+        T01-BE-01-修复-F-001.md
+      frontend/             # only when frontend work is in scope
+        README.md
+        T01-FE-01-修复-F-001.md
     T02-.../
 ```
 
@@ -165,17 +172,17 @@ Split groups by **risk domain**, not by scanner:
 
 ### 5.4 One finding → one or more subtasks (detail contract)
 
-Default: **one confirmed finding → one fix subtask** (+ optional verify subtask).
+Default: **one confirmed finding → one independently verifiable fix subtask per affected side** (+ a verify task only when it has a separate outcome). Split D3 work by real risk/acceptance boundaries and isolate D4 unknowns first. Preserve the shared root-cause fix boundary across linked tasks; do not claim the finding resolved after only one required side is fixed.
 
 If a finding needs research first (`likely` / `assumption`):
 
-1. `Txx-01-复核-<finding_id>` (read-only proof or false-positive close)
-2. `Txx-02-修复-<finding_id>` only after 01 is `[x]` or promoted to confirmed
+1. `Txx-BE-01-复核-<finding_id>` (read-only proof or false-positive close; use the actual owning work package)
+2. `Txx-BE-02-修复-<finding_id>` only after the evidence confirms the finding
 
-Each **fix** subtask MUST contain:
+Each **fix** subtask MUST use [`../modules/templates.md`](../modules/templates.md)'s subtask card, including parent, owning side, priority, difficulty with reasons, dependency readiness, and exact `<Context-Queries>`. Add the following security-specific detail; this excerpt does not replace the shared metadata or query section:
 
 ```markdown
-# T0x-0y 修复 F-00N <短标题>
+# T0x-BE-0y 修复 F-00N <短标题>
 
 状态：`[ ]`
 
@@ -204,7 +211,7 @@ Each **fix** subtask MUST contain:
 
 1. 证据文件/符号：`path:symbol`
 2. 相关路由/表/DTO：...
-3. 上游任务：无 / T0x-0y
+3. 上游任务：无 / T0x-BE-0y，注明所需证据与就绪条件。
 
 ## 输出
 
@@ -279,7 +286,7 @@ Skip full tree if user names one issue: still fill 定位+口径 briefly in pre-
 2. 功能角色 named for this engagement.
 3. Every in-scope confirmed finding maps to ≥1 subtask with files/symbols.
 4. Every fix subtask has 执行清单 ≥3 concrete steps and 不要做 ≥2 items.
-5. 进度跟踪表 contains all subtasks with P0–P3.
+5. 进度跟踪表 contains all subtasks with owning side, priority, difficulty, parent, and dependency readiness; task cards explain the difficulty.
 6. No subtask titled only “修复安全问题/加固/优化鉴权” without finding_id and paths.
 
 ## 8) Anti-Patterns

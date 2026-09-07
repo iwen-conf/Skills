@@ -1,6 +1,6 @@
 ---
 name: arc:arch
-version: 1.1.0
+version: 1.2.0
 description: >
   Applies the default backend architecture, DIP, layering, zap logging, Go
   constants, and helper limits. Use when writing backend or Go services, 架构,
@@ -31,6 +31,7 @@ For new backend modules, use this architecture by default. For existing reposito
 | When | Load |
 |---|---|
 | Any backend edit | this SKILL.md Red Lines, DIP, Go file constraints, ponytail |
+| API endpoint or transport contract | [`../arc:build/references/api-contract.md`](../arc:build/references/api-contract.md) |
 | Directory layout, DTO/entity/model, usecase results, wire, zap, constants | [`references/backend-architecture.md`](references/backend-architecture.md) |
 | Identity keys, env/branch surface, paper-over risk | [`docs/execution-truth.md`](../../docs/execution-truth.md) |
 | Frontend stack / UI | `arc:frontend` |
@@ -62,6 +63,7 @@ NO PONETAIL SILENCE — REPORT ABSENCE OR CONFLICT.
 - MUST apply [`docs/execution-truth.md`](../../docs/execution-truth.md) when identity keys, env/branch surface, or paper-over risks appear.
 - MUST separate an architectural hypothesis from the business contract: trace the owning boundary first, then confirm the proposed behavior against real domain rules and user-visible semantics before changing code.
 - MUST identify analogous call sites governed by the same boundary before declaring a localized change complete.
+- MUST define and update API documentation in Markdown using the API-contract reference above; field tables and behavior rules must match routes, DTOs, and consumers before claiming delivery.
 
 ## Architecture Preflight
 
