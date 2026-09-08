@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from arc_core.skill_validation import (
     build_skill_document,
     extract_relative_links,
@@ -11,6 +13,28 @@ from arc_core.skill_validation import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("# Missing header\n", "missing frontmatter"),
+        ("---\nname: [invalid\n---\n", "yaml parsing error"),
+        ("---\n- invalid\n---\n", "YAML mapping"),
+        ("---\nfalse\n---\n", "YAML mapping"),
+        ("---\n\n---\n", "YAML mapping"),
+    ],
+)
+def test_malformed_arc_entrypoint_is_counted_and_rejected(tmp_path: Path, text: str, expected: str) -> None:
+    skill = tmp_path / "Arc" / "arc:broken" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(text, encoding="utf-8")
+
+    errors, warnings, count = run_validation(tmp_path)
+
+    assert count == 1
+    assert warnings == []
+    assert any(str(skill) in error and expected in error for error in errors)
 
 
 def _router_skill_text(name: str, description: str) -> str:

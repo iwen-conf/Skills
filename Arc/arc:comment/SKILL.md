@@ -1,6 +1,6 @@
 ---
 name: arc:comment
-version: 1.0.0
+version: 1.0.1
 description: >
   Applies Chinese comment conventions for controllers, contracts, functions,
   structs, fields, and numbered in-function steps. Use when the user says 加注释,
@@ -14,7 +14,7 @@ description: >
 
 Use this skill when writing or reviewing code comments for controllers, interfaces, ordinary functions, structs, fields, and numbered implementation-step comments inside functions.
 
-Prefer comments that explain intent, contract, parameters, return values, errors, and operational constraints. Do not add decorative comments or duplicate obvious code.
+Prefer comments that explain intent, contract, parameters, return values, errors, and operational constraints. Do not add decorative comments or duplicate obvious code. Comment and formatting conventions are team agreements; they do not replace engineering red lines in [`docs/execution-truth.md`](../../docs/execution-truth.md).
 
 ## When to Use
 

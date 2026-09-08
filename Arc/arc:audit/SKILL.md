@@ -1,6 +1,6 @@
 ---
 name: arc:audit
-version: 1.0.0
+version: 1.0.1
 description: >
   Performs a read-only project health or AppSec audit (assets, data map, finding cards).
   Use when the user says 体检, 审计, AppSec, 只读审查, scorecard, or project audit. Not for
@@ -76,7 +76,7 @@ NO MASS AI DEEP-DIVE BEFORE ASSET INVENTORY.
 - MUST mark inferred risks as assumptions.
 - MUST route all Lark audit/risk/task/approval updates through `arc:docs`.
 - MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
-- MUST route multi-finding or multi-step remediation planning through `arc:sdlc` before execution starts.
+- MUST route multi-finding or tracked remediation planning through `arc:sdlc` before execution starts. Ordinary multi-step review notes do not require persistent task docs.
 - MUST follow [`references/appsec-playbook.md`](references/appsec-playbook.md) when mode is `appsec` or risk_focus is security/vuln/appsec.
 - MUST treat config/secret/default-admin/debug exposure as first-class risks, not afterthoughts.
 - MUST NOT run active DAST, exploit payloads, or live attacks under `arc:audit`; authorize and route those to `arc:security`.

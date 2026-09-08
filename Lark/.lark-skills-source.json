@@ -1,0 +1,145 @@
+{
+  "files": {
+    "lark-meeting/SKILL.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "87664de707ede07b5254523a603917863dc9fb41df92bc7420eff2f4b4029815"
+    },
+    "lark-meeting/references/lark-minutes-apply-permission.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "6eb0938e4cec84613c39dd7d99dc4884977590723f768eafd08239979143dc6f"
+    },
+    "lark-meeting/references/lark-minutes-detail.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "697bf38645b1230cc3be69078c700b0a9a8468c0827f070ace6835b07cf0f216"
+    },
+    "lark-meeting/references/lark-minutes-download.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "fd96f0a959952eaa98b7542a372856ef1f3d4b7ceac72cd8bfc0a3dbf15a8bb7"
+    },
+    "lark-meeting/references/lark-minutes-search.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "5c7d41d5bece128bed5cf6ab3470db9437eed465519a40218af19caf1d587015"
+    },
+    "lark-meeting/references/lark-minutes-speaker-replace.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "f287b130dac2670f060609f2033d87c5f14dc2bfee5f07550fd8f20f77fa7e35"
+    },
+    "lark-meeting/references/lark-minutes-summary.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "167e0c289ca190b620e5acb3d978097410c37f1286859bcd40a2efeb305d23b8"
+    },
+    "lark-meeting/references/lark-minutes-todo.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "33cd94d619d9020a2555bf2b757b95557d771dbd3d4b79dd9318cd622b5eb56f"
+    },
+    "lark-meeting/references/lark-minutes-update.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "3807f31c5c19b41c72d5e9c1ba1fb8bc11ccdf7e420792b5d3a3cde335cfe296"
+    },
+    "lark-meeting/references/lark-minutes-upload.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "a0cb6eb118bf2276c87576200e18846cf643d9ca3b266b9fbfe31084b16bffbf"
+    },
+    "lark-meeting/references/lark-note-detail.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "39dfb2632275668d39bea8565d207dbbbc70bed7cc6b8d041dbe981b7b10f78a"
+    },
+    "lark-meeting/references/lark-note-transcript.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "79084d7e8d721da230d86c0b8eb6515a61e30496745815769a6905fa998c5145"
+    },
+    "lark-meeting/references/lark-vc-agent-meeting-end.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "7621bcf2c93256832217b5610d115138594821982fb6a50bb0480692a0f3f57a"
+    },
+    "lark-meeting/references/lark-vc-agent-meeting-invite.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "456a572f12e364e344b1c8b3636c8adb9787e19d1d48a2fbe62105b8e66d094d"
+    },
+    "lark-meeting/references/lark-vc-agent-meeting-join.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "1271ac4eb047440156a5b9d580722b5bdb4d863876fa4271fc9a0a3392c6798c"
+    },
+    "lark-meeting/references/lark-vc-agent-meeting-leave.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "fc7d8feaadb5ca928e7f90006dbae44d167bb40792f6ab2cc864b6d69de68dc1"
+    },
+    "lark-meeting/references/lark-vc-detail.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "7802420fa01663d9a2e6a378242544662783a6b7800a8c765c443b3474a14d97"
+    },
+    "lark-meeting/references/lark-vc-meeting-countdown.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "947be4ff1384e687922265f81790008a114981c84317515769b01bea835b614a"
+    },
+    "lark-meeting/references/lark-vc-meeting-events.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "1c28590c9c0c7b0fe15d11891c1592b40cae876f7d73f5eceadff87d8009c0fb"
+    },
+    "lark-meeting/references/lark-vc-meeting-list-active.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "d05b82e0f76baf3db8ef54436784aaed6e056b517712a3275fd9b6647f5bf810"
+    },
+    "lark-meeting/references/lark-vc-meeting-message-send.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "0b98fe7fe5fdb8ef3258cfc06431eacc883c32aaf41d398c473e721a21ef9bc7"
+    },
+    "lark-meeting/references/lark-vc-meeting-screenshot.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "5ce0e81398bfaab1a1532250bff374b81f927a068427b1ba867eb5224a47d01f"
+    },
+    "lark-meeting/references/lark-vc-recording.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "1ae3349d4d245a19e65b8c53a66f2e5648316d7eaf8d2a64595256ee729242ea"
+    },
+    "lark-meeting/references/lark-vc-search.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "c38320a76992ed9ef17d9d528daf3fbf9860159ebf9fc402e9bbf3462f250d6d"
+    },
+    "lark-meeting/scenes/create-and-edit-minutes.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "cde32c1e75d042751951d30c50d169ee1b0d8711dc653c147d49fd5b73971487"
+    },
+    "lark-meeting/scenes/live-meeting-attend.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "37e1144c94849c027d4790a55155372c112efc79735b7c90236259d7eeac91a3"
+    },
+    "lark-meeting/scenes/live-meeting-interact.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "5549f20e4740b3ae69af7b6d225493339b775596a92753ca75af76a3633e45de"
+    },
+    "lark-meeting/scenes/query-meeting-and-artifacts.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "1c850c7c66b78b94f3cfe1d84472d902b3406eeedee41aa6b21d0e53c2ec18e7"
+    },
+    "lark-meeting/scenes/query-minutes-and-artifacts.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "d5fbda3ab0546bd951f2a5a6896bea9db874e3b47bfcd46a378d360e86f5ef15"
+    },
+    "lark-meeting/scenes/query-note-and-artifacts.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "76a6fdc080e27beea72865a34736ae2b0d61ad570479fec897cb59f167a009c0"
+    },
+    "lark-minutes/SKILL.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "1058e122bb7d3f8d857fa9af7470082c2ce59673455bdaf5305f912dd3b9920f"
+    },
+    "lark-note/SKILL.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "4d55ad009f7475e55240ad9f6be7b25b73f2974553325be84db372dd3c08248b"
+    },
+    "lark-vc-agent/SKILL.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "ca7478c596f989999562099cf9c56650f3c2b4f13aead4817d18974ba861ab01"
+    },
+    "lark-vc/SKILL.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "46b56963508d7a89ce291020993f9c22fb46f52db2632443f9e81495a5469123"
+    },
+    "lark-workflow-meeting-summary/SKILL.md": {
+      "cli_version": "lark-cli version 1.0.93",
+      "sha256": "2cc95a5db67b9cb73bc4d3f3d38f49b348e56f99cadca5cd998ed8c443f6e166"
+    }
+  },
+  "source": "https://github.com/larksuite/cli (embedded skills)"
+}

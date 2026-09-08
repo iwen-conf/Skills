@@ -18,6 +18,7 @@ def test_trigger_corpus_covers_every_skill() -> None:
 
 
 def test_positive_utterances_select_the_expected_skill() -> None:
+    """Static keyword gate: listed positives uniquely win. Not runtime routing."""
     corpus = load_trigger_corpus(ROOT)
     for name, entry in corpus.items():
         for utterance in entry["positive"]:
@@ -25,6 +26,7 @@ def test_positive_utterances_select_the_expected_skill() -> None:
 
 
 def test_negative_utterances_do_not_select_the_skill() -> None:
+    """Static keyword gate: listed negatives do not select that skill."""
     corpus = load_trigger_corpus(ROOT)
     for name, entry in corpus.items():
         for utterance in entry["negative"]:

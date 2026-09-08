@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from ..domain.validation import validate_root_cause_gate, validate_text
 from ..infrastructure.markdown import parse_frontmatter
-from ..domain.skill import VERTICAL_SKILL_ROOTS, is_arc_skill, get_namespace_dir
+from ..domain.skill import VERTICAL_SKILL_ROOTS, get_namespace_dir
 from ..domain.engineering import validate_line_budget, validate_relative_links
 from ..domain.triggers import load_trigger_corpus
 
@@ -75,17 +75,10 @@ def validate_repo_policies(root: Path) -> list[str]:
     return errors
 
 def collect_skill_files(root: Path) -> list[Path]:
-    search_root = root / "Arc" if (root / "Arc").is_dir() else root
-    collected: list[Path] = []
-    for path in sorted(search_root.rglob("SKILL.md")):
-        text = path.read_text(encoding="utf-8")
-        frontmatter, error = parse_frontmatter(text)
-        if error:
-            continue
-        skill_name = frontmatter.get("name", "")
-        if is_arc_skill(skill_name):
-            collected.append(path)
-    return collected
+    # 先按包布局收集，再验证内容，避免损坏的 frontmatter 让入口从门禁中消失。
+    if (root / "Arc").is_dir():
+        return sorted(path for path in (root / "Arc").glob("*/SKILL.md") if path.is_file())
+    return sorted(path for path in root.glob("arc:*/SKILL.md") if path.is_file())
 
 
 def collect_vertical_skill_files(root: Path) -> list[Path]:

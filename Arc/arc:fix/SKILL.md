@@ -1,6 +1,6 @@
 ---
 name: arc:fix
-version: 1.1.0
+version: 1.1.1
 description: >
   Diagnoses and repairs failures from logs, stack traces, failing tests, or incidents. Use
   when the user says 报错, 修复, 故障, bug, 根因, incident, or failing test. Not for greenfield
@@ -74,7 +74,7 @@ NO DIAGNOSIS ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 - MUST apply the gates in [`docs/execution-truth.md`](../../docs/execution-truth.md): name the failing surface, fix cause not symptom, no matrix-only success, no invented domain keys, no temporary var flags or type-assert paper-overs.
 - MUST reproduce or inspect on the same env/branch/deploy surface that produced the signal when dual tracks exist; re-state if production differs from the working tree.
 - MUST re-verify claimed prior fixes on current code and evidence before closing residual risk.
-- MUST apply `arc:sdlc` before code edits for large, multi-step, cross-module, or tracked repair work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, failure evidence, or status change.
+- MUST follow `arc:sdlc` task tiering: ordinary multi-step repairs use an in-session plan; only large / cross-session / tracked repair work requires persistent local task docs, which must stay current as files, scope, assumptions, failure evidence, or status change.
 - MUST apply `arc:prewalk` for same-session multi-model cost routing when the runtime supports mid-session model swap; MUST NOT default to plan-document cold handoff after Guide-only recon.
 - MUST apply `arc:arch` before code edits, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
 - MUST rerun the failing path when feasible.
@@ -93,7 +93,7 @@ NO DIAGNOSIS ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 4. Search the saved evidence for exact error strings, request IDs, stack frames, network failures, and config keys.
 5. Trace architecture ownership and shared invariants, then compare them with the actual business contract and user-visible semantics.
 6. Form and test a root-cause hypothesis; name affected sibling paths and the complete fix boundary.
-7. For large, multi-step, cross-module, or tracked repair work, apply `arc:sdlc` before code edits and keep local task status current as evidence or project state changes.
+7. For large / cross-session / tracked repair work, apply `arc:sdlc` before code edits and keep local task status current. Ordinary multi-step repairs do not create persistent task docs.
 8. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.
 9. If multi-model routing is available and useful, follow `arc:prewalk` only after a grounded hypothesis: first production fix edit on Guide, then Executor inherits trajectory; otherwise oneshot.
 10. Patch the smallest **complete** safe surface; if a shared boundary is the cause, do not constrain the edit to one symptom site.
@@ -105,7 +105,7 @@ NO DIAGNOSIS ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 - Fix targets cause, not only symptom.
 - The original issue and root cause are confirmed before a behavioral repair; an unconfirmed hypothesis is reported, not patched, and any evidence instrumentation is explicitly labeled as investigation.
 - Architecture ownership, business semantics, and analogous-path impact are explicit.
-- Large, multi-step, cross-module, or tracked repair work has current local task docs, detailed subtasks, and synchronized progress status from `arc:sdlc`.
+- Large / cross-session / tracked repair work has current local task docs, detailed subtasks, and synchronized progress status from `arc:sdlc`. Ordinary multi-step repairs are not forced into that structure.
 - Runnable failures have persisted sanitized log/evidence files, or the reason evidence could not be captured is explicit.
 - Fix preserves DIP and default backend architecture responsibilities when backend architecture applies, unless the failure is explicitly caused by migrating toward them.
 - Verification covers the original failure.

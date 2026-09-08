@@ -1,6 +1,6 @@
 ---
 name: arc:sdlc
-version: 1.2.0
+version: 1.2.1
 description: >
   Creates current-state local task docs, pre-constraints, subtasks, and progress
   tables. Use when the user says 拆任务, 进度跟踪, 任务文档, 制定计划, 创建任务,
@@ -12,7 +12,7 @@ description: >
 
 ## Overview
 
-Turn large or multi-step work into persistent local docs before implementation. Docs capture the latest repository state so a later session can resume from `docs/` without rediscovering the codebase.
+Turn large / cross-session / tracked work into persistent local docs before implementation. Ordinary multi-step work uses the in-session plan in the task tiering below; it does not create this skill's docs. Docs capture the latest repository state so a later session can resume from `docs/` without rediscovering the codebase.
 
 Task docs are the **cross-session / human / audit** memory. They are not the default vehicle for same-session multi-model cost routing. Live cheap-executor handoff belongs to `arc:prewalk`.
 

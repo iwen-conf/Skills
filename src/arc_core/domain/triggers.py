@@ -35,6 +35,7 @@ def missing_trigger_terms(description: str, entry: TriggerEntry) -> list[str]:
 
 
 def score_utterance(utterance: str, entry: TriggerEntry) -> int:
+    """Static keyword overlap only. Not a semantic or runtime router."""
     haystack = utterance.lower()
     score = 0
     for term in entry.get("must_contain", []):
@@ -51,6 +52,12 @@ def rank_skills(utterance: str, corpus: TriggerCorpus) -> list[tuple[str, int]]:
 
 
 def winner(utterance: str, corpus: TriggerCorpus) -> str | None:
+    """Return the unique static keyword winner, or None on a tie/miss.
+
+    This is a vocabulary gate for `schemas/trigger_corpus.yaml`. It is not
+    evidence that a real agent would choose the skill, preserve scope, or
+    honor authorization. Runtime scenarios live in `schemas/behavior_corpus.yaml`.
+    """
     ranked = rank_skills(utterance, corpus)
     if not ranked or ranked[0][1] <= 0:
         return None

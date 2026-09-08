@@ -1,6 +1,6 @@
 ---
 name: arc:build
-version: 1.2.0
+version: 1.2.1
 description: >
   Implements scoped code changes and verifies them. Use when the user says 写代码, 开发功能,
   落地改动, implement a known scheme, or deliver a scoped change. Not for unknown-failure
@@ -76,7 +76,7 @@ NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 - MUST name the target surface (local / `.26` / `.31` / production / other) before deploy, package, or production diagnosis; MUST follow that surface's branch/track when the repo has dual tracks.
 - MUST honor explicit scope locks (read-only, docs-only, frontend-only, no-restart, explicit non-goals) without opportunistic expansion.
 - MUST NOT mark delivery complete from task checkboxes, ability-matrix cells, or second-hand "already fixed" claims without current verification.
-- MUST apply `arc:sdlc` before code edits for large, multi-step, cross-module, or tracked work; task docs must be generated from the latest project state and updated immediately when project files, scope, assumptions, or status change.
+- MUST follow `arc:sdlc` task tiering: ordinary multi-step work uses an in-session plan; only large / cross-session / tracked work requires persistent local task docs, which must stay current as files, scope, assumptions, or status change.
 - MUST apply `arc:prewalk` for same-session multi-model cost routing when the runtime supports mid-session model swap; MUST NOT default to “frontier writes plan only → cheap model cold-starts from the plan file”.
 - MUST apply `arc:arch` before writing project code, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
 - MUST route frontend platform decisions through `arc:frontend`; defaults are Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod, mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router, desktop = Tauri 2 + Web stack, mini-program = Taro 4 + React + TypeScript + Zustand, unless explicitly overridden by the user.
@@ -95,7 +95,7 @@ NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 
 1. Confirm task, scope, verification target, and target env/branch/deploy surface ([`docs/execution-truth.md`](../../docs/execution-truth.md)).
 2. Classify the request as implementation or repair. For repair/optimization language, load the evidence-first root-cause gate and confirm the issue before any behavior edit; route an unconfirmed issue to `arc:audit` / `arc:fix`.
-3. For large, multi-step, cross-module, or tracked work, apply `arc:sdlc` before code edits and keep local task status current as the project changes.
+3. For large / cross-session / tracked work, apply `arc:sdlc` before code edits and keep local task status current. Ordinary multi-step work does not create persistent task docs.
 4. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.
 5. Search for existing patterns, call sites, tests, and contracts; for API work, align the Markdown contract and link any associated backend/frontend tasks before dependent code edits. Then run the simplicity ladder before writing any new code.
 6. If multi-model routing is available and useful, follow `arc:prewalk`: Guide orients + bounded todo + first production edit, then Executor continues in the same trajectory; otherwise oneshot a single profile.
@@ -109,7 +109,7 @@ NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
 - Requested behavior is implemented without speculative extra surface.
 - Every changed line traces to the request or to an orphan the change created; non-trivial changes passed the bounded elegance pass limited to code introduced by this change.
 - Repair/optimization claims include confirmed observed behavior, root cause, complete fix boundary, and analogous-path verification; an unconfirmed issue may receive only bounded behavior-preserving instrumentation or reproducer coverage, never a claimed repair.
-- Large, multi-step, cross-module, or tracked work has current local task docs, detailed subtasks, and synchronized progress status from `arc:sdlc`.
+- Large / cross-session / tracked work has current local task docs, detailed subtasks, and synchronized progress status from `arc:sdlc`. Ordinary multi-step work is not forced into that structure.
 - Existing contracts, names, state shapes, and response envelopes are preserved unless explicitly changed.
 - Changed APIs have current Markdown contracts covering request/response fields, permissions, business behavior, error/empty states, and verification; associated backend/frontend tasks reference the same contract.
 - Project architecture preserves DIP and the default backend architecture responsibilities from `arc:arch` when backend architecture applies.

@@ -1,6 +1,6 @@
 ---
 name: arc:clarify
-version: 1.1.0
+version: 1.1.1
 description: >
   Clarifies a fuzzy request into executable context, constraints, and acceptance criteria.
   Use when the user says 澄清, 需求不清, 验收标准, clarify, or the task cannot be executed yet. Not
@@ -34,7 +34,7 @@ description: >
 ## Context Search
 
 - MUST inspect available local context before asking broad questions.
-- MUST use `arc-idx search` first for repository context; use `rg` only for narrow exact follow-up.
+- MUST use `arc-idx search` first for repository context. Fallback to `rg`/`fd` only when the index is unavailable, the target is outside the repo, or `arc-idx doctor` reports corruption, and report the fallback reason.
 - If `.lark.json` exists, MUST read it before finalizing the brief.
 
 
@@ -67,7 +67,7 @@ NO LARK-ACTIVE FEATURE REQUIREMENT WITHOUT task_base ROW.
 3. Define scope, constraints, assumptions, and success criteria.
 4. Ask only remaining blocking questions.
 5. Produce the brief.
-6. If the clarified work is large, multi-step, cross-module, or tracked, hand off to `arc:sdlc` before any execution skill starts code edits.
+6. If the clarified work is large / cross-session / tracked, hand off to `arc:sdlc` before any execution skill starts code edits. Ordinary multi-step work does not require persistent task docs.
 7. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with requirement, acceptance criteria, task owner/status, and resource keys to update.
 
 ## Quality Gates

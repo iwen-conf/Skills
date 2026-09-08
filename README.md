@@ -82,7 +82,7 @@ Skills/
 - 搜索代码结构、调用形态或重构目标时，优先使用 `arc-idx ast`（ast-grep / Tree-sitter）。
 - 查找符号定义或符号清单时，优先使用 `arc-idx symbol`。
 - 查找候选文件或按 profile 缩小范围时，优先使用 `arc-idx files`；做规模盘点时优先使用 `arc-idx stats`。
-- 索引缺失、过期或结果不完整时先运行 `arc-idx doctor` 或 `arc-idx index`；长会话优先 `arc-idx daemon start` 做增量索引；`rg` 只用于小范围精确补充、新建文件、受保护/参考目录或索引兜底。
+- 索引缺失、过期或结果不完整时先运行 `arc-idx doctor` 或 `arc-idx index`；长会话优先 `arc-idx daemon start` 做增量索引。`rg`/`fd` 只在索引不可用、目标在仓外、或 `arc-idx doctor` 报告损坏时作为回退，并必须报告回退原因。
 - 不按项目大小自动创建飞书空间。只有用户明确说 `创建项目的飞书空间`、`创建飞书项目空间`、`初始化飞书项目空间`，或提供已有飞书项目空间链接时，才由 `arc:docs` 创建/连接项目空间。
 - 项目如果接入飞书，必须在项目根目录维护 `.lark.json`，记录项目文件空间地址、项目主页、PRD、需求、架构、任务表、仪表盘、进度、审计、交付、故障、资料来源和本地索引状态。
 - 创建/连接飞书项目空间后，必须把项目文件空间飞书地址写入 `.lark.json.resources.drive_folder.url`，后续启动 AI 或进入项目时先读取 `.lark.json`。
@@ -105,11 +105,12 @@ Skills/
 - Arc 只保留软件工程生命周期中的稳定判断框架和文档索引契约。
 - Arc Skill 名称使用 `arc:*` 命名空间并放在 `Arc/arc:*` 目录下；Android、HarmonyOS、CNB、Lark Skill 保留各自的领域命名空间和目录，不把垂直能力伪装成 Arc 生命周期技能。
 - 所有项目代码交付和修复必须遵守 `arc:arch`：先看 ponytail；保持 DIP；默认按 `domain`、`usecase`、`interface/restful`、`infrastructure`、`wire` 的分层、命名和接口设计组织后端代码；后端排障必须用结构化日志和本地日志文件保留可复查证据；Go 常量必须使用 `MixedCaps` / `mixedCaps`、优先标准库语义常量、按最小作用域定义，枚举型业务状态必须用自定义类型建模，跨服务常量必须来自版本化契约或受治理的共享模块；Go 单文件私有函数上限为两个，原文件达到两个私有函数时必须拆到 `原文件名_helpers.go` 同包 helper 文件；DIP 边界接口是明确架构要求，但不得为私有 helper、同层代码或形式主义创建接口。
-- 大任务、跨多轮任务、迁移、重构、修复战役和需要持续跟踪的工作，必须先遵守 `arc:sdlc`：按最新项目状态解析或创建 `docs/DD-任务` 这类数字序列化任务分类，再建立任务入口、`00-前置约束.md`、`tasks/` 子任务文件和 `进度跟踪表.md`；子任务须写清当前文件/调用点/输出/执行顺序/边界/反例/验证，作为跨会话恢复与验收权威。开始、暂停、阻塞、完成、验证或下一步变化时，必须立即更新 `进度跟踪表.md` 和子任务状态，未同步前不得继续实现或交付。
+- 任务分级只以 `arc:sdlc` 为准：普通多步骤用会话内计划，不因此创建持久任务文档；大任务、跨会话、迁移、重构、修复战役和需要持续跟踪的工作才写 `docs/` 任务文档。文档按最新项目状态解析或创建 `docs/DD-任务` 这类数字序列化任务分类，再建立任务入口、`00-前置约束.md`、`tasks/` 子任务文件和 `进度跟踪表.md`；子任务须写清当前文件/调用点/输出/执行顺序/边界/反例/验证，作为跨会话恢复与验收权威。开始、暂停、阻塞、完成、验证或下一步变化时，必须立即更新 `进度跟踪表.md` 和子任务状态，未同步前不得继续实现或交付。
 - 任务文档统一 Markdown，按“业务任务组 → 后端/前端工作包 → 可独立验收子任务”分级；跨端工作必须分为独立文件、编号和状态。按范围、状态复杂度、契约/数据风险、依赖未知项与验证成本评估 D1–D4 难度，和 P0–P4 优先级分开记录。D3 按合理验收边界继续拆，D4 先安排有明确出口的调研/验证；每张任务卡包含难度依据、依赖就绪条件和精确 `<Context-Queries>`，仅单端的任务不生成另一端空任务。
 - 同会话多模型成本路由默认遵守 `arc:prewalk` / [`docs/prewalk.md`](docs/prewalk.md)：账单近似 `O(reads)`；Guide（frontier）探索并初始化有界 todo、落地第一笔**生产代码** edit 后，再在同一 trajectory 上切到 Executor，并 prune planning 指令。禁止「frontier 只写 plan 文档 → 新开 cheap 会话冷读 plan」作为默认省钱法；运行时不能 swap 时 oneshot 单一模型，不得伪造 cold plan handoff。
 - 需要测试或质量门禁的工作默认统一走 `arc:test`：按风险分层启用单元/集成/契约/E2E、覆盖率与回归门禁、模糊/属性、性能（基准/负载），用平台原生工具（Android=Maestro、Go/Rust 各自内置测试库、HarmonyOS=arkxtest、前端=Vitest/Playwright，且交互闭环/可见性/可点击/布局可读性经 `arc:frontend`）；性能与功能分开跑、分开判失败，覆盖率是缺口信号不是目标，禁止为凑类型全量铺开；安全/兼容/混沌/可观测性等非功能测试与 `arc:security`/`arc:audit` 协作、不重复建设；失败用例交 `arc:fix`，大型测试建设先走 `arc:sdlc`。
-- Arc Skill 默认是路由器：`SKILL.md` 只保留意图路由表和红线，细节按需加载 `modules/` 与 `references/`。确定性检查走 `scripts/validate_skills.py` 与触发语料 `schemas/trigger_corpus.yaml`。`arc:security` 这种需要可重复自动化的能力可以携带本地脚本。
+- 注释、排版、格式化等文件风格遵循团队约定（见 `arc:comment`），不能替代或放宽工程红线与完成定义。
+- Arc Skill 默认是路由器：`SKILL.md` 只保留意图路由表和红线，细节按需加载 `modules/` 与 `references/`。确定性检查走 `scripts/validate_skills.py` 与触发语料 `schemas/trigger_corpus.yaml`。关键词触发是静态门禁；真实否定句、多意图、范围和授权场景见 `schemas/behavior_corpus.yaml`，不能用静态命中代替 Agent 行为证据。`arc:security` 这种需要可重复自动化的能力可以携带本地脚本。
 - 图表、浏览器、Lazycat、纯设计等垂直能力由对应专门 Skill 负责，不再在 Arc 内重复建设。
 
 ## 校验
@@ -117,7 +118,7 @@ Skills/
 ```bash
 arc-idx index
 .venv/bin/python scripts/validate_skills.py
-.venv/bin/python -m pytest tests/test_skill_validation.py tests/test_skill_registry.py tests/test_arc_privacy.py -q
+.venv/bin/python -m pytest tests -q
 .venv/bin/python scripts/build_skills_index.py
 ```
 
@@ -125,19 +126,25 @@ arc-idx index
 
 Arc 治理技能的 SSOT 是本仓 `Arc/arc:*`；垂直技能的 SSOT 分别是本仓 `Android/`、`HarmonyOS/`、`CNB/`、`Lark/`。Claude / Grok 等通常通过 `~/.agents/skills` 或项目内 `.cursor/skills` 的符号链接加载技能。
 
+发布器先在临时目录打完整包（含文件引用和 `metadata.requires.skills` 传递依赖），校验通过后再替换目标目录，并保留可恢复副本。每个宿主只安装一种名称：`--naming dash`（默认，`arc-build`）或 `--naming colon`（`arc:build`）。旧的另一套别名会被归档，不再双写。
+
 ```bash
-# 改完技能后：校验 → 索引 → 同步到运行时
+# 改完技能后：校验 → 索引 → 先 dry-run，再安装
 .venv/bin/python scripts/validate_skills.py
-.venv/bin/python -m pytest tests/test_skill_validation.py tests/test_skill_registry.py tests/test_arc_privacy.py -q
+.venv/bin/python -m pytest tests -q
 .venv/bin/python scripts/build_skills_index.py
-.venv/bin/python scripts/sync_skills.py              # → ~/.agents/skills（colon + dash 双写）
-.venv/bin/python scripts/sync_skills.py --dry-run    # 仅预览
-.venv/bin/python scripts/sync_skills.py --only arc:build --only arc:fix
+.venv/bin/python scripts/sync_skills.py --dry-run
+.venv/bin/python scripts/sync_skills.py --check
+.venv/bin/python scripts/sync_skills.py --naming dash
+.venv/bin/python scripts/sync_skills.py --only arc:build --only arc:fix --dry-run
+.venv/bin/python scripts/sync_skills.py --family Lark --dry-run
+.venv/bin/python scripts/import_lark_skills.py lark-meeting --dry-run
 ```
 
 规则：
 
 1. **先改本仓，再 sync**；Arc 技能禁止只改 `~/.agents/skills` 而不回写 `Arc/`，垂直技能禁止只改其运行时链接而不回写对应领域目录。
-2. `sync_skills.py` 会同时写入 `arc:name` 与 `arc-name`（dash 别名，frontmatter `name` 与正文引用会改写）。
-3. Arc `SKILL.md` 带 `version`（semver）；破坏性约定变更时升 minor/major 并更新 `CHANGELOG.md`。垂直技能沿用其原生 frontmatter 版本策略。
-4. 若改动了 `tools/arc-idx`，另执行 `go build -o ~/.local/bin/arc-idx ./tools/arc-idx`。
+2. 按宿主选择单一名称；Markdown/YAML 中的 `arc:*` 在 dash 宿主下会改写成 `arc-*`，`agents/openai.yaml` 的 `$name` 必须与安装名一致。
+3. 缺失引用或声明依赖时安装失败，目标目录保持原样；成功替换时打印备份路径，失败则回滚本次变更。
+4. Arc `SKILL.md` 带 `version`（semver）；破坏性约定变更时升 minor/major 并更新 `CHANGELOG.md`。垂直技能沿用其原生 frontmatter 版本策略。
+5. 若改动了 `tools/arc-idx`，另执行 `go build -o ~/.local/bin/arc-idx ./tools/arc-idx`。

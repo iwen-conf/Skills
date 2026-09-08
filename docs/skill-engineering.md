@@ -29,7 +29,7 @@ Deterministic work stays in scripts (`scripts/validate_skills.py`, `Arc/scripts/
 .venv/bin/python -m pytest tests -q
 ```
 
-Trigger corpus: `schemas/trigger_corpus.yaml`. Every **Arc** skill needs ≥8 positive and ≥3 negative utterances. Positives must uniquely win; negatives must not select that skill. Vertical skills retain their platform-native trigger metadata and are discovered through their family roots; their entry `SKILL.md` files still obey the 500-line progressive-disclosure budget and relative-link checks.
+Trigger corpus: `schemas/trigger_corpus.yaml`. Every **Arc** skill needs ≥8 positive and ≥3 negative utterances. Positives must uniquely win; negatives must not select that skill. This keyword scorer is a **static** vocabulary gate. Runtime scenarios (negation, multi-intent, scope lock, authorization) live in `schemas/behavior_corpus.yaml` and must not be “solved” by hard-coding two sentences into the scorer. Vertical skills retain their platform-native trigger metadata and are discovered through their family roots; their entry `SKILL.md` files still obey the 500-line progressive-disclosure budget and relative-link checks.
 
 ## Lifecycle coverage
 

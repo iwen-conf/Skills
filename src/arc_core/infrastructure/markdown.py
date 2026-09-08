@@ -14,9 +14,11 @@ def parse_frontmatter(text: str) -> tuple[dict[str, Any], str | None]:
         return {}, "missing frontmatter end"
     block = text[4:end]
     try:
-        data = yaml.safe_load(block) or {}
+        data = yaml.safe_load(block)
     except yaml.YAMLError as exc:
         return {}, f"yaml parsing error: {exc}"
+    if not isinstance(data, dict):
+        return {}, "frontmatter must be a YAML mapping"
     return data, None
 
 def normalize_heading_title(heading: str) -> str:
