@@ -41,6 +41,7 @@ def test_validate_registry_accepts_generated_registry() -> None:
         "arc:audit",
         "arc:security",
         "arc:test",
+        "arc:reliability",
         "arc:idx",
         "arc:comment",
         "arc:trace",
@@ -85,6 +86,7 @@ def test_collect_skill_files_indexes_only_arc_namespaced_skills() -> None:
     assert ROOT / "Arc" / "arc:arch" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:sdlc" / "SKILL.md" in files
     assert ROOT / "Arc" / "arc:prewalk" / "SKILL.md" in files
+    assert ROOT / "Arc" / "arc:reliability" / "SKILL.md" in files
     assert all(
         path.is_relative_to(ROOT / "Arc")
         for path in files

@@ -1,6 +1,6 @@
 ---
 name: arc:audit
-version: 1.0.1
+version: 1.0.2
 description: >
   Performs a read-only project health or AppSec audit (assets, data map, finding cards).
   Use when the user says 体检, 审计, AppSec, 只读审查, scorecard, or project audit. Not for
@@ -37,6 +37,7 @@ AppSec methodology lives in [`references/appsec-playbook.md`](references/appsec-
 |---|---|
 | AppSec assets/data map/findings | [`references/appsec-playbook.md`](references/appsec-playbook.md) |
 | Local scanners | `arc:security` |
+| Business reliability, transaction risk, or release-evidence assessment | `arc:reliability` methodology, preserving this audit's read-only scope |
 | Multi-finding task split | `arc:sdlc` |
 | Repair after handoff | `arc:fix` / `arc:build` |
 | Root-cause evidence and repair boundary | [`docs/execution-truth.md`](../../docs/execution-truth.md) |

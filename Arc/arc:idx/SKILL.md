@@ -1,172 +1,101 @@
 ---
 name: arc:idx
-version: 1.1.0
+version: 1.1.1
 description: >
   First step of any local repo work: implement, debug, review, 搜代码, 找符号, or locate
   files. Runs ~/.local/bin/arc-idx (zoekt search, ctags symbol, ast-grep ast, files, stats,
   daemon, doctor) before guessing paths. Not rg/find/MCP as primary search. Not for editing code.
 ---
-# AI Code Index
-
-## Overview
-
-`arc:idx` defines the architecture and usage of the **High-Performance AI Context Engine**, implemented as the compiled Go CLI `arc-idx` (source: `tools/arc-idx/` in the Skills repo; installed at `~/.local/bin/arc-idx`; rebuild with `go build -o ~/.local/bin/arc-idx ./tools/arc-idx`).
-
-The legacy `.ai-code-index/*.sh` bash scripts are **removed**, not just deprecated. `arc-idx` embeds the Zoekt index/search engine in-process, drives universal-ctags for symbols, wraps ast-grep for AST queries, and saturates all available cores. **MCP (Model Context Protocol) is STRICTLY BANNED** for this context engine: the user's hardware handles high-concurrency CLI execution optimally, and every query must stay a zero-negotiation subprocess call.
-
-Default behavior: Agents MUST use `arc-idx` as their primary context discovery tool. Fallback to `rg`/`fd` ONLY when the index is unavailable, the target is outside the repo, or `arc-idx doctor` reports corruption — and the fallback reason must be reported.
-
-## Intent Router
-
-| When | Load |
-|---|---|
-| Text/regex/symbol/AST search | this SKILL.md Commands |
-| Daemon / freshness | this SKILL.md Auto Refresh |
-| Incomplete results | `arc-idx doctor` |
-| After discovery, implement | `arc:build` / `arc:fix` / `arc:audit` |
-| Task docs need Context-Queries | `arc:sdlc` |
-
-## Red Lines
-
-```text
-NO GUESSING PATHS / SYMBOLS / MISSING FILES.
-NO WHOLE-REPO rg WHILE arc-idx INDEX EXISTS.
-NO MCP FOR THIS CONTEXT ENGINE.
-NO TERMINAL COLOR / ZOEK LOG DUMP IN AGENT CONTEXT.
-NO RESURRECTED search.sh WRAPPERS.
-NO DAEMON WITHOUT PID FILE; NO STALE INDEX WITHOUT doctor.
-NO SED/FIND UNTIL arc-idx files OR search HIT.
-NO rg / grep / fd / find / ls -R / python / node TREE WALKS AS PRIMARY SEARCH.
-NO FOREIGN BINARY: `arc-idx version` MUST MATCH THE IDENTITY LINE.
-```
-
-## Quick Contract
-
-- **Trigger**: Any local repo task (implement, debug, review, locate files). Do not wait for the user to name `arc-idx`. Guessing paths is a failure.
-- **Identity**: `arc-idx version` MUST print `arc-idx 1.0.0 — local AI context engine (zoekt + ctags + ast-grep)`. Any other output means a foreign binary: stop, report the path and output, never switch engines.
-- **Session start**: `arc-idx doctor --format json` (unhealthy/stale → `arc-idx index --quiet`), then `arc-idx daemon status`; if `alive=false`, `arc-idx daemon start`. Every repo session, not only long ones.
-- **Inputs**: Project path, target scope/profile, search intent, optional language/symbol/pattern, freshness concern.
-- **Outputs**: A working `arc-idx` command sequence, index structure guidance, refresh/diagnose commands, and any missing-tool or stale-index risks.
-- **Quality Gate**: Agent uses `arc-idx search|symbol|ast|files|stats` before broad `rg`, and runs `arc-idx doctor` when results look incomplete.
-- **Decision Tree**: Use this skill for local code context discovery; use `arc:build`, `arc:fix`, or `arc:audit` for the implementation, repair, or review that follows.
-
-## Architecture & Interface
-
-One binary, one repo-local home:
-
-- `~/.local/bin/arc-idx` — the engine (Go, zoekt embedded, `runtime.NumCPU()` parallelism).
-- `<repo>/.ai-code-index/config.json` — tracked config: `ignore_dirs`, `ignore_files`, `size_max`, and `profiles` (include/exclude globs, `**` supported).
-- `<repo>/.ai-code-index/tags.json` — regenerated ctags symbol table (gitignored).
-- `~/.cache/ai-code-index/zoekt/<repo>/` — zoekt shards, outside the working tree (override via `AI_CODE_INDEX_DIR` or `config.json.index_dir`).
-
-Interface guarantees:
-
-1. **Unified Query Endpoint**: every capability is a subcommand of `arc-idx`; no scattered scripts.
-2. **AI-Native Formatting**: `--format json | ai-md` everywhere. No terminal color codes, no zoekt log chatter (silenced unless `ARC_IDX_DEBUG=1`), long generated lines truncated at 300 runes.
-3. **High-Concurrency & Caching**: zoekt shard build and ctags run concurrently; a full rebuild of a medium repo is ~100ms-class on Apple Silicon, so freshness is cheap.
-4. **AST Precision**: `arc-idx ast` delegates to ast-grep (Tree-sitter) for structural queries; `arc-idx symbol` uses universal-ctags with JSON fields; zoekt shards also carry ctags symbols for `sym:` queries.
-
-### SDLC Integration (arc:sdlc)
-
-When creating tasks in `docs/03-执行任务/`, the planning agent MUST include a `<Context-Queries>` section listing the exact `arc-idx` commands the execution agent runs before coding. The execution agent runs them first, expands with structural queries as needed, then codes with a non-polluted context window.
-
-### Profiles
-
-Profiles narrow scope without losing recall. They live in `config.json` per repository — never assume profile names transfer between projects. Typical sets: `code`, `backend`, `pc`, `android`, `docs`, `meta`; `all` always exists implicitly. Unknown profile names fail fast and list what is available.
-
-## Commands (Implemented Interface)
-
-```bash
-# Full rebuild: zoekt shards + ctags symbols, concurrent
-arc-idx index [--repo DIR] [--quiet]
-
-# Indexed text/regex search (zoekt query syntax: f: lang: sym: case: -negation)
-arc-idx search 'f:\.go$ RecordReadingProgress' --profile backend --format json
-arc-idx search "sym:UserService" --context 3 --max 20
-
-# Symbol lookup from ctags (kinds: func, struct, class, method, interface, ...)
-arc-idx symbol UserService --kind struct --exact --format json
-
-# Structural / AST match via ast-grep
-arc-idx ast --lang go 'func ($_ *Service) $NAME($$$) error' --format json
-
-# File discovery and inventory
-arc-idx files handler --profile backend
-arc-idx stats --profile code --format json
-
-# Health: tools present, shard age vs source mtimes, daemon state, advice
-arc-idx doctor --format json
-
-# Identity: must print the exact engine fingerprint line
-arc-idx version
-```
-
-Flags may appear before or after positional arguments. `search` falls back to `rg --json` automatically when no shards exist (reported as `"engine": "rg-fallback"`).
-
-## Auto Refresh & Daemon Lifecycle
-
-`arc-idx` ships a real fsnotify-driven incremental indexer with strict lifecycle and memory management:
-
-```bash
-arc-idx daemon start     # detached watcher; pid file + log in .ai-code-index/
-arc-idx daemon status    # JSON: pid, alive, index age, staleness
-arc-idx daemon stop      # SIGTERM, waits, removes pid file
-arc-idx daemon restart   # stop + start
-arc-idx watch [--ttl 30m] [--mem 512] [--debounce 800ms]   # foreground mode
-```
-
-Safeguards (all implemented, all defaults overridable):
-
-- **Idle Hibernation (TTL)**: no file events for `--ttl` (default 30m) → the daemon exits and releases RAM.
-- **Memory Hard Limit**: `debug.SetMemoryLimit` (default 512 MiB) keeps the Go GC inside budget.
-- **Zombie Prevention**: pid file at `.ai-code-index/daemon.pid`; a watcher re-parented to PID 1 self-terminates; `doctor` flags stale pid files.
-- **Debounced Rebuilds**: bursts of file events collapse into one rebuild after `--debounce` quiet time.
-
-The AI does NOT need to run manual reindex loops. Run `arc-idx daemon status` at the start of every repo session and `arc-idx daemon start` when it is not alive (`start` on an already-running daemon exits 1 with `already running`; that is expected). Use `arc-idx daemon stop` only when a massive refactor task is completely finished.
-
-## Quality Gates
-
-- The local indexer MUST be the compiled `arc-idx` CLI. No bash script collections, no MCP, no TypeScript indexers.
-- The engine MUST keep pid tracking, memory limits, and idle TTL active in daemon mode.
-- Output MUST be deterministic and strictly formatted (`--format json` or ai-md); zoekt/ctags internals stay out of the AI context.
-- Symbol queries return path, line, kind, scope, and signature so a follow-up `Read` is surgical.
-- `arc:sdlc` tasks MUST pre-define required `arc-idx` queries for the execution agent.
-- Agents explicitly report when they used `rg` because the index could not cover the target.
-
-## Red Flags
-
-- Agent runs whole-repo `rg` repeatedly while `arc-idx` and its index are present.
-- Terminal color codes, zoekt log lines, or unformatted dumps in the AI context.
-- Resurrecting legacy `search.sh`-style wrappers or parsing raw ctags files by hand.
-- Regex fishing for code structure that `arc-idx ast` or `sym:` queries answer precisely.
-- A daemon left running with no pid file, or a stale index silently trusted (`doctor` exists; use it).
+# arc:idx
 
 ## When to Use
 
-- **Preferred Trigger**: Any local codebase work: start of a session, before Read, before claiming a file is missing, before editing, and when the user mentions search / 搜代码 / 找符号 / arc-idx.
-- **Typical Scenario**: Efficient development — `doctor` (and `daemon start` on long sessions), then `files` / `search` / `symbol` / `ast` with profiles, then surgical Read/edit.
-- **Boundary Tip**: This skill is the discovery step of implementation, not a substitute for editing. After hits, use `arc:build` / `arc:fix` / `arc:audit` as needed. Do not skip discovery.
+First step of any local repository task: locate files, text, definitions, callers,
+AST structure or language inventory before reading/editing or claiming absence.
+This skill discovers context; use `arc:build`, `arc:fix` or `arc:audit` afterward.
 
-## Input Arguments
+## Intent Router
 
-| parameter | type | required | description |
-|---|---|---|---|
-| `project_path` | string | yes | Repository root containing or needing `.ai-code-index/` |
-| `profile` | string | no | Search scope defined in `config.json`, plus implicit `all` |
-| `query` | string | no | Zoekt query: text, regex, `f:`, `lang:`, `sym:`, `case:yes` |
-| `language` | string | no | Language for structural (`ast`) or symbol search |
-| `pattern` | string | no | ast-grep pattern when structural search is needed |
-| `freshness` | string | no | Concern such as missing results, stale paths, changed layout, or old profile |
+| Need | Command / route |
+|---|---|
+| Each repository session | Identity and session preflight below |
+| File name / existence | `arc-idx files <pattern> --format json` |
+| Text / regex / callers | `arc-idx search '<zoekt query>' --format json` |
+| Definition | `arc-idx symbol <name> --exact --format json` |
+| Code structure | `arc-idx ast --lang <language> '<pattern>' --format json` |
+| Language / size inventory | `arc-idx stats --format json` |
+| Missing, suspicious or stale results | `arc-idx doctor --format json` |
+| Persistent task cards | `arc:sdlc`; include precise `<Context-Queries>` |
 
-## Outputs
+## Red Lines
+
+- Use this compiled `arc-idx` engine for all repository discovery. No primary search
+  with rg/grep/git-grep/fd/find, recursive listings, shell/Python/Node tree walks,
+  IDE/runtime search, MCP, legacy index scripts, or another index engine.
+- Never invoke ctags, ast-grep, zoekt or MCP directly as a fallback.
+- No guessed paths/symbols, stale-index trust, raw tag dumps or terminal-color logs
+  in context. Discovery must precede Read/edit and claims that a file is missing.
+- Missing binary or wrong identity: stop and report path/output; never silently switch.
+- Only use `rg`/`fd` when this engine is confirmed unavailable by doctor, the target
+  is outside every repository, or corruption remains after index repair. State why.
+  A missing/stale index alone requires rebuilding first, not bypassing the engine.
+
+## Identity and Session Preflight
+
+```bash
+command -v arc-idx
+arc-idx version
+arc-idx doctor --format json
+arc-idx daemon status
+```
+
+The command must resolve to `~/.local/bin/arc-idx` and print exactly:
 
 ```text
-Code Index Handoff
-- Profile used
-- arc-idx commands run or recommended
-- Search/symbol/ast/file/stat findings
-- doctor result (index age, staleness, missing tools)
-- Daemon state changes (started/stopped)
-- Stale path or coverage risks
-- Reason for any rg fallback
+arc-idx 1.0.0 — local AI context engine (zoekt + ctags + ast-grep)
 ```
+
+Use the command name directly; only when PATH cannot find it, use the full path and
+report that fallback. If doctor is unhealthy/stale or the index is missing, run
+`arc-idx index --quiet`. If daemon is not alive, run `arc-idx daemon start`.
+An already-running start exits 1 with `already running`; that state is normal.
+
+## Queries
+
+```bash
+arc-idx files handler --format json
+arc-idx search 'f:\.go$ handler' --context 3 --max 20 --format ai-md
+arc-idx search 'lang:go case:yes UserService' --format json
+arc-idx search 'sym:UserService' --format json
+arc-idx symbol UserService --kind struct --exact --format json
+arc-idx ast --lang go 'func ($_ *Service) $NAME($$$) error' --format json
+arc-idx stats --format json
+```
+
+Use `--format json|ai-md` for search and JSON for files/symbol/AST/stats/doctor.
+Use `--profile` only with names reported for this repository; `all` is implicit.
+Use zoekt syntax for search (`f:`, `lang:`, `sym:`, `case:yes`, `-exclude`);
+`files` is filename matching, not a regex-alternation search. Independent queries
+may run together. Read bounded hits, then expand only where evidence requires it.
+
+The engine finds the nearest `.ai-code-index/config.json` above the working path.
+Use `--repo <dir>` or enter a child clone; an umbrella directory need not have `.git`.
+Run Git state/diff commands with `git -C <clone>` for each actual repository.
+If a search reports `engine=rg-fallback`, diagnose/rebuild the index before continuing;
+only the explicit fallback conditions above allow relying on it.
+
+## Index Lifecycle
+
+Config and profiles live in `.ai-code-index/config.json`; generated tags live beside
+it, and Zoekt shards default to `~/.cache/ai-code-index/zoekt/<repo>/` (overridable).
+The fsnotify daemon uses `.ai-code-index/daemon.pid` and a log, an idle TTL of 30 minutes,
+a 512 MiB Go memory limit and 800 ms debounce. Let it refresh incrementally; do not
+loop manual rebuilds. Use `daemon stop` after a large refactor is fully finished.
+Use `daemon status`/`doctor` to diagnose stale PID files or missing updates.
+
+In this Skills repository, engine source is `tools/arc-idx/`; rebuild only when
+changing the engine: `go build -o ~/.local/bin/arc-idx ./tools/arc-idx`.
+
+Report relevant paths/symbols, the profile and evidence commands, health/daemon
+changes, and any coverage limitation or fallback reason. Task cards must record
+exact discovery queries for the executor to run before coding.

@@ -1,6 +1,6 @@
 ---
 name: arc:build
-version: 1.2.1
+version: 1.2.3
 description: >
   Implements scoped code changes and verifies them. Use when the user says 写代码, 开发功能,
   落地改动, implement a known scheme, or deliver a scoped change. Not for unknown-failure
@@ -8,162 +8,71 @@ description: >
 ---
 # arc:build
 
-## Overview
+## When to Use
 
-`arc:build` implements scoped project changes and verifies them. It does not clarify vague work, fix unknown failures, or update Lark resources directly.
-
-## Quick Contract
-
-- **Trigger**: The task is implementation-ready and files should change.
-- **Inputs**: Project path, task, scope, constraints, expected verification.
-- **Outputs**: Code changes, verification evidence, risks, and optional Lark handoff.
-- **Quality Gate**: The change is minimal, verified, and explainable.
-- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
+Deliver a scoped implementation, refactor, migration, or documentation change. Use
+`arc:clarify` for unresolved acceptance and `arc:fix` for failure-driven repair.
+Preserve the user's existing authorization, explicit scope, and unrelated edits.
 
 ## Intent Router
 
-| When | Load |
+| Condition | Read / use |
 |---|---|
-| Scoped implementation | this SKILL.md Workflow |
-| Write/change an API or its documentation | [`references/api-contract.md`](references/api-contract.md) |
-| Unclear scope or acceptance | `arc:clarify` |
-| Failure/incident/failing check | `arc:fix` |
-| Suspected bug or optimization without proof | `arc:audit` / `arc:fix`; no repair edit |
-| Frontend/UI work | `arc:frontend` |
-| Same-session multi-model routing | `arc:prewalk` |
-| Large tracked work | `arc:sdlc` |
-| Backend architecture | `arc:arch` |
-| Lark-active delivery notes | `arc:docs` |
+| Every implementation | [Execution truth](../../docs/execution-truth.md): scope, completion, think-before-coding, simplicity, surgical edits |
+| Bug, regression, or failure-driven optimization | **Evidence-first root-cause repair** in [docs/execution-truth.md](../../docs/execution-truth.md), then `arc:fix` |
+| Repository discovery | `arc:idx` before reading or editing unfamiliar files |
+| Backend code / architecture | `arc:arch`, including its ponytail preflight |
+| Frontend, mobile, desktop, mini-program | `arc:frontend` for platform defaults and interaction verification |
+| API behavior or documentation | [Markdown API contract](references/api-contract.md) before dependent code |
+| Large / cross-session / tracked implementation | `arc:sdlc`; ordinary multi-step work uses an in-session plan |
+| Business invariants, transaction/retry effects, recovery evidence | `arc:reliability` defines claims; `arc:test` executes bindings |
+| Useful, supported same-session model swap | `arc:prewalk` after the first production edit |
+| Existing `.lark.json` or explicitly requested Lark work | `arc:docs` for all remote records |
 
-## Context Search
-
-- MUST load the **Evidence-first root-cause repair** section in [`docs/execution-truth.md`](../../docs/execution-truth.md) when the request is framed as a bug fix, diagnosis, regression repair, or optimization.
-- MUST inspect existing code before editing unfamiliar files.
-- MUST use `arc-idx search` first for broad repository context.
-- MUST use `arc-idx ast` for structural patterns and `arc-idx symbol` for definitions when relevant.
-- If `.lark.json` exists, MUST read it before final handoff.
-
+Load only the applicable references. A route adds its constraints; it does not
+expand scope, authorize an external action, or require re-asking for an authorized one.
 
 ## Red Lines
 
-```text
-NO CODE CHANGE WITHOUT SCOPE.
-NO API OR TASK DOCUMENTS DELIVERED AS JSON.
-NO REPAIR EDIT BEFORE THE REPORTED ISSUE IS CONFIRMED.
-NO SYMPTOM PATCH WHEN A SHARED ARCHITECTURE OR BUSINESS-CONTRACT CAUSE IS UNCHECKED.
-NO LARGE PROJECT CODE CHANGE WITHOUT CURRENT LOCAL TASK DOCS.
-NO MULTI-MODEL COST ROUTING VIA PLAN-POSTCARD COLD HANDOFF.
-NO DELIVERY WITHOUT VERIFICATION OR AN EXPLICIT BLOCKER.
-NO LARK DELIVERY UPDATE OUTSIDE arc:docs.
-NO LARK-ACTIVE TRACKED FEATURE COMPLETION WITHOUT task_base UPDATE.
-NO DONE CLAIM FROM DOCS OR MATRIX ALONE.
-NO WORK ON THE WRONG ENV/BRANCH/DEPLOY SURFACE.
-```
-
-## Hard Constraints
-
-- MUST preserve unrelated user changes.
-- MUST edit the smallest viable file set.
-- MUST write and maintain API contracts as Markdown under the project's API docs directory (default `docs/02-API记录/`), following [`references/api-contract.md`](references/api-contract.md) before implementing or changing an endpoint. Use field and behavior tables, not JSON/OpenAPI JSON documents or JSON blocks as the specification.
-- MUST use `arc:sdlc`'s hierarchy and difficulty assessment when decomposing work: separate frontend and backend tasks, each with its own ID, dependencies, acceptance, and status; priority is not difficulty.
-- MUST apply the **Think before coding** gate in [`docs/execution-truth.md`](../../docs/execution-truth.md): state load-bearing assumptions, present competing interpretations or a materially simpler approach instead of silently choosing, convert the task into a verifiable success criterion before editing, and ask only when the tradeoff touches interfaces, persisted data, or architecture.
-- MUST run the **Simplicity ladder** in [`docs/execution-truth.md`](../../docs/execution-truth.md) before writing new code: reuse existing code > standard library > platform-native feature > installed dependency > one line > minimal new code; NEVER add a new dependency for something a few lines can do; mark deliberate ceiling-bound simplifications with a `debt:` comment; NEVER simplify away trust-boundary validation, data-loss protection, security, or accessibility basics.
-- MUST follow the **Surgical edits** gate in [`docs/execution-truth.md`](../../docs/execution-truth.md): no "improving" adjacent code, comments, or formatting; delete only the imports/variables/functions this change orphaned; mention pre-existing dead code instead of deleting it.
-- MUST route any suspected-failure or optimization work through the evidence-first root-cause repair gate in [`docs/execution-truth.md`](../../docs/execution-truth.md); if the issue is not confirmed, do not change production behavior, except for bounded behavior-preserving instrumentation or reproducer coverage used only to collect evidence.
-- MUST distinguish an implementation request from a repair request before editing, and for repairs record the observed behavior, expected contract, root cause, affected siblings, and complete fix boundary.
-- MUST not reduce the change merely to one symptom site when the confirmed cause is shared; conversely, MUST not broaden it for unverified hypothetical cases.
-- MUST apply the gates in [`docs/execution-truth.md`](../../docs/execution-truth.md): runtime/env/branch surface, completion definition (code + gate + reachable behavior), scope lock, and no invented domain identity keys.
-- MUST name the target surface (local / `.26` / `.31` / production / other) before deploy, package, or production diagnosis; MUST follow that surface's branch/track when the repo has dual tracks.
-- MUST honor explicit scope locks (read-only, docs-only, frontend-only, no-restart, explicit non-goals) without opportunistic expansion.
-- MUST NOT mark delivery complete from task checkboxes, ability-matrix cells, or second-hand "already fixed" claims without current verification.
-- MUST follow `arc:sdlc` task tiering: ordinary multi-step work uses an in-session plan; only large / cross-session / tracked work requires persistent local task docs, which must stay current as files, scope, assumptions, or status change.
-- MUST apply `arc:prewalk` for same-session multi-model cost routing when the runtime supports mid-session model swap; MUST NOT default to “frontier writes plan only → cheap model cold-starts from the plan file”.
-- MUST apply `arc:arch` before writing project code, including its default backend architecture, DIP, helper extraction, and ponytail preflight rules.
-- MUST route frontend platform decisions through `arc:frontend`; defaults are Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod, mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router, desktop = Tauri 2 + Web stack, mini-program = Taro 4 + React + TypeScript + Zustand, unless explicitly overridden by the user.
-- MUST preserve the product-state contract across backend and frontend: empty/no-data is a successful business state, not an error; list/query endpoints return success with an empty collection and pagination metadata, while real failures return typed errors.
-- MUST run targeted verification when feasible.
-- MUST report failed or skipped verification.
-- MUST route all Lark writes through `arc:docs`.
-- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
-- MUST hand off to `arc:docs` after every Lark-active tracked feature update so `task_base` records title, owner, status, related requirement, files, verification, lifecycle link, and `updated_at`.
-- MUST NOT claim a Lark-active tracked feature is complete until `task_base` is updated or the blocker is explicit.
-- NEVER broaden scope opportunistically.
-- NEVER suppress type, lint, test, or runtime failures to claim completion.
-- NEVER trust user-controlled SQL, payment, ownership, role, amount, sort field, or identifier without server-side validation.
+- No behavioral repair from an unconfirmed issue or root-cause hypothesis; collect
+  bounded, behavior-preserving evidence first. Never mask a defect with retries,
+  swallowed errors, weakened tests, temporary flags, or a partial symptom patch.
+- No invented domain keys, wrong environment/branch, or opportunistic adjacent work.
+- No JSON task/API specification replacing the required Markdown contract.
+- No success from checkboxes, ability matrices, or second-hand claims: require code,
+  project gates, and reachable behavior; name failed or unavailable verification.
+- No Lark creation when neither `.lark.json` nor explicit user activation exists.
+  All active Lark task/status writes go through `arc:docs`.
+- No plan-only cold handoff as a substitute for `arc:prewalk` trajectory transfer.
 
 ## Workflow
 
-1. Confirm task, scope, verification target, and target env/branch/deploy surface ([`docs/execution-truth.md`](../../docs/execution-truth.md)).
-2. Classify the request as implementation or repair. For repair/optimization language, load the evidence-first root-cause gate and confirm the issue before any behavior edit; route an unconfirmed issue to `arc:audit` / `arc:fix`.
-3. For large / cross-session / tracked work, apply `arc:sdlc` before code edits and keep local task status current. Ordinary multi-step work does not create persistent task docs.
-4. Apply `arc:arch` before code edits; stop and report if ponytail is required but unavailable or conflicting.
-5. Search for existing patterns, call sites, tests, and contracts; for API work, align the Markdown contract and link any associated backend/frontend tasks before dependent code edits. Then run the simplicity ladder before writing any new code.
-6. If multi-model routing is available and useful, follow `arc:prewalk`: Guide orients + bounded todo + first production edit, then Executor continues in the same trajectory; otherwise oneshot a single profile.
-7. Edit only the needed files and the complete owning boundary identified by evidence.
-8. Run targeted verification, including analogous paths when the change repairs a shared invariant; broaden only when risk requires it.
-9. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with feature/task title, owner, status, related requirement, files, verification, lifecycle link, and resource keys.
-10. Summarize changes, verification, residual risk, and any prewalk swap/escalate notes. Mark complete only under the completion definition in execution-truth (code + gate + reachable behavior).
+1. Establish the requested outcome, acceptance, current surface and scope. Read the
+   applicable execution-truth gates. Resolve discoverable facts locally; ask only
+   for a material decision or missing input that blocks the authorized work.
+2. Use `arc:idx` to inspect owners, analogous paths, contracts, tests and dependencies.
+   Distinguish a new implementation from a repair before editing. When diagnosing,
+   confirm the failure, architecture ownership, business contract and complete fix
+   boundary under the evidence-first gate.
+3. Apply `arc:sdlc` task tiering. For tracked work, keep task cards and progress current;
+   split actual backend/frontend packages with independent acceptance. Read `arc:arch`
+   before backend edits and `arc:frontend` for frontend decisions. Align changed APIs
+   in Markdown (default `docs/02-API记录/`); Apifox is an explicitly requested copy.
+4. Implement the smallest complete change. Reuse existing code before adding anything.
+   Preserve contracts, error semantics and security boundaries. Empty collections are
+   successful results with pagination metadata; distinguish not-found, permission,
+   validation, network/server failure and processing states. Validate user-controlled
+   ownership, roles, prices/amounts, identifiers, SQL and sort fields server-side.
+5. Run the relevant native checks and verify the requested behavior. For repairs,
+   cover the reproducer and affected sibling invariant. Check business success for
+   data writes. Stop additional testing when required evidence and gates pass.
+6. Update affected durable docs and tracked status. If Lark is active, read `.lark.json`
+   and hand `arc:docs` the feature title, owner, status, requirement, changed files,
+   verification, lifecycle link and `updated_at`; `task_base` must be updated or its
+   blocker explicit before claiming that tracked feature complete.
 
-## Quality Gates
+## Delivery Evidence
 
-- Requested behavior is implemented without speculative extra surface.
-- Every changed line traces to the request or to an orphan the change created; non-trivial changes passed the bounded elegance pass limited to code introduced by this change.
-- Repair/optimization claims include confirmed observed behavior, root cause, complete fix boundary, and analogous-path verification; an unconfirmed issue may receive only bounded behavior-preserving instrumentation or reproducer coverage, never a claimed repair.
-- Large / cross-session / tracked work has current local task docs, detailed subtasks, and synchronized progress status from `arc:sdlc`. Ordinary multi-step work is not forced into that structure.
-- Existing contracts, names, state shapes, and response envelopes are preserved unless explicitly changed.
-- Changed APIs have current Markdown contracts covering request/response fields, permissions, business behavior, error/empty states, and verification; associated backend/frontend tasks reference the same contract.
-- Project architecture preserves DIP and the default backend architecture responsibilities from `arc:arch` when backend architecture applies.
-- API/service contracts distinguish `empty`, `not found`, `permission denied`, validation failure, network/server failure, and loading/processing states; frontend consumers must not need to infer empty state from an error branch.
-- Security-sensitive work checks authz, ownership, server-side amount/price computation, and secret handling.
-- Data writes check business success, not just execution success.
-- No placeholders, half-migrated call sites, or knowingly broken builds remain.
-- Lark delivery status and `task_base` are recorded via `.lark.json` only when Lark is active.
-
-
-## Scripts & Commands
-
-Use project-native build, lint, test, typecheck, and migration commands. Use `Arc/scripts/verify-project.sh` and related guard scripts only when they fit the target project.
-
-## Red Flags
-
-- Editing before understanding existing patterns.
-- Duplicating existing endpoints, helpers, formatters, or constants.
-- Putting business logic in controllers, adapters, `main`, or cross-business `helpers`.
-- Treating zero rows, empty search results, empty dashboards, or first-use setup as exceptions, failed requests, toast errors, or full-page error states.
-- Adding speculative APIs or states.
-- Writing 200 lines where 50 suffice, or adding a new dependency for a few lines of code.
-- "Improving" adjacent code, comments, or formatting outside the request.
-- Implementing from stale task docs or leaving local progress status inconsistent with the actual project state.
-- Building, diagnosing, or packaging against the wrong env/branch/deploy surface or dual-track sibling.
-- Claiming done from matrix/docs while the path is unimplemented, gated-failing, or unreachable.
-- Expanding past read-only / docs-only / frontend-only / no-restart / explicit non-goals.
-- Using plan-document cold handoff as the multi-model “optimization” (double-pay for reads).
-- Skipping verification silently.
-- Updating Lark delivery resources directly instead of through `arc:docs`.
-- Completing a Lark-active feature while the `task_base` row is missing or stale.
-
-## When to Use
-
-- **Preferred Trigger**: The user asks to implement a known change or approved plan.
-- **Typical Scenario**: Feature work, refactor, migration, documentation sync, or small automation.
-- **Boundary Tip**: Use `arc:fix` for failure-first work and `arc:clarify` for underspecified work.
-
-## Input Arguments
-
-| parameter | type | required | description |
-|---|---|---|---|
-| `project_path` | string | yes | Target repository root |
-| `task` | string | yes | Implementation goal |
-| `scope` | string | no | Expected files or modules |
-| `verification` | string | no | Expected test, lint, build, or typecheck |
-
-## Outputs
-
-```text
-Build Handoff
-- What changed
-- Files touched
-- Verification run
-- Residual risks
-- Lark / .lark.json / task_base handoff, if applicable
-```
+Report the implemented behavior, changed files, checks and their results, skipped
+checks with reasons, and remaining risks. Include model-swap notes or Lark links
+only when applicable. Missing verification remains a limitation, never a PASS.

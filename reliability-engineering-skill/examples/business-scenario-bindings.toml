@@ -1,0 +1,93 @@
+[runner]
+base_url = "${TEST_BASE_URL}"
+dsn_env = "TEST_DATABASE_URL"
+timeout_seconds = 20
+
+[variables]
+enrollment_id = "123"
+
+[[execution]]
+id = "EX-S002"
+scenario_id = "S-002"
+fail_fast = false
+
+[[execution.steps]]
+name = "cancel request A"
+kind = "http"
+method = "POST"
+url = "/enrollments/${enrollment_id}/cancel"
+expect_status = 200
+parallel_group = "cancel-race"
+
+[[execution.steps]]
+name = "cancel request B"
+kind = "http"
+method = "POST"
+url = "/enrollments/${enrollment_id}/cancel"
+expect_status = 200
+parallel_group = "cancel-race"
+
+[[execution.steps]]
+name = "final status is cancelled"
+kind = "sql"
+query = "SELECT status FROM enrollments WHERE id = %s"
+params = ["${enrollment_id}"]
+expect_scalar = "cancelled"
+
+[[execution.steps]]
+name = "one cancellation event"
+kind = "sql"
+query = "SELECT count(*) FROM outbox WHERE aggregate_id = %s AND event_type = 'enrollment.cancelled'"
+params = ["${enrollment_id}"]
+expect_scalar = 1
+
+[[execution]]
+id = "EX-S001"
+scenario_id = "S-001"
+
+[[execution.steps]]
+name = "cancel once"
+kind = "http"
+method = "POST"
+url = "/enrollments/${enrollment_id}/cancel"
+expect_status = 200
+
+[[execution.steps]]
+name = "status cancelled"
+kind = "sql"
+query = "SELECT status FROM enrollments WHERE id = %s"
+params = ["${enrollment_id}"]
+expect_scalar = "cancelled"
+
+[[execution]]
+id = "EX-S003"
+scenario_id = "S-003"
+
+[[execution.steps]]
+name = "completed enrollment cancellation is rejected"
+kind = "http"
+method = "POST"
+url = "/enrollments/${enrollment_id}/cancel"
+expect_status = 409
+
+[[execution]]
+id = "EX-S004"
+scenario_id = "S-004"
+
+[[execution.steps]]
+name = "unauthorized cancellation is denied"
+kind = "http"
+method = "POST"
+url = "/enrollments/${enrollment_id}/cancel"
+headers = { Authorization = "Bearer ${UNAUTHORIZED_TEST_TOKEN}" }
+expect_status = 403
+
+[[execution]]
+id = "EX-S005"
+scenario_id = "S-005"
+
+[[execution.steps]]
+name = "run deterministic cancellation-window boundary test"
+kind = "command"
+argv = ["./scripts/test-business-scenario.sh", "S-005"]
+expect_exit = 0

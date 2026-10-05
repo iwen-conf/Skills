@@ -1,0 +1,226 @@
+[plan]
+id = "course-cancel-v2"
+title = "Course enrollment cancellation"
+risk = "high"
+owner = "enrollment-team"
+objective = "A participant can cancel an eligible enrollment without corrupting capacity, waitlist, payment, audit, or authorization state."
+out_of_scope = ["provider settlement"]
+source_refs = ["REQ-ENROLL-42", "ADR-17"]
+
+[applicability]
+stateful = true
+permissions = true
+concurrent = true
+retryable = true
+external_side_effects = true
+time_sensitive = true
+compatibility = false
+migration = false
+asynchronous = true
+destructive = false
+long_running = false
+
+[environment]
+isolation = "Dedicated test tenant and disposable PostgreSQL schema; no production topics/endpoints."
+seed_strategy = "Create course, enrollment, waitlist and payment records per scenario."
+reset_strategy = "Rollback/fixture cleanup after each scenario."
+
+[release]
+required_scenarios = ["S-001", "S-002", "S-003", "S-004", "S-005"]
+rollback = "Feature flag disables new cancellation workflow; old path remains deployable during rollout."
+
+[[actors]]
+id = "student"
+description = "Participant cancelling their own enrollment"
+allowed = ["cancel own eligible enrollment"]
+forbidden = ["cancel another participant's enrollment", "override closed cancellation window"]
+
+[[actors]]
+id = "operator"
+description = "Authorized operator performing an administrative cancellation"
+allowed = ["cancel enrollment within assigned organization"]
+forbidden = ["operate outside tenant/organization scope"]
+
+[[oracles]]
+id = "OR-STATE"
+kind = "database"
+observe = "enrollment.status and audit trail"
+assertion = "The target enrollment is cancelled exactly once and actor/reason are recorded."
+
+[[oracles]]
+id = "OR-CAPACITY"
+kind = "database"
+observe = "course capacity/seat counters before and after cancellation"
+assertion = "Capacity increases exactly once for one logical cancellation."
+
+[[oracles]]
+id = "OR-WAITLIST"
+kind = "model+database"
+observe = "selected waitlist participant and promotion count"
+assertion = "At most one participant is promoted and selection matches waitlist policy."
+
+[[oracles]]
+id = "OR-EVENT"
+kind = "event"
+observe = "cancellation event/outbox row"
+assertion = "One logical cancellation creates at most one cancellation event despite retries."
+
+[[oracles]]
+id = "OR-AUTH"
+kind = "application+audit"
+observe = "authorization result and resulting state"
+assertion = "Unauthorized actor cannot change enrollment, capacity, waitlist, refund, or audit business state."
+
+[[rules]]
+id = "BR-001"
+risk = "high"
+statement = "Only an eligible active enrollment may be cancelled by an authorized actor."
+oracle_ids = ["OR-STATE", "OR-AUTH"]
+
+[[rules]]
+id = "BR-002"
+risk = "critical"
+statement = "Capacity is released at most once for one enrollment cancellation."
+oracle_ids = ["OR-CAPACITY"]
+
+[[rules]]
+id = "BR-003"
+risk = "high"
+statement = "If a waitlist exists, the next eligible participant is promoted according to waitlist policy."
+oracle_ids = ["OR-WAITLIST"]
+
+[[rules]]
+id = "BR-004"
+risk = "high"
+statement = "Retries or duplicated delivery do not create additional cancellation events or side effects."
+oracle_ids = ["OR-EVENT", "OR-CAPACITY"]
+
+[[states]]
+id = "active"
+terminal = false
+meaning = "Enrollment currently consumes a seat."
+
+[[states]]
+id = "cancelled"
+terminal = true
+meaning = "Enrollment no longer consumes a seat."
+
+[[states]]
+id = "completed"
+terminal = true
+meaning = "Course participation completed; normal cancellation is forbidden."
+
+[[transitions]]
+id = "TR-CANCEL"
+from = "active"
+event = "cancel"
+to = "cancelled"
+
+[[side_effects]]
+id = "SE-CANCEL-EVENT"
+kind = "event"
+commit_point = "Outbox row is committed atomically with enrollment cancellation."
+duplicate_semantics = "Same command/idempotency key produces one logical event."
+
+[[side_effects]]
+id = "SE-WAITLIST-PROMOTE"
+kind = "business-state"
+commit_point = "Promotion is visible only after successful cancellation transaction."
+duplicate_semantics = "Concurrent/retried cancellation cannot promote more than one participant."
+
+[[journeys]]
+id = "J-001"
+title = "Student cancels an active enrollment"
+actors = ["student"]
+preconditions = ["enrollment=active", "cancellation_window=open"]
+trigger = "student submits cancel command"
+steps = ["authorize actor", "validate cancellation", "cancel enrollment", "release capacity", "evaluate waitlist", "persist outbox/audit"]
+expected = ["enrollment=cancelled", "capacity released once", "audit record exists", "one logical cancellation event exists"]
+forbidden = ["duplicate capacity release", "two waitlist promotions", "cancel another user's enrollment", "event without committed state"]
+rules = ["BR-001", "BR-002", "BR-003", "BR-004"]
+
+[[scenarios]]
+id = "S-001"
+journey = "J-001"
+class = "normal"
+given = ["active enrollment", "no waitlist", "window open"]
+when = "cancel once"
+expected = ["cancelled", "capacity +1", "one cancellation event"]
+forbidden = ["duplicate side effect"]
+rules = ["BR-001", "BR-002", "BR-004"]
+oracle_ids = ["OR-STATE", "OR-CAPACITY", "OR-EVENT"]
+evidence = "real application integration"
+automation = "automated"
+
+[[scenarios]]
+id = "S-002"
+journey = "J-001"
+class = "duplicate/concurrency"
+given = ["active enrollment", "two concurrent identical cancel commands"]
+when = "both requests execute"
+expected = ["one logical cancellation", "capacity +1 exactly once", "at most one promotion"]
+forbidden = ["capacity +2", "duplicate promotion", "duplicate event"]
+rules = ["BR-002", "BR-003", "BR-004"]
+oracle_ids = ["OR-STATE", "OR-CAPACITY", "OR-WAITLIST", "OR-EVENT"]
+evidence = "real database/application concurrent integration"
+automation = "automated"
+
+[[scenarios]]
+id = "S-003"
+journey = "J-001"
+class = "state-transition"
+given = ["enrollment=completed"]
+when = "cancel command"
+expected = ["request rejected according to policy"]
+forbidden = ["state changes to cancelled", "capacity changes", "event emitted"]
+rules = ["BR-001"]
+oracle_ids = ["OR-STATE", "OR-CAPACITY", "OR-EVENT"]
+evidence = "application integration"
+automation = "automated"
+
+[[scenarios]]
+id = "S-004"
+journey = "J-001"
+class = "permission"
+given = ["actor does not own enrollment and has no operator scope"]
+when = "cancel command"
+expected = ["authorization denied"]
+forbidden = ["any durable business state change"]
+rules = ["BR-001"]
+oracle_ids = ["OR-AUTH", "OR-STATE", "OR-CAPACITY"]
+evidence = "application integration"
+automation = "automated"
+
+[[scenarios]]
+id = "S-005"
+journey = "J-001"
+class = "boundary"
+given = ["cancellation window is exactly at policy boundary"]
+when = "cancel immediately before/at/after boundary"
+expected = ["decision matches policy at all three boundary points"]
+forbidden = ["clock race produces policy-inconsistent result"]
+rules = ["BR-001"]
+oracle_ids = ["OR-STATE"]
+evidence = "injectable-clock integration/property test"
+automation = "automated"
+
+[[scenarios]]
+id = "S-006"
+journey = "J-001"
+class = "timeout"
+given = ["request commits but caller does not receive response"]
+when = "caller retries same command/idempotency key"
+expected = ["caller can recover outcome", "one logical cancellation"]
+forbidden = ["duplicate capacity release", "duplicate event", "second promotion"]
+rules = ["BR-002", "BR-003", "BR-004"]
+oracle_ids = ["OR-CAPACITY", "OR-EVENT", "OR-WAITLIST"]
+evidence = "fault-injected application integration"
+automation = "automated"
+
+[[cross_business]]
+id = "XB-001"
+flows = ["cancel enrollment", "operator move participant"]
+shared_state = ["enrollment", "course capacity", "waitlist"]
+risk = "high"
+expected = ["one valid final enrollment state", "capacity invariant holds"]
+forbidden = ["participant both cancelled and moved", "capacity drift", "duplicate promotion"]

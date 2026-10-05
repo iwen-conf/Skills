@@ -1,6 +1,6 @@
 ---
 name: arc:sdlc
-version: 1.2.1
+version: 1.2.2
 description: >
   Creates current-state local task docs, pre-constraints, subtasks, and progress
   tables. Use when the user says 拆任务, 进度跟踪, 任务文档, 制定计划, 创建任务,
@@ -50,6 +50,7 @@ Task tiering (planning is the default for non-trivial work, docs are the escalat
 | Write README / 前置约束 / 子任务 / 进度表 | [`modules/templates.md`](modules/templates.md) |
 | Change status, next action, or index links | [`modules/lifecycle.md`](modules/lifecycle.md) |
 | Security/audit findings become tasks | [`references/security-audit-task-pipeline.md`](references/security-audit-task-pipeline.md) |
+| Reliability scenarios, evidence gaps, or incident controls become tracked tasks | `arc:reliability` handoff, then this skill's existing task hierarchy |
 | Same-session multi-model routing | `arc:prewalk` |
 | Need executable acceptance first | `arc:clarify` |
 | Implementation after docs are current | `arc:build` / `arc:fix` / `arc:frontend` |
@@ -114,3 +115,4 @@ NO TASK SIZING WITHOUT DIFFICULTY REASONS AND DEPENDENCIES.
 - API-related tasks reference the same Markdown contract; Apifox is optional and is not a planning or implementation prerequisite.
 - `进度跟踪表.md` and subtask statuses agree; `[x]` means code path + project gate + reachable behavior.
 - Security-sourced work has 项目定位, 项目口径, 功能角色, Finding 索引, and per-finding subtasks.
+- Reliability-sourced tasks retain rule/scenario IDs, EXPECTED/FORBIDDEN outcomes, oracle, target environment, execution binding and required evidence from `arc:reliability`; evidence status does not become `[x]` until the completion definition is met.

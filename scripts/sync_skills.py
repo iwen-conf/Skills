@@ -57,6 +57,36 @@ def required_skills(metadata: dict) -> list[str]:
     return names
 
 
+def validate_discovery(roots: list[Path]) -> list[str]:
+    """校验同一宿主的多个技能根；同目标链接去重，独立副本与 Arc 别名冲突报错。"""
+    entries: dict[str, set[Path]] = {}
+    errors: list[str] = []
+    for root in roots:
+        if not root.is_dir():
+            errors.append(f"discovery root does not exist: {root}")
+            continue
+        for folder in sorted(root.iterdir()):
+            if folder.name.startswith("."):
+                continue
+            if folder.is_symlink() and not folder.exists():
+                errors.append(f"broken skill link: {folder}")
+                continue
+            path = folder / "SKILL.md"
+            if not path.is_file():
+                continue
+            try:
+                name = read_metadata(path)["name"]
+            except (OSError, ValueError, yaml.YAMLError) as exc:
+                errors.append(str(exc))
+                continue
+            canonical = published_name(name, "dash") if name.startswith("arc:") else name
+            entries.setdefault(canonical, set()).add(path.resolve())
+    for name, paths in sorted(entries.items()):
+        if len(paths) > 1:
+            errors.append(f"duplicate discovery name {name}: " + ", ".join(map(str, sorted(paths))))
+    return errors
+
+
 def validate_installation(
     root: Path,
     allowed_siblings: set[str] | None = None,
@@ -243,7 +273,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--only", action="append", default=[], help="Canonical skill name; includes required file/skill dependencies")
     parser.add_argument("--dry-run", action="store_true", help="Build and validate without changing the destination")
     parser.add_argument("--check", action="store_true", help="Validate the existing destination without installing")
+    parser.add_argument("--also-root", action="append", type=Path, default=[],
+                        help="With --check, detect duplicate discovery across this additional host skill root")
     args = parser.parse_args(argv)
+    if args.also_root and not args.check:
+        parser.error("--also-root requires --check")
     destination = args.dest.expanduser().absolute()
     try:
         if args.check:
@@ -255,6 +289,17 @@ def main(argv: list[str] | None = None) -> int:
                 for naming in ("dash", "colon")
             }
             errors = validate_installation(destination, only_folders=managed)
+            selected = args.only or [
+                read_metadata(path / "SKILL.md")["name"]
+                for path in list_skill_dirs(ROOT)
+                if path.parent.name in (args.family or ["Arc"])
+            ]
+            for name in selected:
+                target = destination / published_name(name, args.naming) / "SKILL.md"
+                if not target.is_file():
+                    errors.append(f"missing expected installed skill: {target}")
+            if args.also_root:
+                errors.extend(validate_discovery([destination, *[p.expanduser().absolute() for p in args.also_root]]))
             if errors:
                 raise ValueError("\n".join(errors))
             print(f"Installation validation passed: {destination}")

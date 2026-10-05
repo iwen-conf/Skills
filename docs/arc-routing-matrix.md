@@ -14,6 +14,7 @@ Arc 收敛为 `arc:*` 软件工程生命周期 Skill（含同会话多模型路�
 | `arc:audit` | 需要只读体检、风险盘点、改进建议；或代码/项目/漏洞审计（AppSec 方法论：资产表→数据地图→finding cards） | 需要直接改代码；或需要安装/运行安全 CLI 扫描器 | `arc:clarify` / `arc:security` / `arc:build` / `arc:docs` |
 | `arc:security` | 需要本地安全扫描、依赖/密钥/Go/API/DAST 检查、按数据价值重排的可读安全报告 | 未授权的第三方目标、纯业务需求澄清、或只要人工只读审查/资产与数据地图 | `arc:fix` / `arc:build` / `arc:audit` / `arc:docs` |
 | `arc:test` | 需要设计/生成/运行测试、覆盖率/回归门禁、模糊/属性、基准/负载，或跨 Go/Rust/Android/HarmonyOS/前端的分层测试 | 只是单点实现的顺带验证（走 `arc:build` 自带验证）、纯安全扫描（走 `arc:security`）、纯只读体检（走 `arc:audit`） | `arc:fix` / `arc:build` / `arc:frontend` / `arc:security` / `arc:docs` |
+| `arc:reliability` | 业务不变量、事务并发、重试/副作用、恢复演练、发布证据与事故防复发 | 普通测试建设、通用只读体检、安全扫描、直接修复或执行部署 | `arc:test` / `arc:fix` / `arc:sdlc` |
 | `arc:sdlc` | 大型/跨模块/需跟踪任务要先沉淀本地任务文档；或把审计/扫描 findings 拆成详细子任务 | 单点小改动、无需任务文档的轻量实现；或还缺少上游 handoff/项目口径；**不要**把任务 md 当作同会话 cheap 模型的唯一内存 | `arc:prewalk` / `arc:fix` / `arc:build` / `arc:security` |
 
 ## Decision Tree
@@ -31,7 +32,10 @@ flowchart TD
     B -- 否 --> C[arc:clarify]
     B -- 是 --> D{是否已有失败证据?}
     D -- 是 --> F[arc:fix]
-    D -- 否 --> TST{是否主要是测试/覆盖率/性能门禁?}
+    D -- 否 --> REL{是否是业务可靠性/事务并发/发布证据?}
+    REL -- 是 --> RX[arc:reliability]
+    RX -->|需要执行且范围允许| TX[arc:test]
+    REL -- 否 --> TST{是否主要是测试/覆盖率/性能门禁?}
     TST -- 是 --> TX[arc:test]
     TST -- 否 --> U{是否主要是前端/UI?}
     U -- 是 --> V[arc:frontend]
@@ -60,6 +64,7 @@ flowchart TD
 - 需要浏览器自动化：用 `agent-browser` 或相关浏览器工具。
 - 需要图表：用 `drawio`。
 - 需要测试：用 `arc:test` 做分层测试（单元/集成/契约/E2E、覆盖率、模糊/属性、性能），按风险启用，用平台原生工具（Android=Maestro、Go/Rust 原生、HarmonyOS=arkxtest、前端=Vitest/Playwright），性能与功能分开跑、分开判失败。
+- 需要业务可靠性：用 `arc:reliability` 定义规则、EXPECTED/FORBIDDEN、oracle、真实依赖与必需发布证据；`arc:test` 接收绑定后执行，`arc:fix` 接收已确认失败后修复。只读请求保留只读，缺少证据不等于失败已确认，也不等于通过；部署仍走原运维流程。
 - 需要 E2E：由 `arc:test` 编排，使用项目 E2E 工具或 `agent-browser`；前端交互闭环/可见性/可点击/布局可读性检查经 `arc:frontend`。
 - 需要代码/项目/漏洞只读审计、资产表或敏感数据地图：用 `arc:audit`（mode `appsec`，见 `Arc/arc:audit/references/appsec-playbook.md`）。
 - 需要安全扫描或安全报告：用 `arc:security`（先 quick 再 full，按 data-value 重排）。

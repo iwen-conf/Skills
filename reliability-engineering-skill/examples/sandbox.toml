@@ -1,0 +1,9 @@
+[sandbox]
+isolation = "Disposable docker-compose project and dedicated test database; production endpoints are forbidden."
+bootstrap = [["docker", "compose", "-p", "reliability-test", "up", "-d", "postgres", "redis"]]
+reset = [["./scripts/test-reset.sh"]]
+healthcheck = [["./scripts/test-healthcheck.sh"]]
+teardown = [["docker", "compose", "-p", "reliability-test", "down", "-v"]]
+
+[env]
+APP_ENV = "test"

@@ -17,6 +17,7 @@ Skills/
 │   ├── arc:audit/
 │   ├── arc:security/
 │   ├── arc:test/
+│   ├── arc:reliability/
 │   ├── arc:idx/
 │   ├── arc:comment/
 │   ├── arc:trace/
@@ -51,7 +52,8 @@ Skills/
 | `arc:fix` | 故障修复 | 基于失败证据和可持久化日志定位根因、修复并回归验证 |
 | `arc:audit` | 项目体检 / AppSec 只读审计 | 只读项目体检；`mode=appsec` 时按资产表→敏感数据地图→软柿子→finding cards 做跨项目漏洞审计；多 finding 时产出 Handoff（定位/口径/角色）给任务技能 |
 | `arc:security` | 安全自动化 | 本地安装和编排安全 CLI，按数据价值重排严重度；多 finding 时并入 Handoff 再交给任务技能，不从 SARIF 直接改代码 |
-| `arc:test` | 测试与质量门禁 | 按风险分层设计/生成/运行测试（单元/集成/契约/E2E、覆盖率、模糊/属性、性能），用平台原生工具（Android=Maestro、Go/Rust 原生、HarmonyOS=arkxtest、前端=Vitest/Playwright）；性能与功能分开判失败，失败交 `arc:fix`，安全/非功能交 `arc:security`/`arc:audit` |
+| `arc:test` | 测试与质量门禁 | 按风险分层设计/生成/运行测试（单元/集成/契约/E2E、覆盖率、模糊/属性、性能），用平台原生工具（Android=Maestro、Go/Rust 原生、HarmonyOS=arkxtest、前端=Vitest/Playwright）；性能与功能分开判失败，失败交 `arc:fix`，安全交 `arc:security`/`arc:audit`，业务可靠性契约交 `arc:reliability` |
+| `arc:reliability` | 业务可靠性 | 按业务后果确定正常/故障/恢复/升级的验证范围，推导真实事务场景、独立判定、当前版本发布证据及事故控制；执行绑定交 `arc:test`，根因修复交 `arc:fix`，不执行部署 |
 | `arc:sdlc` | 任务文档与进度 | Markdown 任务按业务组、前后端工作包、独立子任务分层，按难度和依赖拆分；安全来源时补充定位/口径/角色；同会话成本路由交给 `arc:prewalk` |
 
 ## 通用工程约束
@@ -108,7 +110,7 @@ Skills/
 - 任务分级只以 `arc:sdlc` 为准：普通多步骤用会话内计划，不因此创建持久任务文档；大任务、跨会话、迁移、重构、修复战役和需要持续跟踪的工作才写 `docs/` 任务文档。文档按最新项目状态解析或创建 `docs/DD-任务` 这类数字序列化任务分类，再建立任务入口、`00-前置约束.md`、`tasks/` 子任务文件和 `进度跟踪表.md`；子任务须写清当前文件/调用点/输出/执行顺序/边界/反例/验证，作为跨会话恢复与验收权威。开始、暂停、阻塞、完成、验证或下一步变化时，必须立即更新 `进度跟踪表.md` 和子任务状态，未同步前不得继续实现或交付。
 - 任务文档统一 Markdown，按“业务任务组 → 后端/前端工作包 → 可独立验收子任务”分级；跨端工作必须分为独立文件、编号和状态。按范围、状态复杂度、契约/数据风险、依赖未知项与验证成本评估 D1–D4 难度，和 P0–P4 优先级分开记录。D3 按合理验收边界继续拆，D4 先安排有明确出口的调研/验证；每张任务卡包含难度依据、依赖就绪条件和精确 `<Context-Queries>`，仅单端的任务不生成另一端空任务。
 - 同会话多模型成本路由默认遵守 `arc:prewalk` / [`docs/prewalk.md`](docs/prewalk.md)：账单近似 `O(reads)`；Guide（frontier）探索并初始化有界 todo、落地第一笔**生产代码** edit 后，再在同一 trajectory 上切到 Executor，并 prune planning 指令。禁止「frontier 只写 plan 文档 → 新开 cheap 会话冷读 plan」作为默认省钱法；运行时不能 swap 时 oneshot 单一模型，不得伪造 cold plan handoff。
-- 需要测试或质量门禁的工作默认统一走 `arc:test`：按风险分层启用单元/集成/契约/E2E、覆盖率与回归门禁、模糊/属性、性能（基准/负载），用平台原生工具（Android=Maestro、Go/Rust 各自内置测试库、HarmonyOS=arkxtest、前端=Vitest/Playwright，且交互闭环/可见性/可点击/布局可读性经 `arc:frontend`）；性能与功能分开跑、分开判失败，覆盖率是缺口信号不是目标，禁止为凑类型全量铺开；安全/兼容/混沌/可观测性等非功能测试与 `arc:security`/`arc:audit` 协作、不重复建设；失败用例交 `arc:fix`，大型测试建设先走 `arc:sdlc`。
+- 需要测试或质量门禁的工作默认统一走 `arc:test`：按风险分层启用单元/集成/契约/E2E、覆盖率与回归门禁、模糊/属性、性能（基准/负载），用平台原生工具（Android=Maestro、Go/Rust 各自内置测试库、HarmonyOS=arkxtest、前端=Vitest/Playwright，且交互闭环/可见性/可点击/布局可读性经 `arc:frontend`）；性能与功能分开跑、分开判失败，覆盖率是缺口信号不是目标，禁止为凑类型全量铺开；安全与 `arc:security`/`arc:audit` 协作；业务不变量、事务并发、故障/恢复、兼容/可观测性和发布证据由 `arc:reliability` 定义契约，再交 `arc:test` 原生执行；失败用例交 `arc:fix`，大型测试建设先走 `arc:sdlc`。
 - 注释、排版、格式化等文件风格遵循团队约定（见 `arc:comment`），不能替代或放宽工程红线与完成定义。
 - Arc Skill 默认是路由器：`SKILL.md` 只保留意图路由表和红线，细节按需加载 `modules/` 与 `references/`。确定性检查走 `scripts/validate_skills.py` 与触发语料 `schemas/trigger_corpus.yaml`。关键词触发是静态门禁；真实否定句、多意图、范围和授权场景见 `schemas/behavior_corpus.yaml`，不能用静态命中代替 Agent 行为证据。`arc:security` 这种需要可重复自动化的能力可以携带本地脚本。
 - 图表、浏览器、Lazycat、纯设计等垂直能力由对应专门 Skill 负责，不再在 Arc 内重复建设。

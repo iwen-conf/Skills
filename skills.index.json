@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-09-07T09:23:07.632562Z",
-  "skill_count": 15,
+  "generated_at": "2026-09-29T01:50:32.063778Z",
+  "skill_count": 16,
   "skills": [
     {
       "name": "arc:arch",
@@ -46,9 +46,9 @@
     {
       "name": "arc:audit",
       "description": "Performs a read-only project health or AppSec audit (assets, data map, finding cards). Use when the user says 体检, 审计, AppSec, 只读审查, scorecard, or project audit. Not for installing scanners or editing production code.",
-      "version": "1.0.0",
+      "version": "1.0.2",
       "source_path": "Arc/arc:audit/SKILL.md",
-      "line_count": 201,
+      "line_count": 202,
       "intent_router": [
         {
           "When": "AppSec assets/data map/findings",
@@ -57,6 +57,10 @@
         {
           "When": "Local scanners",
           "Load": "arc:security"
+        },
+        {
+          "When": "Business reliability, transaction risk, or release-evidence assessment",
+          "Load": "`arc:reliability` methodology, preserving this audit's read-only scope"
         },
         {
           "When": "Multi-finding task split",
@@ -132,93 +136,59 @@
     {
       "name": "arc:build",
       "description": "Implements scoped code changes and verifies them. Use when the user says 写代码, 开发功能, 落地改动, implement a known scheme, or deliver a scoped change. Not for unknown-failure repair or requirement clarification.",
-      "version": "1.2.0",
+      "version": "1.2.3",
       "source_path": "Arc/arc:build/SKILL.md",
-      "line_count": 169,
+      "line_count": 78,
       "intent_router": [
         {
-          "When": "Scoped implementation",
-          "Load": "this SKILL.md Workflow"
+          "Condition": "Every implementation",
+          "Read / use": "[Execution truth](../../docs/execution-truth.md): scope, completion, think-before-coding, simplicity, surgical edits"
         },
         {
-          "When": "Write/change an API or its documentation",
-          "Load": "[`references/api-contract.md`](references/api-contract.md)"
+          "Condition": "Bug, regression, or failure-driven optimization",
+          "Read / use": "**Evidence-first root-cause repair** in [docs/execution-truth.md](../../docs/execution-truth.md), then `arc:fix`"
         },
         {
-          "When": "Unclear scope or acceptance",
-          "Load": "arc:clarify"
+          "Condition": "Repository discovery",
+          "Read / use": "`arc:idx` before reading or editing unfamiliar files"
         },
         {
-          "When": "Failure/incident/failing check",
-          "Load": "arc:fix"
+          "Condition": "Backend code / architecture",
+          "Read / use": "`arc:arch`, including its ponytail preflight"
         },
         {
-          "When": "Suspected bug or optimization without proof",
-          "Load": "`arc:audit` / `arc:fix`; no repair edit"
+          "Condition": "Frontend, mobile, desktop, mini-program",
+          "Read / use": "`arc:frontend` for platform defaults and interaction verification"
         },
         {
-          "When": "Frontend/UI work",
-          "Load": "arc:frontend"
+          "Condition": "API behavior or documentation",
+          "Read / use": "[Markdown API contract](references/api-contract.md) before dependent code"
         },
         {
-          "When": "Same-session multi-model routing",
-          "Load": "arc:prewalk"
+          "Condition": "Large / cross-session / tracked implementation",
+          "Read / use": "`arc:sdlc`; ordinary multi-step work uses an in-session plan"
         },
         {
-          "When": "Large tracked work",
-          "Load": "arc:sdlc"
+          "Condition": "Business invariants, transaction/retry effects, recovery evidence",
+          "Read / use": "`arc:reliability` defines claims; `arc:test` executes bindings"
         },
         {
-          "When": "Backend architecture",
-          "Load": "arc:arch"
+          "Condition": "Useful, supported same-session model swap",
+          "Read / use": "`arc:prewalk` after the first production edit"
         },
         {
-          "When": "Lark-active delivery notes",
-          "Load": "arc:docs"
+          "Condition": "Existing `.lark.json` or explicitly requested Lark work",
+          "Read / use": "`arc:docs` for all remote records"
         }
       ],
-      "quick_contract": {
-        "trigger": "The task is implementation-ready and files should change.",
-        "inputs": "Project path, task, scope, constraints, expected verification.",
-        "outputs": "Code changes, verification evidence, risks, and optional Lark handoff.",
-        "quality_gate": "The change is minimal, verified, and explainable.",
-        "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
-      },
-      "input_arguments": [
-        {
-          "parameter": "project_path",
-          "type": "string",
-          "required": "yes",
-          "description": "Target repository root"
-        },
-        {
-          "parameter": "task",
-          "type": "string",
-          "required": "yes",
-          "description": "Implementation goal"
-        },
-        {
-          "parameter": "scope",
-          "type": "string",
-          "required": "no",
-          "description": "Expected files or modules"
-        },
-        {
-          "parameter": "verification",
-          "type": "string",
-          "required": "no",
-          "description": "Expected test, lint, build, or typecheck"
-        }
-      ],
-      "outputs_section": {
-        "format": "text",
-        "content": "Build Handoff\n- What changed\n- Files touched\n- Verification run\n- Residual risks\n- Lark / .lark.json / task_base handoff, if applicable"
-      }
+      "quick_contract": null,
+      "input_arguments": null,
+      "outputs_section": null
     },
     {
       "name": "arc:clarify",
       "description": "Clarifies a fuzzy request into executable context, constraints, and acceptance criteria. Use when the user says 澄清, 需求不清, 验收标准, clarify, or the task cannot be executed yet. Not for writing a PRD or delivering code.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "source_path": "Arc/arc:clarify/SKILL.md",
       "line_count": 120,
       "intent_router": [
@@ -282,7 +252,7 @@
     {
       "name": "arc:comment",
       "description": "Applies Chinese comment conventions for controllers, contracts, functions, structs, fields, and numbered in-function steps. Use when the user says 加注释, 写注释, 步骤注释, 函数注释, comment style, or documentation comments in code. Not for user-facing prose docs.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "source_path": "Arc/arc:comment/SKILL.md",
       "line_count": 56,
       "intent_router": [
@@ -470,80 +440,54 @@
     {
       "name": "arc:fix",
       "description": "Diagnoses and repairs failures from logs, stack traces, failing tests, or incidents. Use when the user says 报错, 修复, 故障, bug, 根因, incident, or failing test. Not for greenfield feature delivery.",
-      "version": "1.1.0",
+      "version": "1.1.3",
       "source_path": "Arc/arc:fix/SKILL.md",
-      "line_count": 164,
+      "line_count": 80,
       "intent_router": [
         {
-          "When": "Failure with evidence",
-          "Load": "this SKILL.md Workflow"
+          "Condition": "Every diagnosis / repair",
+          "Read / use": "**Evidence-first root-cause repair** in [docs/execution-truth.md](../../docs/execution-truth.md)"
         },
         {
-          "When": "Suspected issue without evidence",
-          "Load": "`arc:audit` / `arc:clarify`; no repair edit"
+          "Condition": "Error strings, request IDs, stack frames, owners and sibling paths",
+          "Read / use": "`arc:idx` exact text, symbol and AST discovery"
         },
         {
-          "When": "Confirmed failure requiring repair",
-          "Load": "this SKILL.md Workflow"
+          "Condition": "Unclear expected contract",
+          "Read / use": "`arc:clarify` for the unresolved decision"
         },
         {
-          "When": "Unclear acceptance",
-          "Load": "arc:clarify"
+          "Condition": "Backend fix",
+          "Read / use": "`arc:arch`, including ponytail preflight and DIP"
         },
         {
-          "When": "Same-session multi-model routing",
-          "Load": "arc:prewalk"
+          "Condition": "Frontend failure / browser evidence",
+          "Read / use": "`arc:frontend` and the existing browser tooling"
         },
         {
-          "When": "Large repair campaign",
-          "Load": "arc:sdlc"
+          "Condition": "Large / cross-session / tracked repair campaign",
+          "Read / use": "`arc:sdlc`; ordinary repairs use an in-session plan"
         },
         {
-          "When": "Backend architecture",
-          "Load": "arc:arch"
+          "Condition": "Transaction, duplicate-effect, retry or recovery incident",
+          "Read / use": "`arc:reliability` for invariant evidence and prevention controls"
         },
         {
-          "When": "Lark-active incident notes",
-          "Load": "arc:docs"
+          "Condition": "Regression execution",
+          "Read / use": "arc:test"
+        },
+        {
+          "Condition": "Useful, supported same-session model swap",
+          "Read / use": "`arc:prewalk` after a grounded first production fix"
+        },
+        {
+          "Condition": "Existing `.lark.json` or explicit Lark activation",
+          "Read / use": "`arc:docs` for incident, risk and task records"
         }
       ],
-      "quick_contract": {
-        "trigger": "A bug, incident, regression, failing test, crash, or broken flow has evidence.",
-        "inputs": "Failure signal, expected behavior, project path, optional verification command.",
-        "outputs": "Root cause, fix, verification, risk, and optional Lark incident handoff.",
-        "quality_gate": "The original failure is explained and rechecked, or the blocker is explicit.",
-        "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
-      },
-      "input_arguments": [
-        {
-          "parameter": "project_path",
-          "type": "string",
-          "required": "yes",
-          "description": "Target repository root"
-        },
-        {
-          "parameter": "failure",
-          "type": "string",
-          "required": "yes",
-          "description": "Error, log, repro, screenshot, or failing command"
-        },
-        {
-          "parameter": "expected",
-          "type": "string",
-          "required": "no",
-          "description": "Expected behavior"
-        },
-        {
-          "parameter": "verification",
-          "type": "string",
-          "required": "no",
-          "description": "Command or flow proving repair"
-        }
-      ],
-      "outputs_section": {
-        "format": "text",
-        "content": "Fix Packet\n- Failure observed\n- Evidence/log files captured\n- Root cause\n- Fix applied\n- Verification run\n- Regression risk\n- Lark / .lark.json / task_base handoff, if applicable"
-      }
+      "quick_contract": null,
+      "input_arguments": null,
+      "outputs_section": null
     },
     {
       "name": "arc:frontend",
@@ -636,80 +580,46 @@
     {
       "name": "arc:idx",
       "description": "First step of any local repo work: implement, debug, review, 搜代码, 找符号, or locate files. Runs ~/.local/bin/arc-idx (zoekt search, ctags symbol, ast-grep ast, files, stats, daemon, doctor) before guessing paths. Not rg/find/MCP as primary search. Not for editing code.",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "source_path": "Arc/arc:idx/SKILL.md",
-      "line_count": 172,
+      "line_count": 101,
       "intent_router": [
         {
-          "When": "Text/regex/symbol/AST search",
-          "Load": "this SKILL.md Commands"
+          "Need": "Each repository session",
+          "Command / route": "Identity and session preflight below"
         },
         {
-          "When": "Daemon / freshness",
-          "Load": "this SKILL.md Auto Refresh"
+          "Need": "File name / existence",
+          "Command / route": "arc-idx files <pattern> --format json"
         },
         {
-          "When": "Incomplete results",
-          "Load": "arc-idx doctor"
+          "Need": "Text / regex / callers",
+          "Command / route": "arc-idx search '<zoekt query>' --format json"
         },
         {
-          "When": "After discovery, implement",
-          "Load": "`arc:build` / `arc:fix` / `arc:audit`"
+          "Need": "Definition",
+          "Command / route": "arc-idx symbol <name> --exact --format json"
         },
         {
-          "When": "Task docs need Context-Queries",
-          "Load": "arc:sdlc"
+          "Need": "Code structure",
+          "Command / route": "arc-idx ast --lang <language> '<pattern>' --format json"
+        },
+        {
+          "Need": "Language / size inventory",
+          "Command / route": "arc-idx stats --format json"
+        },
+        {
+          "Need": "Missing, suspicious or stale results",
+          "Command / route": "arc-idx doctor --format json"
+        },
+        {
+          "Need": "Persistent task cards",
+          "Command / route": "`arc:sdlc`; include precise `<Context-Queries>`"
         }
       ],
-      "quick_contract": {
-        "trigger": "Any local repo task (implement, debug, review, locate files). Do not wait for the user to name `arc-idx`. Guessing paths is a failure.",
-        "inputs": "Project path, target scope/profile, search intent, optional language/symbol/pattern, freshness concern.",
-        "outputs": "A working `arc-idx` command sequence, index structure guidance, refresh/diagnose commands, and any missing-tool or stale-index risks.",
-        "quality_gate": "Agent uses `arc-idx search|symbol|ast|files|stats` before broad `rg`, and runs `arc-idx doctor` when results look incomplete.",
-        "decision_tree": "Use this skill for local code context discovery; use `arc:build`, `arc:fix`, or `arc:audit` for the implementation, repair, or review that follows."
-      },
-      "input_arguments": [
-        {
-          "parameter": "project_path",
-          "type": "string",
-          "required": "yes",
-          "description": "Repository root containing or needing `.ai-code-index/`"
-        },
-        {
-          "parameter": "profile",
-          "type": "string",
-          "required": "no",
-          "description": "Search scope defined in `config.json`, plus implicit `all`"
-        },
-        {
-          "parameter": "query",
-          "type": "string",
-          "required": "no",
-          "description": "Zoekt query: text, regex, `f:`, `lang:`, `sym:`, `case:yes`"
-        },
-        {
-          "parameter": "language",
-          "type": "string",
-          "required": "no",
-          "description": "Language for structural (`ast`) or symbol search"
-        },
-        {
-          "parameter": "pattern",
-          "type": "string",
-          "required": "no",
-          "description": "ast-grep pattern when structural search is needed"
-        },
-        {
-          "parameter": "freshness",
-          "type": "string",
-          "required": "no",
-          "description": "Concern such as missing results, stale paths, changed layout, or old profile"
-        }
-      ],
-      "outputs_section": {
-        "format": "text",
-        "content": "Code Index Handoff\n- Profile used\n- arc-idx commands run or recommended\n- Search/symbol/ast/file/stat findings\n- doctor result (index age, staleness, missing tools)\n- Daemon state changes (started/stopped)\n- Stale path or coverage risks\n- Reason for any rg fallback"
-      }
+      "quick_contract": null,
+      "input_arguments": null,
+      "outputs_section": null
     },
     {
       "name": "arc:prewalk",
@@ -784,11 +694,84 @@
       }
     },
     {
+      "name": "arc:reliability",
+      "description": "Engineers business reliability through risk-based scope, explicit invariants, real transaction/fault/recovery scenarios, reproducible evidence and release gates. Use for 可靠性, 业务不变量, 事务并发, 发布证据, retry/idempotency verification, recovery drills, or incident prevention. Not for routine test-suite work, security scanning, direct production repairs, or deployment execution.\n",
+      "version": "1.1.0",
+      "source_path": "Arc/arc:reliability/SKILL.md",
+      "line_count": 117,
+      "intent_router": [
+        {
+          "When": "业务规则、状态、适用维度、变更影响与场景选择",
+          "Load": "[`references/business-verification.md`](references/business-verification.md)"
+        },
+        {
+          "When": "风险测试范围、用例设计、判定器与生成器盲区",
+          "Load": "[`arc:test 用例设计`](../arc:test/references/test-case-design.md)"
+        },
+        {
+          "When": "需要完整的业务用例推导演示",
+          "Load": "[`references/worked-example.md`](references/worked-example.md)"
+        },
+        {
+          "When": "行业策略依据、公司实践差异及适用限制",
+          "Load": "[`references/industry-testing-strategies.md`](references/industry-testing-strategies.md)"
+        },
+        {
+          "When": "共享状态、锁顺序、事务重试、异步与部分副作用",
+          "Load": "[`references/transactions-and-faults.md`](references/transactions-and-faults.md)"
+        },
+        {
+          "When": "隔离环境、证据状态、CI 与发布门禁",
+          "Load": "[`references/evidence-and-release.md`](references/evidence-and-release.md)"
+        },
+        {
+          "When": "SLI/SLO、故障检测、恢复或事故防复发",
+          "Load": "[`references/operations-and-learning.md`](references/operations-and-learning.md)"
+        },
+        {
+          "When": "需要一份本次变更的简短验证卡",
+          "Load": "[`references/change-verification.md`](references/change-verification.md)"
+        },
+        {
+          "When": "写/运行具体测试、fuzz、性能基线",
+          "Load": "arc:test"
+        },
+        {
+          "When": "诊断缺陷、建议行为修复",
+          "Load": "[`Evidence-first root-cause repair`](../../docs/execution-truth.md#6-evidence-first-root-cause-repair)，然后 `arc:fix`"
+        },
+        {
+          "When": "只读项目体检 / 安全审计或扫描",
+          "Load": "`arc:audit` / `arc:security`；保持只读或既有授权边界"
+        },
+        {
+          "When": "业务定义存在决定性缺口 / 已明确的实现",
+          "Load": "`arc:clarify` / `arc:build`"
+        },
+        {
+          "When": "大型或跨会话整改、发布与运维文档",
+          "Load": "`arc:sdlc`；飞书仅在已启用时交 `arc:docs`"
+        }
+      ],
+      "quick_contract": {
+        "trigger": "业务不变量、事务并发、重复/超时/重试、部分成功、恢复演练或发布证据需要专门验证。",
+        "inputs": "项目、变更/事故范围、业务合同、目标版本与环境、现有测试和可用证据；未知项如实记录。",
+        "outputs": "风险与未测范围、规则到场景的映射、执行绑定、环境约束、证据状态、阻断项，以及必要的检测/恢复控制。",
+        "quality_gate": "每个必需场景都有能发现目标缺陷的可信判定和当前候选版本证据；缺失、失败或不稳定不能通过，测试数量/比例不能替代业务证明。",
+        "decision_tree": "先遵守任务范围，再按下面的 Intent Router 加载资料；工程分工见 [`Arc 路由`](../../docs/arc-routing-matrix.md)。"
+      },
+      "input_arguments": null,
+      "outputs_section": {
+        "format": "text",
+        "content": "Reliability Handoff\n- Scope: affected promises/risks, required and excluded scope, candidate/environment, authorized operations\n- Claims: applicable lifecycle phases, EXPECTED/FORBIDDEN, independent oracle, defect sensitivity, specification gaps\n- Verification: scenario -> binding -> real boundary -> evidence status/artifact\n- Gate: required scenarios, missing/failing evidence, accepted risks kept separate\n- Follow-through: detection/recovery controls, arc:test/fix/sdlc handoff when needed"
+      }
+    },
+    {
       "name": "arc:sdlc",
       "description": "Creates current-state local task docs, pre-constraints, subtasks, and progress tables. Use when the user says 拆任务, 进度跟踪, 任务文档, 制定计划, 创建任务, or before large tracked implementation. Not the default memory for same-session cheap-model routing; that belongs to arc:prewalk.",
-      "version": "1.2.0",
+      "version": "1.2.2",
       "source_path": "Arc/arc:sdlc/SKILL.md",
-      "line_count": 116,
+      "line_count": 118,
       "intent_router": [
         {
           "When": "Start or resume large tracked work",
@@ -817,6 +800,10 @@
         {
           "When": "Security/audit findings become tasks",
           "Load": "[`references/security-audit-task-pipeline.md`](references/security-audit-task-pipeline.md)"
+        },
+        {
+          "When": "Reliability scenarios, evidence gaps, or incident controls become tracked tasks",
+          "Load": "`arc:reliability` handoff, then this skill's existing task hierarchy"
         },
         {
           "When": "Same-session multi-model routing",
@@ -925,105 +912,55 @@
     },
     {
       "name": "arc:test",
-      "description": "Designs and runs layered tests (unit, integration, contract, E2E, coverage, fuzz, property, performance) with platform-native tools. Use when the user says 写测试, 覆盖率, 回归, E2E, fuzz, benchmark, Maestro, or quality gate. Not for repairing production code or security scanning.",
-      "version": "1.0.0",
+      "description": "Designs risk-driven test scope and cases, then runs unit, integration, contract, E2E, fuzz, property and performance tests with platform-native tools. Use for 写测试, 测试范围, 用例设计, 覆盖率, 回归, E2E, fuzz, benchmark, Maestro, or quality gate. Not for repairing production code or security scanning.",
+      "version": "1.2.1",
       "source_path": "Arc/arc:test/SKILL.md",
-      "line_count": 246,
+      "line_count": 116,
       "intent_router": [
         {
-          "When": "Which layers to enable",
-          "Load": "[`references/test-scope-matrix.md`](references/test-scope-matrix.md)"
+          "Condition": "Scope, case design, assertion strength or generator blind spots",
+          "Read / use": "[Test case design](references/test-case-design.md)"
         },
         {
-          "When": "Platform commands",
-          "Load": "[`references/test-stacks.md`](references/test-stacks.md)"
+          "Condition": "Credible boundary, enabled layers, priority or execution cadence",
+          "Read / use": "[Test scope matrix](references/test-scope-matrix.md)"
         },
         {
-          "When": "Failing test needs repair",
-          "Load": "arc:fix"
+          "Condition": "Platform commands, coverage or profiling",
+          "Read / use": "[Native stacks](references/test-stacks.md); read only the target platform"
         },
         {
-          "When": "Repair boundary for a confirmed failure",
-          "Load": "[`docs/execution-truth.md`](../../docs/execution-truth.md) + `arc:fix`"
+          "Condition": "Business invariants, transaction/retry effects, fault/recovery or release evidence",
+          "Read / use": "`arc:reliability` defines claims/oracles; execute its bindings here"
         },
         {
-          "When": "Feature edit itself",
-          "Load": "arc:build"
+          "Condition": "Recommending a production fix from a failed/flaky test",
+          "Read / use": "**Evidence-first root-cause repair** in [docs/execution-truth.md](../../docs/execution-truth.md), then `arc:fix`"
         },
         {
-          "When": "Security scanners",
-          "Load": "arc:security"
+          "Condition": "Required implementation/test seam",
+          "Read / use": "`arc:build` or `arc:fix`"
         },
         {
-          "When": "Large test build-out",
-          "Load": "arc:sdlc"
+          "Condition": "Security scanners / penetration testing",
+          "Read / use": "`arc:security` / `arc:audit`"
         },
         {
-          "When": "Frontend interaction checks",
-          "Load": "arc:frontend"
+          "Condition": "Frontend interaction, visibility, clickability and layout",
+          "Read / use": "arc:frontend"
+        },
+        {
+          "Condition": "Large / multi-module / cross-platform / tracked test build-out",
+          "Read / use": "arc:sdlc"
+        },
+        {
+          "Condition": "Existing `.lark.json` or explicit Lark activation",
+          "Read / use": "`arc:docs` for all remote records"
         }
       ],
-      "quick_contract": {
-        "trigger": "The user asks to add, generate, run, or review tests; set up coverage/regression gates; add fuzz, property, benchmark, or load tests; or verify a suite across Go, Rust, Android, HarmonyOS, or frontend.",
-        "inputs": "Project path, scope, platform/language, which layers to enable, optional SLA/hotspot, optional authorized target URL, expected commands.",
-        "outputs": "Per-layer commands and pass/fail, coverage summary with high-risk gaps, robustness and performance results judged separately, flaky list, and handoffs to `arc:fix` / `arc:security` / `arc:sdlc` / `arc:docs`.",
-        "quality_gate": "Every \"it works\" claim is backed by an executed test with evidence; layers are enabled by risk, not to tick boxes; performance is judged apart from functional; coverage is treated as a gap signal, not a target.",
-        "decision_tree": "See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md)."
-      },
-      "input_arguments": [
-        {
-          "parameter": "project_path",
-          "type": "string",
-          "required": "yes",
-          "description": "Target repository root"
-        },
-        {
-          "parameter": "scope",
-          "type": "string",
-          "required": "no",
-          "description": "Module, package, feature, or full suite under test"
-        },
-        {
-          "parameter": "platform",
-          "type": "enum",
-          "required": "no",
-          "description": "`go`, `rust`, `android`, `harmonyos`, `frontend`, or `auto`"
-        },
-        {
-          "parameter": "layers",
-          "type": "string",
-          "required": "no",
-          "description": "Layers to enable: unit, integration, contract, e2e, coverage, fuzz, property, benchmark, profile, load"
-        },
-        {
-          "parameter": "priority",
-          "type": "enum",
-          "required": "no",
-          "description": "`P0` default, `P1` recommended, `P2` on-demand"
-        },
-        {
-          "parameter": "sla",
-          "type": "string",
-          "required": "no",
-          "description": "Latency/throughput target that gates performance tests"
-        },
-        {
-          "parameter": "target_url",
-          "type": "string",
-          "required": "no",
-          "description": "Authorized running app or URL for E2E/load"
-        },
-        {
-          "parameter": "verification",
-          "type": "string",
-          "required": "no",
-          "description": "Expected command to run the suite"
-        }
-      ],
-      "outputs_section": {
-        "format": "text",
-        "content": "Test Handoff\n- Scope and platform/language\n- Layers enabled + layers skipped (with reason)\n- Commands run and pass/fail per layer\n- Coverage summary (line/branch) + uncovered high-risk gaps\n- Functional result (unit / integration / contract / E2E)\n- Robustness result (fuzz / property), when enabled\n- Performance result (benchmark / load), judged separately, vs baseline/SLA\n- Profiling artifacts (flame graph / pprof / trace) and located hotspots, when profiling ran\n- Flaky / quarantined tests\n- Failing-code handoff to arc:fix\n- Non-functional/security handoff to arc:security / arc:audit\n- Frontend UI test handoff via arc:frontend\n- Task docs handoff (arc:sdlc), when large\n- Lark / .lark.json / task_base handoff, if applicable\n- Residual risks"
-      }
+      "quick_contract": null,
+      "input_arguments": null,
+      "outputs_section": null
     },
     {
       "name": "arc:trace",

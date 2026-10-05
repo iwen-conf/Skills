@@ -33,4 +33,4 @@ Trigger corpus: `schemas/trigger_corpus.yaml`. Every **Arc** skill needs ≥8 po
 
 ## Lifecycle coverage
 
-The 15 `arc:*` skills cover define, clarify, design, plan, implement, search, verify, secure, repair, operate, document, and same-session cost routing. Release/deploy notes live under `arc:sdlc` `docs/06-环境运维`; do not add a parallel release skill.
+The 16 `arc:*` skills cover define, clarify, design, plan, implement, search, verify, secure, repair, operate, document, and same-session cost routing. `arc:reliability` owns business invariants, lifecycle failure scenarios and release-evidence semantics; `arc:test` owns risk-based case design and native execution, and `arc:fix` owns confirmed repairs. Scope comes from contracts and consequences rather than test proportions or coverage targets. Release/deploy notes live under `arc:sdlc` `docs/06-环境运维`; a reliability gate does not add a parallel deployment skill.

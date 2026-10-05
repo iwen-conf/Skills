@@ -198,7 +198,8 @@ def test_real_arc_packages_are_portable(tmp_path: Path) -> None:
     mod = _load_sync_module()
     names = [p.name for p in mod.list_skill_dirs() if p.parent.name == "Arc"]
     included = mod.build_installation(ROOT, tmp_path / "stage", names)
-    assert len(included) == 15
+    assert included == sorted(names)
+    assert "arc:reliability" in included
     assert mod.validate_installation(tmp_path / "stage") == []
 
 
@@ -219,3 +220,42 @@ def test_lark_meeting_packages_are_portable(tmp_path: Path) -> None:
     assert "lark-meeting" in included
     assert (tmp_path / "stage" / "lark-meeting" / "SKILL.md").is_file()
     assert (tmp_path / "stage" / "lark-minutes" / "SKILL.md").is_file()
+
+
+def test_discovery_rejects_independent_copies_and_arc_aliases(tmp_path: Path) -> None:
+    mod = _load_sync_module()
+    for root, name in (("shared", "arc-one"), ("host", "arc:one")):
+        folder = tmp_path / root / name
+        folder.mkdir(parents=True)
+        (folder / "SKILL.md").write_text(f"---\nname: {name}\ndescription: Test\n---\n")
+    errors = mod.validate_discovery([tmp_path / "shared", tmp_path / "host"])
+    assert len(errors) == 1
+    assert "duplicate discovery name arc-one" in errors[0]
+
+
+def test_discovery_allows_shared_links_but_reports_broken_links(tmp_path: Path) -> None:
+    mod = _load_sync_module()
+    shared, host = tmp_path / "shared", tmp_path / "host"
+    skill = shared / "sample"
+    skill.mkdir(parents=True)
+    host.mkdir()
+    (skill / "SKILL.md").write_text("---\nname: sample\ndescription: Test\n---\n")
+    (host / "sample").symlink_to(skill, target_is_directory=True)
+    assert mod.validate_discovery([shared, host]) == []
+    (host / "missing").symlink_to(tmp_path / "absent", target_is_directory=True)
+    assert mod.validate_discovery([shared, host]) == [f"broken skill link: {host / 'missing'}"]
+
+
+def test_check_rejects_empty_installation_and_cross_root_duplicates(tmp_path: Path, monkeypatch, capsys) -> None:
+    mod = _load_sync_module()
+    source, installed, other = tmp_path / "source", tmp_path / "installed", tmp_path / "other"
+    _source(source)
+    installed.mkdir()
+    monkeypatch.setattr(mod, "ROOT", source)
+    assert mod.main(["--check", "--dest", str(installed)]) == 1
+    assert "missing expected installed skill" in capsys.readouterr().err
+    mod.build_installation(source, installed, ["arc:one"])
+    assert mod.main(["--check", "--dest", str(installed)]) == 0
+    mod.build_installation(source, other, ["arc:one"], "colon")
+    assert mod.main(["--check", "--dest", str(installed), "--also-root", str(other)]) == 1
+    assert "duplicate discovery name arc-one" in capsys.readouterr().err

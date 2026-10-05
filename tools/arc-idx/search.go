@@ -260,11 +260,27 @@ func translateQueryToRg(qstr string) (string, []string) {
 
 // profileFileQuery builds a zoekt query restriction from profile globs so
 // filtering happens inside the engine as well as post-hoc.
+//
+// Include globs are a union (a file matching ANY include is in the profile);
+// they must be OR-ed before being AND-ed with the base query. AND-ing each
+// include directly (the pre-DEF-C-13 shape) made any multi-include profile
+// unsatisfiable at the engine, so `search --profile` always returned zero.
 func profileFileQuery(m *profileMatcher, base query.Q) query.Q {
+	if len(m.include) == 0 && len(m.exclude) == 0 {
+		return base
+	}
 	qs := []query.Q{base}
+	var inc []query.Q
 	for _, re := range m.include {
 		if sre, err := syntax.Parse(re.String(), syntax.Perl); err == nil {
-			qs = append(qs, &query.Regexp{Regexp: sre, FileName: true})
+			inc = append(inc, &query.Regexp{Regexp: sre, FileName: true})
+		}
+	}
+	if len(inc) > 0 {
+		if len(inc) == 1 {
+			qs = append(qs, inc[0])
+		} else {
+			qs = append(qs, query.NewOr(inc...))
 		}
 	}
 	for _, re := range m.exclude {

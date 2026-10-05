@@ -1,0 +1,76 @@
+[project]
+name = "example-service"
+owner = "platform"
+
+[policy]
+critical_min_independent_evidence = 2
+high_min_independent_evidence = 1
+critical_require_runtime_detection = true
+critical_require_release_gate = true
+incident_require_durable_guard = true
+waiver_max_days = 90
+
+[[invariants]]
+id = "INV-001"
+title = "A request id creates at most one logical side effect"
+risk = "critical"
+scope = "POST /transfer"
+statement = "For a fixed request_id and semantic payload, any number of retries or concurrent submissions produce at most one committed transfer."
+preconditions = "request_id is valid and payload identity rules are satisfied"
+oracle = "Count committed transfers for request_id and compare ledger effect with the reference model."
+evidence = ["E-001", "E-002"]
+failure_modes = ["F-001", "F-002"]
+runtime_detection = "C-001"
+release_gate = true
+
+[[failure_modes]]
+id = "F-001"
+title = "Response is lost after commit and client retries"
+class = "ambiguous-result"
+invariants = ["INV-001"]
+evidence = ["E-001"]
+
+[[failure_modes]]
+id = "F-002"
+title = "Two copies of the same request execute concurrently"
+class = "concurrency"
+invariants = ["INV-001"]
+evidence = ["E-002"]
+
+[[evidence]]
+id = "E-001"
+kind = "integration"
+title = "Real-DB response-loss retry test"
+independent_group = "real-postgres-transaction"
+runs_on = "pr"
+command = "cargo test transfer_retry_after_commit"
+reproducible = true
+
+[[evidence]]
+id = "E-002"
+kind = "property"
+title = "Reference-model duplicate/concurrency property"
+independent_group = "reference-model"
+runs_on = "nightly"
+command = "cargo test transfer_model_prop"
+reproducible = true
+
+[[controls]]
+id = "C-001"
+kind = "reconciliation"
+title = "Duplicate request-id / ledger reconciliation"
+description = "Detect multiple logical effects or ledger imbalance and page on violation."
+
+[[incidents]]
+id = "INC-2026-001"
+summary = "Example duplicate transfer incident"
+guards = ["E-001", "C-001"]
+
+# A waiver is optional and should be exceptional.
+# [[waivers]]
+# id = "W-001"
+# subject = "INV-999"
+# reason = "Hardware-in-loop rig unavailable"
+# owner = "team-name"
+# compensating_control = "manual release verification"
+# expires = "2026-12-01"

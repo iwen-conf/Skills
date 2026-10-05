@@ -41,7 +41,7 @@ cargo llvm-cov --branch --summary-only          # coverage (line + branch); or c
 
 cargo bench                                      # Criterion benchmarks (run separately)
 cargo fuzz run parse_target                      # cargo-fuzz / libFuzzer (nightly toolchain)
-cargo mutants                                    # optional mutation testing (mature suites)
+cargo mutants                                    # optional; scope mutations to important claims
 ```
 
 - Property: `proptest` or `quickcheck` for invariants and round-trip.

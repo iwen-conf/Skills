@@ -1,0 +1,46 @@
+version = 1
+
+# This catalog is a REVIEW MODEL, not a claim that PostgreSQL literally acquires
+# locks with these names. The AI/reviewer derives these resources from the real
+# business code and uses them to find dangerous cross-business combinations.
+
+[[operation]]
+id = "confirm_payment"
+critical = true
+isolation = "read committed"
+max_duration_ms = 500
+retry_sqlstates = ["40P01"]
+idempotency = true
+resources = [
+  { name = "order", mode = "write" },
+  { name = "account", mode = "write" },
+  { name = "payment", mode = "write" },
+]
+external_calls = []
+
+[[operation]]
+id = "refund_payment"
+critical = true
+isolation = "read committed"
+max_duration_ms = 500
+retry_sqlstates = ["40P01"]
+idempotency = true
+# Deliberately inverted order/account to demonstrate analyzer output.
+resources = [
+  { name = "account", mode = "write" },
+  { name = "order", mode = "write" },
+  { name = "refund", mode = "write" },
+]
+external_calls = []
+
+[[operation]]
+id = "unsafe_transfer"
+critical = true
+isolation = "read committed"
+max_duration_ms = 300
+retry_sqlstates = ["40P01"]
+idempotency = true
+resources = [
+  { name = "account", mode = "write", multiplicity = "many", key_order = "request" },
+]
+external_calls = []

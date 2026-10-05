@@ -10,6 +10,7 @@ Lean Arc keeps software engineering lifecycle skills:
 - `arc:frontend` — 前端工程基线、UI 交付和前端进度沉淀
 - `arc:fix` — 故障修复
 - `arc:test` — 分层测试策略与执行；按风险启用单元/集成/契约/E2E、覆盖率、模糊/属性、性能，用平台原生工具（Android=Maestro、Go/Rust 原生、HarmonyOS=arkxtest、前端=Vitest/Playwright）
+- `arc:reliability` — 按业务风险选择正常/故障/恢复/升级场景，核对真实依赖与发布证据，形成事故控制；执行复用 `arc:test`，修复交 `arc:fix`
 - `arc:audit` — 项目体检；AppSec 模式做跨项目只读漏洞审计；多 finding 时产出 Handoff（定位/口径/角色）
 - `arc:security` — 本地安全 CLI 自动化、数据价值重排；多 finding 并入 Handoff 再拆任务
 - `arc:sdlc` — 跨会话任务文档与进度；安全来源时按 finding 写细子任务（见 security-audit-task-pipeline）；同会话成本路由走 `arc:prewalk`，不是 plan 冷启动
@@ -17,3 +18,5 @@ Lean Arc keeps software engineering lifecycle skills:
 Repository search and code context discovery use `arc:idx` plus the local `.ai-code-index/` helpers backed by Zoekt, ast-grep, Universal Ctags, and Rust/Go helper CLIs. Lark resources are optional: existing Lark projects live in each project root’s `.lark.json`, and new Lark resources are created only after an explicit trigger or confirmation. Coordination, Inbox, and cross-agent state are handled by `aitask`. Multi-model cost routing inside one session follows [`docs/prewalk.md`](../docs/prewalk.md).
 
 Any Arc or vertical skill that diagnoses a suspected defect, regression, performance problem, or security finding must load the repository-wide [evidence-first root-cause repair gate](../docs/execution-truth.md#6-evidence-first-root-cause-repair). A signal is not proof: confirm the issue, trace architecture ownership and shared invariants, compare with the business contract, then apply and verify only a complete root-cause fix.
+
+Business reliability follows [`arc:reliability`](arc:reliability/SKILL.md): define EXPECTED/FORBIDDEN outcomes and independent oracles, bind scenarios to existing native tests, verify real dependency semantics, and gate each required scenario on current evidence. Ordinary tests stay in `arc:test`; security stays in `arc:audit`/`arc:security`. Reliability review preserves read-only scope, and its release verdict does not execute deployment.

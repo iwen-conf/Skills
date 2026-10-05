@@ -1,6 +1,6 @@
 # Arc Lifecycle Cheatsheet
 
-Arc keeps fifteen software engineering lifecycle and constraint skills. Task orchestration, memory, and cross-agent collaboration stay in `aitask`; Lark project space is created only after an explicit user request or existing project link, and reused through `.lark.json`. Skill authoring follows [`skill-engineering.md`](skill-engineering.md).
+Arc keeps sixteen software engineering lifecycle and constraint skills. Task orchestration, memory, and cross-agent collaboration stay in `aitask`; Lark project space is created only after an explicit user request or existing project link, and reused through `.lark.json`. Skill authoring follows [`skill-engineering.md`](skill-engineering.md).
 
 ## Selection Rules
 
@@ -19,6 +19,7 @@ Arc keeps fifteen software engineering lifecycle and constraint skills. Task orc
 | Vulnerability / AppSec audit (assets, data map, no scanners) | `arc:audit` mode `appsec` |
 | Local security scanners / DAST / secrets / SCA report | `arc:security` |
 | Design/generate/run tests, coverage/regression gate, fuzz/property, or benchmark/load | `arc:test` |
+| Business invariants, transaction concurrency, retry/side effects, recovery or release evidence | `arc:reliability` → existing `arc:test` bindings; confirmed repairs via `arc:fix` |
 | Turn audit/scan findings into detailed local tasks | `arc:sdlc` + security-audit-task-pipeline |
 | Large tracked implementation needs task docs / 进度跟踪 | `arc:sdlc` |
 | Backend architecture, DIP, layering, Go helpers | `arc:arch` |
@@ -43,3 +44,4 @@ Arc keeps fifteen software engineering lifecycle and constraint skills. Task orc
 12. Use `arc:audit` for read-only risk and quality review; use mode `appsec` for vulnerability/project security methodology.
 13. Use `arc:security` for local scanner automation and data-value re-ranked security reports.
 14. Use `arc:test` for layered testing and quality gates: enable unit/integration/contract/E2E, coverage, fuzz/property, and performance by risk with platform-native tooling (Android=Maestro, Go/Rust native, HarmonyOS=arkxtest, frontend=Vitest/Playwright), running and judging performance separately from functional.
+15. Use `arc:reliability` when business risk needs explicit rules, real dependency/fault scenarios, current-candidate evidence, or incident controls. Keep review scope, native execution, root-cause repair and deployment permissions distinct; ordinary testing stays with `arc:test`.
