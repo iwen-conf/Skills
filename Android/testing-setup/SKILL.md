@@ -15,6 +15,10 @@ metadata:
   - coverage
 ---
 
+## Scope
+
+Select only the requested test layers and the risks of the changed behavior. Existing setup/one test does not require all 14 steps. Apply [Android execution](../../docs/android-execution.md); Maestro is the host default for Android E2E, and existing native frameworks remain valid for their layers.
+
 ## Step 1: analyze the current testing setup
 
 To understand the testing setup of an existing project, look for these
@@ -40,9 +44,7 @@ dependencies in the libs.versions.toml file, or build files:
 
 ## Step 2: Set up Dependency Injection frameworks for testing
 
-If there is no Dependency Injection framework, install one: if it's a
-multiplatform application, ask the user whether they want to install Koin, or
-kotlin-inject. If it's not multiplatform, install Hilt.
+Reuse constructor/manual injection and current test seams. Do not install Hilt/Koin or migrate production architecture merely to add tests. Framework-specific setup below applies only when that framework is already used or its introduction is explicitly in scope.
 
 Install the testing dependencies (for example `com.google.dagger:hilt-compiler`
 that should be applied with a `kspAndroidTest` configuration).
@@ -60,21 +62,15 @@ Other frameworks use other mechanisms, consult their documentation.
 
 Unless otherwise specified, respect the current stack of testing frameworks.
 
-If there are no testing frameworks, and the user didn't specify any preference,
-install the following:
+If a requested layer lacks a framework, add only what it needs:
 
-- JUnit4 for local and instrumented tests
-- Jacoco for test coverage
-- For UI tests: if the project has views, Espresso. If it's fully Compose, use the Compose Testing APIs.
-- Robolectric to run UI Tests
-- Compose Preview Screenshot Testing tool for screenshot tests - check [setup
-  documentation](references/android/studio/preview/compose-screenshot-testing.md) and follow it strictly.
-- Dropshots for device screenshot tests
-- If a mocking framework is necessary, install Mockk (`io.mockk:mockk`). Do not install it unless it is clearly necessary.
+- Unit: the project's JUnit generation; mocking only if a fake is impractical.
+- UI: Compose Testing APIs or Espresso; Robolectric only for suitable local platform simulations.
+- Screenshot: one suitable renderer (Preview/Paparazzi/Roborazzi) or device framework when system UI fidelity is required. See [Compose screenshot setup](references/android/studio/preview/compose-screenshot-testing.md).
+- E2E: host-default Maestro; use UI Automator only when a required native/system interaction cannot be covered there.
+- Coverage tooling only if a project gate or requested report needs it.
 
-If instrumented screenshot tests are requested, install Dropshots.
-
-If end-to-end testing is requested, install UI Automator.
+Do not install the entire list as a default.
 
 ## Step 4: Refactor and create fakes for testing
 
@@ -93,24 +89,18 @@ on Android framework classes, or entities that are not part of the codebase:
 ### **Refactor for UI tests**
 
 If you need to fake components to make testing easier and faster and more
-reliable, replace slow and problematic dependencies with fakes. Use runtime
-fakes using the Dependency Injection framework installed to:
+reliable, replace slow and problematic dependencies with fakes. Use runtime fakes through the existing injection seam to:
 
 - **Simulate** different scenarios with the user (wrong credentials, reset password flow...), with a server (no connection, server down, bad JSON from server...) or with a platform component (insufficient permissions, no disk space, no front camera available)
 - **Improve** speed and reliability (replacing a database with an in-memory database, replacing a repository with an in-memory fake to avoid hitting the network)
 
 ## Step 5: Unit testing
 
-Create a task to add or review unit tests in every file that contains business
-logic (ViewModels, Repositories, database-related classes such as DAOs, etc.).
-Don't create unit tests for Activities, Compose layouts, or dependency injection
-configuration files.
+Cover changed business invariants and their meaningful failure paths. Reuse existing cases; do not create tasks per source file or tests that mirror implementation. Pure layout/DI wiring does not imply unit coverage.
 
 ## Step 6: UI testing
 
-Espresso or Compose UI tests live in the `test` sourceset because they will be
-run with Robolectric. If instrumented (emulator or device) tests are requested,
-put them in the `androidTest` sourceset.
+Use `test` for explicitly selected Robolectric/local cases; use `androidTest` for native instrumented behavior. Choose the layer by required platform fidelity.
 
 ## Step 7: Test databases
 
@@ -122,7 +112,7 @@ the SQLite engine on device.
 
 Irrespective of the framework used, screenshot tests focus on 2 types of tests:
 
-- Screen-level screenshot tests, where each screen is tested in 9 different sizes, combining compact, medium and expanded widths (400, 610, 900 dp) and heights (400, 500 and 1000 dp).
+- Screen-level cases at relevant compact/medium/expanded boundaries; choose dimensions from actual layout risks instead of requiring nine sizes for every screen.
 - Screen-level variations. Add a mobile (400x500) screenshot of:
   - All the alternative themes, if used.
   - Font scale set to 1.5.
@@ -162,9 +152,7 @@ common patterns](references/android/develop/ui/compose/testing/common-patterns.m
 
 ## Step 12: End-to-end tests
 
-Create a low number (about 5% of all tests) of end-to-end tests that cover big
-user journeys. Use Compose Test APIs or Espresso for that. If you have to access
-platform features (notifications, system UI...), use UI Automator.
+Cover critical user journeys and relevant failure transitions using Maestro or the established project E2E runner. Test counts/percentages are not risk coverage. Native system interactions may need UI Automator.
 
 If you need to take screenshots of the app running in a device, use
 [Dropshots](https://raw.githubusercontent.com/dropbox/dropshots/refs/heads/main/README.md). You need a device for screenshot tests when verifying
@@ -173,26 +161,16 @@ picture-in-picture)
 
 ### Step 13: Instrumented Screenshot tests
 
-Install the `com.dropbox.dropshots` plugin in the module and a `Dropshots()`
+Only when device screenshots are needed and no suitable framework exists, install the `com.dropbox.dropshots` plugin in the module and a `Dropshots()`
 JUnit Rule. Create a new instrumented screenshot test for one of the app's
 features.
 
 ### Step 14: Install jacoco
 
-Install jacoco for local testing code coverage.
+Install jacoco only if the requested coverage report or existing project gate requires it.
 
 - Add the `jacoco` plugin to each module that contains tests.
 
 ## Final touches
 
-- Ask whether to document the findings of the analysis and the changes applied
-  to the testing strategy. If the user agrees:
-
-  - If there is an AGENTS.md file present in the project, update it with any
-    changes you've made to the testing strategy.
-
-  - If there is no AGENTS.md file, create a new file (docs/testing.md) with
-    a description of the testing strategy, including the commands needed to
-    run every type of test, where the screenshot reference files live, etc.
-    Also create a new AGENTS.md file in the root and create a link to
-    docs/testing.md.
+When tooling or test commands change, update existing project documentation and relevant AGENTS facts. A one-test addition needs no new documentation hierarchy. Report passed, failed and NOT_RUN checks separately; stop when required risk evidence and project gates are satisfied.

@@ -130,7 +130,7 @@ Business comparison page:
 When generating XML:
 
 1. If an asset exists and the workflow supports it, place it in the planned visual region.
-2. If no asset exists, immediately render `fallback_if_missing` with the planned generated close-enough image. Supported standard data visuals still use native `<chart>`; other fallbacks may use the image generation tool to create an approximate image.
+2. If no asset exists, render the concrete `fallback_if_missing` plan using native charts, shapes, text or arrows. Generated images are optional when supported and useful; no image tool is required for an XML-native fallback.
 3. Size the fallback to satisfy `visual_focus`; it should be a real page element, not a tiny decoration.
 4. Keep text-density limits. Do not compensate for missing assets by adding long bullet text.
 5. After creation, fetch the presentation and verify asset pages are not blank and that each planned fallback is visible when no real asset was used.

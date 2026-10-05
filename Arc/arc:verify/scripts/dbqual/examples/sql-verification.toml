@@ -1,0 +1,392 @@
+[project]
+name = "replace-with-your-service"
+owner = "database/reliability"
+
+[database]
+dsn_env = "DATABASE_URL"
+safe_database_pattern = "(_test|_bench|sqlverify)$"
+allow_destructive = false
+
+[dataset]
+profile = "representative-skewed-v1"
+seed = 20260920
+manifest = "examples/dataset-manifest.json"
+
+[[query]]
+id = "orders.list-by-customer"
+sql_file = "examples/queries/orders-by-customer.sql"
+param_style = "pg_dollar"
+allow_write_explain = false
+explain_memory = true
+statement_timeout_ms = 30000
+
+[query.gates]
+max_exec_ms = 250
+max_estimate_error_ratio = 100
+max_temp_written_blocks = 0
+forbid_node_types = []
+
+[[query.parameter_set]]
+name = "small-customer-recent"
+params_file = "examples/params/orders-small-recent.json"
+
+[[query.parameter_set]]
+name = "hot-customer-history"
+params_file = "examples/params/orders-hot-history.json"
+
+[[property_test]]
+id = "orders-filter-count-consistency"
+kind = "count_matches_rows"
+query_file = "examples/properties/orders-filter.sql"
+oracle_query_file = "examples/properties/orders-filter-count.sql"
+corpus_spec = "examples/property-corpus-spec.json"
+param_style = "pg_dollar"
+max_cases = 50
+statement_timeout_ms = 5000
+max_failure_examples = 20
+
+[[workload]]
+id = "order-mix"
+scripts = [
+  { path = "examples/workloads/list-orders.sql", weight = 70 },
+  { path = "examples/workloads/get-order.sql", weight = 25 },
+  { path = "examples/workloads/touch-customer.sql", weight = 5 },
+]
+clients = [1, 16, 64]
+threads = 8
+duration_s = 60
+warmup_s = 15
+repetitions = 3
+protocol = "prepared"
+progress_s = 10
+random_seed = 20260920
+log_sampling_rate = 1.0
+max_tries = 1
+capture_pg_stat_statements = true
+require_pg_stat_statements = false
+capture_query_text = false
+# Set rate_tps for arrival-rate/SLO tests; omit for capacity mode.
+# rate_tps = 2000
+# latency_limit_ms = 100
+
+[[transaction_scenario]]
+id = "account-lock-order"
+timeout_s = 10
+observer_sample_ms = 25
+statement_timeout_ms = 10000
+assertion_timeout_ms = 5000
+require_observer = true
+require_lock_wait = true
+allowed_sqlstates = []
+required_sqlstates = []
+
+[[transaction_scenario.session]]
+name = "A"
+step = [
+  { op = "sql", sql = "BEGIN" },
+  { op = "sql", sql = "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 1" },
+  { op = "barrier", name = "first-locks" },
+  { op = "sleep_ms", value = 250 },
+  { op = "sql", sql = "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 2" },
+  { op = "sql", sql = "COMMIT" },
+]
+
+[[transaction_scenario.session]]
+name = "B"
+step = [
+  { op = "sql", sql = "BEGIN" },
+  { op = "sql", sql = "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 3" },
+  { op = "barrier", name = "first-locks" },
+  { op = "sql", sql = "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 1" },
+  { op = "sql", sql = "COMMIT" },
+]
+
+[[transaction_scenario.assertion]]
+id = "account-row-count-stable"
+sql = "SELECT count(*) FROM sqlverify_demo.accounts"
+op = "=="
+expected = 3
+
+[[transaction_scenario.assertion]]
+id = "balance-conservation"
+sql = "SELECT sum(balance)::bigint FROM sqlverify_demo.accounts"
+op = "=="
+expected = 300000
+
+# --- v2 Database Release Qualification layers ---
+[lock_order_catalog]
+path = "examples/lock-order-catalog.json"
+
+# A deliberate deadlock discovery probe. This test should PASS only if the harness
+# actually observes the expected deadlock and the final invariant remains valid.
+[[concurrency_scenario]]
+id = "deadlock-detector-selftest"
+timeout_s = 8
+observer_sample_ms = 10
+statement_timeout_ms = 8000
+require_observer = true
+require_lock_wait = true
+require_wait_cycle = true
+required_sqlstates = ["40P01"]
+allowed_sqlstates = ["40P01"]
+expected_deadlock_count = 1
+
+[[concurrency_scenario.session]]
+name = "A"
+allowed_sqlstates = ["40P01"]
+step = [
+  { op = "sql", sql = "BEGIN" },
+  { op = "sql", sql = "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 1" },
+  { op = "barrier", name = "first-lock" },
+  { op = "sql", sql = "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 2", continue_on_error = true },
+  { op = "sql", sql = "COMMIT", continue_on_error = true },
+]
+
+[[concurrency_scenario.session]]
+name = "B"
+allowed_sqlstates = ["40P01"]
+step = [
+  { op = "sql", sql = "BEGIN" },
+  { op = "sql", sql = "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 2" },
+  { op = "barrier", name = "first-lock" },
+  { op = "sql", sql = "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 1", continue_on_error = true },
+  { op = "sql", sql = "COMMIT", continue_on_error = true },
+]
+
+[[concurrency_scenario.assertion]]
+id = "deadlock-probe-balance-conservation"
+sql = "SELECT sum(balance)::bigint FROM sqlverify_demo.accounts"
+op = "=="
+expected = 300000
+
+# A production-contract scenario: consistent lock order, no deadlocks allowed.
+[[concurrency_scenario]]
+id = "account-lock-order-production-contract"
+timeout_s = 8
+observer_sample_ms = 20
+statement_timeout_ms = 8000
+require_observer = true
+require_lock_wait = true
+max_deadlock_count = 0
+max_serialization_failure_count = 0
+allowed_sqlstates = []
+
+[[concurrency_scenario.session]]
+name = "A"
+step = [
+  { op = "sql", sql = "BEGIN" },
+  { op = "sql", sql = "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 1" },
+  { op = "barrier", name = "first-lock" },
+  { op = "sleep_ms", value = 150 },
+  { op = "sql", sql = "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 2" },
+  { op = "sql", sql = "COMMIT" },
+]
+
+[[concurrency_scenario.session]]
+name = "B"
+step = [
+  { op = "sql", sql = "BEGIN" },
+  { op = "barrier", name = "first-lock" },
+  { op = "sql", sql = "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 1" },
+  { op = "sql", sql = "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 2" },
+  { op = "sql", sql = "COMMIT" },
+]
+
+[[concurrency_scenario.assertion]]
+id = "production-lock-order-balance-conservation"
+sql = "SELECT sum(balance)::bigint FROM sqlverify_demo.accounts"
+op = "=="
+expected = 300000
+
+[[contention_fuzz]]
+id = "account-contention-schedule"
+seed = 20260920
+runs = 200
+jitter_ms = 25
+statement_timeout_ms = 5000
+iteration_timeout_s = 8
+max_deadlocks = 0
+fail_on_deadlock = true
+fail_on_serialization = false
+allowed_sqlstates = []
+
+[[contention_fuzz.session]]
+name = "A"
+sql = [
+  "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 1",
+  "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 2"
+]
+
+[[contention_fuzz.session]]
+name = "B"
+sql = [
+  "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 1",
+  "UPDATE sqlverify_demo.accounts SET balance = balance WHERE id = 2"
+]
+
+[[contention_fuzz.assertion]]
+id = "fuzz-balance-conservation"
+sql = "SELECT sum(balance)::bigint FROM sqlverify_demo.accounts"
+op = "=="
+expected = 300000
+
+[[workload_replay]]
+id = "sanitized-prod-shape"
+trace_file = "examples/replay-trace.jsonl"
+time_scale = 1.0
+statement_timeout_ms = 5000
+max_runtime_s = 30
+allowed_sqlstates = []
+
+[[overload_profile]]
+id = "order-mix-ramp-and-recovery"
+workload = "order-mix"
+clients = 64
+nominal_phase = "nominal"
+recovery_phase = "recovery"
+max_recovery_p99_ratio = 1.25
+min_recovery_tps_ratio = 0.90
+
+[[overload_profile.phase]]
+name = "nominal"
+kind = "nominal"
+rate_tps = 50
+duration_s = 30
+max_failure_rate = 0.001
+
+[[overload_profile.phase]]
+name = "ramp"
+kind = "ramp"
+rate_tps = 100
+duration_s = 30
+max_failure_rate = 0.01
+
+[[overload_profile.phase]]
+name = "overload"
+kind = "overload"
+rate_tps = 250
+duration_s = 30
+max_failure_rate = 0.10
+
+[[overload_profile.phase]]
+name = "recovery"
+kind = "recovery"
+rate_tps = 50
+duration_s = 30
+max_failure_rate = 0.001
+
+[[migration_rehearsal]]
+id = "orders-note-column"
+up_sql_file = "examples/migrations/001_add_orders_note.up.sql"
+down_sql_file = "examples/migrations/001_add_orders_note.down.sql"
+transactional = true
+lock_probe_sql = "SELECT id FROM sqlverify_demo.orders LIMIT 1"
+lock_probe_timeout_ms = 150
+expect_lock_timeout = true
+statement_timeout_ms = 10000
+apply_lock_timeout_ms = 3000
+max_apply_ms = 10000
+verify_rollback = true
+rollback_required = true
+
+[[migration_rehearsal.post_assertion]]
+id = "column-exists"
+sql = "SELECT count(*)::bigint FROM information_schema.columns WHERE table_schema='sqlverify_demo' AND table_name='orders' AND column_name='sqlverify_note'"
+op = "=="
+expected = 1
+
+[[migration_rehearsal.rollback_assertion]]
+id = "column-removed"
+sql = "SELECT count(*)::bigint FROM information_schema.columns WHERE table_schema='sqlverify_demo' AND table_name='orders' AND column_name='sqlverify_note'"
+op = "=="
+expected = 0
+
+# --- v3 expert qualification layers ---
+[[invariant]]
+id = "account-balance-conservation-global"
+description = "Independent end-state oracle used across performance/concurrency tests."
+sql = "SELECT sum(balance)::bigint FROM sqlverify_demo.accounts"
+op = "=="
+expected = 300000
+statement_timeout_ms = 5000
+
+[[invariant]]
+id = "orders-have-valid-customers"
+sql = "SELECT count(*)::bigint FROM sqlverify_demo.orders o LEFT JOIN sqlverify_demo.customers c ON c.id=o.customer_id WHERE c.id IS NULL"
+op = "=="
+expected = 0
+statement_timeout_ms = 5000
+
+[[plan_sensitivity]]
+id = "orders-list-generic-vs-custom"
+query = "orders.list-by-customer"
+param_types = ["bigint", "timestamptz", "integer"]
+parameter_sets = ["small-customer-recent", "hot-customer-history"]
+max_generic_custom_cost_ratio = 5.0
+warn_on_plan_change = true
+
+[maintenance_audit]
+enabled = true
+max_connections_utilization = 0.80
+max_oldest_transaction_s = 60
+max_idle_in_transaction_s = 15
+max_database_xid_age = 100000000
+max_table_xid_age = 100000000
+max_dead_tuple_ratio = 0.20
+max_mod_since_analyze_ratio = 0.20
+max_statistics_age_s = 86400
+max_inactive_slot_retained_bytes = 1073741824
+max_sequence_utilization = 0.90
+require_no_invalid_indexes = true
+require_no_unvalidated_constraints = true
+require_no_prepared_transactions = true
+require_no_lost_replication_slots = true
+require_no_never_analyzed_tables = false
+
+[physical_integrity]
+enabled = false
+jobs = 2
+heapallindexed = false
+checkunique = true
+parent_check = false
+rootdescend = false
+install_missing = false
+timeout_s = 1800
+
+# High-risk fault scenarios are deliberately blocked unless run_suite receives
+# --ack-isolated-destructive. The example references a project-specific harness.
+[[fault_scenario]]
+id = "db-network-ambiguity"
+scenario_file = "examples/fault-scenario.example.json"
+
+# Long-run/soak is intentionally not enabled in this compact example because a
+# real project should bind it to an actual steady-state workload and duration.
+# See templates/longrun-profile.toml.fragment.
+
+# --- v4 final expert qualification layers ---
+[schema_integrity]
+enabled = true
+require_no_invalid_indexes = true
+require_no_unvalidated_constraints = true
+require_no_orphaned_sequences = false
+max_tables_without_primary_key = 0
+max_unindexed_foreign_keys = 0
+max_default_partition_rows = 0
+
+[security_audit]
+enabled = false
+require_no_unexpected_superusers = true
+allowed_superusers = ["postgres"]
+require_security_definer_search_path = true
+require_force_rls = false
+
+[[isolation_litmus]]
+id = "write-skew-serializable"
+type = "write_skew"
+isolation = "serializable"
+statement_timeout_ms = 5000
+timeout_s = 10
+min_final_on_call = 1
+allowed_sqlstates = ["40001"]
+required_sqlstates = ["40001"]
+max_serialization_failures = 1

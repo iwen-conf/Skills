@@ -14,7 +14,7 @@ metadata:
 
 > **术语说明：** 飞书云空间也常被称为"云盘"、"云存储"、"网盘"或"我的空间"，这些说法通常指的是同一个产品，是飞书官方的云端文件存储与管理中心。
 
-> **导入分流规则：** 如果用户要把本地 Excel / CSV / `.base` 快照导入成 Base / 多维表格 / bitable，必须优先使用 `lark-cli drive +import --type bitable`。不要先切到 `lark-base`；`lark-base` 只负责导入完成后的表内操作。
+> 导入目的类型决定路由，详见下方快速决策；不要仅按扩展名判断 Base 与 Sheets。
 
 > **副本分流规则：** 如果用户要复制在线文档、创建文档副本、把文档复制到另一个文件夹，必须使用 `lark-cli drive +copy`。不要用 `drive +export` 下载后再 `drive +import` 上传，也不要用 `docs +fetch` + `docs +create` 重建正文；导出/导入只用于本地文件转换或离线产物。
 
@@ -33,6 +33,7 @@ metadata:
 - 用户要**整理云盘 / 文件夹 / 文档库 / 知识库 / 个人文档库**，或要“盘点目录结构、找出未归档/临时/重复/空目录、生成整理方案”，必须先阅读 [`references/lark-drive-workflow.md`](references/lark-drive-workflow.md)，再按其中 `Workflow Registry` 进入 [`knowledge_organize`](references/lark-drive-workflow-knowledge-organize.md) workflow。默认只生成方案；创建目录、移动资源、申请权限都必须单独确认。
 - 按主题跨范围查找并集中归档，进入 `topic_move_collector`；对已知文件夹、文档库或知识库做目录盘点和结构重组，进入 `knowledge_organize`；只移动一个已明确资源时仍使用原子移动命令。
 - 用户要**搜文档 / Wiki / 电子表格 / 多维表格 / 云空间（云盘/云存储）对象**，优先使用 `lark-cli drive +search`。自然语言里"最近我编辑过的"、"我创建的"（→ `--created-by-me`，原始创建者语义）、"我负责/owner 的"（→ `--mine`，owner 语义）、"最近一周我打开过的 xxx"、"某人 owner 的 docx" 等直接映射到扁平 flag，避免手写嵌套 JSON。
+- 妙搭 `apps` 评论仅使用各命令明确支持的子集；`+add-comment` 不支持 apps，遇到不支持时报告边界。
 - 用户要对**文档评论**做任何操作（添加评论、列表 / 批量查询、回复、获取 / 更新 / 删除回复、解决 / 恢复、reaction），按下方 Shortcuts 表选择对应的 `drive +<verb>` 评论命令，执行前先阅读该命令的 ref。按评论定位文档正文位置见 [`references/lark-drive-comment-location.md`](references/lark-drive-comment-location.md)。
 - 用户给出 doubao.com 的云空间资源 URL/token，或明确提到豆包里的 file/folder/docx/sheet/bitable/wiki 资源时，仍按资源类型、URL 路径和 token 路由到本 skill；不要因为域名不是飞书而回退到 WebFetch。
 - 用户要把本地 `.xlsx` / `.csv` / `.base` 导入成 Base / 多维表格 / bitable，第一步必须使用 `lark-cli drive +import --type bitable`。
@@ -42,7 +43,7 @@ metadata:
 - 用户要在 Drive 里上传、创建、读取、局部 patch 或覆盖更新**原生 `.md` 文件**（不是导入成 docx），切到 [`lark-markdown`](../lark-markdown/SKILL.md)。
 - 用户要比较原生 `.md` 文件的**历史版本差异**，或比较远端 Markdown 与本地草稿，切到 [`lark-markdown`](../lark-markdown/SKILL.md) 的 `lark-cli markdown +diff`；需要版本号时先用 `drive +version-history`。
 - 用户要查看、下载、回滚或删除文件的**历史版本**，使用 `drive +version-history`、`drive +version-get`、`drive +version-revert`、`drive +version-delete`；这组命令同时支持 `--as user` 和 `--as bot`，自动化场景优先 `--as bot`。
-- 用户要把本地 `.xlsx` / `.xls` / `.csv` 导入成电子表格，使用 `lark-cli drive +import --type sheet`。
+- 本地 `.xlsx` / `.xls` / `.csv` 导入为电子表格，交给 [lark-sheets](../lark-sheets/SKILL.md) 的 `+workbook-import`；Drive 保留 docx、bitable、slides 与通用文件管理。
 - 用户要在云空间（云盘/云存储）里新建文件夹，优先使用 `lark-cli drive +create-folder`。
 - 用户要查看或下载文件内容，或者查看文件可用预览格式并获取 PDF / HTML / 文本 / 图片等转换预览产物，使用 `lark-cli drive +preview`。`+preview` 和 `+download` 都支持 `--file-token` / `--url` / `--wiki-token` 三选一（Wiki 会解析到底层 `file`）；但两者只处理 Drive **文件**，若目标是 docx/sheet/bitable/slides 等在线文档，改用 `drive +export`。
 - 用户要获取某个文件的封面图，优先使用 `lark-cli drive +cover`；先 `--list-only` 看规格，再选 `--spec` 下载。
@@ -100,7 +101,6 @@ lark-cli drive +inspect --url 'https://xxx.feishu.cn/wiki/wikcnXXX'
 ### 权限能力入口
 
 - 用户要管理 Drive 文档/文件协作者、公开权限、授权当前应用访问文档，或处理 `permission.public.patch` 的 `91009` / `91010` / `91011` / `91012` 错误时，先读 [`lark-drive-permission-guide.md`](references/lark-drive-permission-guide.md)。
-- 用户要查询文件、文件夹或云文档自身的公开访问、分享、协作者管理、安全与评论权限设置，使用 [`+permission-get-setting`](references/lark-drive-permission-get-setting.md)；如果要递归审计文件夹下子文档权限，再进入 [`permission_governance`](references/lark-drive-workflow-permission-governance.md) workflow。
 - 用户只是没有访问权限并希望向 owner 申请访问，优先使用 [`+apply-permission`](references/lark-drive-apply-permission.md)。
 - 普通 scope、身份或登录问题仍按 [`lark-shared`](../lark-shared/SKILL.md) 处理；不要把租户安全策略、对外分享、密级拦截简单归类为缺 scope。
 

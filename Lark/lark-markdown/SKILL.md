@@ -1,7 +1,7 @@
 ---
 name: lark-markdown
 version: 1.2.2
-description: "飞书 Markdown：查看、创建、上传、编辑和比较 Markdown 文件。当用户需要创建或编辑 Markdown 文件、读取、修改、局部 patch 或比较差异时使用。不负责将 Markdown 导入为飞书在线文档，也不负责文件搜索、权限、评论、移动、删除等云空间管理操作。"
+description: "飞书 Markdown：查看、创建、上传、编辑和比较 Drive 中的原生 Markdown 文件。当用户需要操作飞书远端 .md 文件时使用；本地 Markdown 编辑不触发。不负责将 Markdown 导入为飞书在线文档，也不负责文件搜索、权限、评论、移动、删除等云空间管理操作。"
 metadata:
   requires:
     bins: ["lark-cli"]
@@ -14,7 +14,7 @@ metadata:
 
 ## 快速决策
 
-- 身份：Markdown 文件通常属于用户云空间资源，优先使用 `--as user`。如为自动化场景，或应用已创建并持有目标文件权限，可按场景使用 `--as bot`。首次以 `user` 身份访问前执行 `lark-cli auth login`
+- 身份：Markdown 文件通常属于用户云空间资源，优先使用 `--as user`。如为自动化场景，或应用已创建并持有目标文件权限，可按场景使用 `--as bot`。已有登录态直接复用；实际缺配置、登录或权限时按 lark-shared 处理
 - `markdown +create` / `+overwrite` 失败时，先判断是不是身份和权限问题：`bot` 更常见的是 app scope 或目标目录 ACL，`user` 更常见的是用户授权或用户 ACL；不要不加判断地来回切身份重试。
 
 - 用户要**上传、创建一个原生 `.md` 文件**，使用 `lark-cli markdown +create`

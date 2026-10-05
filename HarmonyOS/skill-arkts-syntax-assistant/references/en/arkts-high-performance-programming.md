@@ -1,3 +1,5 @@
+> 本地节选；未随包附带的关联资料链接指向 OpenHarmony 官方文档仓库（master，非固定 API 版本）。项目 API 版本以实际 SDK 为准。
+
 # ArkTS Performant Programming Practices
 
 <!--Kit: ArkTS-->
@@ -9,7 +11,7 @@
 
 ## Overview
 
-This topic provides a set of performant programming practices that you can apply in performance-critical scenarios. They are techniques and recommendations drawn from real-world development. Following these practices in your service implementation can help develop performant applications. For details about ArkTS programming specifications, see [ArkTS Coding Style Guide](./arkts-coding-style-guide.md).
+This topic provides a set of performant programming practices that you can apply in performance-critical scenarios. They are techniques and recommendations drawn from real-world development. Following these practices in your service implementation can help develop performant applications. For details about ArkTS programming specifications, see [ArkTS Coding Style Guide](https://github.com/openharmony/docs/blob/master/en/application-dev/quick-start/arkts-coding-style-guide.md).
 
 ## Declarations and Expressions
 

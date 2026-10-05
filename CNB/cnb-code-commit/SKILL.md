@@ -25,26 +25,21 @@ description: 编写代码、提交推送并创建 PR，适用于功能开发、B
 
 ### 2. 判断场景并准备分支
 
-根据触发场景切换到正确的工作分支：
+先记录 `git status --short`、已暂存 diff 和当前分支。保留已有修改；切换会冲突时用独立 worktree，不自动 stash、reset 或覆盖用户工作。应用[运行合同](../../docs/cnb-runtime.md)。
 
-- **PR 评论触发**（`CNB_PULL_REQUEST_IID` 存在）：在此分支上继续修改
-  ```bash
-  git checkout "$CNB_PULL_REQUEST_BRANCH"
-  git pull origin "$CNB_PULL_REQUEST_BRANCH"
-  ```
-- **ISSUE 评论触发** PR 已存在，则切换到 PR 源分支继续开发
-  ```bash
-  git checkout <PR 源分支名> && git pull
-  ```
-- **ISSUE 评论触发** PR 不存在，则基于目标分支创建新分支 `auto/{关键词1}-{关键词2}-{4位随机后缀}`
-  ```bash
-  git checkout -b auto/{关键词1}-{关键词2}-$(openssl rand -hex 2)
-  ```
-  > ⚠️ **分支命名精简规则**：
-  > - `{关键词}`：从 ISSUE 标题/描述中提取 **2 个核心关键词**（名词或动词），用短横线连接，每个关键词不超过 2 个英文单词
-  > - `{随机后缀}`：固定 4 位十六进制，用 `$(openssl rand -hex 2)` 生成
-  > - **总长度控制**：分支名 `auto/` 之后的部分不超过 20 个字符
-  > - **示例**：`auto/optimize-skill-3a7f`、`auto/login-error-b2c1`
+解析目标分支为 `base_ref`：用户明确指定优先，其次当前 PR 的真实 base，最后才是 `CNB_DEFAULT_BRANCH`。为空、分支无效或 PR 查询失败时停止分支/PR 写入。
+
+- 已有 PR：通过结构化查询核对仓库、head 和 base，在真实源分支上继续；不以远端 push 提示字串判断 PR 是否存在。
+- 新 PR：先确认查询完整且确实不存在，再从已验证的目标分支创建任务分支。以下命令逐步检查成功后才继续：
+
+```bash
+git check-ref-format --branch "$base_ref"
+git fetch origin "refs/heads/$base_ref:refs/remotes/origin/$base_ref"
+git rev-parse --verify "refs/remotes/origin/$base_ref^{commit}"
+git switch -c "$work_branch" "refs/remotes/origin/$base_ref"
+```
+
+`work_branch` 使用精简任务关键词及短随机后缀，如 `auto/login-error-b2c1`；已有 PR 不另建分支。
 
 ### 3. 编写代码
 
@@ -61,60 +56,34 @@ description: 编写代码、提交推送并创建 PR，适用于功能开发、B
 git diff --stat
 # 如有构建/lint 命令则执行验证
 # 暂存并提交
-git add -A
+git add -- "$task_file"
+# 多文件逐个指定；与用户修改同文件时只暂存本任务 hunks
+git diff --cached
 git commit -m "{类型}: {简短描述}"
 ```
 
+已有暂存内容不属于本任务时，必须先可靠隔离本任务提交（独立 worktree 或临时 index），保留原暂存状态；不能直接执行普通 `git commit` 把它们一并提交。同文件改动无法可靠分离时报告阻塞，不自动取消用户暂存。
+
 类型：`feat`(新功能) / `fix`(修复) / `refactor`(重构) / `docs`(文档) / `chore`(其他)
 
-### 5. 推送变更并判断是否需要创建 PR
+### 5. 推送并查询 PR 状态
 
-```bash
-# 推送当前分支
-git push origin HEAD
-```
+核对暂存差异仅包含本任务，项目门禁通过后 `git push origin HEAD`。
+使用当前 CNB CLI help 确认的结构化 PR 查询，按真实仓库/head/base 查找：
 
-根据推送输出判断是否已有 PR：
+| 结果 | 动作 |
+| --- | --- |
+| 已存在匹配 PR | 返回实际编号/URL，不重复创建 |
+| 完整查询确认无 PR | 执行第 6 步 |
+| 网络/权限失败、分页未完成、输出未知 | 报告推送结果与 PR 状态未知，停止创建 |
 
-- **已有 PR**（输出包含 `There is already has pull request`）：跳过创建 PR，直接在评论中告知用户
-- **无 PR**（输出包含 `Create a pull request` 或 `new branch`）：走第 6 步创建 PR
-
-> ⚠️ 只有新建分支且推送后确认无 PR 时，才执行第 6 步。
-
-**示例 1 — 已有 PR，跳过创建：**
-```
-$ git push origin HEAD
-remote:
-remote: There is already has pull request for 'fix/optimize-cnb-code-commit-skill' by visiting:
-remote:
-remote: 	https://cnb.cool/cnb/skills/cnb-skill/-/pulls/140
-remote:
-To https://cnb.cool/cnb/skills/cnb-skill.git
-   e3d8f95..639bd55  HEAD -> fix/optimize-cnb-code-commit-skill
-
-# 输出包含 "There is already has pull request" → 已有 PR，不再创建
-# 在评论中告知用户：PR 已存在，代码已推送到 PR #140
-```
-
-**示例 2 — 无 PR，需要创建：**
-```
-$ git push origin HEAD
-remote:
-remote: Create a pull request for 'fix/optimize-cnb-code-commit-skill' to 'main' by visiting:
-remote:
-remote: 	https://cnb.cool/cnb/skills/cnb-skill/-/compare/main...fix/optimize-cnb-code-commit-skill
-remote:
-To https://cnb.cool/cnb/skills/cnb-skill.git
- * [new branch]      fix/optimize-cnb-code-commit-skill -> fix/optimize-cnb-code-commit-skill
-
-# 输出包含 "Create a pull request" → 无 PR，需要走第 6 步创建
-```
+不把 push 输出中的自然语言当作 API 合同。
 
 ### 6. 创建 PR（仅推送后确认无 PR 时执行）
 
 ```bash
 cnb pulls post-pull --repo "$CNB_REPO_SLUG" \
-  --base "$CNB_DEFAULT_BRANCH" \
+  --base "$base_ref" \
   --head "$(git branch --show-current)" \
   --title "{类型}: {简短描述}" \
   --body '{变更目的与主要改动，支持 Markdown 真换行}
@@ -122,18 +91,16 @@ cnb pulls post-pull --repo "$CNB_REPO_SLUG" \
 Ref #'"$CNB_ISSUE_IID"
 ```
 
-> ⚠️ `--body` 用**单引号包真换行**，不要用 `\n`；非 ISSUE 触发时去掉末尾 `Ref #...` 行。
+正文通过[运行合同](../../docs/cnb-runtime.md)的安全 argv/body file 方式传递，保留真实换行；非 Issue 触发不添加 Ref 行。创建成功须取得真实 PR 标识。
 
 ## 注意事项
 
-- 编码前先理解项目结构和代码风格
-- 需求不明确或范围过大时，先在评论中确认再执行
-- 不修改无关文件，推送前确认变更正确
-- 生成/修改 `.cnb.yml` 文件时需使用 cnb-pipeline skill 技能
-- **推送后不要轮询 CI 状态**：代码推送后会自动触发 CI，无需主动调用 `cnb pulls check-status` 等命令反复轮询。如果 CI 失败，平台会自动唤起 NPC 继续处理，NPC 只需在评论中说明已完成的修复即可结束当前会话
+- 仓内发现先走 arc-idx；明确范围与验收后才修改。
+- `.cnb.yml` 的生成与验证归 cnb-pipeline。
+- 推送不等于 CI 通过；只有确认自动失败回调可用才依赖回调，否则报告 CI 待验证。
 
 ## 禁止的操作
 
 - ❌ PR 不存在时，禁止在默认分支上修改代码，需新建分支并创建 PR
-- ❌ `git push --force`（不要强制推送，除非用户明确要求；如需覆盖可用 `--force-with-lease`）
-- ❌ 推送代码后轮询/等待 CI 状态（CI 失败会自动唤起 NPC，无需主动等待）
+- ❌ 未经明确覆盖历史授权使用 `--force` 或 `--force-with-lease`；有授权时仍核对远端状态并优先 lease 保护。
+- ❌ 无限轮询 CI 或把未执行的 CI 验证写为通过。

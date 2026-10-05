@@ -1,3 +1,5 @@
+> 本地节选；未随包附带的关联资料链接指向 OpenHarmony 官方文档仓库（master，非固定 API 版本）。项目 API 版本以实际 SDK 为准。
+
 # ArkTS语言介绍
 
 <!--Kit: ArkTS-->
@@ -19,7 +21,7 @@ ArkTS语言设计中考虑了与TypeScript和JavaScript的互通性。许多移�
 
 本教程将指导开发者了解ArkTS的核心功能、语法和最佳实践，助力开发者使用ArkTS高效构建高性能的移动应用。
 
-如需详细了解ArkTS语言，请参阅[ArkTS具体指南](../arkts-utils/arkts-overview.md)<!--RP1--><!--RP1End-->。
+如需详细了解ArkTS语言，请参阅[ArkTS具体指南](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/arkts-utils/arkts-overview.md)<!--RP1--><!--RP1End-->。
 
 ## 基本知识
 
@@ -1852,7 +1854,7 @@ async function test() {
 }
 ```
 
-更多的使用动态import的业务场景和使用实例见[动态import](../arkts-utils/arkts-dynamic-import.md)。
+更多的使用动态import的业务场景和使用实例见[动态import](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/arkts-utils/arkts-dynamic-import.md)。
 
 <!--RP2--><!--RP2End-->
 
@@ -1948,7 +1950,7 @@ class MyClass {
 
 > **注意**
 > 
-> 应用开发中，在[release模式下构建](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ide-hvigor-build-har#section19788284410)源码HAR，并同时[开启混淆](../../application-dev/arkts-utils/source-obfuscation.md)时，由于编译产物为JS文件，而在JS中没有注解的实现机制，因此会在编译过程中被移除，导致无法通过注解实现AOP插桩。
+> 应用开发中，在[release模式下构建](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ide-hvigor-build-har#section19788284410)源码HAR，并同时[开启混淆](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/arkts-utils/source-obfuscation.md)时，由于编译产物为JS文件，而在JS中没有注解的实现机制，因此会在编译过程中被移除，导致无法通过注解实现AOP插桩。
 >
 > 为避免因此引起的功能异常，禁止在JS HAR(编译产物中存在JS的HAR包)中使用注解。
 >
@@ -2310,6 +2312,6 @@ abstract class C {
 
 ### ArkUI示例
 
-[MVVM代码示例](../ui/state-management/arkts-mvvm.md#代码示例)提供了一个完整的基于ArkUI的应用程序，以展示其GUI编程功能。
+[MVVM代码示例](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/ui/state-management/arkts-mvvm.md#代码示例)提供了一个完整的基于ArkUI的应用程序，以展示其GUI编程功能。
 
-有关ArkUI功能的更多详细信息，请参见ArkUI[基本语法概述](../ui/state-management/arkts-basic-syntax-overview.md)。
+有关ArkUI功能的更多详细信息，请参见ArkUI[基本语法概述](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/ui/state-management/arkts-basic-syntax-overview.md)。

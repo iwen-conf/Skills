@@ -31,7 +31,6 @@ metadata:
 - Base 业务操作只使用 `lark-cli base +...` shortcut，不使用旧聚合式 `+table / +field / +record / +view / +history / +workspace`。
 - 执行 update 前必须先查当前 shortcut 的 `--help` 或对应 reference。若命令要求完整配置，首次请求必须基于可信的当前配置执行 read-modify-write：只修改用户明确指定的内容，保留其他仍适用的可写配置，并按命令要求的结构提交。若命令支持局部／delta update，按其契约提交最小合法 payload；不得以不完整请求试错补参。
 - Base CLI/OpenAPI 当前不支持视图行高、冻结列、列宽等 UI-only 外观设置。遇到这类需求，说明能力边界并停止，不要猜测未文档化参数或改走 raw API。
-- 本地文件与 Base 之间的导入/导出转 `lark-drive`，具体格式、参数、路径限制和仅结构导出规则由 `lark-drive` 负责；导入完成后再回到 Base 命令。
 - 在线复制 Base 使用 `+base-copy`，不要绕行导出/导入。
 - 认证、初始化、scope、身份切换、权限不足恢复属于 `lark-shared`；Base 文档只保留会影响 Base 路径选择的权限规则。
 
@@ -78,7 +77,6 @@ metadata:
 
 - Base 曾用名 Bitable；返回字段、错误或旧文档里的 `bitable` 多为历史兼容，不代表应改走裸 API 或另一套命令。
 - `+base-block-list` 是查看一个 Base 内资源目录的新入口：它列出这个 Base 直接管理的 `folder/table/docx/dashboard/workflow`，适合先判断 Base 里有什么，再决定走 table、dashboard、workflow 或 docx 命令。
-- `base-block` 只负责资源目录管理，包括创建资源、移动到 folder、重命名和删除；具体资源内容仍走 table/dashboard/workflow 命令。
 - 新建 Base 时，强烈推荐一次性执行 `lark-cli base +base-create --name "<base>" --table-name "<table>" --fields '<field-json-array>'`，同时配置新 Base 里唯一一个初始数据表的 name 和 schema；使用 `--fields` 前先读 [lark-base-field-json.md](references/lark-base-field-json.md) 或复用 `+field-create` 的字段 JSON 形状，不要猜字段属性。
 - `+base-create` 不传 `--table-name` 和 `--fields` 时，会创建一个默认 schema 的初始数据表。
 - `+table-copy` 的安全默认值是只复制表结构；用户没有明确要求记录时省略 `--range`，明确要求包含记录时才传 `--range all`。`--table-id` 可直接使用当前 Base 中的表 ID 或表名。
@@ -89,12 +87,12 @@ metadata:
 - 写入、分析、公式、lookup、workflow、dashboard 前，先读取真实结构：表、字段、视图、关联表和 dashboard block 名称都以命令返回为准。
 - 跨表场景必须读取目标表结构；link 单元格中的关联 `record_id` 只是连接键，最终回答要回查并展示用户可读字段。
 
-## 身份与权限降级
+## 身份与权限连续性
 
 - 默认显式使用 `--as user` 操作用户资源；只有用户明确要求应用身份时，才直接用 `--as bot`。
 - `+table-copy --wait` 提交成功后会在 stderr 打印完整 `task_id`；若进程被 Ctrl-C 终止，可用该 ID 和原身份执行 `+table-copy-status` 续查，不要重新提交复制。
 - user 身份报 scope/授权不足，或错误中包含 `missing_scopes` / `hint`，先转 `lark-shared` 做用户授权恢复，不要直接降级 bot。
-- user 身份报资源级无访问且无授权恢复提示时，才可用 `--as bot` 重试一次；bot 仍失败就停止重试并按权限错误处理。
+- user 身份报资源级无访问时停止该路径，报告 ACL 缺口；只有用户授权改用应用且确认资源归属/可见范围符合目标，才切换 bot。禁止静默 user→bot 重试。
 - `91403` 或明确不可访问错误不要循环换身份重试。
 - `+base-create` / `+base-copy` 若用 bot 身份执行，关注返回中的 `permission_grant`，并把用户是否可打开新 Base 告知用户。
 

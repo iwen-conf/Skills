@@ -11,17 +11,20 @@ description: 获取 TAPD 资源（需求/缺陷/任务/迭代），支持从 TAP
 
 格式：`https://www.tapd.cn/tapd_fe/{workspace_id}/{type}/detail/{id}`
 
-- `type`: story / bug / task / iteration
+- `type`: story / bug / task / iteration。URL 不匹配时停止，要求真实 workspace_id/type/id，不猜标识。
 
 ## 2. 请求
 
 ```bash
-curl -s "$CNB_API_ENDPOINT/tapd/reference/{workspace_id}/{type}/{id}" \
+response_file=$(mktemp)
+http_status=$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' \
+  "${CNB_API_ENDPOINT:-https://api.cnb.cool}/tapd/reference/${workspace_id}/${type}/${id}" \
   -H "Accept: application/vnd.cnb.api+json" \
-  -H "Authorization: Bearer $CNB_TOKEN"
+  -H "Authorization: Bearer $CNB_TOKEN")
+# curl 非零先报告网络失败；成功后按 http_status 与文件中的 JSON 处理
 ```
 
-多个链接时逐个请求，汇总后统一展示。
+多个独立链接可有界并发并按输入顺序汇总；遵循[运行合同](../../docs/cnb-runtime.md)。处理后清理临时响应，不输出敏感内容。
 
 ## 3. 响应处理
 

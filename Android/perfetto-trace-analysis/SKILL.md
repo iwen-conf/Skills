@@ -5,6 +5,8 @@ description: Analyzes Perfetto traces to find the root cause of latency, memory,
   asks any question, ongoing investigation, or open-ended request to analyze its contents.
 license: Complete terms in LICENSE.txt
 metadata:
+  requires:
+    skills: [perfetto-sql]
   author: Google LLC
   last-updated: '2026-05-14'
   keywords:
@@ -34,11 +36,11 @@ evidence and expected app behavior confirm the cause.
 ## Setup Phase (Mandatory)
 
 1. **Initialize Scratchpad (Chain of Evidence):**
-   - Maintain your working memory in a local scratchpad file located in the exact same directory as the target trace file.
-   - Name the file using the trace's filename appended with `_analysis.md` (e.g., `[trace_filename]_analysis.md`). Before creating it, check if a file with that name already exists by listing the directory's contents---to avoid biasing your investigation, DO NOT read the file's contents to check for its existence. If it does, append an incrementing version number (e.g., `_v2.md`, `_v3.md`) until you find an available filename. You MUST hardcode this exact filename in all subsequent tool calls.
+   - Maintain your working memory in a local scratchpad file located in an independent temporary work directory for read-only requests; use the trace directory only when that output location is authorized.
+   - Name the file using the trace's filename appended with `_analysis.md` (e.g., `[trace_filename]_analysis.md`). Before creating it, check if a file with that name already exists using host-approved exact-path discovery---to avoid biasing your investigation, DO NOT read the file's contents to check for its existence. If it does, append an incrementing version number (e.g., `_v2.md`, `_v3.md`) until you find an available filename. You MUST hardcode this exact filename in all subsequent tool calls.
    - Use this scratchpad STRICTLY to log verified facts: timestamps, slice names, thread IDs (utid/tid), and thread states.
    - DO NOT write preliminary hypotheses or premature conclusions in the scratchpad. It is a strict Chain of Evidence.
-2. **Review Domain Hints:** Read the Domain Hints in each file to get a high-level overview of what techniques are possible. Make sure to use this baseline knowledge when researching and retrieving hints during the ongoing investigation.
+2. **Review Domain Hints:** Load only the domain hints implicated by the user question or observed evidence; expand when a dependency crosses that domain.
 3. **Review SQL Reference:** Read the SQL reference in [`references/sql.md`](references/sql.md) and follow its Execution Protocol for all SQL generation. Do not guess schemas.
 4. **Target Resolution:** If the user's request is broad (e.g., "why is the app slow?") and doesn't specify a package name:
    - Execute a query to identify the active application: `sql INCLUDE
@@ -48,7 +50,7 @@ evidence and expected app behavior confirm the cause.
 
 ## Investigation Protocol
 
-Follow this iterative loop until you have isolated the definitive root cause(s):
+Bound investigation by the user question, package and observation window. Stop with a confirmed chain or an explicit evidence gap when required events are absent or further queries add no evidence.
 
 ### 1. Formulate Hypothesis
 
@@ -59,7 +61,7 @@ Follow this iterative loop until you have isolated the definitive root cause(s):
 
 ### 2. Plan and Collect Data
 
-- **Metrics First:** Start with a high-level view using trace metrics before diving into custom SQL (e.g., `./trace_processor --run-metrics
+- **Metrics First:** Start with a high-level view using trace metrics before diving into custom SQL (e.g., `"$TRACE_PROCESSOR" --run-metrics
   android_startup`).
 - **Broad to Narrow:** Begin with broad queries using minimal filters. Favor fuzzy matching (e.g., `GLOB '*abc*'`) over exact matching.
 - **Overlapping Time:** When filtering by time, you MUST check for events that overlap with the target time range (e.g., `start1 < end2 AND start2 < end1`) to ensure you don't miss slices that span across the boundaries.
@@ -68,20 +70,12 @@ Follow this iterative loop until you have isolated the definitive root cause(s):
 
 - **Evidentiary Rigor:** Do not draw conclusions without explicit data.
 - **Wall Time vs. CPU Time:** Do not assume a long-running slice is actively computing. You MUST query the `thread_state` table for the exact timestamp window of suspicious slices to verify if the thread was `Running`, `Runnable` (waiting for CPU), or `Sleeping`/`Uninterruptible Sleep` (blocked).
-- **Follow Dependencies:** If a thread is blocked/waiting, you MUST find what it is waiting *for* (Binder, Lock, I/O, etc.). Cross process boundaries if necessary. You cannot conclude an investigation on a waiting thread without identifying the blocker.
+- **Follow Dependencies:** If a thread is blocked/waiting, you MUST find what it is waiting *for* (Binder, Lock, I/O, etc.). Cross process boundaries if necessary. If blocker events are missing, report the wait and missing evidence; do not invent a definitive root cause.
 
-### 4. Exhaustive Investigation (Do Not Give Up Early)
+### 4. Coverage and stopping
 
-- **Multiple Bottlenecks:** Complex performance issues rarely have a single cause. Do NOT stop your investigation after finding the first anomaly. Even if you find a major bottleneck (e.g., emulator graphics lag), you MUST continue searching for other independent system-wide issues (e.g., lock contention, I/O stalls). To find other bottlenecks, search through the content of the "Domain Hints" files ([`CPU`](references/hints_cpu.md), [`Graphics`](references/hints_graphics.md), [`I/O`](references/hints_io.md), [`IPC`](references/hints_ipc.md), [`Memory`](references/hints_memory.md), [`Power`](references/hints_power.md)) to retrieve and leverage expert-vetted, powerful trace analysis techniques. Investigate each relevant hint with depth.
-- **Global Verification:** Periodically perform a system-wide query for the longest running slices (`ORDER BY slice.dur DESC`) and most frequent D-states to ensure your local investigation hasn't missed a massive, unrelated system stall.
-- **Persist Through Dead Ends:** If a hypothesis is disproven or a query returns empty, do not conclude. Pivot your focus, broaden your search constraints (fuzzy matching, wider time windows), and continue the mission.
+Check related sibling bottlenecks within the requested window when evidence warrants it. A system-wide review is a separate requested scope, not a prerequisite for every latency question. A disproven hypothesis can justify another bounded query; missing instrumentation, unavailable tools or repeated queries without new evidence require an explicit partial/blocked result.
 
 ## Final Report
 
-Only when you have followed the entire chain of dependencies to the root
-cause(s) AND confirmed through exhaustive search that no other major bottlenecks
-exist: 1. Summarize your findings detailing the verified chain of evidence. 2.
-Conclude with: "This concludes the trace analysis. You can review the full chain
-of evidence in \[scratchpad_filename\]. Let me know if you would like me to drill
-down into any of these specific threads, or if you'd like help drafting a bug
-report."
+Report the target/window, verified dependency chain, CPU versus wall time, query evidence, unresolved hypotheses and missing events. State what was not covered and link the scratchpad. A conclusion must not claim no other bottlenecks exist outside the observed scope.

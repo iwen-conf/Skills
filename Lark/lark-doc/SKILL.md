@@ -21,8 +21,9 @@ metadata:
 ### 文档内容
 
 - **读取 / 摘要 — [`+fetch`](references/lark-doc-fetch.md)**：先读参考再获取文档。
-- **从零创作 — [`创建工作流`](references/lark-doc-create-workflow.md)**：先完整执行创建工作流，**简单任务不是跳过的理由**；
-- **导入 / 空文档 — [`+create`](references/lark-doc-create.md)**：仅创建空文档或原样导入用户提供的完整内容时，跳过创建工作流。
+- **简单原创文档 — [`+create`](references/lark-doc-create.md)**：目标、内容和格式明确的短文可直接创作并提交合法 Markdown/XML，检查服务端结果与局部失败。
+- **复杂创作 — [`创建工作流`](references/lark-doc-create-workflow.md)**：多章节、多来源、复杂组件、明确体裁/字数/视觉约束时完整执行；
+- **导入 / 空文档 — [`+create`](references/lark-doc-create.md)**：创建空文档或原样导入完整内容直接执行。
 - **编辑 / block 直达链接 — [`+update`](references/lark-doc-update.md)**：语义改写、润色、重组、补写或排版均按 update 参考完成。
 
 ### 辅助能力
@@ -41,9 +42,9 @@ metadata:
 
 ### 认证与 Scope
 
-执行 Shortcut 时，不预读 [`lark-shared`](../lark-shared/SKILL.md) 或预跑 `auth status --verify`；仅遇到未认证、token / 身份或 scope 错误时读取该 Skill，修复后重试。认证、身份或 scope 管理请求则直接使用该 Skill。
+首次业务调用读取共享入口后复用；不要为正常调用预跑认证。仅处理异常时深入读取 [`lark-shared`](../lark-shared/SKILL.md) ；遇到未认证、token / 身份或 scope 错误时读取该 Skill，修复后重试。认证、身份或 scope 管理请求则直接使用该 Skill。
 
 ## 不在本 Skill 范围
 
-- **Drive 文件级操作**：找文档、导入导出、云空间文件上传 / 下载 / 权限管理 → [`lark-drive`](../lark-drive/SKILL.md)。复制文档、创建副本或另存为副本时，按其指引使用 `lark-cli drive files copy`；不要用 `docs +fetch` + `docs +create` 重建正文。
+- **Drive 文件级操作**：找文档、导入导出、云空间文件上传 / 下载 / 权限管理 → [`lark-drive`](../lark-drive/SKILL.md)。复制文档、创建副本或另存为副本时，按其指引使用 `lark-cli drive +copy`；不要用 `docs +fetch` + `docs +create` 重建正文。
 - **文档评论**：添加、查看、回复评论或增删 reaction → [`lark-drive`](../lark-drive/SKILL.md)。

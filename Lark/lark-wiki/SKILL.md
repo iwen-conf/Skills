@@ -30,10 +30,10 @@ metadata:
 - 用户给的是知识库 URL（`.../wiki/<token>`），且后续要查成员/加成员/删成员：先确定下游成员操作的身份（默认 `user`；用户明确要求应用 / bot 视角时用 `bot`），再调用 `lark-cli wiki +node-get --node-token '<wiki_url>' --as user --format json`，从 `data.space_id` 获取空间 ID；下游使用 bot 时将示例中的身份改为 `--as bot`。节点解析与后续成员操作必须使用相同身份。
 - 用户要**删除**知识空间（`wiki +delete-space`）但只给了名称或 URL：**不能**把名称 / URL 原样传给 `--space-id`，必须先解析出真实 `space_id`。解析方式：
   - URL（`.../wiki/<token>`）：先确定后续 `wiki +delete-space` 的身份（默认 `user`；明确要求 bot 视角时用 `bot`），再调用 `lark-cli wiki +node-get --node-token '<wiki_url>' --as user --format json`，读取 `data.space_id`；下游使用 bot 时将示例中的身份改为 `--as bot`。解析和删除必须使用相同身份。
-  - 只知名称：`lark-cli wiki spaces list --format json`，边翻页边收集 items 并按 `name` 精确匹配；**一旦任一页累计到至少 1 条精确匹配就停止翻页**。只有当翻完所有页（`has_more=false`）仍无精确匹配时，才对已收集的全量 items 做宽松匹配（`name` trim 空格、大小写不敏感、子串包含）。
+  - 只知名称：`lark-cli wiki +space-list --as user --format json`（若下游为 bot 则使用相同身份），边翻页边收集 items 并按 `name` 精确匹配；**必须完成所有分页再判定是否唯一；找到首个匹配不能提前退出，后续页可能同名。遇到时间/权限限制则标记候选不完整，不凭部分结果选定删除目标**。只有当翻完所有页（`has_more=false`）仍无精确匹配时，才对已收集的全量 items 做宽松匹配（`name` trim 空格、大小写不敏感、子串包含）。
   - **关键安全约束**：无论精确还是模糊，**无论命中 1 条还是多条，发起删除前都必须把候选（`name` + `space_id` + `description` + `space_type`）列给用户，由用户明确选定一个 `space_id` 再执行**。不要因为"只命中一条"就自动执行删除。
   - 命中 0 条：停下来问用户是名称拼错了还是调用方无权限；**不要**自行改名字重试。
-  - 用户明确选定后再执行 `lark-cli wiki +delete-space --space-id <ID> --yes`（高风险写操作，必须显式 `--yes`）。
+  - 用户明确选定后再执行 `lark-cli wiki +delete-space --space-id <ID> --yes --as user`（下游为 bot 时显式改为 bot）（高风险写操作，必须显式 `--yes`）。
   - 反例：不要把 wiki URL / 名称直接当 `--space-id`（如 `--space-id "https://.../wiki/<wiki_token>"`）；务必先用 `wiki +node-get` 解析出 `data.space_id` 再传。
 - 用户要在知识库中创建新节点，优先使用 `lark-cli wiki +node-create`。
 - 用户要**原地重命名 Wiki 节点 / 修改节点标题**：使用 `lark-cli drive +update-title --url '<wiki_url>' --title '<new_title>'`。该命令保留同一个 `node_token`，并会根据 API 返回给出准确的缺失 scope 和授权提示；不要探索 raw `wiki.nodes` 的 `update_title` 端点，也不要通过复制或新建第二个节点实现改名。

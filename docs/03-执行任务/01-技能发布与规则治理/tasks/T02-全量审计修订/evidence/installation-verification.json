@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "runtime_packages": 79,
+  "packaged_files": 798,
+  "source_package_sha256_and_executable_bits": "MATCH",
+  "host_roots": [
+    "/Users/iluwen/.agents/skills",
+    "/Users/iluwen/.codex/skills",
+    "/Users/iluwen/.claude/skills"
+  ],
+  "managed_cross_root_duplicates": 0,
+  "scope": "79 repository-managed skills; unrelated installed skills excluded"
+}

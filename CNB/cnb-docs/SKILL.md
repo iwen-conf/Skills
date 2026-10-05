@@ -20,19 +20,7 @@ CNB 官方文档站点：`${CNB_WEB_PROTOCOL:-https}://docs.${CNB_WEB_HOST:-cnb.
 | 增量索引 | `${CNB_WEB_PROTOCOL:-https}://docs.${CNB_WEB_HOST:-cnb.cool}/zh/llms.txt` | 文档目录索引，包含所有文档的标题和路径链接 |
 | 全量文档 | `${CNB_WEB_PROTOCOL:-https}://docs.${CNB_WEB_HOST:-cnb.cool}/zh/llms-full.txt` | 包含所有文档的完整内容（体积较大） |
 
-## 文档覆盖范围
-
-CNB 文档涵盖以下主要领域：
-
-- **指南**：创建仓库、Git 认证、迁移工具、角色权限、访问令牌、部署令牌
-- **代码托管**：密钥仓库、元数据、ISSUE 模板、分类标签、UI 定制
-- **制品库**：Docker、Helm、Maven、npm、PyPI、Cargo、Nuget、Composer、ohpm 等 12 种制品库
-- **AI 助手**：AI 助手简介、知识库、MCP Server、Code Wiki
-- **云原生开发**：开发环境、端口预览、IDE 客户端（VSCode/Cursor/JetBrains）、容器模式
-- **云原生构建**：流水线配置、触发规则、语法手册、构建环境、环境变量、插件、缓存、定时任务、部署流程
-- **开发者**：徽章、Open API
-- **OAuth 授权**：用户授权、OAuth 应用创建
-- **其他**：FAQ、定价、SLA、任务集等
+官方索引是目录权威；不在入口维护静态领域目录。使用当前运行时可用的网页获取工具，WebFetch 仅为示意。
 
 ## 使用流程
 
@@ -46,7 +34,7 @@ CNB 文档涵盖以下主要领域：
 
 ```
 WebFetch url: ${CNB_WEB_PROTOCOL:-https}://docs.${CNB_WEB_HOST:-cnb.cool}/zh/llms.txt
-prompt: 列出所有文档的标题和路径链接，帮我找到与「{用户问题的关键词}」相关的文档路径
+prompt: 仅返回匹配的标题和路径链接，找到与「{用户问题的关键词}」相关的文档路径
 ```
 
 ### 第三步：获取具体文档内容
@@ -55,7 +43,7 @@ prompt: 列出所有文档的标题和路径链接，帮我找到与「{用户�
 
 ```
 WebFetch url: ${CNB_WEB_PROTOCOL:-https}://docs.${CNB_WEB_HOST:-cnb.cool}{文档路径}
-prompt: 提取这篇文档的完整内容，保留代码示例和配置说明
+prompt: 提取相关小节，保留其前提、代码示例与配置约束；不足时扩读相邻小节
 ```
 
 **注意**：索引中的路径格式为 `/zh/category/topic.md`，拼接后完整 URL 为 `${CNB_WEB_PROTOCOL:-https}://docs.${CNB_WEB_HOST:-cnb.cool}/zh/category/topic.md`。
@@ -70,7 +58,7 @@ prompt: 提取这篇文档的完整内容，保留代码示例和配置说明
 
 ## 注意事项
 
-- 如果增量索引未找到相关文档，可尝试全量文档 `${CNB_WEB_PROTOCOL:-https}://docs.${CNB_WEB_HOST:-cnb.cool}/zh/llms-full.txt`
+- 增量索引无匹配先换关键词；仍无结果时有限查询全量文档，读取失败明确未知，不推测 API。全量地址： `${CNB_WEB_PROTOCOL:-https}://docs.${CNB_WEB_HOST:-cnb.cool}/zh/llms-full.txt`
 - 单个文档无法完全回答时，可获取多个文档综合回答
 - 始终基于官方文档回答，不臆造信息
 - 附带文档来源链接

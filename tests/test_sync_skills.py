@@ -199,8 +199,12 @@ def test_real_arc_packages_are_portable(tmp_path: Path) -> None:
     names = [p.name for p in mod.list_skill_dirs() if p.parent.name == "Arc"]
     included = mod.build_installation(ROOT, tmp_path / "stage", names)
     assert included == sorted(names)
-    assert "arc:reliability" in included
+    assert set(included) == {"arc:explore", "arc:plan", "arc:code", "arc:verify", "arc:audit"}
     assert mod.validate_installation(tmp_path / "stage") == []
+    verify = tmp_path / "stage" / "arc-verify"
+    assert (verify / "scripts" / "dbqual" / "scripts" / "run_suite.py").is_file()
+    assert (verify / "references" / "_shared" / "Arc" / "_shared" / "contract.md").is_file()
+    assert not list((tmp_path / "stage").rglob("__pycache__"))
 
 
 def test_lark_meeting_packages_are_portable(tmp_path: Path) -> None:
@@ -259,3 +263,21 @@ def test_check_rejects_empty_installation_and_cross_root_duplicates(tmp_path: Pa
     mod.build_installation(source, other, ["arc:one"], "colon")
     assert mod.main(["--check", "--dest", str(installed), "--also-root", str(other)]) == 1
     assert "duplicate discovery name arc-one" in capsys.readouterr().err
+
+
+def test_all_runtime_families_have_a_complete_package(tmp_path: Path) -> None:
+    mod = _load_sync_module()
+    names = [mod.read_metadata(p / 'SKILL.md')['name'] for p in mod.list_skill_dirs()]
+    stage = tmp_path / 'stage'
+    assert mod.build_installation(ROOT, stage, names) == sorted(names)
+    # All runtime families are present, so no unavailable optional sibling is excused.
+    assert mod.validate_installation(stage) == []
+
+
+def test_perfetto_analysis_alone_installs_its_sql_contract(tmp_path: Path) -> None:
+    mod = _load_sync_module()
+    stage = tmp_path / 'stage'
+    included = mod.build_installation(ROOT, stage, ['perfetto-trace-analysis'])
+    assert included == ['perfetto-sql', 'perfetto-trace-analysis']
+    assert (stage / 'perfetto-sql/SKILL.md').is_file()
+    assert (stage / 'perfetto-trace-analysis/references/sql.md').is_file()

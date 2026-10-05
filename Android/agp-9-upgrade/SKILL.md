@@ -23,13 +23,7 @@ breaking, in AGP 9 compared to AGP 8.
 
 ## Requirements
 
-If the user requests to update or migrate to AGP 9, first check the AGP version
-used in the project. If it is lower than 9, stop and ask the user to run the AGP
-Upgrade Assistant in Android Studio to update to the latest stable version of
-AGP, and confirm when done. The user may also request that this requirement be
-skipped; if this is the case, you should update the version of AGP to the latest
-stable version as part of the AGP 9 migration. See the
-[AGP 9 migration guide](references/android/build/releases/agp-9-0-0-release-notes.md) for how to do this.
+When AGP 9 migration is requested, inspect the resolved baseline and perform the authorized migration. Use Android Studio Upgrade Assistant if available and useful; ask the user only for a required manual step or unresolved migration decision. Do not stop merely because AGP is below 9. Apply [Android execution](../../docs/android-execution.md).
 
 Each version of AGP has its own set of compatibilities with other tools, such as
 Gradle, JDK, and Kotlin. The release notes for each of these versions will
@@ -40,7 +34,7 @@ Do not use this skill for KMP projects, as they are unsupported.
 
 ## Steps
 
-If AGP is already at 9 or higher, then do the following:
+After aligning the authorized AGP 9 target, complete the applicable migrations:
 
 ### Step 1: Update dependencies
 
@@ -95,7 +89,7 @@ After migration, verify the following:
 
 1. Gradle IDE sync succeeds.
 2. `./gradlew help` succeeds.
-3. `./gradlew build --dry-run` succeeds.
+3. The project's actual target-variant assemble and relevant tests succeed. `help` / `build --dry-run` only check task configuration, never compilation. Missing SDK/dependencies/device evidence is NOT_RUN/BLOCKED.
 
 ## Troubleshooting
 

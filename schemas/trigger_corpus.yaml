@@ -1,9 +1,53 @@
+# Static vocabulary gate for the five Arc skills. Every must_contain term must appear in the
+# skill's description. Utterances from the retired skills are kept as a regression set under
+# the skill that now owns the behavior; prewalk and Lark workspace phrases must select no Arc
+# skill. Runtime routing, scope and authorization live in behavior_corpus.yaml.
 skills:
-  arc:define:
+  arc:explore:
     must_contain:
-      - 写PRD
+      - arc-idx
+      - 搜代码
+      - zoekt
+      - 调用链
+      - 影响面
+      - 谁调用
+      - 在哪
+      - 架构地图
+      - callers
+    positive:
+      - 用 arc-idx 搜代码
+      - arc-idx 找符号
+      - zoekt 索引
+      - arc-idx ast
+      - 搜代码调用点
+      - zoekt doctor
+      - arc-idx daemon
+      - 用 zoekt 搜代码
+      - 这个函数在哪定义
+      - 谁调用了 CreateOrder
+      - 从路由追调用链到仓储层
+      - 改 UserDTO 字段之前先列影响面
+      - 画一下订单模块的架构地图
+      - find all callers of ParseConfig
+    negative:
+      - 重构订单服务
+      - 给新接口写测试
+      - 只读体检这个仓库
+      - 给函数加注释
+      - 创建飞书项目空间
+
+  arc:plan:
+    must_contain:
+      - PRD
       - 立项
       - blueprint
+      - 澄清
+      - 验收标准
+      - clarify
+      - 拆任务
+      - 进度跟踪
+      - 任务文档
+      - 需求文档
     positive:
       - 帮我写PRD
       - 这个想法先立项
@@ -13,17 +57,6 @@ skills:
       - 把想法立项成产品
       - write a blueprint for this product
       - 先写PRD再谈开发
-    negative:
-      - 这段需求澄清一下验收标准
-      - 按方案写代码落地改动
-      - 只读体检这个仓库
-
-  arc:clarify:
-    must_contain:
-      - 澄清
-      - 验收标准
-      - clarify
-    positive:
       - 需求不清，先澄清一下
       - 补齐验收标准
       - clarify this request
@@ -32,17 +65,21 @@ skills:
       - 验收标准怎么写
       - 请 clarify 成功标准
       - 把模糊需求澄清清楚
-    negative:
+      - 这段需求澄清一下验收标准
       - 帮我写PRD立项
-      - 报错堆栈查根因
-      - 写测试补覆盖率
-
-  arc:docs:
-    must_contain:
-      - 飞书项目空间
-      - .lark.json
-      - Lark
-    positive:
+      - 先拆任务
+      - 建进度跟踪表
+      - 写任务文档
+      - 拆任务目录
+      - 进度跟踪怎么更新
+      - 大功能先写任务文档
+      - 把审计结果拆任务
+      - 更新任务文档状态
+      - 跨会话拆任务写任务文档
+      - 写一份需求文档
+    negative:
+      - 按方案写代码落地改动
+      - 只读体检这个仓库
       - 创建飞书项目空间
       - 同步到飞书项目空间
       - 更新飞书项目空间
@@ -51,16 +88,38 @@ skills:
       - 索引 .lark.json
       - 初始化飞书项目空间
       - refresh Lark project space
-    negative:
-      - 按方案写代码落地改动
-      - 用 arc-idx 搜代码
-      - 只改 Go usecase 分层
+      - 用 prewalk 省token
+      - 同会话多模型路由
+      - 走 prewalk
+      - 多模型交接
+      - 省token 换模型
+      - 启动 prewalk
+      - 多模型 Guide Executor
+      - prewalk first edit
+      - 同会话 prewalk 省token
 
-  arc:build:
+  arc:code:
     must_contain:
       - 写代码
       - 开发功能
-      - 落地改动
+      - 落地
+      - 实现
+      - 修复
+      - 报错
+      - 根因
+      - incident
+      - 重构
+      - 前端
+      - shadcn
+      - 小程序
+      - 注释
+      - Gin SSR
+      - 计时
+      - 探针
+      - 埋点
+      - DIP
+      - usecase
+      - 分层
     positive:
       - 按方案写代码
       - 开发功能
@@ -70,55 +129,8 @@ skills:
       - 落地改动并验证
       - 写代码提交
       - 把这个功能落地改动
-    negative:
-      - 报错了先查根因
-      - 需求还不清楚先澄清
-      - 只读体检不要改代码
-
-  arc:prewalk:
-    must_contain:
-      - prewalk
-      - 省token
-      - 多模型
-    positive:
-      - 用 prewalk 省token
-      - 同会话多模型路由
-      - 走 prewalk
-      - 多模型交接
-      - 省token 换模型
-      - 启动 prewalk
-      - 多模型 Guide Executor
-      - prewalk first edit
-    negative:
-      - 跨会话拆任务写任务文档
-      - 创建飞书项目空间
-      - 给函数加注释
-
-  arc:frontend:
-    must_contain:
-      - 前端
-      - shadcn
-      - 小程序
-    positive:
-      - 做前端页面
-      - 用 shadcn 搭 UI
-      - 微信小程序页面
-      - 前端路由和主题
-      - 前端移动端界面
-      - 前端 Tailwind
-      - 前端基线栈 shadcn
-      - 小程序和前端桌面
-    negative:
-      - 只改 Go usecase 分层
-      - 安全扫描 Semgrep
-      - 加 Gin SSR 计时探针
-
-  arc:fix:
-    must_contain:
-      - 报错
-      - 根因
-      - incident
-    positive:
+      - 按方案写代码落地改动
+      - 按方案写代码开发功能
       - 线上报错了
       - 查根因再修
       - 这是 production incident
@@ -127,56 +139,73 @@ skills:
       - incident 排查
       - 测试报错
       - 回归失败要根因
+      - 报错了先查根因
+      - 报错堆栈查根因
+      - 报错堆栈修根因
+      - 修复登录接口报错
+      - 重构支付模块
+      - 实现订单导出接口
+      - 做前端页面
+      - 用 shadcn 搭 UI
+      - 微信小程序页面
+      - 前端路由和主题
+      - 前端移动端界面
+      - 前端 Tailwind
+      - 前端基线栈 shadcn
+      - 小程序和前端桌面
+      - 前端页面用 shadcn
+      - 给控制器加注释
+      - 补步骤注释
+      - 函数注释规范
+      - 接口也要加注释
+      - 结构体加注释
+      - 写步骤注释
+      - 补函数注释
+      - 编号步骤注释
+      - 给函数加注释
+      - 给 Gin SSR 加计时
+      - 请求路径加探针
+      - Gin SSR 哪段慢
+      - 计时探针
+      - Gin SSR 模板耗时
+      - 加探针看 SSR
+      - 慢请求计时
+      - Gin SSR fmt 探针
+      - 加 Gin SSR 计时探针
+      - 给慢接口加耗时埋点
+      - 按 DIP 分层
+      - usecase 不要漏实体
+      - DIP 后端约定
+      - usecase 仓储接口
+      - 分层有没有漂
+      - DIP helper 限制
+      - usecase 注入
+      - 只改 Go usecase 分层
     negative:
-      - 按方案写代码开发功能
+      - 先列出改这个字段的影响面
+      - 只读评审这个 PR
+      - 给支付回调写测试
       - 写PRD立项
+      - 拆任务写任务文档
       - 创建飞书项目空间
 
-  arc:audit:
-    must_contain:
-      - 体检
-      - AppSec
-      - 只读
-    positive:
-      - 给项目做个体检
-      - AppSec 只读审计
-      - 只读资产表
-      - 项目体检评分
-      - AppSec finding cards
-      - 只读审查
-      - 做一次体检
-      - AppSec 不要改代码
-    negative:
-      - 跑 Semgrep 安全扫描
-      - 按方案写代码落地改动
-      - 报错堆栈修根因
-
-  arc:security:
-    must_contain:
-      - 安全扫描
-      - Semgrep
-      - DAST
-    positive:
-      - 跑一次安全扫描
-      - 用 Semgrep 扫
-      - DAST 探测
-      - 安全扫描 Trivy
-      - Semgrep 密钥
-      - DAST 报告
-      - 安全扫描重排
-      - 本地 Semgrep
-    negative:
-      - 只读 AppSec 体检
-      - 前端页面用 shadcn
-      - 澄清验收标准
-
-  arc:test:
+  arc:verify:
     must_contain:
       - 写测试
+      - 测试方案
+      - 用例设计
+      - 测试范围
       - 覆盖率
       - fuzz
-      - 测试范围
-      - 用例设计
+      - 可靠性
+      - 业务不变量
+      - 事务并发
+      - 幂等
+      - PostgreSQL
+      - flaky
+      - 压测
+      - 发布验收
+      - 发布证据
     positive:
       - 补测试，写测试
       - 看覆盖率缺口
@@ -188,23 +217,12 @@ skills:
       - 单元写测试
       - 确定这次变更的测试范围
       - 审查用例设计是否能发现真实错误
-    negative:
-      - 报错了先查根因
-      - Semgrep 安全扫描
-      - 写PRD立项
-      - 核对业务不变量的发布证据
-
-  arc:reliability:
-    must_contain:
-      - 可靠性
-      - 业务不变量
-      - 事务并发
-      - 发布证据
-    positive:
+      - 写测试补覆盖率
       - 给支付流程做可靠性验证
       - 列出取消操作的业务不变量
       - 检查跨业务事务并发
       - 核对当前候选版本的发布证据
+      - 核对业务不变量的发布证据
       - 重试与幂等的可靠性方案
       - 迁移恢复的可靠性演练
       - 按业务不变量验证重复回调
@@ -212,104 +230,56 @@ skills:
       - 发布证据缺失应当阻断
       - 可靠性事故防复发
       - 系统可靠性的故障恢复与升级验证
+      - 给订单创建写测试方案
+      - 回调接口要验证幂等
+      - 对新索引做 PostgreSQL 发布验收
+      - 压测一下下单接口
+      - 这个用例是 flaky 的，帮我定位
     negative:
-      - 写测试补覆盖率
+      - 修复登录接口报错
+      - 只读评审测试代码
+      - 安全扫描依赖漏洞
       - 报错堆栈查根因
+      - 按方案写代码落地改动
+
+  arc:audit:
+    must_contain:
+      - 体检
+      - AppSec
+      - 只读
+      - 评审
+      - 技术债
+      - 安全扫描
+      - Semgrep
+      - 漏洞
+      - DAST
+    positive:
+      - 给项目做个体检
+      - AppSec 只读审计
+      - 只读资产表
+      - 项目体检评分
+      - AppSec finding cards
+      - 只读审查
+      - 做一次体检
+      - AppSec 不要改代码
+      - 只读体检这个仓库
+      - 只读体检不要改代码
       - 只读 AppSec 体检
+      - 跑一次安全扫描
+      - 用 Semgrep 扫
+      - DAST 探测
+      - 安全扫描 Trivy
+      - Semgrep 密钥
+      - DAST 报告
+      - 安全扫描重排
+      - 本地 Semgrep
+      - 跑 Semgrep 安全扫描
       - 运行 Semgrep 安全扫描
-      - 按方案写代码落地改动
-
-  arc:sdlc:
-    must_contain:
-      - 拆任务
-      - 进度跟踪
-      - 任务文档
-    positive:
-      - 先拆任务
-      - 建进度跟踪表
-      - 写任务文档
-      - 拆任务目录
-      - 进度跟踪怎么更新
-      - 大功能先写任务文档
-      - 把审计结果拆任务
-      - 更新任务文档状态
+      - 评审这个 PR 的 diff
+      - 盘点一下技术债
+      - 扫一下依赖漏洞
     negative:
-      - 同会话 prewalk 省token
-      - 按方案写代码落地改动
-      - 只读体检
-
-  arc:idx:
-    must_contain:
-      - arc-idx
-      - 搜代码
-      - zoekt
-    positive:
-      - 用 arc-idx 搜代码
-      - arc-idx 找符号
-      - zoekt 索引
-      - arc-idx ast
-      - 搜代码调用点
-      - zoekt doctor
-      - arc-idx daemon
-      - 用 zoekt 搜代码
-    negative:
-      - 给函数加注释
-      - 创建飞书项目空间
       - 写测试补覆盖率
-
-  arc:comment:
-    must_contain:
-      - 加注释
-      - 步骤注释
-      - 函数注释
-    positive:
-      - 给控制器加注释
-      - 补步骤注释
-      - 函数注释规范
-      - 接口也要加注释
-      - 结构体加注释
-      - 写步骤注释
-      - 补函数注释
-      - 编号步骤注释
-    negative:
-      - 用 arc-idx 搜代码
-      - 前端页面 shadcn
-      - 写PRD立项
-
-  arc:trace:
-    must_contain:
-      - Gin SSR
-      - 计时
-      - 探针
-    positive:
-      - 给 Gin SSR 加计时
-      - 请求路径加探针
-      - Gin SSR 哪段慢
-      - 计时探针
-      - Gin SSR 模板耗时
-      - 加探针看 SSR
-      - 慢请求计时
-      - Gin SSR fmt 探针
-    negative:
-      - 前端页面 shadcn
-      - Semgrep 安全扫描
-      - 按 DIP 分层
-
-  arc:arch:
-    must_contain:
-      - DIP
-      - usecase
-      - 分层
-    positive:
-      - 按 DIP 分层
-      - usecase 不要漏实体
-      - DIP 后端约定
-      - usecase 仓储接口
-      - 分层有没有漂
-      - DIP helper 限制
-      - usecase 注入
-      - 审查分层和 DIP
-    negative:
-      - 前端用 shadcn
-      - 加 Gin SSR 计时探针
-      - 创建飞书项目空间
+      - 按方案写代码落地改动
+      - 给支付流程做可靠性验证
+      - 这个函数在哪定义

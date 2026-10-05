@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SQL Verification Evidence",
+  "type": "object",
+  "required": ["schema_version", "kind", "id", "status", "started_at", "observed", "violations", "warnings", "reproduction"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"type": "string"},
+    "id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT_RUN", "FLAKY"]},
+    "started_at": {"type": "string"},
+    "finished_at": {"type": ["string", "null"]},
+    "elapsed_ms": {"type": ["number", "null"]},
+    "command": {"type": "array", "items": {"type": "string"}},
+    "observed": {"type": "object"},
+    "violations": {"type": "array"},
+    "warnings": {"type": "array"},
+    "reproduction": {"type": "object"}
+  },
+  "additionalProperties": true
+}

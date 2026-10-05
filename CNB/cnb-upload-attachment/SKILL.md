@@ -23,23 +23,25 @@ description: 上传附件（图片、文档、压缩包等）到 Issue 或 PR �
 
 ### 2. 执行上传
 
+先按[运行合同](../../docs/cnb-runtime.md)解析目标，Issue/PR **只选一个**，下面是互斥选项，不依次执行。路径作为一个安全 argv 参数。
+
 上传图片：
 
 ```bash
-cnb issues upload-image --file 本地文件路径
-cnb pulls upload-image --file 本地文件路径
+cnb issues upload-image --file "$file_path"
+cnb pulls upload-image --file "$file_path"
 ```
 
 上传普通文件：
 
 ```bash
-cnb issues upload-file --file 本地文件路径
-cnb pulls upload-file --file 本地文件路径
+cnb issues upload-file --file "$file_path"
+cnb pulls upload-file --file "$file_path"
 ```
 
 ### 3. 使用上传结果
 
-命令返回 JSON，其中包含 `asset_link`（Issue）或 `path`（PR）字段，即附件的访问链接。
+请求失败、JSON 无效或缺链接时停止，不发布伪链接。上传不自动授权发评论。命令返回 JSON，其中包含 `asset_link`（Issue）或 `path`（PR）字段，即附件的访问链接。
 
 附件在评论中的 Markdown 格式：
 

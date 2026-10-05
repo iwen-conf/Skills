@@ -12,6 +12,14 @@ DESCRIPTION_MIN_CHARS = 80
 DESCRIPTION_MAX_CHARS = 1024
 INTENT_ROUTER_MIN_ROWS = 2
 
+# Estimated tokens = non-CJK characters / 4 + CJK characters.
+ARC_SKILL_MAX_TOKENS = 3500
+ARC_REFERENCE_MAX_TOKENS = 3500
+# Bundled tool packages (for example scripts/dbqual) keep their own documentation
+# and are held to the line budget only.
+ARC_TOKEN_EXEMPT_DIRS = ("scripts",)
+ARC_SHARED_DIR = "_shared"
+
 # These entrypoints explicitly advertise diagnosis, repair, or failure-driven
 # optimization. They must load the repository-wide evidence-first repair gate
 # instead of re-inventing a weaker local version of it.
@@ -19,15 +27,9 @@ ROOT_CAUSE_GATED_SKILLS = frozenset(
     {
         "android-intent-security",
         "arkts-syntax-assistant",
-        "arc:arch",
         "arc:audit",
-        "arc:build",
-        "arc:fix",
-        "arc:frontend",
-        "arc:reliability",
-        "arc:security",
-        "arc:test",
-        "arc:trace",
+        "arc:code",
+        "arc:verify",
         "cnb-code-commit",
         "cnb-code-review",
         "cnb-pipeline",
@@ -41,11 +43,53 @@ ROOT_CAUSE_GATED_SKILLS = frozenset(
 ROOT_CAUSE_GATE_REFERENCE = "execution-truth.md"
 ROOT_CAUSE_GATE_HEADING = "root-cause repair"
 
-REQUIRED_HEADINGS = [
-    "## Intent Router",
-    "## Red Lines",
-    "## When to Use",
+ARC_REQUIRED_HEADINGS = [
+    "Trigger",
+    "Non-trigger",
+    "Goal",
+    "Inputs",
+    "Intent Router",
+    "Workflow",
+    "Tool Strategy",
+    "Decision Rules",
+    "Verification",
+    "Failure Recovery",
+    "Completion Criteria",
 ]
+
+RETIRED_ARC_SKILLS = (
+    "arc:arch",
+    "arc:build",
+    "arc:clarify",
+    "arc:comment",
+    "arc:dbqual",
+    "arc:define",
+    "arc:docs",
+    "arc:fix",
+    "arc:frontend",
+    "arc:idx",
+    "arc:prewalk",
+    "arc:reliability",
+    "arc:sdlc",
+    "arc:security",
+    "arc:test",
+    "arc:trace",
+)
+RETIRED_ARC_SKILL_RE = re.compile(
+    r"(?<![\w-])(?:" + "|".join(re.escape(name) for name in RETIRED_ARC_SKILLS) + r")(?![\w-])"
+)
+
+VAGUE_PHRASES = (
+    "as needed",
+    "as appropriate",
+    "when relevant",
+    "按需",
+    "适当",
+    "认真",
+    "仔细",
+    "酌情",
+    "视情况",
+)
 
 BANNED_FRONTMATTER_KEYS = {
     "enforce_arc_profile",
@@ -62,6 +106,8 @@ SKILL_NAMESPACE_DIRS = {
     "arc": "Arc",
 }
 VERTICAL_SKILL_ROOTS = ("Android", "HarmonyOS", "CNB", "Lark")
+# Validated source distributions; deliberately excluded from default installation.
+SOURCE_SKILL_PATHS: tuple[str, ...] = ()
 
 LEGACY_TOKEN_PARTS = [
     ("Ta", "sk("),
@@ -94,27 +140,21 @@ INPUT_ARGUMENT_HEADER_MAP = {
 }
 
 LIFECYCLE_PHASES = {
-    "arc:define": "define",
-    "arc:clarify": "clarify",
-    "arc:arch": "design",
-    "arc:sdlc": "plan",
-    "arc:build": "implement",
-    "arc:frontend": "implement",
-    "arc:comment": "implement",
-    "arc:idx": "search",
-    "arc:test": "verify",
-    "arc:reliability": "verify",
-    "arc:security": "secure",
-    "arc:audit": "secure",
-    "arc:fix": "repair",
-    "arc:trace": "operate",
-    "arc:docs": "document",
-    "arc:prewalk": "route",
+    "arc:explore": "understand",
+    "arc:plan": "plan",
+    "arc:code": "change",
+    "arc:verify": "prove",
+    "arc:audit": "evaluate",
 }
 
 
 def is_arc_skill(name: str) -> bool:
     return name.startswith("arc:")
+
+
+def estimate_tokens(text: str) -> int:
+    cjk = len(re.findall(r"[\u3000-\u9fff\uff00-\uffef]", text))
+    return round((len(text) - cjk) / 4 + cjk)
 
 
 def is_supported_skill(name: str) -> bool:

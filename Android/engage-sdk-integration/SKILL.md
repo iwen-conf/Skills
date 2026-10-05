@@ -26,16 +26,16 @@ integration or add retries until the failing contract and owning boundary are co
 
 ## Workflow
 
-Follow these steps to assist the developer:
+First distinguish new integration from a scoped repair. Reuse existing model, publisher and manifest contracts; generate only missing components. Follow applicable steps:
 
 1. **Identify Vertical and Cluster:**
 
-   - Ask the developer which vertical their app belongs to based on **[references/schemas/](references/schemas)**.
+   - Resolve the vertical from existing contracts; only if absent ask the developer which vertical their app belongs to based on **[references/schemas/](references/schemas)**.
    - Check if the integration is for TV or Mobile. Read the TV-specific sections in [patterns.md](references/patterns.md) as well if the integration is for TV.
    - Use `{VERTICAL}.md` in the **[references/schemas/](references/schemas)** directory to identify the corresponding Engage entities and the `client` class name. The `client` field in the JSON provides the full class name. (e.g., `com.google.android.engage.food.service.AppEngageFoodClient`).
    - **Note:** Initializing the client class requires a `Context` parameter (e.g., `AppEngageFoodClient(context)`).
    - Always refer to [common.md](references/common.md) for common entities.
-   - Ask which cluster type they want to publish from the supported cluster types for that vertical.
+   - First inspect the existing publish contract; only if missing ask which cluster type they want to publish from the supported cluster types for that vertical.
    - Find the method to call from `{VERTICAL}.md` in the **[references/schemas/](references/schemas)** directory for the specified cluster. Each method will specify the request it expects.
    - Get the request structure from [requests.md](references/requests.md) and clusters from [clusters.md](references/clusters.md). Then suggest and use sources to fill the fields in the request structure correctly, along with the required entities and clusters.
 2. **Generate Structured Boilerplate Code:**
@@ -50,13 +50,13 @@ Follow these steps to assist the developer:
      - `EngageBroadcastReceiver`: Listens for AppEngageService intents and starts a one-time publish job from `EngagePublisher`. **Important** : Implement both **static registration** and **dynamic registration** patterns, including the companion object `register` method inside the `EngageBroadcastReceiver` class.
 3. **Suggest Entity Mapping:**
 
-   - Ask the developer to provide their local model schema(e.g., a data class or a JSON snippet).
+   - Discover the existing local model first; if unavailable ask the developer for its schema(e.g., a data class or a JSON snippet).
    - If they haven't provided one, share entities from `{VERTICAL}.md` in the **[references/schemas/](references/schemas)** directory as a guide.
    - Once the local model is identified, suggest a mapping to the corresponding Engage entity.
    - Generate the conversion logic using the `ItemToEntityConverter` pattern in [patterns.md](references/patterns.md) and add it to the generated `{ENGAGE_CODE_DIR}/ItemToEntityConverter`
 4. **Suggest Data Source:**
 
-   - Ask the developer to provide the source of actual data you'll publish.
+   - Resolve the actual data source from the project contract; ask only if it remains missing.
    - Once the source of data is identified, use the source of data to fetch data in app's local model schema.
    - Use `{ENGAGE_CODE_DIR}/ItemToEntityConverter` to convert this data to Engage entity.
    - Use obtained Engage entity model data with `{ENGAGE_CODE_DIR}/
@@ -78,7 +78,7 @@ Follow these steps to assist the developer:
    - If errors occur, follow this resolution order:
      - Fix import errors. For package `com.google.android.engage` or classes starting with `AppEngage`, verify the package name in the `{VERTICAL}.md` in **[references/schemas/](references/schemas)** directory or [common.md](references/common.md).
      - For any other error, preserve the output, confirm its root cause, and repair the owning boundary rather than applying a compile-only workaround.
-   - Execute a full Gradle build and resolve any remaining compilation issues. Repeat this step until the Gradle build is successful.
+   - Execute a full Gradle build and resolve any remaining compilation issues. Retry only confirmed code/config errors; report blocked dependencies or environment failures without looping. Apply [Android execution](../../docs/android-execution.md).
 7. **User Checklist:**
    At the end of code generation, notify the user to go through this checklist
    to verify that the integration is complete and as intended:
@@ -88,7 +88,7 @@ Follow these steps to assist the developer:
    - `ItemToEntityConverter`
    - `ClusterRequestFactory`
    - `EngageWorker`
-   - `{cluster_type}Publisher`
+   - `EngagePublisher`
    - `EngageBroadcastReceiver`
    \[ \] Verify that app's local model is converted to Engage entity by populating
    the fields correctly in the model in `{ENGAGE_CODE_DIR}/

@@ -1,3 +1,5 @@
+> 本地节选；未随包附带的关联资料链接指向 OpenHarmony 官方文档仓库（master，非固定 API 版本）。项目 API 版本以实际 SDK 为准。
+
 # About This Kit
 
 <!--Kit: ArkTS-->
@@ -19,7 +21,7 @@ Interoperability with TypeScript and JavaScript was a critical consideration in 
 
 This tutorial will guide you through the core features, syntax, and best practices of ArkTS. After reading this tutorial through the end, you will be able to build performant and efficient mobile applications in ArkTS.
 
-For a more detailed understanding of the ArkTS language, see [About This Kit](../arkts-utils/arkts-overview.md)<!--RP1--><!--RP1End-->.
+For a more detailed understanding of the ArkTS language, see [About This Kit](https://github.com/openharmony/docs/blob/master/en/application-dev/arkts-utils/arkts-overview.md)<!--RP1--><!--RP1End-->.
 
 ## The Basics
 
@@ -1918,7 +1920,7 @@ async function test() {
 }
 ```
 
-For more details about dynamic import, see [Dynamic Import](../arkts-utils/arkts-dynamic-import.md).
+For more details about dynamic import, see [Dynamic Import](https://github.com/openharmony/docs/blob/master/en/application-dev/arkts-utils/arkts-dynamic-import.md).
 
 <!--RP2--><!--RP2End-->
 
@@ -2016,7 +2018,7 @@ Annotations are not features in TypeScript and can be used only in .ets and .d.e
 
 > **Notice**
 > 
-> When you [build a source code HAR in release mode](https://developer.huawei.com/consumer/en/doc/harmonyos-guides/ide-hvigor-build-har#section19788284410) and [enable obfuscation](../../application-dev/arkts-utils/source-obfuscation.md), the build products, which are JS files, will be removed during build due to the lack of an annotation implementation mechanism in JS. As a result, AOP code instrumentation cannot be implemented through the annotation.
+> When you [build a source code HAR in release mode](https://developer.huawei.com/consumer/en/doc/harmonyos-guides/ide-hvigor-build-har#section19788284410) and [enable obfuscation](https://github.com/openharmony/docs/blob/master/en/application-dev/arkts-utils/source-obfuscation.md), the build products, which are JS files, will be removed during build due to the lack of an annotation implementation mechanism in JS. As a result, AOP code instrumentation cannot be implemented through the annotation.
 >
 > To avoid function exceptions caused by this issue, do not use annotations in JS HAR (which exists in the build products).
 >
@@ -2379,6 +2381,6 @@ This section demonstrates the mechanism provided by ArkTS for creating GUIs. Ark
 
 ### ArkUI Example
 
-[MVVM code example](../ui/state-management/arkts-mvvm.md#example) provides a complete ArkUI-based application to demonstrate its GUI programming features.
+[MVVM code example](https://github.com/openharmony/docs/blob/master/en/application-dev/ui/state-management/arkts-mvvm.md#example) provides a complete ArkUI-based application to demonstrate its GUI programming features.
 
-For more details about ArkUI features, see [Basic Syntax Overview](../ui/state-management/arkts-basic-syntax-overview.md).
+For more details about ArkUI features, see [Basic Syntax Overview](https://github.com/openharmony/docs/blob/master/en/application-dev/ui/state-management/arkts-basic-syntax-overview.md).

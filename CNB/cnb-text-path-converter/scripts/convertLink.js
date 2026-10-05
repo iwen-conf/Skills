@@ -143,6 +143,19 @@ function normaliseLink(link, repoSlug, branchOrSha = 'HEAD') {
 // =======
 
 const args = process.argv.slice(2);
-const text = args[0] ?? '';
+const required = ['CNB_WEB_ENDPOINT', 'CNB_REPO_SLUG', 'CNB_BRANCH'];
+if (args.length !== 1 || required.some((key) => !process.env[key]?.trim())) {
+  console.error('Expected one complete text argument and CNB_WEB_ENDPOINT, CNB_REPO_SLUG, CNB_BRANCH');
+  process.exit(2);
+}
+try {
+  const endpoint = new URL(process.env.CNB_WEB_ENDPOINT);
+  if (!['http:', 'https:'].includes(endpoint.protocol) || endpoint.username || endpoint.password) {
+    throw new Error('invalid endpoint');
+  }
+} catch {
+  console.error('CNB_WEB_ENDPOINT must be an HTTP(S) URL without credentials');
+  process.exit(2);
+}
 const content = convertLink(args[0], process.env.CNB_REPO_SLUG, process.env.CNB_BRANCH);
 console.log(content);

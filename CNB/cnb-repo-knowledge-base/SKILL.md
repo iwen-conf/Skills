@@ -1,6 +1,6 @@
 ---
 name: cnb-repo-knowledge-base
-description: 检索指定仓库的知识库，返回相关的文本片段及其来源。
+description: 检索指定 CNB 远程仓库的知识库，返回文本片段及来源；本机仓内检索使用 arc-idx。
 ---
 
 # CNB 仓库知识库
@@ -18,3 +18,5 @@ cnb knowledge-base query-knowledge-base-get --repo <group>/<repo> --query "<自�
 - `--repo`：仓库路径，如 `cnb/feedback`，**必填**
 - `--query`：查询语句，**必填**
 - `--top-k`：返回的片段数量，默认为 5, 非必填
+
+保留结果来源，区分无命中与权限/网络失败；知识库无命中不代表代码不存在。调用遵循[运行合同](../../docs/cnb-runtime.md)。

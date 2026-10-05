@@ -1,0 +1,32 @@
+{
+  "profile": "representative-skewed-v1",
+  "seed": 20260920,
+  "checks": [
+    {
+      "id": "orders-row-count",
+      "description": "Reference profile contains exactly 100k orders",
+      "sql": "SELECT count(*) FROM sqlverify_demo.orders",
+      "op": "==",
+      "expected": 100000
+    },
+    {
+      "id": "customers-row-count",
+      "sql": "SELECT count(*) FROM sqlverify_demo.customers",
+      "op": "==",
+      "expected": 10000
+    },
+    {
+      "id": "hot-customer-share-min",
+      "description": "The top 100 customer IDs must own at least 45% of orders so hotspot plans/contention are represented",
+      "sql": "SELECT round(100.0 * count(*) / (SELECT count(*) FROM sqlverify_demo.orders), 2) FROM sqlverify_demo.orders WHERE customer_id <= 100",
+      "op": ">=",
+      "expected": 45.0
+    },
+    {
+      "id": "pending-share-min",
+      "sql": "SELECT round(100.0 * count(*) / (SELECT count(*) FROM sqlverify_demo.orders), 2) FROM sqlverify_demo.orders WHERE status='pending'",
+      "op": ">=",
+      "expected": 4.0
+    }
+  ]
+}

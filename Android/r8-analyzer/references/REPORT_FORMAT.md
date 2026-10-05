@@ -1,3 +1,7 @@
+# Evidence
+
+State analysis mode, build/variant, input artifact, command status and NOT_RUN/BLOCKED checks. Quantitative scores require valid artifacts; omit numeric scores for heuristics.
+
 ## 1. Configuration
 
 *(Optional section for the report, omit if no relevant findings are present.)*
@@ -17,7 +21,7 @@ mention in this section
 ## 3. Optimization summary
 
 - **Optimization score**: \[X\]% code is available for R8 optimizations (e.g., inlining, merging). \[100-X\]% of codebase can't be optimized by R8.
-- **Shrinking score**: \[X\]% of code will be optimized by R8 by removing unused classes, fields and methods. \[100-X\]% of codebase contains redundant classes, fields and methods that can't be removed by R8.
+- **Shrinking score**: \[X\]% of reported live items are not blocked by shrinking constraints. \[100-X\]% of reported live items have shrinking constraints; this does not measure redundant code or APK savings.
 - **Obfuscation score**: \[X\]% of the codebase is available for R8 to obfuscate.
 
 Increasing these scores increases the codebase available to R8 for

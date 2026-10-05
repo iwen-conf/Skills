@@ -27,16 +27,13 @@ upgrade Play Billing Library to the latest version."
 
 1. **Primary Check (Build Version)** : Locate the project's billing dependency (e.g., `com.android.billingclient:billing`) in `build.gradle`, `build.gradle.kts`, or `libs.versions.toml`.
 2. **Initial Compilation Test**: Attempt to sync and build the project immediately.
-3. **Fallback Discovery (Effective Version)** :
-   - **Trigger**: Only if the build fails immediately, scan the source code for deprecated artifacts.
-   - **Logic** : The presence of deprecated APIs indicates the **"Effective
-     Version"** ---defined as the version where those specific APIs were **last
-     available**, not when they were introduced.
-   - **Example** : If `SkuDetails` is present, treat the baseline as **PBL v7** or earlier (regardless of the version string in `build.gradle`).
-4. **Identify Target \& Path** : Access the version tool or release notes to find the latest stable version and calculate a \[Direct/Stepped\] migration path based on the **Effective Version** baseline.
+3. **Resolved baseline**: Use target-variant dependency resolution and preserve the original build error. Deprecated APIs such as SkuDetails are migration clues, not proof of the installed version; mixed/dead code may remain.
+4. **Target**: Use the explicitly requested version, otherwise the compatible stable upgrade target. Calculate the path from resolved dependencies and documented breaking changes.
+
+
 
 - **Calculate Migration Path** :
-  - If the **Effective Version** is within 2 major versions of the target: Plan a **Direct Migration**.
+  - If the **resolved baseline** is within 2 major versions of the target: Plan a **Direct Migration**.
   - If it is more than 2 major versions behind: Plan a **Stepped
     Migration**. Migrate by two major versions at a time (e.g., v4 -\> v6 -\> v8) until you are within two versions of the target.
 - **Reporting Action**: Before proceeding, tell the user: "I've detected you are effectively on PBL \[Current\] and the latest is \[Target\]. I am planning a \[direct/stepped\] migration path."
@@ -80,9 +77,9 @@ string replacement.
 
 1. **Smart Checklist Verification**:
 2. Open [references/version-checklist.md](references/version-checklist.md) and locate the **Smart Version-Specific Checklist**.
-3. **Action**: For every version between your \[Detected Effective Version\] and \[Detected New Version\], verify that every item has been addressed in the code using "Find in Files" or structural analysis.
+3. **Action**: For every version between your \[Detected Effective Version\] and \[Detected New Version\], verify that every item has been addressed in the code using the host arc-idx search/structural interface.
 4. **Tests** : Run all unit and implementation tests (`./gradlew test`).
-5. **Clean Build** : Verify the project completes a full clean build: `./gradlew clean assembleDebug`. Then, run `./gradlew sync` and `./gradlew build` so that the user can immediately test the new version manually.
+5. **Build and business behavior**: Run the actual target variant assemble and relevant purchase/restore/acknowledgement tests once. Sync via the project-supported mechanism; do not assume a `sync` Gradle task exists or repeat clean/build without evidence. Apply [Android execution](../../docs/android-execution.md); unavailable billing/device evidence is NOT_RUN.
 
 ## Final Report
 

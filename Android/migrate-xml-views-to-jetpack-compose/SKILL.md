@@ -40,8 +40,8 @@ integrity.
 5. **Set up Compose dependencies and compiler**
 6. **Set up Compose theming**
 7. **Migrate the XML layout to Compose**
-8. **Validate the migration**
-9. **Replace usages**
+8. **Replace usages**
+9. **Validate the migration**
 10. **XML code removal**
 
 ## Detailed steps
@@ -61,22 +61,11 @@ guide your technical audit of the layout and surrounding project context.
 
 ### Step 3: Create a plan
 
-Using the outputs and analysis done in the Step 1 and 2, generate a
-step-by-step plan for the migration. If you support user interaction, present
-to the user and ask for approval before proceeding. If user interaction is not
-supported, proceed to Step 4 following the generated plan.
+Use discovery outputs to write a scoped migration plan and proceed within existing authorization. Ask only for unresolved choices or required missing inputs.
 
 ### Step 4: Capture the XML View UI
 
-**IF** you support user interaction, ask the user to upload a screenshot of the
-XML View UI or provide an absolute path to a file. Use this image as a visual
-reference for the layout migration in Step 7.
-**ELSE IF** you are able to run an Android emulator, locate an existing
-screenshot test for the XML candidate. If none exists, create one using the
-existing project testing framework. If no framework exists,
-use **UI Automator** or **Espresso** to create a screenshot test with minimum
-required setup. Run the test and take a baseline screenshot of the XML UI.
-**ELSE** proceed to Step 5.
+Apply [Android execution](../../docs/android-execution.md): use existing baseline assets or available capture tools first. If no baseline can be obtained, record visual comparison NOT_RUN; continue independent implementation and behavior checks without claiming visual parity.
 
 ### Step 5: Set up Compose dependencies and compiler
 
@@ -113,12 +102,11 @@ Replace the usages of the migrated XML layout to use the new Compose component.
 
 ### Step 9: Validate the migration
 
-Compare the baseline screenshot image from Step 4 with the rendered Compose
-Preview of the new composable. Ignore string content; focus on layout and
+When Step 4 produced a baseline, compare under matching device/configuration conditions. A Compose Preview alone cannot prove device parity. Ignore string content; focus on layout and
 styling. Iterate on the Compose code until visual parity is achieved. Once
 verified, write a Compose UI test for the new composable.
 
 ### Step 10: XML code removal
 
-Delete the migrated XML file and its associated legacy tests. **Caution:** Only
+Delete unused XML only after checking references. Migrate legacy test behavior and confirm equivalent coverage before removing old tests; do not delete tests just because the layout migrated. **Caution:** Only
 remove code and resources that are not referenced by other parts of the project.

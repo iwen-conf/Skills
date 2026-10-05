@@ -2,7 +2,7 @@
 name: arkts-syntax-assistant
 description: |-
   ArkTS syntax, migration, and optimization guide for HarmonyOS/OpenHarmony development.
-  Triggers on: .ets files, ArkTS keywords, HarmonyOS/OpenHarmony context, @ohos packages.
+  Use for ArkTS syntax questions, TypeScript-to-ArkTS migration and language compile errors; platform lifecycle/build/release routing belongs to harmonyos-development.
   Help with syntax reference, TypeScript migration, performance optimization,
   compile errors, state management, component development, and language-specific questions.
 license: MIT
@@ -117,106 +117,7 @@ Get Error Message -> Search Migration Rules -> Find Related Case -> Provide Fix
 
 ## Common Questions
 
-### Q: How to handle JSON.parse return value?
-
-```typescript
-// Error
-let data = JSON.parse(str);
-
-// Correct
-let data: Record<string, Object> = JSON.parse(str);
-```
-
-### Q: How to define object types?
-
-```typescript
-// TypeScript syntax (not supported in ArkTS)
-type Person = { name: string, age: number }
-
-// ArkTS syntax
-interface Person {
-  name: string;
-  age: number;
-}
-
-// Using object literal
-let p: Person = { name: 'John', age: 25 };
-```
-
-### Q: How to replace globalThis?
-
-```typescript
-// Error
-globalThis.value = 'xxx';
-
-// Use singleton pattern
-export class GlobalContext {
-  private constructor() {}
-  private static instance: GlobalContext;
-  private _objects = new Map<string, Object>();
-
-  public static getContext(): GlobalContext {
-    if (!GlobalContext.instance) {
-      GlobalContext.instance = new GlobalContext();
-    }
-    return GlobalContext.instance;
-  }
-
-  getObject(key: string): Object | undefined {
-    return this._objects.get(key);
-  }
-
-  setObject(key: string, value: Object): void {
-    this._objects.set(key, value);
-  }
-}
-```
-
-### Q: How to handle error types in catch?
-
-```typescript
-// Error
-try {} catch (e: BusinessError) {}
-
-// Correct
-try {} catch (error) {
-  let e: BusinessError = error as BusinessError;
-}
-```
-
-### Q: How to use Record type?
-
-```typescript
-// TypeScript index signature
-function foo(data: { [key: string]: string }) {}
-
-// ArkTS Record
-function foo(data: Record<string, string>) {}
-
-// Usage example
-let map: Record<string, number> = {
-  'John': 25,
-  'Mary': 21,
-};
-```
-
-### Q: How to replace constructor signatures with factory functions?
-
-```typescript
-// TypeScript constructor signature
-type ControllerCtor = {
-  new (value: string): Controller;
-}
-
-// ArkTS factory function
-type ControllerFactory = () => Controller;
-
-class Menu {
-  createController: ControllerFactory = () => {
-    return new Controller('default');
-  }
-}
-```
+For syntax examples (JSON parsing, object types, generics and migration), read [syntax FAQ](references/syntax-faq.md).
 
 ## Prohibited Standard Library APIs
 
@@ -237,13 +138,15 @@ The scripts directory provides quick compilation scripts for ArkTS projects
 | macOS/Linux | `scripts/run.sh` | Execute `ohpm install` + `hvigorw assembleApp` |
 | Windows | `scripts/run.ps1` | Execute `ohpm install` + `hvigorw assembleApp` |
 
+`SKILL_ROOT` is the loaded skill directory; `PROJECT_ROOT` is the discovered project root. The scripts use the project wrapper and existing registry, with explicit exit-code checks. Prefer existing project build commands when already established.
+
 Usage:
 ```bash
 # macOS/Linux
-bash scripts/run.sh
+bash "$SKILL_ROOT/scripts/run.sh" "$PROJECT_ROOT"
 
 # Windows PowerShell
-.\scripts\run.ps1
+& "$SKILL_ROOT/scripts/run.ps1" -ProjectRoot "$PROJECT_ROOT"
 ```
 
 Script execution steps:
@@ -255,24 +158,17 @@ Script execution steps:
 **CRITICAL**: When this skill generates ArkTS code, the following workflow MUST be followed:
 
 1. **Compilation Verification**: After generating code, you MUST compile the project using the build scripts:
-   - macOS/Linux: `bash scripts/run.sh`
-   - Windows: `.\scripts\run.ps1`
+   - macOS/Linux: `bash "$SKILL_ROOT/scripts/run.sh" "$PROJECT_ROOT"`
+   - Windows: `& "$SKILL_ROOT/scripts/run.ps1" -ProjectRoot "$PROJECT_ROOT"`
 
 2. **Retry Strategy**: If compilation fails:
    - Analyze the error output
    - Fix the issue and retry compilation
    - Maximum of **3 compilation attempts**
 
-3. **User Intervention**: After 3 failed compilation attempts, use `AskUserQuestion`:
-   ```
-   Question: Compilation failed after 3 attempts. How would you like to proceed?
-   Options:
-   - Continue retrying (attempt another fix)
-   - Manual intervention (I'll wait for your guidance)
-   - Skip compilation (proceed without verification)
-   ```
+3. **Stop**: Missing toolchain/environment or the same unexplained failure is BLOCKED; after at most 3 evidence-driven attempts, report the blocker via the runtime's available user-input/message channel. Do not treat silence as permission or label skipped compilation passed.
 
-4. **Error Reporting**: Always show the full compilation error output when failures occur.
+4. **Error Reporting**: Show the first root error and a bounded excerpt; keep the full log as an artifact with its path.
 
 ## Answer Guidelines
 

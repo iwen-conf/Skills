@@ -26,7 +26,7 @@ evidence-first root-cause repair 门禁：确认失败或性能问题所在的�
 2. **查看现有配置** -- 修改场景下先读取 `.cnb.yml` 和 `.ci/` 目录。
 3. **按需加载文档** -- 遇到不确定的语法细节时，读取本 skill 的 `references/` 子目录下对应参考文件；也可 `echo` 获取环境变量拼接在线文档 URL 用 WebFetch 加载。
 4. **生成配置** -- 按下方「结构骨架」生成完整可运行的配置。
-5. **校验（必须）** -- 每次生成/修改 `.cnb.yml` 或 `.cnb/web_trigger.yml` 后必须校验通过才能展示给用户。
+5. **校验（必须）** -- 每次生成/修改 `.cnb.yml` 或 `.cnb/web_trigger.yml` 后必须执行校验；只有通过才能称为有效，可展示明确标注未验证的候选和阻塞原因。
 6. **解释配置** -- 简要说明关键部分。
 
 ### 校验命令
@@ -34,8 +34,13 @@ evidence-first root-cause repair 门禁：确认失败或性能问题所在的�
 > 校验脚本位于本 skill 的 `validator/` 子目录。执行时需用本 skill base directory 的绝对路径（加载 skill 时系统会提示该路径）。
 
 ```bash
-cd ${SKILL_BASE}/validator && [ -d node_modules ] || npm install
-node ${SKILL_BASE}/validator/validate.js <yml-file-path>
+# SKILL_BASE 与 yml_file 均为已确认绝对路径；每步失败即停止
+(
+  set -e
+  cd "$SKILL_BASE/validator"
+  if [ ! -d node_modules ]; then npm install; fi
+  node "$SKILL_BASE/validator/validate.js" "$yml_file"
+)
 ```
 
 其中 `${SKILL_BASE}` 替换为本 skill 的 base directory 绝对路径，`<yml-file-path>` 为待校验文件的绝对路径。脚本按文件名自动识别校验类型，无需额外参数：
@@ -57,7 +62,7 @@ node ${SKILL_BASE}/validator/validate.js <yml-file-path>
    - `crontab 事件位置` → 将 `crontab` 移至具体分支名下
 3. **Schema 校验错误** → 检查字段名拼写、类型、必填项，参考 `references/syntax-reference.md`
 
-修复后重新执行校验命令，直到全部通过。
+只对明确配置错误修复后重验；缺依赖、网络、Schema 获取或校验器故障报告 BLOCKED/NOT_RUN，保留错误。同一失败无新证据时停止盲重试，不削弱规则求通过。
 
 ## 诊断工作流程
 
@@ -68,7 +73,7 @@ node ${SKILL_BASE}/validator/validate.js <yml-file-path>
    - 失败诊断：`cnb pulls get-ci-logs`（自动定位失败构建；也可加 `--sn` 指定）
    - 性能优化：通过 `cnb build --help` / `cnb pulls --help` 探索可用命令，获取 Stage 耗时与慢 Stage 日志
 3. **分析并输出报告** -- 判定失败类型或耗时瓶颈，给出修复/优化建议。配置相关问题结合 references 分析。
-4. **修复后无需轮询** -- 修复 CI 报错并推送代码后，**不要轮询 CI 状态等待结果**。平台会在 CI 失败时自动唤起 NPC，只需在评论中说明修复内容即可结束当前会话。
+4. **CI 状态** -- 按[运行合同](../../docs/cnb-runtime.md)区分推送和 CI 通过。确认失败回调配置后可依赖回调；否则保留待验证状态，禁止无限轮询。
 
 ---
 

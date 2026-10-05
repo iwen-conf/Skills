@@ -20,19 +20,9 @@ root-cause repair 门禁。代码气味、扫描器结果或 diff 片段只是�
 
 使用 cnb-pr-diff Skill 获取 PR 的代码变更。
 
-**需过滤的非代码文件**（不评审）：
-- 依赖锁文件：`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `go.sum`, `Cargo.lock` 等
-- 图片文件：`*.png`, `*.jpg`, `*.gif`, `*.svg`, `*.ico` 等
-- 字体文件：`*.woff`, `*.ttf`, `*.eot` 等
-- 二进制文件：`*.exe`, `*.dll`, `*.so`, `*.jar`, `*.pyc` 等
-- 压缩文件：`*.zip`, `*.tar.gz`, `*.rar` 等
-- 压缩的代码：`*.min.js`, `*.min.css`, `*.map`
-- 构建产物目录：`dist/`, `build/`, `out/`, `target/`, `.next/`
-- 依赖目录：`node_modules/`, `vendor/`, `.venv/`
+文件分类遵循 [cnb-pr-diff](../cnb-pr-diff/SKILL.md)：先盘点全部变更，锁文件检查版本、来源和清单一致性，二进制记录未审原因。
 
-**文件限制**：
-- 最多评审 30 个文件
-- diff 最大 100000 字符（超出则截断）
+单批预算可用 30 文件 / 100000 字符；超出时分批，不截断后冒充完整。保留已审、未审文件及原因；预算耗尽输出 `partial`。
 
 ### 2. 分析代码
 
@@ -44,8 +34,8 @@ root-cause repair 门禁。代码气味、扫描器结果或 diff 片段只是�
 4. **性能问题**：N+1 查询、低效算法、不必要的 I/O
 
 **评审原则**：
-- 只评审新增代码（diff 中 `+` 开头的行，不含 `+++` 文件头）
-- **禁止评审**：删除的代码（`-` 开头）、上下文代码、未修改的代码
+- 评审全部变更语义，包括删除鉴权/校验和必要上下文；避免对无关未改代码发建议。
+- 行评论只使用 API 支持的真实 diff 锚点；纯删除问题无右侧锚点时写总结评论，不伪造新文件行号。
 - **忽略**：EOF 换行符、行尾空格、缩进风格（应由 linter 处理）
 
 **理解上下文**：
@@ -57,13 +47,14 @@ root-cause repair 门禁。代码气味、扫描器结果或 diff 片段只是�
 
 ```json
 {
-  "status": "passed | needs_modification | critical",
+  "status": "partial",
+  "coverage": {"complete": false, "reviewed_files": [], "unreviewed_files": ["src/auth.ts"]},
   "issues": [
     {
       "severity": "critical | warning | info",
       "file": "文件路径",
-      "start_line": 起始行号,
-      "end_line": 结束行号,
+      "start_line": 12,
+      "end_line": 14,
       "problem": "问题：描述问题",
       "suggestion": "建议：修复建议"
     }
@@ -73,7 +64,8 @@ root-cause repair 门禁。代码气味、扫描器结果或 diff 片段只是�
 
 **字段说明**：
 - `status`: 评审状态
-  - `passed`: 通过，无问题
+  - `passed`: 所需范围已完整审查且无确认问题
+  - `partial`: 存在未审范围；同时保留已发现问题与严重度，不可发布“通过”
   - `needs_modification`: 需要修改
   - `critical`: 存在严重问题
 - `severity`: 问题严重程度
@@ -85,9 +77,11 @@ root-cause repair 门禁。代码气味、扫描器结果或 diff 片段只是�
   - 使用 \`代码\` 标记变量名、函数名
   - 使用代码块展示修复示例
 
-**无问题时**：`issues` 为空数组 `[]`
+**无问题时**：`issues` 为空数组 `[]`；只有 coverage.complete=true 才允许 passed。示例数字只是格式样本，实际锚点必须核实。
 
 ### 4. 发送评审评论
+
+仅在用户明确要求发布评审或宿主已授权此动作时发送；否则交付本地结果。应用[运行合同](../../docs/cnb-runtime.md)。下方 payload 用 JSON serializer 写成 body file，再以 `--data-binary @文件` 传入；检查 HTTP 与业务标识，不把请求发出当评论成功。
 
 **重要**：API 基础地址从环境变量 `CNB_API_ENDPOINT` 获取（默认 `https://api.cnb.cool`），仓库名从环境变量 `CNB_REPO_SLUG` 获取，PR 编号从环境变量 `CNB_PULL_REQUEST_IID` 获取。
 
@@ -106,9 +100,9 @@ curl -X POST \
     {
       "body": "问题: ...\n建议: ...",
       "path": "文件路径",
-      "start_line": 起始行号,
+      "start_line": 12,
       "start_side": "right",
-      "end_line": 结束行号,
+      "end_line": 14,
       "end_side": "right",
       "subject_type": "line"
     }
@@ -116,7 +110,7 @@ curl -X POST \
 }'
 ```
 
-**无问题时**：调用 PostPullComment 接口发送总结评论：
+**完整审查且无问题时**：调用 PostPullComment 接口发送总结评论；partial 只能说明覆盖范围与缺口：
 
 ```bash
 curl -X POST \
@@ -131,7 +125,7 @@ curl -X POST \
 
 ## 注意事项
 
-1. **最多发送 10 条评论**，优先发送严重程度高的问题（critical > warning > info）
+1. 单次最多发送 10 条评论，完整本地结果保留其余问题并标注未发布数量；发布限额不改变审查结论。
 2. 行号必须对应 diff 中的**新文件行号**（右侧行号），务必通过读取源文件确认
 3. 每条评论需说明问题原因和修复建议
 4. 评审结果必须是有效 JSON

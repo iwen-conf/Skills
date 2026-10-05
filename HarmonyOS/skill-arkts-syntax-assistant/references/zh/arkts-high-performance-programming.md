@@ -1,3 +1,5 @@
+> 本地节选；未随包附带的关联资料链接指向 OpenHarmony 官方文档仓库（master，非固定 API 版本）。项目 API 版本以实际 SDK 为准。
+
 # ArkTS高性能编程实践
 
 <!--Kit: ArkTS-->
@@ -9,7 +11,7 @@
 
 ## 概述
 
-本文提供应用性能敏感场景下的高性能编程建议，帮助开发者编写高性能应用。高性能编程实践是在开发过程中总结的一些高性能写法和建议。在实现业务功能时，应同步思考并理解高性能写法的原理，并将其应用于代码逻辑中。关于ArkTS编程规范，请参考[ArkTS编程规范](./arkts-coding-style-guide.md)。
+本文提供应用性能敏感场景下的高性能编程建议，帮助开发者编写高性能应用。高性能编程实践是在开发过程中总结的一些高性能写法和建议。在实现业务功能时，应同步思考并理解高性能写法的原理，并将其应用于代码逻辑中。关于ArkTS编程规范，请参考[ArkTS编程规范](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/quick-start/arkts-coding-style-guide.md)。
 
 ## 声明与表达式
 

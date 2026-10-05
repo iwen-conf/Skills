@@ -1,0 +1,20 @@
+# Commands are argv arrays. No shell interpolation is performed.
+[[backup_restore_rehearsal]]
+id = "nightly-basebackup-restore"
+backup_path = ".sqlverify/backups/latest"
+verify_backup = true
+pg_verifybackup_args = []
+verify_timeout_s = 900
+restore_command = ["./tests/db/restore-clone.sh"]
+healthcheck_command = ["pg_isready", "-d", "postgresql://localhost:55432/app_sqlverify"]
+restored_dsn_env = "RESTORED_DATABASE_URL"
+safe_database_pattern = "(_test|_bench|sqlverify)$"
+healthcheck_timeout_s = 180
+max_rto_s = 120
+cleanup_command = ["./tests/db/destroy-restored-clone.sh"]
+
+[[backup_restore_rehearsal.assertion]]
+id = "ledger-balanced-after-restore"
+sql = "SELECT count(*)::bigint FROM reconciliation_errors WHERE kind='ledger_balance'"
+op = "=="
+expected = 0

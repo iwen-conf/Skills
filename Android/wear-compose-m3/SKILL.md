@@ -22,17 +22,17 @@ metadata:
 
 ## Prerequisites and compatibility
 
-1. **Current Wear OS Compose version in-use:** To find the installed library version, read `gradle/libs.versions.toml` or `build.gradle.kts` directly. Don't run `./gradlew dependencies` or other shell commands to resolve versions.
+1. **Current Wear OS Compose version in-use:** To find the installed library version, read `gradle/libs.versions.toml` or `build.gradle.kts` directly. Use target-variant dependency resolution to confirm actual artifacts, following [Android execution](../../docs/android-execution.md).
 2. **Wear OS Compose Material3 version:** If an internal tool is available to establish the **latest stable version** `{VERSION}` of `androidx.wear.compose:compose-material3`, use that tool.
    - Otherwise, fetch the [official Maven metadata XML](https://dl.google.com/dl/android/maven2/androidx/wear/compose/compose-material3/maven-metadata.xml) to identify `{VERSION}` (highest number, ignoring `-alpha`, `-beta`, or `-rc`).
-3. **Strict compliance:** If a version is listed as stable, you MUST use it, unless overridden by the user. Do not downgrade based on initial "Unresolved reference" errors in the editor or outdated web search results.
+3. **Strict compliance:** Preserve the current version for scoped feature work; upgrade only to the authorized compatible target. Do not downgrade based on initial "Unresolved reference" errors in the editor or outdated web search results.
 4. **Kotlin version:** For Wear Compose Material3, use Kotlin **2.0.0 or
    higher**.
 5. **Compose compiler:**
    - If Kotlin version is **2.0.0+** , the project must use the `org.jetbrains.kotlin.plugin.compose` Gradle plugin.
    - If Kotlin version is **\< 2.0.0** , the project must use `kotlinCompilerExtensionVersion` in `composeOptions`, matching the [Compose to Kotlin Compatibility Map](https://developer.android.com/jetpack/androidx/releases/compose-kotlin).
 6. **Min SDK:** Ensure `minSdk` is at least **25**.
-7. **Sample extraction mandate**: Wear Compose libraries ship with an additional JAR file which contains individual samples for each and every component. You mustn't propose code changes, other than previews or basic changes such as color changes, until the samples in Capability 3 are extracted to the local cache. Library source files are incomplete and NOT a substitute for these samples; bypassing extraction is an environment setup failure.
+7. **Version evidence**: Prefer matching official samples; if unavailable, use the exact version's official API/source contract. If neither establishes the signature, mark that implementation blocked rather than guess.
 
 ## Gotchas
 
@@ -46,7 +46,7 @@ metadata:
 Use this guidance when migrating from an older version of Wear OS Compose or
 Horologist.
 
-1. Unless otherwise indicated by the developer, use the latest stable version of Wear Compose Material3 from `{VERSION}`.
+1. Use the current or explicitly authorized target Wear Compose Material3 version `{VERSION}`.
 2. Read the [migration guide](references/android/training/wearables/compose/migrate-to-material3.md).
 3. Use the official component mappings from the migration guide.
 4. Before refactoring any component (for example, `Chip` -\> `Button`), check the parameter names, slot types, and "Expressive" design tokens.
@@ -60,7 +60,7 @@ Use this guidance when the developer asks to update a project which is using an
 earlier version of Wear OS Compose Material3, or when they ask to add further
 features.
 
-1. Unless otherwise indicated by the developer, use the latest stable version of Wear Compose Material3 from `{VERSION}`.
+1. Use the current or explicitly authorized target Wear Compose Material3 version `{VERSION}`.
 2. Do not use the Horologist Composables, Compose Layout, or Compose Material libraries.
 3. **Always** check against the component guidance in Capability 4.
 4. Expect screenshot tests to fail when a migration has been performed: Even when migrating to very similar components, expected defaults for padding and positioning will have changed. Do not seek to artificially match the pre-migration screenshot, but give preference to the Material3 defaults.
@@ -75,11 +75,7 @@ downloads these JAR files along with the main library JAR when using any of
 Use the canonical component samples whenever adding or adjusting a Wear Compose
 Material3 component.
 
-STRICT COMPLIANCE: Extraction is NOT optional. You are FORBIDDEN from
-implementing any code until samples are extracted and read. Bypassing this step
-with alternative search tools or by assuming library documentation is sufficient
-is a protocol breach. You MUST verify the local cache by reading a sample file
-before proceeding.
+Read the corresponding official sample when available. A download failure is NOT_RUN for extraction; exact-version official API/source evidence may establish the same contract. If evidence is insufficient, stop dependent edits and report the gap.
 
 Exception: You don't need to extract samples if the request is strictly related
 to tooling (for example, adding @WearPreviewDevices), updating text/colors, or
@@ -103,13 +99,13 @@ Google Maven publishes a `-samples-sources.jar` alongside every library release.
 Download and extract it directly without needing a local Gradle sync or cache
 lookup.
 
-1. Determine the `{VERSION}` of `androidx.wear.compose:compose-material3` from `build.gradle.kts` or `libs.versions.toml`.
+1. Resolve `{VERSION}` separately for each artifact; material3, foundation and navigation3 may have different versions. Do not reuse one artifact's version for another.
 2. Define `{ARTIFACT}` as the items in the list `["material3", "foundation"]`. Also include `navigation3` if `androidx.wear.compose.navigation3` is used.
 3. For each `{ARTIFACT}`, run the following commands to download and extract
    the samples:
 
        # Download the samples-sources JAR
-       curl -sSL "https://dl.google.com/dl/android/maven2/androidx/wear/compose/compose-{ARTIFACT}/{VERSION}/compose-{ARTIFACT}-{VERSION}-samples-sources.jar" -o {ARTIFACT}-{VERSION}-samples.jar
+       curl --fail --show-error -sSL "https://dl.google.com/dl/android/maven2/androidx/wear/compose/compose-{ARTIFACT}/{VERSION}/compose-{ARTIFACT}-{VERSION}-samples-sources.jar" -o {ARTIFACT}-{VERSION}-samples.jar
 
        # Extract and flatten into the cache directory
        unzip -q -o {ARTIFACT}-{VERSION}-samples.jar -d /tmp/wear-compose-samples/{VERSION}/{ARTIFACT}/
@@ -212,7 +208,7 @@ the component syntax.
      - Note: This is a scoped modifier available within `TransformingLazyColumnItemScope`.
    - \[ \] Ensure the list morphs and scales.
    - \[ \] Use `transformedHeight` modifier.
-   - \[ \] Use `transform = SurfaceTransform(...)`.
+   - \[ \] Use `transformation = SurfaceTransformation(...)` (as in the matching-version example above).
    - \[ \] If configuring a list for snapping, use `flingBehavior` and `rotaryScrollableBehavior` **together**:
 
 

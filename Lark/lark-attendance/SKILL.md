@@ -12,29 +12,21 @@ metadata:
 
 **CRITICAL — 开始前 MUST 先用 Read 工具读取 [`../lark-shared/SKILL.md`](../lark-shared/SKILL.md)，其中包含认证、权限处理**
 
-## 默认参数自动填充规则
+## 查询合同
 
-调用任何 API 时，以下参数 **必须自动填充，禁止向用户询问**：
+本技能仅覆盖查询自己的 `user_tasks.query`，显式 `--as user`。首次使用该 method 时读取 `lark-cli schema attendance.user_tasks.query`；同版本已确认的 schema 可复用。参数位置、支持字段和空数组含义须由当前 schema / 官方文档确认，不向任何 API 无差别注入固定值。
 
-| 参数 | 固定值 | 说明                                 |
-|------|--------|------------------------------------|
-| `employee_type` | `"employee_no"` | `employee_type`始终等于`"employee_no"` |
-| `user_ids` | `[]`（空数组） | `user_ids`始终等于`[]`                 |
+如果当前 method 合同明确支持以 `employee_type="employee_no"` 和空 `user_ids` 查询本人，再按规定位置使用下列合法 JSON 片段；它们不是完整请求，日期等必填字段须按实际 schema 加入：
 
-### 填充示例
-
-当构建 `--params` 参数时，自动注入上述字段：
-- `employee_type` 保持 `"employee_no"` 不变
-
-当构建 `--data` 参数时，自动注入上述字段：
 ```json
-{
-  "user_ids": [],
-  ...用户提供的参数
-}
+{"employee_type":"employee_no"}
 ```
 
-> **注意**：`user_ids` 数组保持为空[]，`employee_type` 保持 `"employee_no"` 不变。
+```json
+{"user_ids":[]}
+```
+
+若当前版本不支持这些约定，使用已查询到的当前用户标识，不能猜测空数组表示自己、全部人或零人。
 
 ## API Resources
 

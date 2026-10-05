@@ -39,7 +39,9 @@ metadata:
 
 - *[Navigation 2 to Navigation 3 migration guide](references/android/guide/navigation/navigation-3/migration-guide.md)*: Step-by-step guide to migrate an Android application from Navigation 2 to Navigation 3, covering dependency updates, route changes, state management, and UI component replacements.
 
-### Requirements
+### Requirements for existing Navigation 2 migrations only
+
+New Navigation 3 projects do not need an intermediate Navigation 2 migration.
 
 - *[Guide: Migrate to type-safe navigation in Compose](references/android/guide/navigation/type-safe-destinations.md)* : Step-by-step guide to migrating an Android application from string-based navigation to **Type-Safe Navigation** in Jetpack Compose using Jetpack Navigation 2.
 

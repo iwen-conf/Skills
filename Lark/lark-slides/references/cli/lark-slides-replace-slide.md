@@ -242,7 +242,7 @@ lark-cli slides +replace-slide --as user \
 | 3350002 not found | `--revision-id` 传了不存在的版本号（超过当前 revision） | 用 `-1` 或用 `slide.get` 拿到的有效 `revision_id` |
 | `--parts invalid JSON` | JSON 本身不完整，或被 shell 引号/转义破坏 | 将数组写入 `parts.json` 后传 `--parts @parts.json`，或通过 stdin 传给 `--parts -` |
 | `--parts[i] action "str_replace" is not supported` | CLI 不暴露 `str_replace` | 把替换需求改写成 `block_replace` / `block_insert` |
-| `--parts[i] action "page_replace" / "slide_replace" means whole-page replacement` | 把整页更新意图传给了块级 shortcut | 改用 [`slides +update-slide`](lark-slides-update-slide.md) 整页原地写回 |
+| `--parts[i] action "page_replace" / "slide_replace" means whole-page replacement` | 把整页更新意图传给了块级 shortcut | 改用 [`slides +update-slide`](../lark-slides-update-slide.md) 整页原地写回 |
 | `--parts contains N items, exceeds maximum of 200` | 一次提交 parts 太多 | 拆多次调用 |
 | `--parts[i] unknown field "xml"; did you mean "replacement"?` | XML 塞进了未支持的字段名（如 `xml` / `new_xml` / `data`） | 使用标准字段：`block_replace` 用 `replacement`，`block_insert` 用 `insertion` |
 | `--parts[i] unknown field "insertion"; it belongs to block_insert` | 字段和 `action` 不配对 | 按 action 取字段：`block_replace` = `block_id` + `replacement`；`block_insert` = `insertion` (+ `insert_before_block_id`) |

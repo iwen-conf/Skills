@@ -10,6 +10,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from arc_core.skill_validation import run_validation  # noqa: E402
+from arc_core.usecase.validate_skills import collect_source_skill_files  # noqa: E402
 
 
 def main() -> int:
@@ -27,7 +28,9 @@ def main() -> int:
         print("Skill validation warnings:")
         for item in warnings:
             print(f"- {item}")
-    print(f"Skill validation passed for {count} skill entrypoints.")
+    source_count = len(collect_source_skill_files(ROOT))
+    print(f"Skill validation passed for {count} skill entrypoints "
+          f"({count - source_count} runtime, {source_count} source distribution).")
     return 0
 
 

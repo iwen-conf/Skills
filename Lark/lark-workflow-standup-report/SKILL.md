@@ -21,11 +21,7 @@ metadata:
 
 ## 前置条件
 
-仅支持 **user 身份**。执行前确保已授权：
-
-```bash
-lark-cli auth login --domain calendar,task
-```
+仅支持 **user 身份**，命令显式 `--as user`。复用有效授权；缺少登录或 scope 时按 lark-shared 处理。
 
 ## 工作流
 
@@ -41,13 +37,13 @@ lark-cli auth login --domain calendar,task
 
 ```bash
 # 今天（默认，无需额外参数）
-lark-cli calendar +agenda
+lark-cli calendar +agenda --as user
 
 # 指定日期范围（必须使用 ISO 8601 格式，不支持 "tomorrow" 等自然语言）
-lark-cli calendar +agenda --start "2026-03-26T00:00:00+08:00" --end "2026-03-26T23:59:59+08:00"
+lark-cli calendar +agenda --as user --start "2026-03-26T00:00:00+08:00" --end "2026-03-26T23:59:59+08:00"
 ```
 
-> **注意**：`--start` / `--end` 仅支持 ISO 8601 格式（如 `2026-01-01` 或 `2026-01-01T15:04:05+08:00`）和 Unix timestamp，**不支持** `"tomorrow"`、`"next monday"` 等自然语言。需要 AI 根据当前日期自行计算目标日期。
+> **注意**：`--start` / `--end` 仅支持 ISO 8601 格式（如 `2026-01-01` 或 `2026-01-01T15:04:05+08:00`）和 Unix timestamp，**不支持** `"tomorrow"`、`"next monday"` 等自然语言。先用系统时钟和日期库按用户时区计算边界，不能心算日期；报告列出时区和范围。
 
 输出包含：event\_id、summary、start\_time（含 timestamp + timezone）、end\_time、free\_busy\_status、self\_rsvp\_status。
 
@@ -55,20 +51,20 @@ lark-cli calendar +agenda --start "2026-03-26T00:00:00+08:00" --end "2026-03-26T
 
 ```bash
 # 默认 pending 摘要：必须显式过滤未完成任务（最多 20 条）
-lark-cli task +get-my-tasks --complete=false
+lark-cli task +get-my-tasks --as user --complete=false
 
 # 只看指定日期前到期的未完成任务（推荐用于摘要场景，减少数据量）
-lark-cli task +get-my-tasks --complete=false --due-end "2026-03-27T23:59:59+08:00"
+lark-cli task +get-my-tasks --as user --complete=false --due-end "2026-03-27T23:59:59+08:00"
 
 # 获取全部未完成任务（超过 20 条时）
-lark-cli task +get-my-tasks --complete=false --page-all
+lark-cli task +get-my-tasks --as user --complete=false --page-all
 ```
 
 > **注意**：`+get-my-tasks` 不带 `--complete` 时会**同时返回已完成和未完成任务**，会把已完成任务当成"待办"展示进摘要里。站会/日报这种 pending 汇总场景**必须**显式带上 `--complete=false`，不要省略。
 >
 > 数据量层面也建议加过滤：
 > - 用 `--due-end` 过滤出目标日期前到期的任务
-> - 如果也需要无截止日期的任务，可不加 `--due-end`，但 AI 汇总时只展示**近 30 天内创建的**，其余折叠为"其他 N 项历史待办"
+> - 如果也需要无截止日期的任务，可不加 `--due-end`，但 AI 汇总时只展示**近 30 天内创建的**，其余仅在完整分页后折叠为"其他 N 项历史待办"；未读全标注"已读取 N 项，仍有未读页"
 
 ### Step 3: AI 汇总
 
@@ -95,7 +91,7 @@ lark-cli task +get-my-tasks --complete=false --page-all
 
 **数据处理规则：**
 
-1. **时间转换**：API 返回 Unix timestamp，需根据 `timezone` 字段（通常为 `Asia/Shanghai`）转换为 `HH:mm` 格式
+1. **时间转换**：统一成带时区的时间点计算，再按用户时区显示；不默认所有事件都是 Asia/Shanghai。全天事件按当地日期展开。空闲时段必须声明工作时间窗口，未知则仅列冲突、不猜空闲。
 2. **RSVP 状态映射**：
    | API 值 | 显示文案 |
    |--------|---------|
@@ -104,9 +100,10 @@ lark-cli task +get-my-tasks --complete=false --page-all
    | `needs_action` | 待确认 |
    | `tentative` | 暂定 |
 3. **日程排序**：按开始时间升序排列
-4. **冲突检测**：按时间排序后，检查相邻日程是否有时间重叠（前一个 end\_time > 后一个 start\_time），有则在小结中列出冲突组
+4. **冲突检测**：先按实际 schema 排除已拒绝及标为 free 的日程；未知忙闲状态单列。使用半开区间 `[start,end)`：按开始排序，维护全部 `end > 当前 start` 的活动区间，与每个活动区间生成冲突对。不能只比较相邻项。A=09–12、B=10–10:30、C=11–11:30 应报告 AB 与 AC。合并忙碌区间仅用于空闲计算/冲突组，不代替冲突对。
 5. **已拒绝日程**：标注"已拒绝"但不计入忙碌时段和冲突检测
-6. **待办排序**：按截止时间升序，已过期的标注"已过期"，无截止时间的排在最后
+6. **完整性**：日程与待办均检查分页；未读全不得输出总数或断言无冲突。可复用 [区间算法](scripts/intervals.py)，输入为已规范化时间和显式忙闲布尔值，未知字段不得猜测。
+7. **待办排序**：按截止时间升序，已过期的标注"已过期"，无截止时间的排在最后
 
 ## 权限表
 

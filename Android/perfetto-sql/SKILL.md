@@ -27,7 +27,7 @@ metadata:
   - For SQLite Virtual Tables (such as `SPAN_JOIN`), `CREATE OR REPLACE` is not supported. Explicitly drop them first: `DROP TABLE IF EXISTS
     my_table; CREATE VIRTUAL TABLE my_table USING SPAN_JOIN(...);`
   - For standard SQLite indexes, prepend `DROP INDEX IF EXISTS index_name;`.
-- `SPAN_JOIN` will crash if intervals **within the same input table** overlap. Always use the `PARTITIONED {column}` (for example, `PARTITIONED upid`) clause to isolate intervals.
+- `SPAN_JOIN` will crash if intervals **within the same input table** overlap. Partition by the correct key (for example upid) and independently verify no overlaps within **each input partition**. PARTITIONED alone does not prevent same-partition overlap; use intervals.overlap or an appropriate interval algorithm if that precondition fails.
 - Intermediate tables fed into a `SPAN_JOIN` must be materialized using `CREATE PERFETTO TABLE`, not `CREATE VIEW`.
 - **Trace Boundaries (`dur = -1`):** Slices or thread states that don't finish before the trace ends are recorded with `dur = -1`. When calculating a bounding box (for example, `ts + dur`) or summing durations (`SUM(dur)`), handle incomplete durations using: `IIF(dur = -1, trace_end() - ts, dur)`.
 - **Robust State Transitions:** Avoid manual timestamp arithmetic (for example, `ts + dur = next.ts`) to join adjacent events. Rely on standard library modules (for example, `sched.runnable`, `linux.perf.counters`, `intervals.overlap`) which safely handle trace gaps and preemptions.
@@ -85,24 +85,20 @@ metadata:
 
 ## Execution Protocol
 
-You must follow these steps sequentially, mirroring a multi-agent pipeline:
+Follow this protocol for SQL generation and validation; it does not require additional agents.
 
 ### Step 0: Tool Setup
 
-**Fetch the Wrapper:** You must use the top level of the current project workspace (`./trace_processor`).
+Use an existing confirmed `trace_processor` or download the official wrapper from https://get.perfetto.dev/trace_processor into a user cache outside the repository. Keep its absolute path as `TRACE_PROCESSOR`. Do not modify the project root or .gitignore for read-only trace analysis. Follow host arc-idx discovery for repository files; never scan the whole home directory. Missing download/runtime is BLOCKED.
 
-> **CRITICAL GUARDRAIL:** NEVER use filesystem search tools (`find`, `find_by_name`, `grep`, `dir /s`, `Get-ChildItem`) across the home directory or workspace to locate `trace_processor` — unconstrained searches across entire workspaces will stop responding or time out.
-
-Perform a direct file check at the top level of your workspace (e.g., `ls trace_processor`). If missing, download `https://get.perfetto.dev/trace_processor` directly into the root workspace (`curl -LO`), make it executable on macOS/Linux (`chmod +x`), and ensure `trace_processor` is added to `.gitignore`. Execute queries directly via `./trace_processor` (on Windows, explicitly invoke `python trace_processor`).
-
-> **Important:** The file served at this URL is a `~10KB` Python wrapper script. Don't assume the download failed because it is human-readable text. This is the intended behavior. This script handles lazy-loading the precompiled binary automatically on its first run. Use it directly.
+The small Python wrapper lazily downloads the native processor; readable text is expected.
 
 ### Step 1: Dissection and Schema Research
 
 1. Identify the core question, required data points, and filtering conditions.
-2. **Precedence Rule:** If the user's request contains a SQL query, use it **without modification** and skip to Step 2 for validation.
+2. **Precedence Rule:** If the user's request contains a SQL query, preserve the original and validate it first. In validation-only mode report errors without rewriting; when repair is requested, explain the correction and keep original/final queries distinct.
 3. **Mandatory Schema and Module Search:** For every table or view you plan to use, you MUST find its schema in [`perfetto-stdlib.md`](references/perfetto-stdlib.md). **Don't read the entire documentation file** --- it consumes the context window. Follow this precise workflow:
-   - **Discovery and Search:** Use available search tools (`grep`, `read_file` or file search) with line limits to discover relevant views, tables or modules based on your problem domain and high-level intents (for example, 'CPU time', 'running time', 'overlap', 'jank').
+   - **Discovery and Search:** Use host-approved arc-idx searches with bounded context for repository resources to discover relevant views, tables or modules based on your problem domain and high-level intents (for example, 'CPU time', 'running time', 'overlap', 'jank').
      - **Why:** Searching solely for exact table names misses comprehensive, pre-computed views built for these analyses.
      - **Note:** You must verify if a Standard Library module already provides the needed abstraction before drafting manual arithmetic or custom functions.
    - **Targeted Bounded Reads:** Once you identify the relevant modules, efficiently read the tables and views within that module section.
@@ -125,11 +121,11 @@ Step 1. After drafting, you must validate against this checklist:
 - \[ \] **Alias Check:** Are ALL column names prefixed with their table or view alias (for example, `alias.column_name`)?
 - \[ \] **Module Check:** Are `INCLUDE PERFETTO MODULE` statements included for all non-prelude modules? **You must use the exact module names provided in
   the documentation.**
-- \[ \] **Span Join Check:** If using `SPAN_JOIN`, are tables safely `PARTITIONED` to prevent overlapping interval crashes? Are intermediate tables materialized with `CREATE PERFETTO TABLE`?
+- \[ \] **Span Join Check:** If using `SPAN_JOIN`, has non-overlap within every partition of each input been independently checked (PARTITIONED alone is insufficient)? Are intermediate tables materialized with `CREATE PERFETTO TABLE`?
 - \[ \] **No LIKE Constraint:** Did you map string matches using `GLOB` or `=` instead of prohibited `LIKE`?
 - \[ \] **Execution Check:** You MUST run queries using the standalone
-  `./trace_processor` wrapper with the `--query-string` flag:
-  `./trace_processor --query-string "QUERY" {trace_file}`.
+  `"$TRACE_PROCESSOR"` wrapper with the `--query-string` flag:
+  `"$TRACE_PROCESSOR" --query-string "$query" "$trace_file"`.
 
   **Execution Rules:**
   - **File Usage** : If you must create a SQL file to execute queries (for example, due to query length or escaping issues), you must create them in the `/tmp/` directory.
@@ -138,5 +134,5 @@ Step 1. After drafting, you must validate against this checklist:
 
 ### Step 3: Final Output
 
-1. Explicitly return and state the final validated SQL and explain the results to the user.
+1. Return the original/final SQL, tool status and observed results. Missing events, tool failure or exhausted 3 attempts must be explicit; no fabricated values or validated claim without execution.
 2. Before finishing your response, delete all temporary SQL files you created in `/tmp/` directory.

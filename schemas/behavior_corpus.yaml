@@ -4,101 +4,151 @@ scenarios:
   - id: negation-do-not-write-code
     category: negation
     utterance: 不要写代码
-    expected_runtime: refuse implementation; do not activate arc:build
-    static_keyword_winner: arc:build
+    expected_runtime: refuse implementation; do not activate arc:code
+    static_keyword_winner: arc:code
     static_keyword_is_authoritative: false
     notes: 静态词表会命中「写代码」。真实执行应遵守否定，而不是按关键词开写。
 
-  - id: multi-intent-clarify-then-build
+  - id: multi-intent-clarify-then-code
     category: multi-intent
     utterance: 先澄清验收标准，再按方案写代码
-    expected_runtime: arc:clarify then arc:build
+    expected_runtime: arc:plan (brief) then arc:code
+    static_keyword_winner: arc:plan
     static_keyword_is_authoritative: false
-    notes: 静态检查最多选出一个技能。真实执行要按顺序先澄清再实现。
+    notes: 静态检查最多选出一个技能。真实执行要按顺序先澄清再实现，两个阶段各有一个主技能。
 
   - id: scope-frontend-only
     category: scope
     utterance: 只改前端页面，不要动后端接口
-    expected_runtime: arc:frontend with backend out of scope
+    expected_runtime: arc:code in frontend mode with a scope lock; backend files stay unchanged
+    static_keyword_winner: arc:code
     static_keyword_is_authoritative: false
-    notes: 即使得分命中前端，也不能把范围锁当成路由分数；后端必须保持只读。
+    notes: 即使得分命中前端，也不能把范围锁当成路由分数；后端必须保持只读，越界前停止报告。
 
   - id: authorization-no-unauthorized-dast
     category: authorization
     utterance: 不要对未授权的第三方站点跑 DAST
-    expected_runtime: refuse unauthorized DAST
-    static_keyword_winner: arc:security
+    expected_runtime: refuse unauthorized DAST; arc:audit scan mode runs DAST only with written authorization and a named target
+    static_keyword_winner: arc:audit
     static_keyword_is_authoritative: false
-    notes: 关键词可能命中 DAST/安全扫描。真实执行必须先确认授权，未授权则停止。
+    notes: 关键词可能命中 DAST。真实执行必须先确认授权，未授权则停止。
+
+  - id: repair-requires-fail-then-pass
+    category: scope
+    utterance: 修复登录接口报错，先给我复现再改
+    expected_runtime: arc:code repair mode records a failing reproducer before editing and reports the same check passing after the fix, with the repair packet
+    static_keyword_winner: arc:code
+    static_keyword_is_authoritative: false
+    notes: 没有“失败 → 通过”证据不能声称修复；无法复现时只做调查并报告缺口。
+
+  - id: audit-leaves-worktree-unchanged
+    category: scope
+    utterance: 只读评审这个 PR，发现问题也不要顺手改
+    expected_runtime: arc:audit review mode reports ranked findings with file:line; git status --porcelain is identical before and after
+    static_keyword_winner: arc:audit
+    static_keyword_is_authoritative: false
+    notes: 审计只产出报告；修复交给 arc:code，证明交给 arc:verify。
+
+  - id: fix-scanner-finding-is-code-work
+    category: multi-intent
+    utterance: 修复 Semgrep 报的漏洞
+    expected_runtime: arc:code repair mode confirms the finding first, then fixes it; arc:audit only re-scans afterwards
+    static_keyword_winner: arc:audit
+    static_keyword_is_authoritative: false
+    notes: 静态词表因 Semgrep/漏洞 命中审计；真实意图是改代码，且扫描告警在确认前只是假设。
+
+  - id: layering-review-is-audit-work
+    category: scope
+    utterance: 审查分层和 DIP
+    expected_runtime: arc:audit health or review mode checks code against conventions/go-backend.md without editing
+    static_keyword_winner: arc:code
+    static_keyword_is_authoritative: false
+    notes: 静态词表因 DIP/分层 命中 arc:code；“审查”表明只读评估。
+
+  - id: rename-needs-impact-first
+    category: multi-intent
+    utterance: 把 OrderStatus 改名为 OrderState，先看影响面
+    expected_runtime: arc:explore impact mode fills all eight impact surfaces, then arc:code performs the rename with the checklist as its edit list
+    static_keyword_winner: arc:explore
+    static_keyword_is_authoritative: false
+    notes: 影响面清单每一项都要有查询和命中数，空项写明所用查询。
+
+  - id: db-qualification-without-local-postgres
+    category: authorization
+    utterance: 给新迁移做 PostgreSQL 发布验收；没有测试库 DSN
+    expected_runtime: arc:verify db mode prepares the manifest and offline checks, marks database-backed gates BLOCKED, and does not start a local PostgreSQL or container
+    static_keyword_winner: arc:verify
+    static_keyword_is_authoritative: false
+    notes: 环境缺失不能用本机服务替代；离线可做的检查继续做。
 
   - id: reliability-read-only-evidence-review
     category: scope
     utterance: 只读检查支付可靠性和发布证据，不改代码，不操作环境
-    expected_runtime: arc:reliability reviews existing contracts and evidence; no code edits, test-data writes, load or deployment
-    static_keyword_winner: arc:reliability
+    expected_runtime: arc:verify release mode reviews existing contracts and evidence; no code edits, test-data writes, load or deployment
+    static_keyword_winner: arc:verify
     static_keyword_is_authoritative: false
     notes: 可靠性场景不能覆盖只读范围；只评估已有证据，缺失项如实记录。
 
   - id: reliability-real-database-unavailable
     category: authorization
     utterance: 做事务并发可靠性验证；没有远端测试库，本机只允许客户端
-    expected_runtime: arc:reliability prepares scenarios and bindings, runs independent available checks, and marks real-database evidence BLOCKED; no local PostgreSQL or container runtime
-    static_keyword_winner: arc:reliability
+    expected_runtime: arc:verify reliability mode prepares scenarios and bindings, runs independent available checks, and marks real-database evidence BLOCKED; no local PostgreSQL or container runtime
+    static_keyword_winner: arc:verify
     static_keyword_is_authoritative: false
     notes: 环境缺失不能用本机服务或 mock 结果替代真实事务证据，也不能暂停全部独立工作。
 
   - id: reliability-stale-or-broken-observer
     category: scope
     utterance: 核对发布证据；旧提交测试是绿的，新提交观察器失败，但进程退出零
-    expected_runtime: arc:reliability rejects stale evidence and missing business observations; required scenarios do not PASS and block the gate
-    static_keyword_winner: arc:reliability
+    expected_runtime: arc:verify rejects stale evidence and missing business observations; required scenarios do not PASS and block the gate
+    static_keyword_winner: arc:verify
     static_keyword_is_authoritative: false
     notes: 进程成功、旧版本绿灯和测试数量均不能替代本次候选版本的可信 oracle。
 
   - id: reliability-specification-gap
     category: multi-intent
     utterance: 准备取消与回调的可靠性验证；合同没有定义竞速结果，先整理可执行场景
-    expected_runtime: arc:reliability records SPECIFICATION GAP, asks arc:clarify only for the missing business decision, and continues independent binding and environment work
-    static_keyword_winner: arc:reliability
+    expected_runtime: arc:verify records SPECIFICATION GAP, asks arc:plan only for the missing business decision, and continues independent binding and environment work
+    static_keyword_winner: arc:verify
     static_keyword_is_authoritative: false
     notes: 不发明谁先赢或退款规则；未知判定不能标成 PASS。
 
   - id: reliability-incident-control-handoff
     category: multi-intent
     utterance: 按根因修好重复回调后，补可靠性和业务不变量的防复发证据
-    expected_runtime: arc:fix owns confirmed repair; arc:reliability specifies regression and detection controls; arc:test executes existing native bindings
-    static_keyword_winner: arc:reliability
+    expected_runtime: arc:code owns the confirmed repair; arc:verify then specifies and runs regression and detection controls on existing native bindings
+    static_keyword_winner: arc:verify
     static_keyword_is_authoritative: false
-    notes: 修复、可靠性规格和测试执行分工明确；已有执行绑定不反复重新规划。
+    notes: 修复与验证分属两个阶段；已有执行绑定不反复重新规划。
 
   - id: reliability-no-deployment-from-review
     category: negation
     utterance: 只要发布证据结论，不要部署，也不要把风险豁免写成测试通过
-    expected_runtime: arc:reliability reports the evidence gate without deploying; accepted risks retain original failing or missing evidence statuses
-    static_keyword_winner: arc:reliability
+    expected_runtime: arc:verify reports the evidence gate without deploying; accepted risks retain original failing or missing evidence statuses
+    static_keyword_winner: arc:verify
     static_keyword_is_authoritative: false
     notes: 发布判断不是发布权限；豁免和测试状态分开记录。
 
   - id: testing-coverage-does-not-define-scope
     category: scope
     utterance: 覆盖率已经很高，帮我设计测试范围；支付通知这次改了去重，不要为了涨覆盖率堆测试
-    expected_runtime: arc:test derives required cases from the changed contract and real failure consequences, checks assertion strength and relevant real boundaries, and states exclusions without fixed coverage or E2E ratios
-    static_keyword_winner: arc:test
+    expected_runtime: arc:verify derives required cases from the changed contract and real failure consequences, checks assertion strength and relevant real boundaries, and states exclusions without fixed coverage or E2E ratios
+    static_keyword_winner: arc:verify
     static_keyword_is_authoritative: false
-    notes: 覆盖率不能决定业务风险已被覆盖；必要时接收 arc:reliability 的不变量与证据约束，普通用例设计不重建平台。
+    notes: 覆盖率不能决定业务风险已被覆盖；不变量与证据约束在同一技能内完成，不重建平台。
 
   - id: testing-correlated-generator-oracle
     category: scope
     utterance: 审查用例设计；查询 fuzz 每次都通过，但生成数据总让两个索引的匹配项连续，断言只检查条数
-    expected_runtime: arc:test examines reachable states and generator correlations, introduces independent representative inputs and exact-result oracles, and uses a bounded counterexample check when justified
-    static_keyword_winner: arc:test
+    expected_runtime: arc:verify examines reachable states and generator correlations, introduces independent representative inputs and exact-result oracles, and uses a bounded counterexample check when justified
+    static_keyword_winner: arc:verify
     static_keyword_is_authoritative: false
     notes: 不以增加随机次数或沿用同一查询算法计算期望来替代真实缺陷敏感性。
 
   - id: reliability-configuration-capacity-scope
     category: multi-intent
     utterance: 为规则配置变更做可靠性验证方案；正常请求测试都过了，没有改二进制，只读分析
-    expected_runtime: arc:reliability assesses actual configuration, relevant CPU/load and rollout/recovery risks alongside functional claims, without running load or deploying during a read-only analysis
+    expected_runtime: arc:verify assesses actual configuration, relevant CPU/load and rollout/recovery risks alongside functional claims, without running load or deploying during a read-only analysis
     static_keyword_winner: null
     static_keyword_is_authoritative: false
     notes: 静态“只读”与“可靠性”命中并列，无唯一赢家。实际任务中配置不是免测面，容量验证按后果排序，且保持只读。
@@ -106,7 +156,7 @@ scenarios:
   - id: reliability-mixed-version-and-rollback-floor
     category: scope
     utterance: 核对发布证据；旧版只读 XML，新版开始写 JSON，两个单版本套件均通过，计划任意回滚
-    expected_runtime: arc:reliability checks coexisting versions, reader/writer preparation, old and new persisted data, background work and the supported rollback floor; separate single-version passes do not prove transition safety
+    expected_runtime: arc:verify checks coexisting versions, reader/writer preparation, old and new persisted data, background work and the supported rollback floor; separate single-version passes do not prove transition safety
     static_keyword_winner: null
     static_keyword_is_authoritative: false
     notes: 静态“只读”与“发布证据”命中并列，此处只读描述版本能力。实际必须验证过渡，不能把分阶段可回退误写成可回到所有历史版本。
@@ -114,7 +164,7 @@ scenarios:
   - id: reliability-quarantined-required-claim
     category: negation
     utterance: 看发布证据；防重复履约的必需测试失败后重跑通过，已经自动隔离，不能把它从风险里删掉
-    expected_runtime: arc:reliability preserves attempts, checks candidate and observer identity, retains the unsatisfied required claim and uses comparative diagnosis without treating quarantine or retry success as PASS
-    static_keyword_winner: arc:reliability
+    expected_runtime: arc:verify preserves attempts, checks candidate and observer identity, retains the unsatisfied required claim and uses comparative diagnosis without treating quarantine or retry success as PASS
+    static_keyword_winner: arc:verify
     static_keyword_is_authoritative: false
     notes: 隔离改变调度而非业务事实；需要修复或可信替代证据，授权风险决定与测试结果分开。

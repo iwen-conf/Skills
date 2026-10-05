@@ -1,22 +1,53 @@
 # Arc
 
-Lean Arc keeps software engineering lifecycle skills:
+Arc is the cross-project software-engineering family: five skills, one per kind of work. Each
+skill is self-sufficient for its phase; skills never load each other, they hand off by name.
 
-- `arc:define` — 项目定义，把想法整理成 PRD/Blueprint
-- `arc:clarify` — 需求澄清，把模糊请求转成执行任务
-- `arc:docs` — 可选飞书工作区，在已有 `.lark.json` 或用户触发时维护飞书资源索引
-- `arc:build` — 代码交付
-- `arc:prewalk` — 同会话多模型路由：Guide 探索 + todo + 第一笔生产 edit，Executor 继承 trajectory
-- `arc:frontend` — 前端工程基线、UI 交付和前端进度沉淀
-- `arc:fix` — 故障修复
-- `arc:test` — 分层测试策略与执行；按风险启用单元/集成/契约/E2E、覆盖率、模糊/属性、性能，用平台原生工具（Android=Maestro、Go/Rust 原生、HarmonyOS=arkxtest、前端=Vitest/Playwright）
-- `arc:reliability` — 按业务风险选择正常/故障/恢复/升级场景，核对真实依赖与发布证据，形成事故控制；执行复用 `arc:test`，修复交 `arc:fix`
-- `arc:audit` — 项目体检；AppSec 模式做跨项目只读漏洞审计；多 finding 时产出 Handoff（定位/口径/角色）
-- `arc:security` — 本地安全 CLI 自动化、数据价值重排；多 finding 并入 Handoff 再拆任务
-- `arc:sdlc` — 跨会话任务文档与进度；安全来源时按 finding 写细子任务（见 security-audit-task-pipeline）；同会话成本路由走 `arc:prewalk`，不是 plan 冷启动
+## Routing
 
-Repository search and code context discovery use `arc:idx` plus the local `.ai-code-index/` helpers backed by Zoekt, ast-grep, Universal Ctags, and Rust/Go helper CLIs. Lark resources are optional: existing Lark projects live in each project root’s `.lark.json`, and new Lark resources are created only after an explicit trigger or confirmation. Coordination, Inbox, and cross-agent state are handled by `aitask`. Multi-model cost routing inside one session follows [`docs/prewalk.md`](../docs/prewalk.md).
+| Work | Skill | Modes | Authority |
+|---|---|---|---|
+| Understand code: where, who calls, what a change touches, architecture map, index upkeep | [`arc:explore`](arc:explore/SKILL.md) | locate · trace · impact · map · index-ops | read-only |
+| Turn intent into specs: PRD, brief with acceptance criteria, task documents, progress, finding campaigns | [`arc:plan`](arc:plan/SKILL.md) | prd · brief · tasks · layout · campaign | writes `docs/` only |
+| Change source code: implement, repair, refactor/migrate, frontend, comments, timing probes | [`arc:code`](arc:code/SKILL.md) | implement · repair · refactor · frontend · comment · probe | edits source |
+| Produce behavior evidence: tests, reliability, PostgreSQL qualification, flaky triage, release gates | [`arc:verify`](arc:verify/SKILL.md) | design · write · reliability · db · flaky · release | edits tests, runs checks |
+| Evaluate read-only: diff/PR review, health and code rot, AppSec, scans | [`arc:audit`](arc:audit/SKILL.md) | review · health · appsec · scan | read-only, reports only |
 
-Any Arc or vertical skill that diagnoses a suspected defect, regression, performance problem, or security finding must load the repository-wide [evidence-first root-cause repair gate](../docs/execution-truth.md#6-evidence-first-root-cause-repair). A signal is not proof: confirm the issue, trace architecture ownership and shared invariants, compare with the business contract, then apply and verify only a complete root-cause fix.
+Lark project workspaces (`.lark.json`, sync to Lark docs/base/wiki) live in the Lark family:
+[`lark-workflow-project-docs`](../Lark/lark-workflow-project-docs/SKILL.md).
 
-Business reliability follows [`arc:reliability`](arc:reliability/SKILL.md): define EXPECTED/FORBIDDEN outcomes and independent oracles, bind scenarios to existing native tests, verify real dependency semantics, and gate each required scenario on current evidence. Ordinary tests stay in `arc:test`; security stays in `arc:audit`/`arc:security`. Reliability review preserves read-only scope, and its release verdict does not execute deployment.
+Typical sequences: `explore → code → verify` for a change; `plan → code → verify` for a T2
+feature; `audit → plan (campaign) → code → verify` for a findings campaign.
+
+## Shared layer
+
+[`_shared/`](_shared/) holds rules several skills apply. It has no `SKILL.md` and is never
+discovered; the packager copies each linked file into the skills that reference it.
+
+| File | Content |
+|---|---|
+| [contract.md](_shared/contract.md) | authority, task tiers, scope lock, vocabulary, artifacts, environment, report format |
+| [code-intel.md](_shared/code-intel.md) | arc-idx preflight, query ladder, 8-surface impact checklist, fallback rules |
+| [code-rot.md](_shared/code-rot.md) | 36 code-rot smells in families A–F |
+| [api-contract.md](_shared/api-contract.md) | Markdown API contract rules |
+| [finding-campaign.md](_shared/finding-campaign.md) | findings → task batches |
+| [conventions/](_shared/conventions/) | Go backend and Go type safety, frontend, color tokens, comment templates |
+
+Repository-wide gates (completion, scope tokens, root-cause repair, simplicity, surgical edits)
+stay in [`docs/execution-truth.md`](../docs/execution-truth.md).
+
+## Retired names (2.0.0)
+
+No aliases are installed; use the new name.
+
+| Old | New |
+|---|---|
+| `arc:idx` | `arc:explore` |
+| `arc:define`, `arc:clarify`, `arc:sdlc` | `arc:plan` (prd, brief, tasks/layout/campaign) |
+| `arc:build`, `arc:fix`, `arc:frontend`, `arc:arch`, `arc:comment`, `arc:trace` | `arc:code` (implement, repair, frontend, conventions, comment, probe) |
+| `arc:test`, `arc:reliability`, `arc:dbqual`, `reliability-engineering-skill` | `arc:verify` (design/write, reliability, db, release) |
+| `arc:audit`, `arc:security` | `arc:audit` (health/appsec, scan; new review mode) |
+| `arc:docs` | `lark-workflow-project-docs` |
+| `arc:prewalk` | removed (design record: [`docs/01-系统设计/prewalk.md`](../docs/01-系统设计/prewalk.md)) |
+
+Design rationale: [ARC 技能架构重构评审](../docs/01-系统设计/01-ARC技能架构重构评审.md).

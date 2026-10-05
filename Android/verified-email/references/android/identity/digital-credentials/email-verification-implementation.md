@@ -44,11 +44,12 @@ containing a [`GetDigitalCredentialOption`](https://developer.android.com/refere
 `requestJson` string formatted as an OpenID for Verifiable Presentations
 (OpenID4VP) request.
 
-The OpenID4VP request JSON must follow a specific structure. The current
-providers support a JSON structure with an outer `"digital": {"requests":
-[...]}` wrapper.
+This example uses a top-level requests envelope consistently. Verify the exact shape against the resolved library/provider contract before integration; a matching example is not runtime compatibility evidence.
 
-        val nonce = generateSecureRandomNonce()
+**Compatibility evidence (2026-10-05):** The [official implementation page](https://developer.android.com/identity/digital-credentials/email-verification-implementation) still describes an outer `digital` wrapper while its Android code uses top-level `requests`. The following sample follows that code, but the conflict is unresolved for a concrete dependency/provider. Verify the target API before treating this as runnable integration; do not guess the envelope.
+
+        // Obtain the nonce from the project's server challenge contract.
+        val nonce = serverChallenge.nonce
 
         // This request follows the OpenID4VP spec
         val openId4vpRequest = """
@@ -164,15 +165,14 @@ The following code extracts the raw [Selective Disclosure JWT
     val credentialId = vpToken.keys().next()
     val rawSdJwt = vpToken.getJSONArray(credentialId).getString(0)
 
-    // 3. Use your parser to get the verified claims
-    // Server-side validation/parsing is highly recommended.
+    // 3. Extract unverified display data; server validation is mandatory.
 
     // Assumes a local parser like the one in our SdJwtParser.kt sample
     val claims = SdJwtParser.parse(rawSdJwt)
-    Log.d("TAG", "Parsed Claims: ${claims.toString(2)}")
+    Log.d("CredentialFlow", "credential_received_pending_server_verification")
 
-    // 4. Create your VerifiedUserInfo object with REAL data
-    val userInfo = VerifiedUserInfo(
+    // 4. Display-only data, never proof of an authenticated session
+    val userInfo = UnverifiedUserInfo(
         email = claims.getString("email"),
         displayName = claims.optString("name", claims.getString("email"))
     )
@@ -218,13 +218,11 @@ additional metadata as well along with verified email:
      */
 
 > [!IMPORTANT]
-> **Important:** We highly recommend that after receiving the verified email, you trigger Credential Manager's [passkey creation](https://developer.android.com/identity/credential-manager/passkeys/create-passkeys).
+> **Important:** After successful server account provisioning, you may trigger Credential Manager's [passkey creation](https://developer.android.com/identity/credential-manager/passkeys/create-passkeys).
 
 ## Server-side validation for account creation
 
-Since the retrieved email is cryptographically verified, you can omit the email
-OTP verification step, significantly reducing sign-up friction and potentially
-increasing conversion. This process is best handled on your server. The client
+Only after server verification and application freshness checks may the server omit OTP. The client
 sends the raw response (containing the `vp_token`) and the original nonce to a
 new server endpoint.
 
@@ -247,8 +245,7 @@ The validation on the server must achieve the following:
 > **Note:** Use a standard library (such as [@sd-jwt/sd-jwt-vc](https://datatracker.ietf.org/doc/rfc9901/) for Node.js) to perform the verification steps as outlined in the [OpenID for Verifiable
 > Presentations specification](https://openid.net/specs/openid-4-verifiable-presentations-1_0.html).
 
-For full security, make sure that you also validate the `nonce` to prevent
-replay attacks.
+The server binds nonce to its own unexpired, single-use challenge/session and validates audience/origin, expiry, disclosures and key binding. Echoing an arbitrary client nonce is not replay protection.
 
 By combining these steps, your server can validate both the authenticity of the
 data and the identity of the presenter, ensuring the credential wasn't
@@ -268,7 +265,7 @@ intercepted or spoofed before provisioning the new account.
             displayName = claims.optString("name", claims.getString("email"))
         )
 
-        // handle response - Up to the developer
+        // Require the backend authenticated session before navigation; absence stays unauthenticated.
     } catch (e: Exception) {
         // handle exceptions - Up to the developer
     }

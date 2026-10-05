@@ -1,202 +1,146 @@
 ---
 name: arc:audit
-version: 1.0.2
-description: >
-  Performs a read-only project health or AppSec audit (assets, data map, finding cards).
-  Use when the user says 体检, 审计, AppSec, 只读审查, scorecard, or project audit. Not for
-  installing scanners or editing production code.
+version: 2.0.0
+description: >-
+  Read-only evaluation (只读) that produces ranked, evidence-backed findings and never edits code:
+  review a diff, PR or branch (代码评审), project health and code-rot audit (体检, 技术债),
+  AppSec audit and threat model, secret, dependency and SAST scans (安全扫描, Semgrep, 漏洞), and
+  authorized DAST. Not for fixes (use arc:code), tests (use arc:verify), or posting comments on
+  CNB pull requests (use cnb-code-review).
 ---
 # arc:audit
 
-## Overview
+Read-only review that turns a diff, a repository or an authorized target into ranked, evidence-backed findings.
 
-`arc:audit` performs read-only engineering and application-security review. It reports evidence-backed risks and recommendations only; it does not patch code or create Lark resources directly.
+## Trigger
 
-Two review modes share one skill:
+- Review a diff, PR, branch, commit or patch: "review this PR", "代码评审", "审查这次改动", "这个分支能合吗".
+- Audit health, code rot or tech debt: "体检", "技术债盘点", "代码腐化", "scorecard", "release readiness review".
+- Audit security or build a threat model: "安全审计", "漏洞审计", "AppSec review", "威胁建模", "只读审查".
+- Scan secrets, dependencies or code: "漏洞扫描", "密钥扫描", "SCA", "Semgrep", "Trivy", "Gitleaks", "govulncheck", "npm audit".
+- Run DAST (ZAP, nuclei, schemathesis) on a target the user authorized in writing; re-scan fixed paths.
 
-| Mode | Purpose |
-|---|---|
-| `general` | Architecture, maintainability, tests, dependency health, code-rot taxonomy |
-| `appsec` | Cross-project vulnerability / project security audit: assets → data map → soft targets → finding cards |
+## Non-trigger
 
-For CLI scanners (SAST/SCA/secrets/DAST), hand off to `arc:security` after Phase 1 assets exist—or when the user explicitly wants automation-first.
+- Fix a defect or add a control → `arc:code`.
+- Write or run tests, prove a fix, release evidence → `arc:verify`.
+- Turn findings into task documents or a tracked campaign → `arc:plan`.
+- Map unfamiliar code or run index operations without judging it → `arc:explore`.
+- Post review comments on a CNB pull request → `cnb-code-review`.
+- Probe third-party or production systems without written authorization → refuse.
 
-AppSec methodology lives in [`references/appsec-playbook.md`](references/appsec-playbook.md).
+## Goal
 
-## Quick Contract
+Deliver a findings table where every row has `file:line`, evidence, severity and status, plus a coverage table, with the repository's `git status` unchanged.
 
-- **Trigger**: The user asks for review, health check, risk assessment, architecture review, release readiness, code audit, vulnerability audit, AppSec review, or project security体检.
-- **Inputs**: Project path, scope, mode (`general` / `appsec`), risk focus, optional changed files, authorized environment notes.
-- **Outputs**: Severity-ordered findings with evidence; for `appsec`, also asset table, data map, top hypotheses, manual gaps; optional Lark handoff.
-- **Quality Gate**: Every finding has concrete evidence or is explicitly marked as an assumption. AppSec findings include permission class and data yield.
-- **Decision Tree**: See [`docs/arc-routing-matrix.md`](../../docs/arc-routing-matrix.md).
+## Inputs
+
+| Input | Required | Default |
+|---|---|---|
+| target | yes | review: `<base>...HEAD`; other modes: repository root |
+| mode | no | chosen by the Intent Router |
+| base / head refs or patch file | review | base per [diff-review.md](references/diff-review.md) §1; head `HEAD` |
+| task slug | no | `audit-<mode>-<YYYYMMDD>` |
+| focus (auth, data, config, module) | no | whole mode scope |
+| DAST target + written authorization | scan with DAST | none: DAST not run |
+| install permission | no | not granted: missing tools skipped |
+| prior findings (earlier reports, `.lark.json` records) | no | none |
 
 ## Intent Router
 
-| When | Load |
-|---|---|
-| AppSec assets/data map/findings | [`references/appsec-playbook.md`](references/appsec-playbook.md) |
-| Local scanners | `arc:security` |
-| Business reliability, transaction risk, or release-evidence assessment | `arc:reliability` methodology, preserving this audit's read-only scope |
-| Multi-finding task split | `arc:sdlc` |
-| Repair after handoff | `arc:fix` / `arc:build` |
-| Root-cause evidence and repair boundary | [`docs/execution-truth.md`](../../docs/execution-truth.md) |
-| Lark-active risks | `arc:docs` |
-| Need code edits now | stop; this skill is read-only |
-
-## Context Search
-
-- MUST load the **Evidence-first root-cause repair** section in [`docs/execution-truth.md`](../../docs/execution-truth.md) when a finding may lead to a repair recommendation.
-- MUST use `arc-idx search` first for relevant code paths, tests, dependencies, and architecture boundaries.
-- MUST use `arc-idx ast` for risky code shapes when relevant (auth, SQL, uploads, SSRF, JWT, payments).
-- MUST prefer inventory collectors (routers, OpenAPI, migrations, configs) over free-form AI “scan everything”.
-- If `.lark.json` exists, MUST read it before reporting prior risks, tasks, approvals, and audit records.
-
-
-## Red Lines
-
-```text
-NO FINDING WITHOUT EVIDENCE.
-NO CONFIRMED-FIX LANGUAGE FOR AN UNCONFIRMED ISSUE.
-NO REMEDIATION RECOMMENDATION WITHOUT A NAMED ROOT-CAUSE CHECK.
-NO CODE EDIT DURING AUDIT.
-NO LARK AUDIT UPDATE OUTSIDE arc:docs.
-NO APPSEC CLAIM WITHOUT PERMISSION CLASS AND DATA YIELD (OR EXPLICIT CAPABILITY-ONLY).
-NO MASS AI DEEP-DIVE BEFORE ASSET INVENTORY.
-```
-
-## Hard Constraints
-
-- MUST remain read-only unless the user explicitly changes the task to implementation.
-- MUST inspect the project before giving findings.
-- MUST order findings by severity (and for appsec, by data yield when severities tie).
-- MUST include file path, command output, config, behavior, or other evidence for each confirmed issue.
-- MUST separate observed issue, hypothesis, root cause, and remediation boundary; scanner output or a plausible code smell alone is not proof.
-- MUST identify analogous paths that share the suspected boundary and mark them as checked, out of scope, or unverified.
-- MUST check frontend platform stack drift against `arc:frontend` when relevant: Web = React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod; mobile = React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router; desktop = Tauri 2 + Web stack; mini-program = Taro 4 + React + TypeScript + Zustand, unless an explicit project exception exists.
-- MUST mark inferred risks as assumptions.
-- MUST route all Lark audit/risk/task/approval updates through `arc:docs`.
-- MUST NOT create or request Lark resources when `.lark.json` is absent and the user did not explicitly trigger or confirm Lark.
-- MUST route multi-finding or tracked remediation planning through `arc:sdlc` before execution starts. Ordinary multi-step review notes do not require persistent task docs.
-- MUST follow [`references/appsec-playbook.md`](references/appsec-playbook.md) when mode is `appsec` or risk_focus is security/vuln/appsec.
-- MUST treat config/secret/default-admin/debug exposure as first-class risks, not afterthoughts.
-- MUST NOT run active DAST, exploit payloads, or live attacks under `arc:audit`; authorize and route those to `arc:security`.
-- MUST redact secrets in chat; keep raw sensitive evidence local when needed.
-- NEVER present preferences as defects.
-- NEVER hide uncertainty behind numeric scores.
-- NEVER equate “server/admin foothold narrative” with audit value when bulk PII/payment/credential impact is unstated.
+| Condition | Mode | Read |
+|---|---|---|
+| Diff, PR, branch, commit range or patch file | review | [references/diff-review.md](references/diff-review.md) |
+| Health, code rot, tech debt, maintainability, architecture or release readiness; "审计/audit" with no security word | health | [../_shared/code-rot.md](../_shared/code-rot.md) |
+| Security, vulnerability, AppSec, threat model, data exposure, AuthZ | appsec | [references/appsec.md](references/appsec.md) |
+| Scanner name, secrets/dependency/SAST scan, DAST, re-scan | scan | [references/scanners.md](references/scanners.md) |
+| AppSec audit plus tool scans | appsec, then scan | [references/appsec.md](references/appsec.md), [references/scanners.md](references/scanners.md) |
 
 ## Workflow
 
-### Shared
+1. Read [../_shared/contract.md](../_shared/contract.md) and [../_shared/code-intel.md](../_shared/code-intel.md); run the code-intel preflight. Record the baseline:
+   `mkdir -p .arc/artifacts/<slug>/logs && git status --porcelain --untracked-files=all -- . ':(exclude).arc/artifacts' > .arc/artifacts/<slug>/logs/status-before.txt`.
+   IF `.lark.json` exists THEN read its prior risk and audit records. Output: baseline file, mode, scope.
+2. Read the rubric for each stack in scope: [go-backend.md](../_shared/conventions/go-backend.md) + [go-type-safety.md](../_shared/conventions/go-type-safety.md), [frontend.md](../_shared/conventions/frontend.md), [api-contract.md](../_shared/api-contract.md) when routes or DTOs are in scope, [comments.md](../_shared/conventions/comments.md) when comments are reviewed. Output: rubric list in the report.
+3. Run the mode:
+   - **review**: [diff-review.md](references/diff-review.md) §1–§8. Output: symbol table, impact rows, verdict.
+   - **health**: pick hotspots from `arc-idx stats --format json` and `git log --since=12.months --name-only --format= | sort | uniq -c | sort -rn | head -30`. Screen all 36 [code-rot](../_shared/code-rot.md) items with their Detect queries, marking each `finding`, `clean` or `N/A`; also check architecture boundaries against the conventions, dependency health, tests, state/data risks and release readiness. Output: 36-row screen table.
+   - **appsec**: [appsec.md](references/appsec.md) Phases 0–6. Output: assets, data map, hypotheses, finding cards, manual gaps.
+   - **scan**: [scanners.md](references/scanners.md): asset snapshot, `security-scan.py` quick mode, DAST only under the authorization rule, triage of every signal group. Output: `security/` reports and a triage table.
+4. Diagnose every suspected bug or security finding through the evidence-first root-cause repair gate in [execution-truth.md](../../docs/execution-truth.md) §6: observed vs expected, hypothesis, a check that could disprove it, root cause, affected siblings. Mark each analogous path sharing the boundary `checked`, `out of scope` or `unverified`. Output: status per finding.
+5. Write finding cards to `.arc/artifacts/<slug>/reports/findings.md`: ID, severity, status, `file:line`, evidence (query or command with result), impact, fix direction, fix owner, verification suggestion; appsec cards add permission class and data yield.
+6. Merge findings with one root cause into one card listing every location. Rank review findings by blocking, severity, tier; other modes by severity, then data yield. Write `reports/coverage.md`: checked, `N/A`, not checked (with reason), manual gaps, sampled scope. Output: Top-N list (N ≤ 10).
+7. Hand off per Decision Rules; Lark status follows contract §7.
+8. Re-run the step 1 status command into `logs/status-after.txt`; `diff` it against `status-before.txt`. Report per contract §9.
 
-1. Confirm scope, constraints, mode (`general` vs `appsec`), and risk focus.
-2. Inspect structure, dependencies, critical paths, tests, and recent changes via local index tools.
-3. Produce severity-ordered findings with evidence and recommended action.
-4. If findings become large or tracked remediation work: as `R-recon`, write the Handoff Package (定位/口径/角色/assets/data-map/findings/task-seed), then hand to `arc:sdlc` (`R-task`) before any `arc:build` / `arc:fix`. Pipeline: [`../arc:sdlc/references/security-audit-task-pipeline.md`](../arc:sdlc/references/security-audit-task-pipeline.md).
-5. If `.lark.json` exists or the user explicitly triggered/confirmed Lark, hand off to `arc:docs` with findings, risk rows, tasks, and approval needs.
+## Tool Strategy
 
-### Mode `general`
+- **Preferred**: code-intel commands; project-native inventories (route registration, OpenAPI, migrations, env samples, deploy manifests); read-only git (`diff`, `log`, `show`, `blame`, `merge-base`); `scripts/` for tool scans.
+- **Query order**: (1) code-intel ladder for symbols and literals; (2) AST patterns for risky shapes: raw SQL, shell execution, upload, SSRF fetch, JWT parsing, payment amount; (3) inventories; (4) git history; (5) scanners, scan mode only; (6) host search under the code-intel fallback conditions.
+- **When a query fails**: widen per code-intel §5; after the last rung record `not found` with every query and add the area to coverage as not checked. A failed query never supports a finding or a "no findings" claim.
+- **Forbidden**:
+  - creating or changing any file outside `.arc/artifacts/<slug>/`, including formatters, `--fix` flags, generators and tests that write;
+  - git commands that change state or contact a remote: `commit`, `checkout`, `switch`, `stash`, `reset`, `merge`, `rebase`, `fetch`, `pull`, `push`;
+  - DAST, fuzzing, exploit payloads or brute force without written authorization naming the target;
+  - installing tools without permission; uploading source, reports, SARIF or secrets to cloud services;
+  - printing secret values (cite `file:line` and a redacted prefix);
+  - `confirmed` status without a disproving check; preferences presented as defects; numeric total scores without a user-supplied template whose every cell cites evidence;
+  - posting PR comments.
+- **Fallback**: `arc-idx` unavailable → host search labeled `fallback:<tool>`; scanner missing or failed → that layer's manual checklist in [scanners.md](references/scanners.md), status `manual-gap`; no git repository → review a user-provided patch file.
 
-1. Check the 36-item code-rot taxonomy in [`docs/code-rot-taxonomy.md`](../../docs/code-rot-taxonomy.md).
-2. Cover architecture boundaries, Dependency Health, tests, state/data risks, and release readiness as relevant.
-3. Use Expert Review Card / compact 9 Tab summary only when evidence supports scoring.
+## Decision Rules
 
-### Mode `appsec` (default when user asks 漏洞/安全/AppSec/代码审计 in a security sense)
+- **Status**
+  - IF a reproduction ran, or an entry → sink trace has `file:line` for every hop, AND a disproving check failed to disprove it THEN `confirmed`.
+  - IF code evidence holds but one hop is unverified (dynamic dispatch, runtime config, environment) THEN `likely`.
+  - IF the only evidence is a scanner signal, a pattern match or inference THEN `needs-triage`.
+  - IF the disproving check succeeds (unreachable, fixture, sanitized upstream, mitigated elsewhere) THEN `false-positive` with that evidence.
+  - IF it cannot be decided statically (AuthZ matrix, payment flow, race, live config) THEN `manual-gap`.
+- **Severity**: security per [appsec.md](references/appsec.md) Phase 5. Otherwise Critical = data loss, corruption or outage on a main path; High = wrong result on a main path or a contract break for existing clients; Medium = edge-case defect, missing test for changed behavior, partial exposure; Low = maintainability defect with a named code-rot or conventions rule; Info = hardening or doc mismatch. Priority comes only from the contract §4 mapping.
+- IF scanner severity differs from reachability, auth context or data yield THEN re-rank and record both.
+- IF a finding has no source rule (contract, conventions, api-contract, code-rot) and no defect THEN it is not a finding. An established frontend stack that differs from the default is not a defect; same-duty library duplication, mixed state layers and undocumented exceptions on new surfaces are.
+- IF the fix direction does not name a layer and a change ("add `owner_id` predicate to `OrderRepo.Get`") THEN rewrite it; "strengthen validation" is rejected.
+- **Review**: correctness, security, data loss and contract break are blocking; readability and style are advisory. IF any blocking finding is `confirmed` or `likely` THEN verdict `FAIL`.
+- IF nothing is found THEN write "no findings in checked scope" beside the coverage table; never "safe".
+- **Size**: IF a diff exceeds 1,500 changed lines THEN use the risk tiers in diff-review.md §2. IF health or appsec scope exceeds 50 entrypoints or 2,000 source files THEN deep-review the top 20 entrypoints or hotspots by data yield × exposure (appsec) or churn (health) and list the rest as not checked.
+- **Scan volume**: IF more than 500 raw signals THEN group by rule and root cause, triage the top 50 groups by severity × yield, and leave the rest `needs-triage`. Run `quick` before `full` on any monorepo.
+- **DAST**: IF the user has not written an authorization naming the target and environment THEN do not pass `--target-url` or `--mode full`; mark DAST `BLOCKED`.
+- **Installs**: IF a tool is missing and install permission is absent THEN skip it and run its manual checklist.
+- **Release gate**: the scan report is evidence, not a gate. IF the project has no explicit gate policy THEN report "no gate decision"; absent or unknown evidence never passes a gate.
+- **Handoff**: IF the user asks for remediation tasks THEN write the handoff package at the path and in the format of [finding-campaign.md](../_shared/finding-campaign.md) §2 and name `arc:plan`. IF three or more `confirmed`/`likely` findings need fixes across sessions THEN recommend `arc:plan` in Next. IF one confirmed finding sits in one module THEN hand the card to `arc:code`; a small scoped fix needs no task tree. Proof of a fix goes to `arc:verify`.
 
-Follow the playbook phases without skipping inventory:
+## Verification
 
-1. **Phase 0 — Scope gate**: environments, active-test ban (default), protected paths.
-2. **Phase 1 — Asset table**: APIs, SSR, admin, identity, storage, payments, integrations, config/ops, clients. AI may format/dedupe tables; tools/index collect surfaces.
-3. **Phase 2 — Sensitive data map**: tag PII / AUTH / PAY / BIZ / SECRET; assign yield class L0–L4 and access paths.
-4. **Phase 3 — Soft-target queue**: secrets/config first, then AuthN, AuthZ/IDOR, privileged APIs, upload, payment, injection, SSRF, frontend tokens, then dependency CVEs with reachability.
-5. **Phase 4 — Verify read-only**: code/config reachability proofs; mark live checks as manual gaps or hand off to `arc:security`.
-6. **Phase 5 — Finding cards**: every confirmed item uses permission class + data yield + evidence + fix direction (playbook template).
-7. **Phase 6 — Bundle**: `assets` + `data-map` + top hypotheses + findings + manual gaps; optional `arc:security` handoff for automation.
-8. **Phase 6b — Task handoff (when fix campaign follows)**: write `00-项目定位与口径.md` + `06-task-seed.md` with risk-domain groups only; do not author full implementation subtasks here—that is `R-task`.
+| Claim | Evidence |
+|---|---|
+| Nothing changed | `diff logs/status-before.txt logs/status-after.txt` prints nothing |
+| Finding `confirmed` | trace hops as `file:line` plus the disproving check and its result |
+| Impact covered (review) | eight code-intel rows per changed public symbol |
+| Health screened | 36 rows, each `finding`, `clean` or `N/A` with the query run |
+| Scan ran | per-tool `status` and `exit_code` from `security-summary.json`; raw artifact paths |
+| Coverage complete | coverage table lists every in-scope area as checked, `N/A`, not checked or `manual-gap` |
+| Priority | severity rule cited; priority from the contract mapping |
 
-Do not spend the whole engagement on low-yield host/RCE fantasies while bulk data paths remain unmapped.
+## Failure Recovery
 
-## Quality Gates
-
-- Findings lead the report; summary is secondary.
-- Each confirmed finding has concrete evidence.
-- Recommendations are scoped and actionable.
-- Large remediation follow-up names `arc:sdlc` as the required local planning gate.
-- Security, data-layer, state, dependency, and test risks are considered when relevant.
-- Frontend audits check same-duty library duplication, state-layer mixing, and undocumented default-stack exceptions when relevant.
-- Lark audit state is linked through `.lark.json` only when Lark is active.
-- AppSec mode includes asset inventory and sensitive data map before deep module claims.
-- AppSec findings state permission class and data yield (or explicit capability-only).
-- Manual AuthZ / payment / business-logic gaps are listed even when no bug is proven.
-- Scanner-only statements are deferred to `arc:security` or labeled non-coverage.
-
-
-## Scripts & Commands
-
-No dedicated runtime scripts. Use:
-
-- `arc-idx search`, `arc-idx ast`, `arc-idx symbol`
-- project-native tests, linters, and package managers
-- static inspection of routers, migrations, configs, deploy scripts
-- `arc:security` scripts only after handoff / user request for automation
-
-Suggested appsec collectors (adapt per stack):
-
-```bash
-# examples — prefer project-native equivalents
-arc-idx search 'raw SQL|ExecContext|jwt|password|upload|webhook'
-# list HTTP registrations, OpenAPI, permission matrices, *.yaml configs, deploy scripts
-```
-
-## Red Flags
-
-- Generic advice without inspection.
-- Style nits hiding security, data, state, or test risk.
-- Fixing code during read-only review.
-- Turning audit findings into broad remediation work without current local task docs.
-- Audit report created in Lark but missing from `.lark.json`.
-- AI whole-repo monologue with no asset table.
-- CVE count theater without reachability or data yield.
-- Reporting admin/server “win” without obtainable data or business impact.
-- Running live exploits under audit mode.
-- Skipping config, secrets, debug endpoints, and deploy artifacts.
-
-## When to Use
-
-- **Preferred Trigger**: The user asks whether a codebase, PR, architecture, or module is healthy or risky; or asks for code/project/vulnerability audit, AppSec review, or security体检 without requiring scanner installation.
-- **Typical Scenario**: Pre-refactor assessment, takeover review, release readiness, quality gap analysis, or cross-project AppSec pass using the shared playbook.
-- **Boundary Tip**: Use `arc:build` for implementation, `arc:fix` for known failures, and `arc:security` for local scanner/DAST automation. Use this skill for methodology-first read-only review.
-
-## Input Arguments
-
-| parameter | type | required | description |
+| Failure | Action | Budget | Stop |
 |---|---|---|---|
-| `project_path` | string | yes | Target repository root |
-| `scope` | string | no | Whole project, module, PR, or concern |
-| `mode` | enum | no | `general` (default for health/architecture) or `appsec` (default for vuln/security audit language) |
-| `risk_focus` | string | no | Architecture, security, tests, dependencies, performance, maintainability, data, auth, config-deploy |
-| `changed_files` | string | no | Optional PR or local diff focus |
-| `environment` | string | no | local / test / staging / prod notes; prod active tests require explicit authorization |
+| Base or head ref missing | try the base fallbacks in diff-review.md §1 | 1 pass | `BLOCKED`; ask for a local ref or a patch file |
+| `arc-idx` unhealthy | one repair per code-intel §1, then fallback search | 1 | continue on fallback, labeled |
+| Query returns nothing | code-intel §5 widening | 5 rungs | `not found`; coverage gap |
+| Scanner error or timeout | read `logs/<tool>.stderr.txt`; rerun with doubled `--timeout` or a narrower path | 1 | manual checklist; `manual-gap` with command and error |
+| Install fails | record command and error | 1 | continue with available tools |
+| Scanner and code disagree | re-trace the code; code wins | 1 per finding | `false-positive` with evidence, else `needs-triage` |
+| Status differs from baseline | list the changed paths; revert nothing | 0 | stop and report to the user |
+| Scope exceeds the size rules | deliver the Top-N and the coverage table | 1 pass | report the unchecked remainder |
 
-## Outputs
+## Completion Criteria
 
-```text
-Audit Report
-- Mode and scope
-- Findings by severity (finding cards in appsec mode)
-- Evidence
-- Impact (permission class + data yield in appsec mode)
-- Recommendation
-- Residual risks
-- Appsec bundle when applicable:
-  - assets
-  - data-map
-  - top hypotheses
-  - manual-gaps
-  - optional arc:security handoff
-  - Handoff Package for R-task when remediation is tracked:
-    - 项目定位 / 项目口径 / 功能角色
-    - findings + task-seed (not full subtasks)
-- Lark / .lark.json handoff, if applicable
-```
+- [ ] `status-before.txt` and `status-after.txt` are identical.
+- [ ] Every finding has ID, severity, status, `file:line`, evidence, fix direction and owner.
+- [ ] No `confirmed` finding lacks a trace and a disproving check.
+- [ ] Coverage table lists checked, `N/A`, not checked, manual gaps and sampled scope.
+- [ ] Top-N list (N ≤ 10) with priorities from the contract mapping.
+- [ ] Mode output present: review → symbol table, impact rows, verdict; health → 36-item screen; appsec → assets, data map, hypotheses, finding cards, manual gaps; scan → tool status table and triage of every signal group.
+- [ ] Secrets redacted in every quoted output.
+- [ ] Contract §9 report written with the Next handoff.

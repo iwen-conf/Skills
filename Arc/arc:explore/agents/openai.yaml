@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arc Explore"
+  short_description: "Locate code, trace call chains, impact analysis and architecture maps"
+  default_prompt: "Use $arc:explore to answer where this code lives, who depends on it and what a change would touch, with query evidence."

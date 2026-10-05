@@ -1,0 +1,8 @@
+[[longrun_profile]]
+id = "nominal-traffic-soak"
+duration_s = 21600
+sample_s = 5
+max_idle_in_tx = 0
+max_lock_waiters = 4
+max_xact_age_ms = 30000
+command = ["./bin/business-load", "--profile", "nominal"]

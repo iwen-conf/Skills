@@ -19,7 +19,8 @@ metadata:
 > **用户身份识别**：在用户身份（user identity）场景下，如果用户提到了“我”（例如“分配给我”、“由我创建”），请默认获取当前登录用户的 `open_id` 作为对应的参数值。
 > **术语理解 — 待办 disambiguation（必读）**：
 > - 用户提到「待办 / todo / 任务」时，**先判断归属**，不要默认走本 skill。
-> - **走 [lark-minutes](../lark-minutes/SKILL.md) 的 `minutes +todo`**（禁止本 skill）：上下文含 **妙记 / 会议纪要 / minute_token / 妙记 URL**（`/minutes/`）；或「在某某妙记里新建/修改待办」「妙记 AI 待办」「会议录制里的待办」。
+> - **审批单据/实例的待办**：走 [lark-approval](../lark-approval/SKILL.md)，动作词“同意/拒绝”不脱离对象独立路由。
+> - **走 [lark-meeting](../lark-meeting/SKILL.md) 的 `minutes +todo`**（禁止本 skill）：上下文含 **妙记 / 会议纪要 / minute_token / 妙记 URL**（`/minutes/`）；或「在某某妙记里新建/修改待办」「妙记 AI 待办」「会议录制里的待办」。
 > - **走本 skill（lark-task）**：任务清单、分配给我、项目待办、截止日期/提醒、子任务、任务清单成员；或 applink 含 `client/todo/task?guid=`；或明确说「飞书任务」「任务中心」「我的任务清单」。
 > - **禁止**：用户要在妙记里加待办时，**不要**调用 `task tasklists list`、`task +create` 或任何 task 命令去「找清单再放任务」。
 > **友好输出**：在输出任务（或清单）的执行结果给用户时，建议同时提取并输出命令返回结果中的 `url` 字段（任务链接），以便用户可以直接点击跳转查看详情。
@@ -135,41 +136,6 @@ lark-cli task <resource> <method> [flags] # 调用 API
 
   - `append_task_steps` — 写入任务记录。
 
-## 权限表
+## 按需参考
 
-| 方法 | 所需 scope |
-|------|-----------|
-| `tasks.create` | `task:task:write` |
-| `tasks.delete` | `task:task:write` |
-| `tasks.get` | `task:task:read` |
-| `tasks.list` | `task:task:read` |
-| `tasks.patch` | `task:task:write` |
-| `tasklists.add_members` | `task:tasklist:write` |
-| `tasklists.create` | `task:tasklist:write` |
-| `tasklists.delete` | `task:tasklist:write` |
-| `tasklists.get` | `task:tasklist:read` |
-| `tasklists.list` | `task:tasklist:read` |
-| `tasklists.patch` | `task:tasklist:write` |
-| `tasklists.remove_members` | `task:tasklist:write` |
-| `tasklists.tasks` | `task:tasklist:read` |
-| `subtasks.create` | `task:task:write` |
-| `subtasks.list` | `task:task:read` |
-| `members.add` | `task:task:write` |
-| `members.remove` | `task:task:write` |
-| `sections.create` | `task:section:write` |
-| `sections.delete` | `task:section:write` |
-| `sections.get` | `task:section:read` |
-| `sections.list` | `task:section:read` |
-| `sections.patch` | `task:section:write` |
-| `sections.tasks` | `task:section:read` |
-| `custom_fields.create` | `task:custom_field:write` |
-| `custom_fields.get` | `task:custom_field:read` |
-| `custom_fields.patch` | `task:custom_field:write` |
-| `custom_fields.list` | `task:custom_field:read` |
-| `custom_fields.add` | `task:custom_field:write` |
-| `custom_fields.remove` | `task:custom_field:write` |
-| `custom_field_options.create` | `task:custom_field:write` |
-| `custom_field_options.patch` | `task:custom_field:write` |
-| `agent.update_agent_profile` | `task:task:write` |
-| `agent.register_agent` | `task:task:write` |
-| `agent_task_step_info.append_task_steps` | `task:task:write` |
+原生方法与 scope 细节见 [permissions.md](references/permissions.md)；首次调用未知 method 时查当前 schema，同版本已确认内容可复用。

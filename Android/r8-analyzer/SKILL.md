@@ -44,7 +44,7 @@ and do not recommend removing or narrowing a rule until the affected runtime con
 
 - **Check requirements** : Python and `protobuf` package are mandatory.
 - **Generate and analyze** : You MUST run the shell commands described in [references/CONFIGURATION-ANALYZER.md](references/CONFIGURATION-ANALYZER.md) to generate the proto file using R8 configuration analyzer, convert it to json and analyze the result.
-- **Report** : Rely entirely on the generated file `analysis.txt` for scores and rule impact metrics. Proceed to Step 3.
+- **Report** : Rely entirely on the generated file `analysis_result.txt` for scores and rule impact metrics. Proceed to Step 3.
 
 ### Path B: Heuristic evaluation and recommendation (R8 \< 9.3.7-dev)
 
@@ -58,12 +58,12 @@ and do not recommend removing or narrowing a rule until the affected runtime con
 ## Step 3. Report generation
 
 - **Format** : Follow [references/REPORT_FORMAT.md](references/REPORT_FORMAT.md) strictly.
-- **Input**: Extract metrics (Scores, Impacts, Example Classes) directly from generated file analysis.txt if using Path A, or from manual findings if using Path B.
-- **Output** : Output ONLY the raw Markdown report in the chat. Do NOT output conversational filler (for example, "Here is your report..."). Do NOT provide recommendations, next steps, or any other text outside of the sections defined in [references/REPORT_FORMAT.md](references/REPORT_FORMAT.md) Do NOT mention the path used for analysis of the configuration
+- **Input**: Extract metrics (Scores, Impacts, Example Classes) directly from generated file analysis_result.txt if using Path A, or from manual findings if using Path B.
+- **Output** : Output ONLY the raw Markdown report in the chat. Do NOT output conversational filler (for example, "Here is your report..."). Do NOT provide recommendations, next steps, or any other text outside of the sections defined in [references/REPORT_FORMAT.md](references/REPORT_FORMAT.md) State Quantitative or Heuristic, the build/variant and unavailable evidence. Do not manufacture scores in Heuristic mode.
 
 ## Constraints
 
 - **Strict output limit**: The final output MUST strictly be the Markdown report and nothing else.
-- **No code changes**: Research and suggest only; Do not modify files.
+- **No code changes**: Research and suggest only; do not modify source/configuration. Unique temporary analysis artifacts are permitted and retained for evidence.
 - **No redundancy**: Do not explain R8 benefits or reference skill internal files in the report.
 - **Focus**: Omit sections (for example, Subsumed Rules, Configuration) if no issues or items are found.

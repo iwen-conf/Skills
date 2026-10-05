@@ -1,0 +1,7 @@
+[[logical_replication_audit]]
+id = "orders-cdc-subscriber"
+subscriber_dsn_env = "SUBSCRIBER_DATABASE_URL"
+min_active_workers = 1
+max_apply_errors = 0
+max_conflicts = 0
+max_apply_age_ms = 5000

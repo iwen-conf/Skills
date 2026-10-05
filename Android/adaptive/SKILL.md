@@ -90,7 +90,7 @@ Steps to migrate:
 - Convert each item to a `NavigationSuiteItem`.
 - Identify whether the navigation bar's visibility changes. For example, if it is wrapped with an `AnimatedContent` or `AnimatedVisibility` composable. If so, follow the guidance in the "Control navigation area visibility".
 - Replace the container that held the navigation bar (often a `Scaffold`) with `NavigationSuiteScaffold` from the Material 3 adaptive layouts library.
-- Supply the navigation items using the `navigationItems` parameter of `NavigationSuiteScaffold`.
+- Supply the navigation items using the `navigationSuiteItems` parameter (verify the resolved library signature) of `NavigationSuiteScaffold`.
 
 ### Step 2.1. Control navigation area visibility
 
@@ -195,8 +195,7 @@ screen complements the main screen and is shown in a supporting pane.
 
 ### Step 3.3. Run screenshot tests
 
-If you have made changes, record new reference files. Ask the user to visually
-verify that the new layouts are correct.
+If layouts changed, preserve reference files and generate candidate screenshots plus diffs. Update references only through the authorized baseline-approval workflow; apply [Android execution](../../docs/android-execution.md).
 
 ## Step 4. Make vertical lists adaptive by changing the number of columns
 

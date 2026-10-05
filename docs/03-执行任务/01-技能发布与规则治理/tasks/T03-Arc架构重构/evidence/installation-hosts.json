@@ -1,0 +1,103 @@
+[
+  {
+    "root": "/Users/iluwen/.agents/skills",
+    "backup": "/Users/iluwen/.agents/skills-retired-arc-yg05f5h_",
+    "saved": [
+      "arc-arch",
+      "arc-build",
+      "arc-clarify",
+      "arc-comment",
+      "arc-dbqual",
+      "arc-define",
+      "arc-docs",
+      "arc-fix",
+      "arc-frontend",
+      "arc-idx",
+      "arc-prewalk",
+      "arc-reliability",
+      "arc-sdlc",
+      "arc-security",
+      "arc-test",
+      "arc-trace"
+    ],
+    "created": [],
+    "retained": []
+  },
+  {
+    "root": "/Users/iluwen/.claude/skills",
+    "backup": "/Users/iluwen/.claude/skills-link-backup-retired-arc-nho_0dct",
+    "saved": [
+      "arc-arch",
+      "arc-build",
+      "arc-clarify",
+      "arc-comment",
+      "arc-dbqual",
+      "arc-define",
+      "arc-docs",
+      "arc-fix",
+      "arc-frontend",
+      "arc-idx",
+      "arc-prewalk",
+      "arc-reliability",
+      "arc-sdlc",
+      "arc-security",
+      "arc-test",
+      "arc-trace",
+      "arc:dbqual"
+    ],
+    "created": [
+      "arc-explore",
+      "arc-plan",
+      "arc-code",
+      "arc-verify",
+      "lark-workflow-project-docs"
+    ],
+    "retained": [
+      "arc-audit"
+    ]
+  },
+  {
+    "root": "/Users/iluwen/.codex/skills",
+    "backup": "/Users/iluwen/.codex/skills-link-backup-retired-arc-oe3je4cs",
+    "saved": [
+      "arc-arch",
+      "arc-build",
+      "arc-clarify",
+      "arc-comment",
+      "arc-dbqual",
+      "arc-define",
+      "arc-docs",
+      "arc-fix",
+      "arc-frontend",
+      "arc-idx",
+      "arc-prewalk",
+      "arc-reliability",
+      "arc-sdlc",
+      "arc-security",
+      "arc-test",
+      "arc-trace"
+    ],
+    "created": [
+      "arc-explore",
+      "arc-plan",
+      "arc-code",
+      "arc-verify",
+      "lark-workflow-project-docs"
+    ],
+    "retained": [
+      "arc-audit"
+    ]
+  },
+  {
+    "root": "/Users/iluwen/.grok/skills",
+    "backup": "/Users/iluwen/.grok/skills-link-backup-retired-arc-cmg8obsd",
+    "saved": [
+      "arc-dbqual",
+      "arc:prewalk"
+    ],
+    "created": [
+      "arc-verify"
+    ],
+    "retained": []
+  }
+]

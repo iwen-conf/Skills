@@ -16,7 +16,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
-// cmdWatch runs the foreground incremental indexer required by arc:idx:
+// cmdWatch runs the foreground incremental indexer required by arc:explore:
 // fsnotify-driven rebuilds with debounce, an idle TTL so RAM is released
 // when nobody is working, a hard memory limit, and orphan self-termination.
 func cmdWatch(args []string) error {

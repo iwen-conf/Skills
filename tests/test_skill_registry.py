@@ -18,36 +18,22 @@ def test_build_registry_includes_structured_skill_fields() -> None:
     registry = build_registry(ROOT)
     assert registry["schema_version"] == "1.0.0"
     assert registry["skill_count"] >= 1
-    build_entry = next(item for item in registry["skills"] if item["name"] == "arc:build")
-    assert build_entry["source_path"] == "Arc/arc:build/SKILL.md"
-    assert build_entry["version"]
-    assert build_entry["line_count"] <= 500
-    assert build_entry["intent_router"]
-    assert len(build_entry["intent_router"]) >= 2
+    code_entry = next(item for item in registry["skills"] if item["name"] == "arc:code")
+    assert code_entry["source_path"] == "Arc/arc:code/SKILL.md"
+    assert code_entry["version"]
+    assert code_entry["line_count"] <= 300
+    assert code_entry["intent_router"]
+    assert len(code_entry["intent_router"]) >= 2
+
+
+ARC_SKILLS = {"arc:explore", "arc:plan", "arc:code", "arc:verify", "arc:audit"}
 
 
 def test_validate_registry_accepts_generated_registry() -> None:
     registry = build_registry(ROOT)
     assert validate_registry(registry, ROOT) == []
     names = {item["name"] for item in registry["skills"]}
-    assert names == {
-        "arc:define",
-        "arc:clarify",
-        "arc:docs",
-        "arc:build",
-        "arc:prewalk",
-        "arc:frontend",
-        "arc:fix",
-        "arc:audit",
-        "arc:security",
-        "arc:test",
-        "arc:reliability",
-        "arc:idx",
-        "arc:comment",
-        "arc:trace",
-        "arc:arch",
-        "arc:sdlc",
-    }
+    assert names == ARC_SKILLS
 
 
 def test_write_registry_preserves_timestamp_when_content_is_unchanged(tmp_path: Path) -> None:
@@ -77,20 +63,7 @@ def test_write_registry_refreshes_timestamp_when_content_changes(tmp_path: Path)
 
 def test_collect_skill_files_indexes_only_arc_namespaced_skills() -> None:
     files = collect_skill_files(ROOT)
-    assert ROOT / "Arc" / "arc:build" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:docs" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:frontend" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:idx" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:comment" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:trace" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:arch" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:sdlc" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:prewalk" / "SKILL.md" in files
-    assert ROOT / "Arc" / "arc:reliability" / "SKILL.md" in files
-    assert all(
-        path.is_relative_to(ROOT / "Arc")
-        for path in files
-    )
+    assert files == sorted(ROOT / "Arc" / name / "SKILL.md" for name in ARC_SKILLS)
 
 
 def test_update_context_hub_registers_skills_registry_artifact() -> None:
@@ -110,12 +83,7 @@ def test_update_context_hub_registers_skills_registry_artifact() -> None:
         assert artifact["artifact_type"] == "skills-registry"
         assert artifact["producer_skill"] == "arc-registry"
         assert artifact["path"] == "skills.index.json"
-        assert "arc:idx" in artifact["consumers"]
-        assert "arc:comment" in artifact["consumers"]
-        assert "arc:trace" in artifact["consumers"]
-        assert "arc:arch" in artifact["consumers"]
-        assert "arc:sdlc" in artifact["consumers"]
-        assert "arc:prewalk" in artifact["consumers"]
+        assert ARC_SKILLS <= set(artifact["consumers"])
     finally:
         import shutil
 

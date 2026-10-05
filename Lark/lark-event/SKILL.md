@@ -39,8 +39,8 @@ metadata:
 ## Examples
 
 ```bash
-# Default: stream every event for the key (no filter, no projection)
-lark-cli event consume im.message.receive_v1 --as bot
+# Default: bounded observation; unbounded only for an explicit continuous subscription
+lark-cli event consume im.message.receive_v1 --max-events 10 --timeout 30s --as bot
 
 # List every EventKey of one domain (the authoritative, always-current catalog)
 lark-cli event list --domain vc --json
@@ -52,8 +52,8 @@ lark-cli event consume im.message.receive_v1 --max-events 1 --timeout 30s --as b
 lark-cli event consume im.message.receive_v1 --timeout 10m --as bot
 
 # Consume multiple EventKeys concurrently (one shape per process, no dispatcher)
-lark-cli event consume im.message.receive_v1          --as bot > receive.ndjson &
-lark-cli event consume im.message.reaction.created_v1 --as bot > reaction.ndjson &
+lark-cli event consume im.message.receive_v1          --as bot --timeout 30s > receive.ndjson &
+lark-cli event consume im.message.reaction.created_v1 --as bot --timeout 30s > reaction.ndjson &
 wait
 
 ```
@@ -68,7 +68,7 @@ wait
 
 ### Ready marker
 
-`event consume`'s stderr emits a fixed line `[event] ready event_key=<key>`. **Parent processes should block on stderr until this line appears, then start reading stdout.** Do not fall back to `sleep`.
+`event consume`'s stderr emits a fixed line `[event] ready event_key=<key>`. **Drain stdout and stderr concurrently from process start.** Gate dependent actions on this marker, with a finite startup deadline and explicit EOF/process-exit handling. Preserve any early stdout; never wait on one pipe while the other can fill. If no marker arrives, stop gracefully and report startup failure or timeout. Do not infer readiness from `sleep`.
 
 ### stdin EOF = graceful exit
 
@@ -93,7 +93,7 @@ On exit, the last stderr line is `[event] exited — received N event(s) in Xs (
 
 Startup and runtime failures emit a structured JSON envelope on stderr: `{"ok":false,"error":{"type","subtype","param","message","hint",...}}` (the envelope may also carry top-level `identity` / `_notice` siblings). Parse `error.type` / `error.subtype` to branch (e.g. `missing_scope` carries a `missing_scopes` list), `error.param` to find the offending flag, and `error.hint` for the recovery action — do not regex-match message text.
 
-Orchestrators should treat `reason: limit/timeout/signal` (all exit 0) as "business completion" and non-zero as "failure".
+Exit 0 with `limit/timeout/signal` means normal process termination, not business completion. Report `received`, `termination_reason`, and `target_satisfied` separately (these are report fields, not assumed CLI JSON fields). Validate the requested event predicate against observed payloads. Zero events, early cancellation, dropped events, jq warnings or missing required fields cannot prove completion; mark partial/unknown as appropriate. Non-zero is a process/setup failure, preserving any received evidence.
 
 ### Never `kill -9`
 

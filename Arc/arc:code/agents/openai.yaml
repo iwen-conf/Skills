@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arc Code"
+  short_description: "Implement, repair, refactor, frontend, comments and timing probes"
+  default_prompt: "Use $arc:code to make this change with evidence-first repair, the impact checklist and the gate.sh completion check."

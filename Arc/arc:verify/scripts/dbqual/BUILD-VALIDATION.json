@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "package": "industrial-database-release-qualification-skill",
+  "version": "4.0.0",
+  "validated_at": "2026-09-20",
+  "framework_validation": {
+    "python_compile": "PASS",
+    "unit_tests": {
+      "status": "PASS",
+      "count": 43
+    },
+    "example_config_validation": "PASS",
+    "selftest": {
+      "status": "PASS",
+      "compile": true,
+      "unit_tests": true,
+      "config": true,
+      "parameter_corpus": true,
+      "report_generation": true,
+      "baseline_promotion_and_compare": true
+    },
+    "synthetic_canary_evaluator": "PASS"
+  },
+  "fail_closed_rehearsal": {
+    "database_url_removed": true,
+    "pipeline_returncode": 2,
+    "evidence_files": 27,
+    "status_counts": {
+      "PASS": 1,
+      "FAIL": 2,
+      "BLOCKED": 22,
+      "NOT_RUN": 2
+    },
+    "release_gate": "FAIL",
+    "markdown_report_generated": true,
+    "html_report_generated": true,
+    "interpretation": "Expected. Missing database/tooling did not become PASS; the sole PASS was a database-independent static check."
+  },
+  "real_postgresql_integration": {
+    "status": "BLOCKED",
+    "reason": "The artifact-generation environment does not provide psql, pgbench, pg_amcheck, pg_verifybackup, psycopg, Docker/Podman, or a PostgreSQL test instance.",
+    "not_claimed": [
+      "real TPS/P95/P99",
+      "real lock waits/deadlock observation",
+      "real 40001/40P01 retry behavior",
+      "real migration locks",
+      "real restore/PITR",
+      "real replication/failover"
+    ]
+  },
+  "host": {
+    "python": "3.13.5",
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "machine": "x86_64"
+  },
+  "notes": [
+    "Framework PASS means the harness/gates/parsers/reporting were self-tested; it is not database release qualification for any application.",
+    "Expert pre-release gates deliberately require project-bound evidence and fail when those bindings are absent.",
+    "Real qualification must run in an isolated production-representative PostgreSQL environment."
+  ]
+}

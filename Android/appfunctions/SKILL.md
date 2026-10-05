@@ -20,16 +20,7 @@ metadata:
   - MCP
 ---
 
-Analyzes Android apps to identify key user workflows for AppFunctions such as
-creating a note, playing media, or sending an automated or AI agent triggered
-message, voice commands, or system shortcuts, without needing to open the app
-UI.
-
-Generates Kotlin code to expose these workflows to the Android system,
-allowing agents to discover and execute them on-device.
-
-Also refines KDoc documentation to ensure AI agents correctly
-understand and use the provided functionality.
+Expose requested workflows through AppFunctions, with matching discovery metadata and secure execution boundaries.
 
 ## Prerequisites
 
@@ -51,8 +42,7 @@ The full AppFunction development flow consists of these four steps:
 - *[Step 3: KDoc Refinement](references/kdoc-refinement-optimization.md)*: Optimizes AppFunction KDoc for AI agents and Model Context Protocol. Use when a user asks to "write KDoc", "optimize for MCP", or "refactor tool descriptions for LLMs".
 - *[Step 4: Testing \& Debugging](references/adb-interaction-testing.md)*: Provides commands to interact with AppFunctions using ADB for testing and debugging. Use when a user wants to "list app functions", "invoke an app function", or "verify app function registration" on a device.
 
-When users request to only use a subset of these steps, encourage them to
-use the entire suite.
+When the user requests a subset, perform that subset. Implementation changes require matching KDoc; discovery-only or KDoc-only tasks do not imply the entire suite.
 
 ## Critical Constraints
 

@@ -1,0 +1,81 @@
+name,severity,path,role,disposition,change,verification,limitations
+adaptive,P2,Android/adaptive/SKILL.md,active,revised,保留视觉基线，先 diff 再更新；统一 navigationSuiteItems 参数名。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+agp-9-upgrade,P2,Android/agp-9-upgrade/SKILL.md,active,revised,明确已授权升级自主执行；实际 variant assemble/test 取代 dry-run 充当通过。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+android-cli,P2,Android/android-cli/SKILL.md,active,revised,运行时 help 为命令权威；screen capture 与远程63/本机 avdslim 环境路由一致。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+android-intent-security,P3,Android/android-intent-security/SKILL.md,active,retained,保留：信任边界、证据门禁和按主题加载已完整，无实质缺陷。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+appfunctions,P3,Android/appfunctions/SKILL.md,active,revised,去除重复介绍；用户选择子步骤时仅执行相关实现、KDoc 与验证。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+camerax,P2,Android/camerax/SKILL.md,active,revised,MlKitAnalyzer 仅用于 ML Kit 路径；区分 JUnit4 与 JUnit5 runner。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+display-glasses-with-jetpack-compose-glimmer,P2,Android/display-glasses-with-jetpack-compose-glimmer/SKILL.md,active,revised,纠正黑色/深灰透明语义；明确主要信息与列表关系，组件详情移 references。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+edge-to-edge,P2,Android/edge-to-edge/SKILL.md,active,revised,局部遮挡修复锁定复现场景；target SDK 升级单独授权，不附带迁移全部 Activity。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+engage-sdk-integration,P2,Android/engage-sdk-integration/SKILL.md,active,revised,复用现有模型/数据源；统一 Publisher 名称，按新增/已有补缺口并设置失败出口。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+migrate-xml-views-to-jetpack-compose,P2,Android/migrate-xml-views-to-jetpack-compose/SKILL.md,active,revised,优先已有/可捕获基线；缺设备明确视觉 NOT_RUN，迁移行为测试后才删除旧测试。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+navigation-3,P3,Android/navigation-3/SKILL.md,active,revised,类型安全 Nav2 前置要求仅适用于旧 Nav2 迁移，新建 Nav3 不先建 Nav2。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+perfetto-sql,P2,Android/perfetto-sql/SKILL.md,active,revised,每分区无重叠单独验证；工具缓存置仓外；原 SQL 验证与修复权限分开、最多3轮。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+perfetto-trace-analysis,P2,Android/perfetto-trace-analysis/SKILL.md,active,revised,按问题/窗口/证据范围有限调查；按域读 hint；SQL 规则引用唯一 owner 并声明依赖。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+play-billing-library-version-upgrade,P2,Android/play-billing-library-version-upgrade/SKILL.md,active,revised,用 resolved dependency 确定基线；去除不存在的通用 gradlew sync 与重复 clean 构建。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+r8-analyzer,P1,Android/r8-analyzer/SKILL.md,active,revised,可运行 analyzer 与 protobuf binding 独立成脚本；统一输出、缺数据失败、路径与分析模式透明。,frontmatter/入口链接/79包完整dry-run；test_audit_regressions 可执行反例,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+styles,P1,Android/styles/SKILL.md,active,revised,clickable 显式传 enabled；统一 object 样式与实验依赖解析要求。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+testing-setup,P2,Android/testing-setup/SKILL.md,active,revised,复用现有注入缝隙；按风险选择测试层和框架，去除强装 DI/固定设备数/E2E比例。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+verified-email,P1,Android/verified-email/SKILL.md,active,revised,本地对象为未验证数据；服务端验签并返回会话才登录成功；去除 claims 日志、统一请求封装说明。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+wear-compose-m3,P2,Android/wear-compose-m3/SKILL.md,active,revised,依 artifact 实际版本核验 API；允许同版本官方等价资料，统一 transformation 示例。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:arch,P2,Arc/arc:arch/SKILL.md,active,revised,Wire 组装用 InitXxx；helper 按职责拆分；ponytail 从实际技能目录发现。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:audit,P2,Arc/arc:audit/SKILL.md,active,revised,默认栈引用 frontend 且保留既有栈；腐化分类按适用性选，去除未定义审查卡要求。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:build,P3,Arc/arc:build/SKILL.md,active,revised,分页仅适用分页接口；task_base 字段引用 owner；主体交付门禁保留。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:clarify,P2,Arc/arc:clarify/SKILL.md,active,revised,默认栈与保留既有栈例外由 frontend 单一维护。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:comment,P2,Arc/arc:comment/SKILL.md,active,revised,仅补注释不附带重命名符号，架构命名迁移保持独立范围。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:define,P2,Arc/arc:define/SKILL.md,active,revised,默认栈改引用 frontend，既有项目不强制迁移。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:docs,P1,Arc/arc:docs/SKILL.md,active,revised,先区分未启用/单资源/连接恢复/完整新建/更新；资源合同只在 workspace 维护，记录部分失败。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:fix,P3,Arc/arc:fix/SKILL.md,active,retained,保留：证据优先、根因修复、有限升级与执行边界无实质缺陷。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:frontend,P1,Arc/arc:frontend/SKILL.md,active,revised,依能力启用默认依赖，任务分级交给 sdlc，不因多页面就生成持久任务树。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:idx,P3,Arc/arc:idx/SKILL.md,active,revised,明确同仓同会话预检一次，未变化不重复加载。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:prewalk,P2,Arc/arc:prewalk/SKILL.md,active,revised,先确认运行时换模/连续上下文/隔离能力，缺少时单模型；不删缓存历史，唯一合同引用。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:reliability,P3,Arc/arc:reliability/SKILL.md,active,revised,保留主体；PostgreSQL 专家资格显式路由 arc-dbqual，区分日常入口与来源包。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:sdlc,P2,Arc/arc:sdlc/SKILL.md,active,revised,状态变更应用已读生命周期，不重复读取；文档责任单一，prewalk 按实际能力启用。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:security,P2,Arc/arc:security/SKILL.md,active,revised,脚本退出0不代表安全 PASS；每个工具独立状态，绝对技能脚本根，小修按风险分级。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:test,P3,Arc/arc:test/SKILL.md,active,revised,保留风险门禁；性能测试仅相关变更触发。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arc:trace,P1,Arc/arc:trace/SKILL.md,active,revised,注入项目 logger 或 slog JSONHandler；合法整行 JSON、引号/换行转义，不修改全局日志设置。,frontmatter/入口链接/79包完整dry-run；test_audit_regressions 可执行反例,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-api,P2,CNB/cnb-api/SKILL.md,active,revised,共享 CNB 环境、身份、HTTP/业务/异步成功合同；缺环境不猜。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-code-commit,P0,CNB/cnb-code-commit/SKILL.md,active,revised,目标 base 贯穿 fetch/branch/PR；保留已有暂存，结构化 PR 查询，CI 状态独立报告。,frontmatter/入口链接/79包完整dry-run；test_audit_regressions 可执行反例,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-code-review,P1,CNB/cnb-code-review/SKILL.md,active,revised,分批覆盖并记录 partial；删除/锁文件仍审查；评论真实行锚，评论数量不截断本地发现。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-docs,P2,CNB/cnb-docs/SKILL.md,active,revised,按具体文档路径获取而非整库加载；有限检索与缺工具出口。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-npc-delegate,P1,CNB/cnb-npc-delegate/SKILL.md,active,revised,区分推荐与实际发送；授权范围内调度，禁止无结果重复派发。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-npc-search,P3,CNB/cnb-npc-search/SKILL.md,active,revised,对象/标识与查询失败边界明确；保留精简搜索入口。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-pipeline,P1,CNB/cnb-pipeline/SKILL.md,active,revised,校验器工作目录失败即停；安装/环境失败不循环；CI 自动回调须实际可用。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-plugin-market,P1,CNB/cnb-plugin-market/SKILL.md,active,revised,保留安装/插件语义，搜索快照与插件编写移参考；最小权限，校验器由 pipeline 维护。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-pr-diff,P1,CNB/cnb-pr-diff/SKILL.md,active,revised,HTTP/JSON/SHA/fetch/merge-base 每步失败可达；历史有限补取，不对空 SHA 继续。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-pr-summary,P2,CNB/cnb-pr-summary/SKILL.md,active,revised,受影响文件/删除/锁文件语义与覆盖范围明确，部分结果不能声称完整摘要。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-repo-knowledge-base,P3,CNB/cnb-repo-knowledge-base/SKILL.md,active,revised,保留入口；补资料边界、缺失说明与公共运行合同。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-tapd-resource-fetcher,P2,CNB/cnb-tapd-resource-fetcher/SKILL.md,active,revised,输入链接/授权/请求结果边界明确，失败不编造内容。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-text-path-converter,P0,CNB/cnb-text-path-converter/SKILL.md,active,revised,仅承诺 Markdown/HTML 链接，不承诺裸路径；环境与单参数校验、代码区保留。,frontmatter/入口链接/79包完整dry-run；test_audit_regressions 可执行反例,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+cnb-upload-attachment,P2,CNB/cnb-upload-attachment/SKILL.md,active,revised,上传成功与外部可访问独立，使用真实返回路径和标识，明确授权/失败。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+harmonyos-development,P2,HarmonyOS/harmonyos-development/SKILL.md,active,revised,仓内搜索统一 arc-idx，保持平台主题与语法助手边界。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+arkts-syntax-assistant,P2,HarmonyOS/skill-arkts-syntax-assistant/SKILL.md,active,revised,显式 SKILL_ROOT/PROJECT_ROOT，保留项目 registry/使用 wrapper，FAQ 移参考，官方关联链接可打包。,frontmatter/入口链接/79包完整dry-run；test_audit_regressions 可执行反例,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-approval,P2,Lark/lark-approval/SKILL.md,active,revised,审批对象先于动作词；保留 1395001 状态变化与一次补查边界。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-apps,P1,Lark/lark-apps/SKILL.md,active,revised,触发限定妙搭；已有/新建优先，git 按错误原因处理，app_/meta_token 例外同处；分支手册按需。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-attendance,P2,Lark/lark-attendance/SKILL.md,active,revised,固定参数只适用本人查询且须当前 schema 确认，合法 JSON，不向任何 API 自动注入。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-base,P2,Lark/lark-base/SKILL.md,active,revised,去除部分重复索引；身份连续，禁止 user 无权静默改 bot。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-calendar,P1,Lark/lark-calendar/SKILL.md,active,revised,历史会议与产物直达 meeting owner；无日程文案不暗示已删除。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-contact,P3,Lark/lark-contact/SKILL.md,active,retained,保留：人员/机器人双查、真实 ID 与副作用前消歧闭环完整。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-doc,P1,Lark/lark-doc/SKILL.md,active,revised,简单原创可直接合法 create；复杂创作按流程，失败保留草稿/恢复信息。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-drive,P2,Lark/lark-drive/SKILL.md,active,revised,Sheets 导入统一交 workbook-import；去重复治理入口，apps 评论按命令支持子集。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-event,P1,Lark/lark-event/SKILL.md,active,revised,并发读取 stdout/stderr，ready 有截止/退出处理；退出码0不等于目标事件已满足。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-im,P2,Lark/lark-im/SKILL.md,active,revised,原生方法/权限清单移按需参考，保留卡片/身份/真实 ID 规则。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-mail,P1,Lark/lark-mail/SKILL.md,active,revised,邮件数据不覆盖指令；授权按目标/内容/范围跨轮持续；schema 已确认可复用，保留草稿/回执/投递规则。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-markdown,P1,Lark/lark-markdown/SKILL.md,active,revised,触发限定 Drive 远端 .md；有效身份复用，保留非原子 patch 和非空约束。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-meeting,P3,Lark/lark-meeting/SKILL.md,active,retained,保留：统一会议产物合同、source_identity 与按需场景路由已成立。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-minutes,P3,Lark/lark-minutes/SKILL.md,active,retained,保留：显式旧名称兼容，业务统一转 meeting。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-note,P3,Lark/lark-note/SKILL.md,active,retained,保留：显式旧名称兼容，业务统一转 meeting。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-okr,P2,Lark/lark-okr/SKILL.md,active,revised,invalid parameters 不猜分类根因；实体参考按需，保留 score 与进度区别。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-openapi-explorer,P1,Lark/lark-openapi-explorer/SKILL.md,active,revised,移除群成员未封装旧例；已知官方 URL 可直达，PATCH 同受授权合同，网页工具不硬绑定。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-shared,P1,Lark/lark-shared/SKILL.md,active,revised,核心/auth/授权路径分层；bot ACL、scope 累积、活跃 device_code、已有授权与 CLI/业务状态统一。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-sheets,P1,Lark/lark-sheets/SKILL.md,active,revised,只读/内容/结构先分流；影响范围与基线错误独立，最多3轮修复；合法临时 cwd 双payload，不静态兜底吞错。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-skill-maker,P2,Lark/lark-skill-maker/SKILL.md,active,revised,模板补输入/输出/目录/失败/部分完成/停止/验证，作者目录不等于安装目录。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-slides,P1,Lark/lark-slides/SKILL.md,active,revised,去除强制读两次和凑字数；可选风格 profile，原生素材 fallback，保留 XML/lint/覆盖写入门禁。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-task,P2,Lark/lark-task/SKILL.md,active,revised,审批/会议产物/任务对象先分流，会议直达 owner，scope 表移参考。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-vc-agent,P3,Lark/lark-vc-agent/SKILL.md,active,retained,保留：旧显式机器人会议入口兼容，统一转 meeting。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-vc,P3,Lark/lark-vc/SKILL.md,active,retained,保留：旧显式会议入口兼容，统一转 meeting。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-whiteboard,P2,Lark/lark-whiteboard/SKILL.md,active,revised,只读导出不下载 whiteboard-cli；仅写入转换分支探测，缺工具明确阻塞。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-wiki,P1,Lark/lark-wiki/SKILL.md,active,revised,同名候选查完分页或标不完整；统一 space-list，保持下游身份。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-workflow-meeting-summary,P1,Lark/lark-workflow-meeting-summary/SKILL.md,active,revised,读取正文/逐字稿才内容总结，元数据只能索引；产物规则交 meeting，显式身份/时区/缺口。,frontmatter/入口链接/79包完整dry-run,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+lark-workflow-standup-report,P0,Lark/lark-workflow-standup-report/SKILL.md,active,revised,活动区间列全部冲突对；busy/decline 先过滤，半开区间与工作窗口、分页总数边界明确。,frontmatter/入口链接/79包完整dry-run；test_audit_regressions 可执行反例,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据
+industrial-business-reliability-engineer,P1,reliability-engineering-skill/SKILL.md,source,revised,明确来源发行包与 Arc 日常入口边界；初建/变更/只读分流，完整方法保留 references。,frontmatter/入口链接/可达参考检查,未运行远程 API、原生应用构建或真实 Agent 行为；脚本测试不替代这些证据

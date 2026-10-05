@@ -34,7 +34,7 @@ llms.txt                          ← 顶层索引，列出所有模块文档链
 
 ## 挖掘流程
 
-严格按以下步骤逐层检索，**不要跳步或猜测 API**：
+先确认能力缺口；已知且已验证的官方 API 文档 URL 可直达 Step 4，模块已知可从 Step 3 开始。未读取规范不得猜 API。
 
 ### Step 1：确认现有能力不足
 
@@ -47,10 +47,10 @@ lark-cli <可能的service> --help
 
 ### Step 2：从顶层索引定位模块
 
-用 WebFetch 获取顶层索引，找到与需求相关的模块文档链接：
+用 当前可用的网页读取工具（或 HTTP 客户端） 获取顶层索引，找到与需求相关的模块文档链接：
 
 ```
-WebFetch https://open.feishu.cn/llms.txt
+当前可用的网页读取工具（或 HTTP 客户端） https://open.feishu.cn/llms.txt
   → 提取问题："列出所有模块文档链接，找出与 <用户需求关键词> 相关的链接"
 ```
 
@@ -60,19 +60,19 @@ WebFetch https://open.feishu.cn/llms.txt
 
 ### Step 3：从模块文档定位具体 API
 
-用 WebFetch 获取模块文档，找到具体 API 的文档链接：
+用 当前可用的网页读取工具（或 HTTP 客户端） 获取模块文档，找到具体 API 的文档链接：
 
 ```
-WebFetch https://open.feishu.cn/llms-docs/zh-CN/llms-<module>.txt
+当前可用的网页读取工具（或 HTTP 客户端） https://open.feishu.cn/llms-docs/zh-CN/llms-<module>.txt
   → 提取问题："找出与 <用户需求> 相关的 API 说明和文档链接"
 ```
 
 ### Step 4：获取 API 完整规范
 
-用 WebFetch 获取具体 API 文档，提取完整的调用规范：
+用 当前可用的网页读取工具（或 HTTP 客户端） 获取具体 API 文档，提取完整的调用规范：
 
 ```
-WebFetch https://open.feishu.cn/document/server-docs/.../<api>.md
+当前可用的网页读取工具（或 HTTP 客户端） https://open.feishu.cn/document/server-docs/.../<api>.md
   → 提取问题："返回完整 API 规范：HTTP 方法、URL 路径、路径参数、查询参数、请求体字段（名称/类型/必填/说明）、响应字段、所需权限、错误码"
 ```
 
@@ -89,6 +89,9 @@ lark-cli api POST /open-apis/<path> --data '{"key":"value"}'
 
 # PUT 请求
 lark-cli api PUT /open-apis/<path> --data '{"key":"value"}'
+
+# PATCH 请求
+lark-cli api PATCH /open-apis/<path> --data '{"key":"value"}'
 
 # DELETE 请求
 lark-cli api DELETE /open-apis/<path>
@@ -109,43 +112,14 @@ lark-cli api DELETE /open-apis/<path>
 
 ## 安全规则
 
-- **写入/删除类 API**（POST/PUT/DELETE）调用前必须确认用户意图
+- **写入/删除类 API**（POST/PUT/PATCH/DELETE）遵循 lark-shared 的授权与预览协议
 - 建议先用 `--dry-run` 预览请求（如支持）
 - 不要猜测 API 路径或参数——必须从文档中获取确认
 - 涉及敏感操作（删除群、移除成员等）时，向用户说明影响范围
 
-## 使用场景示例
+## 能力缺口示例
 
-### 场景 1：用户需要拉人进群（未被 CLI 封装）
-
-```bash
-# Step 1: 确认 CLI 没有封装
-lark-cli im --help
-# → 发现没有 chat_members 相关的 create 命令
-
-# Step 2-4: 通过文档挖掘获得 API 规范
-# → POST /open-apis/im/v1/chats/:chat_id/members
-
-# Step 5: 调用
-lark-cli api POST /open-apis/im/v1/chats/oc_xxx/members \
-  --data '{"id_list":["ou_xxx","ou_yyy"]}' \
-  --params '{"member_id_type":"open_id"}'
-```
-
-### 场景 2：用户需要设置群公告
-
-```bash
-# Step 1: 确认 CLI 没有封装
-lark-cli im --help
-# → 没有 announcement 相关命令
-
-# Step 2-4: 挖掘文档
-# → PATCH /open-apis/im/v1/chats/:chat_id/announcement
-
-# Step 5: 调用
-lark-cli api PATCH /open-apis/im/v1/chats/oc_xxx/announcement \
-  --data '{"revision":"0","requests":["<html>公告内容</html>"]}'
-```
+拉人进群已有 `im chat.members create`，应回到 [lark-im](../lark-im/SKILL.md)，不能把它当成未封装 API。其它能力先查当前 help，确认无注册命令才从官方规范取得 method、路径、字段与身份要求。PATCH 与其它写方法同样检查授权，不使用过时的固定“未封装”清单。
 
 ## 参考
 

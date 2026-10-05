@@ -27,9 +27,11 @@ a symptom site until the shared layout or system-bar boundary is known.
 ## Prerequisites
 
 - Project **MUST** use Android Jetpack Compose.
-- Project **MUST** target SDK 35 or later. If the SDK is lower than 35, increase the SDK to 35.
+- Preserve the existing target SDK for a scoped overlap/IME fix. SDK 35 enforcement migration is a separate authorized scope. Apply [Android execution](../../docs/android-execution.md).
 
 ## Step 1: plan
+
+For a local defect, apply all following Activity/component checks only to the reproduced path and affected shared insets owner. A whole-app migration applies them across the authorized app scope.
 
 1. Locate and analyze all Activity classes to detect which have existing edge-to-edge support. For every Activity without edge-to-edge, plan to make each Activity edge-to-edge.
 2. In each Activity, Locate and analyze all lists and FAB components to detect which have existing edge-to-edge support. For every component without edge-to-edge support, plan to make each of these components edge-to-edge.
@@ -425,7 +427,7 @@ Dialog(
 
 ## Checklist
 
-- \[ \] Does every `Activity` call `enableEdgeToEdge()`?
+- \[ \] Does every in-scope `Activity` call `enableEdgeToEdge()`?
 - \[ \] Is `adjustResize` set in the `AndroidManifest.xml`?
 - \[ \] Does every `TextField`, `OutlinedTextField`, or `BasicTextField` have a parent with `imePadding()`, `fitInside`, `Modifier.safeDrawingPadding()`, `Modifier.safeContentPadding()`, `Modifier.safeGesturesPadding()`, or `contentWindowInsets` set to `WindowInsets.safeDrawing` or `WindowInsets.ime`?
 - \[\] Does the first and last list item draw away from the system bars by passing insets to `contentPadding`?

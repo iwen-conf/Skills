@@ -1,4 +1,4 @@
-// arc-idx is the high-performance local AI context engine required by arc:idx.
+// arc-idx is the high-performance local AI context engine required by arc:explore.
 //
 // It replaces the legacy .ai-code-index/*.sh scripts with a single compiled
 // CLI that embeds the Zoekt index/search engine, drives universal-ctags for
@@ -25,10 +25,10 @@ Usage:
   arc-idx index    [--repo DIR]                        rebuild zoekt shards + ctags symbols
   arc-idx search   <query> [--profile P] [--max N] [--context N] [--format json|ai-md]
   arc-idx symbol   <name>  [--kind K] [--lang L] [--exact] [--format json|ai-md]
-  arc-idx ast      <pattern> --lang L [--paths ...]   [--format json|ai-md]
-  arc-idx files    [pattern] [--profile P]             list candidate files
-  arc-idx stats    [--profile P]                       language/LOC inventory
-  arc-idx doctor                                       tool + index health report
+  arc-idx ast      --lang L <pattern> [paths...] [--format json|ai-md]
+  arc-idx files    [pattern] [--profile P] [--format plain|json]   list candidate files
+  arc-idx stats    [--profile P] [--format json|ai-md]             language/LOC inventory
+  arc-idx doctor   [--format json|ai-md]                           tool + index health report
   arc-idx watch    [--ttl MIN] [--mem MB]              foreground incremental indexer
   arc-idx daemon   start|stop|status|restart           background indexer lifecycle
   arc-idx version

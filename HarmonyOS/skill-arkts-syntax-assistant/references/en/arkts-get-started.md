@@ -1,3 +1,5 @@
+> 本地节选；未随包附带的关联资料链接指向 OpenHarmony 官方文档仓库（master，非固定 API 版本）。项目 API 版本以实际 SDK 为准。
+
 # Getting Started with ArkTS
 
 <!--Kit: ArkTS-->
@@ -9,7 +11,7 @@
 
 ArkTS is the preferred programming language for OpenHarmony application development. Built on the [TypeScript](https://www.typescriptlang.org/) (TS) ecosystem, ArkTS extends its functionality while maintaining the basic style of TS. It enhances static check and analysis during development through standardized definitions, improving program execution stability and performance.
 
-![ArkTS](figures/arkts.png)
+![ArkTS](https://github.com/openharmony/docs/blob/master/en/application-dev/quick-start/figures/arkts.png)
 
 For further learning, see [ArkTS learning pathways](https://developer.huawei.com/consumer/en/arkts/) and [ArkTS online courses](https://developer.huawei.com/consumer/en/training/course/video/C101740620697641580).
 
@@ -29,4 +31,4 @@ ArkTS is compatible with the TS and JavaScript (JS) ecosystem, so that you can w
 
 ArkTS will continue to accommodate ever-changing application development and running requirements, and gradually provides more features, such as enhanced parallelization and concurrency, improved system, and distributed development paradigm.
 
-For details about ArkTS, see [About This Kit](../arkts-utils/arkts-overview.md).
+For details about ArkTS, see [About This Kit](https://github.com/openharmony/docs/blob/master/en/application-dev/arkts-utils/arkts-overview.md).

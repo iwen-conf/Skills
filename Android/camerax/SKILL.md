@@ -98,7 +98,7 @@ See [expert-blueprints](references/expert-blueprints.md) for step-by-step guides
 
 Always use higher-level abstractions instead of low-level manual wiring:
 
-- **Analysis** : Use `MlKitAnalyzer` instead of manual `ImageAnalysis.Analyzer`.
+- **Analysis** : For ML Kit models prefer `MlKitAnalyzer`; custom frame processing can use `ImageAnalysis.Analyzer` with correct lifecycle/backpressure. Do not add ML Kit for unrelated processing.
 - **Filters and effects** : Use `Media3Effect` for standard post-processing.
 - **Multi-camera** : Use `ConcurrentCamera` APIs for dual-stream setups.
 
@@ -111,7 +111,7 @@ camera implementations:
 
 - **Testing, fakes over mocks** : Avoid mocking libraries like `Mockito`, especially for multi-step CameraX interfaces like `ImageProxy`. Build "Fakes" to verify state rather than unreliable implementation details.
 - **Google Truth assertions** : Use `assertThat` over standard `JUnit` assertions like `assertEquals` for improved readability.
-- **Explicit test runners** : Always define an explicit `@RunWith` for test classes to ensure the CI environment executes them correctly.
+- **Test runners** : For JUnit4 define the required runner; JUnit5 uses its engine/extensions, not `@RunWith`. Preserve the project test framework.
 - **Semantic UI merging** : When building custom camera controls in Compose, such as a button with an `Icon` and `Text`, use `semantics {
   mergeDescendants = true }` to ensure screen readers announce them as a single, coherent unit.
 

@@ -29,7 +29,7 @@ metadata:
 
 - The project must use `compileSdk` version 37 or higher.
 - The project must use `androidx.compose.foundation:foundation` version `1.12.0-alpha01` or higher.
-- Alternatively, the project must use Compose BOM version `2026.04.01` or higher.
+- If using a BOM, resolve the actual foundation artifact and verify it provides the required experimental API; a BOM date alone is not proof. Apply [Android execution](../../docs/android-execution.md).
 - The API requires this exact package: `import
   androidx.compose.foundation.style.Style`
 
@@ -69,11 +69,11 @@ Refer to the official documentation to complete specific development tasks:
 ### Step 2: Establish `ComponentStyles`
 
 1. Create a new file named `ComponentStyles.kt` in your theme directory.
-2. Define a top-level data class to hold your component styles, for example, the Jetsnack one is called `JetsnackStyles`:
+2. Define a top-level object `ComponentStyles` to hold static component styles:
 
 
    ```kotlin
-   object ExampleComponentStyles {
+   object ComponentStyles {
        val customButtonStyle: Style = {
 
        }
@@ -85,7 +85,7 @@ Refer to the official documentation to complete specific development tasks:
 
    <br />
 
-3. Expose this class through your custom theme with a static reference, don't
+3. Expose this object through your custom theme with a static reference, don't
    use `CompositionLocals` here as it's not required.
 
 
@@ -131,7 +131,7 @@ For each custom component (for example, `CustomButton`), complete the following
 sequence:
 
 1. **Establish a visual baseline (If an emulator is available):**
-   - **If you CANNOT run an Android emulator:** Skip this step entirely and proceed to Step 2.
+   - **If you CANNOT run an Android emulator:** Record visual comparison as NOT_RUN and proceed with available nonvisual checks.
    - **If you CAN run an Android emulator:** Perform the following to capture a baseline screenshot:
      - **Option A:** Locate and run an existing screenshot test for the component.
      - **Option B (If no test exists):** Create a test using the project's existing testing framework, then run it.
@@ -142,7 +142,7 @@ sequence:
 4. **Declare state tracking** : If the component is interactable, create a `MutableStyleState` using the interaction source. Update state fields (such as `isEnabled`) inside the Composable to track the state correctly.
 5. **Apply styleable modifier** : Replace specific layout modifiers on the root element with `Modifier.styleable()`.
 6. **Move defaults to ComponentStyles** : Move hardcoded values from the component definition to a dedicated `Style` instance in `ComponentStyles.kt`.
-7. **Validate component:** Compare the baseline screenshot image taken at the start with the rendered Compose Preview of the new composable. Ignore string content; focus on layout and styling. Iterate on the Compose code until visual parity is achieved. Once verified, write a Compose UI test for the new composable.
+7. **Validate component:** If a baseline exists, compare it with the new composable under equivalent device/configuration conditions; a Preview alone is not device parity. Ignore string content; focus on layout and styling. Iterate on the Compose code until visual parity is achieved. Once verified, write a Compose UI test for the new composable.
 
 #### Migration example
 
@@ -164,7 +164,7 @@ fun CustomButton(
     val interactionSource = remember { MutableInteractionSource() }
     Row(
         modifier
-            .clickable(onClick = onClick, indication = null, interactionSource = interactionSource)
+            .clickable(enabled = enabled, onClick = onClick, indication = null, interactionSource = interactionSource)
             .background(if (enabled) backgroundColor else disabledBackgroundColor, shape)
             .defaultMinSize(58.dp, 40.dp),
         horizontalArrangement = Arrangement.Center,
@@ -208,7 +208,7 @@ fun CustomButton(
     }
     Row(
         modifier
-            .clickable(onClick = onClick, indication = null, interactionSource = interactionSource)
+            .clickable(enabled = enabled, onClick = onClick, indication = null, interactionSource = interactionSource)
             .styleable(styleState, JetsnackTheme.styles.buttonStyle, style),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
@@ -222,5 +222,5 @@ fun CustomButton(
 ### Step 4: Validate Changes
 
 1. Build the project. Verify that there are no compilation errors.
-2. Run your module's screenshot tests.
+2. Run your module's screenshot tests and behavior checks: disabled controls expose disabled semantics and never invoke callbacks; enabled controls still invoke once.
 3. Compare visual outputs of the whole app between the previous and updated components. Verify that no visual layout regressions occur.

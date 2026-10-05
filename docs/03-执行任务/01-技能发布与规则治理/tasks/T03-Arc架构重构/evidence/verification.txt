@@ -1,0 +1,24 @@
+# T03 verification 2026-10-05 15:01 +0800
+
+$ .venv/bin/python scripts/validate_skills.py
+Skill validation passed for 69 skill entrypoints (69 runtime, 0 source distribution).
+
+$ R8_PROTO_PYTHON=/tmp/skills-audit-proto-venv/bin/python .venv/bin/python -m pytest -q
+....................................                                     [100%]
+108 passed in 12.76s
+
+$ sync_skills.py --dry-run (all families)
+Verified 69 packages (dash names): …
+Dry run: …
+
+$ sync_skills.py --check (all families) --dest /Users/iluwen/.agents/skills
+Installation validation passed: /Users/iluwen/.agents/skills
+$ sync_skills.py --check (all families) --dest /Users/iluwen/.claude/skills
+Installation validation passed: /Users/iluwen/.claude/skills
+$ sync_skills.py --check (all families) --dest /Users/iluwen/.codex/skills
+Installation validation passed: /Users/iluwen/.codex/skills
+$ sync_skills.py --check --only arc:verify --dest ~/.grok/skills
+Installation validation passed: /Users/iluwen/.grok/skills
+
+fresh rebuild vs live install: 69 packages, 927 files, 0 differ (diff -rq)
+cross-root --also-root check: 11 duplicate names and 2 broken OfficeCLI links, all third-party (T01-TOOLS-06 scope); 0 managed names

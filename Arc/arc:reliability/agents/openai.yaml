@@ -1,4 +1,0 @@
-interface:
-  display_name: "Arc Reliability"
-  short_description: "业务不变量、事务并发、真实依赖验证、发布证据与事故防复发"
-  default_prompt: "使用 $arc:reliability 检查当前变更的业务不变量、并发与重试风险，并给出可执行验证、证据状态和发布阻断项。"

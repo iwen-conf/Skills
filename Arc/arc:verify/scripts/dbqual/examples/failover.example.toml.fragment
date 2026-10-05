@@ -1,0 +1,15 @@
+[[failover_rehearsal]]
+id = "ha-primary-loss"
+prepare_command = ["./tests/ha/prepare.sh"]
+workload_command = ["./tests/ha/run-correctness-workload.sh"]
+workload_warmup_s = 5
+inject_failover_command = ["./tests/ha/kill-primary.sh"]
+healthcheck_command = ["./tests/ha/check-write-path.sh"]
+max_rto_s = 30
+healthcheck_timeout_s = 120
+oracle_command = [
+  ["./tests/ha/assert-no-duplicate-effects.sh"],
+  ["./tests/ha/assert-ledger-reconciles.sh"]
+]
+failback_command = ["./tests/ha/failback.sh"]
+cleanup_command = ["./tests/ha/cleanup.sh"]

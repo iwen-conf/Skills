@@ -1,0 +1,9 @@
+[[compatibility_audit]]
+id = "postgres-major-upgrade"
+dsn_env = "TARGET_DATABASE_URL"
+expected_major = 18
+require_no_collation_version_mismatch = true
+expected_extensions = { pg_stat_statements = "*" }
+# For real major upgrades, bind pg_upgrade --check or your managed-service precheck.
+# check_command = ["./scripts/run-pg-upgrade-check.sh"]
+# smoke_command = [["./bin/service-smoke-test", "--database", "target"]]

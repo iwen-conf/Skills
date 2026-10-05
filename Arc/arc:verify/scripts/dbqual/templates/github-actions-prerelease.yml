@@ -1,0 +1,29 @@
+name: database-qualification-prerelease
+on:
+  workflow_dispatch:
+
+jobs:
+  stable-performance-qualification:
+    # Replace with a dedicated, stable runner label. A noisy shared runner is not a trusted
+    # source for tight baseline regression decisions.
+    runs-on: [self-hosted, linux, db-perf]
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_BENCH_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: python -m pip install 'psycopg[binary]>=3.2,<4'
+      - name: Pre-release qualification
+        run: |
+          python scripts/run_suite.py \
+            --config .sqlverify/sql-verification.toml --root . \
+            --evidence-dir .sqlverify/evidence \
+            --baseline-dir .sqlverify/baselines/main \
+            --qualification-manifest .sqlverify/qualification-manifest.json \
+            --gate-policy .sqlverify/gate-policy-prerelease.json \
+            --report-dir .sqlverify/report \
+            --ack-isolated-destructive
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: database-qualification-prerelease, path: .sqlverify/}

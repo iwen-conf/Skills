@@ -28,7 +28,7 @@ metadata:
 | 写文字进展          | 用 `+progress-create`；如果文本和数字都有，百分比或默认单位可使用 `--progress-percent` 统一改，非百分比单位更新量化指标 | [`progress-create`](references/lark-okr-progress-create.md), [`progress-list`](references/lark-okr-progress-list.md), [`progress-update`](references/lark-okr-progress-update.md)                                    |
 | 对齐目标           | 直接按对齐关系工作流处理                                                                     | [`alignments`](references/lark-okr-alignments.md)                                                                                                                                                                    |
 
-分类只在用户明确要求分类，或创建 Objective 返回 `invalid parameters` 且怀疑租户强制开启分类时处理：用 `lark-cli okr categories list --params '{"owner_type":"user","page_size":100}' --as user` 查可用分类，选择语义合适且 `enabled=true` 的分类 ID；分类可后续调整，不必停下等待用户确认。
+分类仅在用户明确要求，或具体错误字段 / 当前 schema 证实分类必填时处理。通用 `invalid parameters` 先核对实际失败字段，不能猜分类原因后重试。需要分类时查询 categories；仅使用用户指定或业务合同明确映射且 `enabled=true` 的真实 ID，不能由模型按名称猜测业务分类。
 
 获取当前用户用 `contact +get-user`；按姓名/邮箱查他人用 `contact +search-user`，拿到 `open_id` 后再查 OKR。
 
@@ -93,7 +93,7 @@ Shortcut 是对常用操作的高级封装（`lark-cli okr +<verb> [flags]`）�
 - [`OKR 业务实体`](references/lark-okr-entities.md) 获取 OKR 实体结构，定义和关系，帮助你更好的使用 OKR 功能
 - [`ContentBlock 富文本格式`](references/lark-okr-contentblock.md) — Objective/KeyResult/Progress 中 Content/Note
   字段使用的富文本格式说明，以及简化的半纯文本（SemiPlainContent）格式的进一步说明。
-- **强烈建议** 在操作 OKR 前，阅读[`OKR 业务实体`](references/lark-okr-entities.md)以了解基础概念
+- 首次涉及实体关系时阅读[`OKR 业务实体`](references/lark-okr-entities.md)以了解基础概念
 
 ## API Resources
 

@@ -2,21 +2,27 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from ..domain.skill import (
+    ARC_REFERENCE_MAX_TOKENS,
+    ARC_SKILL_MAX_TOKENS,
+    ARC_TOKEN_EXEMPT_DIRS,
     BANNED_FRONTMATTER_KEYS,
     BANNED_TOKENS,
     ROOT_CAUSE_GATE_HEADING,
     ROOT_CAUSE_GATE_REFERENCE,
     ROOT_CAUSE_GATED_SKILLS,
-    REQUIRED_HEADINGS,
     is_supported_skill,
 )
 from ..domain.engineering import (
     iter_skill_markdown,
+    vague_phrase_warnings,
+    validate_arc_structure,
     validate_description,
     validate_intent_router,
     validate_line_budget,
-    validate_red_lines,
+    validate_not_for,
     validate_relative_links,
+    validate_retired_names,
+    validate_token_budget,
     validate_trigger_terms,
 )
 from ..infrastructure.markdown import parse_frontmatter, build_skill_document, find_section
@@ -82,6 +88,7 @@ def validate_text(
 
     description = str(fm.get("description", "") or "")
     errors.extend(validate_description(description, path_label))
+    errors.extend(validate_not_for(description, path_label))
 
     skill_name = str(fm.get("name", "") or "")
     if root is not None and skill_path is not None and skill_name:
@@ -90,13 +97,12 @@ def validate_text(
     if root is not None and skill_path is not None:
         errors.extend(validate_root_cause_gate(text, skill_name, path_label))
 
-    for heading in REQUIRED_HEADINGS:
-        if heading not in text:
-            errors.append(f"{path_label}: missing heading {heading}")
-
+    errors.extend(validate_arc_structure(text, path_label))
     errors.extend(validate_intent_router(document, path_label))
-    errors.extend(validate_red_lines(document, path_label))
     errors.extend(validate_line_budget(text, path_label, is_skill_md=True))
+    errors.extend(validate_token_budget(text, path_label, ARC_SKILL_MAX_TOKENS, "SKILL.md"))
+    errors.extend(validate_retired_names(text, path_label))
+    warnings.extend(vague_phrase_warnings(text, path_label))
 
     if skill_path is not None:
         skill_dir = skill_path.parent
@@ -104,10 +110,18 @@ def validate_text(
         for markdown_path in iter_skill_markdown(skill_dir):
             if markdown_path == skill_path:
                 continue
+            if markdown_path.name == "SKILL.md":
+                errors.append(f"{markdown_path}: nested SKILL.md inside an Arc skill would be discovered twice")
+                continue
             module_text = markdown_path.read_text(encoding="utf-8")
             rel = str(markdown_path)
             errors.extend(validate_line_budget(module_text, rel, is_skill_md=False))
             errors.extend(validate_relative_links(module_text, rel, markdown_path.parent))
+            errors.extend(validate_retired_names(module_text, rel))
+            if markdown_path.relative_to(skill_dir).parts[0] not in ARC_TOKEN_EXEMPT_DIRS:
+                errors.extend(
+                    validate_token_budget(module_text, rel, ARC_REFERENCE_MAX_TOKENS, "reference")
+                )
 
     for token in BANNED_TOKENS:
         if token in text:

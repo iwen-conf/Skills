@@ -1,0 +1,8 @@
+[project]
+name = "industrial-database-release-qualification-skill"
+version = "4.0.0"
+requires-python = ">=3.11"
+dependencies = ["psycopg[binary]>=3.2,<4"]
+
+[tool.ruff]
+line-length = 120

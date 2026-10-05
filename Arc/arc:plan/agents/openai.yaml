@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arc Plan"
+  short_description: "PRDs, briefs, task documents and progress tracking"
+  default_prompt: "Use $arc:plan to turn this request into a brief or task documents with scope, non-goals and acceptance checks before any code changes."

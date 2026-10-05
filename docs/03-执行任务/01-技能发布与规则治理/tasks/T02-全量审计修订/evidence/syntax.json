@@ -1,0 +1,38 @@
+[
+  {
+    "path": "Android/r8-analyzer/scripts/analyze.py",
+    "check": "Python AST",
+    "status": "PASS"
+  },
+  {
+    "path": "Android/r8-analyzer/scripts/keep_radius_pb2.py",
+    "check": "Python AST",
+    "status": "PASS"
+  },
+  {
+    "path": "Lark/lark-workflow-standup-report/scripts/intervals.py",
+    "check": "Python AST",
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "bash",
+      "-n",
+      "HarmonyOS/skill-arkts-syntax-assistant/scripts/run.sh"
+    ],
+    "status": "PASS"
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "CNB/cnb-text-path-converter/scripts/convertLink.js"
+    ],
+    "status": "PASS"
+  },
+  {
+    "path": "HarmonyOS/skill-arkts-syntax-assistant/scripts/run.ps1",
+    "status": "NOT_RUN",
+    "reason": "pwsh unavailable"
+  }
+]

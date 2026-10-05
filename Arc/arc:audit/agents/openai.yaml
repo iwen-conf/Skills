@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arc Audit"
+  short_description: "Read-only review, health, AppSec and scan findings"
+  default_prompt: "Use $arc:audit to review this scope read-only and report ranked, evidence-backed findings without editing code."

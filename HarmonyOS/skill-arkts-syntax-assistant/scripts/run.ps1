@@ -1,17 +1,14 @@
-# ArkTS 项目编译脚本 - Windows PowerShell
-# 执行依赖安装和编译
-
+# 使用项目配置，不覆盖 registry；原生命令非零必须失败。
+param([Parameter(Mandatory=$true)][string]$ProjectRoot)
 $ErrorActionPreference = "Stop"
-
+Push-Location -LiteralPath $ProjectRoot
 try {
-    Write-Host "1. 安装依赖..." -ForegroundColor Green
-    ohpm install --all --registry https://ohpm.openharmony.cn/ohpm/ --strict_ssl true
-
-    Write-Host "2. 编译项目..." -ForegroundColor Green
-    hvigorw assembleApp
-
-    Write-Host "✅ 编译成功完成" -ForegroundColor Green
-} catch {
-    Write-Host "❌ 编译失败: $($_.Exception.Message)" -ForegroundColor Red
-    exit 1
+    if (-not (Test-Path -LiteralPath './hvigorw.bat')) { throw 'Missing project hvigorw.bat wrapper' }
+    Get-Command ohpm -ErrorAction Stop | Out-Null
+    ohpm install --all
+    if ($LASTEXITCODE -ne 0) { throw "ohpm failed: $LASTEXITCODE" }
+    & './hvigorw.bat' assembleApp
+    if ($LASTEXITCODE -ne 0) { throw "hvigorw failed: $LASTEXITCODE" }
+} finally {
+    Pop-Location
 }

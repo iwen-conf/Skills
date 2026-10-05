@@ -5,17 +5,19 @@ Cross-skill anti-drift rules. Skills link here; do not paste long copies into ev
 ## 1. Environment / branch / deploy surface
 
 1. **Runtime truth beats cwd.** Prefer production/staging deploy branch, compose labels, and user-stated environment over the current checkout branch or newest task doc.
-2. **Name the surface.** When diagnosing or deploying, state which of: local workstation, `.26` test, `.31` sync, production. Do not mix evidence across surfaces.
+2. **Name the surface.** When diagnosing or deploying, state the actual project-defined workstation/test/sync/production surface and address; host IDs are project facts, not global defaults. Do not mix evidence across surfaces.
 3. **Dual-track repos.** If a project keeps parallel tracks (for example `pgx` vs `mongo`), follow the track that matches the named surface. Do not assume the branch under the working tree is production.
 4. **Build artifacts must match the track.** Client packages, admin panels, and server images built from the wrong track are defects even if they compile.
 
 ## 2. Completion definition
 
-A task, capability matrix row, or audit item is **done** only when all of the following hold:
+For implementation work, a task, capability matrix row, or audit item is **done** only when all of the following hold:
 
 1. **Code path exists** for the claimed behavior (not only a stub that returns a typed "not implemented" unless that is the intentional product state).
 2. **Gates pass** that the project owns (tests, inventory, golden contracts, typecheck, or named manual check).
 3. **Reachable behavior** matches the claim under the intended surface (API returns success path, UI shows the control, agent can complete the flow).
+
+For document-only or read-only work, the reachable artifact is the requested document/review: verify its content, provenance, references and applicable artifact gates. This never marks unimplemented application behavior or unrun external tests complete.
 
 **Not sufficient alone:** documentation checkboxes, "ability matrix" cells, README claims, or "engineer said fixed" without re-check on current code and evidence.
 
@@ -34,7 +36,7 @@ Honor explicit user scope tokens. If present, do not expand:
 | 明确不做 / out of scope / P4 / Hold | Record as non-goal | Implement "while we are here" |
 | 先别改包名/地址 | Temporary test edits only if user allows, then restore | Permanent package/id/url changes |
 
-If scope is missing on risky work, stop and use `arc:clarify` rather than guessing.
+If scope is missing on risky work, stop and write a brief (`arc:plan`) rather than guessing.
 
 ## 4. Domain identity keys
 
@@ -44,7 +46,7 @@ If scope is missing on risky work, stop and use `arc:clarify` rather than guessi
 
 ## 5. Architecture paper-overs
 
-When `arc:arch` / `arc:fix` apply:
+For every backend implementation or repair:
 
 1. No temporary package-level `var` flags to bypass product rules without an explicit task and review.
 2. No type assertions to grab optional infrastructure capabilities that should be injected contracts.
@@ -90,14 +92,10 @@ The signal is not the defect; it is only a reason to investigate.
 `Observed → Expected → Surface → Evidence → Hypothesis → Root cause → Affected siblings →
 Complete fix boundary → Verification → Residual risk`.
 
-## 7. Downstream task authoring (cheap executors)
+## 7. Downstream task authoring
 
-When writing tasks for a lower-capability model:
-
-1. Bound: in-scope files/symbols, out-of-scope list, execution order, acceptance checks, and forbidden shortcuts.
-2. One subtask = one verifiable outcome; no "fix all security issues".
-3. Point at current paths from latest repo state; re-check before mark complete.
-4. Include "do not" for compatibility shims, wrong deploy surface, and invented domain keys.
+Tasks written for another executor follow `Arc/arc:plan/references/task-docs.md`: bounded scope,
+one verifiable outcome per subtask, current paths, and explicit "do not" items.
 
 ## 8. Think before coding
 
@@ -137,8 +135,8 @@ Boundaries:
 2. A deliberate simplification with a known ceiling (global lock, O(n²) scan, naive heuristic)
    gets a `debt:` comment naming the ceiling and the upgrade path
    (e.g. `# debt: 全局锁，吞吐量成瓶颈时改每账户锁`).
-3. Required DIP boundary interfaces from `arc:arch` are not "unrequested abstraction"; keep the
-   boundary and shrink everything around it.
+3. Required DIP boundary interfaces (`Arc/_shared/conventions/go-backend.md`) are not
+   "unrequested abstraction"; keep the boundary and shrink everything around it.
 4. Self-check: would a senior engineer call this over-engineered? If yes, simplify. If 200 lines
    could be 50, rewrite before delivering.
 
@@ -149,7 +147,7 @@ Boundaries:
 2. Do not refactor what is not broken unless the refactor is the task.
 3. Delete the imports/variables/functions that **your change** orphaned, in the same change.
 4. Do not delete pre-existing dead code; mention it instead (cleanup becomes its own task,
-   see `code-rot-taxonomy` item 14).
+   see `Arc/_shared/code-rot.md` B14).
 5. Traceability test: every changed line maps to the user's request or to an orphan the change
    created.
 6. Bounded elegance pass: for a non-trivial change, before delivery ask "knowing everything I know

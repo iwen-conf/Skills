@@ -1,35 +1,28 @@
 # Skills
 
-这个仓库包含两层 Skill：`Arc/arc:*` 负责跨项目的软件工程生命周期和治理契约，`Android/`、`HarmonyOS/`、`CNB/`、`Lark/` 保留各自平台的垂直能力与参考资料。代码库搜索默认走 `arc:idx` 约束下的高性能上下文引擎 `arc-idx`（编译型 Go CLI，内嵌 Zoekt，编排 ast-grep 与 Universal Ctags，源码在 `tools/arc-idx/`）；任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责；飞书项目空间只在用户明确要求创建/连接后由 `arc:docs` 创建/维护 `.lark.json`、项目资料、任务表、仪表盘、Wiki、画板和生命周期索引。
+这个仓库包含两层 Skill：
 
-## 当前保留
+- `Arc/arc:*` 负责跨项目的软件工程工作，共 5 个技能，每类工作对应一个。
+- `Android/`、`HarmonyOS/`、`CNB/`、`Lark/` 保留各自平台的垂直能力与参考资料。
+
+代码检索默认使用 `arc-idx`（编译型 Go CLI，内嵌 Zoekt，编排 ast-grep 与 Universal Ctags，源码在 `tools/arc-idx/`），协议见 [`Arc/_shared/code-intel.md`](Arc/_shared/code-intel.md)。任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责。飞书项目空间只在用户明确要求、或项目已有 `.lark.json` 时，由 `lark-workflow-project-docs` 维护。
+
+## 目录
 
 ```text
 Skills/
 ├── Arc/
-│   ├── arc:define/
-│   ├── arc:clarify/
-│   ├── arc:docs/
-│   ├── arc:build/
-│   ├── arc:prewalk/
-│   ├── arc:frontend/
-│   ├── arc:fix/
-│   ├── arc:audit/
-│   ├── arc:security/
-│   ├── arc:test/
-│   ├── arc:reliability/
-│   ├── arc:idx/
-│   ├── arc:comment/
-│   ├── arc:trace/
-│   ├── arc:arch/
-│   └── arc:sdlc/
-├── Android/       # Android/Compose 垂直技能
-├── HarmonyOS/     # HarmonyOS/ArkTS 垂直技能
-├── CNB/           # CNB 平台技能
-├── Lark/          # 飞书/Lark 技能
-├── .ai-code-index/
-├── tools/
-│   └── arc-idx/
+│   ├── _shared/        # 共享合同、检索协议、代码腐化清单、接口契约、约定（不被发现为技能）
+│   ├── arc:explore/    # 定位、调用链、影响面、架构地图、索引维护
+│   ├── arc:plan/       # PRD、需求澄清、任务文档、进度、发现转任务
+│   ├── arc:code/       # 实现、根因修复、重构迁移、前端、注释、计时探针；scripts/gate.sh
+│   ├── arc:verify/     # 测试、可靠性、PostgreSQL 发布资格（scripts/dbqual）、flaky、发布门禁
+│   └── arc:audit/      # 只读评审、体检、AppSec、安全扫描
+├── Android/            # Android/Compose 垂直技能
+├── HarmonyOS/          # HarmonyOS/ArkTS 垂直技能
+├── CNB/                # CNB 平台技能
+├── Lark/               # 飞书/Lark 技能（含 lark-workflow-project-docs）
+├── tools/arc-idx/
 ├── docs/
 ├── schemas/
 ├── scripts/
@@ -37,88 +30,47 @@ Skills/
 └── tests/
 ```
 
-`skills.index.json` 和触发语料只覆盖 `Arc/arc:*` 路由器；仓库校验器同时检查垂直 `SKILL.md` 的 500 行入口预算与相对链接。垂直目录保留各自的原生 frontmatter、`references/` 和 `.cursor/skills` 链接，不被强行改写成同一套业务文档格式。
+[技能目录与分发边界](docs/skill-catalog.md) 列出全部运行入口。`skills.index.json` 与触发语料只覆盖 Arc；垂直技能保留各自的原生 frontmatter、`references/` 和 `.cursor/skills` 链接。
 
-## Arc 边界
+## Arc 路由
 
-| Skill ID | 生命周期阶段 | 用途 |
-|---|---|
-| `arc:define` | 项目定义 | 把模糊想法整理为 PRD / Blueprint，并可在用户启用飞书后交给 `arc:docs` 建立项目文档中心 |
-| `arc:clarify` | 需求澄清 | 把模糊需求收敛成可执行上下文、约束和验收标准 |
-| `arc:docs` | 飞书项目空间 | 在用户明确创建/连接飞书空间或项目已有 `.lark.json` 时，维护飞书项目文档、`.lark.json` 索引、进度、资料和生命周期资料 |
-| `arc:build` | 代码交付 | 在方案明确时做代码交付、验证和变更说明；接口以仓库 Markdown 契约为基准 |
-| `arc:prewalk` | 同会话多模型路由 | Guide 探索 + 有界 todo + 第一笔生产 edit 后，Executor 继承 trajectory；禁止 plan 冷启动 |
-| `arc:frontend` | 前端工程 | 收敛 Web、移动、桌面和小程序默认技术栈并记录前端决策 |
-| `arc:fix` | 故障修复 | 基于失败证据和可持久化日志定位根因、修复并回归验证 |
-| `arc:audit` | 项目体检 / AppSec 只读审计 | 只读项目体检；`mode=appsec` 时按资产表→敏感数据地图→软柿子→finding cards 做跨项目漏洞审计；多 finding 时产出 Handoff（定位/口径/角色）给任务技能 |
-| `arc:security` | 安全自动化 | 本地安装和编排安全 CLI，按数据价值重排严重度；多 finding 时并入 Handoff 再交给任务技能，不从 SARIF 直接改代码 |
-| `arc:test` | 测试与质量门禁 | 按风险分层设计/生成/运行测试（单元/集成/契约/E2E、覆盖率、模糊/属性、性能），用平台原生工具（Android=Maestro、Go/Rust 原生、HarmonyOS=arkxtest、前端=Vitest/Playwright）；性能与功能分开判失败，失败交 `arc:fix`，安全交 `arc:security`/`arc:audit`，业务可靠性契约交 `arc:reliability` |
-| `arc:reliability` | 业务可靠性 | 按业务后果确定正常/故障/恢复/升级的验证范围，推导真实事务场景、独立判定、当前版本发布证据及事故控制；执行绑定交 `arc:test`，根因修复交 `arc:fix`，不执行部署 |
-| `arc:sdlc` | 任务文档与进度 | Markdown 任务按业务组、前后端工作包、独立子任务分层，按难度和依赖拆分；安全来源时补充定位/口径/角色；同会话成本路由交给 `arc:prewalk` |
+| 工作 | 技能 | 权限 |
+|---|---|---|
+| 理解代码：在哪、谁调用、改动波及什么、架构地图、索引维护 | `arc:explore` | 只读 |
+| 把意图变成规格：PRD、简报与验收标准、任务文档、进度、发现转任务批次 | `arc:plan` | 只写 `docs/` |
+| 改源码：实现、修复、重构/迁移、前端、注释、计时探针 | `arc:code` | 改源码 |
+| 产出行为证据：测试、可靠性、PostgreSQL 发布资格、flaky、发布门禁 | `arc:verify` | 改测试并执行 |
+| 只读评估：diff/PR 评审、体检与代码腐化、AppSec、扫描 | `arc:audit` | 只读，仅产出报告 |
 
-## 通用工程约束
+旧名称（`arc:build`、`arc:fix`、`arc:test` 等 16 个）到新技能的对照见 [`Arc/README.md`](Arc/README.md#retired-names-200)。不安装别名。
 
-| Skill ID | 用途 |
-|---|---|
-| `arc:comment` | 统一 Controller、接口/契约、普通函数、结构体/字段和函数内部编号步骤注释规范 |
-| `arc:idx` | 统一 `arc-idx` 高性能上下文引擎用法：本地搜索、符号、结构搜索、profile、文件发现、代码统计、增量守护、刷新和诊断 |
-| `arc:trace` | 为 Go Gin SSR 请求路径添加低成本 fmt/time 或 log.Printf 计时探针 |
-| `arc:arch` | 统一默认后端架构命名/分层/接口设计、DIP、依赖注入位置、后端日志证据、Go 常量/枚举和 helper 抽取规范 |
-| `arc:sdlc` | 大任务实施前创建任务文档、前置约束、子任务文件和中心进度跟踪表（跨会话权威；非 plan-postcard） |
-| `arc:prewalk` | 同会话 Guide→Executor 轨迹交接与 first-edit swap |
-
-## 共享参考
+## 共享规则
 
 | 文档 | 用途 |
 |---|---|
-| [`docs/code-rot-taxonomy.md`](docs/code-rot-taxonomy.md) | AI 代码腐化 36 条权威清单(6 大家族),各 Arc 技能引用各自负责的切片作为可执行门禁 |
-| [`docs/skill-engineering.md`](docs/skill-engineering.md) | Skill 工程契约：路由器、渐进披露、触发语料、500 行门禁 |
-| [`docs/prewalk.md`](docs/prewalk.md) | 同会话多模型成本路由：轨迹交接、first-edit swap、禁止 plan 冷启动 |
-| [`docs/execution-truth.md`](docs/execution-truth.md) | 跨技能反漂移与诊断/修复统一门禁：环境/分支/部署面、完成定义、范围锁定、域主键、先确认问题、架构→业务根因分析、完整修复及同类路径验证；编码纪律：编码前思考与询问/自主边界、来源优先级梯子与 `debt:` 注释、精准修改与有度的优雅、lessons 自我改进闭环 |
-| [`docs/orchestration-contract.md`](docs/orchestration-contract.md) | Runtime 调度语义；含 `prewalk_session` |
-| [`CHANGELOG.md`](CHANGELOG.md) | 技能版本与发布说明（当前已发布 1.0.0，待发布改动见 Unreleased） |
+| [`docs/execution-truth.md`](docs/execution-truth.md) | 仓库级门禁：环境/分支/部署面、完成定义、范围锁、域主键、证据优先的根因修复、编码前思考、简洁梯度、精准修改、教训闭环。Android、CNB、HarmonyOS 的诊断类技能同样链接它 |
+| [`Arc/_shared/contract.md`](Arc/_shared/contract.md) | Arc 合同：权限等级、任务分级 T0–T2、统一词表（PASS/FAIL/BLOCKED/NOT_RUN/FLAKY、严重度→P0–P3）、产物路径、环境规则、飞书钩子、提交格式、完成报告 |
+| [`Arc/_shared/code-intel.md`](Arc/_shared/code-intel.md) | 检索协议与 8 项影响面清单 |
+| [`Arc/_shared/code-rot.md`](Arc/_shared/code-rot.md) | AI 代码腐化 36 条（A–F 六个家族） |
+| [`Arc/_shared/api-contract.md`](Arc/_shared/api-contract.md) | 仓库 Markdown 接口契约（默认 `docs/02-API记录/`，Apifox 仅在用户要求时作为下游副本） |
+| [`docs/skill-engineering.md`](docs/skill-engineering.md) | Skill 工程契约：固定标题、token 预算、触发语料、校验 |
+| [`CHANGELOG.md`](CHANGELOG.md) | 版本与发布说明 |
 
 ## 收敛原则
 
-- 所有 Skill 需要搜索代码库或定位上下文时，优先使用 `arc:idx` 约束下的 `arc-idx search` 查询本地 Zoekt 索引（编译型 Go CLI，源码在 `tools/arc-idx/`，安装于 `~/.local/bin/arc-idx`）。
-- 搜索代码结构、调用形态或重构目标时，优先使用 `arc-idx ast`（ast-grep / Tree-sitter）。
-- 查找符号定义或符号清单时，优先使用 `arc-idx symbol`。
-- 查找候选文件或按 profile 缩小范围时，优先使用 `arc-idx files`；做规模盘点时优先使用 `arc-idx stats`。
-- 索引缺失、过期或结果不完整时先运行 `arc-idx doctor` 或 `arc-idx index`；长会话优先 `arc-idx daemon start` 做增量索引。`rg`/`fd` 只在索引不可用、目标在仓外、或 `arc-idx doctor` 报告损坏时作为回退，并必须报告回退原因。
-- 不按项目大小自动创建飞书空间。只有用户明确说 `创建项目的飞书空间`、`创建飞书项目空间`、`初始化飞书项目空间`，或提供已有飞书项目空间链接时，才由 `arc:docs` 创建/连接项目空间。
-- 项目如果接入飞书，必须在项目根目录维护 `.lark.json`，记录项目文件空间地址、项目主页、PRD、需求、架构、任务表、仪表盘、进度、审计、交付、故障、资料来源和本地索引状态。
-- 创建/连接飞书项目空间后，必须把项目文件空间飞书地址写入 `.lark.json.resources.drive_folder.url`，后续启动 AI 或进入项目时先读取 `.lark.json`。
-- 后续查找、更新、删除、创建项目相关飞书文档/表格/画板/资料时，都必须通过 `.lark.json` 里的飞书地址和资源 ID 定位；删除等破坏性操作仍需确认。
-- 后续搜索到的资料、新增文档、外部链接、接口说明、架构事实、决策、截图、报告、会议纪要和交付证据，只要项目已有 `.lark.json`，都必须通过 `arc:docs` 写入对应飞书 Doc/Wiki/Base/Drive/Whiteboard/Slides，并在 `.lark.json.lifecycle[]` 保留来源和时间。
-- Web 前端默认统一走 `arc:frontend`：除非用户明确指定其他技术，默认栈固定为 React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod。
-- 所有前后端交付必须区分状态语义：无数据/空状态是成功业务状态，错误是失败状态，权限不足和单资源不存在也要独立建模；前端不得把空列表、空搜索、空仪表盘或首次使用页面展示成错误页。
-- 接口以仓库 Markdown 文档为开发、联调和验收基准，默认维护在 `docs/02-API记录/`，遵循 [`Markdown 接口契约`](Arc/arc:build/references/api-contract.md)。用字段表、行为表和验收说明写清契约，不用 JSON 文档或整段 JSON 代码块代替说明；默认不使用 Apifox，仅在用户明确要求时同步为下游副本。
-- 所有可复现或可观察的前后端 Bug 排查必须优先保存可搜索的日志/证据文件，再基于错误字符串、请求 ID、堆栈、网络失败或运行时输出定位问题；后端保存应用日志和命令 stdout/stderr，前端保存 browser console、network、runtime error 和截图证据。临时 debug 输出不得留在交付代码中。
-- 所有实现与修复默认遵守 [`docs/execution-truth.md`](docs/execution-truth.md) 的编码纪律门禁：编码前先陈述假设、呈现多种解释与更简单方案，把任务转成可验证的成功标准；bug 修复和有明确正确答案的工作自主推进到底，只有接口、数据或架构取舍才停下询问；写新代码前先跑来源优先级梯子（复用现有 > 标准库 > 平台原生 > 已装依赖 > 一行 > 最少新代码），几行代码能解决的事不引入新依赖，刻意留天花板的简化用 `debt:` 注释标明升级路径；只动该动的行，不「顺手改进」相邻代码，只清理本次改动产生的孤儿代码，预先存在的死代码提及但不删除；非琐碎改动交付前做限定在本次新增代码内的优雅重审；被用户纠正后把教训写入对应仓库 `tasks/lessons.md` 或持久记忆，会话开始时回顾相关 lesson。
-- 任何 Skill 诊断疑似缺陷、回归、性能或安全问题时，必须先加载 [`docs/execution-truth.md`](docs/execution-truth.md#6-evidence-first-root-cause-repair)：未确认问题或未确认根因不得修改生产行为或宣称已修复；只允许为取证增加有界、行为保持的日志/探针/复现覆盖。先从架构边界和共享不变量追踪，再对照真实业务契约；最小改动必须是完整根因修复，不能用补丁、重试、兼容垫片或弱化断言掩盖问题。
-- 移动端 iOS/Android 默认统一走 `arc:frontend`：React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router。
-- 桌面端 Mac/Windows/Linux 默认统一走 `arc:frontend`：Tauri 2 + 现有 React Web 默认栈，优先复用 Web 代码。
-- 小程序默认统一走 `arc:frontend`：Taro 4 + React + TypeScript + Zustand；`wxskills` 只提供微信 API、隐私、支付、组件、Skyline 和既有原生微信项目维护约束。
-- 垂直业务 Skill 只声明“前端面按 `arc:frontend` 平台默认栈交付”，不得按 Lazycat、微信小程序、支付、后台、Dashboard 等业务差异另起一套默认前端栈。
-- 用户说 `创建项目的飞书空间`、`创建飞书项目空间`、`创建完整飞书项目空间` 或 `一键创建飞书项目空间` 时，`arc:docs` 必须一次性创建标准项目空间：文件夹、文档、多维表格、仪表盘、项目流、日历、协作资源、画板、自动化等，并把全部真实链接/ID 写入 `.lark.json`。
-- 用户说 `更新飞书项目空间`、`刷新飞书项目空间`、`补齐飞书项目空间` 或 `同步飞书项目空间` 时，`arc:docs` 必须更新既有空间：校验 `.lark.json`，修复断链/缺失索引，补齐标准资源，刷新任务表、仪表盘、项目流和自动化，不得重复创建项目空间。
-- 飞书操作由 `arc:docs` 路由到 `lark-doc` / `lark-base` / `lark-shared` 等对应技能，遵守认证、API 版本和高风险写入规则。
-- `aitask` 仅负责任务编排、协作、Inbox 和跨 Agent 状态。
-- Arc 只保留软件工程生命周期中的稳定判断框架和文档索引契约。
-- Arc Skill 名称使用 `arc:*` 命名空间并放在 `Arc/arc:*` 目录下；Android、HarmonyOS、CNB、Lark Skill 保留各自的领域命名空间和目录，不把垂直能力伪装成 Arc 生命周期技能。
-- 所有项目代码交付和修复必须遵守 `arc:arch`：先看 ponytail；保持 DIP；默认按 `domain`、`usecase`、`interface/restful`、`infrastructure`、`wire` 的分层、命名和接口设计组织后端代码；后端排障必须用结构化日志和本地日志文件保留可复查证据；Go 常量必须使用 `MixedCaps` / `mixedCaps`、优先标准库语义常量、按最小作用域定义，枚举型业务状态必须用自定义类型建模，跨服务常量必须来自版本化契约或受治理的共享模块；Go 单文件私有函数上限为两个，原文件达到两个私有函数时必须拆到 `原文件名_helpers.go` 同包 helper 文件；DIP 边界接口是明确架构要求，但不得为私有 helper、同层代码或形式主义创建接口。
-- 任务分级只以 `arc:sdlc` 为准：普通多步骤用会话内计划，不因此创建持久任务文档；大任务、跨会话、迁移、重构、修复战役和需要持续跟踪的工作才写 `docs/` 任务文档。文档按最新项目状态解析或创建 `docs/DD-任务` 这类数字序列化任务分类，再建立任务入口、`00-前置约束.md`、`tasks/` 子任务文件和 `进度跟踪表.md`；子任务须写清当前文件/调用点/输出/执行顺序/边界/反例/验证，作为跨会话恢复与验收权威。开始、暂停、阻塞、完成、验证或下一步变化时，必须立即更新 `进度跟踪表.md` 和子任务状态，未同步前不得继续实现或交付。
-- 任务文档统一 Markdown，按“业务任务组 → 后端/前端工作包 → 可独立验收子任务”分级；跨端工作必须分为独立文件、编号和状态。按范围、状态复杂度、契约/数据风险、依赖未知项与验证成本评估 D1–D4 难度，和 P0–P4 优先级分开记录。D3 按合理验收边界继续拆，D4 先安排有明确出口的调研/验证；每张任务卡包含难度依据、依赖就绪条件和精确 `<Context-Queries>`，仅单端的任务不生成另一端空任务。
-- 同会话多模型成本路由默认遵守 `arc:prewalk` / [`docs/prewalk.md`](docs/prewalk.md)：账单近似 `O(reads)`；Guide（frontier）探索并初始化有界 todo、落地第一笔**生产代码** edit 后，再在同一 trajectory 上切到 Executor，并 prune planning 指令。禁止「frontier 只写 plan 文档 → 新开 cheap 会话冷读 plan」作为默认省钱法；运行时不能 swap 时 oneshot 单一模型，不得伪造 cold plan handoff。
-- 需要测试或质量门禁的工作默认统一走 `arc:test`：按风险分层启用单元/集成/契约/E2E、覆盖率与回归门禁、模糊/属性、性能（基准/负载），用平台原生工具（Android=Maestro、Go/Rust 各自内置测试库、HarmonyOS=arkxtest、前端=Vitest/Playwright，且交互闭环/可见性/可点击/布局可读性经 `arc:frontend`）；性能与功能分开跑、分开判失败，覆盖率是缺口信号不是目标，禁止为凑类型全量铺开；安全与 `arc:security`/`arc:audit` 协作；业务不变量、事务并发、故障/恢复、兼容/可观测性和发布证据由 `arc:reliability` 定义契约，再交 `arc:test` 原生执行；失败用例交 `arc:fix`，大型测试建设先走 `arc:sdlc`。
-- 注释、排版、格式化等文件风格遵循团队约定（见 `arc:comment`），不能替代或放宽工程红线与完成定义。
-- Arc Skill 默认是路由器：`SKILL.md` 只保留意图路由表和红线，细节按需加载 `modules/` 与 `references/`。确定性检查走 `scripts/validate_skills.py` 与触发语料 `schemas/trigger_corpus.yaml`。关键词触发是静态门禁；真实否定句、多意图、范围和授权场景见 `schemas/behavior_corpus.yaml`，不能用静态命中代替 Agent 行为证据。`arc:security` 这种需要可重复自动化的能力可以携带本地脚本。
-- 图表、浏览器、Lazycat、纯设计等垂直能力由对应专门 Skill 负责，不再在 Arc 内重复建设。
+- 一个阶段一个主技能；跨阶段按名称交接，技能之间不互相加载。
+- 任何技能诊断疑似缺陷、回归、性能或安全问题，都先遵守 [`execution-truth.md` §6](docs/execution-truth.md#6-evidence-first-root-cause-repair)：未确认问题或根因，不改生产行为、不宣称已修复。
+- 修改函数、类型、字段、路由、表列、配置键、错误码之前，按 code-intel 的 8 项影响面清单逐项查询并记录。
+- 完成声明必须附证据（命令与结果、`file:line`、测试名）；`arc:code` 用 `scripts/gate.sh check` 做基线感知的完成门禁。
+- 不按项目大小自动创建飞书空间；项目已有 `.lark.json` 时，Arc 阶段结束把状态交给 `lark-workflow-project-docs`。
+- 垂直业务 Skill 的前端面按 `Arc/_shared/conventions/frontend.md` 的平台默认栈交付，不按业务差异另起默认栈。
+- 图表、浏览器、Lazycat、纯设计等垂直能力由对应专门 Skill 负责，不在 Arc 内重复建设。
 
 ## 校验
 
 ```bash
-arc-idx index
+arc-idx doctor --format json
+# 仅索引缺失/过期时：arc-idx index --quiet
 .venv/bin/python scripts/validate_skills.py
 .venv/bin/python -m pytest tests -q
 .venv/bin/python scripts/build_skills_index.py
@@ -126,9 +78,9 @@ arc-idx index
 
 ## 发布 / 同步到 Agent
 
-Arc 治理技能的 SSOT 是本仓 `Arc/arc:*`；垂直技能的 SSOT 分别是本仓 `Android/`、`HarmonyOS/`、`CNB/`、`Lark/`。Claude / Grok 等通常通过 `~/.agents/skills` 或项目内 `.cursor/skills` 的符号链接加载技能。
+Arc 技能的 SSOT 是本仓 `Arc/arc:*`；垂直技能的 SSOT 分别是本仓 `Android/`、`HarmonyOS/`、`CNB/`、`Lark/`。宿主通常通过 `~/.agents/skills` 或项目内 `.cursor/skills` 的符号链接加载技能。
 
-发布器先在临时目录打完整包（含文件引用和 `metadata.requires.skills` 传递依赖），校验通过后再替换目标目录，并保留可恢复副本。每个宿主只安装一种名称：`--naming dash`（默认，`arc-build`）或 `--naming colon`（`arc:build`）。旧的另一套别名会被归档，不再双写。
+发布器先在临时目录打完整包（技能目录内的 `agents/`、`scripts/`，所有可达的文件引用，以及 `metadata.requires.skills` 传递依赖；`Arc/_shared/` 与 `docs/` 中被引用的文件生成到各包的 `references/_shared/`），校验通过后再替换目标目录，并保留可恢复副本。每个宿主只安装一种名称：`--naming dash`（默认，`arc-code`）或 `--naming colon`（`arc:code`）。
 
 ```bash
 # 改完技能后：校验 → 索引 → 先 dry-run，再安装
@@ -138,15 +90,16 @@ Arc 治理技能的 SSOT 是本仓 `Arc/arc:*`；垂直技能的 SSOT 分别是�
 .venv/bin/python scripts/sync_skills.py --dry-run
 .venv/bin/python scripts/sync_skills.py --check
 .venv/bin/python scripts/sync_skills.py --naming dash
-.venv/bin/python scripts/sync_skills.py --only arc:build --only arc:fix --dry-run
+.venv/bin/python scripts/sync_skills.py --only arc:code --only arc:verify --dry-run
 .venv/bin/python scripts/sync_skills.py --family Lark --dry-run
 .venv/bin/python scripts/import_lark_skills.py lark-meeting --dry-run
 ```
 
 规则：
 
-1. **先改本仓，再 sync**；Arc 技能禁止只改 `~/.agents/skills` 而不回写 `Arc/`，垂直技能禁止只改其运行时链接而不回写对应领域目录。
+1. **先改本仓，再 sync**；禁止只改 `~/.agents/skills` 而不回写本仓。
 2. 按宿主选择单一名称；Markdown/YAML 中的 `arc:*` 在 dash 宿主下会改写成 `arc-*`，`agents/openai.yaml` 的 `$name` 必须与安装名一致。
 3. 缺失引用或声明依赖时安装失败，目标目录保持原样；成功替换时打印备份路径，失败则回滚本次变更。
-4. Arc `SKILL.md` 带 `version`（semver）；破坏性约定变更时升 minor/major 并更新 `CHANGELOG.md`。垂直技能沿用其原生 frontmatter 版本策略。
-5. 若改动了 `tools/arc-idx`，另执行 `go build -o ~/.local/bin/arc-idx ./tools/arc-idx`。
+4. 发布器只替换本次安装的名称；改名或删除技能后，旧名称的安装副本要手动移除，否则宿主会同时发现新旧两套。
+5. Arc `SKILL.md` 带 `version`（semver）；破坏性约定变更时升 minor/major 并更新 `CHANGELOG.md`。
+6. 若改动了 `tools/arc-idx`，另执行 `go build -o ~/.local/bin/arc-idx ./tools/arc-idx`。

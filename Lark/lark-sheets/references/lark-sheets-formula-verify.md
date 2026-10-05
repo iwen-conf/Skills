@@ -2,7 +2,7 @@
 
 > **本文定位**：飞书表格"公式写入后是否真的零错误"的自检入口，也是所有写公式任务的**强制收尾步骤**。公式的书写规则与 Excel→飞书迁移的语义规则一律以 `lark-sheets-formula-translation` 为唯一权威，本文不重复；本文聚焦"写完了之后怎么用一次调用确认 zero-error"。
 >
-> **边界**：本文不讲公式怎么写（去 `lark-sheets-formula-translation`），也不讲公式怎么写入表格（去 `lark-sheets-write-cells` / `lark-sheets-batch-update`）。本文只讲一件事：**只要任务里发生了公式落表、批量填充公式、`--copy-to-range` 扩展公式、导入含公式 workbook，收尾就必须用 `+formula-verify` 自检到 zero-error 才能交付**。
+> **边界**：本文不讲公式怎么写（去 `lark-sheets-formula-translation`），也不讲公式怎么写入表格（去 `lark-sheets-write-cells` / `lark-sheets-batch-update`）。本文只讲一件事：**只要任务里发生了公式落表、批量填充公式、`--copy-to-range` 扩展公式、导入含公式 workbook，收尾必须用 `+formula-verify` 覆盖受影响公式与依赖，区分写前已有错误、此次新增错误和未扫描区域**。
 
 ## 为什么需要自检
 
@@ -36,7 +36,7 @@
 
 ## 写入收尾收敛规则
 
-任何批量公式 / 含公式列写入完成后调用 `+formula-verify` 直到 `status='success'` 才能交付。不要等用户显式说"校验一下公式"才想到这里；**只要任务动作包含写公式，这一步默认就该做**。触发场景：
+任何批量公式 / 含公式列写入完成后调用 `+formula-verify` 验证本次影响范围，报告实际状态。不要等用户显式说"校验一下公式"才想到这里；**只要任务动作包含写公式，这一步默认就该做**。触发场景：
 
 - `+cells-set` / `+csv-put`
 - `+cells-set --copy-to-range` / 模板单元格向整列或整块扩展公式
@@ -47,11 +47,11 @@
 
 收敛规则：
 
-1. `status='success'` → 通过；可以把链路标完成。
+1. `status='success'` → 该扫描范围通过；全部受影响范围和依赖均覆盖后才能标完成。写前记录无关已有错误；它们不授权扩大修复范围。
 2. `status='partial'` → 扫描被内部上限截断。先缩小 `--range` 或拆 `--sheet-id` 续扫，**不允许**把 `partial` 当作 `success`。
 3. `status='errors_found'` 且 `compile_errors[]` 非空 → **先解决编译失败**：根据 `compile_errors[].reason` 修正公式语法（飞书函数名 / 范围语法 / 引用样式），用 `+cells-set` 重写后再调一次 `+formula-verify`。
 4. `status='errors_found'` 且只剩运行时错误 → 按 `error_summary` 的 `samples[].formula` + `depends_on` 排查根因（零除？空值参与运算？引用越界？日期差写法？数组语义？），修复后重新自检。
-5. 同一处错误连续修复 3 次仍未通过 → 改用 `IFERROR` 包裹兜底，或退回纯值写入；不要在 `errors_found` 状态下扩展 `+cells-set --copy-to-range`、追加批量写入。
+5. 最多 3 轮修复仍未通过，或权限/环境不可用 → 停止依赖写入，保留错误位置和已写范围，报告失败/部分完成/BLOCKED。禁止用 `IFERROR` 或静态值隐藏未知错误；不继续复制错误公式。
 
 注意：
 

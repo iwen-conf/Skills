@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Database Release Qualification Gate Policy",
+  "type": "object",
+  "properties": {
+    "required_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "anyOf": [
+          {
+            "required": [
+              "id"
+            ]
+          },
+          {
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "required": [
+              "id_prefix"
+            ]
+          }
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "id_prefix": {
+            "type": "string"
+          },
+          "allowed_status": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "BLOCKED",
+                "NOT_RUN",
+                "FLAKY"
+              ]
+            }
+          },
+          "min_count": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "metric_rule": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "threshold"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "evidence_id"
+            ]
+          },
+          {
+            "required": [
+              "id"
+            ]
+          },
+          {
+            "required": [
+              "kind"
+            ]
+          },
+          {
+            "required": [
+              "id_prefix"
+            ]
+          }
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "id_prefix": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "op": {
+            "enum": [
+              "<=",
+              "<",
+              ">=",
+              ">",
+              "=="
+            ]
+          },
+          "threshold": {
+            "type": "number"
+          },
+          "severity": {
+            "enum": [
+              "fail",
+              "warn"
+            ]
+          },
+          "min_count": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

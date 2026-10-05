@@ -1,0 +1,12 @@
+# Merge into sql-verification.toml only for an isolated primary+replica test environment.
+[[replica_consistency]]
+id = "orders-async-replica-visibility"
+primary_dsn_env = "DATABASE_URL"
+replica_dsn_env = "REPLICA_DATABASE_URL"
+runs = 20
+poll_ms = 20
+max_visibility_ms = 2000
+require_monotonic_reads = true
+create_probe_table = true
+probe_schema = "sqlverify_probe"
+probe_table = "replica_visibility"

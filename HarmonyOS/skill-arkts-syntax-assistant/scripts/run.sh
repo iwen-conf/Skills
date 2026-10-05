@@ -1,27 +1,12 @@
 #!/bin/bash
-# ArkTS 项目编译脚本 - macOS/Linux
-# 执行依赖安装和编译
-
-set -e
-
-print_green() {
-    echo -e "\033[32m$1\033[0m"
-}
-
-print_red() {
-    echo -e "\033[31m$1\033[0m"
-}
-
-print_green "1. 安装依赖..."
-if ! ohpm install --all --registry https://ohpm.openharmony.cn/ohpm/ --strict_ssl true; then
-    print_red "❌ 依赖安装失败"
-    exit 1
+# 从技能目录调用，工作目录固定为显式项目根，保留项目 registry。
+set -euo pipefail
+: "${1:?usage: run.sh PROJECT_ROOT}"
+cd "$1"
+command -v ohpm >/dev/null
+if [ ! -f ./hvigorw ]; then
+  echo 'Missing project hvigorw wrapper' >&2
+  exit 2
 fi
-
-print_green "2. 编译项目..."
-if ! hvigorw assembleApp; then
-    print_red "❌ 编译失败"
-    exit 1
-fi
-
-print_green "✅ 编译成功完成"
+ohpm install --all
+./hvigorw assembleApp

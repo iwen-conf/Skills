@@ -14,9 +14,7 @@ This entry routes HarmonyOS work to the smallest relevant reference. Load the fu
 when a topic is not covered by the focused references; do not load every platform topic for a
 single question.
 
-Before opening the 4,000+ line full guide, enumerate headings with
-`rg -n '^#{2,3} ' references/full-guide.md`, then locate the requested topic with
-`rg -n -C 4 '<term>' references/full-guide.md` and load only the matching section.
+Before opening the full guide, discover it with `arc-idx files full-guide.md --format json`, then use `arc-idx search 'f:full-guide.md <term>' --context 4 --max 10 --format ai-md` and read only the matched section. Installed resources outside any repository follow the host's documented external-resource search exception.
 
 ## Intent Router
 

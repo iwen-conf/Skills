@@ -42,7 +42,7 @@ lark-cli api POST /open-apis/vc/v1/rooms/search --data '{"query":"5F"}'
 
 ## SKILL.md 模板
 
-文件放在 `skills/lark-<name>/SKILL.md`：
+先从用户指定目录或项目结构确定 `SKILLS_SOURCE_ROOT`，文件放在 `<SKILLS_SOURCE_ROOT>/lark-<name>/SKILL.md`。未知时先查项目技能布局；本地创作不自动同步全局安装目录。交付前校验 frontmatter、相对引用与目标 CLI 命令，明确未执行的远程验证：
 
 ```markdown
 ---
@@ -59,6 +59,10 @@ metadata:
 
 > **前置条件：** 先阅读 [`../lark-shared/SKILL.md`](../lark-shared/SKILL.md)。
 
+## 输入与执行边界
+
+记录目标资源、身份、用户授权、必填输入与真实 ID 来源。明确 SKILL_ROOT（本技能目录）和 PROJECT_ROOT（用户项目目录）；脚本用绝对 SKILL_ROOT 路径，CLI 文件参数相对其 cwd。描述缺依赖时的 BLOCKED 出口。
+
 ## 命令
 
 \```bash
@@ -70,6 +74,14 @@ lark-cli api POST /open-apis/xxx --data '{...}'
 # Step 2: 使用 Step 1 的 xxx_id
 \```
 
+## 输出、失败与停止
+
+输出创建/修改的真实 ID、验证证据和完成/部分完成/失败/NOT_RUN 状态。批量逐项检查，保留成功项与恢复标识；写请求结果未知先查状态，禁止盲目重发。可恢复错误有限重试（默认最多 3 次），权限/环境不可用时停止依赖步骤。
+
+## 验证
+
+至少覆盖成功、输入缺失、权限不足、部分失败与重复执行场景；本地 schema/脚本检查和实际 API 行为分开记录。未执行远程动作不能宣称端到端 PASS。
+
 ## 权限
 
 | 操作 | 所需 scope |
@@ -80,6 +92,6 @@ lark-cli api POST /open-apis/xxx --data '{...}'
 ## 关键原则
 
 - **description 决定触发** — 包含功能关键词 + "当用户需要...时使用"
-- **认证** — 说明所需 scope，登录用 `lark-cli auth login --domain <name>`
+- **认证** — 说明所需 scope，只在缺失授权时按 lark-shared 登录，不重复授权
 - **安全** — 写入操作前确认用户意图，建议 `--dry-run` 预览
 - **编排** — 说明数据传递、失败回滚、可并行步骤

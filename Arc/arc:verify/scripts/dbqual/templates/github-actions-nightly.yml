@@ -1,0 +1,43 @@
+name: database-qualification-nightly
+on:
+  schedule:
+    - cron: '17 18 * * *'
+  workflow_dispatch:
+
+jobs:
+  db-qualification-nightly:
+    # Shared runners are fine for correctness/concurrency exploration. Do not treat their
+    # absolute latency as a trusted performance baseline unless variance is acceptable.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_bench
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d app_bench"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/app_bench
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          python -m pip install 'psycopg[binary]>=3.2,<4'
+      - run: |
+          psql "$DATABASE_URL" -f examples/schema.sql
+          psql "$DATABASE_URL" -f examples/seed.sql
+      - name: Nightly database gate
+        run: |
+          python scripts/run_suite.py \
+            --config examples/sql-verification.toml --root . \
+            --evidence-dir .sqlverify/evidence \
+            --gate-policy examples/gate-policy-nightly.json \
+            --report-dir .sqlverify/report
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: database-qualification-nightly, path: .sqlverify/}
