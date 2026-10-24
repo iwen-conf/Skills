@@ -106,7 +106,7 @@ ln -sfn /Users/iluwen/Documents/Code/Skills/plugins/arc-policy ~/.cursor/plugins
 ln -sfn /Users/iluwen/Documents/Code/Skills/plugins/arc-policy/hosts/dsh ~/.dsh/plugins/dsh-arc-policy
 ```
 
-Add `"dsh-arc-policy": "file:../../plugins/dsh-arc-policy"` to `~/.dsh/profiles/desktop/package.json`, insert in `cordis.patch.yml`, then `pnpm install` in that profile. Restart the Harness. See `hosts/dsh/README.md`. Does not replace `dsh-force-arc-idx`.
+Add `"dsh-arc-policy": "link:../../plugins/dsh-arc-policy"` (a link; a `file:` copy cannot find the engine) to `~/.dsh/profiles/desktop/package.json`, insert in `cordis.patch.yml`, then `pnpm install` in that profile. Restart the Harness. See `hosts/dsh/README.md`. Does not replace `dsh-force-arc-idx`.
 
 ## Workflow
 

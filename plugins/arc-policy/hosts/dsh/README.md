@@ -16,11 +16,15 @@ ln -sfn /Users/iluwen/Documents/Code/Skills/plugins/arc-policy/hosts/dsh \
   ~/.dsh/plugins/dsh-arc-policy
 ```
 
-`~/.dsh/profiles/desktop/package.json` dependency:
+`~/.dsh/profiles/desktop/package.json` dependency, as a link:
 
 ```json
-"dsh-arc-policy": "file:../../plugins/dsh-arc-policy"
+"dsh-arc-policy": "link:../../plugins/dsh-arc-policy"
 ```
+
+Use `link:`, not `file:`. pnpm copies a `file:` directory into `node_modules`, and the copy cannot
+find `hooks/hook.py`, so every tool call is denied with `arc-policy engine unavailable: missing …`.
+Before 2026-10-24 the adapter allowed tool calls in that state, so the gate did nothing.
 
 Then:
 
