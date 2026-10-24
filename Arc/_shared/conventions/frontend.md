@@ -1,8 +1,12 @@
 # Frontend Conventions
 
-Applied by arc:code for frontend and UI changes; checked by arc:audit. Theme values:
-[frontend-tokens.md](frontend-tokens.md). API docs: [api-contract.md](../api-contract.md). UI bug repair
+Applied by arc:code for frontend and UI changes; checked by arc:audit. Native selection:
+[native-platforms.md](native-platforms.md). Web theme values: [frontend-tokens.md](frontend-tokens.md).
+API docs: [api-contract.md](../api-contract.md). UI bug repair
 follows [execution-truth.md](../../../docs/execution-truth.md) §6.
+
+For existing-surface screenshot feedback, use [visual-iteration.md](visual-iteration.md): lock
+target/preserve/evidence, fix the shared cause, then verify the applicable size/state/input matrix.
 
 ## 1. Before editing
 
@@ -10,7 +14,7 @@ follows [execution-truth.md](../../../docs/execution-truth.md) §6.
    without a user workflow.
 2. Read the existing routes, layouts, components, theme files, API clients, stores, forms and tests the
    change touches.
-3. Each deliverable declares exactly one platform target: Web, iOS/Android, Desktop or Mini Program.
+3. Name each requested platform and its SDK/runtime; mobile and desktop are not single shared UI targets.
 4. Deliver the requested usable UI, never a decorative landing page in its place.
 
 ## 2. Stack
@@ -18,27 +22,26 @@ follows [execution-truth.md](../../../docs/execution-truth.md) §6.
 | Target | Default stack for new projects |
 |---|---|
 | Web | React 19 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Zustand + TanStack Query + TanStack Router + React Hook Form + Zod |
-| iOS/Android | React Native + Expo + TypeScript + NativeWind + Zustand + TanStack Query + Expo Router |
-| Desktop | Tauri 2 + the Web stack, reusing Web UI, state, query, form, schema and token code |
-| Mini Program (WeChat and others) | Taro 4 + React + TypeScript + Zustand |
+| Native mobile, desktop and Mini Program | Target-specific stack in [native-platforms.md](native-platforms.md) |
 
-1. IF the project already has a frontend stack THEN keep it; migrate only on an explicit request. New modules
-   in a mixed legacy project use the default stack when they can be isolated.
+1. Existing-product maintenance keeps its stack; a native migration requires that scope. New independent
+   targets use the native direction; establish integration boundaries before mixing runtimes.
 2. IF the user names another stack THEN use it and record the exception in the report.
-3. Never introduce a same-duty substitute (React Router, Redux, MobX, SWR, Formik, Yup, Ant Design, MUI,
+3. For Web, never introduce a same-duty substitute (React Router, Redux, MobX, SWR, Formik, Yup, Ant Design, MUI,
    Chakra, a custom component library) unless the user requires it or the project already depends on it
    with a documented boundary.
-4. Never default to Flutter, Capacitor, Ionic or bare React Native CLI (mobile), Electron or a separately
-   rewritten desktop UI (desktop), or native WXML/WXSS/Component (new WeChat mini-programs).
+4. Do not choose shared UI runtimes or web shells for native targets to maximize cross-platform reuse.
 5. Install a capability library (forms, server cache, routing, cross-page state) only when the deliverable
    uses it.
-6. Business-domain or vertical skills use this stack; a business domain never creates a new default stack.
+6. Domain skills follow the actual platform: Web libraries do not override native Android, Apple or HarmonyOS guidance.
 7. IF the task touches WeChat platform APIs, privacy, payment, native component constraints or Skyline, or
    maintains an existing native WeChat mini-program, THEN follow WeChat platform rules (the external
-   `wxskills` skill when the host lists it, otherwise WeChat official docs). This never changes the default
-   stack.
+   `wxskills` skill when the host lists it, otherwise WeChat official docs).
 
 ## 3. State ownership
+
+The library mapping below is Web-only. Native targets use platform lifecycle-aware state and
+observation; keep the same ownership separation without installing JavaScript equivalents.
 
 | State | Owner |
 |---|---|
@@ -58,7 +61,7 @@ follows [execution-truth.md](../../../docs/execution-truth.md) §6.
    or content; `error` = request or parsing failed; `permission-denied` = user may not see or perform the
    action; `disabled` = action unavailable in the current state.
 2. Every state the data contract or permission model can produce has its own branch.
-3. Derive `empty` from the successful contract (`items.length === 0`, `total === 0`, an explicit empty flag),
+3. Derive `empty` from the successful contract (zero items/total or an explicit empty flag),
    never from thrown errors, rejected promises, HTTP 4xx/5xx branches or generic catch handlers.
 4. `empty` and `error` are different surfaces. Empty uses neutral tone, a contextual next action and
    optional create or reset-filter guidance; never destructive/error styling, error pages, exception
@@ -68,15 +71,17 @@ follows [execution-truth.md](../../../docs/execution-truth.md) §6.
 
 ## 5. Styling, layout, accessibility
 
-1. All styling goes through design tokens or CSS variables; no hardcoded palette values in components.
+1. Style through semantic tokens: Web CSS variables or native theme/color resources; do not hardcode palettes in components.
 2. Accessibility basics: semantic controls, labels, focus states, keyboard reachability, contrast.
 3. Responsive layouts use explicit constraints; never viewport-scaled fonts as the layout solution; no
    overlapping or overflowing text in the target viewports.
+4. Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining.
 
 ## 6. API client
 
 1. Client calls and types follow the shared Markdown contract; same field names and empty-result shape.
-2. TanStack Query hooks live in `src/api/`, the fetcher in `src/lib/`, Zod schemas in `src/schemas/`.
+2. Web: TanStack Query hooks live in `src/api/`, the fetcher in `src/lib/`, Zod schemas in `src/schemas/`.
+   Native: use the platform's networking/serialization and existing module structure against the same contract.
 3. Mock-only checks never complete acceptance that requires the real API.
 4. When work is split into tasks, frontend and backend tasks are separate (own ID, dependencies,
    acceptance, status); the frontend task references the shared contract.
@@ -87,13 +92,18 @@ follows [execution-truth.md](../../../docs/execution-truth.md) §6.
    screenshots and reproduction notes to `.arc/artifacts/<task-slug>/logs/` before broad edits, and drive the
    fix from exact error strings or request IDs.
 2. Trace the owning UI/data/state boundary and inspect sibling routes and components sharing it. Never ship a
-   CSS or state patch that hides a shared contract or architecture cause.
+   layout or state patch that hides a shared contract or architecture cause.
 3. Remove `console.log`, `debugger`, alert probes and noisy instrumentation before completion, or convert
    them to the project's level-gated logger or telemetry.
 
 ## 8. Scaffold (new projects only)
 
-Web:
+Native targets use the platform IDE/official template for the confirmed SDK: Android Studio,
+Xcode, DevEco Studio, Windows tooling or the Mini Program developer tools. Use the target's build,
+signing and test setup; do not start with Web and wrap it. Check current template/API availability
+for the selected target before producing commands.
+
+The following commands and directory tree are **Web-only**:
 
 ```bash
 pnpm dlx shadcn@latest init -t vite -b radix -n my-app   # Vite + React 19 + TS + Tailwind CSS v4 + shadcn/ui
@@ -149,40 +159,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 Check: `pnpm dev` shows background, card and primary button in the palette; `<html class="dark">` switches
 to `.dark` when dual-theme; `pnpm build` passes.
 
-iOS/Android (NativeWind 4 requires Tailwind CSS 3; never install unpinned `tailwindcss` here):
-
-```bash
-pnpm create expo-app my-mobile   # default template: TypeScript + Expo Router
-cd my-mobile
-pnpm expo install nativewind react-native-reanimated react-native-worklets react-native-safe-area-context
-pnpm add -D tailwindcss@^3.4.17 babel-preset-expo
-pnpm add zustand @tanstack/react-query
-```
-
-Then configure per the NativeWind v4 Expo guide: `tailwind.config.js` with `presets: [require("nativewind/preset")]`,
-`global.css` with the Tailwind directives, babel preset `babel-preset-expo` with its JSX import source set to
-`"nativewind"` plus `nativewind/babel`, metro `withNativeWind(config, { input: "./global.css" })`,
-`nativewind-env.d.ts`. NativeWind 5 is a release candidate; use it only on explicit request.
-
-Desktop (after the Web scaffold):
-
-```bash
-pnpm add -D @tauri-apps/cli@latest
-pnpm tauri init   # dev URL http://localhost:5173, assets ../dist, dev "pnpm dev", build "pnpm build"
-```
-
-Add `server: { watch: { ignored: ["**/src-tauri/**"] } }` to `vite.config.ts`; run `pnpm tauri dev`.
-
-Mini Program:
-
-```bash
-pnpm dlx @tarojs/cli@4 init my-miniapp   # prompts: framework React, TypeScript yes
-cd my-miniapp
-pnpm add zustand
-```
-
-The CLI major selects the Taro major; keep `@4` so the project is Taro 4.
-
 ## 9. Acceptance items (proved by arc:verify)
 
 Commands and tools per platform: [stacks.md](../../arc:verify/references/stacks.md) "UI checks".
@@ -193,3 +169,5 @@ Commands and tools per platform: [stacks.md](../../arc:verify/references/stacks.
 4. Readability: no overlapping or truncated text, sufficient contrast, stable layout at target viewports.
 5. Empty and error render through different branches and visual treatments.
 6. Build, typecheck, lint and tests pass, or the blocker is reported.
+7. Native work proves relevant platform navigation, lifecycle, system integration and accessibility
+   on its target; a Web preview or a successful package build is not equivalent evidence.

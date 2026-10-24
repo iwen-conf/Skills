@@ -13,20 +13,31 @@ TOOL_LINES=10
 usage() {
   cat <<'EOF'
 usage: gate.sh start [--task <slug>] [--force]
-       gate.sh check [--task <slug>] [--max-files N] [--strict] [--scope <file>]
+       gate.sh red [--task <slug>] [--allow <path>]... -- <test command> [args...]
+       gate.sh check [--task <slug>] [--max-files N] [--strict] [--scope <file>] [--require-red]
 
 start   Record HEAD, `git status` entries and content hashes of files that are already dirty
         or untracked into .arc/artifacts/<slug>/baseline.json. Refuses to overwrite an
         existing baseline unless --force is given.
+red     Run a test command that must fail before the production code exists and record it in
+        .arc/artifacts/<slug>/red/. Until a red run has failed on an assertion, any changed file
+        that is neither a test nor a doc refuses the run, except paths named by --allow (a
+        signature stub or test scaffolding; their added lines are recorded). A passing command, or
+        one that runs no test, is refused. Output that looks like a build or import error is
+        recorded as kind=build: add the minimal stub and run red again.
 check   Check the change set since the baseline: placeholders, suppressions, format,
-        lint/typecheck, affected tests, scope. Prints one line per check and writes the full
-        report to .arc/artifacts/<slug>/reports/gate-<timestamp>.txt.
+        lint/typecheck (changed .sql files: sqlfluff under the project's config, squawk when
+        .squawk.toml exists), affected tests, red records, scope. Prints one line per check and writes
+        the full report to .arc/artifacts/<slug>/reports/gate-<timestamp>.txt.
 
 --task <slug>    artifact slug (default: current branch name, else "default")
 --max-files N    scope WARN threshold (default 20)
 --strict         run the full test suite of every detected stack
 --scope <file>   one glob per line, # comments allowed; * also matches /, a trailing /
                  or a bare directory matches everything below it
+--allow <path>   red only: non-test file that may change before the first red (repeatable)
+--require-red    fail unless a red record failed on an assertion and every recorded red
+                 command now passes; red records are re-run whenever they exist
 
 Exit status: 0 no check failed, 1 a check failed or start refused, 2 usage or environment error.
 The gate never stages, commits, stashes, formats or otherwise rewrites files.
@@ -52,6 +63,19 @@ DOCS = (".md", ".mdx", ".markdown", ".rst", ".adoc")
 TS = (".ts", ".tsx", ".mts", ".cts")
 BLOB_LIMIT = 4 << 20
 HUNK = re.compile(rb"^@@ -[0-9,]+ \+([0-9]+)")
+DIFF_OPTS = ["-U0", "--no-color", "--no-ext-diff", "--no-textconv"]
+TEST_DIRS = {"test", "tests", "Tests", "__tests__", "testdata", "fixtures", "spec", "specs", "e2e",
+             "androidTest", "ohosTest", ".maestro"}
+TEST_FILE = re.compile(r"(?:^test_.*\.py|_test\.(?:go|py)|\.(?:test|spec)\.[cm]?[jt]sx?|_spec\.rb"
+                       r"|Tests?\.(?:java|kt|kts|swift|cs)|\.test\.ets|^conftest\.py)$")
+# A red run must fail inside a test; these mean the test never compiled, imported or ran.
+BUILD_ERROR = re.compile(r"\[build failed\]|\bundefined: |\bcannot find package\b|\bcould not compile\b"
+                         r"|\berror\[E\d{4}\]|\bTS\d{4}:|Cannot find module|\bModuleNotFoundError\b"
+                         r"|\bImportError\b|\bSyntaxError\b|\bERROR collecting\b|\berrors? during collection\b"
+                         r"|\bcannot find symbol\b|\bUnresolved reference\b|error: cannot find '[^']+' in scope")
+NO_TESTS = re.compile(r"\bno tests ran\b|\bno test files\b|\bNo tests? (?:files )?found\b"
+                      r"|\bno tests to run\b|^Ran 0 tests\b|\b0 passing\b", re.M)
+STUB_LINES = 20
 PLACEHOLDER = [(None, re.compile(p)) for p in (
     r"\bTODO\b",
     r"\bFIXME\b",
@@ -214,6 +238,18 @@ def added_lines(diff):
     return lines
 
 
+def path_added_lines(root, base, files, blobdir, untracked, path):
+    full = os.path.join(root, path)
+    blob = (files.get(path) or {}).get("blob")
+    if blob and os.path.isfile(os.path.join(blobdir, blob)):
+        diff = git(root, ["diff", "--no-index"] + DIFF_OPTS + ["--", os.path.join(blobdir, blob), full], ok=(0, 1))
+        return added_lines(diff)
+    if path in untracked:
+        with open(full, "rb") as fh:
+            return list(enumerate(fh.read().split(b"\n"), 1))
+    return added_lines(git(root, ["diff"] + DIFF_OPTS + [base, "--", path]))
+
+
 def analyze(root, base, baseline, outdir):
     files = load_baseline(baseline).get("files", {})
     blobdir = os.path.dirname(baseline) if baseline else ""
@@ -221,7 +257,6 @@ def analyze(root, base, baseline, outdir):
     changed = changeset(root, base, files, untracked)
     write_list(os.path.join(outdir, "changed"), changed)
     found = {"placeholders": [], "suppressions": []}
-    diff_opts = ["-U0", "--no-color", "--no-ext-diff", "--no-textconv"]
     for path in changed:
         full = os.path.join(root, path)
         if os.path.islink(full) or not os.path.isfile(full) or path.lower().endswith(DOCS):
@@ -229,15 +264,7 @@ def analyze(root, base, baseline, outdir):
         with open(full, "rb") as fh:
             if b"\0" in fh.read(8000):
                 continue
-        blob = (files.get(path) or {}).get("blob")
-        if blob and os.path.isfile(os.path.join(blobdir, blob)):
-            diff = git(root, ["diff", "--no-index"] + diff_opts + ["--", os.path.join(blobdir, blob), full], ok=(0, 1))
-            lines = added_lines(diff)
-        elif path in untracked:
-            with open(full, "rb") as fh:
-                lines = list(enumerate(fh.read().split(b"\n"), 1))
-        else:
-            lines = added_lines(git(root, ["diff"] + diff_opts + [base, "--", path]))
+        lines = path_added_lines(root, base, files, blobdir, untracked, path)
         ext = os.path.splitext(path)[1].lower()
         label = path.replace("\n", "\\n")
         for number, raw in lines:
@@ -274,7 +301,102 @@ def pytests(root, changed, out):
     write_list(out, sorted(selected))
 
 
-COMMANDS = {"snapshot": snapshot, "head": head, "analyze": analyze, "pytests": pytests}
+def is_test_path(path):
+    parts = path.split("/")
+    return any(part in TEST_DIRS for part in parts[:-1]) or bool(TEST_FILE.search(parts[-1]))
+
+
+def red_records(artdir):
+    reddir = os.path.join(artdir, "red")
+    records = []
+    if os.path.isdir(reddir):
+        for name in sorted(os.listdir(reddir)):
+            if name.startswith("red-") and name.endswith(".json"):
+                with open(os.path.join(reddir, name), encoding="utf-8") as fh:
+                    records.append(json.load(fh))
+    return records
+
+
+def redprep(root, base, baseline, artdir, allow_file, out):
+    files = load_baseline(baseline).get("files", {})
+    blobdir = os.path.dirname(baseline)
+    untracked = set(zsplit(git(root, ["ls-files", "--others", "--exclude-standard", "-z"])))
+    changed = changeset(root, base, files, untracked)
+    real_root = os.path.realpath(root)
+    allow = {os.path.relpath(os.path.realpath(p), real_root) for p in read_list(allow_file)}
+    first = not any(r.get("kind") == "assertion" for r in red_records(artdir))
+    blocked = [p for p in changed
+               if first and p not in allow and not is_test_path(p) and not p.lower().endswith(DOCS)]
+    allowed = {}
+    for path in sorted(allow & set(changed)):
+        if os.path.isfile(os.path.join(root, path)):
+            lines = path_added_lines(root, base, files, blobdir, untracked, path)
+            allowed[path] = sum(1 for _, raw in lines if raw.strip())
+    tests = {p: file_state(os.path.join(root, p))[0] for p in changed if is_test_path(p)}
+    with open(out, "w", encoding="utf-8") as fh:
+        json.dump({"allowed": allowed, "tests": tests}, fh)
+    write_list(out + ".blocked", blocked)
+
+
+def redrecord(artdir, state_file, cwd, rc, log, argv_file):
+    with open(state_file, encoding="utf-8") as fh:
+        state = json.load(fh)
+    with open(log, "rb") as fh:
+        text = fh.read().decode("utf-8", "replace")
+    if NO_TESTS.search(text):
+        print("none -")
+        return
+    kind = "build" if BUILD_ERROR.search(text) else "assertion"
+    reddir = os.path.join(artdir, "red")
+    os.makedirs(reddir, exist_ok=True)
+    number = 1 + sum(1 for name in os.listdir(reddir) if name.startswith("red-") and name.endswith(".json"))
+    stem = os.path.join(reddir, "red-%03d" % number)
+    os.replace(log, stem + ".log")
+    record = {
+        "version": 1,
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "cwd": cwd,
+        "argv": read_list(argv_file),
+        "exit": int(rc),
+        "kind": kind,
+        "log": os.path.basename(stem) + ".log",
+        "allowed": state["allowed"],
+        "tests": state["tests"],
+    }
+    with open(stem + ".json", "w", encoding="utf-8") as fh:
+        json.dump(record, fh, indent=2, sort_keys=True)
+        fh.write("\n")
+    print(kind + " " + stem + ".json")
+
+
+def redplan(artdir, root, outdir):
+    records = red_records(artdir)
+    commands = []
+    for record in records:
+        key = (record["cwd"], tuple(record["argv"]))
+        if key not in commands:
+            commands.append(key)
+    for i, (cwd, argv) in enumerate(commands, 1):
+        write_list(os.path.join(outdir, "redargv.%d" % i), argv)
+        with open(os.path.join(outdir, "redcwd.%d" % i), "w", encoding="utf-8") as fh:
+            fh.write(cwd)
+    warnings, latest = [], {}
+    for record in records:
+        latest.update(record.get("tests", {}))
+        for path, count in sorted(record.get("allowed", {}).items()):
+            if count > STUB_LINES:
+                warnings.append("%s: %d lines added before red; a stub is a signature returning a zero value"
+                                % (path, count))
+    for path, state in sorted(latest.items()):
+        if file_state(os.path.join(root, path))[0] != state:
+            warnings.append("%s: changed after its last red run; confirm no assertion was weakened" % path)
+    with open(os.path.join(outdir, "redwarn"), "w", encoding="utf-8") as fh:
+        fh.write("".join(item + "\n" for item in warnings))
+    print(len(records), sum(1 for r in records if r.get("kind") == "assertion"), len(commands))
+
+
+COMMANDS = {"snapshot": snapshot, "head": head, "analyze": analyze, "pytests": pytests,
+            "redprep": redprep, "redrecord": redrecord, "redplan": redplan}
 COMMANDS[sys.argv[1]](*sys.argv[2:])
 PY
 
@@ -616,6 +738,49 @@ pick_typechecker() {
   return 1
 }
 
+sqlfluff_configured() {
+  local f d
+  if grep -qs '^\[tool\.sqlfluff' "$ROOT/pyproject.toml" || grep -qs '^\[sqlfluff' "$ROOT/setup.cfg" "$ROOT/tox.ini"; then
+    return 0
+  fi
+  for f in "${SQL_FILES[@]}"; do
+    d=$f
+    while :; do
+      case $d in */*) d=${d%/*} ;; *) d=. ;; esac
+      if [ -f "$ROOT/$d/.sqlfluff" ]; then return 0; fi
+      if [ "$d" = . ]; then break; fi
+    done
+  done
+  return 1
+}
+
+check_sql() {
+  local f
+  SQL_FILES=()
+  for f in ${CHANGED[@]+"${CHANGED[@]}"}; do
+    case $f in *.sql) if [ -f "$ROOT/$f" ]; then SQL_FILES+=("$f"); fi ;; esac
+  done
+  [ ${#SQL_FILES[@]} -gt 0 ] || return 1
+  # The dialect is a project decision: lint only under the project's sqlfluff config.
+  if ! sqlfluff_configured; then
+    emit "lint(sql)" NOT_RUN "no sqlfluff config naming the dialect"
+  elif ! find_py_tool sqlfluff .; then
+    emit "lint(sql)" NOT_RUN "sqlfluff not installed"
+  else
+    run_tool "$ROOT" "$TOOL" lint "${SQL_FILES[@]}"
+    tool_verdict "lint(sql)" "sqlfluff lint"
+  fi
+  if [ -f "$ROOT/.squawk.toml" ]; then
+    if find_py_tool squawk .; then
+      run_tool "$ROOT" "$TOOL" "${SQL_FILES[@]}"
+      tool_verdict "lint(sql-migration)" squawk
+    else
+      emit "lint(sql-migration)" NOT_RUN "squawk not installed"
+    fi
+  fi
+  return 0
+}
+
 check_lint() {
   local any=0 r
   group_by_marker gomod 1 "" go.mod
@@ -685,6 +850,8 @@ check_lint() {
       tool_verdict "lint(rust$SFX)" "cargo clippy"
     fi
   done
+
+  if check_sql; then any=1; fi
 
   if [ $any -eq 0 ]; then emit lint NOT_RUN "no supported stack detected"; fi
 }
@@ -808,6 +975,44 @@ check_tests() {
   fi
 }
 
+check_red() {
+  local info total asserted ncmd i=1 cwd arg failed=0
+  info=$(py redplan "$ARTDIR" "$ROOT" "$TMP")
+  read -r total asserted ncmd <<<"$info"
+  if [ "$total" -eq 0 ]; then
+    if [ "$REQUIRE_RED" -eq 1 ]; then
+      emit red-first FAIL "no red record: run gate.sh red -- <test command> before the first production edit"
+    fi
+    return 0
+  fi
+  if [ "$asserted" -eq 0 ]; then
+    emit red-first FAIL "no red run failed on an assertion (build or import errors only)"
+  else
+    while [ $i -le "$ncmd" ]; do
+      RED_ARGV=()
+      while IFS= read -r -d '' arg; do RED_ARGV+=("$arg"); done <"$TMP/redargv.$i"
+      cwd=$(cat "$TMP/redcwd.$i")
+      run_tool "$ROOT/$cwd" "${RED_ARGV[@]}"
+      if [ "$RC" -ne 0 ]; then
+        failed=$((failed + 1))
+        cp "$TMP/out" "$TMP/redfail"
+      fi
+      i=$((i + 1))
+    done
+    if [ $failed -gt 0 ]; then
+      emit red-first FAIL "$failed of $ncmd red command(s) still fail"
+      cp "$TMP/redfail" "$TMP/out"
+      show_output
+    else
+      emit red-first PASS
+    fi
+  fi
+  if [ -s "$TMP/redwarn" ]; then
+    emit red-hygiene WARN "$(grep -c . "$TMP/redwarn") item(s)"
+    list_capped "$TMP/redwarn"
+  fi
+}
+
 load_scope() {
   local line
   SCOPE_GLOBS=()
@@ -875,7 +1080,7 @@ write_report() {
   done
   {
     printf '# arc gate report %s\n' "$stamp"
-    printf '# options: max-files=%s strict=%s scope=%s\n' "$MAX_FILES" "$STRICT" "${SCOPE_FILE:-none}"
+    printf '# options: max-files=%s strict=%s scope=%s require-red=%s\n' "$MAX_FILES" "$STRICT" "${SCOPE_FILE:-none}" "$REQUIRE_RED"
     cat "$TMP/summary"
     printf '# summary: %s FAIL, %s NOT_RUN, %s WARN\n' "$FAIL_N" "$NOT_RUN_N" "$WARN_N"
     printf '\n## changed files (%s)\n' "${#CHANGED[@]}"
@@ -905,6 +1110,65 @@ cmd_start() {
   mkdir -p "$ARTDIR"
   count=$(py snapshot "$ROOT" "$ARTDIR" "$head" "$branch" "$SLUG" "$BASELINE")
   say "baseline: recorded $(rel "$BASELINE") (head $(short "$head"), $count pre-existing dirty or untracked file(s))"
+}
+
+cmd_red() {
+  local bl_head base f result kind record
+  if [ ! -f "$BASELINE" ]; then
+    printf '%s: no baseline for task %s; run gate.sh start first\n' "$PROG" "$SLUG" >&2
+    exit 1
+  fi
+  bl_head=$(py head "$BASELINE")
+  if [ "$bl_head" = none ]; then
+    base=$(empty_tree)
+  elif git cat-file -e "$bl_head^{commit}" 2>/dev/null; then
+    base=$bl_head
+  else
+    die "baseline head $(short "$bl_head") not found; rerun gate.sh start --force"
+  fi
+  : >"$TMP/allow"
+  for f in ${ALLOW[@]+"${ALLOW[@]}"}; do
+    case $f in /*) ;; *) f=$ORIG_PWD/$f ;; esac
+    printf '%s\0' "$f" >>"$TMP/allow"
+  done
+  : >"$TMP/summary"
+  py redprep "$ROOT" "$base" "$BASELINE" "$ARTDIR" "$TMP/allow" "$TMP/redstate"
+  if [ -s "$TMP/redstate.blocked" ]; then
+    say "red: refused: production files changed before the first failing test:"
+    tr '\0' '\n' <"$TMP/redstate.blocked" >"$TMP/list"
+    list_capped "$TMP/list"
+    say "  discard your own pre-red edits, or name a signature stub or test scaffolding file with --allow"
+    exit 1
+  fi
+  : >"$TMP/argv"
+  for f in "${RED_CMD[@]}"; do printf '%s\0' "$f" >>"$TMP/argv"; done
+  if (cd "$ORIG_PWD" && "${RED_CMD[@]}") >"$TMP/out" 2>&1 </dev/null; then RC=0; else RC=$?; fi
+  case $RC in
+    0)
+      say "red: refused: the command passed before the implementation, so it does not test the missing behavior"
+      show_output
+      exit 1
+      ;;
+    126 | 127)
+      say "red: harness error: the command could not run (exit $RC)"
+      show_output
+      exit 2
+      ;;
+  esac
+  cp "$TMP/out" "$TMP/redlog"
+  result=$(py redrecord "$ARTDIR" "$TMP/redstate" "$(rel_dir "$ORIG_PWD")" "$RC" "$TMP/redlog" "$TMP/argv")
+  kind=${result%% *}
+  record=${result#* }
+  if [ "$kind" = none ]; then
+    say "red: refused: the command ran no test (exit $RC); check the test selector"
+    show_output
+    exit 2
+  fi
+  say "red: recorded $(rel "$record") (exit $RC, kind $kind)"
+  if [ "$kind" = build ]; then
+    say "red: the failure is a build or import error, not an assertion: add the minimal signature stub (--allow <path>) and run red again"
+  fi
+  show_output
 }
 
 cmd_check() {
@@ -941,6 +1205,7 @@ cmd_check() {
   check_format
   check_lint
   check_tests
+  check_red
   check_scope
 
   write_report
@@ -961,10 +1226,12 @@ main() {
       usage
       exit 0
       ;;
-    start | check) ;;
+    start | check | red) ;;
     *) die "unknown command: $CMD (try --help)" ;;
   esac
-  TASK= FORCE=0 STRICT=0 MAX_FILES=20 SCOPE_FILE=
+  TASK= FORCE=0 STRICT=0 MAX_FILES=20 SCOPE_FILE= REQUIRE_RED=0
+  ALLOW=()
+  RED_CMD=()
   while [ $# -gt 0 ]; do
     case $1 in
       --task)
@@ -998,6 +1265,23 @@ main() {
         SCOPE_FILE=$2
         shift 2
         ;;
+      --allow)
+        [ "$CMD" = red ] || die "--allow is only valid for red"
+        [ $# -ge 2 ] || die "--allow needs a path"
+        ALLOW+=("$2")
+        shift 2
+        ;;
+      --require-red)
+        [ "$CMD" = check ] || die "--require-red is only valid for check"
+        REQUIRE_RED=1
+        shift
+        ;;
+      --)
+        [ "$CMD" = red ] || die "-- is only valid for red"
+        shift
+        RED_CMD=("$@")
+        break
+        ;;
       -h | --help)
         usage
         exit 0
@@ -1005,6 +1289,7 @@ main() {
       *) die "unknown option: $1 (try --help)" ;;
     esac
   done
+  if [ "$CMD" = red ] && [ ${#RED_CMD[@]} -eq 0 ]; then die "red needs a test command after --"; fi
   case $MAX_FILES in '' | *[!0-9]*) die "--max-files needs a non-negative integer" ;; esac
   have git || die "git not found on PATH"
   have python3 || die "python3 is required for baseline and diff parsing but was not found on PATH"
@@ -1014,6 +1299,7 @@ main() {
     case $SCOPE_FILE in /*) ;; *) SCOPE_FILE=$PWD/$SCOPE_FILE ;; esac
     [ -f "$SCOPE_FILE" ] || die "scope file not found: $SCOPE_FILE"
   fi
+  ORIG_PWD=$(pwd -P)
   cd "$ROOT"
   resolve_slug
   ARTDIR=$ROOT/.arc/artifacts/$SLUG

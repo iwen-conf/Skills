@@ -1,0 +1,7 @@
+version: 1
+extends: default
+
+languages:
+  go:
+    skill: arc-code
+    verify_hint: "Follow arc-code go-backend conventions (errors.Is, InitXxx, layering)."

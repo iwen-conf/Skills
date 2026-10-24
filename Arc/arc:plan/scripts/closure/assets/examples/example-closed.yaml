@@ -1,0 +1,151 @@
+# 示例：电商下单（仅用于演示 spec 的写法，已通过 R1–R20 全部检查）
+# 注意：这不是模板！设计新业务时从 assets/spec.template.yaml 起步，不要照抄这里的业务内容。
+meta: {system: 电商下单示例, version: "1.0"}
+
+actors:
+  用户: {kind: human}
+  商家: {kind: human}
+  运营: {kind: human}
+  系统: {kind: system}
+  支付渠道: {kind: external}
+  物流: {kind: external}
+
+requirements:
+  REQ-001: 用户可以下单并完成支付
+  REQ-002: 未支付订单超时自动取消，并释放库存
+  REQ-003: 商家发货，用户确认收货（或超时自动确认）后订单完成
+  REQ-004: 发货前用户可取消订单，已付款的必须全额退款
+  REQ-005: 退款失败或超时必须有人工兜底，钱不能卡住
+  REQ-006: 发货后物流退回的，库存回补并退款
+  REQ-007: 订单关闭后才到账的"迟到支付"必须退款
+  REQ-008: 商家长时间不发货，订单自动取消并退款
+
+resources:
+  库存占用: 下单后为订单预留的库存
+  待结算款项: 已收到但尚未结算或退还的钱
+
+events:
+  提交订单: {source: actor}
+  订单已创建: {source: internal}
+  支付成功: {source: external, desc: 支付渠道回调}
+  支付已确认: {source: internal}
+  支付超时: {source: timer, after: 30分钟}
+  用户取消: {source: actor}
+  发货超时: {source: timer, after: 72小时}
+  商家发货: {source: actor}
+  订单已发货: {source: internal}
+  确认收货: {source: actor}
+  自动确认: {source: timer, after: 7天}
+  物流退回: {source: external}
+  订单已取消: {source: internal}
+  订单已完成: {source: internal, sinks: [{kind: notify, target: 用户, desc: 订单完成通知}]}
+  退款成功: {source: external}
+  退款失败: {source: external}
+  退款超时: {source: timer, after: 24小时}
+  人工退款完成: {source: actor}
+  关单期满: {source: timer, after: 7天}
+
+entities:
+  订单:
+    created_by: {event: 提交订单, actor: 用户, emits: [订单已创建]}
+    states: [待支付, 待发货, 待收货, 已完成, 已取消]
+    initial: 待支付
+    terminal: [已完成, 已取消]
+    transitions:
+      - {id: O-01, from: 待支付, event: 支付已确认, actor: 系统, to: 待发货}
+      - {id: O-02, from: 待支付, event: 支付超时, actor: 系统, to: 已取消, kind: exception, emits: [订单已取消]}
+      - {id: O-03, from: 待支付, event: 用户取消, actor: 用户, to: 已取消, kind: exception, emits: [订单已取消], feedback: 页面提示订单已取消}
+      - {id: O-04, from: 待发货, event: 用户取消, actor: 用户, to: 已取消, kind: exception, emits: [订单已取消], feedback: 页面提示已取消，退款将原路返回}
+      - {id: O-05, from: 待发货, event: 商家发货, actor: 商家, to: 待收货, emits: [订单已发货], feedback: 后台显示已发货，用户收到发货通知}
+      - {id: O-06, from: 待收货, event: 确认收货, actor: 用户, to: 已完成, emits: [订单已完成], feedback: 页面提示订单已完成}
+      - {id: O-07, from: 待收货, event: 自动确认, actor: 系统, to: 已完成, emits: [订单已完成]}
+      - {id: O-08, from: 待收货, event: 物流退回, actor: 物流, to: 已取消, kind: exception, emits: [订单已取消]}
+      - {id: O-09, from: 待发货, event: 发货超时, actor: 系统, to: 已取消, kind: exception, emits: [订单已取消]}
+    ignores:
+      - {event: 支付超时, states: ["@others"], reason: 离开待支付时取消定时器}
+      - {event: 发货超时, states: ["@others"], reason: 离开待发货时取消定时器}
+      - {event: 自动确认, states: ["@others"], reason: 离开待收货时取消定时器}
+      - {event: 物流退回, states: ["@others"], reason: 只有已发货订单才会产生物流退回}
+    race_policy:
+      待支付: 支付回调与超时/取消并发时，以订单状态机的串行化结果为准；晚到的支付由支付单转退款
+      待发货: 取消与发货并发时先落库者生效，后者被状态校验拒绝并提示
+      待收货: 确认收货、自动确认、物流退回以先落库者为准
+    fields:
+      金额: {writers: ["@创建"], readers: [P-01, "@订单页面"]}
+      收货地址: {writers: ["@创建"], readers: [O-05]}
+
+  支付单:
+    created_by: {event: 订单已创建, actor: 系统}
+    states: [待支付, 已支付, 已结算, 退款中, 待人工退款, 已退款, 已关闭, 已终结]
+    initial: 待支付
+    terminal: [已结算, 已退款, 已终结]
+    transitions:
+      - {id: P-01, from: 待支付, event: 支付成功, actor: 支付渠道, to: 已支付, emits: [支付已确认], acquires: [待结算款项], feedback: 渠道回调返回 success}
+      - {id: P-02, from: 待支付, event: 订单已取消, actor: 系统, to: 已关闭, kind: exception}
+      - {id: P-03, from: 已支付, event: 订单已完成, actor: 系统, to: 已结算, releases: [待结算款项]}
+      - {id: P-04, from: 已支付, event: 订单已取消, actor: 系统, to: 退款中, kind: exception}
+      - {id: P-05, from: 退款中, event: 退款成功, actor: 支付渠道, to: 已退款, releases: [待结算款项]}
+      - {id: P-06, from: 退款中, event: 退款失败, actor: 支付渠道, to: 待人工退款, kind: exception}
+      - {id: P-07, from: 退款中, event: 退款超时, actor: 系统, to: 待人工退款, kind: exception}
+      - {id: P-08, from: 待人工退款, event: 人工退款完成, actor: 运营, to: 已退款, releases: [待结算款项], feedback: 工单标记完成，用户收到退款通知}
+      - {id: P-09, from: 已关闭, event: 支付成功, actor: 支付渠道, to: 退款中, kind: exception, acquires: [待结算款项]}
+      - {id: P-10, from: 已关闭, event: 关单期满, actor: 系统, to: 已终结}
+    ignores:
+      - {event: 支付成功, states: [已支付, 已结算, 退款中, 待人工退款, 已退款, 已终结], reason: 重复回调按幂等忽略；终结后渠道不再回调}
+      - {event: 退款成功, states: ["@others"], reason: 只有退款中才会收到退款结果}
+      - {event: 退款失败, states: ["@others"], reason: 只有退款中才会收到退款结果}
+      - {event: 退款超时, states: ["@others"], reason: 离开退款中时取消定时器}
+      - {event: 关单期满, states: ["@others"], reason: 离开已关闭时取消定时器}
+    race_policy:
+      退款中: 渠道结果先到先处理，超时到达时若已有结果则忽略
+      已关闭: 观察期内迟到的支付一律转退款；期满后终结
+    fields:
+      渠道流水号: {writers: [P-01, P-09], readers: [P-05, "@对账"]}
+
+  库存锁定:
+    created_by: {event: 订单已创建, actor: 系统, acquires: [库存占用]}
+    states: [已锁定, 已扣减, 已释放, 已回库, 已出库完成]
+    initial: 已锁定
+    terminal: [已释放, 已回库, 已出库完成]
+    transitions:
+      - {id: K-01, from: 已锁定, event: 订单已发货, actor: 系统, to: 已扣减, releases: [库存占用]}
+      - {id: K-02, from: 已锁定, event: 订单已取消, actor: 系统, to: 已释放, kind: exception, releases: [库存占用]}
+      - {id: K-03, from: 已扣减, event: 订单已完成, actor: 系统, to: 已出库完成}
+      - {id: K-04, from: 已扣减, event: 订单已取消, actor: 系统, to: 已回库, kind: exception}
+    fields:
+      数量: {writers: ["@创建"], readers: [K-01, K-02]}
+
+scenarios:
+  正常履约: {type: normal, entity: 订单, req: [REQ-001, REQ-003], steps: [P-01, O-01, O-05, K-01, O-06, P-03, K-03]}
+  自动确认收货: {type: normal, entity: 订单, req: [REQ-003], steps: [P-01, O-01, O-05, K-01, O-07, P-03, K-03]}
+  超时未支付取消: {type: exception, entity: 订单, req: [REQ-002], steps: [O-02, P-02, K-02]}
+  待支付主动取消: {type: exception, entity: 订单, req: [REQ-004], steps: [O-03, P-02, K-02]}
+  已付款发货前取消: {type: exception, entity: 订单, req: [REQ-004], steps: [P-01, O-01, O-04, P-04, K-02, P-05]}
+  退款失败转人工: {type: exception, entity: 支付单, req: [REQ-005], steps: [P-01, O-01, O-04, P-04, K-02, P-06, P-08]}
+  退款超时转人工: {type: exception, entity: 支付单, req: [REQ-005], steps: [P-01, O-01, O-04, P-04, K-02, P-07, P-08]}
+  发货后物流退回: {type: exception, entity: 订单, req: [REQ-006], steps: [P-01, O-01, O-05, K-01, O-08, P-04, K-04, P-05]}
+  关单后迟到支付退款: {type: exception, entity: 支付单, req: [REQ-007], steps: [O-02, P-02, K-02, P-09, P-05]}
+  关单观察期满终结: {type: exception, entity: 支付单, req: [REQ-007], steps: [O-02, P-02, K-02, P-10]}
+  商家超时未发货取消: {type: exception, entity: 订单, req: [REQ-008], steps: [P-01, O-01, O-09, P-04, K-02, P-05]}
+
+invariants:
+  - id: INV-01
+    desc: 订单已取消时，库存不能还被占着
+    when: {订单: [已取消]}
+    then: {库存锁定: [已释放, 已回库]}
+  - id: INV-02
+    desc: 订单已完成时，款项已结算且库存已出库
+    when: {订单: [已完成]}
+    then: {支付单: [已结算], 库存锁定: [已出库完成]}
+  - id: INV-03
+    desc: 订单已取消时，钱不能留在"已支付/已结算"——必须退款或从未收款
+    when: {订单: [已取消]}
+    then: {支付单: [已关闭, 退款中, 待人工退款, 已退款, 已终结]}
+  - id: INV-04
+    desc: 支付单已收款时，订单必须处于已付款后的状态
+    when: {支付单: [已支付, 已结算]}
+    then: {订单: [待发货, 待收货, 已完成]}
+
+waivers:
+  - {rule: R8, target: 支付单.待人工退款, reason: 本身就是最终兜底态，其出口"人工退款完成"即为异常处理结果}
+  - {rule: R19, target: 支付单.待人工退款, reason: 兜底态只能由运营处理；超时由运营工单 SLA 监控，不在本系统内再加定时器}

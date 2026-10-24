@@ -1,6 +1,118 @@
 # Runtime intent scenarios. These are not scored by the static keyword winner.
 # A keyword hit here is a vocabulary observation, not Agent routing evidence.
 scenarios:
+  - id: native-clients-new-project
+    category: scope
+    utterance: 先写PRD，Android和iOS新客户端都做原生，后端接口共用
+    expected_runtime: arc:plan uses Kotlin and Jetpack Compose for Android and Swift with SwiftUI or UIKit for iOS, shares the backend contract and business semantics, and keeps separate platform acceptance without proposing a shared UI runtime for code reuse
+    static_keyword_winner: arc:plan
+    static_keyword_is_authoritative: false
+    notes: 用户原生方向已确定；多端不等于跨平台UI，也不新增未要求的平台。
+
+  - id: native-policy-does-not-rewrite-legacy
+    category: scope
+    utterance: 修复现有Expo页面的渲染报错，只改这个问题
+    expected_runtime: arc:code repairs the confirmed defect within the existing Expo app and does not infer authorization for a native rewrite, while retaining native defaults for future independent targets
+    static_keyword_winner: arc:code
+    static_keyword_is_authoritative: false
+    notes: 新选型方向不能扩大旧项目局部维护的范围。
+
+  - id: native-ui-evidence-is-platform-specific
+    category: scope
+    utterance: 给原生macOS客户端写测试，浏览器截图能否代替窗口和权限验证
+    expected_runtime: arc:verify chooses the actual macOS app target and native UI evidence, rejects browser-only proof for windows or permissions and marks missing device or tool evidence NOT_RUN rather than switching to a web shell
+    static_keyword_winner: arc:verify
+    static_keyword_is_authoritative: false
+    notes: 原生行为必须由目标平台的证据证明；构建与浏览器预览都不自动构成原生UI验收。
+
+  - id: api-design-doc-only
+    category: scope
+    utterance: 只读评估这份 HTTP API 草案的上传约束和 JSON字段限制，目前没有服务器
+    expected_runtime: arc:audit api-design reads the supplied draft and relevant primary standards, distinguishes confirmed design contradictions from specification and enforcement gaps, and reports section evidence without starting a server or editing the draft
+    static_keyword_winner: arc:audit
+    static_keyword_is_authoritative: false
+    notes: 缺少实现不阻止设计评审，但不能把文档问题声称为运行时漏洞。
+
+  - id: api-design-no-invented-caps
+    category: scope
+    utterance: 核对 HTTP API 上传约束，文档没有定文件大小或字符数，不要凭习惯填数字
+    expected_runtime: arc:audit api-design records unknown budgets with their decision owner, investigates inherited or provider enforcement, cites standard versus project authority and never invents a universal upload or field limit
+    static_keyword_winner: arc:audit
+    static_keyword_is_authoritative: false
+    notes: 项目限额缺失是规格缺口；既不能编造 RFC 上限，也不能据此证明所有部署路径无限制。
+
+  - id: api-design-does-not-authorize-upload
+    category: authorization
+    utterance: 检查生产 HTTP API 的上传约束，只读，不发请求
+    expected_runtime: arc:audit api-design inspects contracts and existing evidence only; it does not upload test files, probe the target, fuzz or load test and marks runtime claims unverified
+    static_keyword_winner: arc:audit
+    static_keyword_is_authoritative: false
+    notes: 网上查规范不等于获得业务目标的测试或数据写入权限。
+
+  - id: api-design-authorized-remediation-handoff
+    category: multi-intent
+    utterance: 先评估 HTTP API 设计缺陷，再按已确认的合同修复并验证
+    expected_runtime: arc:audit api-design records sourced findings, arc:code performs the already authorized accepted repairs, and arc:verify binds the same rule and finding IDs to actual enforcement evidence; only unresolved business choices need clarification
+    static_keyword_winner: null
+    static_keyword_is_authoritative: false
+    notes: HTTP API 与修复词静态并列，无唯一赢家；真实阶段切换保留用户授权和范围，schema 通过不代替实际入口证据。
+
+  - id: closure-model-before-implementation
+    category: multi-intent
+    utterance: 设计订单业务闭环和状态机，通过后继续实现接口
+    expected_runtime: arc:plan model mode models the authorized business change, records assumptions and model gate evidence, then hands the same spec and accepted scope to arc:code; existing implementation authorization is reused
+    static_keyword_winner: arc:plan
+    static_keyword_is_authoritative: false
+    notes: 模型闸门只证明已建模的业务自洽；不能替代实际代码验证，也不重复索取已经给出的实现授权。
+
+  - id: closure-read-only-existing-business
+    category: scope
+    utterance: 只读核对现有业务闭环和事件联动，不要改文档或代码
+    expected_runtime: arc:plan model mode audits the existing model and arc:explore evidence within the read-only scope; it reports findings without initializing docs, changing the spec or installing project rules
+    static_keyword_winner: arc:plan
+    static_keyword_is_authoritative: false
+    notes: 只读范围覆盖业务审查；初始化工具能写文档不表示已经获得写入授权。
+
+  - id: closure-plan-handoff-keeps-task-authority
+    category: multi-intent
+    utterance: 为业务闭环的状态机和事件联动拆任务，并登记进度
+    expected_runtime: arc:plan model mode supplies requirement, entity, transition and scenario IDs plus current gate evidence; arc:plan references them in task acceptance criteria and keeps the execution progress table authoritative
+    static_keyword_winner: arc:plan
+    static_keyword_is_authoritative: false
+    notes: docs/01-系统设计/业务闭环（旧项目 docs/arc）是业务模型及报告落点，不另建一套与进度跟踪表冲突的执行状态。
+
+  - id: closure-gate-is-not-implementation-permission
+    category: authorization
+    utterance: 只做业务闭环，闭环闸门通过也先不要实现
+    expected_runtime: arc:plan model mode completes and reports the model phase only; passing the model gate does not override the explicit prohibition on implementation
+    static_keyword_winner: arc:plan
+    static_keyword_is_authoritative: false
+    notes: 模型证据、人工待确认事项和源码修改授权分别记录。
+
+  - id: closure-stale-spec-rejects-gate
+    category: scope
+    utterance: 事件联动改过了，旧闭环检查报告还是绿的，核对闭环闸门
+    expected_runtime: arc:plan model mode rejects gate evidence for the old spec, rechecks the current model and preserves unresolved assumptions or waivers instead of treating stale success as PASS
+    static_keyword_winner: arc:plan
+    static_keyword_is_authoritative: false
+    notes: 必须绑定当前 spec；旧报告与运行进程退出零都不能自动打开新模型的闸门。
+
+  - id: closure-model-is-not-release-evidence
+    category: negation
+    utterance: 业务闭环和状态机已经检查通过，不代表发布证据也通过
+    expected_runtime: arc:verify consumes the closure scenarios and invariant IDs, binds independent real-system observations and failure cases, and reports runtime claims separately from arc:plan model mode model consistency
+    static_keyword_winner: arc:plan
+    static_keyword_is_authoritative: false
+    notes: 模型通过不证明消息乱序、多实例、数据库并发或生产环境行为；缺少必需证据保留 BLOCKED 或 NOT_RUN。
+
+  - id: closure-audit-feedback-to-model
+    category: multi-intent
+    utterance: 业务闭环审查发现事件联动缺口，先登记证据，再调整状态机
+    expected_runtime: arc:audit or arc:plan model mode preserves finding evidence and affected IDs; arc:plan model mode updates the authorized model and reruns its gate before arc:plan or arc:code consumes the changed contract
+    static_keyword_winner: arc:plan
+    static_keyword_is_authoritative: false
+    notes: 发现、模型修订、实现与验证保持可追溯；静态词频不决定由哪个阶段开始。
+
   - id: negation-do-not-write-code
     category: negation
     utterance: 不要写代码
@@ -168,3 +280,43 @@ scenarios:
     static_keyword_winner: arc:verify
     static_keyword_is_authoritative: false
     notes: 隔离改变调度而非业务事实；需要修复或可信替代证据，授权风险决定与测试结果分开。
+
+  - id: flow-first-not-endpoint-list
+    category: negation
+    utterance: 不要按接口列表批量生成用例，先梳理下单业务流再写测试
+    expected_runtime: arc:verify flow mode traces the real entry points into a flow inventory, Mermaid charts and a branch ledger, checks it with flow_ledger.py, and only then writes branch-mapped cases; no case is generated from the endpoint list
+    static_keyword_winner: arc:verify
+    static_keyword_is_authoritative: false
+    notes: 业务流优先于单接口；未实现的补偿画成缺口终点，不写成已具备的能力。
+
+  - id: closure-review-then-flow-tests
+    category: multi-intent
+    utterance: 先只读检查订单的业务闭环，再按端到端业务流补测试
+    expected_runtime: arc:plan model review reports lifecycle gaps read-only, then arc:verify flow mode maps the same transitions and invariants to flow branches and writes tests; flows cite closure-spec IDs and never edit the spec
+    static_keyword_winner: arc:verify
+    static_keyword_is_authoritative: false
+    notes: 静态词表只命中 verify，会漏掉 plan 阶段；闭环模型归 plan，业务流测试归 verify，模型 PASS 不等于运行时已验证。
+
+  - id: model-divergence-is-not-a-model-edit
+    category: negation
+    utterance: 按 closure spec 做模型一致性测试，代码和模型对不上就直接改模型让测试通过
+    expected_runtime: arc:verify runs generated operation sequences through the real entry points against a model read from the spec, keeps a transition hit ledger, and reports each shrunk divergence as FAIL with a repair packet for arc:code or as a SPECIFICATION GAP for arc:plan model review; it never edits the spec or bends the model to the code
+    static_keyword_winner: arc:verify
+    static_keyword_is_authoritative: false
+    notes: 模型归 plan、实现归 code，一致性测试只出证据；模型检查 PASS 与代码一致性 PASS 是两个独立结论。
+
+  - id: vet-offline-no-invented-facts
+    category: scope
+    utterance: 引入依赖前先做开源选型，但这台机器访问不了 GitHub
+    expected_runtime: arc:vet checks the standard library, manifests and lockfiles locally, marks every external maintenance, release, license and advisory fact 未核实, recommends no unverified library for production and lists the queries to re-run instead of inventing activity or versions
+    static_keyword_winner: arc:vet
+    static_keyword_is_authoritative: false
+    notes: 无网络时只能做本地复用判断；不得把未核实候选当作生产依赖推荐。
+
+  - id: vet-then-implement
+    category: multi-intent
+    utterance: 先做技术选型挑一个限流库，然后把限流中间件写完
+    expected_runtime: arc:vet writes the decision record with dated candidate evidence and vetoes, then switches to arc:code in the same turn using the record's pin and proof test; the record does not replace the requested implementation
+    static_keyword_winner: arc:vet
+    static_keyword_is_authoritative: false
+    notes: 选型是第一阶段；用户已授权实现，交接后继续，不以调研报告收尾。

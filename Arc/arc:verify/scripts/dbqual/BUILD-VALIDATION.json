@@ -57,5 +57,67 @@
     "Framework PASS means the harness/gates/parsers/reporting were self-tested; it is not database release qualification for any application.",
     "Expert pre-release gates deliberately require project-bound evidence and fail when those bindings are absent.",
     "Real qualification must run in an isolated production-representative PostgreSQL environment."
+  ],
+  "local_modifications": [
+    {
+      "date": "2026-10-08",
+      "change": "fail-closed run binding: run manifest + run_id on every record, candidate fingerprint re-check in release_gate, BLOCKED regression comparison on missing inputs",
+      "unit_tests": {
+        "status": "PASS",
+        "count": 61
+      },
+      "selftest": {
+        "status": "PASS",
+        "fail_closed_controls": true
+      },
+      "false_pass_reproducers": {
+        "stale_evidence_gate": {
+          "before": "PASS",
+          "after": "FAIL"
+        },
+        "empty_baseline_compare": {
+          "before": "PASS",
+          "after": "BLOCKED"
+        }
+      },
+      "real_postgresql_integration": "BLOCKED"
+    },
+    {
+      "date": "2026-10-08",
+      "change": "static SQL gate: sql_static_audit.py (SQLFluff parse/lint, Squawk migration lint), evidence sql.static",
+      "unit_tests": {
+        "status": "PASS",
+        "count": 72,
+        "skipped": 1
+      },
+      "real_tools": {
+        "sqlfluff": "4.4.0",
+        "squawk": "2.68.0",
+        "status": "PASS"
+      }
+    },
+    {
+      "date": "2026-10-14",
+      "change": "release_gate checks the policy against gate-policy.schema.json and requires >=1 assertion; qualification_coverage_gate requires >=1 claim",
+      "unit_tests": {
+        "status": "PASS",
+        "count": 75,
+        "skipped": 1
+      },
+      "selftest": {
+        "status": "PASS"
+      },
+      "false_pass_reproducers": {
+        "empty_or_misspelled_policy": {
+          "before": "PASS",
+          "after": "FAIL"
+        },
+        "manifest_without_claims": {
+          "before": "PASS",
+          "after": "FAIL"
+        }
+      },
+      "real_postgresql_integration": "BLOCKED"
+    }
   ]
 }

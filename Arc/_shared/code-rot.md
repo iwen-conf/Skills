@@ -1,11 +1,11 @@
-# Code Rot Taxonomy (36 items)
+# Code Rot Taxonomy (41 items)
 
 The single catalog of recurring failure modes in agent-written business code. Read with
 [contract.md](contract.md) (vocabulary, artifacts) and [code-intel.md](code-intel.md) (query
 syntax). Diagnosing a suspected defect found here follows the root-cause gate in
 [execution-truth.md](../../docs/execution-truth.md) §6.
 
-- IDs 1–36 are stable. Cite as family + ID (`D25`, `E27`); IDs 8 and 24 appear in two families.
+- IDs 1–41 are stable. Cite as family + ID (`D25`, `E27`); IDs 8 and 24 appear in two families.
 - **Gate** is the write-time rule. **Detect** is the starting query for an audit; every hit is a
   hypothesis until the file is read and the rule violation is shown at `file:line`.
 - An item that does not apply to the stack in scope is `N/A`, not a finding.
@@ -15,7 +15,7 @@ syntax). Diagnosing a suspected defect found here follows the root-cause gate in
 | Skill | Role | Items |
 |---|---|---|
 | `arc:code` | Prevents at write time: applies every Gate to the lines it writes. Families **D and E are its data-layer write gate** for any SQL, migration, repository method or state transition. Runs `arc:code/scripts/gate.sh check` for F. | all |
-| `arc:audit` | Detects: full catalog in health mode; changed lines only in review mode; family C in appsec mode. | all |
+| `arc:audit` | Detects: full catalog in health mode; changed lines only in review mode; family C in appsec mode; family G in health and review. | all |
 | `arc:verify` | Proves: tests or checks that fail on the rot and pass after the fix (C authz/brute-force/amount, D bounds and filters, E transitions and races, F34). | C, D, E, F34 |
 
 ## A. Convention drift: one meaning → one name, type, shape and key style
@@ -76,7 +76,22 @@ syntax). Diagnosing a suspected defect found here follows the root-cause gate in
 | 7 | Unstable state machine | Full state set and legal transitions declared once; transitions explicit. | State string literals across files; `UPDATE … SET status` without a from-state predicate. |
 | 8 | Empty state reported as error | No-data is success for list, search, dashboard and first-use flows; errors only for failed requests, invalid responses, denied permissions or single-resource not-found. | `sql.ErrNoRows` / `ErrNotFound` returned from list or search; error UI on an empty array. |
 | 13 | Swallowed exceptions | Never catch and discard: handle, wrap with context, or rethrow; log with cause. | `ast --lang go 'if err != nil { }'`; `_ = $F($$$)` on fallible calls; `catch {}`, `catch (e) {}`, `except: pass`. |
-| 27 | Race conditions | Concurrent writes use transactions, optimistic locking or state-encoded `WHERE` (`… WHERE status='pending'`) and check affected rows. | Read-modify-write of balance/counter/status without lock; unchecked `RowsAffected`. |
+| 27 | Race conditions | Concurrent writes use transactions, optimistic locking or state-encoded `WHERE` (`… WHERE status='pending'`) and check affected rows; isolation and locks per engine: [txn-design](../arc:verify/references/txn-design.md) §3–§4. | Read-modify-write of balance/counter/status without lock; unchecked `RowsAffected`. |
+
+## G. Over-engineering: the cheapest correct code is the code not written
+
+Ladder for writers ([coding-discipline.md](coding-discipline.md) §2): exists already → standard
+library → platform feature → installed dependency → minimum new code. Reviewers report one line per
+finding: `file:line: <tag> <what>. <replacement>.` with tag `yagni`, `stdlib`, `native`, `delete` or
+`shrink`; end health reports with `net: -<N> lines, -<M> deps possible`.
+
+| # | Rot | Gate | Detect |
+|---|---|---|---|
+| 37 | Speculative abstraction (`yagni`) | No interface with one implementation, factory with one product, wrapper that only delegates, config nobody sets, or layer with one caller, unless a contract or test seam requires it. | `arc-idx ast` for interface types, then `symbol` each method for implementer count; read wrappers whose body is one call. |
+| 38 | Hand-rolled standard library (`stdlib`) | Use the language standard library before writing utilities. | `files 'util'`, `'helper'`; read each function against the stdlib of its language. |
+| 39 | Dependency for a platform feature (`native`) | Platform first: `<input type="date">`, CSS, DB constraints, native SDK APIs before a package. | Manifest dependencies vs their import sites (`search 'import .*<pkg>'`); one or two call sites are candidates. |
+| 40 | Removable flexibility or verbosity (`delete`, `shrink`) | Delete unused options, flags and branches; prefer the shorter equivalent with identical behavior. | `search` each flag or option name for readers; unread ones are candidates. |
+| 41 | Untracked deliberate shortcut | Every intentional shortcut carries `debt: <ceiling>, <upgrade trigger>` (coding-discipline §2) or a task link; TODO/FIXME without either is debt. | `search '(//\|#) ?(debt\|ponytail\|TODO\|FIXME):'`; health lists them as a ledger grouped by file. |
 
 ## F. Agent execution integrity
 

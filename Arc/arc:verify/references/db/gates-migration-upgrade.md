@@ -12,7 +12,9 @@ and blocking, old/new application compatibility, expand-contract phases, dual wr
 resumable/throttled backfill, independent reconciliation, dual-read/cutover, rollback or
 forward-fix, post-cutover cleanup, WAL/replica/soak impact (G15, G17, G20). Success means the
 online protocol works, not that a DDL file executed. PR lanes run at least the precheck when the
-schema changes; pre-release runs the full rehearsal.
+schema changes; pre-release runs the full rehearsal. The static precheck is Squawk on
+`[sql_static].migration_paths` (G4 static prerequisite): it flags avoidable blocking DDL and missing
+timeouts before any rehearsal; only the rehearsal measures real locks and duration.
 
 **Config `[[migration_rehearsal]]`:**
 

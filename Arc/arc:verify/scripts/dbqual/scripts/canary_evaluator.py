@@ -54,6 +54,8 @@ def main() -> int:
             obs["comparisons"].append(row)
         ev["observed"]=obs; ev["reproduction"]={"metrics":str(Path(ns.metrics).resolve()),"policy":str(Path(ns.policy).resolve())}
         status="PASS" if not ev["violations"] else "FAIL"
+        if not policy.get("metric"):  # nothing compared is not a passing canary
+            ev["violations"].append("canary policy declares no metric; nothing was compared"); status="BLOCKED" if status=="PASS" else status
     except Exception as e:
         ev["violations"].append(repr(e)); status="BLOCKED"
     json_dump(Path(ns.out),finalize_evidence(ev,start,status)); print(json.dumps(ev,ensure_ascii=False,indent=2,default=str))

@@ -1,9 +1,9 @@
 # Skill Engineering Contract
 
 Arc skills follow progressive disclosure: `SKILL.md` carries the whole decision procedure for one
-kind of work, and references load only when a mode needs them. The Android, HarmonyOS, CNB, and
-Lark directories are bundled vertical skills with their native contracts; they are not converted
-into Arc's structure.
+kind of work, and references load only when a mode needs them. Vertical families (Android, HarmonyOS,
+CNB, Lark, Waza, Lazycat, Design, Cloudflare, ThreeJS) keep their native contracts and expose one
+entrypoint each; upstream content sits in a router's library (below).
 
 ## Discovery / Activation / Execution
 
@@ -11,7 +11,8 @@ into Arc's structure.
    the third person, include English and Chinese trigger terms, and end with a
    `Not for … (use X)` clause naming the adjacent skills.
 2. **Activation**: the matched `SKILL.md` loads; its first workflow step reads
-   `Arc/_shared/contract.md`.
+   `Arc/_shared/contract.md`. Trigger words therefore live only in the description; a body Trigger
+   section is read after selection and cannot affect routing.
 3. **Execution**: `## Intent Router` picks the mode; only that mode's reference loads.
 4. **Repair/diagnosis**: any skill that diagnoses a suspected defect or proposes a behavior fix
    loads the evidence-first root-cause repair section of [`execution-truth.md`](execution-truth.md).
@@ -19,8 +20,7 @@ into Arc's structure.
 ## Required Arc `SKILL.md` surface
 
 - Frontmatter: `name`, `description` (80–1024 chars, contains "Not for"), `version` (semver).
-- Exactly these H2 headings, in order, none empty: Trigger, Non-trigger, Goal, Inputs,
-  Intent Router, Workflow, Tool Strategy, Decision Rules, Verification, Failure Recovery,
+- Exactly these H2 headings, in order, none empty: Non-trigger, Goal, Inputs, Intent Router, Workflow, Tool Strategy, Decision Rules, Verification, Failure Recovery,
   Completion Criteria. Headings inside code fences do not count.
 - `## Intent Router`: markdown table with at least two data rows.
 - Budgets: `SKILL.md` ≤ 3,500 estimated tokens (non-CJK characters ÷ 4 + CJK characters) and
@@ -28,6 +28,29 @@ into Arc's structure.
   Documentation inside a bundled tool package under `scripts/` is held to the line budget only.
 - No retired skill names, no nested `SKILL.md`, every relative link resolves.
 - Vague wording (`as needed`, `when relevant`, `按需`, `视情况` …) is reported as a warning.
+- Task load: the files a typical task reads, summed, stay under the `ARC_LOAD_SCENARIOS` ceilings in
+  `src/arc_core/domain/skill.py`; adding a mandatory read to a skill must fit those ceilings.
+
+## Routers and libraries
+
+A family whose content is upstream-maintained or split into many action-level skills exposes one
+router. The router's frontmatter lists bundled sources under `metadata.library`; the packager copies
+each into `<router>/library/<name>/` with `SKILL.md` renamed `ENTRY.md`, rewrites links between
+entries, refuses standalone installs of library members, and fails any package with a nested
+`SKILL.md`. Router rules: one routing table row per entry, overrides of upstream content written in
+the router (never edited into the entry), and a description that carries the family's trigger words
+and URL patterns. Third-party sources without a published license live under git-ignored
+`Library/<family>/` (see `Library/README.md`).
+
+## Installation governance
+
+- `scripts/sync_skills.py --check --also-root <host root>` validates installed packages, superseded
+  standalone copies and duplicate discovery names.
+- `scripts/link_hosts.py --check|--apply` makes every host root match `schemas/host_profiles.yaml`;
+  unmanaged entries move to `~/.skills-backup/`, never deleted.
+- `scripts/route_probe.py` runs `schemas/route_corpus.yaml` through TypeSafe Jev against every
+  discoverable description (top-1 must be the expected skill with probability ≥ 0.5). It needs the
+  `jev` CLI and an API key; it is evidence about descriptions, not about a host's real router.
 
 ## Writing rules
 
@@ -60,6 +83,7 @@ scenarios (negation, multi-intent, scope lock, authorization) live in
 
 ## Lifecycle coverage
 
-The five Arc skills map to the phases understand (`arc:explore`), plan (`arc:plan`), change
-(`arc:code`), prove (`arc:verify`) and evaluate (`arc:audit`). A phase has one main skill; work that
-crosses phases hands off by name.
+The six Arc skills map to understand (`arc:explore`), select dependencies (`arc:vet`), plan and
+model (`arc:plan`), change (`arc:code`), prove (`arc:verify`) and evaluate (`arc:audit`). One phase has one owner;
+[the shared handoff](../Arc/_shared/workflow.md) preserves scope, authorization, requirement/model
+IDs and evidence when activating the next phase. Model and runtime verdicts remain separate.

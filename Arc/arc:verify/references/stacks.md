@@ -14,6 +14,8 @@ vegeta 12, Maestro CLI 2.x. Record the version actually used in the evidence.
 | `Cargo.toml` | `cargo test` (`cargo nextest run` when configured) |
 | `AndroidManifest.xml` / `build.gradle(.kts)` / `.maestro/` | JUnit for logic, Maestro for flows |
 | `oh-package.json5` / `*.test.ets` | arkxtest: `@ohos/hypium` + `UiTest` |
+| `.xcodeproj` / `.xcworkspace` | Xcode test plans; Swift Testing/XCTest for supported logic targets, XCUITest for app UI |
+| `Package.swift` | `swift test` for package logic; app/platform integration still needs the actual app target |
 
 Run the project's own entry (`make test`, `npm test`, the CI job) first when it exists. Never
 introduce a bespoke cross-language runner.
@@ -35,8 +37,10 @@ go test -artifacts -outputdir=.arc/artifacts/<task-slug>/logs ./pkg   # keeps t.
   `golang.org/x/perf/cmd/benchstat`.
 - Fake time and goroutine coordination: `testing/synctest` with `synctest.Test(t, func(t *testing.T){…})`
   and `synctest.Wait()` (Go 1.25+; `synctest.Run` is gone in 1.26). It does not model database locks.
-- Contracts: `net/http/httptest`. Properties: `testing/quick` or `pgregory.net/rapid`.
+- Contracts: `net/http/httptest`. Properties and state machines: `pgregory.net/rapid`
+  ([model-conformance](model-conformance.md)); `testing/quick` is frozen and does not shrink.
 - The fuzz corpus lives in `testdata/fuzz/`; a crasher stays as a permanent regression seed.
+  Campaign rules, oracles and other stacks: [fuzz-campaign.md](fuzz-campaign.md).
 - Check goroutine lifetime, context cancellation, channel ownership and connection cleanup.
 
 ## TypeScript / JavaScript
@@ -52,7 +56,7 @@ npx playwright test                # E2E
   assertion fails; `-t` filters join suite and test names with ` > `; reporter output defaults to
   `.vitest/`; coverage `include`/`exclude` match paths relative to the project root.
 - Component queries by role or label (`getByRole`, `getByLabelText`), not CSS selectors.
-- Properties: `fast-check`. HTTP stubs (MSW or similar) only for dependencies outside the claim,
+- Properties and model runs: `fast-check` ([model-conformance](model-conformance.md)). HTTP stubs (MSW or similar) only for dependencies outside the claim,
   never for the API whose contract is under test.
 
 ## Python
@@ -63,7 +67,8 @@ python -m pytest --cov=<pkg> --cov-branch --cov-report=term-missing     # pytest
 python -m pytest -p no:cacheprovider -x "tests/test_x.py::test_name"
 ```
 
-Properties: Hypothesis `@given`; keep the `.hypothesis/` database or pin failures with `@example`.
+Properties: Hypothesis `@given`, stateful `RuleBasedStateMachine` ([model-conformance](model-conformance.md));
+keep the `.hypothesis/` database or pin failures with `@example`.
 Load for Python services: Locust.
 
 ## Rust
@@ -75,7 +80,8 @@ cargo bench                                # Criterion, separate run
 cargo fuzz run <target>                    # nightly toolchain
 ```
 
-`proptest` for properties; `loom` for small concurrency primitives (it does not model the full
+`proptest` (`proptest-state-machine` for stateful) for properties; Kani for bounded proofs
+([model-conformance](model-conformance.md) §6); `loom` for small concurrency primitives (it does not model the full
 memory model); Miri (`cargo +nightly miri test`) or sanitizers for undefined behavior in `unsafe`
 code; `cargo mutants` scoped to important claims. Respect `#![forbid(unsafe_code)]`. Do not change
 the default toolchain for one test.
@@ -97,9 +103,26 @@ hdc shell aa test -b <bundle> -m <module> -s unittest OpenHarmonyTestRunner
 - Devices ([android-execution.md](../../../docs/android-execution.md)): remote redroid when the
   project configures it; local AVD lifecycle only through `avdslim` and only when the user asks. Redroid without GMS cannot prove Google-service behavior.
 
+## Apple and other native clients
+
+- iOS/iPadOS/macOS: use the existing Xcode scheme/test plan and an available target destination.
+  `xcodebuild test -scheme <actual-scheme> -destination <actual-destination>` is a command shape;
+  discover the real project/workspace, scheme and device before running. Use Swift Testing or
+  XCTest as supported by the test target, XCUITest for UI. `swift test` alone does not prove an
+  iOS app's lifecycle or permissions.
+- Check the changed native behavior: system navigation/windows, lifecycle/state restoration,
+  permissions, input/focus, safe areas, accessibility/text scaling and system appearance as applicable.
+- Windows/Linux: use the chosen platform's existing build, test runner and accessibility/UI
+  automation on that target; no browser-only substitute for a native window claim.
+- Mini Programs: use platform developer tools/automation and a device for claims involving actual
+  platform APIs, permissions or rendering. A desktop browser mock is not platform evidence.
+- Follow [native direction](../../_shared/conventions/native-platforms.md). Missing SDK, signing,
+  runner or device blocks the affected native claim; it does not justify switching frameworks.
+
 ## UI checks
 
-Every UI claim proves four checks at the target viewports:
+Every UI claim proves four checks on the target surface. Web matcher names below are examples;
+native UI uses its platform semantics and automation:
 
 1. **Interaction loop**: the journey completes and the UI returns to a consistent state; assert
    the end state, not the click.
@@ -120,9 +143,12 @@ await expect(page.getByRole('button', { name: 'Checkout' })).toBeEnabled();
 ```
 
 - Save console errors, failed network requests and screenshots to `.arc/artifacts/<task-slug>/logs/`.
-- Without a scripted runner: `agent-browser open <url>`, `snapshot`, `screenshot <path>`,
+- Starting the app, recon before act and business-end-state oracles: [web-e2e.md](web-e2e.md).
+  Without a scripted runner: `agent-browser open <url>`, `snapshot -i`, `screenshot <path>`,
   `console`, `errors` for an exploratory pass; scripted E2E stays `NOT_RUN`.
-- Playwright CI runs with `--fail-on-flaky-tests` so a pass-on-retry is visible.
+- Native without a runner: record authorized device/platform observations and label automated
+  checks `NOT_RUN`; do not substitute browser evidence.
+- Web Playwright CI runs with `--fail-on-flaky-tests` so a pass-on-retry is visible.
 
 ## Load and benchmark
 
@@ -152,7 +178,7 @@ Capture evidence for a performance verdict; optimizing belongs to `arc:code`.
 | Linux | `perf record -g -- <cmd>` |
 | Android | Perfetto trace → `perfetto-trace-analysis`; `simpleperf record -g`; Macrobenchmark |
 | HarmonyOS | DevEco Profiler, `hiperf`, `hitrace` |
-| Web | DevTools Performance, React Profiler, Lighthouse / `web-vitals` → `web-perf` |
+| Web | DevTools Performance, React Profiler, Lighthouse / `web-vitals` → [web-perf.md](web-perf.md) |
 
 ## Repeat runs for flaky triage
 

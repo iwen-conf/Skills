@@ -107,9 +107,11 @@ def run_one(root: Path, workload: dict[str, Any], clients: int, rep: int, dsn: s
     for s in workload["scripts"]:
         cmd += ["-f", f"{(root / s['path']).resolve()}@{int(s.get('weight',1))}"]
     env = {"PGDATABASE": dsn}
+    # pgbench names logs by pid, so logs of an earlier run in the same directory survive; parse only this run's.
+    earlier_logs = set(glob.glob(str(run_dir / f"{prefix}.*")))
     started = time.monotonic()
     cp = run(cmd, cwd=run_dir, env=env, timeout=int(workload["duration_s"]) + int(workload.get("command_timeout_extra_s", 120)))
-    log_paths = [Path(p) for p in glob.glob(str(run_dir / f"{prefix}.*"))]
+    log_paths = [Path(p) for p in glob.glob(str(run_dir / f"{prefix}.*")) if p not in earlier_logs]
     parsed = parse_files(log_paths, has_rate=bool(workload.get("rate_tps")), has_retries=int(workload.get("max_tries", 1)) != 1)
     tx_match = TX_RE.search(cp.stdout)
     failed_match = FAIL_RE.search(cp.stdout)

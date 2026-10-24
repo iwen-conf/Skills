@@ -5,8 +5,10 @@ Owned by `arc:explore`; read by every Arc skill before reading or editing unfami
 ## 1. Preflight (once per repository per session)
 
 ```bash
+command -v arc-idx
 arc-idx version
 arc-idx doctor --format json
+arc-idx daemon status
 ```
 
 - Repair when doctor shows `healthy: false`, `index_stale: true` or `tags_present: false`: run
@@ -15,7 +17,10 @@ arc-idx doctor --format json
   `symbol` and `ast` are unavailable.
 - Daemon: `daemon_alive: false` → `arc-idx daemon start` (exit 1 with `already running with pid N`
   is normal). `daemon_pid` present but not alive → `arc-idx daemon restart`.
-- Version: accept any `arc-idx 1.x`; report the version, do not stop on a patch or minor change.
+- Identity: `command -v arc-idx` must resolve to `~/.local/bin/arc-idx`, and version must print
+  `arc-idx 1.0.0 — local AI context engine (zoekt + ctags + ast-grep)`. If PATH lacks it, try that
+  exact path and report the fallback. A missing binary or identity mismatch stops repository
+  discovery; report actual path/output and do not substitute another engine.
 - Repository root: the nearest ancestor of the working directory (or of `--repo <dir>`) that holds
   an `.ai-code-index/` directory or a `.git` directory; config is `<root>/.ai-code-index/config.json`,
   else built-in defaults. Check `repo_root` in the doctor output. Use `--repo <dir>` for a child
@@ -67,7 +72,7 @@ Counts:
 4. File name (`files`).
 5. Broadened text: case-insensitive, partial, snake_case/camelCase/PascalCase variants, receiver
    forms, string-literal forms.
-6. Host-native search (`rg`, IDE search): only under the fallback conditions in §6.
+6. `rg` / `fd`: only under the fallback conditions in §6; never IDE/MCP codebase search.
 
 Never query with natural-language sentences. Read the file at every hit before concluding;
 snippets are not evidence.
@@ -102,7 +107,7 @@ not evidence; decide each text hit from the source.
 - **Zero hits**, widen in order: (1) spelling, case and naming variants; (2) literal forms (route
   strings, JSON tags, error text); (3) AST pattern; (4) `doctor` for index freshness; (5) host
   search over unindexed paths. After rung 5, report `not found` with every query run. Never guess
-  a path.
+  a path. Unindexed paths alone do not authorize fallback; use §6.
 - **More than 200 hits**: narrow by directory, language and word boundary; if still too many,
   sample per directory and label the result as sampled.
 - **Dynamic dispatch** (interfaces, reflection, DI containers, string-keyed routes or handlers):
@@ -113,16 +118,17 @@ not evidence; decide each text hit from the source.
 
 ## 6. Fallback conditions
 
-Host-native search is allowed only when `arc-idx` is missing, stays unhealthy after one repair,
-or the target lies outside every indexed repository. Label such evidence `fallback:<tool>` and
-state the reason.
+Only `rg` / `fd` fallback is allowed after doctor confirms the engine is unavailable, index
+corruption survives one repair, or the target lies outside every repository (such as a temporary
+directory). Missing binary or failed identity check stops first as §1 requires. Label fallback
+evidence and state its reason. Never directly call ctags, ast-grep, zoekt or MCP search.
 
 Never indexed: dot-directories except `.github`. Not indexed by default (`ignore_dirs`,
 `ignore_files`, `index_exts`, `size_max` in `.ai-code-index/config.json` replace these): directories
 such as `vendor`, `node_modules`, `dist`, `build`, `target`, `out`, `outputs`, `release`, `tmp`,
 `logs`, `coverage`, `uploads`; files over 1 MiB; extensions outside the code/config/docs allowlist
-(`.txt`, `.csv`, `.log` among them); lock files, `go.sum`, `*.min.js`, `*.map`, `*.snap`. A target
-there counts as outside the indexed repository.
+(`.txt`, `.csv`, `.log` among them); lock files, `go.sum`, `*.min.js`, `*.map`, `*.snap`. These paths
+remain in the repository: report index coverage limits rather than treating them as outside it.
 
 ## 7. Evidence format
 

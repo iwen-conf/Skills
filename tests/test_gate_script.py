@@ -405,3 +405,236 @@ def test_python_runs_tests_named_after_changed_module(tmp_path: Path) -> None:
 
     assert checks(result.stdout)["tests(python)"] == "FAIL(pytest exit 1)", result.stdout
     assert tree_state(repo) == before
+
+
+# Red-first: a shell "test" keeps these cases independent of language toolchains.
+PRICE_OLD = "price() { echo 100; }\n"
+PRICE_NEW = 'price() { if [ "$1" = vip ]; then echo 90; else echo 100; fi; }\n'
+PRICE_TEST = '. ./calc.sh\n[ "$(price vip)" = 90 ] || { echo "vip price: want 90, got $(price vip)"; exit 1; }\n'
+RED = ("red", "--task", "r", "--", "bash", "tests/check_price.sh")
+
+
+def red_repo(tmp_path: Path) -> Path:
+    repo = make_repo(tmp_path)
+    (repo / "calc.sh").write_text(PRICE_OLD, encoding="utf-8")
+    commit_all(repo)
+    assert gate(repo, "start", "--task", "r").returncode == 0
+    (repo / "tests").mkdir()
+    (repo / "tests" / "check_price.sh").write_text(PRICE_TEST, encoding="utf-8")
+    return repo
+
+
+def red_records(repo: Path) -> list[dict]:
+    reddir = repo / ".arc/artifacts/r/red"
+    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(reddir.glob("red-*.json"))]
+
+
+def test_red_refuses_production_edits_before_the_first_failing_test(tmp_path: Path) -> None:
+    repo = red_repo(tmp_path)
+    (repo / "calc.sh").write_text(PRICE_NEW, encoding="utf-8")
+    (repo / "NOTES.md").write_text("docs may change\n", encoding="utf-8")
+
+    result = gate(repo, *RED)
+
+    assert result.returncode == 1
+    assert "production files changed before the first failing test" in result.stdout
+    assert "  calc.sh" in result.stdout.splitlines()
+    assert "NOTES.md" not in result.stdout
+    assert red_records(repo) == []
+
+
+def test_red_then_green_passes_require_red(tmp_path: Path) -> None:
+    repo = red_repo(tmp_path)
+
+    red = gate(repo, *RED)
+    assert red.returncode == 0, red.stdout + red.stderr
+    assert "kind assertion" in red.stdout
+    [record] = red_records(repo)
+    assert (record["argv"], record["exit"], record["cwd"]) == (["bash", "tests/check_price.sh"], 1, ".")
+
+    still_red = gate(repo, "check", "--task", "r", "--require-red")
+    assert checks(still_red.stdout)["red-first"] == "FAIL(1 of 1 red command(s) still fail)"
+    assert still_red.returncode == 1
+
+    (repo / "calc.sh").write_text(PRICE_NEW, encoding="utf-8")
+    green = gate(repo, "check", "--task", "r", "--require-red")
+    assert checks(green.stdout)["red-first"] == "PASS"
+    assert green.returncode == 0, green.stdout
+
+
+def test_red_refuses_a_command_that_already_passes(tmp_path: Path) -> None:
+    repo = red_repo(tmp_path)
+    (repo / "tests" / "check_price.sh").write_text('. ./calc.sh\n[ "$(price)" = 100 ]\n', encoding="utf-8")
+
+    result = gate(repo, *RED)
+
+    assert result.returncode == 1
+    assert "passed before the implementation" in result.stdout
+    assert red_records(repo) == []
+
+
+def test_require_red_fails_without_a_record_and_is_silent_otherwise(tmp_path: Path) -> None:
+    repo = red_repo(tmp_path)
+    (repo / "calc.sh").write_text(PRICE_NEW, encoding="utf-8")
+
+    required = gate(repo, "check", "--task", "r", "--require-red")
+    optional = gate(repo, "check", "--task", "r")
+
+    assert checks(required.stdout)["red-first"].startswith("FAIL(no red record")
+    assert required.returncode == 1
+    assert "red-first" not in checks(optional.stdout)
+
+
+def test_build_error_red_needs_a_stub_and_an_assertion_red(tmp_path: Path) -> None:
+    repo = red_repo(tmp_path)
+    (repo / "tests" / "check_price.sh").write_text(
+        '. ./calc.sh\ntype vip_price >/dev/null 2>&1 || { echo "ImportError: vip_price"; exit 1; }\n'
+        '[ "$(vip_price)" = 90 ] || { echo "vip price: want 90, got $(vip_price)"; exit 1; }\n',
+        encoding="utf-8",
+    )
+
+    build = gate(repo, *RED)
+    assert "kind build" in build.stdout
+    assert checks(gate(repo, "check", "--task", "r", "--require-red").stdout)["red-first"] == (
+        "FAIL(no red run failed on an assertion (build or import errors only))"
+    )
+
+    (repo / "calc.sh").write_text(PRICE_OLD + "vip_price() { echo 0; }\n", encoding="utf-8")
+    assert gate(repo, *RED).returncode == 1  # the stub is a production edit until declared
+    stubbed = gate(repo, "red", "--task", "r", "--allow", "calc.sh", "--", "bash", "tests/check_price.sh")
+    assert "kind assertion" in stubbed.stdout, stubbed.stdout
+    assert red_records(repo)[-1]["allowed"] == {"calc.sh": 1}
+
+
+def test_red_hygiene_warns_on_large_stubs_and_tests_changed_after_red(tmp_path: Path) -> None:
+    repo = red_repo(tmp_path)
+    body = "".join(f"helper_{i}() {{ echo {i}; }}\n" for i in range(25))
+    (repo / "calc.sh").write_text(PRICE_OLD + body, encoding="utf-8")
+    assert gate(repo, "red", "--task", "r", "--allow", "calc.sh", "--", "bash", "tests/check_price.sh").returncode == 0
+
+    (repo / "calc.sh").write_text(PRICE_NEW + body, encoding="utf-8")
+    (repo / "tests" / "check_price.sh").write_text(". ./calc.sh\ntrue\n", encoding="utf-8")
+    result = gate(repo, "check", "--task", "r", "--require-red")
+
+    assert checks(result.stdout)["red-hygiene"] == "WARN(2 item(s))"
+    assert any("calc.sh: 25 lines added before red" in line for line in result.stdout.splitlines())
+    assert any("tests/check_price.sh: changed after its last red run" in line for line in result.stdout.splitlines())
+
+
+def test_red_rejects_a_selector_that_runs_no_test(tmp_path: Path) -> None:
+    repo = red_repo(tmp_path)
+
+    result = gate(repo, "red", "--task", "r", "--", "bash", "-c", "echo 'no tests ran in 0.01s'; exit 5")
+
+    assert result.returncode == 2
+    assert "ran no test" in result.stdout
+    assert red_records(repo) == []
+
+
+def test_later_reds_may_follow_production_edits(tmp_path: Path) -> None:
+    repo = red_repo(tmp_path)
+    assert gate(repo, *RED).returncode == 0
+    (repo / "calc.sh").write_text(PRICE_NEW, encoding="utf-8")
+    (repo / "tests" / "check_member.sh").write_text(
+        '. ./calc.sh\n[ "$(price member)" = 95 ] || { echo "member price: want 95"; exit 1; }\n', encoding="utf-8"
+    )
+
+    second = gate(repo, "red", "--task", "r", "--", "bash", "tests/check_member.sh")
+
+    assert second.returncode == 0, second.stdout
+    assert len(red_records(repo)) == 2
+
+
+FAKE_SQLFLUFF = '#!/bin/sh\n[ "$1" = lint ] || exit 2\nshift\nst=0\nfor f; do if grep -q "SELEC " "$f"; then echo "$f: PRS unparsable"; st=1; fi; done\nexit $st\n'
+
+
+def sql_repo(tmp_path: Path, configured: bool) -> Path:
+    repo = make_repo(tmp_path)
+    (repo / ".gitignore").write_text(".venv/\n", encoding="utf-8")
+    if configured:
+        (repo / ".sqlfluff").write_text("[sqlfluff]\ndialect = postgres\n", encoding="utf-8")
+    (repo / "db").mkdir()
+    (repo / "db" / "q.sql").write_text("SELECT 1;\n", encoding="utf-8")
+    commit_all(repo)
+    tool = repo / ".venv" / "bin" / "sqlfluff"
+    tool.parent.mkdir(parents=True)
+    tool.write_text(FAKE_SQLFLUFF, encoding="utf-8")
+    tool.chmod(0o755)
+    assert gate(repo, "start").returncode == 0
+    return repo
+
+
+def test_sql_lint_fails_on_unparsable_changed_sql(tmp_path: Path) -> None:
+    repo = sql_repo(tmp_path, configured=True)
+    (repo / "db" / "q.sql").write_text("SELEC id FROM orders;\n", encoding="utf-8")
+
+    broken = gate(repo, "check")
+    assert checks(broken.stdout)["lint(sql)"] == "FAIL(sqlfluff lint exit 1)"
+    assert broken.returncode == 1
+
+    (repo / "db" / "q.sql").write_text("SELECT id FROM orders;\n", encoding="utf-8")
+    assert checks(gate(repo, "check").stdout)["lint(sql)"] == "PASS"
+
+
+def test_sql_lint_needs_the_project_dialect(tmp_path: Path) -> None:
+    repo = sql_repo(tmp_path, configured=False)
+    (repo / "db" / "q.sql").write_text("SELEC id FROM orders;\n", encoding="utf-8")
+
+    result = gate(repo, "check")
+
+    assert checks(result.stdout)["lint(sql)"] == "NOT_RUN(no sqlfluff config naming the dialect)"
+
+
+def _vanish_baseline_head(repo: Path, task: str = "r") -> None:
+    path = repo / f".arc/artifacts/{task}/baseline.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["head"] = "0" * 40
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def test_red_without_a_baseline_is_refused(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    (repo / "calc.sh").write_text(PRICE_OLD, encoding="utf-8")
+    (repo / "tests").mkdir()
+    (repo / "tests" / "check_price.sh").write_text(PRICE_TEST, encoding="utf-8")
+
+    result = gate(repo, *RED)
+
+    assert result.returncode == 1
+    assert "no baseline for task r; run gate.sh start first" in result.stderr
+    assert red_records(repo) == []
+
+
+def test_red_with_a_vanished_baseline_head_asks_for_a_new_start(tmp_path: Path) -> None:
+    repo = red_repo(tmp_path)
+    _vanish_baseline_head(repo)
+
+    result = gate(repo, *RED)
+
+    assert result.returncode == 2
+    assert "not found; rerun gate.sh start --force" in result.stderr
+    assert red_records(repo) == []
+
+
+def test_red_command_that_cannot_run_is_a_harness_error(tmp_path: Path) -> None:
+    repo = red_repo(tmp_path)
+
+    result = gate(repo, "red", "--task", "r", "--", "arc-gate-no-such-command")
+
+    assert result.returncode == 2
+    assert "harness error: the command could not run (exit 127)" in result.stdout
+    assert red_records(repo) == []
+
+
+def test_check_with_a_vanished_baseline_head_diffs_against_head(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    assert gate(repo, "start", "--task", "r").returncode == 0
+    _vanish_baseline_head(repo)
+    (repo / "README.txt").write_text(f"hello\n{MARK} dirty\n", encoding="utf-8")
+
+    result = gate(repo, "check", "--task", "r")
+    lines = result.stdout.splitlines()
+
+    assert "baseline: NOT_RUN(baseline head 000000000000 not found; using HEAD)" in lines
+    assert f"  README.txt:2: {MARK}" in lines
+    assert result.returncode == 1

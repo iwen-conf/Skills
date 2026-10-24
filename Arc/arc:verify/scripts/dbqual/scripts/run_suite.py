@@ -8,6 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from sqlverify_common import RUN_ID_ENV, begin_run
 from sqlverify_config import load_config, validate
 
 
@@ -38,6 +39,10 @@ def main() -> int:
     scripts = Path(__file__).resolve().parent
     evdir = Path(ns.evidence_dir).resolve(); evdir.mkdir(parents=True, exist_ok=True)
     reportdir = Path(ns.report_dir).resolve(); reportdir.mkdir(parents=True, exist_ok=True)
+    # Earlier evidence moves to superseded/; every runner stamps this run id, and the gates reject any other.
+    run = begin_run(evdir, root, [cfg_path], [evdir, reportdir])
+    os.environ[RUN_ID_ENV] = run["run_id"]
+    print(json.dumps({"run_id": run["run_id"], "candidate": run["candidate"], "archived_previous_evidence": run["archived_previous_evidence"]}, ensure_ascii=False, indent=2), flush=True)
     py = sys.executable; keep = not ns.fail_fast
     rc = 0
 
@@ -50,6 +55,9 @@ def main() -> int:
         ds_cmd = [py, str(scripts/"dataset_audit.py"), "--dsn-env", dsn_env, "--manifest", str((root/manifest).resolve()), "--safe-database-pattern", cfg["database"]["safe_database_pattern"], "--out", str(evdir/"dataset.audit.json")]
         if cfg["database"].get("allow_destructive", False): ds_cmd.append("--allow-destructive")
         if call(ds_cmd, keep_going=keep): rc = 2
+
+    if cfg.get("sql_static"):
+        if call([py, str(scripts/"sql_static_audit.py"), "--config", str(cfg_path), "--root", str(root), "--out", str(evdir/"sql.static.json")], keep_going=keep): rc = 2
 
     if cfg.get("schema_integrity"):
         if call([py, str(scripts/"schema_integrity_audit.py"), "--config", str(cfg_path), "--out", str(evdir/"schema.integrity.json")], keep_going=keep): rc = 2
@@ -172,10 +180,10 @@ def main() -> int:
 
     gate_path = reportdir / "release-gate.json"
     if ns.gate_policy:
-        if call([py, str(scripts/"release_gate.py"), "--policy", str(Path(ns.gate_policy).resolve()), "--evidence-dir", str(evdir), "--out", str(gate_path)], keep_going=True): rc = 2
+        if call([py, str(scripts/"release_gate.py"), "--policy", str(Path(ns.gate_policy).resolve()), "--evidence-dir", str(evdir), "--root", str(root), "--out", str(gate_path)], keep_going=True): rc = 2
     gate_args = ["--gate", str(gate_path)] if gate_path.exists() else []
     call([py, str(scripts/"evidence_report.py"), "--evidence-dir", str(evdir), "--config", str(cfg_path), *gate_args, "--out-md", str(reportdir/"sql-verification-report.md"), "--out-html", str(reportdir/"sql-verification-report.html")], keep_going=True)
-    print(json.dumps({"status":"PASS" if rc == 0 else "FAIL", "evidence_dir":str(evdir), "report_dir":str(reportdir)}, ensure_ascii=False, indent=2))
+    print(json.dumps({"status":"PASS" if rc == 0 else "FAIL", "run_id":run["run_id"], "evidence_dir":str(evdir), "report_dir":str(reportdir)}, ensure_ascii=False, indent=2))
     return rc
 
 

@@ -64,7 +64,7 @@ T0: run the existing tests that cover the touched behavior; add one only when no
 
 | Surface | Evidence when the risk applies |
 |---|---|
-| Algorithm/resource regression | representative sizes and worst distributions, CPU/allocations; candidate vs baseline under comparable conditions |
+| Algorithm/resource regression | representative sizes and worst distributions, CPU/allocations; candidate vs baseline under comparable conditions, ≥10 samples (`-count=10` + `benchstat`) or ≥3 load runs |
 | Expected load | offered vs completed work, latency distribution including timeouts, error rate, connections/resources, data size, cold/warm state |
 | Overload, slow dependency | backpressure, queue bounds, deadline/cancel propagation, retry amplification, correctness while degraded |
 | Recovery, long-running | backlog drain, per-task progress, memory/resource growth, recovery after load or faults end |

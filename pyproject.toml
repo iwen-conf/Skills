@@ -47,7 +47,7 @@ files = [
 warn_unused_configs = true
 
 [[tool.mypy.overrides]]
-module = ["jsonschema", "PIL", "PIL.*"]
+module = ["jsonschema", "PIL", "PIL.*", "yaml"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -55,6 +55,7 @@ addopts = "-ra"
 pythonpath = [
     ".",
     "src",
+    "plugins/arc-policy/lib",
 ]
 testpaths = [
     "tests",

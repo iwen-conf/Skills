@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 import yaml
@@ -196,10 +198,10 @@ def test_publish_failure_restores_previous_installation(tmp_path: Path, monkeypa
 
 def test_real_arc_packages_are_portable(tmp_path: Path) -> None:
     mod = _load_sync_module()
-    names = [p.name for p in mod.list_skill_dirs() if p.parent.name == "Arc"]
+    names = [mod.read_metadata(p / "SKILL.md")["name"] for p in mod.list_skill_dirs() if p.parent.name == "Arc"]
     included = mod.build_installation(ROOT, tmp_path / "stage", names)
     assert included == sorted(names)
-    assert set(included) == {"arc:explore", "arc:plan", "arc:code", "arc:verify", "arc:audit"}
+    assert set(included) == {"arc:explore", "arc:plan", "arc:code", "arc:verify", "arc:audit", "arc:vet"}
     assert mod.validate_installation(tmp_path / "stage") == []
     verify = tmp_path / "stage" / "arc-verify"
     assert (verify / "scripts" / "dbqual" / "scripts" / "run_suite.py").is_file()
@@ -207,23 +209,51 @@ def test_real_arc_packages_are_portable(tmp_path: Path) -> None:
     assert not list((tmp_path / "stage").rglob("__pycache__"))
 
 
-def test_lark_meeting_packages_are_portable(tmp_path: Path) -> None:
+@pytest.mark.parametrize("naming", ["dash", "colon"])
+def test_closure_package_runs_after_installation(tmp_path: Path, naming: str) -> None:
     mod = _load_sync_module()
-    included = mod.build_installation(
-        ROOT,
-        tmp_path / "stage",
-        [
-            "lark-meeting",
-            "lark-minutes",
-            "lark-note",
-            "lark-vc",
-            "lark-vc-agent",
-            "lark-workflow-meeting-summary",
-        ],
+    stage, project = tmp_path / "installed", tmp_path / "project"
+    included = mod.build_installation(ROOT, stage, ["arc:plan"], naming)
+    assert "arc:plan" in included
+    tools = stage / mod.published_name("arc:plan", naming) / "scripts" / "closure"
+    initialized = subprocess.run(
+        [sys.executable, str(tools / "init_docs.py"), str(project)],
+        capture_output=True, text=True, check=False,
     )
-    assert "lark-meeting" in included
-    assert (tmp_path / "stage" / "lark-meeting" / "SKILL.md").is_file()
-    assert (tmp_path / "stage" / "lark-minutes" / "SKILL.md").is_file()
+    assert initialized.returncode == 0, initialized.stdout + initialized.stderr
+    model_dir = project / "docs" / "01-系统设计" / "业务闭环"
+    assert (model_dir / "03-closure-spec.yaml").is_file()
+    assert (model_dir / "01-requirements.md").is_file()
+    assert (model_dir / "README.md").is_file()
+    assert not (project / "docs" / "arc").exists()
+    assert (model_dir / "tools/check_closure.py").read_bytes() == (tools / "check_closure.py").read_bytes()
+    assert not (project / "CLAUDE.md").exists()
+    assert not (project / "AGENTS.md").exists()
+    spec = model_dir / "03-closure-spec.yaml"
+    spec.write_bytes((tools / "assets/examples/example-closed.yaml").read_bytes())
+    checker = model_dir / "tools/check_closure.py"
+    for command in ("check", "gate"):
+        checked = subprocess.run(
+            [sys.executable, str(checker), command, str(spec)],
+            capture_output=True, text=True, check=False,
+        )
+        assert checked.returncode == 0, checked.stdout + checked.stderr
+    exercised = subprocess.run(
+        [sys.executable, str(tools / "selftest.py")],
+        capture_output=True, text=True, check=False,
+    )
+    assert exercised.returncode == 0, exercised.stdout + exercised.stderr
+
+
+def test_lark_router_packages_meeting_entries_as_library(tmp_path: Path) -> None:
+    mod = _load_sync_module()
+    stage = tmp_path / "stage"
+    assert mod.build_installation(ROOT, stage, ["lark"]) == ["lark"]
+    library = stage / "lark" / "library"
+    for entry in ("lark-meeting", "lark-minutes", "lark-note", "lark-vc", "lark-vc-agent", "lark-workflow-meeting-summary"):
+        assert (library / entry / "ENTRY.md").is_file(), entry
+    assert sorted(path.relative_to(stage).as_posix() for path in stage.rglob("SKILL.md")) == ["lark/SKILL.md"]
+    assert mod.validate_installation(stage) == []
 
 
 def test_discovery_rejects_independent_copies_and_arc_aliases(tmp_path: Path) -> None:
@@ -267,17 +297,187 @@ def test_check_rejects_empty_installation_and_cross_root_duplicates(tmp_path: Pa
 
 def test_all_runtime_families_have_a_complete_package(tmp_path: Path) -> None:
     mod = _load_sync_module()
-    names = [mod.read_metadata(p / 'SKILL.md')['name'] for p in mod.list_skill_dirs()]
+    families = ["Arc", *mod.VERTICAL_SKILL_ROOTS]
+    names = mod.selectable_names(ROOT, families)
     stage = tmp_path / 'stage'
     assert mod.build_installation(ROOT, stage, names) == sorted(names)
     # All runtime families are present, so no unavailable optional sibling is excused.
     assert mod.validate_installation(stage) == []
+    assert not set(mod.library_owners(ROOT)) & {path.name for path in stage.iterdir()}
 
 
-def test_perfetto_analysis_alone_installs_its_sql_contract(tmp_path: Path) -> None:
+def test_perfetto_analysis_ships_with_its_sql_contract_inside_android(tmp_path: Path) -> None:
     mod = _load_sync_module()
     stage = tmp_path / 'stage'
-    included = mod.build_installation(ROOT, stage, ['perfetto-trace-analysis'])
-    assert included == ['perfetto-sql', 'perfetto-trace-analysis']
-    assert (stage / 'perfetto-sql/SKILL.md').is_file()
-    assert (stage / 'perfetto-trace-analysis/references/sql.md').is_file()
+    assert mod.build_installation(ROOT, stage, ['android']) == ['android']
+    library = stage / 'android' / 'library'
+    assert (library / 'perfetto-sql' / 'ENTRY.md').is_file()
+    assert (library / 'perfetto-trace-analysis' / 'references' / 'sql.md').is_file()
+    with pytest.raises(ValueError, match='bundled in android'):
+        mod.build_installation(ROOT, tmp_path / 'alone', ['perfetto-trace-analysis'])
+
+
+def test_curated_waza_packages_keep_resources_without_duplicate_workflows(tmp_path: Path) -> None:
+    mod = _load_sync_module()
+    stage = tmp_path / 'stage'
+    selected = ['check', 'health', 'research-write']
+    included = mod.build_installation(ROOT, stage, selected)
+    assert set(selected) == set(included)
+    assert not {'think', 'hunt', 'ui', 'read', 'write', 'learn'} & set(included)
+    assert mod.validate_installation(stage) == []
+    for name in selected:
+        assert (stage / name / 'references/_shared/Waza/LICENSE').is_file()
+    for name in ('check', 'health'):
+        assert not (stage / name / 'scripts').exists()
+    package = stage / 'research-write'
+    assert (package / 'scripts/fetch.sh').is_file()
+    assert (package / 'scripts/check_punctuation.py').is_file()
+    assert (package / 'scripts/anysearch/anysearch_cli.py').is_file()
+    assert (package / 'scripts/anysearch/LICENSE').is_file()
+    for mode in ('fetch', 'search', 'research', 'edit'):
+        assert (package / 'references' / f'{mode}.md').is_file()
+
+
+def test_research_write_is_one_package_without_skill_dependencies(tmp_path: Path) -> None:
+    mod = _load_sync_module()
+    stage = tmp_path / 'stage'
+    included = mod.build_installation(ROOT, stage, ['research-write'])
+    assert included == ['research-write']
+    assert mod.validate_installation(stage) == []
+
+
+def _library_source(root: Path) -> None:
+    router = root / "Lark" / "lark"
+    router.mkdir(parents=True)
+    (router / "SKILL.md").write_text(
+        "---\nname: lark\ndescription: Router\nmetadata:\n  library: [lark-doc, lark-shared]\n---\n"
+        "[doc](../lark-doc/SKILL.md)\n", encoding="utf-8",
+    )
+    for name in ("lark-doc", "lark-shared"):
+        entry = root / "Lark" / name
+        (entry / "references").mkdir(parents=True)
+        link = "[auth](../lark-shared/SKILL.md) [ref](references/a.md) [gate](../../docs/gate.md)\n" if name == "lark-doc" else ""
+        (entry / "SKILL.md").write_text(f"---\nname: {name}\ndescription: Entry\n---\n{link}", encoding="utf-8")
+        (entry / "references" / "a.md").write_text("# A\n", encoding="utf-8")
+    (root / "docs").mkdir()
+    (root / "docs" / "gate.md").write_text("# Gate\n", encoding="utf-8")
+
+
+def test_router_bundles_library_entries_as_undiscoverable_files(tmp_path: Path) -> None:
+    mod = _load_sync_module()
+    source, stage = tmp_path / "src", tmp_path / "stage"
+    _library_source(source)
+    assert mod.library_owners(source) == {"lark-doc": "lark", "lark-shared": "lark"}
+    assert mod.selectable_names(source, ["Lark"]) == ["lark"]
+    assert mod.build_installation(source, stage, ["lark"]) == ["lark"]
+    entry = stage / "lark" / "library" / "lark-doc" / "ENTRY.md"
+    text = entry.read_text(encoding="utf-8")
+    assert "](../lark-shared/ENTRY.md)" in text
+    assert (stage / "lark/library/lark-doc/references/a.md").is_file()
+    assert (stage / "lark/references/_shared/docs/gate.md").is_file()
+    assert "](library/lark-doc/ENTRY.md)" in (stage / "lark" / "SKILL.md").read_text(encoding="utf-8")
+    assert sorted(path.relative_to(stage).as_posix() for path in stage.rglob("SKILL.md")) == ["lark/SKILL.md"]
+    assert mod.validate_installation(stage) == []
+
+
+def test_library_entries_cannot_be_installed_alone(tmp_path: Path) -> None:
+    mod = _load_sync_module()
+    source = tmp_path / "src"
+    _library_source(source)
+    with pytest.raises(ValueError, match="bundled in lark"):
+        mod.build_installation(source, tmp_path / "stage", ["lark-doc"])
+
+
+def test_nested_skill_files_fail_installation_validation(tmp_path: Path) -> None:
+    mod = _load_sync_module()
+    package = tmp_path / "pkg"
+    (package / "inner").mkdir(parents=True)
+    (package / "SKILL.md").write_text("---\nname: pkg\ndescription: d\n---\n", encoding="utf-8")
+    (package / "inner" / "SKILL.md").write_text("---\nname: inner\ndescription: d\n---\n", encoding="utf-8")
+    assert any("nested SKILL.md" in item for item in mod.validate_installation(tmp_path))
+
+
+def _tree(root: Path) -> dict[str, str]:
+    return {str(p.relative_to(root)): p.read_text(encoding="utf-8") if p.is_file() else "<dir>" for p in sorted(root.rglob("*"))}
+
+
+def test_also_root_without_check_is_a_usage_error(tmp_path: Path) -> None:
+    mod = _load_sync_module()
+    with pytest.raises(SystemExit) as exited:
+        mod.main(["--dest", str(tmp_path / "installed"), "--also-root", str(tmp_path / "other")])
+    assert exited.value.code == 2
+    assert not (tmp_path / "installed").exists()
+
+
+@pytest.mark.parametrize("where", ["inside", "parent"])
+def test_destination_overlapping_the_source_is_refused_without_moving_anything(tmp_path: Path, monkeypatch, capsys, where: str) -> None:
+    mod = _load_sync_module()
+    source = tmp_path / "source"
+    _source(source)
+    monkeypatch.setattr(mod, "ROOT", source)
+    destination = source / "Arc" if where == "inside" else tmp_path
+    before = _tree(tmp_path)
+
+    assert mod.main(["--only", "arc:one", "--dest", str(destination)]) == 1
+
+    assert "must not overlap the source repository" in capsys.readouterr().err
+    assert _tree(tmp_path) == before
+
+
+def test_empty_selection_is_refused(tmp_path: Path, monkeypatch, capsys) -> None:
+    mod = _load_sync_module()
+    source, destination = tmp_path / "source", tmp_path / "installed"
+    _source(source)
+    destination.mkdir()
+    (destination / "unchanged").write_text("keep")
+    monkeypatch.setattr(mod, "ROOT", source)
+
+    assert mod.main(["--family", "Android", "--dest", str(destination)]) == 1
+
+    assert "no skills selected" in capsys.readouterr().err
+    assert _tree(destination) == {"unchanged": "keep"}
+
+
+def test_dry_run_builds_and_validates_without_touching_the_destination(tmp_path: Path, monkeypatch, capsys) -> None:
+    mod = _load_sync_module()
+    source, destination = tmp_path / "source", tmp_path / "installed"
+    _source(source)
+    destination.mkdir()
+    (destination / "arc-one").mkdir()
+    (destination / "arc-one" / "old").write_text("keep-me")
+    monkeypatch.setattr(mod, "ROOT", source)
+    before = _tree(tmp_path)
+
+    assert mod.main(["--only", "arc:one", "--dest", str(destination), "--dry-run"]) == 0
+
+    out = capsys.readouterr().out
+    assert "Verified 2 packages" in out and "Dry run: destination unchanged" in out
+    assert _tree(tmp_path) == before
+
+
+def test_failed_rollback_names_the_backup_that_still_holds_the_previous_entries(tmp_path: Path, monkeypatch) -> None:
+    mod = _load_sync_module()
+    source, stage, destination = tmp_path / "source", tmp_path / "stage", tmp_path / "installed"
+    _source(source)
+    included = mod.build_installation(source, stage, ["arc:one"])
+    destination.mkdir()
+    (destination / "arc-one").mkdir()
+    (destination / "arc-one" / "old").write_text("keep-me")
+    real_replace = Path.replace
+    calls = {"n": 0}
+
+    def boom(self, target):
+        calls["n"] += 1
+        if calls["n"] >= 3:  # third move fails the publish; every later move fails the rollback too
+            raise OSError("simulated failure")
+        return real_replace(self, target)
+
+    monkeypatch.setattr(Path, "replace", boom)
+
+    with pytest.raises(OSError) as raised:
+        mod.publish_installation(stage, destination, included, "dash")
+
+    message = str(raised.value)
+    assert "rollback failed" in message
+    backup = Path(message.rsplit("previous entries remain in ", 1)[1])
+    assert (backup / "arc-one" / "old").read_text() == "keep-me"

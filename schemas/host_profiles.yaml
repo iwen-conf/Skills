@@ -1,0 +1,23 @@
+# Which entrypoints each host discovers. scripts/link_hosts.py makes every host root match this file:
+# each listed name is a symlink to its source (default: ~/.agents/skills/<name>); anything else in the root
+# is reported by --check and moved to a backup by --apply. Dot entries (for example Codex .system) are ignored.
+source_root: ~/.agents/skills
+external_targets:
+  lanhu-design: ~/Documents/Code/Go/lanhu-cli/skills/lanhu-design
+profiles:
+  core: [arc-explore, arc-plan, arc-code, arc-verify, arc-audit, arc-vet, check, health, research-write, typesafe-ai]
+  work: [lark, cnb, ui-design, agent-browser]
+  mobile: [android, harmonyos, swiftui-pro]
+  makers: [lazycat, easyeda-api]
+hosts:
+  claude:
+    root: ~/.claude/skills
+    profiles: [core, work, mobile, makers]
+    ignore: [synced]  # Claude-managed copies of claude.ai skills
+  codex:
+    root: ~/.codex/skills
+    profiles: [core, work, mobile, makers]
+    extra: [cloudflare, lanhu-design]
+  grok:
+    root: ~/.grok/skills
+    extra: [arc-explore, arc-plan, arc-code, arc-verify, arc-audit, arc-vet, typesafe-ai, easyeda-api, threejs]

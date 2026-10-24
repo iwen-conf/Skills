@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arc Vet"
+  short_description: "Open-source due diligence and build-vs-buy decision records"
+  default_prompt: "Use $arc:vet to compare open-source candidates for this need with dated evidence and record whether to reuse, adopt, borrow the design or build."

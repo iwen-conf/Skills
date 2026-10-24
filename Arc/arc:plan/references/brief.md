@@ -12,6 +12,26 @@ Turn a vague request into a brief a downstream engineer can start from without g
 
 Ordinary multi-step work does not need persistent task documents.
 
+## Choosing a direction
+
+For genuine approach decisions, check current framework built-ins and official patterns before
+proposing custom machinery. Give one recommendation and a materially simpler option when one
+exists; do not reopen a direction the user has already settled. Read only the relevant domain
+guidance instead of loading every project rule.
+
+- Count setup paid by every user: a new hook, tool, account, configuration key or service needs
+  a concrete benefit that the existing command/default cannot provide.
+- Name the load-bearing assumption and what fails if it is false. When evidence makes that
+  assumption fragile, adapt the design before handing it off.
+- Each proposed fallback, retry, flag or abstraction must address a named failure or real user
+  split. Compare the minimal path on risk, rollback and observable behavior, not elegance.
+- If workaround machinery grows larger than the behavior it supports, reconsider the approach.
+  Do not turn this check into an approval gate for ordinary scoped implementation.
+- Make each delivery phase independently usable and verifiable where possible. If the result
+  truly needs one atomic change, say so instead of inventing intermediate usable states.
+
+These design checks adapt Waza's Think workflow under the [MIT license](../../../Waza/LICENSE).
+
 ## Rules
 
 1. Inspect local context before asking anything: `arc-idx search` first (fallback per
@@ -27,8 +47,9 @@ Ordinary multi-step work does not need persistent task documents.
 5. Define in-scope and out-of-scope work; never expand the requested surface speculatively.
 6. Acceptance is testable: a command with expected result, a test name, or a named manual check.
    Use `Given-When-Then` when behavior must be tested.
-7. Preserve the existing frontend stack; never infer a stack migration from clarification. A new
-   frontend records required capabilities only.
+7. Record each target and its capabilities using [native-platforms.md](../../_shared/conventions/native-platforms.md).
+   Native direction is settled; do not reopen cross-platform reuse as the default. Existing-product
+   maintenance does not imply permission for a stack migration.
 8. Concrete follow-up work is specific enough to become task-document leaves without hidden
    context.
 
@@ -77,6 +98,6 @@ At most 3 blocking questions, each with a recommended default.
 ## Lark
 
 When `.lark.json` exists or the user explicitly asked for Lark, hand the requirement, acceptance
-criteria, task owner/status and resource keys to `lark-workflow-project-docs`; a Lark-active feature
+criteria, task owner/status and resource keys to `lark` (project-docs); a Lark-active feature
 requirement needs its `task_base` row created or updated before delivery starts. Otherwise create or
 request no Lark resource.

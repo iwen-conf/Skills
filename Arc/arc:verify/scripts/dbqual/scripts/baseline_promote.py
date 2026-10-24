@@ -6,7 +6,7 @@ import json
 import shutil
 from pathlib import Path
 
-from sqlverify_common import git_metadata, json_dump, json_load, now_iso, sha256_file
+from sqlverify_common import git_metadata, json_dump, json_load, load_evidence_dir, load_run_manifest, now_iso, sha256_file
 
 
 def main() -> int:
@@ -23,6 +23,14 @@ def main() -> int:
         raise SystemExit(f"refusing baseline promotion: release gate is {gate.get('status')!r}, not PASS")
     if not src.is_dir():
         raise SystemExit(f"evidence directory not found: {src}")
+    # The gate verdict covers one run; promoting any other evidence would bless unjudged numbers.
+    run, issues = load_run_manifest(src)
+    if not run or run["run_id"] != gate.get("run_id"):
+        raise SystemExit(f"refusing baseline promotion: gate run_id {gate.get('run_id')!r} does not match evidence run "
+                         f"{run['run_id'] if run else None!r} {issues or ''}")
+    _, load_issues = load_evidence_dir(src, run_id=run["run_id"])
+    if load_issues:
+        raise SystemExit(f"refusing baseline promotion: evidence directory is not one coherent run: {load_issues}")
     files = sorted(p for p in src.glob("*.json") if p.is_file() and p.name != "regression.baseline.json")
     if not files:
         raise SystemExit("no evidence JSON files to promote")
@@ -39,6 +47,7 @@ def main() -> int:
         "created_at": now_iso(),
         "source_evidence_dir": str(src),
         "gate_status": gate.get("status"),
+        "run_id": run["run_id"],
         "override_nonpass": bool(ns.allow_nonpass and gate.get("status") != "PASS"),
         "git": git_metadata(Path(ns.root).resolve()),
         "files": manifest_files,

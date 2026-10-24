@@ -1,0 +1,75 @@
+version: 1
+
+# Default: the agent writes source with host tools. CLI is the gate for
+# workflow start, controlled operations, and delivery. Same-user hooks are
+# not a security boundary (see README).
+mode: free_write_forced_verify
+
+languages:
+  go:
+    skill: arc-code
+    markers: [go.mod, go.work]
+  rust:
+    skill: arc-code
+    markers: [Cargo.toml]
+  python:
+    skill: arc-code
+    markers: [pyproject.toml, setup.py, requirements.txt]
+  typescript:
+    skill: arc-code
+    markers: [package.json, pnpm-lock.yaml, bun.lock]
+  android:
+    skill: android
+    markers: [settings.gradle, settings.gradle.kts]
+  harmonyos:
+    skill: harmonyos
+    markers: [oh-package.json5]
+
+skill_aliases:
+  arc-code: [go-backend, rust-backend]
+  arc-explore: [architecture-review]
+  arc-verify: [testing]
+  arc-plan: []
+  arc-audit: []
+  arc-vet: [open-source-vetting]
+
+workflow:
+  require_begin: true
+  require_verification: true
+
+execution:
+  controlled_operations:
+    - schema_migration
+    - commit
+  deny_direct:
+    - unverified_commit
+    - skip_hooks
+    - schema_migration
+  allow_direct:
+    - source_edit
+    - tests_run
+
+stop:
+  # block_on_claim: use TypeSafe (jev ask) to judge a completion claim.
+  # Missing/uncertain judgments report pending verification; commits stay gated.
+  # remind = passive diagnostic without starting another continuation.
+  # block = block every Stop while unverified (often too noisy).
+  mode: block_on_claim
+  completion_markers:
+    - done
+    - fixed
+    - completed
+    - ready to commit
+    - ready to merge
+    - 已完成
+    - 已修复
+    - 可以提交
+    - 交付
+
+verification:
+  required:
+    - cli_receipt
+    - tests
+  optional:
+    - architecture
+  fail_closed: true

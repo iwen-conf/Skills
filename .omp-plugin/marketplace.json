@@ -1,0 +1,15 @@
+{
+  "name": "skills",
+  "description": "Arc skills and the Arc Policy Runtime",
+  "owner": {
+    "name": "Arc"
+  },
+  "plugins": [
+    {
+      "name": "arc-policy",
+      "description": "Coding Agent Policy Runtime: Arc skills + OMP extension + arc-policy CLI",
+      "source": "./plugins/arc-policy",
+      "version": "0.1.0"
+    }
+  ]
+}

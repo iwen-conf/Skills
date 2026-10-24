@@ -19,6 +19,10 @@ have produced theirs.
 
 Artifact: the three lines plus the saved log paths.
 
+When the failure is a regression from a known-good version or visual reference, or depends on
+installed command behavior, load [regression-evidence.md](regression-evidence.md). It adds
+history, oracle and runtime-boundary probes without replacing the repair gate below.
+
 ## 2. Reproduce as a failing check
 
 Pick the first option that works:
@@ -30,7 +34,8 @@ Pick the first option that works:
 
 Run it on the unchanged code. It must fail for the reported reason: the assertion or error text
 matches the observed failure, not a setup, fixture or environment error. Save the command and
-output as the **before** record.
+output as the **before** record; for options 1–2 run it as `gate.sh red -- <command>`, which
+refuses if production files already changed or the command passes.
 
 - IF it passes on unchanged code THEN the failure is not reproduced → §6.
 - IF repeated identical runs disagree THEN → §7.
@@ -117,7 +122,7 @@ Signal: the same check on the same code and input gives different results.
 
 - Re-run the step 2 check unchanged: **before** `FAIL` and **after** `PASS`, same command.
 - Run the sibling regressions and the tests of the affected invariant.
-- Run `gate.sh check`.
+- Run `gate.sh check --require-red`.
 - Risky change (data write, auth, money, concurrency, migration): write a rollback note (how to
   revert code and data) and a monitoring note (which log line or metric shows recurrence).
 - Transaction, duplicate-effect, retry or recovery incidents: hand off to `arc:verify` for
@@ -129,6 +134,6 @@ Signal: the same check on the same code and input gives different results.
   **Verification** holds the before/after records and sibling results.
 - Separate confirmed results, residual uncertainty and `NOT_RUN` items; a patch does not by itself
   show the failing path is repaired.
-- When the contract Lark hook applies, hand `lark-workflow-project-docs` the incident severity
+- When the contract Lark hook applies, hand `lark` (project-docs) the incident severity
   (contract vocabulary), cause, changed feature, verification, follow-ups and the affected task
   row.

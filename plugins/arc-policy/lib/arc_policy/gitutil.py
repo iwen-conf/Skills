@@ -1,0 +1,95 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import subprocess
+from pathlib import Path
+
+
+def _env() -> dict[str, str]:
+    env = dict(os.environ)
+    env.setdefault("GIT_OPTIONAL_LOCKS", "0")
+    return env
+
+
+def git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", *args],
+        cwd=root,
+        env=_env(),
+        capture_output=True,
+        text=True,
+        errors="surrogateescape",
+        timeout=30,
+        check=False,
+    )
+
+
+def head(root: Path) -> str:
+    _output(root, "rev-parse", "--is-inside-work-tree")
+    result = git(root, "rev-parse", "--verify", "--quiet", "HEAD")
+    if result.returncode == 1:
+        return "UNBORN"
+    if result.returncode:
+        raise RuntimeError(f"git rev-parse failed: {result.stderr.strip()}")
+    return result.stdout.strip()
+
+
+def _output(root: Path, *args: str) -> str:
+    result = git(root, *args)
+    if result.returncode:
+        raise RuntimeError(f"git {args[0]} failed: {result.stderr.strip()}")
+    return result.stdout
+
+
+def _runtime_path(path: str) -> bool:
+    return path.startswith((".arc/policy/", ".arc/artifacts/"))
+
+
+def dirty_paths(root: Path) -> list[str]:
+    status = _output(
+        root, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--no-renames"
+    )
+    return sorted(
+        record[3:]
+        for record in status.split("\0")
+        if len(record) >= 4 and not _runtime_path(record[3:])
+    )
+
+
+def _file_digest(path: Path) -> str:
+    if path.is_symlink():
+        return "link:" + os.readlink(path)
+    if not path.exists():
+        return "missing"
+    if path.is_dir():
+        if (path / ".git").exists():
+            return json.dumps(tree_fingerprint(path), sort_keys=True)
+        raise RuntimeError(f"cannot fingerprint directory: {path}")
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+    return f"{path.stat().st_mode}:{digest.hexdigest()}"
+
+
+def dirty_digests(root: Path) -> dict[str, str]:
+    return {path: _file_digest(root / path) for path in dirty_paths(root)}
+
+
+def tree_fingerprint(root: Path) -> dict[str, object]:
+    commit = head(root)
+    dirty = dirty_paths(root)
+    index = [
+        entry
+        for entry in _output(root, "ls-files", "--stage", "-z").split("\0")
+        if entry and not _runtime_path(entry.split("\t", 1)[-1])
+    ]
+    content = {path: _file_digest(root / path) for path in dirty}
+    # Project policy is often gitignored alongside runtime state; it still changes verification.
+    content[".arc/policy.yaml"] = _file_digest(root / ".arc/policy.yaml")
+    digest = hashlib.sha256(
+        json.dumps([index, content], sort_keys=True).encode()
+    ).hexdigest()
+    return {"head": commit, "dirty": dirty, "digest": digest}

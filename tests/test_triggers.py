@@ -34,7 +34,7 @@ def test_negative_utterances_do_not_select_the_skill() -> None:
 
 
 def test_lifecycle_phases_cover_the_full_engineering_cycle() -> None:
-    assert set(LIFECYCLE_PHASES.values()) == {"understand", "plan", "change", "prove", "evaluate"}
+    assert set(LIFECYCLE_PHASES.values()) == {"understand", "select", "plan", "change", "prove", "evaluate"}
     corpus = load_trigger_corpus(ROOT)
     assert set(LIFECYCLE_PHASES) == set(corpus)
 
@@ -55,7 +55,11 @@ def test_retired_skill_phrases_still_route_to_their_new_owner() -> None:
         "补测试，写测试": "arc:verify",
         "给支付流程做可靠性验证": "arc:verify",
         "给项目做个体检": "arc:audit",
+        "检查订单的业务闭环": "arc:plan",
+        "修改状态机后重新闭环检查": "arc:plan",
         "跑一次安全扫描": "arc:audit",
+        "引入依赖前先做开源选型": "arc:vet",
+        "这个库停更三年了还能用吗": "arc:vet",
     }
     for utterance, owner in owners.items():
         assert winner(utterance, corpus) == owner, utterance

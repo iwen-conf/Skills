@@ -1,0 +1,11 @@
+{
+  "name": "arc-policy",
+  "displayName": "Arc Policy Runtime",
+  "version": "0.1.0",
+  "description": "Constrains OMP to Arc skills and the arc-policy CLI. Native enforcement is hosts/omp/arc-policy.ts (tool_call block). Skills ship in skills/.",
+  "author": {
+    "name": "Arc"
+  },
+  "keywords": ["arc", "policy", "hooks", "cli", "omp"],
+  "skills": "./skills/"
+}

@@ -586,7 +586,7 @@ def render_markdown(summary: dict[str, object], output_dir: Path) -> str:
         "- Use `arc:code` for confirmed vulnerabilities with concrete exploit paths and for missing security controls.",
         "- Use `arc:verify` to prove a fix or add regression checks.",
         "- Use `arc:plan` to turn multiple confirmed findings into task batches.",
-        "- Use `lark-workflow-project-docs` only when `.lark.json` is active or the user explicitly requests Lark publication.",
+        "- Use `lark` (project-docs) only when `.lark.json` is active or the user explicitly requests Lark publication.",
         "",
         "## Raw Artifacts",
         "",

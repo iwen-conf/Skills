@@ -1,0 +1,11 @@
+{
+  "name": "arc-policy",
+  "displayName": "Arc Policy Runtime",
+  "version": "0.1.0",
+  "description": "Constrains Claude Code / Codex / Grok to Arc skills and the arc-policy CLI: session inject, PreToolUse deny, Stop receipt gate.",
+  "author": {
+    "name": "Arc"
+  },
+  "keywords": ["arc", "policy", "hooks", "cli"],
+  "hooks": "./hooks/hooks.json"
+}

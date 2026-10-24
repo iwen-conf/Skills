@@ -9,12 +9,12 @@ transitions: [task-docs.md](task-docs.md) §9. File templates: [task-templates.m
 |---|---|
 | `docs/00-产品需求/` | PRDs, user stories, business rules, domain glossaries, unresolved raw input |
 | `docs/01-系统设计/` | Architecture, RFCs, sequence diagrams, DB and domain models |
-| `docs/02-API记录/` | Markdown API contracts ([api-contract.md](../../_shared/api-contract.md)), module indexes, third-party integration notes; the repository contract is the authority, Apifox only an optional downstream sync on explicit request |
+| `docs/02-API记录/` | Markdown API contracts ([api-contract.md](../../_shared/api-contract.md)), module indexes, third-party integration notes; the repository contract is the authority |
 | `docs/03-执行任务/` | Task entries, `00-前置约束.md`, leaves, progress trackers |
 | `docs/04-性能优化/` | SQL tuning, latency, memory, UI responsiveness plans |
 | `docs/05-代码治理/` | Technical debt, standardization, refactoring, deprecated API removal |
 | `docs/06-环境运维/` | CI/CD, Docker/K8s, DB migrations, runbooks, release and deploy notes |
-| `docs/07-测试质量/` | Test plans, E2E scenarios, execution reports, coverage |
+| `docs/07-测试质量/` | Test plans, E2E scenarios, execution reports, coverage; `业务流/` holds the business-flow catalog owned by `arc:verify` |
 | `docs/08-安全审计/` | SAST/DAST reports, permission models, audit findings, privacy notes |
 | `docs/09-线上缺陷/` | Production bugs, incident records, troubleshooting guides |
 | `docs/10-复盘决策/` | ADRs, post-mortems, retrospectives |

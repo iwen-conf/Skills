@@ -1,4 +1,4 @@
 interface:
   display_name: "Arc Verify"
-  short_description: "Tests, reliability, PostgreSQL qualification and release evidence"
-  default_prompt: "Use $arc:verify to design and run the checks for this change and report PASS/FAIL/BLOCKED/NOT_RUN/FLAKY with evidence."
+  short_description: "Business-flow-first tests, test-first, E2E, fuzz, reliability and release evidence"
+  default_prompt: "Use $arc:verify to map the business flows this change reaches, design and run the checks per branch and report PASS/FAIL/BLOCKED/NOT_RUN/FLAKY with evidence."

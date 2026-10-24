@@ -66,6 +66,21 @@ named fixed case before fixing.
 
 **References:** [parameter-fuzzing](../../scripts/dbqual/references/parameter-fuzzing.md).
 
+**Static prerequisite (`[sql_static]`).** Every SQL file in scope parses in the dialect and passes
+the project's gating rules before any query runs; migrations also pass Squawk. Keys: `dialect`,
+`paths` (globs), `fail_on` (rule codes; `*` = all), `migration_paths`, `pg_version`,
+`squawk_excluded_rules` (rule → rationale), `sqlfluff_command` / `squawk_command` (argv, pin the
+version), `timeout_s` 300. Sample: `examples/sql-static.example.toml.fragment`. Layers and limits:
+[../sql-static.md](../sql-static.md).
+
+```bash
+python3 scripts/sql_static_audit.py --config C --root . --out F   # sql.static, kind sql_static
+```
+
+**PASS**: all files parsed, no `fail_on` hit, no unexcluded Squawk finding. **FAIL**: `PRS`/`LXR`/`TMP`
+or a gating rule or Squawk finding. **BLOCKED**: tool missing or usage error, no dialect, a glob
+matching nothing, a file the tool did not report. A clean parse is no result oracle.
+
 ## G5 — EXPLAIN and resource diagnostics
 
 **Capture** JSON EXPLAIN for critical parameter classes in the test environment:

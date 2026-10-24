@@ -135,13 +135,19 @@ python3 scripts/regression_compare.py --current-dir D --baseline-dir .sqlverify/
   --max-tps-drop 0.15 --max-explain-time-regression 0.50
 ```
 
-- Promotion refuses a non-PASS gate and a non-empty destination; writes `baseline-manifest.json`
-  (SHA-256 per file, git metadata). `--allow-nonpass` is an emergency override recorded in the
+- Promotion refuses a non-PASS gate, a gate whose `run_id` differs from the evidence directory's
+  run, a directory mixing runs, and a non-empty destination; writes `baseline-manifest.json`
+  (SHA-256 per file, git metadata, `run_id`). `--allow-nonpass` is an emergency override recorded in the
   manifest: treat it as a waiver, never as a trusted baseline. Never auto-bless a slower run.
 - Compare (`regression.baseline`, kind `regression_compare`; run_suite uses the default thresholds
-  shown): manifest hash mismatch → FAIL, absent manifest → warning. PostgreSQL major, settings
-  hash, schema hash, dataset profile/seed or workload definition/script hashes differ → FAIL unless
+  shown): manifest hash mismatch → FAIL. PostgreSQL major, settings hash, schema hash, dataset
+  profile/seed or workload definition/script hashes differ → FAIL unless
   `--allow-environment-drift`. Host arch/CPU change → warning.
+- Nothing compared is never PASS. **BLOCKED**: baseline directory or `baseline-manifest.json`
+  absent; current directory without a run manifest or holding another run's records; a
+  `postgres.snapshot` missing on either side or `dataset.audit` on one side (unless drift is
+  allowed); a baseline pgbench/EXPLAIN id absent from the current run; zero effective comparisons
+  (`observed.effective_comparisons`: pairs with a computable delta).
 - With ≥ 3 repetitions on both sides, bootstrap CIs on median deltas: FAIL only when the CI low
   exceeds the P95/P99 limit or the TPS CI high is below −limit; a point-only breach is a warning.
   EXPLAIN execution-time regression > 0.50 → FAIL (confirm with workload latency before tuning).

@@ -49,7 +49,7 @@ to `docs/00-产品需求/README.md`.
 ## Lark
 
 - `.lark.json` exists, or the user explicitly asked for Lark/Feishu output → hand the PRD content and
-  intended resource key (`resources.prd`) to `lark-workflow-project-docs`.
+  intended resource key (`resources.prd`) to `lark` (project-docs).
 - Otherwise never suggest a Lark project space and never create `.lark.json`.
 
 ## Template

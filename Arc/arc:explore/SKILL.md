@@ -1,6 +1,6 @@
 ---
 name: arc:explore
-version: 2.0.0
+version: 2.2.0
 description: >-
   Read-only code intelligence for a local repository: find where code lives (代码在哪, 搜代码),
   locate definitions, list callers (谁调用), trace a call chain (调用链) or data flow, list
@@ -14,24 +14,16 @@ description: >-
 Answer where code lives, who depends on it and what a change would touch, with reproducible
 `arc-idx` query evidence; change nothing except index files.
 
-## Trigger
-
-- Locate a file, definition, string or symbol: 代码在哪, 这个函数在哪定义, 搜代码, 找符号, "where is X defined".
-- List callers or references: 谁调用, "find all callers of X".
-- Trace a call chain or data flow: 从路由追调用链到仓储层, "how does field X reach the response".
-- List what a planned change touches: 影响面, "what breaks if I rename / remove / replace X".
-- Map a module or system: 架构地图, 模块梳理, entry points, layering, dependency direction.
-- Maintain the index: `arc-idx doctor`, `index`, `daemon`, zoekt index health, 索引维护.
-
 ## Non-trigger
 
 - Make the change (implement, rename, refactor, fix, comment) → `arc:code`; it runs code-intel itself.
 - Find defects or risks, review a diff, health or security audit → `arc:audit`.
 - Write or run tests → `arc:verify`.
 - Write a PRD, brief or task document → `arc:plan`.
+- Design or review business lifecycle completeness → `arc:plan` model mode; exploration supplies source facts.
 - Read one file at a known path → read it directly.
 - Third-party library documentation → the host's web or docs tools.
-- Feishu/Lark project documents → `lark-workflow-project-docs`.
+- Feishu/Lark project documents → `lark` (project-docs).
 
 ## Goal
 

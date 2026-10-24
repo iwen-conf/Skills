@@ -1,7 +1,9 @@
-# Frontend Color Tokens
+# Web Color Tokens
 
-Applied by arc:code when it sets up or changes a frontend theme; checked by arc:audit. Stack rules:
-[frontend.md](frontend.md).
+Applied to Web themes by arc:code and arc:audit. Stack rules: [frontend.md](frontend.md).
+Native themes follow [native-platforms.md](native-platforms.md): platform semantic colors/resources,
+system appearance, accessibility and appropriate units. The CSS wiring, palettes and rem rules
+below are not mandatory for native apps; brand values may be translated when the design calls for it.
 
 ## 1. Rules
 

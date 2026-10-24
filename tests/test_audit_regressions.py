@@ -165,7 +165,7 @@ def test_interval_rejects_unknown_state_and_duplicate_ids():
 def converter(text, **env_overrides):
     env = {**os.environ, 'CNB_WEB_ENDPOINT': 'https://cnb.cool',
            'CNB_REPO_SLUG': 'group/repo', 'CNB_BRANCH': 'release/2', **env_overrides}
-    return command(['node', str(ROOT / 'CNB/cnb-text-path-converter/scripts/convertLink.js'), text], env=env)
+    return command(['node', str(ROOT / 'CNB/cnb/scripts/convertLink.js'), text], env=env)
 
 
 def test_converter_supported_links_code_and_bare_paths():
@@ -206,8 +206,9 @@ def test_nondefault_cnb_base_and_unrelated_changes(tmp_path):
     (work / 'unrelated').write_text('user work')
     git('add', 'unrelated')
     initial_staged = git('diff', '--cached')
-    text = (ROOT / 'CNB/cnb-code-commit/SKILL.md').read_text()
+    text = (ROOT / 'Waza/check/references/delivery.md').read_text()
     snippet = next(block for block in re.findall(r'```bash\n(.*?)```', text, re.S) if 'git check-ref-format' in block)
+    snippet = '\n'.join(line.strip() for line in snippet.splitlines())
     result = command(['bash', '-e', '-c', snippet], cwd=work,
                      env={**os.environ, 'base_ref': 'release/2', 'work_branch': 'auto/test-1'})
     assert result.returncode == 0, result.stderr
@@ -252,7 +253,7 @@ def test_arkts_wrapper_uses_project_and_preserves_failures(tmp_path, failure):
         path.chmod(0o755)
     registry = project / '.ohpmrc'
     registry.write_text('registry=https://registry.example.invalid')
-    result = command(['bash', str(ROOT / 'HarmonyOS/skill-arkts-syntax-assistant/scripts/run.sh'), str(project)],
+    result = command(['bash', str(ROOT / 'HarmonyOS/harmonyos/scripts/arkts/run.sh'), str(project)],
                      cwd=outside, env={**os.environ, 'PATH': str(bins)+os.pathsep+os.environ['PATH'], 'AUDIT_CALLS': str(log)})
     assert result.returncode == (7 if failure else 0)
     calls = log.read_text().splitlines()

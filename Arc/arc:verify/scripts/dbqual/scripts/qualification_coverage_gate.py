@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from sqlverify_common import evidence_base, finalize_evidence, json_dump, json_load
+from sqlverify_common import evidence_base, finalize_evidence, json_dump, json_load, load_evidence_dir, load_run_manifest
 
 _GATE_RE = re.compile(r"^G(?:[0-9]|[12][0-9]|3[01])$")
 
@@ -28,6 +28,9 @@ def evaluate_coverage(evidence: list[dict[str, Any]], manifest: dict[str, Any]) 
     warnings: list[str] = []
     observed_claims: list[dict[str, Any]] = []
     claims = manifest.get("claims", [])
+    if not isinstance(claims, list) or not claims:
+        failures.append("qualification manifest declares no claims: nothing would be checked")
+        claims = []
 
     seen: set[str] = set()
     for claim in claims:
@@ -109,16 +112,13 @@ def main() -> int:
     start = time.monotonic()
     ev = evidence_base("qualification_coverage", "qualification.coverage")
     manifest = json_load(Path(ns.manifest))
-    evidence: list[dict[str, Any]] = []
-    for p in sorted(Path(ns.evidence_dir).glob("*.json")):
-        try:
-            obj = json_load(p)
-            if isinstance(obj, dict) and obj.get("id") and obj.get("id") != ev["id"]:
-                evidence.append(obj)
-        except Exception as exc:
-            ev["warnings"].append(f"ignored unreadable evidence {p.name}: {exc!r}")
+    # Evidence of another run, unreadable files and duplicate ids are failures, never skipped.
+    run_manifest, issues = load_run_manifest(Path(ns.evidence_dir))
+    evidence, load_issues = load_evidence_dir(Path(ns.evidence_dir), run_id=run_manifest["run_id"] if run_manifest else None, skip_ids=[ev["id"]])
     result = evaluate_coverage(evidence, manifest)
+    result["evidence_issues"] = issues + load_issues
     ev["observed"] = result
+    ev["violations"].extend(json.dumps(x, ensure_ascii=False) for x in issues + load_issues)
     ev["violations"].extend(result["failures"])
     ev["warnings"].extend(result["warnings"])
     ev["reproduction"] = {"manifest": str(Path(ns.manifest).resolve()), "evidence_dir": str(Path(ns.evidence_dir).resolve())}

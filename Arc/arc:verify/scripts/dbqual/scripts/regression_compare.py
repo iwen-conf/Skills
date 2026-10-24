@@ -9,19 +9,7 @@ import statistics
 from pathlib import Path
 from typing import Any
 
-from sqlverify_common import evidence_base, finalize_evidence, json_dump, json_load, sha256_file
-
-
-def load_dir(d: Path) -> dict[str, dict[str, Any]]:
-    out = {}
-    for p in d.glob("*.json"):
-        try:
-            x = json_load(p)
-            if isinstance(x, dict) and x.get("id"):
-                out[x["id"]] = x
-        except Exception:
-            pass
-    return out
+from sqlverify_common import evidence_base, finalize_evidence, json_dump, json_load, load_evidence_dir, load_run_manifest, sha256_file
 
 
 def verify_baseline_manifest(d: Path) -> dict[str, Any]:
@@ -83,14 +71,28 @@ def main() -> int:
     ns = ap.parse_args()
     started = time.monotonic()
     ev = evidence_base("regression_compare", "regression.baseline")
-    cur = load_dir(Path(ns.current_dir)); base = load_dir(Path(ns.baseline_dir))
+    # Missing inputs make the comparison BLOCKED, never PASS: an absent baseline compares nothing.
+    blockers: list[str] = []
+    current_dir, baseline_dir = Path(ns.current_dir), Path(ns.baseline_dir)
+    run_manifest, issues = load_run_manifest(current_dir)
+    cur_list, cur_issues = load_evidence_dir(current_dir, run_id=run_manifest["run_id"] if run_manifest else None, skip_ids=[ev["id"]])
+    cur = {x["id"]: x for x in cur_list}
+    blockers += [f"current evidence: {json.dumps(x, ensure_ascii=False)}" for x in issues + cur_issues]
+    base: dict[str, dict[str, Any]] = {}
     observed: dict[str, Any] = {"comparisons": [], "environment": {}}
-    manifest_check = verify_baseline_manifest(Path(ns.baseline_dir))
+    if not baseline_dir.is_dir():
+        blockers.append(f"baseline directory not found: {baseline_dir}")
+        manifest_check: dict[str, Any] = {"present": False, "ok": None, "errors": ["baseline directory not found"]}
+    else:
+        base_list, base_issues = load_evidence_dir(baseline_dir, run_id=None, skip_ids=[ev["id"]])
+        base = {x["id"]: x for x in base_list}
+        blockers += [f"baseline evidence: {json.dumps(x, ensure_ascii=False)}" for x in base_issues]
+        manifest_check = verify_baseline_manifest(baseline_dir)
     observed["baseline_manifest"] = manifest_check
     if manifest_check["present"] and not manifest_check["ok"]:
         ev["violations"].append("baseline manifest integrity check failed: " + "; ".join(manifest_check["errors"]))
-    elif not manifest_check["present"]:
-        ev["warnings"].append("baseline-manifest.json is absent; baseline provenance/integrity is not cryptographically checked")
+    elif baseline_dir.is_dir() and not manifest_check["present"]:
+        blockers.append("baseline-manifest.json is absent; promote the baseline with baseline_promote.py so its provenance and hashes are checked")
 
     cenv = cur.get("postgres.snapshot.pre") or cur.get("postgres.snapshot")
     benv = base.get("postgres.snapshot.pre") or base.get("postgres.snapshot")
@@ -106,6 +108,8 @@ def main() -> int:
         }
         if not ns.allow_environment_drift and (not same_major or not same_settings or not same_schema):
             ev["violations"].append("baseline environment is not comparable: PostgreSQL major/settings/schema differ; use a matching baseline or explicitly allow drift")
+    elif not ns.allow_environment_drift:
+        blockers.append("postgres.snapshot evidence missing on the " + ("current" if not cenv else "baseline") + " side; environment comparability is unknown")
 
 
     cd = cur.get("dataset.audit"); bd = base.get("dataset.audit")
@@ -114,6 +118,8 @@ def main() -> int:
         observed["dataset_comparable"] = (cdo.get("profile") == bdo.get("profile") and cdo.get("seed") == bdo.get("seed"))
         if not ns.allow_environment_drift and not observed["dataset_comparable"]:
             ev["violations"].append("baseline dataset profile/seed differs; performance regression is not directly comparable")
+    elif (cd or bd) and not ns.allow_environment_drift:
+        blockers.append("dataset.audit evidence exists on only one side; dataset comparability is unknown")
 
     for eid, ce in sorted(cur.items()):
         be = base.get(eid)
@@ -141,7 +147,8 @@ def main() -> int:
             ci95=bootstrap_delta_ci(cp95_runs,bp95_runs,seed=20260920)
             ci99=bootstrap_delta_ci(cp99_runs,bp99_runs,seed=20260921)
             citps=bootstrap_delta_ci(ctps_runs,btps_runs,seed=20260922)
-            item = {"id": eid, "kind": "pgbench", "p95_delta": d95, "p99_delta": d99, "tps_delta": dtps, "p95_delta_ci95":ci95, "p99_delta_ci95":ci99, "tps_delta_ci95":citps, "current": {"p95": cp95, "p99": cp99, "tps": ctps}, "baseline": {"p95": bp95, "p99": bp99, "tps": btps}}
+            item = {"id": eid, "kind": "pgbench", "p95_delta": d95, "p99_delta": d99, "tps_delta": dtps, "p95_delta_ci95":ci95, "p99_delta_ci95":ci99, "tps_delta_ci95":citps, "current": {"p95": cp95, "p99": cp99, "tps": ctps}, "baseline": {"p95": bp95, "p99": bp99, "tps": btps},
+                    "effective": any(x is not None for x in (d95, d99, dtps))}
             observed["comparisons"].append(item)
             if ci95 and ci95["low"] > ns.max_p95_regression:
                 ev["violations"].append(f"{eid}: P95 regression CI [{ci95['low']:.1%},{ci95['high']:.1%}] exceeds {ns.max_p95_regression:.1%}")
@@ -159,14 +166,24 @@ def main() -> int:
             ca = (ce.get("observed", {}).get("analysis") or {}); ba = (be.get("observed", {}).get("analysis") or {})
             de = ratio_delta(ca.get("execution_time_ms"), ba.get("execution_time_ms"))
             added = sorted(set((ca.get("node_types") or {}).keys()) - set((ba.get("node_types") or {}).keys()))
-            item = {"id": eid, "kind": "explain", "execution_time_delta": de, "node_types_added": added}
+            item = {"id": eid, "kind": "explain", "execution_time_delta": de, "node_types_added": added, "effective": de is not None}
             observed["comparisons"].append(item)
             # EXPLAIN timing is noisy and instrumented; only a large configured drift is blocking.
             if de is not None and de > ns.max_explain_time_regression:
                 ev["violations"].append(f"{eid}: EXPLAIN execution-time regression {de:.1%} > {ns.max_explain_time_regression:.1%}; confirm with workload latency before tuning")
 
+    comparable = {"pgbench", "explain"}
+    for eid, be in sorted(base.items()):
+        if be.get("kind") in comparable and eid not in cur:
+            blockers.append(f"{eid}: baseline evidence has no current counterpart; the regression was not measured")
+    effective = sum(1 for c in observed["comparisons"] if c["effective"])
+    observed["effective_comparisons"] = effective
+    if effective == 0:
+        blockers.append("zero effective comparisons: no pgbench/EXPLAIN evidence with computable deltas exists on both sides")
+    observed["blockers"] = blockers
     ev["observed"] = observed
-    status = "PASS" if not ev["violations"] else "FAIL"
+    status = "FAIL" if ev["violations"] else ("BLOCKED" if blockers else "PASS")
+    ev["violations"].extend(blockers)
     json_dump(Path(ns.out), finalize_evidence(ev, started, status))
     print(json.dumps(ev, ensure_ascii=False, indent=2))
     return 0 if status == "PASS" else 2

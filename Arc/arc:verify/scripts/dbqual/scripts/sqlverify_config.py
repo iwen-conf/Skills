@@ -357,6 +357,21 @@ def validate(cfg: dict[str, Any], root: Path) -> list[str]:
         if c.get("check_command") is not None and (not isinstance(c.get("check_command"), list) or not c.get("check_command")):
             errors.append(f"compatibility_audit {cid}: check_command must be argv list")
 
+    ss = cfg.get("sql_static")
+    if ss is not None:
+        if not ss.get("dialect"): errors.append("sql_static.dialect is required")
+        if not isinstance(ss.get("paths"), list) or not ss.get("paths"): errors.append("sql_static.paths must be a non-empty list of globs")
+        if "migration_paths" in ss and (not isinstance(ss["migration_paths"], list) or not ss["migration_paths"]):
+            errors.append("sql_static.migration_paths must be a non-empty list of globs when set")
+        if not isinstance(ss.get("fail_on", []), list): errors.append("sql_static.fail_on must be a list of rule codes")
+        for key in ("sqlfluff_command", "squawk_command"):
+            if key in ss and (not isinstance(ss[key], list) or not ss[key]): errors.append(f"sql_static.{key} must be an argv list")
+        excluded = ss.get("squawk_excluded_rules", {})
+        if not isinstance(excluded, dict): errors.append("sql_static.squawk_excluded_rules must map rule -> rationale")
+        else:
+            for rule, why in excluded.items():
+                if not str(why).strip(): errors.append(f"sql_static.squawk_excluded_rules.{rule}: rationale required")
+
     return errors
 
 

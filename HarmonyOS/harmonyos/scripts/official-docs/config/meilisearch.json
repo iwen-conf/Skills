@@ -1,0 +1,6 @@
+{
+  "base_url": "https://meilisearch.ezer.heiyu.space",
+  "index": "harmonyos-docs",
+  "api_key": "",
+  "timeout_seconds": 20
+}

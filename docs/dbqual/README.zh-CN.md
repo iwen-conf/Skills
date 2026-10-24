@@ -124,6 +124,12 @@ FLAKY
 
 `qualification_coverage_gate.py` 支持 `strict_complete=true`：G0–G31 每一个 Gate 都必须被显式声明为 applicable 或 non-applicable；non-applicable 必须有 rationale。
 
+**静态 SQL 门禁（Arc 本地修订）。** 配置 `[sql_static]` 后，`run_suite.py` 在 schema 检查之前运行 `sql_static_audit.py`（证据 `sql.static`）：用 SQLFluff 按配置的方言解析并检查 `paths` 下的 SQL，解析/词法/模板错误（`PRS`/`LXR`/`TMP`）和 `fail_on` 列出的规则判 FAIL，其余规则只记 warning；`migration_paths` 下的迁移再跑 Squawk，每条发现都判 FAIL，除非在 `squawk_excluded_rules` 里写明理由豁免。工具缺失、方言未配置、glob 一个文件都没匹配到、工具漏报某个文件，一律 BLOCKED。解析通过只说明“语法合法”，不说明表和列存在、结果正确：仍需 schema 上的 `EXPLAIN` 与 G4 属性测试。示例：`examples/sql-static.example.toml.fragment`。
+
+**运行身份绑定（Arc 本地修订）。** `run_suite.py` 每次运行先把证据目录里的旧内容移到 `superseded/`，再写 `run-manifest.json`（run id、HEAD、所有已改动/未跟踪且未被忽略路径的内容摘要、配置文件摘要），并把 run id 注入每个 runner，所有证据都带 `run_id`。`release_gate.py` 在应用策略前重算候选指纹并只接受本次运行的证据；缺 manifest、候选已变（报出变动路径）、非 git 工作树、旧运行证据、不可读文件、重复 id 一律 FAIL。`qualification_coverage_gate.py` 同样不再静默跳过不可读或旧运行证据。手工拼装或复制来的证据目录无法通过闸门。
+
+**空闸门拒绝（Arc 本地修订 2026-10-14）。** `release_gate.py` 先按 `schemas/gate-policy.schema.json` 检查策略：出现 schema 之外的段或选择器字段、段不是列表，记 `invalid_policy`；一条 `required_evidence` 和 `metric_rule` 都没有，记 `empty_policy`；两者都判 FAIL、退出 2，不再把“什么都没检查”算作 PASS。`qualification_coverage_gate.py` 的 manifest 没有任何 claim 时同样 FAIL。
+
 ---
 
 ## 4. 最关键的并发/死锁体系
@@ -212,6 +218,8 @@ recovery after overload
 `pgbench_runner.py` 支持业务脚本权重、并发/rate 矩阵、warmup、多 repetition、固定 base seed + 每轮派生 seed。采样日志只用于延迟分布；全量成功/失败/重试从 pgbench summary 获取，避免 sampling-rate 导致失败率失真。
 
 Baseline 比较不是一次结果 `>20%` 就武断失败。`regression_compare.py` 支持多轮结果与 bootstrap confidence interval；同时验证 PostgreSQL major、settings hash、schema fingerprint、dataset profile、workload/script hash，防止不可比环境之间硬算回归。
+
+“没有比较”不等于“没有回归”：基线目录或 `baseline-manifest.json` 缺失、当前证据未绑定运行、任一侧缺 `postgres.snapshot`、基线中的 pgbench/EXPLAIN 项在本次运行缺失、有效比较数（`observed.effective_comparisons`）为 0，结果都是 `BLOCKED`，不是 `PASS`。`baseline_promote.py` 只提升与 PASS 闸门同一 `run_id` 的证据目录。
 
 ---
 
@@ -453,6 +461,7 @@ Release gate：
 python3 scripts/release_gate.py \
   --policy examples/gate-policy-expert-prerelease.json \
   --evidence-dir .sqlverify/evidence \
+  --root . \
   --out .sqlverify/report/gate.json
 ```
 

@@ -66,7 +66,7 @@ package. Add integration links only when a separate joint acceptance leaf exists
 
 1. ...
 2. 目标环境/分支/部署面：按项目定义写明工作站/测试/生产及双轨选择（如有）。
-3. 接口和任务文档格式：Markdown；接口文档是开发、联调、验收基准，默认不使用 Apifox。
+3. 接口和任务文档格式：Markdown；接口文档是开发、联调、验收基准。
 4. 前端/后端边界：各自目录、任务编号与允许改动范围；共享契约文档的相对链接。
 
 ## 难度与依赖评估

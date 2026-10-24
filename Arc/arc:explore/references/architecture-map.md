@@ -42,7 +42,7 @@ arc-idx search 'case:yes (createFileRoute|createRootRoute|createBrowserRouter)\(
 ## 3. Layer labeling
 
 1. Go backend: compare each package directory with
-   [go-backend.md](../../_shared/conventions/go-backend.md) §2 (layout) and §4 (responsibilities).
+   [go-backend-structure.md](../../_shared/conventions/go-backend-structure.md) §2 (layout) and [go-backend.md](../../_shared/conventions/go-backend.md) §4 (responsibilities).
    Label it with the convention layer (`domain/entities`, `usecase/<module>`,
    `interface/restful/controllers`, `infrastructure/gateways`, `wire`, …).
 2. Frontend: compare `src/` with [frontend.md](../../_shared/conventions/frontend.md) §8 (layout:

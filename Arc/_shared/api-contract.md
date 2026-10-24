@@ -1,7 +1,8 @@
 # Markdown API Contract
 
-Read before adding, changing or documenting a project API. Server and client implement and accept
-against one reviewable Markdown contract.
+Read before adding, changing, documenting or reviewing a project API. Server and client implement
+and accept against one reviewable Markdown contract. For HTTP design correctness apply
+[http-api-design.md](http-api-design.md); field/upload details load only when applicable.
 
 ## 1. Format and ownership
 
@@ -12,12 +13,10 @@ against one reviewable Markdown contract.
    description. Nested fields use field paths with parent/child notes; sample values go in table
    cells.
 3. The in-repo Markdown is the contract baseline for development, integration and acceptance.
-   - Do not call `apifox-cli`, create Apifox projects, log in, sync or export by default.
-   - Use Apifox only when the user explicitly asks for platform sync; it is a downstream copy of
-     the Markdown. An existing Apifox project is not a reason to sync.
+   - Do not create, sync or export to an API platform unless the user explicitly asks; a platform
+     copy is downstream of the Markdown.
    - When an old platform definition disagrees with the doc, check the implementation and the
-     requirement, update the Markdown first, then sync only if asked. A platform record never
-     overrides the Markdown.
+     requirement and update the Markdown first. A platform record never overrides the Markdown.
 4. This is a documentation-format rule only: wire encoding, existing machine-generated files and
    tool inputs/outputs keep following the project protocol. Writing docs in Markdown changes no
    runtime behavior.
@@ -43,10 +42,13 @@ against one reviewable Markdown contract.
 | Behavior and states | actual semantics for success, empty data, invalid parameters, unauthenticated, forbidden, not found, business conflict, system failure |
 | Business rules | validation and state changes; for writes: side effects, transaction boundary, idempotency or concurrency constraints; for lists: pagination, sorting, filtering |
 | Compatibility and dependencies | affected callers, change points, prerequisites, linked frontend and backend tasks |
+| HTTP and resource contract | accepted media/encoding, method/status semantics, payload/field/work limits with units, source, enforcement layer and rejection behavior; applicable upload lifecycle and ownership |
 | Verification | scenario, command or action, expected result, actual evidence, verification environment |
 
 Fill the table for the actual endpoint. For a capability that does not apply, write why. Never
-invent pagination, idempotency keys, roles, error codes or API versions to fill a row.
+invent pagination, idempotency keys, roles, error codes, API versions or numeric limits to fill a
+row. A required but unknown constraint is `待确认`, not N/A. Separate required/nullable/empty,
+character/byte bounds and schema annotation/runtime enforcement using the shared design rules.
 
 ## 3. Markdown template
 
@@ -102,6 +104,15 @@ get its own file linked from the module index.
 - 校验、状态变化、分页/排序/筛选：按实际填写。
 - 写入副作用、事务、幂等与并发：按实际填写，不适用则说明原因。
 - 变更点及受影响调用端：写明是否需要同步修改，链接对应任务。
+
+### HTTP、字段与资源限制（适用项）
+
+| 对象/字段 | 限制及单位/计数规则 | 依据与版本 | 执行位置 | 越界行为 | 边界验证 |
+| --- | --- | --- | --- | --- | --- |
+| 实际请求/字段/文件/批次 | 已确认值，未知写待确认 | 标准/建议/项目合同/部署配置及来源 | 网关/解析器/业务/存储等实际层 | 拒绝状态及副作用 | 正常、临界、越界用例 |
+
+- 上传：按实际写明传输方式、总量/单文件/元数据/解码限额、内容检查、归属、完成与清理。
+- JSON：按实际写明缺失/null/空值、未知/重复键、数值精度、字符/字节与嵌套限制。
 
 ### 验证场景
 

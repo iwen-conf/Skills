@@ -26,7 +26,7 @@ def test_build_registry_includes_structured_skill_fields() -> None:
     assert len(code_entry["intent_router"]) >= 2
 
 
-ARC_SKILLS = {"arc:explore", "arc:plan", "arc:code", "arc:verify", "arc:audit"}
+ARC_SKILLS = {"arc:explore", "arc:plan", "arc:code", "arc:verify", "arc:audit", "arc:vet"}
 
 
 def test_validate_registry_accepts_generated_registry() -> None:

@@ -1,0 +1,7 @@
+{
+  "name": "arc-policy",
+  "version": "0.1.0",
+  "description": "Arc Policy Runtime for Codex. Bundled hooks require local install and /hooks trust; not for the public plugin directory.",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}

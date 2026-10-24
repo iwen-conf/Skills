@@ -20,6 +20,10 @@ Use the CI report or project format; these are required facts, not a new schema.
 - Evidence belongs to the current candidate and applicable environment. Green from another commit,
   config or migration stage carries over only with shown applicability; otherwise the case is
   re-run. A plan, CI YAML or test file existing is preparation, not evidence.
+- A gate that reads evidence files binds them to one run: a run ID stamped into every record, the
+  candidate fingerprint (commit, uncommitted changes, config) recorded at the start and re-checked
+  at the gate, and earlier records moved aside before the run. A file that merely exists in the
+  evidence directory, or a comparison that compared nothing, never satisfies a required claim.
 
 Verdict semantics (vocabulary in [contract §4](../../_shared/contract.md)):
 
@@ -87,6 +91,30 @@ Containment: stage · stop condition · rollback or forward-fix · owner
 
 The gate is decision input: it never deploys, restarts, rolls back or flips flags. When the user
 already asked for those, hand the current evidence to that process without adding approval steps.
+
+### Installed and published surfaces
+
+When the change affects a skill, plugin, CLI, installer, generated mirror or package archive,
+include the installed-runtime claim: identify the real installation path, inspect the built
+artifact for every required reference/helper and executable permission, and exercise discovery
+and the changed entrypoint from an isolated temporary installation. A source import or manifest
+check proves neither package completeness nor installed behavior. Instructions need observed
+tool actions and resulting artifacts for behavioral claims; link checks prove only packaging.
+
+Apply the [installed runtime procedure](../../../Waza/check/references/installed-runtime.md)
+when this surface is in scope. Keep smoke configuration separate through supported host options;
+do not repurpose the operator's `HOME` or active configuration. Missing host/runtime prerequisites
+remain explicit gaps.
+
+For release evidence, name the exact lane and candidate. Generated files, package contents,
+remote assets and deployed services each need their own observation. Download/read back required
+assets and compare contents or digests where available; release-page text and CI success alone do
+not establish what users received. A reworked candidate may allow continued preview testing while
+remaining NO-GO for stable release; bind each decision to its own required claims.
+
+These checks adapt Waza's release-surface methods under the [MIT license](../../../Waza/LICENSE).
+Actual authorized commit/push/publish or public follow-through may continue through `check`;
+release evidence itself grants no new external action.
 
 ## 4. Reliability report
 

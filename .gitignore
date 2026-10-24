@@ -59,3 +59,8 @@ __pycache__/
 node-compile-cache/
 uv-*.lock
 CNB/**/node_modules/
+
+### Local third-party skill library ###
+# Third-party sources bundled into router packages (ui-design, cloudflare, threejs). Several carry no
+# license, so their content stays on this machine; only the provenance README is tracked.
+Library/*/

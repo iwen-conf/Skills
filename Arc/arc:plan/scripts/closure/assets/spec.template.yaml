@@ -1,0 +1,48 @@
+# ============================================================
+# 业务闭环 spec 模板（docs/01-系统设计/业务闭环/03-closure-spec.yaml）
+# 机器可读业务模型；复用既有需求 ID，不取代原 PRD、API 合同或运行时证据。
+# 字段说明见 references/closure-spec-format.md。
+# 填完后运行：python docs/01-系统设计/业务闭环/tools/check_closure.py check docs/01-系统设计/业务闭环/03-closure-spec.yaml
+# 把所有 <尖括号占位> 替换成真实内容，并删掉不需要的示意行。
+# ============================================================
+meta: {system: <系统名>, version: "0.1"}
+
+actors:                       # kind: human(真人) | system(本系统) | external(外部系统)
+  <角色A>: {kind: human}
+  系统: {kind: system}
+  # <外部系统>: {kind: external}
+
+requirements:                 # 业务结果，不是功能点；每条必须被场景覆盖
+  REQ-001: <需求描述>
+
+resources: {}                 # 需要"占用后必须释放"的东西；没有就留空
+  # <资源名>: <说明>
+
+events:                       # source: actor | external | timer | internal
+  <事件1>: {source: actor}
+  # <超时事件>: {source: timer, after: <多久>}
+  # <联动事件>: {source: internal}
+
+entities:
+  <实体1>:
+    created_by: {event: <事件1>, actor: <角色A>}      # 可加 emits / acquires
+    states: [<状态1>, <状态2>, <终态1>]
+    initial: <状态1>
+    terminal: [<终态1>]
+    transitions:
+      - {id: X-01, from: <状态1>, event: <事件>, actor: <角色>, to: <状态2>, feedback: <人工操作必填>}
+      # 每个非终态都要有异常出口：
+      # - {id: X-02, from: <状态1>, event: <取消/拒绝/超时/失败>, actor: <角色>, to: <终态1>, kind: exception}
+    ignores: []               # 异步事件在某状态到达可安全忽略时声明，必须写 reason
+      # - {event: <事件>, states: [<状态>], reason: <为什么无害>}
+    race_policy: {}           # 同一状态可能同时到来 ≥2 个外部事件时：{<状态>: <裁决策略>}
+    fields: {}                # 数据字段：{<字段>: {writers: [X-01], readers: ["@页面"]}}
+
+scenarios:
+  <场景名>: {type: normal, entity: <实体1>, req: [REQ-001], steps: [X-01]}
+  # 每个实体至少一个 type: exception 场景；每条流转都要被某个场景走到
+
+invariants: []                # 跨实体必须同时成立的事实
+  # - {id: INV-01, desc: <说明>, when: {<实体A>: [<状态>]}, then: {<实体B>: [<状态>]}}
+
+waivers: []                   # 最后手段：{rule: R19, target: <实体.状态>, reason: <具体理由>}

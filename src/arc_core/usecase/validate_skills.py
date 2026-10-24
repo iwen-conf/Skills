@@ -4,10 +4,12 @@ from pathlib import Path
 from ..domain.validation import validate_root_cause_gate, validate_text
 from ..infrastructure.markdown import parse_frontmatter
 from ..domain.skill import (
+    ARC_LOAD_SCENARIOS,
     ARC_REFERENCE_MAX_TOKENS,
     ARC_SHARED_DIR,
     SOURCE_SKILL_PATHS,
     VERTICAL_SKILL_ROOTS,
+    estimate_tokens,
     get_namespace_dir,
 )
 from ..domain.engineering import (
@@ -84,6 +86,23 @@ def validate_repo_policies(root: Path) -> list[str]:
         else:
             seen_names[name] = path
     errors.extend(validate_arc_layout(root))
+    errors.extend(validate_load_scenarios(root))
+    return errors
+
+
+def validate_load_scenarios(root: Path) -> list[str]:
+    """Typical Arc tasks must stay under their summed load ceiling."""
+    if not (root / "Arc").is_dir():
+        return []
+    errors: list[str] = []
+    for name, (ceiling, paths) in ARC_LOAD_SCENARIOS.items():
+        missing = [path for path in paths if not (root / path).is_file()]
+        if missing:
+            errors.append(f"load scenario {name}: missing {', '.join(missing)}")
+            continue
+        total = sum(estimate_tokens((root / path).read_text(encoding="utf-8")) for path in paths)
+        if total > ceiling:
+            errors.append(f"load scenario {name}: {total} estimated tokens exceeds {ceiling}")
     return errors
 
 
@@ -125,6 +144,19 @@ def collect_vertical_skill_files(root: Path) -> list[Path]:
             continue
         files.extend(sorted(path for path in search_root.glob("*/SKILL.md") if path.is_file()))
     return files
+
+
+def collect_library_members(root: Path) -> set[str]:
+    """Source skills a router bundles as undiscoverable library entries (metadata.library)."""
+    members: set[str] = set()
+    for path in [*collect_skill_files(root), *collect_vertical_skill_files(root)]:
+        frontmatter, error = parse_frontmatter(path.read_text(encoding="utf-8"))
+        if error:
+            continue
+        library = (frontmatter.get("metadata") or {}).get("library") or []
+        if isinstance(library, list):
+            members.update(str(name) for name in library)
+    return members
 
 
 def collect_source_skill_files(root: Path) -> list[Path]:

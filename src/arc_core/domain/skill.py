@@ -20,22 +20,74 @@ ARC_REFERENCE_MAX_TOKENS = 3500
 ARC_TOKEN_EXEMPT_DIRS = ("scripts",)
 ARC_SHARED_DIR = "_shared"
 
+# Typical-task load ceilings: everything an Arc task reads for one scenario, summed with
+# estimate_tokens. Per-file budgets alone let shared documents grow until a task loads as much
+# as the pre-2.0 skill mesh; these ceilings make that regression fail validation.
+ARC_LOAD_SCENARIOS: dict[str, tuple[int, tuple[str, ...]]] = {
+    "go-repair": (15500, (
+        "Arc/arc:code/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
+        "Arc/_shared/coding-discipline.md", "docs/execution-truth.md", "Arc/arc:code/references/repair.md",
+        "Arc/_shared/conventions/go-backend.md", "Arc/_shared/conventions/go-type-safety.md",
+    )),
+    "go-feature": (12000, (
+        "Arc/arc:code/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
+        "Arc/_shared/coding-discipline.md", "Arc/_shared/conventions/go-backend.md",
+        "Arc/_shared/conventions/go-type-safety.md",
+    )),
+    "fullstack-api": (18000, (
+        "Arc/arc:code/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
+        "Arc/_shared/coding-discipline.md", "Arc/_shared/conventions/go-backend.md",
+        "Arc/_shared/conventions/go-type-safety.md", "Arc/_shared/conventions/frontend.md",
+        "Arc/_shared/api-contract.md", "Arc/_shared/http-api-design.md",
+    )),
+    "pr-review": (9500, (
+        "Arc/arc:audit/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
+        "Arc/arc:audit/references/diff-review.md",
+    )),
+    "appsec-campaign": (19000, (
+        "Arc/arc:audit/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
+        "Arc/arc:audit/references/appsec.md", "Arc/arc:audit/references/attack-classes.md",
+        "Arc/arc:audit/references/scanners.md", "Arc/_shared/finding-campaign.md",
+    )),
+    "pg-reliability": (15500, (
+        "Arc/arc:verify/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
+        "Arc/arc:verify/references/txn-faults.md", "Arc/arc:verify/references/case-design.md",
+        "Arc/arc:verify/references/db.md",
+    )),
+    "verify-flow": (14000, (
+        "Arc/arc:verify/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
+        "Arc/arc:verify/references/flow-model.md", "Arc/arc:verify/references/flow-matrix.md",
+        "Arc/arc:verify/references/case-design.md",
+    )),
+    "plan-model": (13000, (
+        "Arc/arc:plan/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
+        "docs/execution-truth.md", "Arc/arc:plan/references/closure-design.md",
+        "Arc/arc:plan/references/closure-spec-format.md",
+    )),
+    "plan-tasks": (15500, (
+        "Arc/arc:plan/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
+        "docs/execution-truth.md", "Arc/arc:plan/references/task-docs.md",
+        "Arc/arc:plan/references/task-templates.md",
+    )),
+    "vet-select": (9000, (
+        "Arc/arc:vet/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
+        "Arc/arc:vet/references/search-playbook.md", "Arc/arc:vet/references/decision-template.md",
+    )),
+}
+
 # These entrypoints explicitly advertise diagnosis, repair, or failure-driven
 # optimization. They must load the repository-wide evidence-first repair gate
 # instead of re-inventing a weaker local version of it.
 ROOT_CAUSE_GATED_SKILLS = frozenset(
     {
         "android-intent-security",
-        "arkts-syntax-assistant",
+        "cnb",
         "arc:audit",
         "arc:code",
         "arc:verify",
-        "cnb-code-commit",
-        "cnb-code-review",
-        "cnb-pipeline",
         "edge-to-edge",
         "engage-sdk-integration",
-        "harmonyos-development",
+        "harmonyos",
         "perfetto-trace-analysis",
         "r8-analyzer",
     }
@@ -43,8 +95,9 @@ ROOT_CAUSE_GATED_SKILLS = frozenset(
 ROOT_CAUSE_GATE_REFERENCE = "execution-truth.md"
 ROOT_CAUSE_GATE_HEADING = "root-cause repair"
 
+# Trigger words live only in the description: the body is read after selection, so a
+# body Trigger section cannot affect routing.
 ARC_REQUIRED_HEADINGS = [
-    "Trigger",
     "Non-trigger",
     "Goal",
     "Inputs",
@@ -61,6 +114,7 @@ RETIRED_ARC_SKILLS = (
     "arc:arch",
     "arc:build",
     "arc:clarify",
+    "arc:closure",
     "arc:comment",
     "arc:dbqual",
     "arc:define",
@@ -105,7 +159,7 @@ SUPPORTED_SKILL_PREFIXES = ("arc:", "lark-", "wxskills:")
 SKILL_NAMESPACE_DIRS = {
     "arc": "Arc",
 }
-VERTICAL_SKILL_ROOTS = ("Android", "HarmonyOS", "CNB", "Lark")
+VERTICAL_SKILL_ROOTS = ("Android", "HarmonyOS", "CNB", "Lark", "Waza", "Lazycat", "Design", "Cloudflare", "ThreeJS")
 # Validated source distributions; deliberately excluded from default installation.
 SOURCE_SKILL_PATHS: tuple[str, ...] = ()
 
@@ -145,6 +199,7 @@ LIFECYCLE_PHASES = {
     "arc:code": "change",
     "arc:verify": "prove",
     "arc:audit": "evaluate",
+    "arc:vet": "select",
 }
 
 

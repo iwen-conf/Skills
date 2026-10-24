@@ -1,285 +1,363 @@
-# Static vocabulary gate for the five Arc skills. Every must_contain term must appear in the
+# Static vocabulary gate for the six Arc skills. Every must_contain term must appear in the
 # skill's description. Utterances from the retired skills are kept as a regression set under
 # the skill that now owns the behavior; prewalk and Lark workspace phrases must select no Arc
 # skill. Runtime routing, scope and authorization live in behavior_corpus.yaml.
 skills:
   arc:explore:
     must_contain:
-      - arc-idx
-      - 搜代码
-      - zoekt
-      - 调用链
-      - 影响面
-      - 谁调用
-      - 在哪
-      - 架构地图
-      - callers
+    - arc-idx
+    - 搜代码
+    - zoekt
+    - 调用链
+    - 影响面
+    - 谁调用
+    - 在哪
+    - 架构地图
+    - callers
     positive:
-      - 用 arc-idx 搜代码
-      - arc-idx 找符号
-      - zoekt 索引
-      - arc-idx ast
-      - 搜代码调用点
-      - zoekt doctor
-      - arc-idx daemon
-      - 用 zoekt 搜代码
-      - 这个函数在哪定义
-      - 谁调用了 CreateOrder
-      - 从路由追调用链到仓储层
-      - 改 UserDTO 字段之前先列影响面
-      - 画一下订单模块的架构地图
-      - find all callers of ParseConfig
+    - 用 arc-idx 搜代码
+    - arc-idx 找符号
+    - zoekt 索引
+    - arc-idx ast
+    - 搜代码调用点
+    - zoekt doctor
+    - arc-idx daemon
+    - 用 zoekt 搜代码
+    - 这个函数在哪定义
+    - 谁调用了 CreateOrder
+    - 从路由追调用链到仓储层
+    - 改 UserDTO 字段之前先列影响面
+    - 画一下订单模块的架构地图
+    - find all callers of ParseConfig
     negative:
-      - 重构订单服务
-      - 给新接口写测试
-      - 只读体检这个仓库
-      - 给函数加注释
-      - 创建飞书项目空间
-
+    - 重构订单服务
+    - 给新接口写测试
+    - 只读体检这个仓库
+    - 给函数加注释
+    - 创建飞书项目空间
   arc:plan:
     must_contain:
-      - PRD
-      - 立项
-      - blueprint
-      - 澄清
-      - 验收标准
-      - clarify
-      - 拆任务
-      - 进度跟踪
-      - 任务文档
-      - 需求文档
+    - PRD
+    - 立项
+    - blueprint
+    - 澄清
+    - 验收标准
+    - clarify
+    - 拆任务
+    - 进度跟踪
+    - 任务文档
+    - 需求文档
+    - 业务闭环
+    - 闭环检查
+    - 状态机
+    - 事件联动
+    - 闭环闸门
+    - business closure
     positive:
-      - 帮我写PRD
-      - 这个想法先立项
-      - 整理成 blueprint
-      - 新产品先立项再写PRD
-      - 需要一份 blueprint
-      - 把想法立项成产品
-      - write a blueprint for this product
-      - 先写PRD再谈开发
-      - 需求不清，先澄清一下
-      - 补齐验收标准
-      - clarify this request
-      - 澄清范围和约束
-      - 先澄清再动手
-      - 验收标准怎么写
-      - 请 clarify 成功标准
-      - 把模糊需求澄清清楚
-      - 这段需求澄清一下验收标准
-      - 帮我写PRD立项
-      - 先拆任务
-      - 建进度跟踪表
-      - 写任务文档
-      - 拆任务目录
-      - 进度跟踪怎么更新
-      - 大功能先写任务文档
-      - 把审计结果拆任务
-      - 更新任务文档状态
-      - 跨会话拆任务写任务文档
-      - 写一份需求文档
+    - 帮我写PRD
+    - 这个想法先立项
+    - 整理成 blueprint
+    - 新产品先立项再写PRD
+    - 需要一份 blueprint
+    - 把想法立项成产品
+    - write a blueprint for this product
+    - 先写PRD再谈开发
+    - 需求不清，先澄清一下
+    - 补齐验收标准
+    - clarify this request
+    - 澄清范围和约束
+    - 先澄清再动手
+    - 验收标准怎么写
+    - 请 clarify 成功标准
+    - 把模糊需求澄清清楚
+    - 这段需求澄清一下验收标准
+    - 帮我写PRD立项
+    - 先拆任务
+    - 建进度跟踪表
+    - 写任务文档
+    - 拆任务目录
+    - 进度跟踪怎么更新
+    - 大功能先写任务文档
+    - 把审计结果拆任务
+    - 更新任务文档状态
+    - 跨会话拆任务写任务文档
+    - 写一份需求文档
+    - 检查订单的业务闭环
+    - 先做业务闭环设计
+    - 对现有业务做闭环检查
+    - 建模订单与库存的状态机
+    - 补齐退款与取消的事件联动
+    - 核对当前 spec 的闭环闸门
+    - design business closure for this workflow
+    - 修改状态机后重新闭环检查
+    - 业务闭环里哪些事件联动会形成死胡同
     negative:
-      - 按方案写代码落地改动
-      - 只读体检这个仓库
-      - 创建飞书项目空间
-      - 同步到飞书项目空间
-      - 更新飞书项目空间
-      - 仓库里已有 .lark.json
-      - create Lark workspace
-      - 索引 .lark.json
-      - 初始化飞书项目空间
-      - refresh Lark project space
-      - 用 prewalk 省token
-      - 同会话多模型路由
-      - 走 prewalk
-      - 多模型交接
-      - 省token 换模型
-      - 启动 prewalk
-      - 多模型 Guide Executor
-      - prewalk first edit
-      - 同会话 prewalk 省token
-
+    - 按方案写代码落地改动
+    - 只读体检这个仓库
+    - 创建飞书项目空间
+    - 同步到飞书项目空间
+    - 更新飞书项目空间
+    - 仓库里已有 .lark.json
+    - create Lark workspace
+    - 索引 .lark.json
+    - 初始化飞书项目空间
+    - refresh Lark project space
+    - 用 prewalk 省token
+    - 同会话多模型路由
+    - 走 prewalk
+    - 多模型交接
+    - 省token 换模型
+    - 启动 prewalk
+    - 多模型 Guide Executor
+    - prewalk first edit
+    - 同会话 prewalk 省token
+    - 只读评审这个 PR 的 diff
+    - 给支付回调写测试
+    - 实现登录接口
+    - 查调用链与影响面
+    - 核对 PostgreSQL 发布证据
   arc:code:
     must_contain:
-      - 写代码
-      - 开发功能
-      - 落地
-      - 实现
-      - 修复
-      - 报错
-      - 根因
-      - incident
-      - 重构
-      - 前端
-      - shadcn
-      - 小程序
-      - 注释
-      - Gin SSR
-      - 计时
-      - 探针
-      - 埋点
-      - DIP
-      - usecase
-      - 分层
+    - 写代码
+    - 开发功能
+    - 落地
+    - 实现
+    - 修复
+    - 报错
+    - 根因
+    - incident
+    - 重构
+    - 前端
+    - shadcn
+    - 小程序
+    - 注释
+    - Gin SSR
+    - 计时
+    - 探针
+    - 埋点
+    - DIP
+    - usecase
+    - 分层
     positive:
-      - 按方案写代码
-      - 开发功能
-      - 落地改动
-      - 开始写代码实现登录
-      - 方案明确，开发功能
-      - 落地改动并验证
-      - 写代码提交
-      - 把这个功能落地改动
-      - 按方案写代码落地改动
-      - 按方案写代码开发功能
-      - 线上报错了
-      - 查根因再修
-      - 这是 production incident
-      - 报错堆栈
-      - 故障根因
-      - incident 排查
-      - 测试报错
-      - 回归失败要根因
-      - 报错了先查根因
-      - 报错堆栈查根因
-      - 报错堆栈修根因
-      - 修复登录接口报错
-      - 重构支付模块
-      - 实现订单导出接口
-      - 做前端页面
-      - 用 shadcn 搭 UI
-      - 微信小程序页面
-      - 前端路由和主题
-      - 前端移动端界面
-      - 前端 Tailwind
-      - 前端基线栈 shadcn
-      - 小程序和前端桌面
-      - 前端页面用 shadcn
-      - 给控制器加注释
-      - 补步骤注释
-      - 函数注释规范
-      - 接口也要加注释
-      - 结构体加注释
-      - 写步骤注释
-      - 补函数注释
-      - 编号步骤注释
-      - 给函数加注释
-      - 给 Gin SSR 加计时
-      - 请求路径加探针
-      - Gin SSR 哪段慢
-      - 计时探针
-      - Gin SSR 模板耗时
-      - 加探针看 SSR
-      - 慢请求计时
-      - Gin SSR fmt 探针
-      - 加 Gin SSR 计时探针
-      - 给慢接口加耗时埋点
-      - 按 DIP 分层
-      - usecase 不要漏实体
-      - DIP 后端约定
-      - usecase 仓储接口
-      - 分层有没有漂
-      - DIP helper 限制
-      - usecase 注入
-      - 只改 Go usecase 分层
+    - 按方案写代码
+    - 开发功能
+    - 落地改动
+    - 开始写代码实现登录
+    - 方案明确，开发功能
+    - 落地改动并验证
+    - 写代码提交
+    - 把这个功能落地改动
+    - 按方案写代码落地改动
+    - 按方案写代码开发功能
+    - 线上报错了
+    - 查根因再修
+    - 这是 production incident
+    - 报错堆栈
+    - 故障根因
+    - incident 排查
+    - 测试报错
+    - 回归失败要根因
+    - 报错了先查根因
+    - 报错堆栈查根因
+    - 报错堆栈修根因
+    - 修复登录接口报错
+    - 重构支付模块
+    - 实现订单导出接口
+    - 做前端页面
+    - 用 shadcn 搭 UI
+    - 微信小程序页面
+    - 前端路由和主题
+    - 前端移动端界面
+    - 前端 Tailwind
+    - 前端基线栈 shadcn
+    - 小程序和前端桌面
+    - 前端页面用 shadcn
+    - 给控制器加注释
+    - 补步骤注释
+    - 函数注释规范
+    - 接口也要加注释
+    - 结构体加注释
+    - 写步骤注释
+    - 补函数注释
+    - 编号步骤注释
+    - 给函数加注释
+    - 给 Gin SSR 加计时
+    - 请求路径加探针
+    - Gin SSR 哪段慢
+    - 计时探针
+    - Gin SSR 模板耗时
+    - 加探针看 SSR
+    - 慢请求计时
+    - Gin SSR fmt 探针
+    - 加 Gin SSR 计时探针
+    - 给慢接口加耗时埋点
+    - 按 DIP 分层
+    - usecase 不要漏实体
+    - DIP 后端约定
+    - usecase 仓储接口
+    - 分层有没有漂
+    - DIP helper 限制
+    - usecase 注入
+    - 只改 Go usecase 分层
     negative:
-      - 先列出改这个字段的影响面
-      - 只读评审这个 PR
-      - 给支付回调写测试
-      - 写PRD立项
-      - 拆任务写任务文档
-      - 创建飞书项目空间
-
+    - 先列出改这个字段的影响面
+    - 只读评审这个 PR
+    - 给支付回调写测试
+    - 写PRD立项
+    - 拆任务写任务文档
+    - 创建飞书项目空间
   arc:verify:
     must_contain:
-      - 写测试
-      - 测试方案
-      - 用例设计
-      - 测试范围
-      - 覆盖率
-      - fuzz
-      - 可靠性
-      - 业务不变量
-      - 事务并发
-      - 幂等
-      - PostgreSQL
-      - flaky
-      - 压测
-      - 发布验收
-      - 发布证据
+    - 写测试
+    - 测试方案
+    - 用例设计
+    - 测试范围
+    - 覆盖率
+    - fuzz
+    - 可靠性
+    - 业务不变量
+    - 事务并发
+    - 幂等
+    - PostgreSQL
+    - flaky
+    - 压测
+    - 发布验收
+    - 发布证据
+    - 测试先行
+    - 测试价值
+    - 网页实测
+    - 模糊测试
+    - SQL 语法检查
+    - 事务设计
+    - 业务流
+    - 端到端业务流
+    - 分支覆盖
+    - 属性测试
+    - 模型一致性
     positive:
-      - 补测试，写测试
-      - 看覆盖率缺口
-      - 加 fuzz 测试
-      - 写测试跑回归
-      - 覆盖率门禁
-      - fuzz 输入
-      - 写测试 E2E
-      - 单元写测试
-      - 确定这次变更的测试范围
-      - 审查用例设计是否能发现真实错误
-      - 写测试补覆盖率
-      - 给支付流程做可靠性验证
-      - 列出取消操作的业务不变量
-      - 检查跨业务事务并发
-      - 核对当前候选版本的发布证据
-      - 核对业务不变量的发布证据
-      - 重试与幂等的可靠性方案
-      - 迁移恢复的可靠性演练
-      - 按业务不变量验证重复回调
-      - 事务并发的镜像参数场景
-      - 发布证据缺失应当阻断
-      - 可靠性事故防复发
-      - 系统可靠性的故障恢复与升级验证
-      - 给订单创建写测试方案
-      - 回调接口要验证幂等
-      - 对新索引做 PostgreSQL 发布验收
-      - 压测一下下单接口
-      - 这个用例是 flaky 的，帮我定位
+    - 补测试，写测试
+    - 看覆盖率缺口
+    - 加 fuzz 测试
+    - 写测试跑回归
+    - 覆盖率门禁
+    - fuzz 输入
+    - 写测试 E2E
+    - 单元写测试
+    - 确定这次变更的测试范围
+    - 审查用例设计是否能发现真实错误
+    - 写测试补覆盖率
+    - 给支付流程做可靠性验证
+    - 列出取消操作的业务不变量
+    - 检查跨业务事务并发
+    - 核对当前候选版本的发布证据
+    - 核对业务不变量的发布证据
+    - 重试与幂等的可靠性方案
+    - 迁移恢复的可靠性演练
+    - 按业务不变量验证重复回调
+    - 事务并发的镜像参数场景
+    - 发布证据缺失应当阻断
+    - 可靠性事故防复发
+    - 系统可靠性的故障恢复与升级验证
+    - 给订单创建写测试方案
+    - 回调接口要验证幂等
+    - 对新索引做 PostgreSQL 发布验收
+    - 压测一下下单接口
+    - 这个用例是 flaky 的，帮我定位
+    - 测试先行，先写会失败的验收测试
+    - 评估这些单测的测试价值
+    - 起服务做网页实测下单流程
+    - 给上传解析器做模糊测试
+    - 给迁移脚本做 SQL 语法检查
+    - 验证下单流程的事务设计和隔离级别
+    - 先梳理下单业务流再设计用例
+    - 把业务流程图的分支映射到用例
+    - 端到端业务流怎么测
+    - 检查退款业务流的分支覆盖
+    - 给库存扣减写属性测试
+    - 给订单状态流转做基于模型的属性测试
+    - 检查代码与 Quint 模型的模型一致性
     negative:
-      - 修复登录接口报错
-      - 只读评审测试代码
-      - 安全扫描依赖漏洞
-      - 报错堆栈查根因
-      - 按方案写代码落地改动
-
+    - 修复登录接口报错
+    - 用 TLA+ 设计订单状态机
+    - 只读评审测试代码
+    - 安全扫描依赖漏洞
+    - 报错堆栈查根因
+    - 按方案写代码落地改动
   arc:audit:
     must_contain:
-      - 体检
-      - AppSec
-      - 只读
-      - 评审
-      - 技术债
-      - 安全扫描
-      - Semgrep
-      - 漏洞
-      - DAST
+    - HTTP API
+    - 接口设计
+    - 上传约束
+    - JSON字段限制
+    - 体检
+    - AppSec
+    - 只读
+    - 评审
+    - 技术债
+    - 安全扫描
+    - Semgrep
+    - 漏洞
+    - DAST
     positive:
-      - 给项目做个体检
-      - AppSec 只读审计
-      - 只读资产表
-      - 项目体检评分
-      - AppSec finding cards
-      - 只读审查
-      - 做一次体检
-      - AppSec 不要改代码
-      - 只读体检这个仓库
-      - 只读体检不要改代码
-      - 只读 AppSec 体检
-      - 跑一次安全扫描
-      - 用 Semgrep 扫
-      - DAST 探测
-      - 安全扫描 Trivy
-      - Semgrep 密钥
-      - DAST 报告
-      - 安全扫描重排
-      - 本地 Semgrep
-      - 跑 Semgrep 安全扫描
-      - 运行 Semgrep 安全扫描
-      - 评审这个 PR 的 diff
-      - 盘点一下技术债
-      - 扫一下依赖漏洞
+    - 检查 HTTP API 设计合理性
+    - 评估接口设计缺陷
+    - 核对上传约束
+    - 检查 JSON字段限制
+    - 给项目做个体检
+    - AppSec 只读审计
+    - 只读资产表
+    - 项目体检评分
+    - AppSec finding cards
+    - 只读审查
+    - 做一次体检
+    - AppSec 不要改代码
+    - 只读体检这个仓库
+    - 只读体检不要改代码
+    - 只读 AppSec 体检
+    - 跑一次安全扫描
+    - 用 Semgrep 扫
+    - DAST 探测
+    - 安全扫描 Trivy
+    - Semgrep 密钥
+    - DAST 报告
+    - 安全扫描重排
+    - 本地 Semgrep
+    - 跑 Semgrep 安全扫描
+    - 运行 Semgrep 安全扫描
+    - 评审这个 PR 的 diff
+    - 盘点一下技术债
+    - 扫一下依赖漏洞
     negative:
-      - 写测试补覆盖率
-      - 按方案写代码落地改动
-      - 给支付流程做可靠性验证
-      - 这个函数在哪定义
+    - 写测试补覆盖率
+    - 按方案写代码落地改动
+    - 给支付流程做可靠性验证
+    - 这个函数在哪定义
+    - 核对候选库的许可证是否兼容
+  arc:vet:
+    must_contain:
+    - 开源选型
+    - 技术选型
+    - 引入依赖
+    - 重复造轮子
+    - build vs buy
+    - 许可证
+    - 停更
+    - 选型记录
+    - due diligence
+    positive:
+    - 引入依赖前先做开源选型
+    - 做一次技术选型，比较三个 GitHub 候选
+    - 不要重复造轮子，先看有没有现成的库
+    - 这个库三年前就停更了，还能不能用
+    - 核对候选库的许可证是否兼容
+    - 写一份限流库的选型记录
+    - 选 Go 的 JWT 库，做技术选型
+    - 当前依赖停更了，找个继任项目替换
+    - build vs buy for a rate limiter
+    - open-source due diligence for a JSON schema validator
+    negative:
+    - 实现限流中间件
+    - 扫一下依赖漏洞
+    - 调研向量数据库写成长文
+    - 给新接口写测试
+    - 升级 axios 到最新版本

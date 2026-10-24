@@ -10,11 +10,19 @@ import shutil
 import subprocess
 import sys
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
 STATUS_VALUES = {"PASS", "FAIL", "BLOCKED", "NOT_RUN", "FLAKY"}
+# Every runner stamps this run identity into its evidence; gates reject evidence from other runs.
+RUN_ID_ENV = "SQLVERIFY_RUN_ID"
+RUN_MANIFEST = "run-manifest.json"
+# Arc's evidence store is written while the suite runs; it is never part of the candidate.
+DEFAULT_FINGERPRINT_EXCLUDES = (".arc/artifacts",)
+# Bytecode caches appear when the harness imports modules mid-run; they carry no candidate behavior.
+_CACHE_EXCLUDE = ":(exclude,glob)**/__pycache__/**"
 
 
 def now_iso() -> str:
@@ -158,6 +166,7 @@ def evidence_base(kind: str, evidence_id: str, *, command: list[str] | None = No
         "schema_version": 1,
         "kind": kind,
         "id": evidence_id,
+        "run_id": os.environ.get(RUN_ID_ENV),
         "status": "NOT_RUN",
         "started_at": now_iso(),
         "finished_at": None,
@@ -184,6 +193,156 @@ def safe_relpath(path: Path, root: Path) -> str:
         return path.resolve().relative_to(root.resolve()).as_posix()
     except Exception:
         return str(path.resolve())
+
+
+def _git_bytes(cwd: Path, *args: str) -> bytes:
+    env = os.environ.copy()
+    env["GIT_LITERAL_PATHSPECS"] = "0"  # the exclude pathspecs use pathspec magic
+    cp = subprocess.run(["git", "-C", str(cwd), *args], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if cp.returncode != 0:
+        raise RuntimeError(f"git {args[0]} failed: {cp.stderr.decode('utf-8', 'replace').strip()}")
+    return cp.stdout
+
+
+def _path_digest(path: Path) -> str:
+    if path.is_symlink():
+        return "link:" + sha256_bytes(os.fsencode(os.readlink(path)))
+    return sha256_file(path) if path.is_file() else "missing"
+
+
+def candidate_fingerprint(root: Path, config_files: Iterable[str], exclude: Iterable[str]) -> dict[str, Any]:
+    """Identity of the code and configuration under test; equal fingerprints mean the same candidate.
+
+    HEAD plus the content digest of every changed or untracked (not ignored) path in the repository.
+    config_files and exclude are paths relative to root (absolute paths stay absolute).
+    """
+    root = root.resolve()
+    meta = git_metadata(root)
+    out: dict[str, Any] = {"git_commit": meta.get("commit") if meta.get("available") else None,
+                           "worktree_changes": {}, "config_sha256": {}}
+    if out["git_commit"]:
+        top = Path(_git_bytes(root, "rev-parse", "--show-toplevel").decode().strip()).resolve()
+        spec = ["--", ".", _CACHE_EXCLUDE]
+        for item in exclude:
+            target = (root / item).resolve()
+            if target == top or top in target.parents:
+                spec.append(":(exclude)" + target.relative_to(top).as_posix())
+        changed = _git_bytes(top, "diff", "--name-only", "--no-renames", "-z", "HEAD", *spec)
+        untracked = _git_bytes(top, "ls-files", "--others", "--exclude-standard", "-z", *spec)
+        for rel in sorted({os.fsdecode(x) for x in (changed + b"\0" + untracked).split(b"\0") if x}):
+            out["worktree_changes"][rel] = _path_digest(top / rel)
+    for name in config_files:
+        out["config_sha256"][name] = _path_digest(root / name)
+    return out
+
+
+def archive_previous_evidence(evidence_dir: Path) -> Path | None:
+    """Move everything an earlier run left in evidence_dir aside, so no gate reads it as current."""
+    leftovers = sorted(p for p in evidence_dir.iterdir() if p.name != "superseded")
+    if not leftovers:
+        return None
+    previous = None
+    manifest = evidence_dir / RUN_MANIFEST
+    if manifest.is_file():
+        try:
+            previous = json_load(manifest).get("run_id")
+        except Exception:
+            previous = None
+    stamp = re.sub(r"[^0-9A-Za-z]", "", now_iso())[:21]
+    dest = evidence_dir / "superseded" / f"{stamp}-{previous or 'unbound'}"
+    dest.mkdir(parents=True)
+    for p in leftovers:
+        p.replace(dest / p.name)
+    return dest
+
+
+def begin_run(evidence_dir: Path, root: Path, config_files: Iterable[Path], exclude: Iterable[Path]) -> dict[str, Any]:
+    """Archive earlier evidence, then write the manifest binding this run to its candidate."""
+    root = root.resolve()
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    archived = archive_previous_evidence(evidence_dir)
+    configs = [safe_relpath(p, root) for p in config_files]
+    excludes = sorted({*DEFAULT_FINGERPRINT_EXCLUDES, *(safe_relpath(p, root) for p in exclude)})
+    manifest = {
+        "schema_version": 1,
+        "run_id": uuid.uuid4().hex,
+        "created_at": now_iso(),
+        "config_files": configs,
+        "fingerprint_exclude": excludes,
+        "candidate": candidate_fingerprint(root, configs, excludes),
+        "archived_previous_evidence": str(archived) if archived else None,
+    }
+    json_dump(evidence_dir / RUN_MANIFEST, manifest)
+    return manifest
+
+
+def load_run_manifest(evidence_dir: Path) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+    path = evidence_dir / RUN_MANIFEST
+    if not path.is_file():
+        return None, [{"type": "missing_run_manifest", "path": str(path),
+                       "detail": "evidence is not bound to a run; produce it with run_suite.py"}]
+    try:
+        manifest = json_load(path)
+    except Exception as exc:
+        return None, [{"type": "unreadable_run_manifest", "path": str(path), "error": repr(exc)}]
+    if not isinstance(manifest, dict) or not manifest.get("run_id"):
+        return None, [{"type": "unreadable_run_manifest", "path": str(path), "error": "run_id missing"}]
+    return manifest, []
+
+
+def verify_candidate(manifest: dict[str, Any], root: Path) -> list[dict[str, Any]]:
+    """Recompute the candidate fingerprint; evidence of another commit, work tree or config is stale."""
+    recorded = manifest.get("candidate") or {}
+    try:
+        current = candidate_fingerprint(root, manifest.get("config_files", []), manifest.get("fingerprint_exclude", []))
+    except Exception as exc:
+        return [{"type": "candidate_unidentified", "detail": repr(exc)}]
+    if not current["git_commit"] or not recorded.get("git_commit"):
+        return [{"type": "candidate_unidentified", "detail": "candidate is not a git work tree; evidence cannot be bound to a commit"}]
+    changed = sorted(k for k in ("git_commit", "worktree_changes", "config_sha256") if current.get(k) != recorded.get(k))
+    if not changed:
+        return []
+    paths = {}
+    for key in ("worktree_changes", "config_sha256"):
+        before, after = recorded.get(key) or {}, current.get(key) or {}
+        paths.update({p: {"recorded": before.get(p), "current": after.get(p)}
+                      for p in sorted(set(before) | set(after)) if before.get(p) != after.get(p)})
+    return [{"type": "candidate_mismatch", "changed": changed, "git_commit": {"recorded": recorded.get("git_commit"),
+             "current": current["git_commit"]}, "paths": paths}]
+
+
+def load_evidence_dir(directory: Path, *, run_id: str | None, skip_ids: Iterable[str] = ()) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Read evidence records; unreadable, duplicate and other-run files are reported, never skipped silently.
+
+    run_id=None reads a directory whose integrity is checked elsewhere (a hashed baseline).
+    """
+    skip = set(skip_ids)
+    evidence: list[dict[str, Any]] = []
+    issues: list[dict[str, Any]] = []
+    seen: dict[str, str] = {}
+    for p in sorted(directory.glob("*.json")):
+        if p.name == RUN_MANIFEST:
+            continue
+        try:
+            obj = json_load(p)
+        except Exception as exc:
+            issues.append({"type": "unreadable_evidence", "file": p.name, "error": repr(exc)})
+            continue
+        if not isinstance(obj, dict) or not obj.get("id") or "status" not in obj:
+            continue  # auxiliary JSON, not an evidence record
+        eid = obj["id"]
+        if eid in skip:
+            continue
+        if eid in seen:
+            issues.append({"type": "duplicate_evidence_id", "id": eid, "files": [seen[eid], p.name]})
+            continue
+        seen[eid] = p.name
+        if run_id is not None and obj.get("run_id") != run_id:
+            issues.append({"type": "stale_evidence", "id": eid, "file": p.name,
+                           "run_id": obj.get("run_id"), "expected_run_id": run_id})
+            continue
+        evidence.append(obj)
+    return evidence, issues
 
 
 def require_test_database_name(dbname: str, pattern: str, allow_destructive: bool) -> None:

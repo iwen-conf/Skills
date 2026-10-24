@@ -53,7 +53,7 @@ backlog, data and business recovered. Each phase has its own observation and exi
 
 | Field | Content |
 |---|---|
-| Claim / source | rule ID or doc, failure consequence, required for this candidate yes/no |
+| Claim / source | rule ID, doc or flow branch (`FLOW-NNN-Nxx-Bxx`), failure consequence, required yes/no |
 | Preconditions | reproducible state, data, permissions, version/config, real dependencies |
 | Actions / history | entry point and order; for races the interleaving, fault point and recovery step |
 | EXPECTED | exact result, durable change, counts, events, external effect, follow-up work |
@@ -72,7 +72,8 @@ hold: the entity reaches the contracted state, the hold is released exactly once
 same logical cancel creates no new effect, and events/refund/audit are checked only as the
 contract defines them (undefined ones are `SPECIFICATION GAP`).
 
-Traceability: requirement → rule → case → EXPECTED/FORBIDDEN → evidence → release criterion. A rule
+Traceability: requirement → flow branch → rule → case → EXPECTED/FORBIDDEN → evidence → release
+criterion ([flow-matrix](flow-matrix.md) §5 ledger). A rule
 with no case is a coverage gap; a case with no rule is low value; a critical outcome with no
 observable oracle is a testability gap.
 
@@ -82,10 +83,10 @@ observable oracle is a testability gap.
 |---|---|---|
 | Ranges, quantities, thresholds | equivalence classes + boundary values on both sides | units, precision, clock source, exact maximum, overflow |
 | Multi-condition rules, permissions | decision table; flip each condition alone; allow and deny sides | all-true/all-false rows hide a dead condition |
-| Stateful workflow | state-transition and operation-sequence tests | transition order; forbidden effect in an intermediate state |
+| Stateful workflow | state-transition and operation-sequence tests, generated from the model ([model-conformance](model-conformance.md) §4) | transition order; forbidden effect in an intermediate state |
 | Concurrency, retry, partial success | operation history + controlled interleaving + fault point; query and replay after an unknown outcome | success-only checks, stress collisions, final-count-only checks |
-| Optimized algorithm, broad rule space | independent reference model, differential, property | oracle sharing the implementation's bug |
-| Parser, protocol, file | fuzz + corpus with semantic assertions; keep failing inputs | crash-only oracle |
+| Optimized algorithm, broad rule space | independent reference model, differential, property ([model-conformance](model-conformance.md) §2) | oracle sharing the implementation's bug |
+| Parser, protocol, file | fuzz campaign ([fuzz-campaign](fuzz-campaign.md)) with semantic oracles; keep failing inputs | crash-only oracle |
 | Retry, ambiguous result, async effects | fault injection at the boundary + idempotency, final-state and reconciliation assertions | treating timeout as rollback |
 | Migration, restart, recovery | representative old data + lifecycle run, invariants compared before/after | new-data-only fixtures |
 | Overload, long-running | load/soak + invariants + queue/leak/recovery telemetry; performance judged separately | throughput with wrong results |

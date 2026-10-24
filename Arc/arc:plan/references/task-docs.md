@@ -94,8 +94,7 @@ only from the contract §4 severity mapping.
 ## 5. Contracts and dependencies
 
 1. API leaves on both sides link the same Markdown contract document and section under
-   `docs/02-API记录/`, written per [api-contract.md](../../_shared/api-contract.md). Apifox is
-   optional, never a prerequisite or the contract authority. A current contract is linked, not
+   `docs/02-API记录/`, written per [api-contract.md](../../_shared/api-contract.md). A current contract is linked, not
    re-planned as a contract task.
 2. Dependencies read `task ID/link + needed output + readiness condition`, never "后端完成后再做".
    No dependency → write "无".
@@ -124,6 +123,12 @@ Every leaf states, in project terms:
 Leaves sourced from `arc:verify` scenarios keep the rule/scenario IDs, EXPECTED/FORBIDDEN outcomes,
 oracle, target environment, execution binding and required evidence; evidence status does not become
 `[x]` until execution-truth §2 holds.
+
+Model-sourced leaves also keep the model path, existing requirement/entity/transition/invariant/
+scenario identifiers, strict gate command and freshness, manual gaps and waiver decisions from
+the [shared handoff](../../_shared/workflow.md). They link the same PRD and tracker; model readiness
+does not imply implemented or verified behavior. The executor rechecks the gate before changing
+the modeled behavior and returns contract gaps to model mode instead of guessing.
 
 ## 7. Writing for lower-capability executors
 
@@ -192,7 +197,6 @@ Rules 6–8 bind every executor; the task entry template carries them.
 4. Every leaf names current files, scope, outputs, acceptance, difficulty with reason, priority,
    dependency readiness and verified `<Context-Queries>`; parent and leaf metadata match the
    latest split.
-5. BE and FE leaves are separate and link the same current API contract; no leaf is blocked only by
-   the absence of Apifox.
+5. BE and FE leaves are separate and link the same current API contract.
 6. No stale names, paths or assumptions; no duplicate top-level business-domain entries.
 7. Finding-sourced work also passes the finding-campaign gate before coding.

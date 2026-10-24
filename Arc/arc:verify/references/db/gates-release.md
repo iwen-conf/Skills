@@ -82,22 +82,34 @@ python3 scripts/qualification_coverage_gate.py --manifest .sqlverify/qualificati
 
 FAIL on: invalid or duplicate gate id, non-boolean `applicable`, non-applicable claim without
 rationale, applicable claim without requirements, fewer than `min_pass` evidence in
-`allowed_status`, gates omitted under `strict_complete`. Unreadable evidence files are ignored
-with a warning. Output is PASS or FAIL.
+`allowed_status`, a manifest without claims, gates omitted under `strict_complete`, and any evidence-file problem: no
+`run-manifest.json`, a record of another run, an unreadable file or a duplicate id. Output is PASS
+or FAIL.
 
 **Release gate:**
 
 ```bash
-python3 scripts/release_gate.py --policy .sqlverify/gate-policy-prerelease.json --evidence-dir D --out R/release-gate.json
+python3 scripts/release_gate.py --policy .sqlverify/gate-policy-prerelease.json --evidence-dir D --root . --out R/release-gate.json
 ```
+
+**Run binding** (before any policy rule): `D/run-manifest.json` written by run_suite holds the run
+id and the candidate fingerprint (HEAD, digest of every changed or untracked non-ignored path
+except the evidence/report dirs, `.arc/artifacts` and `__pycache__`, config digests). The gate
+recomputes the fingerprint at `--root` and accepts only records stamped with that run id. Failure
+types: `missing_run_manifest`, `unreadable_run_manifest`, `candidate_unidentified` (not a git work
+tree), `candidate_mismatch` (lists the changed paths), `stale_evidence`, `unreadable_evidence`,
+`duplicate_evidence_id`. Hand-assembled or copied evidence directories cannot pass; rerun the suite.
 
 Policy (`schemas/gate-policy.schema.json`): `required_evidence[]` `{id | kind | id_prefix,
 allowed_status (default ["PASS"]), min_count (default 1)}`; `metric_rule[]` `{evidence_id | id |
 kind | id_prefix ("*" = all), path, op (<= default, <, >=, >, ==), threshold, severity (warn →
-warning only), min_count}`. Failure types: `invalid_evidence_selector`, `missing_evidence`,
+warning only), min_count}`. Failure types: `invalid_policy` (a key or field outside the schema, a
+section that is not a list), `empty_policy` (no assertion: nothing would be checked),
+`invalid_evidence_selector`, `missing_evidence`,
 `bad_status_or_count`, `metric_evidence_missing`, `metric_evidence_count`, `metric_gate` (missing or
-non-numeric value also fails), `inconsistent_pass` (PASS evidence carrying violations). PASS only
-with zero failures; exit 0/2. Design: no weighted score; each P0/P1 claim has its own required
+non-numeric value also fails), `inconsistent_pass` (PASS evidence carrying violations), plus the
+run-binding types. PASS only with zero failures; exit 0/2. The output records `run_id` and
+`candidate`; baseline promotion requires that `run_id`. Design: no weighted score; each P0/P1 claim has its own required
 evidence; absolute budgets for SLOs (P95, P99, error rate, unexpected SQLSTATE = 0, invariant
 failures = 0); relative budgets tuned to variance (samples 20 %/25 %/15 %); prefer plan-outcome
 gates (extreme estimate error, temp spill) over node bans.

@@ -43,7 +43,6 @@ DESCRIPTION = (
 )
 
 ARC_SECTIONS = [
-    ("Trigger", "- implement a scoped change"),
     ("Non-trigger", "- read-only review → arc:audit"),
     ("Goal", "The requested behavior exists and its checks pass."),
     ("Inputs", "- request (required)"),
@@ -220,7 +219,7 @@ def test_repo_validation_requires_root_cause_gate_for_repair_capable_skill(tmp_p
 
 
 def test_validate_text_accepts_every_arc_skill_name() -> None:
-    for name in ("arc:explore", "arc:plan", "arc:code", "arc:verify", "arc:audit"):
+    for name in ("arc:explore", "arc:plan", "arc:code", "arc:verify", "arc:audit", "arc:vet"):
         errors, warnings = validate_text(_router_skill_text(name, DESCRIPTION), "virtual/SKILL.md")
         assert errors == []
         assert warnings == []
@@ -257,7 +256,15 @@ def test_all_skill_names_use_arc_namespace() -> None:
 def test_skill_packages_keep_lifecycle_invariants() -> None:
     cases = {
         "arc:explore": ["_shared/code-intel.md", "impact"],
-        "arc:plan": ["进度跟踪表.md", "00-前置约束.md", "_shared/finding-campaign.md", "lark-workflow-project-docs"],
+        "arc:plan": [
+            "进度跟踪表.md",
+            "00-前置约束.md",
+            "_shared/finding-campaign.md",
+            "`lark` (project-docs)",
+            "03-closure-spec.yaml",
+            "scripts/closure/init_docs.py",
+            "scripts/closure/check_closure.py",
+        ],
         "arc:code": [
             "execution-truth.md",
             "_shared/code-intel.md",
@@ -268,7 +275,11 @@ def test_skill_packages_keep_lifecycle_invariants() -> None:
             "_shared/api-contract.md",
         ],
         "arc:verify": ["execution-truth.md", "references/db.md", "FLAKY", "BLOCKED", "NOT_RUN"],
-        "arc:audit": ["execution-truth.md", "git status --porcelain", "_shared/code-rot.md", "cnb-code-review"],
+        "arc:audit": [
+            "execution-truth.md", "git status --porcelain", "_shared/code-rot.md", "`cnb` (review mode)",
+            "references/attack-classes.md", "security-audit-skill", "Candidate gate", "Fingerprint",
+        ],
+        "arc:vet": ["_shared/code-intel.md", "未核实", "36 months", "scripts/github_health.py", "docs/10-复盘决策/"],
     }
     for name, phrases in cases.items():
         folder = ROOT / "Arc" / name
@@ -328,10 +339,10 @@ def test_vertical_skill_validation_requires_basic_frontmatter(tmp_path: Path) ->
 
 
 def test_vertical_skill_validation_requires_root_cause_gate_for_repair_skill(tmp_path: Path) -> None:
-    skill_dir = tmp_path / "CNB" / "cnb-pipeline"
+    skill_dir = tmp_path / "CNB" / "cnb"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
-        "---\nname: cnb-pipeline\ndescription: diagnose and repair pipelines\n---\n# Pipeline\n",
+        "---\nname: cnb\ndescription: diagnose and repair pipelines\n---\n# CNB\n",
         encoding="utf-8",
     )
 
@@ -352,3 +363,18 @@ def test_run_validation_rejects_duplicate_vertical_skill_names(tmp_path: Path) -
     errors, _warnings, _count = run_validation(tmp_path)
 
     assert any("duplicate skill name duplicate-skill" in item for item in errors)
+
+
+def test_load_scenarios_stay_under_ceiling() -> None:
+    from arc_core.usecase.validate_skills import validate_load_scenarios
+
+    assert validate_load_scenarios(ROOT) == []
+
+
+def test_load_scenario_overflow_is_reported(tmp_path: Path, monkeypatch) -> None:
+    import arc_core.usecase.validate_skills as module
+
+    (tmp_path / "Arc").mkdir()
+    (tmp_path / "a.md").write_text("x" * 400, encoding="utf-8")
+    monkeypatch.setattr(module, "ARC_LOAD_SCENARIOS", {"tiny": (10, ("a.md",))})
+    assert module.validate_load_scenarios(tmp_path) == ["load scenario tiny: 100 estimated tokens exceeds 10"]

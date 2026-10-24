@@ -2,8 +2,17 @@
 
 The unit of concurrency is a business operation, not a SQL statement. Read the real entry points,
 callers and transaction wrapper before deriving interleavings; table names and lock lists are only
-leads. PostgreSQL release qualification (isolation litmus, DDL locks, plans, replication,
+leads. Boundary, isolation and lock choices per engine: [txn-design.md](txn-design.md). PostgreSQL release qualification (isolation litmus, DDL locks, plans, replication,
 recovery) is db mode: [db.md](db.md).
+
+## 0. Minimum cases
+
+| Claim | Run before wider exploration |
+|---|---|
+| Concurrency | ≥2 parallel actors through a barrier at the racy point; race detector on where available |
+| Idempotency | same key ≥2 times sequentially and ≥2 concurrently, plus once with different parameters: exactly one side effect and the contracted mismatch response |
+| Transaction | a failure injected between the first write and commit: no partial effect visible |
+| Money, inventory, quota | a conservation invariant (sum unchanged) during and after the run |
 
 ## 1. Transaction inventory
 

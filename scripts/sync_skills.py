@@ -20,6 +20,10 @@ from arc_core.domain.skill import VERTICAL_SKILL_ROOTS  # noqa: E402
 from arc_core.infrastructure.markdown import extract_relative_links, parse_frontmatter  # noqa: E402
 
 DEFAULT_DEST = Path.home() / ".agents" / "skills"
+# Third-party sources bundled only inside a router package; never discovered on their own.
+LIBRARY_ROOT = "Library"
+LIBRARY_DIR = "library"
+LIBRARY_ENTRY = "ENTRY.md"
 ARC_NAME_RE = re.compile(r"\barc:([a-z0-9-]+)\b")
 
 
@@ -39,11 +43,44 @@ def read_metadata(path: Path) -> dict:
 
 def list_skill_dirs(root: Path = ROOT) -> list[Path]:
     return sorted(
-        path.parent
-        for family in ("Arc", *VERTICAL_SKILL_ROOTS)
-        for path in (root / family).glob("*/SKILL.md")
-        if path.is_file()
+        [
+            path.parent
+            for family in ("Arc", *VERTICAL_SKILL_ROOTS)
+            for path in (root / family).glob("*/SKILL.md")
+            if path.is_file()
+        ]
+        + [path.parent for path in (root / LIBRARY_ROOT).glob("*/*/SKILL.md") if path.is_file()]
     )
+
+
+def library_entries(metadata: dict) -> list[str]:
+    values = metadata.get("metadata", {}).get("library", [])
+    if not isinstance(values, list) or any(not isinstance(name, str) for name in values):
+        raise ValueError(f"{metadata['name']}: metadata.library must be a list of skill names")
+    return values
+
+
+def library_owners(root: Path = ROOT) -> dict[str, str]:
+    """Map each bundled source skill to the router that ships it."""
+    owners: dict[str, str] = {}
+    for directory in list_skill_dirs(root):
+        metadata = read_metadata(directory / "SKILL.md")
+        for entry in library_entries(metadata):
+            if entry in owners:
+                raise ValueError(f"{entry} is bundled by both {owners[entry]} and {metadata['name']}")
+            owners[entry] = metadata["name"]
+    return owners
+
+
+def selectable_names(root: Path, families: list[str]) -> list[str]:
+    owners = library_owners(root)
+    return [
+        name
+        for path in list_skill_dirs(root)
+        if path.parent.name in families
+        for name in [read_metadata(path / "SKILL.md")["name"]]
+        if name not in owners
+    ]
 
 
 def required_skills(metadata: dict) -> list[str]:
@@ -97,6 +134,10 @@ def validate_installation(
     names: set[str] = set()
     metadata_by_path: dict[Path, dict] = {}
     root = root.resolve()
+    for nested in sorted(root.glob("*/*/**/SKILL.md")):
+        if only_folders is not None and nested.relative_to(root).parts[0] not in only_folders:
+            continue
+        errors.append(f"{nested}: nested SKILL.md would be discovered as a skill; bundle it as {LIBRARY_ENTRY}")
     for path in sorted(root.glob("*/SKILL.md")):
         if only_folders is not None and path.parent.name not in only_folders:
             continue
@@ -149,6 +190,8 @@ def build_installation(root: Path, stage: Path, selected: list[str], naming: str
             raise ValueError(f"duplicate source skill {name}")
         catalog[name] = directory.resolve()
     owners = {directory: name for name, directory in catalog.items()}
+    bundled_by = library_owners(root)
+    library_homes: dict[str, Path] = {}
     pending: deque[tuple[Path, Path, str]] = deque()
     copied: set[Path] = set()
     included: set[str] = set()
@@ -158,7 +201,10 @@ def build_installation(root: Path, stage: Path, selected: list[str], naming: str
             return
         copied.add(destination)
         if source.is_dir():
-            shutil.copytree(source, destination, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", ".git"))
+            shutil.copytree(
+                source, destination, dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", ".git", "node_modules"),
+            )
             for child in sorted(destination.rglob("*")):
                 if child.is_file():
                     copied.add(child)
@@ -173,6 +219,8 @@ def build_installation(root: Path, stage: Path, selected: list[str], naming: str
             return
         if name not in catalog:
             raise ValueError(f"missing source skill {name}")
+        if name in bundled_by:
+            raise ValueError(f"{name} is bundled in {bundled_by[name]}; install {bundled_by[name]} instead")
         included.add(name)
         directory = catalog[name]
         destination = stage / published_name(name, naming)
@@ -181,7 +229,25 @@ def build_installation(root: Path, stage: Path, selected: list[str], naming: str
             extra_dir = directory / extra
             if extra_dir.is_dir():
                 copy(extra_dir, destination / extra, name)
-        for dependency in required_skills(read_metadata(directory / "SKILL.md")):
+        metadata = read_metadata(directory / "SKILL.md")
+        entries = library_entries(metadata)
+        for entry in entries:
+            if entry not in catalog:
+                raise ValueError(f"{name}: missing library source skill {entry}")
+            library_homes[entry] = destination / LIBRARY_DIR / entry
+        for entry in entries:
+            home = library_homes[entry]
+            copy(catalog[entry] / "SKILL.md", home / LIBRARY_ENTRY, name)
+            scripts = catalog[entry] / "scripts"
+            if scripts.is_dir():
+                copy(scripts, home / "scripts", name)
+            for dependency in required_skills(read_metadata(catalog[entry] / "SKILL.md")):
+                if dependency in entries:
+                    continue
+                if dependency in bundled_by:
+                    raise ValueError(f"{entry} requires {dependency}, which is bundled in {bundled_by[dependency]}")
+                include(dependency)
+        for dependency in required_skills(metadata):
             include(dependency)
 
     def shared_destination(owner: str, target: Path) -> Path:
@@ -194,6 +260,13 @@ def build_installation(root: Path, stage: Path, selected: list[str], naming: str
         target = target.resolve()
         if not target.exists() or not target.is_relative_to(root) or target == root:
             raise ValueError(f"{owner}: missing or external source resource {target}")
+        for entry, home in library_homes.items():
+            source_dir = catalog[entry]
+            if target.is_relative_to(source_dir):
+                relative = target.relative_to(source_dir)
+                destination = home / (LIBRARY_ENTRY if relative == Path("SKILL.md") else relative)
+                copy(target, destination, bundled_by[entry])
+                return destination
         for directory, name in owners.items():
             if not target.is_relative_to(directory):
                 continue
@@ -227,7 +300,7 @@ def build_installation(root: Path, stage: Path, selected: list[str], naming: str
             text = ARC_NAME_RE.sub(r"arc-\1", text)
         destination.write_text(text, encoding="utf-8")
 
-    siblings = {published_name(name, naming) for name in catalog} - {
+    siblings = {published_name(name, naming) for name in catalog if name not in bundled_by} - {
         published_name(name, naming) for name in included
     }
     errors = validate_installation(stage, siblings)
@@ -256,11 +329,17 @@ def publish_installation(stage: Path, destination: Path, canonical_names: list[s
             if name in targets:
                 (stage / name).replace(target)
                 installed.append(name)
-    except BaseException:
-        for name in reversed(installed):
-            shutil.rmtree(destination / name)
-        for name in reversed(saved):
-            (backup / name).replace(destination / name)
+    except BaseException as error:
+        try:
+            for name in reversed(installed):
+                shutil.rmtree(destination / name)
+            for name in reversed(saved):
+                (backup / name).replace(destination / name)
+        except BaseException as rollback_error:
+            raise OSError(
+                f"publish failed ({error}) and rollback failed ({rollback_error}); "
+                f"previous entries remain in {backup}"
+            ) from rollback_error
         raise
     return backup
 
@@ -283,17 +362,17 @@ def main(argv: list[str] | None = None) -> int:
         if args.check:
             if not destination.is_dir():
                 raise ValueError(f"installation directory does not exist: {destination}")
+            owners = library_owners(ROOT)
             managed = {
                 published_name(read_metadata(path / "SKILL.md")["name"], naming)
                 for path in list_skill_dirs(ROOT)
                 for naming in ("dash", "colon")
-            }
+            } - set(owners)
             errors = validate_installation(destination, only_folders=managed)
-            selected = args.only or [
-                read_metadata(path / "SKILL.md")["name"]
-                for path in list_skill_dirs(ROOT)
-                if path.parent.name in (args.family or ["Arc"])
-            ]
+            for entry, router in sorted(owners.items()):
+                if (destination / entry / "SKILL.md").is_file():
+                    errors.append(f"{destination / entry}: superseded by {router}'s library; remove the standalone copy")
+            selected = args.only or selectable_names(ROOT, args.family or ["Arc"])
             for name in selected:
                 target = destination / published_name(name, args.naming) / "SKILL.md"
                 if not target.is_file():
@@ -306,11 +385,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if destination.resolve().is_relative_to(ROOT) or ROOT.is_relative_to(destination.resolve()):
             raise ValueError("installation destination must not overlap the source repository")
-        selected = args.only or [
-            read_metadata(path / "SKILL.md")["name"]
-            for path in list_skill_dirs(ROOT)
-            if path.parent.name in (args.family or ["Arc"])
-        ]
+        selected = args.only or selectable_names(ROOT, args.family or ["Arc"])
         if not selected:
             raise ValueError("no skills selected")
         with tempfile.TemporaryDirectory(prefix="skills-stage-") as temporary:

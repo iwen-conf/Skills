@@ -1,0 +1,89 @@
+# Cross-family routing regression for scripts/route_probe.py (TypeSafe Jev, description-only selection).
+# Each case names the skill a host should load first. Two-phase requests expect the first phase.
+# Every adjacent pair of entrypoints has at least three near-negative cases across this file.
+external: [typesafe-ai, agent-browser, easyeda-api, lanhu-design, swiftui-pro]
+cases:
+  # arc-code vs ui-design / check / cnb / verticals
+  # Design-led first phase is valid: ui-design writes DESIGN.md and hands off to arc-code, which owns the stack.
+  - {utterance: 做一个 SaaS 产品的落地页前端，要好看、不要 AI 味, expect: [arc-code, ui-design]}
+  - {utterance: 先别写代码，给这个产品定一套视觉风格和设计规范, expect: ui-design}
+  - {utterance: 按 DESIGN.md 把首页和定价页实现出来, expect: arc-code}
+  - {utterance: 看看现在这个后台界面哪里显得廉价，出一份改版视觉方案, expect: ui-design}
+  - {utterance: 修一下登录报错，改完提交并推送开 PR, expect: arc-code}
+  - {utterance: 代码已经改好了，帮我提交、推送并开个 PR, expect: check}
+  - {utterance: 打个 v2.3.0 的 tag 并发布 release, expect: check}
+  - {utterance: 给订单服务加一个取消订单的接口, expect: arc-code}
+  - {utterance: 重构用户模块，把仓储层和用例层拆开, expect: arc-code}
+  # arc-audit vs cnb / arc-plan / ui-design / health / swiftui-pro
+  - {utterance: 帮我评审一下这个分支的改动，看看能不能合, expect: arc-audit}
+  - {utterance: 在 CNB 上给 PR !45 做代码评审并把意见发到 PR 评论里, expect: cnb}
+  - {utterance: 扫一遍仓库，看哪里过度设计、可以删, expect: arc-audit}
+  - {utterance: 审计一下支付接口有没有越权和金额篡改风险, expect: arc-audit}
+  - {utterance: 体检一下这个项目，列出技术债和风险, expect: arc-audit}
+  - {utterance: 对这个仓库做一次源码级渗透测试，重点找越权和注入, expect: arc-audit}
+  - {utterance: 检查我们的 Agent 工具调用会不会被检索内容注入后越权执行, expect: arc-audit}
+  - {utterance: 看看订单状态流转有没有漏洞，比如退款后还能发货, expect: arc-plan}
+  - {utterance: Review this SwiftUI view for modern API usage and performance, expect: swiftui-pro}
+  - {utterance: Claude Code 不读我的 AGENTS.md，帮我查查是哪层配置的问题, expect: health}
+  - {utterance: 为什么这个技能装了却没被发现, expect: health}
+  # arc-plan vs arc-code
+  - {utterance: 把这个想法写成 PRD，带验收标准, expect: arc-plan}
+  - {utterance: 新做一个退款流程，先把状态机和异常恢复设计清楚, expect: arc-plan}
+  - {utterance: 把审计结果拆成任务并建进度跟踪表, expect: arc-plan}
+  - {utterance: 写一份 Markdown 接口契约文档给前后端对齐, expect: arc-plan}
+  # arc-explore vs arc-audit / arc-code
+  - {utterance: 这个函数在哪定义，谁在调用它, expect: arc-explore}
+  - {utterance: 如果把 user_id 字段改名，会影响哪些地方, expect: arc-explore}
+  - {utterance: 画一下这个服务的模块架构图, expect: arc-explore}
+  - {utterance: arc-idx 索引过期了，帮我重建, expect: arc-explore}
+  # arc-verify vs android / arc-code / agent-browser
+  - {utterance: 给支付回调补一组回归测试并跑一遍, expect: arc-verify}
+  - {utterance: 验证扣库存在并发下不会超卖, expect: arc-verify}
+  - {utterance: 这个迁移能不能上线，给个发布门禁结论, expect: arc-verify}
+  - {utterance: 首页 LCP 太慢，测一下 Core Web Vitals, expect: arc-verify}
+  - {utterance: 给这个 Android app 搭一套单元测试和截图测试, expect: android}
+  - {utterance: 打开我们的测试站，登录后点一遍下单流程找问题, expect: agent-browser}
+  # arc-vet vs research-write / arc-code / arc-audit / arc-plan
+  - {utterance: 要加一个限流功能，先看看有没有成熟的开源库，比较几个再决定用哪个, expect: arc-vet}
+  - {utterance: 这个依赖已经三年没更新了，评估一下要不要换、换成哪个, expect: arc-vet}
+  - {utterance: 自己写 JSON Schema 校验还是引第三方库，做个选型并说明理由, expect: arc-vet}
+  - {utterance: 调研一下主流消息队列的发展历史，写成一篇对比文章, expect: research-write}
+  - {utterance: 已经选定用 golang-jwt，按选型记录把鉴权中间件实现出来, expect: arc-code}
+  - {utterance: 扫一下项目依赖里有没有已知 CVE, expect: arc-audit}
+  - {utterance: 给导出功能写 PRD 和验收标准, expect: arc-plan}
+  # research-write vs agent-browser / lark / arc-explore
+  - {utterance: 读一下这个网页链接，总结要点, expect: research-write}
+  - {utterance: 把这段中文发布说明润色一下，去掉 AI 味, expect: research-write}
+  - {utterance: 调研一下向量数据库的主流方案，整理成一篇长文, expect: research-write}
+  - {utterance: 查一下 CVE-2026-1234 的影响范围, expect: research-write}
+  - {utterance: 在这个网站上填写报名表单并提交, expect: agent-browser}
+  - {utterance: 读一下这个飞书文档 https://x.feishu.cn/docx/abc 并总结, expect: lark}
+  # lark
+  - {utterance: 把这周的会议纪要整理成一份周报, expect: lark}
+  - {utterance: 给项目建一个飞书项目空间并同步任务进度, expect: lark}
+  - {utterance: 在多维表格里新增一个状态字段, expect: lark}
+  - {utterance: 用飞书画板画这个流程的时序图, expect: lark}
+  # cnb
+  - {utterance: 看看 PR !45 改了什么，给个变更说明, expect: cnb}
+  - {utterance: 写一个 .cnb.yml，PR 时跑单元测试, expect: cnb}
+  - {utterance: 这个 TAPD 需求链接帮我拉一下详情, expect: cnb}
+  # platforms
+  - {utterance: 把这个页面迁移到 Navigation 3, expect: android}
+  - {utterance: 升级到 AGP 9, expect: android}
+  - {utterance: 分析这个 Perfetto trace 为什么掉帧, expect: android}
+  - {utterance: 鸿蒙 ArkTS 里这个装饰器怎么用，编译报错了, expect: harmonyos}
+  - {utterance: 把这段 TypeScript 迁移成 ArkTS, expect: harmonyos}
+  - {utterance: 查一下鸿蒙官方文档里 VpnExtensionAbility 的权限要求, expect: harmonyos}
+  # design sources
+  - {utterance: 读一下这个蓝湖设计稿，把切图和标注拿下来, expect: lanhu-design}
+  - {utterance: 给新品牌做一套 logo 和品牌视觉板, expect: ui-design}
+  # cloud, 3D, EDA, lazycat, typesafe
+  - {utterance: 用 Durable Objects 实现一个聊天室, expect: cloudflare}
+  - {utterance: wrangler deploy 报错了, expect: cloudflare}
+  - {utterance: 配置 Cloudflare Zero Trust 访问策略, expect: cloudflare}
+  - {utterance: Three.js 场景黑屏，模型不显示, expect: threejs}
+  - {utterance: 用 React Three Fiber 做一个可旋转的 3D 产品展示, expect: threejs}
+  - {utterance: 在嘉立创EDA里给原理图加一个电阻并布线, expect: easyeda-api}
+  - {utterance: 把这个 GitHub 开源项目迁移到懒猫微服上架, expect: lazycat}
+  - {utterance: 更新一下微服里已安装应用的版本, expect: lazycat}
+  - {utterance: 在我们的工单系统里加一个按意图自动分派的分类器, expect: [typesafe-ai, arc-code]}

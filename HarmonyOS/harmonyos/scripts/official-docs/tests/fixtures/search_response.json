@@ -1,0 +1,22 @@
+{
+  "hits": [
+    {
+      "title": "VpnExtensionAbility",
+      "url": "https://example.invalid/harmonyos/vpn-extension-ability",
+      "path": "reference/apis-network-kit/js-apis-VpnExtensionAbility.md",
+      "content": "VpnExtensionAbility is a fixture document used only for offline tests.",
+      "apiLevel": 12,
+      "systemCapability": "SystemCapability.Communication.NetManager.Vpn"
+    },
+    {
+      "name": "UIAbility lifecycle",
+      "markdown": "A second fixture verifies alternate title and content field names.",
+      "sourcePath": "application-models/uiability-lifecycle.md"
+    }
+  ],
+  "query": "VpnExtensionAbility",
+  "processingTimeMs": 1,
+  "limit": 5,
+  "offset": 0,
+  "estimatedTotalHits": 2
+}

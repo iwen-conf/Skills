@@ -19,7 +19,7 @@ Applied by arc:code in comment mode and whenever it writes code comments; checke
 7. IF route method, path, query/body shape or auth requirement changes THEN update the controller comment in
    the same change.
 8. A deliberate simplification with a known ceiling uses the `debt:` comment from
-   [execution-truth.md](../../../docs/execution-truth.md) §9.
+   [coding-discipline.md](../coding-discipline.md) §2.
 9. Not for README, release notes or other user-facing prose.
 
 ## 2. Controller / handler

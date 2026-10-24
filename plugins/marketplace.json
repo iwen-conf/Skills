@@ -1,0 +1,20 @@
+{
+  "name": "skills",
+  "plugins": [
+    {
+      "name": "arc-policy",
+      "source": {
+        "source": "local",
+        "path": "./arc-policy"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity",
+      "interface": {
+        "displayName": "Arc Policy Runtime"
+      }
+    }
+  ]
+}

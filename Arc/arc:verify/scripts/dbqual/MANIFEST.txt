@@ -1,10 +1,18 @@
 # industrial-database-release-qualification-skill 4.0.0 manifest
-# files (excluding MANIFEST.txt/CHECKSUMS.sha256): 133
+# files (excluding MANIFEST.txt/CHECKSUMS.sha256): 137
 # LOCAL MODIFICATION (user request): imported into the Skills repository as the db mode of
 # arc:verify (package root Arc/arc:verify/scripts/dbqual). The operating guide SKILL.md was
 # split into Arc/arc:verify/references/db.md and Arc/arc:verify/references/db/*.md;
 # README.zh-CN.md moved to docs/dbqual/README.zh-CN.md. Both are removed from this list.
-# All listed files are unmodified upstream v4.0.0.
+# LOCAL MODIFICATION 2026-10-08 (fail-closed run binding; see BUILD-VALIDATION.md): changed
+# scripts/{sqlverify_common,run_suite,release_gate,qualification_coverage_gate,regression_compare,
+# baseline_promote,canary_evaluator,pgbench_runner,selftest}.py, schemas/evidence.schema.json,
+# BUILD-VALIDATION.md/.json; added tests/test_run_binding.py.
+# LOCAL MODIFICATION 2026-10-08 (static SQL gate): changed scripts/{sqlverify_config,run_suite}.py;
+# added scripts/sql_static_audit.py, tests/test_sql_static.py, examples/sql-static.example.toml.fragment.
+# LOCAL MODIFICATION 2026-10-14 (gates that check nothing; see BUILD-VALIDATION.md): changed
+# scripts/{release_gate,qualification_coverage_gate}.py, tests/test_run_binding.py, BUILD-VALIDATION.md/.json.
+# All other listed files are unmodified upstream v4.0.0.
 
 BUILD-VALIDATION.json
 BUILD-VALIDATION.md
@@ -41,6 +49,7 @@ examples/replica-consistency.example.toml.fragment
 examples/retry-idempotency.example.toml.fragment
 examples/schema.sql
 examples/seed.sql
+examples/sql-static.example.toml.fragment
 examples/sql-verification.toml
 examples/workloads/get-order.sql
 examples/workloads/list-orders.sql
@@ -119,6 +128,7 @@ scripts/run_suite.py
 scripts/schema_integrity_audit.py
 scripts/security_boundary_audit.py
 scripts/selftest.py
+scripts/sql_static_audit.py
 scripts/sqlverify_common.py
 scripts/sqlverify_config.py
 scripts/toolchain.py
@@ -136,6 +146,8 @@ templates/sql-case-review.md
 templates/sql-verification-plan.md
 tests/test_config.py
 tests/test_core.py
+tests/test_run_binding.py
+tests/test_sql_static.py
 tests/test_v2.py
 tests/test_v3.py
 tests/test_v4.py

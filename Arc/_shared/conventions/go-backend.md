@@ -2,13 +2,15 @@
 
 Applied by arc:code for Go backend changes; checked by arc:audit; arc:explore maps layers with it.
 
-Also read [go-type-safety.md](go-type-safety.md) (typing, response DTOs), [comments.md](comments.md),
-[api-contract.md](../api-contract.md), and [execution-truth.md](../../../docs/execution-truth.md) §4
-(identity keys), §5 (paper-overs), §6 (root-cause repair), §9 (simplicity).
+Also read [go-type-safety.md](go-type-safety.md) (typing, response DTOs) and
+[coding-discipline.md](../coding-discipline.md) §4 (paper-overs). §2, §5, §6, §8, §10, §12 and §14
+(layout, models and mappers, usecase module, naming and constructors, controllers, debug evidence,
+file budgets) live in [go-backend-structure.md](go-backend-structure.md): read it when creating a
+module, wiring the composition root, adding mappers or naming constructors.
 
 ## 1. When the default applies
 
-1. IF the module is new THEN use the layout in §2. IF the repository already has an established local
+1. IF the module is new THEN use the layout in [go-backend-structure.md](go-backend-structure.md) §2. IF the repository already has an established local
    convention THEN follow it unless the task explicitly asks to migrate.
 2. IF migrating THEN change the smallest slice that preserves behavior.
 3. Before proposing an architecture change, read the host's package layout, constructors, contracts,
@@ -18,27 +20,6 @@ Also read [go-type-safety.md](go-type-safety.md) (typing, response DTOs), [comme
 5. Never write `var _ Interface = (*T)(nil)`; the constructor returns the interface.
 6. Never keep a compatibility shim "for history" when the user forbids compatibility and the product is
    not shipped.
-
-## 2. Layout
-
-```text
-backend/
-├── cmd/server/
-├── configs/
-├── internal/
-│   ├── bootstrap/
-│   ├── constants/
-│   ├── domain/{entities,events,filters,repositories,services}/
-│   ├── usecase/<module>/
-│   ├── interface/restful/{controllers,dto/requests,dto/responses,middlewares,router/routes}/
-│   ├── infrastructure/{gateways,support}/
-│   └── wire/
-└── migrations/{up,down}/
-```
-
-1. `internal/domain` contains only `entities`, `events`, `filters`, `repositories`, `services`. Never create
-   `domain/gateways`, `domain/ports`, `domain/adapters` or `domain/clients`.
-2. Package names are plural (`entities`, `controllers`, `middlewares`, `models`, `requests`, `responses`).
 
 ## 3. Dependency direction
 
@@ -76,45 +57,6 @@ Only `wire` imports concrete infrastructure and assembles the graph; business co
 
 Persistence paths sit under `infrastructure/gateways/persistence/postgres/`.
 
-## 5. Models, conversion and mappers
-
-```text
-HTTP request -> request DTO -> usecase params -> entity/usecase workflow -> repository interface -> repository model -> database
-database -> repository model -> repository interface -> entity/usecase workflow -> usecase result -> response DTO -> HTTP response
-```
-
-1. Controllers convert request DTOs to usecase params and named usecase results to response DTOs. REST DTOs
-   never enter `usecase`.
-2. Repository implementations convert model → entity on reads and entity → model on writes. Repository
-   models never leave infrastructure persistence packages.
-3. Read projections may bypass entities only on explicit read paths (CQRS, reports, dashboards, SSR view
-   reads) and never enter domain behavior or write workflows.
-4. Mappers live beside their boundary: REST mapping in the controllers package (`controllers/order_mapper.go`),
-   model mapping in the persistence package (`postgres/repository/order_mapper.go`). Never in `dto/*`, never
-   a cross-layer `internal/mapper` package, never one file mixing DTO, entity and model conversions.
-5. Add a mapper helper only when conversion is nontrivial or the repository already has that pattern;
-   otherwise use struct literals. Accept small repeated field assignments across boundaries; share them
-   only through a tiny unexported helper inside one boundary package.
-6. IF repeated mapping encodes business normalization, defaulting, validation or invariants THEN move it
-   into domain constructors, value objects or entity methods.
-
-## 6. Usecase module
-
-```text
-internal/usecase/<module>/
-├── contract.go          # type Contract interface { ... } — controller-facing operations
-├── main.go              # type Service struct; func New(...) Contract
-├── params.go            # method inputs
-├── results.go           # named results returned to controllers
-├── errors.go            # optional
-├── service.go           # optional
-├── services.go          # optional helper contracts/configs
-└── service_<feature>.go # focused workflows
-```
-
-1. `Contract` methods return named result types, never raw entities.
-2. `internal/usecase/shared` holds shared application types (pagination, common errors).
-
 ## 7. Interfaces and DIP
 
 1. Business policy depends on abstractions, never on concrete storage, SDK, network, queue, cache or
@@ -133,19 +75,6 @@ internal/usecase/<module>/
 6. A capability with engines uses `contract.go`, `engine.go`, `service.go`, `main.go`. `NewService(...)`
    validates required engines and returns an error; methods do not re-check "engine not configured".
 
-## 8. Naming and constructors
-
-| Kind | Pattern |
-|---|---|
-| Usecase | `func New(...domain repositories..., options/config...) Contract` |
-| Repository | `func New<Course>Repository(pool *pgxpool.Pool) repositories.Course` or `New<Course>DomainRepository`; struct `<Entity>Repository` / `<Entity>DomainRepository` |
-| Support/gateway | `func NewService(engine Engine, ...) (Contract, error)` |
-| Types | `Contract` boundary · `Service` implementation · `Engine` pluggable adapter · `Params` / `Result` |
-| Injected repository fields | `Repo` suffix: `novelCommentRepo repositories.NovelComment` |
-| Composition root / Wire | `InitPostgres`, `InitMongo`, `InitCacheService`, `InitRepositories`, `InitGateways`, `InitUseCases`, `InitControllers`, single `InitAuthUseCase`, top-level `InitApplication`; lifecycle `Start` / `Stop` / `HealthCheck` |
-| Other prefixes | `NewXxx` ordinary package constructor · `EnsureXxx` idempotent constraint · `SeedXxx` fixed seed · `RegisterXxx` registration |
-| Wire files | `providers.go`, `repositories.go`, `gateways.go`, `usecases.go`, `controllers.go`, `application.go`, `lifecycle.go` |
-
 ## 9. Transactions and persistence
 
 1. Usecases orchestrate transactions through `TxManager` (`domain/repositories/transaction.go` defines
@@ -155,13 +84,6 @@ internal/usecase/<module>/
 3. One physical table concept maps to one repository interface and implementation.
 4. No repository interface for a projection without a physical persistence boundary; query through the
    existing repositories or usecase logic.
-
-## 10. Controllers
-
-1. Use named request and response DTOs ([go-type-safety.md](go-type-safety.md) §3).
-2. Successful empty list/query results are success responses with empty collections; include pagination
-   metadata only when the API contract is paginated.
-3. IF the flow is small THEN map HTTP status and business errors explicitly at the call site.
 
 ## 11. Logging (zap)
 
@@ -178,15 +100,7 @@ internal/usecase/<module>/
    per-row loop details, health checks, secrets, tokens, raw authorization headers, full payloads, or
    personal data beyond minimal identifiers.
 7. Log each failure once, at the owning boundary; lower layers wrap and return the error.
-
-## 12. Debug evidence
-
-1. IF a backend failure is reproducible or observable THEN, before broad reading or edits, save logs,
-   stdout/stderr, request IDs, stack frames, SQL states, external status codes and retry counts to
-   `.arc/artifacts/<task-slug>/logs/` (`go test ./... 2>&1 | tee <that dir>/go-test.log`), then search them
-   for the exact failure string and correlation IDs.
-2. Temporary diagnostic logs test one named hypothesis; they are structured, level-gated, sanitized, and
-   removed or promoted to permanent observability before completion.
+8. Compare errors only with `errors.Is` / `errors.As`; never `err == X` or `err != X`.
 
 ## 13. Constants and enums
 
@@ -202,12 +116,3 @@ internal/usecase/<module>/
    (`MaxBatchSize`, `DefaultPageSize`, `TokenExpirySkew`).
 5. Standard-library constants, typed vs untyped constants, enum-like states and cross-service values:
    [go-type-safety.md](go-type-safety.md) §5.
-
-## 14. File budgets and helpers
-
-1. `controllers/*` ≤ 600 lines; `usecase/*/main.go` ≤ 200; `usecase/*/service_*.go` ≤ 400.
-2. A new or changed file inside the authorized module or migration has at most two private `func`
-   declarations. Move helpers to `<original>_helpers.go`; IF more groups remain THEN split by cohesive
-   responsibility (`order_validation_helpers.go`, `order_mapping_helpers.go`), each within the same limit.
-3. Never migrate unrelated legacy files to meet these budgets; never create numbered helper fragments
-   without a responsibility.

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "arc-policy",
+  "version": "0.1.0",
+  "description": "Coding Agent Policy Runtime for Arc skills across Claude, Codex, Grok, OMP, Cursor Agent, and DeepSeek Harness: plugin distributes, skills guide, hooks intercept, CLI verifies.",
+  "author": {
+    "name": "Arc"
+  },
+  "keywords": ["arc", "policy", "hooks", "skills", "cli"],
+  "extensions": {
+    "com.openai": {
+      "hooks": "./hooks/hooks.json"
+    }
+  }
+}

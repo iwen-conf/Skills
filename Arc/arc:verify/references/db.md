@@ -2,7 +2,7 @@
 
 Decide whether a database-dependent change has enough correctness, concurrency, performance,
 operability, recoverability and production-containment evidence to ship. The engine is the
-bundled dbqual package v4.0.0. PostgreSQL official behavior is authoritative for PostgreSQL
+bundled dbqual package v4.0.0 plus Arc's run binding (`MANIFEST.txt`). PostgreSQL official behavior is authoritative for PostgreSQL
 semantics. [The Arc contract](../../_shared/contract.md) applies first; where the package's
 standalone docs disagree with it, this file wins.
 
@@ -32,9 +32,8 @@ DBQ="<arc:verify skill dir>/scripts/dbqual"   # package root
 ART=".arc/artifacts/<task-slug>"              # project-relative
 ```
 
-In every code block of this mode, `scripts/`, `examples/`, `templates/`, `schemas/` and `tests/`
-are relative to the package root: prefix them with `$DBQ/`. Other paths are relative to the project
-root. Run qualification from the project root (`python3 "$DBQ/scripts/<name>.py"`), because
+In code blocks, prefix `scripts/`, `examples/`, `templates/`, `schemas/`, `tests/` with `$DBQ/`;
+other paths are project-relative. Run from the project root (`python3 "$DBQ/scripts/<name>.py"`):
 `fault_scenario_runner.py` and `longrun_profile.command` execute argv in the current directory.
 Needs Python ≥ 3.11, psycopg 3, psql and pgbench (doctor requires both); pg_amcheck and
 pg_verifybackup for G21–G22.
@@ -57,7 +56,8 @@ pg_verifybackup for G21–G22.
    (defaults: `.sqlverify/evidence`, `.sqlverify/report`). Fixed names: `<evidence-dir>/<id>.json`,
    raw pgbench logs in `<evidence-dir>/raw/<workload>/` and `raw/overload.<id>/`,
    `<report-dir>/release-gate.json`, `sql-verification-report.md|.html`. Baselines stay in
-   `.sqlverify/baselines/<name>`.
+   `.sqlverify/baselines/<name>`. run_suite moves older contents to `superseded/` and binds the
+   run in `run-manifest.json`; gates reject records of another run or a changed candidate.
 5. DSNs live only in env vars (evidence redacts them). Credentials, production payloads and
    unsanitized traces never enter configs, traces, evidence or reports.
 6. Write `.sqlverify/` configs, fixtures, probes and evidence; report product SQL/schema defects to
@@ -67,8 +67,8 @@ pg_verifybackup for G21–G22.
 
 - Correctness precedes performance; the business outcome is the oracle (`HTTP 200`,
   `rows_affected=1` or "committed" is not enough).
-- Missing evidence is neither zero (no 40P01 metric ≠ zero deadlocks) nor PASS. No aggregate
-  score. Applicability is explicit per gate.
+- Missing evidence is neither zero (no 40P01 metric ≠ zero deadlocks) nor PASS; nothing compared
+  is not "no regression". No aggregate score. Applicability is explicit per gate.
 - Locks, MVCC, SERIALIZABLE, WAL, DDL lock modes, vacuum, replication, failover and recovery need
   real PostgreSQL or a faithful harness.
 - Model skew, hot keys, tenant size, NULLs, recency, fan-out, correlation. Named boundary cases
@@ -78,15 +78,14 @@ pg_verifybackup for G21–G22.
 - Retry the whole logical operation (40001 → complete transaction). Idempotency is a business
   protocol converging durable and external effects.
 - Tail latency and queueing matter; capacity includes the failure cliff and recovery; replay keeps
-  sessions, timing, transaction boundaries and dependencies.
+  sessions, timing, transactions and dependencies.
 - Migration is an online protocol (DDL, mixed versions, backfill, reconciliation, cutover,
   rollback/forward-fix). A backup is unqualified until restore is rehearsed. Integrity tools prove
   findings, not absence.
 - Replication needs an application consistency contract. Maintenance (XID age, long transactions,
   vacuum/statistics, sequences, slots) is reliability. Generic/custom plans are performance.
-- Baselines need provenance; canary metrics must be attributable; restore/failover/failback/load
-  shedding are exercised before emergencies; changed roles, RLS, SECURITY DEFINER and extensions
-  are qualified.
+- Baselines need provenance; canary metrics are attributable; restore/failover/failback/load
+  shedding are rehearsed; changed roles, RLS, SECURITY DEFINER and extensions are qualified.
 - The harness is production software and fails closed. Tests do not prove absence of unknown
   bugs: scope claims, state limits. Escaped incidents become permanent controls.
 
@@ -133,7 +132,7 @@ python3 scripts/run_suite.py --config .sqlverify/sql-verification.toml --root . 
 ```
 
    A step runs only when its config section exists. Order: config check, toolchain, snapshot pre,
-   dataset, schema, security, lock order, EXPLAIN, properties, invariants, plan sensitivity,
+   dataset, SQL static, schema, security, lock order, EXPLAIN, properties, invariants, plan sensitivity,
    isolation, txn, concurrency, fuzz, retry, replay, pgbench, overload, migration, maintenance,
    physical, replica, logical replication, compatibility, history, fault, longrun, backup/restore,
    failover, snapshot post, baseline, coverage, release gate, report. `--fail-fast` stops at the
@@ -159,9 +158,9 @@ Template IDs and thresholds are samples, not SLOs. CI lanes: `templates/github-a
 
 ## Evidence and verdicts
 
-Evidence (`schemas/evidence.schema.json`): `kind`, `id`, `status`, `started_at`, `finished_at`,
-`elapsed_ms`, `command`, `observed`, `violations`, `warnings`, `reproduction` (seeds, hashes,
-redacted DSN, versions); stable IDs are contract. Exit 0 on PASS (and NOT_RUN for schema,
+Evidence (`schemas/evidence.schema.json`): `kind`, `id`, `run_id`, `status`, timing, `command`,
+`observed`, `violations`, `warnings`, `reproduction` (seeds, hashes, redacted DSN, versions);
+stable IDs are contract. Exit 0 on PASS (and NOT_RUN for schema,
 security, maintenance, physical audits), else 2. Preflight gaps (DSN, unsafe name, tool, file) and
 runner exceptions give `BLOCKED`; exceptions in lock order, fuzz, migration, longrun and fault
 runners give `FAIL`.
@@ -173,14 +172,15 @@ runners give `FAIL`.
 | claim `applicable=false` | `NOT_RUN: non-applicable — <rationale>` |
 | `toolchain.doctor` FAIL only for missing DSN/tools | `BLOCKED: <missing item>` |
 | `release-gate.json` PASS, plus coverage PASS when a manifest is used | PASS |
-| release gate FAIL citing FAIL evidence, a breached metric on executed evidence, `inconsistent_pass`, `invalid_evidence_selector`, or coverage FAIL from manifest errors | FAIL |
-| release gate FAIL whose failures all cite missing/BLOCKED/NOT_RUN evidence | `BLOCKED: <evidence IDs>`; not qualified |
+| release gate FAIL citing FAIL evidence, a breached metric on executed evidence, `inconsistent_pass`, `invalid_evidence_selector`, `invalid_policy`, or coverage FAIL from manifest errors | FAIL |
+| release gate FAIL whose failures all cite missing/BLOCKED/NOT_RUN evidence or `empty_policy` | `BLOCKED: <evidence IDs>`; not qualified |
+| run-binding failures (`stale_evidence`, `candidate_mismatch`, …) | `NOT_RUN (stale)`; rerun run_suite on the current commit |
 | reruns of one ID with the same seed/config disagree (no runner emits FLAKY) | FLAKY; keep both evidence dirs |
 | run_suite status/exit code, `selftest.py` | pipeline health, never the verdict |
 
 Never edit an evidence status or add BLOCKED/NOT_RUN/FLAKY to a release-blocking `allowed_status`:
-that is a waiver. The Arc report (Done / Evidence / Files / Not verified / Next) carries the dbqual
-report sections inside Evidence.
+that is a waiver. The Arc report (contract §9) carries the dbqual report sections inside
+Evidence.
 
 ## Gate catalog
 

@@ -1,0 +1,15 @@
+# Static SQL gate (sql_static_audit.py, evidence id sql.static). Paths are globs relative to --root.
+# Parse, lex and templating errors always FAIL; rule codes listed in fail_on also FAIL; all other
+# SQLFluff findings are advisory warnings. Every Squawk finding on a migration FAILs unless its rule
+# is excluded here with a rationale. A glob that matches nothing is BLOCKED, never PASS.
+[sql_static]
+dialect = "postgres"                      # SQLFluff dialect of the target engine
+paths = ["db/queries/**/*.sql", "db/migrations/**/*.sql"]
+fail_on = ["AM04"]                        # e.g. SELECT * (ambiguous.column_count); project decision
+migration_paths = ["db/migrations/**/*.up.sql"]
+pg_version = "17.0"                       # target PostgreSQL major for Squawk's version-aware rules
+# sqlfluff_command = ["uvx", "sqlfluff==4.4.0"]       # pin the tool; default ["sqlfluff"]
+# squawk_command = ["uvx", "--from", "squawk-cli==2.68.0", "squawk"]   # default ["squawk"]
+
+[sql_static.squawk_excluded_rules]
+# require-statement-timeout = "statement_timeout is enforced by the migration runner session"
