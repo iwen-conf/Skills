@@ -16,7 +16,7 @@ This skill is the runtime contract. Domain work still belongs to one Arc skill p
 
 ## Default mode
 
-The agent writes source with host tools (`Write` / `Edit` / `search_replace` / `apply_patch` / `Shell` / OMP `write` / DSH edit tools).
+The agent writes source with host tools (`Write` / `Edit` / `search_replace` / `apply_patch` / `Shell` / DSH edit tools).
 The CLI is mandatory for workflow start, commits, schema migrations, and delivery.
 
 ## Every coding session
@@ -70,8 +70,8 @@ must use `cargo zigbuild`. Projects can declare their complete test workflow wit
 - `Stop` uses TypeSafe (`jev ask`) for completion judgments in `block_on_claim` mode. Missing tools,
   credentials, service errors and uncertain answers remain explicitly unverified; commits stay gated.
 - The engine fails closed: when it cannot load or crashes, edits and controlled operations are denied.
-- Recursive Stop callbacks produce a passive reminder instead of another continuation. OMP uses
-  `session_stop`; PI uses `agent_before_settle`. Cursor requests verification once from task state.
+- Recursive Stop callbacks produce a passive reminder instead of another continuation. Cursor
+  requests verification once from task state.
 
 Passing a hook is not proof of skill execution. Only CLI receipts count.
 

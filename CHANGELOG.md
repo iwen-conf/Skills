@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### arc-policy — drop the OMP / PI host adapter
+
+- Removed `hosts/omp/`, `.omp-plugin/`, and the OMP/PI `package.json` native-extension manifest. Remaining hosts are Claude Code, Codex, Grok, Cursor Agent, and DeepSeek Harness.
+- Plugin-root discovery no longer reads `OMP_PLUGIN_ROOT`.
+
 ### arc-policy — tasks follow the edited file's repository
 
 - Fix: `PreToolUse` looked up the task in the session directory's repository, not the edited file's. A Grok session in the non-Git workspace `ditie` was denied `search_replace` on `A133BMS/…` although `A133BMS` had an active task, then wrote the files through Python. The reverse leaked too: a task in the working repository allowed edits in any other repository.

@@ -4,7 +4,7 @@ A Coding Agent Policy Runtime, not a skill pack.
 
 | Piece | Job |
 |---|---|
-| Plugin | Distribute skills, hooks, and policies to Claude Code, Codex, Grok, OMP, Cursor Agent, and DeepSeek Harness |
+| Plugin | Distribute skills, hooks, and policies to Claude Code, Codex, Grok, Cursor Agent, and DeepSeek Harness |
 | Skills | Tell the agent which Arc workflow to run and why |
 | Hooks | Intercept host tools (`PreToolUse`, `Stop`, `SessionStart`) |
 | CLI (`arc-policy`) | Begin a task, verify, and write a receipt bound to the tree |
@@ -72,18 +72,6 @@ enabled = true
 
 Then `/hooks` and trust the Arc Policy handlers.
 
-### OMP
-
-```bash
-omp plugin marketplace add /Users/iluwen/Documents/Code/Skills
-omp plugin link /Users/iluwen/Documents/Code/Skills/plugins/arc-policy
-mkdir -p ~/.omp/agent/extensions ~/.pi/agent/extensions
-ln -sfn /Users/iluwen/Documents/Code/Skills/plugins/arc-policy/hosts/omp/arc-policy.ts ~/.omp/agent/extensions/arc-policy.ts
-ln -sfn /Users/iluwen/Documents/Code/Skills/plugins/arc-policy/hosts/omp/arc-policy.ts ~/.pi/agent/extensions/arc-policy.ts
-```
-
-Restart OMP. The TypeScript extension is the deny gate (`tool_call` → `{ block: true }`). Portable `plugin.json` only distributes the skill.
-
 ### Cursor Agent
 
 User-level hooks (enforcement):
@@ -139,7 +127,7 @@ beside any hook files or `core.hooksPath`. When an agent commits or pushes, howe
 (`bash -c`, a script, a subprocess), the hook requires a receipt matching the tree; push after a
 commit therefore needs another `task verify`. Humans are not gated: the check applies only when an
 agent marker is set (`CLAUDECODE`, `GROK_AGENT`, `CODEX_THREAD_ID`, `CODEX_CI`, `CURSOR_AGENT`,
-`PI_CODING_AGENT`, `AI_AGENT`, or `ARC_POLICY_AGENT`, which the OMP and DSH adapters export).
+`PI_CODING_AGENT`, `AI_AGENT`, or `ARC_POLICY_AGENT`, which the DSH adapter exports).
 
 Project overlay: `.arc/policy.yaml` (merged on top of `policies/default.yaml`).
 
@@ -197,8 +185,6 @@ repository without a task is reported as changed without one. The log cannot tel
 writes from another session's in the same repository, and the reminder says so. Cursor's
 `workspace_roots` are all checked. When several repositories report, the strictest `stop.mode` applies.
 
-OMP uses its actionable `session_stop` event; PI uses `agent_before_settle`. `agent_end` is a
-notification and cannot cancel delivery. Both adapters use the handler context's working directory.
 Shell guards check every command segment, including command substitutions, unquoted heredoc
 substitutions, `sh -c` / `bash -c` scripts, `eval`, and prefix wrappers (`timeout`, `nohup`,
 `sudo`, `nice`, `time`, `exec`, `xargs`, `env`, `command`). Heredoc bodies are data, so prose with
@@ -209,7 +195,7 @@ Controlled commands using shell groups, `cd`, `env -C` / `--chdir` or `sudo -D` 
 because their directory scope is not interpreted; run them separately with `git -C` instead.
 
 The engine fails closed: if it cannot load or crashes, edits and controlled operations are denied
-with the error and other tool calls proceed with it as a message. The OMP and DSH adapters deny a
+with the error and other tool calls proceed with it as a message. The DSH adapter denies a
 tool call when the engine cannot answer at all. Claude Code, Codex and Grok ignore a hook that
 times out; `PreToolUse` therefore allows 30 seconds (it normally takes about 50 ms), and the Git
 hook still gates commits and pushes when a host skipped a call.
@@ -235,14 +221,11 @@ Same-user hooks are **not** a security boundary. An agent sharing the user's uid
 ```
 plugins/arc-policy/
   plugin.json                 portable / Grok
-  package.json                OMP/PI native extension manifest
   .claude-plugin/plugin.json
   .codex-plugin/plugin.json
-  .omp-plugin/plugin.json
   skills/arc-policy/SKILL.md
   hooks/hooks.json
   hooks/hook.py
-  hosts/omp/arc-policy.ts     OMP/PI tool_call extension
   hosts/cursor/hooks.json     Cursor Agent user hooks
   hosts/dsh/                  DeepSeek Harness Cordis plugin
   policies/{default,go,rust}.yaml

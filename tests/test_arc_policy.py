@@ -306,11 +306,12 @@ def test_plugin_layout_exists() -> None:
     assert (PLUGIN / "plugin.json").is_file()
     assert (PLUGIN / ".claude-plugin" / "plugin.json").is_file()
     assert (PLUGIN / ".codex-plugin" / "plugin.json").is_file()
-    assert (PLUGIN / ".omp-plugin" / "plugin.json").is_file()
-    assert (PLUGIN / "package.json").is_file()
+    assert not (PLUGIN / ".omp-plugin").exists()
+    assert not (PLUGIN / "package.json").exists()
     assert (PLUGIN / "hooks" / "hooks.json").is_file()
     assert (PLUGIN / "skills" / "arc-policy" / "SKILL.md").is_file()
-    assert (PLUGIN / "hosts" / "omp" / "arc-policy.ts").is_file()
+    assert not (PLUGIN / "hosts" / "omp").exists()
+    assert "OMP" not in (PLUGIN / "plugin.json").read_text(encoding="utf-8")
     assert (PLUGIN / "hosts" / "cursor" / "hooks.json").is_file()
     assert (PLUGIN / "hosts" / "cursor" / "run.sh").is_file()
     assert (PLUGIN / "hosts" / "dsh" / "package.json").is_file()
@@ -321,7 +322,7 @@ def test_plugin_layout_exists() -> None:
     assert "Stop" in hooks["hooks"]
 
 
-def test_classify_cursor_shell_and_omp_bash_casefold() -> None:
+def test_classify_cursor_shell_and_write_bash_casefold() -> None:
     policy = load_named("default", plugin=PLUGIN)
     commit = classify(
         tool_name="Shell",

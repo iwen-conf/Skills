@@ -84,7 +84,6 @@ function runHook(payload) {
       ...process.env,
       PLUGIN_ROOT: root,
       CLAUDE_PLUGIN_ROOT: root,
-      OMP_PLUGIN_ROOT: root,
     },
   })
   if (result.error) {

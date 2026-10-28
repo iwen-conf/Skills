@@ -19,7 +19,6 @@ def _plugin_root() -> Path:
     for key in (
         "GROK_PLUGIN_ROOT",
         "CLAUDE_PLUGIN_ROOT",
-        "OMP_PLUGIN_ROOT",
         "PLUGIN_ROOT",
     ):
         value = os.environ.get(key)
