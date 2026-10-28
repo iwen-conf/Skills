@@ -12,7 +12,8 @@ import os
 import sys
 from pathlib import Path
 
-_PRE_TOOL_USE = {"PreToolUse", "pre_tool_use", "pretooluse", "beforeShellExecution"}
+# Events before a tool runs, compared case- and separator-insensitively.
+_PRE_TOOL_USE = {"pretooluse", "beforeshellexecution", "beforemcpexecution"}
 
 
 def _plugin_root() -> Path:
@@ -42,7 +43,13 @@ def _unavailable(raw: str, exc: BaseException) -> str:
     except Exception as nested:
         message = f"{message}; fallback failed: {nested}"
     event = payload.get("hook_event_name") or payload.get("hookEventName")
-    if event in _PRE_TOOL_USE or payload.get("tool_name") or payload.get("toolName"):
+    if isinstance(event, str) and event:
+        before_tool = (
+            event.casefold().replace("_", "").replace("-", "") in _PRE_TOOL_USE
+        )
+    else:
+        before_tool = bool(payload.get("tool_name") or payload.get("toolName"))
+    if before_tool:
         return json.dumps(
             {
                 "permission": "deny",
@@ -59,14 +66,18 @@ def _unavailable(raw: str, exc: BaseException) -> str:
 
 
 def main() -> int:
-    raw = sys.stdin.read()
     sys.path.insert(0, str(_plugin_root() / "lib"))
+    raw = ""
     try:
+        from arc_policy.runtime import ensure_runtime
+
+        ensure_runtime()
+        raw = sys.stdin.read()
         from arc_policy.hook import run_hook
 
         output = run_hook(raw)
     except Exception as exc:
-        output = _unavailable(raw, exc)
+        output = _unavailable(raw or sys.stdin.read(), exc)
     sys.stdout.write(output)
     return 0
 

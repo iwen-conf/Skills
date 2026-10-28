@@ -607,7 +607,7 @@ def test_shell_cd_cannot_lend_another_repository_receipt(
 @pytest.mark.parametrize(
     "failure", ["missing", "timeout", "exit", "invalid", "uncertain"]
 )
-def test_failed_completion_judgment_reports_pending_verification(
+def test_failed_completion_judgment_falls_back_to_markers(
     tmp_path: Path, monkeypatch, failure: str
 ) -> None:
     import arc_policy.classify as classifier
@@ -634,15 +634,17 @@ def test_failed_completion_judgment_reports_pending_verification(
         )
 
     monkeypatch.setattr(classifier.subprocess, "run", run)
-    result = json.loads(
-        run_hook(
-            json.dumps({"hook_event_name": "Stop", "last_assistant_message": "Done."}),
+
+    def stop(message: str) -> str:
+        return run_hook(
+            json.dumps({"hook_event_name": "Stop", "last_assistant_message": message}),
             cwd=repo,
         )
-    )
-    assert result.get("decision") != "block"
-    assert "task verify" in result["systemMessage"]
-    assert "Completion judgment unavailable" in result["systemMessage"]
+
+    result = json.loads(stop("Done."))
+    assert result["decision"] == "block"
+    assert "task verify" in result["reason"]
+    assert stop("Still tracing the failing route.") == ""
     assert current_receipt(repo) is None
 
 

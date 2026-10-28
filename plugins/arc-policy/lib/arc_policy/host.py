@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from pathlib import Path
 from typing import Any
@@ -23,6 +25,11 @@ _EVENT_ALIASES = {
     "session_start": "SessionStart",
     "sessionstart": "SessionStart",
     "user_prompt_submit": "UserPromptSubmit",
+    "post_tool_use": "PostToolUse",
+    "posttooluse": "PostToolUse",
+    "posttoolusefailure": "PostToolUse",
+    "aftershellexecution": "PostToolUse",
+    "after_shell_execution": "PostToolUse",
     "beforeshellexecution": "PreToolUse",
     "beforemcpexecution": "PreToolUse",
     "before_shell_execution": "PreToolUse",
@@ -37,7 +44,13 @@ def event_name(payload: dict[str, Any]) -> str:
             alias = _EVENT_ALIASES.get(value) or _EVENT_ALIASES.get(value.casefold())
             if alias:
                 return alias
-            if value in {"Stop", "PreToolUse", "SessionStart", "UserPromptSubmit"}:
+            if value in {
+                "Stop",
+                "PreToolUse",
+                "PostToolUse",
+                "SessionStart",
+                "UserPromptSubmit",
+            }:
                 return value
             folded = value.casefold().replace("-", "").replace("_", "")
             alias = _EVENT_ALIASES.get(folded)
@@ -66,6 +79,15 @@ def tool_input(payload: dict[str, Any]) -> dict[str, Any]:
     if isinstance(command, str):
         return {"command": command}
     return {}
+
+
+def call_key(payload: dict[str, Any]) -> str:
+    """Pairs one tool call's pre and post events: the host's call id, else the call's input."""
+    value = payload.get("tool_use_id") or payload.get("toolUseId")
+    if isinstance(value, str) and value:
+        return "id:" + value
+    text = json.dumps(tool_input(payload), sort_keys=True, ensure_ascii=True)
+    return "input:" + hashlib.sha256(text.encode()).hexdigest()
 
 
 def payload_cwd(payload: dict[str, Any]) -> Path | None:
@@ -118,5 +140,10 @@ def stop_reason(payload: dict[str, Any]) -> str:
 
 
 def session_id(payload: dict[str, Any]) -> str:
-    value = payload.get("session_id") or payload.get("sessionId") or ""
+    value = (
+        payload.get("session_id")
+        or payload.get("sessionId")
+        or payload.get("conversation_id")
+        or ""
+    )
     return value if isinstance(value, str) else ""

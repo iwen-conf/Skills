@@ -15,11 +15,17 @@ PLUGIN = Path(__file__).resolve().parents[1] / "plugins" / "arc-policy"
 
 
 @pytest.mark.parametrize("tool", sorted(SHELL_TOOLS | MUTATE_TOOLS))
-def test_portable_hook_matcher_covers_classified_tools(tool: str) -> None:
-    hooks = json.loads((PLUGIN / "hooks" / "hooks.json").read_text())["hooks"][
-        "PreToolUse"
-    ]
+@pytest.mark.parametrize("event", ["PreToolUse", "PostToolUse"])
+def test_portable_hook_matcher_covers_classified_tools(tool: str, event: str) -> None:
+    hooks = json.loads((PLUGIN / "hooks" / "hooks.json").read_text())["hooks"][event]
     assert any(re.fullmatch(hook["matcher"], tool) for hook in hooks), tool
+
+
+def test_cursor_hooks_report_finished_tool_calls() -> None:
+    hooks = json.loads((PLUGIN / "hosts" / "cursor" / "hooks.json").read_text())[
+        "hooks"
+    ]
+    assert {"postToolUse", "afterShellExecution"} <= set(hooks)
 
 
 def run_dsh(tmp_path: Path, hook_source: str, tool_input: dict) -> dict:
@@ -84,3 +90,18 @@ def test_dsh_pre_execute_fails_closed(
     else:
         assert out["result"]["kind"] == "deny"
         assert expected in out["result"]["reason"]
+
+
+def test_dsh_reports_the_finished_tool_call(tmp_path: Path) -> None:
+    calls = tmp_path / "calls.jsonl"
+    source = (
+        "import json, sys\n"
+        f"open({str(calls)!r}, 'a').write(sys.stdin.read() + '\\n')\n"
+        "print('{}')\n"
+    )
+    out = run_dsh(tmp_path, source, {"path": "a.txt"})
+    assert out["result"] == "next"
+    pre, post = (json.loads(line) for line in calls.read_text().splitlines())
+    assert pre["hook_event_name"] == "PreToolUse"
+    assert post["hook_event_name"] == "PostToolUse"
+    assert pre["tool_use_id"] and pre["tool_use_id"] == post["tool_use_id"]

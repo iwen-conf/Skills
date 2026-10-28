@@ -107,6 +107,21 @@ def looks_like_completion(message: str, markers: list[str]) -> bool:
     return probability >= 0.9
 
 
+def mentions_completion(message: str, markers: list[str]) -> bool:
+    """Marker match used when TypeSafe cannot judge; a negated marker still counts."""
+    text = message.casefold()
+    for marker in markers:
+        word = marker.strip().casefold()
+        if not word:
+            continue
+        if word.isascii():
+            if re.search(rf"(?<![\w-]){re.escape(word)}(?![\w-])", text):
+                return True
+        elif word in text:
+            return True
+    return False
+
+
 _MAX_NESTING = 8
 SHELLS = frozenset({"sh", "bash", "zsh", "dash", "ksh"})
 # Prefix commands that run the rest of their argv: options taking a value,

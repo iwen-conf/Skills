@@ -6,7 +6,7 @@ A Coding Agent Policy Runtime, not a skill pack.
 |---|---|
 | Plugin | Distribute skills, hooks, and policies to Claude Code, Codex, Grok, Cursor Agent, and DeepSeek Harness |
 | Skills | Tell the agent which Arc workflow to run and why |
-| Hooks | Intercept host tools (`PreToolUse`, `Stop`, `SessionStart`) |
+| Hooks | Intercept host tools (`PreToolUse`, `PostToolUse`, `Stop`, `SessionStart`) |
 | CLI (`arc-policy`) | Begin a task, verify, and write a receipt bound to the tree |
 | Policy YAML | Decide what is required or denied without editing hook scripts |
 
@@ -22,6 +22,19 @@ arc-policy doctor
 ```
 
 The binary must stay `arc-policy`. Do not replace the existing `arc` → `arc-idx` symlink.
+
+CLI and hook entrypoints use the plugin's `.venv/bin/python` first, then the linked source
+repository's `.venv/bin/python`, otherwise the invoking Python. They never use the target
+project's virtual environment or install dependencies during a hook. In this source checkout,
+`uv sync --frozen` provisions the declared dependencies. For an independently installed plugin
+copy, provision its runtime once (replace `<plugin-dir>` with its actual path):
+
+```bash
+uv venv --python 3.12 <plugin-dir>/.venv
+uv pip install --python <plugin-dir>/.venv/bin/python 'PyYAML>=6.0.2'
+```
+
+Missing dependencies produce repair instructions; hook edits remain denied until repaired.
 
 ### Grok
 
@@ -112,6 +125,11 @@ edits until the next `task begin`, which archives the delivered task to history 
 `--force`. `task end` also accepts a delivered task. If the verified changes are still
 uncommitted (for example, another session committed first), the task stays in progress.
 
+Task bookkeeping belongs to the agent. When an edit is denied because a task is missing or
+delivered, the agent runs the supplied `task begin --skill arc-code` command and retries the
+edit without asking the user to run it or approve it. A custom `--slug` is optional. The hook
+does not create tasks as a side effect of an attempted edit.
+
 Tasks belong to a Git repository. `PreToolUse` checks the repository that owns every edited
 path (`file_path`, `path`, `notebook_path`, `target_file`, or apply_patch file headers, relative
 to the tool's working directory), not the session directory: a task in one repository never
@@ -162,10 +180,12 @@ included even when gitignored. Older receipts without a content digest must be v
 The default `block_on_claim` mode uses TypeSafe through the existing `jev ask` CLI to judge the
 last assistant message. It needs `jev` on PATH and `TYPESAFE_API_KEY` or `~/.typesafe/api_key`.
 Only the final assistant message and completion examples are sent, not session history.
-`completion_markers` are examples for the semantic judgment, not substring triggers.
-Clear completion claims request verification before delivery; negative statements and explanations do not.
-Uncertain judgments, missing credentials, invalid responses and timeouts produce an explicit
-pending-verification diagnostic. They never create a receipt or authorize commits.
+`completion_markers` are examples for the semantic judgment.
+Clear completion claims block the stop and send the agent to `task verify`; negative statements,
+questions and progress notes stay silent, because commits remain gated by the receipt either way.
+When TypeSafe cannot judge (no `jev`, missing credentials, invalid response, timeout, uncertain
+answer), `completion_markers` decide as whole-word matches, so a claim is still gated. Neither path
+creates a receipt or authorizes commits.
 
 `stop.mode: block` uses task state directly; `stop.mode: remind` only reports pending verification.
 Repeated Stop callbacks (`stop_hook_active` / Cursor `loop_count`) report a passive `systemMessage`
@@ -174,16 +194,32 @@ so it requests verification once based on task state. An unchanged task does not
 because the worktree was already dirty when it began. After delivery, Stop stays silent unless
 there are new changes; those are reported as needing a new task, not as the delivered task's work.
 
+With a host session id, `remind` and `block_on_claim` notify once per pending tree state: the same
+unverified state is not repeated on later turns, and a new edit re-arms the check. A session that
+saw no change in a repository since it first touched it is not held to that repository's task.
+
 Stop checks every repository the session reached, not only the working one. With a host session
-id (`session_id`, Grok `sessionId`; the OMP and DSH adapters send one per process), each
+id (`session_id`, Grok `sessionId`, Cursor `conversation_id`; the DSH adapter sends one
+per process), each
 `PreToolUse` records the repositories an edit names or a shell command can reach (its directory,
 `cd` and `-C` targets, absolute paths in the command or script body) with their dirty-file
 digests at first touch, under `~/.cache/arc-policy/sessions/` (`ARC_POLICY_STATE_DIR`; logs older
 than 14 days are pruned). At Stop, uncommitted changes made since then need a matching receipt,
 whether an edit tool, the shell or a script wrote them, and even when `task begin` came later; a
-repository without a task is reported as changed without one. The log cannot tell this session's
-writes from another session's in the same repository, and the reminder says so. Cursor's
-`workspace_roots` are all checked. When several repositories report, the strictest `stop.mode` applies.
+repository without a task is reported as changed without one. Cursor's `workspace_roots` are all
+checked. When several repositories report, the strictest `stop.mode` applies.
+
+Once the host reports finished tool calls (`PostToolUse`; Cursor `postToolUse` /
+`afterShellExecution`; the DSH adapter sends one after each call), Stop charges a session only for
+the paths its own calls wrote: the target paths of an allowed edit, and for a shell call the
+dirty files whose mode, size or mtime changed between its `PreToolUse` and `PostToolUse` (paired by
+`tool_use_id`, else by tool input). Concurrent sessions in one repository are then not charged for
+each other's work. A call whose finished event never arrives (a failed call on a host that reports
+failures separately, a denied call has none) stays open until Stop, which charges everything that
+changed in its repositories since it started. Writes during a call's window by another session, or
+by a process the session left running after its call finished, are attributed the same imprecise
+way. Without `PostToolUse` Stop falls back to first-touch state and cannot tell this session's
+writes from another session's in the same repository; the reminder says so.
 
 Shell guards check every command segment, including command substitutions, unquoted heredoc
 substitutions, `sh -c` / `bash -c` scripts, `eval`, and prefix wrappers (`timeout`, `nohup`,

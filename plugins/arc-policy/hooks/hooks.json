@@ -1,5 +1,5 @@
 {
-  "description": "Arc Policy Runtime: inject the workflow at session start, deny unverified commits and edits without task begin, and gate delivery on CLI receipts.",
+  "description": "Arc Policy Runtime: inject the workflow at session start, deny unverified commits and edits without task begin, record what each tool call wrote, and gate delivery on CLI receipts.",
   "hooks": {
     "SessionStart": [
       {
@@ -22,6 +22,19 @@
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/hook.py\"",
             "timeout": 30,
             "statusMessage": "Arc policy guard"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit|apply_patch|ApplyPatch|applypatch|run_terminal_command|run_terminal_cmd|run_shell_command|search_replace|hashline_edit|EditNotebook|editnotebook|write|edit|multiedit|notebookedit|str_replace|StrReplace|strreplace|Shell|shell|PowerShell|powershell|Delete|delete|bash|terminal|terminal_exec|execute_command|exec_command|local_shell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/hook.py\"",
+            "timeout": 30,
+            "statusMessage": "Arc policy record"
           }
         ]
       }

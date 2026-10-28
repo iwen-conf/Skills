@@ -2,7 +2,8 @@
  * dsh-arc-policy
  *
  * Delegates DeepSeek Harness tool pre-execute to the Arc Policy Python engine
- * (hooks/hook.py). Prompt inject reminds the model to run arc-policy CLI.
+ * (hooks/hook.py) and reports each finished call so the engine can record what it
+ * wrote. Prompt inject reminds the model to run arc-policy CLI.
  *
  * Same-user plugins are process control, not a security boundary.
  */
@@ -67,6 +68,7 @@ function asRecord(value) {
 
 // One id per harness process: the engine records which repositories this session touched.
 const SESSION_ID = `dsh-${process.pid}-${Date.now().toString(36)}`
+let calls = 0
 
 /** The engine's JSON reply or null; throws when the engine could not answer. */
 function runHook(payload) {
@@ -152,18 +154,17 @@ export function apply(ctx, config = {}) {
       return next()
     }
     const toolName = typeof exec?.name === 'string' ? exec.name : ''
-    try {
-      const rawArgs = exec?.arguments
-      const args =
+    const rawArgs = exec?.arguments
+    const call = {
+      tool_name: toolName,
+      tool_input:
         asRecord(rawArgs)
-        ?? (typeof rawArgs === 'string' && rawArgs.trim() ? { command: rawArgs } : {})
+        ?? (typeof rawArgs === 'string' && rawArgs.trim() ? { command: rawArgs } : {}),
+      tool_use_id: `${SESSION_ID}-${++calls}`,
+    }
+    try {
       const reason = denyReason(
-        runHook({
-          hook_event_name: 'PreToolUse',
-          tool_name: toolName,
-          tool_input: args,
-          cwd: process.cwd(),
-        }),
+        runHook({ ...call, hook_event_name: 'PreToolUse', cwd: process.cwd() }),
       )
       if (reason) {
         return {
@@ -178,6 +179,15 @@ export function apply(ctx, config = {}) {
         reason: `arc-policy engine unavailable: ${String(err)}; verification remains pending`,
       }
     }
-    return next()
+    try {
+      return await next()
+    } finally {
+      try {
+        runHook({ ...call, hook_event_name: 'PostToolUse', cwd: process.cwd() })
+      } catch (err) {
+        // The tool already ran; a failed record must not turn its result into an error.
+        console.warn(`dsh-arc-policy: PostToolUse record failed: ${String(err)}`)
+      }
+    }
   })
 }

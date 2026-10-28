@@ -33,6 +33,8 @@ The CLI is mandatory for workflow start, commits, schema migrations, and deliver
 6. `git commit` / `git push` only after a receipt that matches the current tree.
 7. Once the verified work is committed, the task is delivered and stops covering edits.
    New work starts with another `arc-policy task begin` (no `--force`; the delivered task is archived).
+   Run this bookkeeping yourself and retry the edit without asking the user to run or approve
+   the command. Keep the user's authorized scope; a custom `--slug` is optional.
 
 ## Commands
 
@@ -61,15 +63,22 @@ must use `cargo zigbuild`. Projects can declare their complete test workflow wit
 
 - `SessionStart` injects stack, skill, and CLI instructions.
 - `PreToolUse` denies source edits with no active task or only a delivered task in the repository that owns the edited path, `git commit`/`push` without a matching receipt, `--no-verify`, and schema-migration CLIs. Paths outside every Git work tree are not gated.
-- A denied edit names the repository and the exact `task begin` command. Run it; never route the edit through the shell or a script to get past the denial.
+- A denied edit names the repository and an executable `task begin --skill arc-code` command without placeholders. Run it yourself, then retry the original edit; never route the edit through the shell or a script to get past the denial.
 - `task begin` registers Git `pre-commit` / `pre-push` config hooks: an agent's commit or push,
   by any route, needs a receipt matching the tree. Verify again after each commit before pushing.
 - `Stop` checks every repository the session touched (edit targets, shell `cd` / `-C` targets,
   paths in commands). Uncommitted changes since first touch need a receipt, including ones written
-  through the shell or before a late `task begin`.
-- `Stop` uses TypeSafe (`jev ask`) for completion judgments in `block_on_claim` mode. Missing tools,
-  credentials, service errors and uncertain answers remain explicitly unverified; commits stay gated.
+  through the shell or before a late `task begin`. Once the host reports `PostToolUse`, only paths this
+  session's edits and shell calls wrote are charged, so concurrent sessions do not owe each other's work.
+- `Stop` uses TypeSafe (`jev ask`) for completion judgments in `block_on_claim` mode; when it cannot
+  judge, `completion_markers` decide. A claim blocks the stop with the verify command; other turns stay
+  silent, and each pending tree state is reported once per session. Commits stay gated either way.
+- When Stop blocks, run the named `task verify`. If it fails on changes outside your task, report
+  that instead of claiming delivery; if the work is unfinished, say so.
 - The engine fails closed: when it cannot load or crashes, edits and controlled operations are denied.
+- CLI and hooks prefer the plugin's `.venv`, then the linked source repository's `.venv`, before
+  loading engine dependencies. They never install packages during a hook; missing PyYAML reports
+  the runtime and exact setup commands from the plugin README.
 - Recursive Stop callbacks produce a passive reminder instead of another continuation. Cursor
   requests verification once from task state.
 

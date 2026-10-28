@@ -78,6 +78,19 @@ def dirty_digests(root: Path) -> dict[str, str]:
     return {path: _file_digest(root / path) for path in dirty_paths(root)}
 
 
+def dirty_stats(root: Path) -> dict[str, str]:
+    """Cheap per-call change signature of dirty paths: mode, size and mtime, no content read."""
+    stats = {}
+    for path in dirty_paths(root):
+        try:
+            info = (root / path).lstat()
+        except FileNotFoundError:
+            stats[path] = "missing"
+            continue
+        stats[path] = f"{info.st_mode}:{info.st_size}:{info.st_mtime_ns}"
+    return stats
+
+
 def tree_fingerprint(root: Path) -> dict[str, object]:
     commit = head(root)
     dirty = dirty_paths(root)

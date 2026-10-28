@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -281,7 +282,7 @@ def test_hook_entry_fails_closed_when_engine_cannot_load(
 ) -> None:
     plugin = broken_plugin(tmp_path)
     result = subprocess.run(
-        ["python3", str(plugin / "hooks" / "hook.py")],
+        [sys.executable, str(plugin / "hooks" / "hook.py")],
         input=json.dumps(
             {
                 "hook_event_name": "PreToolUse",
@@ -298,3 +299,39 @@ def test_hook_entry_fails_closed_when_engine_cannot_load(
     output = json.loads(result.stdout) if result.stdout.strip() else {}
     assert (output.get("permission") == "deny") is denied
     assert "No module named yaml" in json.dumps(output)
+
+
+@pytest.mark.parametrize(
+    "event, denied",
+    [
+        ("PreToolUse", True),
+        ("preToolUse", True),
+        ("PostToolUse", False),
+        ("afterShellExecution", False),
+    ],
+)
+def test_last_resort_fallback_denies_only_before_a_tool_runs(
+    tmp_path: Path, event: str, denied: bool
+) -> None:
+    plugin = broken_plugin(tmp_path)
+    (plugin / "lib" / "arc_policy" / "fallback.py").write_text(
+        "raise ImportError('fallback broken')\n"
+    )
+    result = subprocess.run(
+        [sys.executable, str(plugin / "hooks" / "hook.py")],
+        input=json.dumps(
+            {
+                "hook_event_name": event,
+                "tool_name": "Write",
+                "tool_input": {"file_path": "a.txt"},
+                "cwd": str(tmp_path),
+            }
+        ),
+        env={**ENV, "GROK_PLUGIN_ROOT": str(plugin), "CLAUDE_PLUGIN_ROOT": str(plugin)},
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    output = json.loads(result.stdout)
+    assert (output.get("permission") == "deny") is denied
+    assert "fallback broken" in json.dumps(output)

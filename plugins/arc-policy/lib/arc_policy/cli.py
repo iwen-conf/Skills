@@ -158,6 +158,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         "plugin_root": str(plugin_root()),
         "cli_on_path": shutil.which("arc-policy") is not None,
         "arc_idx_on_path": shutil.which("arc-idx") is not None,
+        "completion_judge": "jev" if shutil.which("jev") else "completion_markers",
         "policy_ok": policy_ok,
         "policy_error": error,
         "active_task": active_task(root),

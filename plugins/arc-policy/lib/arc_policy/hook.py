@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shlex
 import shutil
@@ -12,6 +13,7 @@ from arc_policy.classify import (
     command_text,
     git_command,
     looks_like_completion,
+    mentions_completion,
     shell_commands,
     tool_kind,
 )
@@ -20,6 +22,7 @@ from arc_policy.fallback import deny as _deny
 from arc_policy.fallback import fallback_output
 from arc_policy.gitutil import dirty_paths, git, tree_fingerprint
 from arc_policy.host import (
+    call_key,
     edit_targets,
     event_name,
     last_assistant_message,
@@ -32,8 +35,15 @@ from arc_policy.host import (
 from arc_policy.paths import git_root, repo_root
 from arc_policy.policy import load_for_repo
 from arc_policy.session import (
+    authored_paths,
     changed_since,
+    close_open_windows,
+    close_window,
+    last_stop_notice,
+    open_window,
     prune,
+    record_authored,
+    record_stop_notice,
     session_baselines,
     shell_roots,
     touch,
@@ -46,7 +56,7 @@ from arc_policy.store import (
     receipt_matches_tree,
 )
 
-SKILLS = "<arc-code|arc-explore|arc-plan|arc-verify|arc-audit|arc-vet>"
+BEGIN_COMMAND = "task begin --skill arc-code"
 
 
 def _session_context(text: str) -> dict[str, Any]:
@@ -108,13 +118,12 @@ def handle_session_start(cwd: Path, policy: dict[str, Any]) -> dict[str, Any]:
         )
     elif not task:
         task_line = (
-            "Active task: none. Before editing source: arc-policy task begin --skill "
-            + skill
+            f"Active task: none. Before editing source: {_cli(cwd, BEGIN_COMMAND)}"
         )
     elif delivered:
         task_line = (
             f"Active task: {task['slug']} was delivered at {delivered['head'][:12]} and does not cover new edits. "
-            f"Before editing source: arc-policy task begin --skill {skill} --slug <slug>"
+            f"Before editing source: {_cli(cwd, BEGIN_COMMAND)}"
         )
     else:
         task_line = f"Active task: {task['slug']} skill={task['skill']}"
@@ -125,6 +134,7 @@ def handle_session_start(cwd: Path, policy: dict[str, Any]) -> dict[str, Any]:
             f"Recommended skill: {skill}",
             cli,
             task_line,
+            "If an edit needs a new task, run the suggested task begin yourself and retry the edit without asking the user.",
             "Write/Edit are allowed after begin. git commit/push and schema migrations need `arc-policy task verify`.",
             "Delivery: arc-policy task verify",
         ]
@@ -171,13 +181,13 @@ def _guard_edit(
             continue
         if task and delivered:
             return _deny(
+                f"Agent: run `{_cli(root, BEGIN_COMMAND)}`, then retry this edit without asking the user. "
                 f"Arc task {task['slug']} in {root} was delivered at {delivered['head'][:12]}. "
-                f"Run `{_cli(root, f'task begin --skill {SKILLS} --slug <slug>')}` before editing source. "
                 "Do not route the edit through the shell instead."
             )
         return _deny(
-            f"no active Arc task in {root}. Run `{_cli(root, f'task begin --skill {SKILLS}')}` "
-            "before editing source. Do not route the edit through the shell instead."
+            f"Agent: run `{_cli(root, BEGIN_COMMAND)}`, then retry this edit without asking the user. "
+            f"There is no active Arc task in {root}. Do not route the edit through the shell instead."
         )
     return None
 
@@ -197,14 +207,19 @@ def handle_pre_tool_use(
         touch(
             session, _edit_roots(payload, directory) or ([fallback] if fallback else [])
         )
-        return _guard_edit(cwd, policy, payload, directory)
+        denial = _guard_edit(cwd, policy, payload, directory)
+        if denial is None:
+            _record_edit(session, payload, directory, fallback)
+        return denial
+    roots: set[Path] = set()
     if kind == "shell":
         if payload.get("toolInputTruncated") is True:
             return _deny(
                 "the host truncated this shell command (input over 128 KiB), so its hidden "
                 "part cannot be checked. Split it into smaller commands."
             )
-        touch(session, shell_roots(command_text(tool_input(payload)), directory))
+        roots = shell_roots(command_text(tool_input(payload)), directory)
+        touch(session, roots)
     has_task = active_task(cwd) is not None
     decision = classify(
         tool_name=tool_name(payload),
@@ -258,7 +273,28 @@ def handle_pre_tool_use(
             )
     if decision["action"] == "deny":
         return _deny(decision["reason"])
+    open_window(session, call_key(payload), roots)
     return None
+
+
+def _record_edit(
+    session: str, payload: dict[str, Any], directory: Path, fallback: Path | None
+) -> None:
+    """Charge an allowed edit's target paths to the session; a pathless edit gets a window."""
+    targets = edit_targets(tool_input(payload))
+    if not targets:
+        open_window(session, call_key(payload), [fallback] if fallback else [])
+        return
+    for target in targets:
+        path = (directory / Path(target).expanduser()).resolve()
+        root = git_root(path)
+        if root:
+            record_authored(session, root, [path.relative_to(root).as_posix()])
+
+
+def handle_post_tool_use(payload: dict[str, Any]) -> None:
+    if tool_kind(tool_name(payload)) in {"shell", "mutate"}:
+        close_window(session_id(payload), call_key(payload))
 
 
 _STOP_STRICTNESS = {"remind": 0, "block_on_claim": 1, "block": 2}
@@ -275,7 +311,7 @@ def _task_reminder(
             return None
         return (
             f"Arc task {task['slug']} was delivered at {delivered['head'][:12]} and does not cover these changes in {root}. "
-            f"Run `{_cli(root, 'task begin --skill <skill> --slug <slug>')}`, then `{_cli(root, 'task verify')}` "
+            f"Run `{_cli(root, BEGIN_COMMAND)}`, then `{_cli(root, 'task verify')}` "
             f"before claiming delivery or committing. Changed paths: {', '.join(new_changes[:8])}."
         )
     fingerprint = tree_fingerprint(root)
@@ -295,34 +331,58 @@ def _task_reminder(
 
 
 def _stop_reminder(
-    root: Path, policy: dict[str, Any], baseline: dict[str, str] | None
+    root: Path,
+    policy: dict[str, Any],
+    baseline: dict[str, str] | None,
+    authored: set[str] | None,
 ) -> str | None:
-    """What still needs verification in root; baseline is the session's first-touch state."""
+    """What still needs verification in root.
+
+    baseline is the session's first-touch state; authored, once the host reports finished
+    tool calls, holds the paths this session's calls wrote in root.
+    """
     if not bool((policy.get("workflow") or {}).get("require_verification")):
         return None
     task = active_task(root)
     if task and receipt_matches_tree(root, current_receipt(root)):
         return None
     delivered = delivered_receipt(root, task) if task else None
-    reminder = _task_reminder(root, task, delivered) if task else None
-    if reminder or baseline is None:
-        return reminder
+    if baseline is None:
+        return _task_reminder(root, task, delivered) if task else None
     # Changes made through the shell, or before a late `task begin`, still need a receipt.
     changed = changed_since(root, baseline)
+    if authored is not None:
+        # Writes outside this session's tool calls belong to another session.
+        changed = [path for path in changed if path in authored]
+    # Concurrent sessions share a task; one that changed nothing since first touch owes nothing.
     if not changed:
         return None
+    if authored is None:
+        reminder = _task_reminder(root, task, delivered) if task else None
+        if reminder:
+            return reminder
     paths = ", ".join(changed[:8])
-    # The log cannot tell this session's writes from another session's in the same repository.
     if task and not delivered:
+        source = (
+            "since this session first touched it"
+            if authored is None
+            else "by this session"
+        )
         return (
-            f"Arc task {task['slug']} is unverified in {root}: files changed since this session "
-            f"first touched it. Run `{_cli(root, 'task verify')}` before claiming delivery or "
+            f"Arc task {task['slug']} is unverified in {root}: files changed {source}. "
+            f"Run `{_cli(root, 'task verify')}` before claiming delivery or "
             f"committing. Changed paths: {paths}."
         )
+    # Without authorship the log cannot tell this session's writes from another session's.
+    source = (
+        "since this session first touched it, without an Arc task covering them. "
+        "If they are this session's work, run"
+        if authored is None
+        else "made by this session, without an Arc task covering them. Run"
+    )
     return (
-        f"{root} has uncommitted changes since this session first touched it, without an Arc "
-        f"task covering them. If they are this session's work, run "
-        f"`{_cli(root, f'task begin --skill {SKILLS}')}`, then `{_cli(root, 'task verify')}`, "
+        f"{root} has uncommitted changes {source} "
+        f"`{_cli(root, BEGIN_COMMAND)}`, then `{_cli(root, 'task verify')}`, "
         f"before claiming delivery or committing. Changed paths: {paths}."
     )
 
@@ -354,29 +414,46 @@ def handle_stop(
     if payload.get("status") in {"aborted", "error"}:
         return None
     session = session_id(payload)
+    close_open_windows(session)
     baselines = session_baselines(session) if session else {}
+    authored = authored_paths(session)
     reminders: list[str] = []
     modes: list[str] = []
     markers: list[str] = []
+    states: list[list[str]] = []
     for root in _stop_roots(cwd, payload, baselines):
         root_policy = policy if root == cwd else _policy_for(root)
-        reminder = _stop_reminder(root, root_policy, baselines.get(root))
+        reminder = _stop_reminder(
+            root,
+            root_policy,
+            baselines.get(root),
+            None if authored is None else authored.get(root, set()),
+        )
         if reminder:
             stop = root_policy.get("stop") or {}
             reminders.append(reminder)
             modes.append(stop.get("mode") or "block_on_claim")
             markers += list(stop.get("completion_markers") or [])
+            states.append([str(root), str(tree_fingerprint(root)["digest"])])
     if not reminders:
         return None
     mode = max(modes, key=lambda value: _STOP_STRICTNESS.get(value, 1))
-    return _stop_decision(
+    # Repeating an unchanged notice every turn only adds noise; `block` opts into repetition.
+    key = hashlib.sha256(json.dumps(states).encode()).hexdigest()
+    once = bool(session) and mode != "block"
+    if once and last_stop_notice(session) == key:
+        return None
+    decision = _stop_decision(
         mode, list(dict.fromkeys(markers)), payload, " ".join(reminders)
     )
+    if decision and once:
+        record_stop_notice(session, key)
+    return decision
 
 
 def _stop_decision(
     mode: str, markers: list[str], payload: dict[str, Any], reminder: str
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     if (
         payload.get("stop_hook_active")
         or payload.get("stopHookActive")
@@ -387,11 +464,20 @@ def _stop_decision(
         return _stop_remind(reminder)
     if mode == "block":
         return _stop_block(reminder)
-    if payload.get("status") == "completed" and not last_assistant_message(payload):
-        return _stop_block(reminder)
+    message = last_assistant_message(payload)
+    claim = (
+        payload.get("status") == "completed" and not message
+    ) or _claims_completion(message, markers)
+    if not claim:
+        return None
+    return _stop_block(
+        f"{reminder} If the work is not finished, say so instead of claiming completion."
+    )
+
+
+def _claims_completion(message: str, markers: list[str]) -> bool:
     try:
-        if looks_like_completion(last_assistant_message(payload), markers):
-            return _stop_block(reminder)
+        return looks_like_completion(message, markers)
     except (
         OSError,
         RuntimeError,
@@ -399,14 +485,17 @@ def _stop_decision(
         KeyError,
         TypeError,
         subprocess.SubprocessError,
-    ) as exc:
-        return _stop_remind(f"{reminder} Completion judgment unavailable: {exc}")
-    return _stop_remind(reminder)
+    ):
+        return mentions_completion(message, markers)
 
 
 def handle_event(
     payload: dict[str, Any], *, cwd: Path | None = None
 ) -> dict[str, Any] | None:
+    name = event_name(payload)
+    if name == "PostToolUse":
+        handle_post_tool_use(payload)
+        return None
     directory = (cwd or payload_cwd(payload) or Path.cwd()).resolve()
     root = repo_root(directory)
     try:
@@ -414,7 +503,6 @@ def handle_event(
     except OSError:
         languages = []
     policy = load_for_repo(root, languages=languages)
-    name = event_name(payload)
     if name == "SessionStart":
         prune()
         touch(session_id(payload), [root] if git_root(root) is not None else [])

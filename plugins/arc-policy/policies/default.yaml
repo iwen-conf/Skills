@@ -50,8 +50,8 @@ execution:
     - tests_run
 
 stop:
-  # block_on_claim: use TypeSafe (jev ask) to judge a completion claim.
-  # Missing/uncertain judgments report pending verification; commits stay gated.
+  # block_on_claim: use TypeSafe (jev ask) to judge a completion claim;
+  # without a judgment, completion_markers decide. Non-claims stay silent.
   # remind = passive diagnostic without starting another continuation.
   # block = block every Stop while unverified (often too noisy).
   mode: block_on_claim

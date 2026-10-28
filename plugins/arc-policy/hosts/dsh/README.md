@@ -2,7 +2,9 @@
 
 Arc Policy Runtime for DeepSeek Harness. Prompt inject plus `tools/pre-execute`
 deny, both delegated to `plugins/arc-policy/hooks/hook.py`. A tool call is denied when the
-engine cannot answer (missing, crashed, timed out after 30 s, invalid reply). The plugin sends one
+engine cannot answer (missing, crashed, timed out after 30 s, invalid reply). After the call runs,
+the adapter reports it as `PostToolUse` with the same `tool_use_id`; a failed report is logged and
+leaves the tool result unchanged. The plugin sends one
 session id per harness process and exports `ARC_POLICY_AGENT=1`, so the Git hook gates commits
 the harness's shells make. The harness has no turn-end hook wired here; delivery relies on the
 commit gate and the Git hook.

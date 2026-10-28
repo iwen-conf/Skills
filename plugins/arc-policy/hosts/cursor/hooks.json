@@ -14,7 +14,20 @@
         "timeout": 30
       }
     ],
+    "postToolUse": [
+      {
+        "command": "/Users/iluwen/Documents/Code/Skills/plugins/arc-policy/hosts/cursor/run.sh",
+        "matcher": "Shell|Write|StrReplace|Delete|ApplyPatch|Edit|MultiEdit|NotebookEdit",
+        "timeout": 30
+      }
+    ],
     "beforeShellExecution": [
+      {
+        "command": "/Users/iluwen/Documents/Code/Skills/plugins/arc-policy/hosts/cursor/run.sh",
+        "timeout": 30
+      }
+    ],
+    "afterShellExecution": [
       {
         "command": "/Users/iluwen/Documents/Code/Skills/plugins/arc-policy/hosts/cursor/run.sh",
         "timeout": 30
