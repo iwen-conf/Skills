@@ -13,7 +13,7 @@ import (
 func emit(v any){b,_:=json.MarshalIndent(v,"","  ");fmt.Println(string(b))}
 func main(){if e:=run(os.Args[1:]);e!=nil{fmt.Fprintln(os.Stderr,"arc-verify:",e);os.Exit(1)}}
 func run(args []string)error{
- if len(args)==0{return errors.New("usage: arc-verify <init|validate|import|approve|plan|next|start|record|trace|gate|risk> [options]")}
+ if len(args)==0{return errors.New("usage: arc-verify <init|validate|import|approve|plan|next|start|record|trace|gate|risk|scan|gaps|fixtures|fixture> [options]")}
  name:=args[0]
  f:=flag.NewFlagSet(name,flag.ContinueOnError)
  dbfile:=f.String("db",".arc/verify/data.db","local Turso database path")
@@ -26,6 +26,7 @@ func run(args []string)error{
  commit:=f.String("commit","","source commit")
  observed:=f.String("observed","","observed business state")
  evidence:=f.String("evidence","","local runner evidence path")
+ id:=f.String("id","","fixture id")
  config:=f.String("config",".arc/verify/config.jsonc","test data and environment config")
  if e:=f.Parse(args[1:]);e!=nil{return e}
  if len(f.Args())!=0{return fmt.Errorf("unexpected arguments %v",f.Args())}
@@ -41,7 +42,7 @@ func run(args []string)error{
     emit(map[string]string{"database":d.file,"status":"initialized"})
     return nil
  }
- if (name=="approve"||name=="plan"||name=="next"||name=="gate"||name=="risk")&&*graph==""{
+ if (name=="approve"||name=="plan"||name=="next"||name=="gate"||name=="risk"||name=="gaps")&&*graph==""{
      return errors.New("--graph required")
  }
  d,e:=openDB(*dbfile,false);if e!=nil{return e}
@@ -78,6 +79,21 @@ func run(args []string)error{
  case "gate":
    v,e:=d.gate(*graph);if e!=nil{return e}
    emit(v);if v["verdict"]!="PASS"{return errors.New("graph gate not satisfied")};return nil
+ case "scan":
+   if *file==""{return errors.New("--file required")}
+   b,e:=os.ReadFile(*file);if e!=nil{return e}
+   var doc Implementation;if e=json.Unmarshal(b,&doc);e!=nil{return e}
+   n,e:=d.scan(doc);if e==nil{emit(map[string]any{"observations":n,"status":"OBSERVED_NOT_VERIFIED"})};return e
+ case "gaps":
+   rows,e:=d.gaps(*graph);if e==nil{emit(rows)};return e
+ case "fixtures":
+   if *file==""{return errors.New("--file required")}
+   b,e:=os.ReadFile(*file);if e!=nil{return e}
+   var fs Fixtures;if e=json.Unmarshal(b,&fs);e!=nil{return e}
+   n,e:=d.importFixtures(fs);if e==nil{emit(map[string]int{"fixtures_submitted":n})};return e
+ case "fixture":
+   if *id==""{return errors.New("--id required")}
+   rows,e:=d.fixture(*id);if e==nil{emit(rows)};return e
  case "risk":
    rows,e:=d.query("SELECT "+fieldsSQL("id","description","status")+" FROM risks WHERE graph="+quote(*graph)+";",3)
    if e==nil{emit(rows)};return e
