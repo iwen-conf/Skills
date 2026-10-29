@@ -19,10 +19,10 @@ Change source code so the requested behavior holds on its real entry point, with
 
 ## Non-trigger
 
-- Explain, locate or map code without editing → `arc:explore`.
-- Review a diff, PR, project health or security without editing → `arc:audit`.
+- Code location or mapping only → `arc:explore`.
+- Read-only review, health or security → `arc:audit`.
 - Tests, reliability, PostgreSQL, flaky, web performance or release gates → `arc:verify`.
-- PRD, brief, closure model, task documents, progress → `arc:plan`.
+- PRD, model or task docs → `arc:plan`.
 - Visual direction without code → `ui-design`; commit, push, PR → `check`.
 - Lark documents or project status sync → `lark`.
 
