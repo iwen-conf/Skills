@@ -42,3 +42,12 @@ Project `.arc/policy.yaml` may enable the graph gate:
 
 Once `.arc/verify/config.jsonc` exists, the policy gate blocks unconfigured graph identity.
 Preserve `verification.test_commands` and do not replace code tests with graph tests.
+
+## Implementation inventory and reusable test data
+
+The Go CLI also accepts `scan --file` (actual discovered action plus evidence)
+and `gaps --graph` (contract action compared with most recent observation).
+`NOT_FOUND` means a **possible absence** to investigate, not a confirmed product defect.
+`fixtures --file` imports a fixture recipe and `fixture --id` retrieves it;
+no real server data is mutated by these commands. User-approved test-data setup
+and replay operations require explicit runner adapters and a state readback.

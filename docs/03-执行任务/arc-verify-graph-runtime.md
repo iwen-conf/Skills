@@ -13,22 +13,21 @@ when only Go unit tests or model validation ran.
 - C06: Record run/step with independent expected-vs-observed comparison and SHA-256 RAW reference.
 - C07: Fail closed in `arc-policy task verify` when project graph verification is configured.
 - C08: Add model and policy regression tests, sample academic contract and CLI documentation.
+- C09: Add fixture reference import/query and implementation observation graph gap inventory (absence remains unconfirmed).
 
 ## Next verified work packages (not done)
 
 - T01 **Native Turso integration gate**: install official `tursodb` in CI, exercise real
   SQL transactions, serialization, snapshots and concurrent claims; test failure exit codes.
   Do not claim DB integration on Go-only unit tests.
-- T02 **Implementation observation/absence**: store a separately sourced UI/API implementation
-  graph and compare with the confirmed contract graph. `NOT_FOUND` stays a candidate gap,
-  not a confirmed MISSING without evidence and user review.
+- T02 **Implementation observation/absence (partial)**: evidence-backed action observations and gap listing exist; expand to real UI/API crawler, versioned implementation graph, false-negative review and explicit MISSING confirmation. `NOT_FOUND` stays a candidate gap.
 - T03 **Business condition graph traversal**: recovery tasks for OR/AND prerequisites,
   cross-role sequences, cycles and bounded interleavings; deduplicate equivalent states.
 - T04 **Runner adapter & oracle**: real browser/mini-app/device adapter, stable step IDs,
   response+page+readback oracles, external-effect observation, trusted RAW provenance.
   Real E2E coverage remains NOT_RUN until an authorized target and credentials exist.
-- T05 **Fixture registry & replay**: JSONC identity aliases / secret references,
-  per-task fixtures, state verification before reuse, deterministic reconstruction
+- T05 **Fixture registry & replay (partial)**: alias/secret-reference import exists; add
+  per-task fixture locks, state verification before reuse, deterministic reconstruction
   and safe isolation. Never treat a logged checkpoint as automatic rollback of external actions.
 - T06 **Policy hardening**: enforce graph freshness at commit/push time independently of
   local receipts; protect source/graph/evidence identities through CI; simulate agent

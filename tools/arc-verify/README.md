@@ -51,3 +51,16 @@ discover hidden UI features, execute browsers or restore target-system state aut
 those adapters are tracked in `docs/03-执行任务/arc-verify-graph-runtime.md`.
 The offline Go tests cover model/JSONC checks. Real Turso SQL and remote-system E2E
 must be executed before claiming end-to-end delivery.
+
+Fixture/implementation evidence commands (status is never inferred from missing UI alone):
+
+    arc-verify fixtures --file /path/to/Skills/tools/arc-verify/examples/fixtures.json
+    arc-verify fixture --id student-01
+    arc-verify scan --file /path/to/Skills/tools/arc-verify/examples/implementation-scan.json
+    arc-verify gaps --graph academic-v1
+
+Fixtures retain logical IDs, intended states, role metadata and only secret references
+(e.g. `env://TEST_STUDENT_PASSWORD`), not passwords. An imported fixture is a
+recipe/reference; no automatic server-side restoration is claimed. Implementation
+observations require an evidence file and are append-only; a `NOT_FOUND` observation
+remains a **candidate missing-functionality risk**, never an automatic product FAIL.
