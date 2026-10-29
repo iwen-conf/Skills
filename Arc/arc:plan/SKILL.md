@@ -1,6 +1,6 @@
 ---
 name: arc:plan
-version: 2.5.0
+version: 2.6.0
 description: >-
   Turns intent into written specs and checkable models without touching source code: PRD or
   blueprint (写PRD, 立项, 需求文档), clarify a vague request into a brief with acceptance criteria (需求澄清,
@@ -60,6 +60,14 @@ Checker findings: [closure-rules.md](references/closure-rules.md). HTTP specs us
 [api-contract.md](../_shared/api-contract.md); review-only → `arc:audit` api-design.
 
 ## Workflow
+
+When business-chain verification requires a new or clarified rule, use
+[workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills)
+and the optional read-only `arc-verify handoff --to arc-plan --graph <version>`.
+Keep canonical PRD/closure-spec and approved rule wording in project docs.
+AI-inferred industry expectations remain RISK; only explicit user approval makes
+a rule normative. Handoff existing REQ/RULE IDs to `arc:verify` for local DB
+import/approval and execution; do not write the Turso ledger in docs-only mode.
 
 Cross-phase handoffs follow [workflow.md](../_shared/workflow.md); bind tasks to requirement,
 transition, invariant and scenario IDs. A model PASS never marks implementation tasks complete.

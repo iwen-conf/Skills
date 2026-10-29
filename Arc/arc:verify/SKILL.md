@@ -1,6 +1,6 @@
 ---
 name: arc:verify
-version: 3.3.0
+version: 3.4.0
 description: >-
   Proves business code meets business expectations: business-flow inventories and flowcharts
   tracing branches to cases (业务流, 端到端业务流, 分支覆盖), test plans (测试方案, 用例设计,
@@ -86,6 +86,16 @@ write/reliability/db → flaky → release.
 HTTP/JSON/upload claims use [API cases](references/api-contract-tests.md) within that budget.
 
 ## Workflow
+
+For a graph-enabled business-chain request, use the shared
+[workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills)
+and `arc-verify handoff --to arc-verify --graph <version>` to fetch only
+the next executable cards. `arc:plan` owns user-approved rule wording,
+`arc:explore` supplies implementation locations, and `arc:verify` alone
+writes test graph execution state. Confirmed FAIL → `arc:code` via
+`arc-verify handoff --to arc-code --run <id>`; specification gaps → plan;
+unconfirmed NOT_FOUND/risk → investigate without business FAIL; dependency
+selection → vet. Retain existing FLOW/branch-ledger proof and environment gates.
 
 1. Read [contract](../_shared/contract.md). Record tier, scope, mode, environment and entry `git diff`/status baseline.
    Output: task-log header.

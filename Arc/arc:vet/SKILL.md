@@ -1,6 +1,6 @@
 ---
 name: arc:vet
-version: 1.0.0
+version: 1.1.0
 description: >-
   Open-source due diligence before a new dependency or a non-trivial generic component (开源选型,
   技术选型, 引入依赖, 不要重复造轮子, build vs buy): checks existing code and the standard library first,
@@ -53,6 +53,14 @@ First matching row wins.
 | A need without chosen candidates: new dependency, build vs buy, 有没有现成方案 | select | [search-playbook.md](references/search-playbook.md) |
 
 ## Workflow
+
+When `arc:verify` genuinely needs a new browser runner, device adapter or
+database/CLI dependency, use `arc-verify handoff --to arc-vet --graph <version>`
+only as bounded context and follow
+[workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
+Compare existing native project runners before adding tools; preserve the
+user's short-lived Go CLI, project-local Turso and no-daemon/no-extra-service
+constraints. Return the pinned choice to code/verify, not a new business rule.
 
 1. Read [contract.md](../_shared/contract.md). A new dependency is T2 (contract §2). Output: need,
    boundary, language and version, platforms, constraints, project license, mode, `as_of`.

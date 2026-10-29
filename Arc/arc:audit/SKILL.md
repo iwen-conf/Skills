@@ -1,6 +1,6 @@
 ---
 name: arc:audit
-version: 2.6.0
+version: 2.7.0
 description: >-
   Read-only evaluation (只读) that produces ranked, evidence-backed code findings and never edits code:
   review any diff, PR or branch (代码评审, 能不能合), project health, code rot, over-engineering and
@@ -53,6 +53,15 @@ Deliver located findings, evidence, severity/status and coverage; preserve sourc
 | AppSec audit plus tool scans | appsec, then scan | [references/appsec.md](references/appsec.md), [references/scanners.md](references/scanners.md) |
 
 ## Workflow
+
+For review of a graph-enabled business chain, obtain a bounded **read-only**
+`arc-verify handoff --to arc-audit --graph <version>` and apply
+[workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
+A `NOT_FOUND` implementation observation is not proof of a missing function;
+a domain hypothesis is RISK until user confirmation. Review independent RAW,
+approval/source, source commit and environment; send unresolved requirements to
+`arc:plan`, confirmed defects to `arc:code`, proof gaps to `arc:verify`.
+Do not write the graph ledger.
 
 Document-only API reviews cite sections/lines; without a repository skip git/index steps.
 

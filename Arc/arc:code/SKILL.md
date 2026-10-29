@@ -1,6 +1,6 @@
 ---
 name: arc:code
-version: 2.6.0
+version: 2.7.0
 description: >-
   Every task that changes source code: write code to implement (写代码, 实现, 开发功能, 落地改动)
   a feature, endpoint or page (前端, 落地页, 要好看, shadcn, 小程序) on the project's stack; fix (修复) a bug,
@@ -58,6 +58,15 @@ The behavior works through its real entry point (HTTP, CLI, UI, job), every impa
 | Feature needs semantic judgment: classify, route, score, extract, verify (分类器, 意图识别) | adds to mode | `typesafe-ai` skill and its live docs before any integration code |
 
 ## Workflow
+
+When repairing a confirmed business-graph failure, obtain
+`arc-verify handoff --to arc-code --run <failed-run-id>` and follow
+[workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
+The packet binds rule, first divergence, environment, source commit, entry and
+independent RAW. Reproduce the root cause through code-intel and existing tests;
+do not rewrite the approved rule, prior RAW or FAIL. Code fixes use their normal
+compile/test/receipt gate, then return to `arc:verify` for fresh E2E proof;
+a red pre-fix graph does not prevent an authorized repair commit.
 
 1. Read [contract.md](../_shared/contract.md), [code-intel.md](../_shared/code-intel.md) and [coding-discipline.md](../_shared/coding-discipline.md). Write one line: `Mode · Tier · Scope lock · Task slug`. IF T2 and no task document THEN write an inline brief (≤10 lines, contract §2) before any edit.
 2. Run the code-intel preflight. For T1/T2 run `bash <skill-dir>/scripts/gate.sh start --task <slug>` (`<skill-dir>` holds this file) before the first edit. Output: baseline recorded.
