@@ -68,7 +68,7 @@ func validateGraph(g Graph) error {
         if r.ID==""||ids[r.Action]!="action"||r.Expected==""||r.Rejected==""||strings.TrimSpace(r.Description)==""||r.Actor==""||r.Entry==""||r.Oracle==""{return fmt.Errorf("invalid rule %s",r.ID)}
         if ids[r.Expected]!="state"{return fmt.Errorf("rule %s expected is not a state node",r.ID)}
         if r.Rejected!="UNCHANGED"&&ids[r.Rejected]!="state"{return fmt.Errorf("rule %s rejected is not a state node or UNCHANGED",r.ID)}
-        if r.Source!="user"&&r.Source!="document"&&r.Source!="derived"{return fmt.Errorf("rule %s has invalid source",r.ID)}
+        if r.Source!="user"&&r.Source!="document"{return fmt.Errorf("rule %s must come from user or explicit document; inferred requirements belong in risks",r.ID)}
         if _,ok:=ids[r.ID];ok{return fmt.Errorf("duplicate id %s",r.ID)}
         ids[r.ID]="rule"
         for _,c:=range r.Conditions{if ids[c]!="condition"{return fmt.Errorf("rule %s has unknown condition %s",r.ID,c)}}

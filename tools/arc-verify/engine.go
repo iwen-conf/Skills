@@ -172,6 +172,38 @@ func (d db) gate(graph string)(map[string]any,error){
         "invalid_tasks_or_evidence":broken,"open_risks":len(risks),
     },nil
 }
-func (d db) trace(run string)([][]string,error){
-    return d.query("SELECT "+fieldsSQL("r.id","r.task","r.status","COALESCE(s.expected,'')","COALESCE(s.observed,'')","COALESCE(s.verdict,'')","COALESCE(s.decision,'')","COALESCE(s.evidence_path,'')","COALESCE(s.evidence_sha256,'')")+" FROM runs r LEFT JOIN steps s ON r.id=s.run WHERE r.id="+quote(run)+";",9)
+type StepTrace struct {
+    Index string `json:"step"`
+    Expected string `json:"expected"`
+    Observed string `json:"observed"`
+    Verdict string `json:"verdict"`
+    Decision string `json:"decision"`
+    Evidence string `json:"raw"`
+    SHA256 string `json:"sha256"`
+}
+type TraceReport struct {
+    Run string `json:"run"`
+    Task string `json:"task"`
+    Status string `json:"status"`
+    FirstDivergence string `json:"first_divergence,omitempty"`
+    LatestObserved string `json:"latest_observed,omitempty"`
+    ContinueDecision string `json:"continue_decision"`
+    Steps []StepTrace `json:"steps"`
+}
+func (d db) trace(run string)(TraceReport,error){
+    rows,e:=d.query("SELECT "+fieldsSQL("r.id","r.task","r.status","COALESCE(CAST(s.idx AS TEXT),'')","COALESCE(s.expected,'')","COALESCE(s.observed,'')","COALESCE(s.verdict,'')","COALESCE(s.decision,'')","COALESCE(s.evidence_path,'')","COALESCE(s.evidence_sha256,'')")+" FROM runs r LEFT JOIN steps s ON r.id=s.run WHERE r.id="+quote(run)+" ORDER BY s.idx;",10)
+    if e!=nil{return TraceReport{},e}
+    if len(rows)==0{return TraceReport{},errors.New("run not found")}
+    out:=TraceReport{Run:run,Task:rows[0][1],Status:rows[0][2],ContinueDecision:"NONE",Steps:[]StepTrace{}}
+    for _,r:=range rows {
+        if r[3]==""{continue}
+        out.Steps=append(out.Steps,StepTrace{Index:r[3],Expected:r[4],Observed:r[5],Verdict:r[6],Decision:r[7],Evidence:r[8],SHA256:r[9]})
+        out.LatestObserved=r[5]
+        if r[6]=="FAIL" && out.FirstDivergence=="" {
+            out.FirstDivergence=r[3]
+            out.ContinueDecision=r[7]
+        }
+    }
+    if out.Status=="RUNNING"{out.ContinueDecision="CONTINUE"}
+    return out,nil
 }

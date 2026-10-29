@@ -79,3 +79,6 @@ that step. Only an explicitly safe, known observed state can be marked
 one PASS step, valid unchanged RAW files, and a final observation matching the
 task's frozen expected state. The gate reconstructs the mandatory task set
 and rechecks evidence hashes; counts alone cannot grant PASS.
+
+
+`arc-verify trace --run RUN_ID` returns an ordered execution trace with the **first diverging step**, latest observed state and next decision. A failed task cannot be overwritten by a successful diagnostic branch. `arc-verify recover --graph GRAPH --condition CONDITION` explores bounded AND prerequisites and OR recovery actions and marks unconfirmed actions unresolved rather than inventing rules.
