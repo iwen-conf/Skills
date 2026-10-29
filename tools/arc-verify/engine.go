@@ -40,9 +40,6 @@ func (d db) approve(graph,rule string)error{
         fmt.Sprintf("DELETE FROM plan_cursor WHERE graph=%s;",quote(graph)),
     })
 }
-// plan materializes only the next bounded frontier of confirmed obligations.
-// SQL performs set construction + missing-task filtering without loading all
-// graph rules or materializing a huge task array into agent context.
 // plan persists an exact rule/condition cursor in the same transaction as
 // each bounded task batch. Repeated planning is O(new obligations), not O(all
 // rules × number of batches). The CLI process can exit after every call.

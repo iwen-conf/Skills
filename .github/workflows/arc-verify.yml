@@ -1,4 +1,4 @@
-name: ARC Verify Go and local Turso
+name: ARC Verify Go native Turso performance and correctness
 on:
   pull_request:
     paths:
@@ -9,7 +9,7 @@ on:
     paths:
       - 'tools/arc-verify/**'
 jobs:
-  go:
+  native-go:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -19,37 +19,21 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: tools/arc-verify/go.mod
-      - run: go mod tidy && go test -race ./...
-      - run: go vet ./...
-      - run: go build .
+      - name: Resolve pinned native Turso driver
+        run: go mod tidy
+      - name: Run real local-Turso ledger tests and race checks
+        run: go test -race -count=1 ./...
+      - name: Static checks
+        run: go vet ./...
+      - name: Build short-lived CLI
+        run: go build -o arc-verify .
       - name: Profile synthetic local graph operations (not business E2E)
-        run: go test -run '^
-  local-turso:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: tools/arc-verify
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: tools/arc-verify/go.mod
-      - name: Verify in-process local Turso engine and business graph integration
         run: |
-          go mod tidy
-          go test -race -run TestTursoLocalBusinessChain -count=1 -v ./...
- -bench 'Benchmark(TaskCardPagination|GateWithRAW)' -benchmem -benchtime=100x -count=3 ./...
-  local-turso:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: tools/arc-verify
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+          set -o pipefail
+          go test -run=^BENCHMARK_ONLY_NONE -bench=Benchmark -benchmem -benchtime=100x -count=3 ./... | tee performance-benchmark.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          go-version-file: tools/arc-verify/go.mod
-      - name: Verify in-process local Turso engine and business graph integration
-        run: |
-          go mod tidy
-          go test -race -run TestTursoLocalBusinessChain -count=1 -v ./...
+          name: arc-verify-perf-results
+          path: tools/arc-verify/performance-benchmark.txt
+          if-no-files-found: ignore
