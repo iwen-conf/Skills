@@ -217,5 +217,6 @@ func (d db) trace(run string)(TraceReport,error){
         }
     }
     if out.Status=="RUNNING"{out.ContinueDecision="CONTINUE"}
+    if out.Status=="BLOCKED"{out.ContinueDecision="RESET"}
     return out,nil
 }

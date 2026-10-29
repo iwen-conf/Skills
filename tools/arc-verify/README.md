@@ -82,3 +82,16 @@ and rechecks evidence hashes; counts alone cannot grant PASS.
 
 
 `arc-verify trace --run RUN_ID` returns an ordered execution trace with the **first diverging step**, latest observed state and next decision. A failed task cannot be overwritten by a successful diagnostic branch. `arc-verify recover --graph GRAPH --condition CONDITION` explores bounded AND prerequisites and OR recovery actions and marks unconfirmed actions unresolved rather than inventing rules.
+
+## Resuming after failure or a lost runner
+
+    arc-verify trace --run R123
+    arc-verify abort --run R123 --reason "browser crashed; state unknown"
+    # Restore an isolated fixture and independently check its state first.
+    arc-verify retry --task "academic-v1/R-ENROLL/POSITIVE" --reason "recreated baseline"
+    arc-verify next --graph academic-v1
+
+An abort saves BLOCKED plus an immutable event. A retry creates a new
+READY task attempt without deleting old FAIL/BLOCKED runs or RAW. This is not
+database snapshot restoration, remote service rollback or permission to reuse
+uncertain shared state.

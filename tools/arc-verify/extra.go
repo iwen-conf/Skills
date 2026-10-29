@@ -21,6 +21,12 @@ func validateFixtures(f Fixtures)error{
  for _,v:=range f.Fixtures {
   if v.ID==""||v.Kind==""||v.State==""||seen[v.ID]{return fmt.Errorf("invalid/duplicate fixture %q",v.ID)}
   seen[v.ID]=true
+  for key:=range v.Refs {
+      k:=strings.ToLower(key)
+      for _,secret:=range []string{"password","secret","token","cookie","authorization","apikey","api_key"} {
+          if strings.Contains(k,secret){return fmt.Errorf("fixture %s contains credential-like metadata key %s",v.ID,key)}
+      }
+  }
   if v.SecretRef!=""&&!strings.HasPrefix(v.SecretRef,"env://")&&!strings.HasPrefix(v.SecretRef,"secret://"){return fmt.Errorf("fixture %s must use a secret reference, never plaintext",v.ID)}
  }
  return nil

@@ -13,13 +13,14 @@ import (
 func emit(v any){b,_:=json.MarshalIndent(v,"","  ");fmt.Println(string(b))}
 func main(){if e:=run(os.Args[1:]);e!=nil{fmt.Fprintln(os.Stderr,"arc-verify:",e);os.Exit(1)}}
 func run(args []string)error{
- if len(args)==0{return errors.New("usage: arc-verify <init|validate|import|approve|plan|next|recover|start|step|finish|record|trace|gate|risk|scan|gaps|fixtures|fixture> [options]")}
+ if len(args)==0{return errors.New("usage: arc-verify <init|validate|import|approve|plan|next|recover|start|step|finish|record|trace|abort|retry|gate|risk|scan|gaps|fixtures|fixture> [options]")}
  name:=args[0]
  f:=flag.NewFlagSet(name,flag.ContinueOnError)
  dbfile:=f.String("db",".arc/verify/data.db","local Turso database path")
  file:=f.String("file","","business graph JSON file")
  graph:=f.String("graph","","graph id")
  rule:=f.String("rule","","rule id for approval")
+ reason:=f.String("reason","","required human-readable reason for abort/retry")
  condition:=f.String("condition","","condition node id")
  maxDepth:=f.Int("max-depth",6,"recovery graph traversal depth, 1..8")
  task:=f.String("task","","task id")
@@ -86,6 +87,12 @@ func run(args []string)error{
    if *runID==""||*evidence==""||*observed==""{return errors.New("--run --observed --evidence required")}
    rawPath,e:=filepath.Abs(*evidence);if e!=nil{return e}
    v,e:=d.record(*runID,*observed,rawPath);if e==nil{emit(v)};return e
+ case "abort":
+   if *runID==""||*reason==""{return errors.New("--run --reason required")}
+   v,e:=d.abort(*runID,*reason);if e==nil{emit(v)};return e
+ case "retry":
+   if *task==""||*reason==""{return errors.New("--task --reason required")}
+   v,e:=d.retry(*task,*reason);if e==nil{emit(v)};return e
  case "trace":
    rows,e:=d.trace(*runID);if e==nil{emit(rows)};return e
  case "gate":
