@@ -103,3 +103,10 @@ complete graph-path enumeration is claimed yet.
 - 规划游标与任务卡同一事务持久化；晚确认的新规则会使游标回到起点，保留已生成任务和 Run 历史。增量规划只扫描未访问的规则段，运行结束后无常驻进程。已有 `.arc/verify/data.db` 升级后先执行 `arc-verify init` 完成幂等建表/索引。
 
 - [x] Fresh local Turso initialization: ensure all CREATE TABLE operations precede dependent indexes; wrap idempotent DDL in a transaction. Tests cover fresh/repeated initialization and preserving an existing graph. Latest GitHub Actions results must still confirm the tests before claiming PASS.
+
+## Native driver and CI readiness (2026-10-29)
+
+- `arc-verify init` now executes the table-first, index-last schema transactionally, fixing fresh local DB creation; regression tests cover first initialization, idempotence and preexisting data.
+- `arc-verify selftest` checks the real embedded Turso driver in a disposable local file without contacting the test server. `arc-policy doctor` invokes it when graph verification is configured.
+- `.github/workflows/arc-verify.yml` supports both main-branch changes and manual `workflow_dispatch`. The latest workflow must report real PASS; a compatible SQLite simulation is not a substitute for native Go/Turso test evidence.
+- Real browser E2E remains NOT_RUN without authorized target URL, fixture accounts and a trustworthy runner; automatic fixture restoration is not complete.

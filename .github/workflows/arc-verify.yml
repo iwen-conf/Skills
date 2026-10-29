@@ -1,5 +1,6 @@
 name: ARC Verify Go native Turso performance and correctness
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - 'tools/arc-verify/**'
