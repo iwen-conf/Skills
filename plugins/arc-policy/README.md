@@ -301,3 +301,26 @@ plugins/arc-policy/
 ```
 
 The six Arc skills (including `arc-vet`) stay in `Arc/` and continue to install through `scripts/sync_skills.py`. This plugin adds the enforcement plane; it does not fork those skills.
+
+### Phase-aware graph gate
+
+When graph verification is configured, `arc:verify` MUST satisfy the local
+`arc-verify gate` before a PASS receipt. This does **not** block
+`arc:code` repair work solely because the pre-fix E2E graph is red:
+its normal compile/test/quality gates remain mandatory, and the old graph
+failure remains FAIL until a subsequent `arc:verify` run proves the fix.
+
+Other skills do not receive a false "business graph PASS"; they are simply
+not authorized to assert the graph's runtime coverage. A project may
+explicitly opt additional skill phases into this gate:
+
+```yaml
+verification:
+  business_graph:
+    graph: academic-v1
+    db: .arc/verify/data.db
+    require_for_skills: [arc-code]
+```
+
+`arc-verify` can never be removed from the required phases. This avoids a
+verification ↔ repair deadlock without weakening `arc:verify` claims.

@@ -292,7 +292,22 @@ def _verify_task(
     if policy is None:
         policy = load_for_repo(root, languages=detect_languages(root))
     checks = [check_architecture(root, policy, task)]
-    business_check = check_business_graph(root, policy)
+    # A graph FAIL must never prevent arc:code from fixing the defect.
+    # Only arc:verify (and explicitly opted-in other skills) must close
+    # the business graph before receiving a delivery receipt.
+    graph_skills = {"arc-verify"}
+    graph_config = (policy.get("verification") or {}).get("business_graph")
+    if isinstance(graph_config, dict):
+        additional_skills = graph_config.get("require_for_skills", [])
+        if not isinstance(additional_skills, list) or any(
+            not isinstance(name, str) or not name.strip()
+            for name in additional_skills
+        ):
+            raise ValueError("verification.business_graph.require_for_skills must be a list of skill names")
+        graph_skills.update(additional_skills)
+    business_check = (
+        check_business_graph(root, policy) if task.get("skill") in graph_skills else None
+    )
     if business_check is not None:
         checks.append(business_check)
     if run_tests:
