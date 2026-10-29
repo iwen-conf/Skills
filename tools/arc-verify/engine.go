@@ -137,11 +137,11 @@ func (d db) gate(graph string)(map[string]any,error){
     // stable ordered query. Evidence bytes remain on disk until checked.
     statement:="SELECT "+fieldsSQL(
         "t.id","t.status","t.kind","t.condition","t.expected",
-        "q.conditions","COALESCE(r.id,'')","COALESCE(r.status,'')",
+        "COALESCE(q.conditions,'[]')","COALESCE(r.id,'')","COALESCE(r.status,'')",
         "COALESCE(CAST(s.idx AS TEXT),'')","COALESCE(s.expected,'')",
         "COALESCE(s.observed,'')","COALESCE(s.verdict,'')",
         "COALESCE(s.evidence_path,'')","COALESCE(s.evidence_sha256,'')",
-    )+" FROM tasks t JOIN rules q ON q.graph=t.graph AND q.id=t.rule "+
+    )+" FROM tasks t LEFT JOIN rules q ON q.graph=t.graph AND q.id=t.rule "+
       "LEFT JOIN runs r ON r.rowid=(SELECT MAX(rr.rowid) FROM runs rr WHERE rr.task=t.id) "+
       "LEFT JOIN steps s ON s.run=r.id WHERE t.graph="+quote(graph)+
       " ORDER BY t.id,s.idx;"

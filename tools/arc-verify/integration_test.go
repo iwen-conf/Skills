@@ -42,7 +42,12 @@ func TestTursoLocalBusinessChain(t *testing.T){
     defer other.close()
     result,err:=other.gate(g.ID);if err!=nil{t.Fatal(err)}
     if result["verdict"]!="PASS"{t.Fatalf("expected full verified task set, got %+v",result)}
-    // A brand-new task cannot be marked passed merely by inserting a fake PASS status.
+    // Orphan/extra tasks must not disappear from a gate via an inner join.
+    if err=other.tx([]string{"INSERT INTO tasks(id,graph,rule,kind,condition,expected,status) VALUES('orphan', 'academic-v1','not-a-rule','POSITIVE','','ready','PASS');"});err!=nil{t.Fatal(err)}
+    result,err=other.gate(g.ID);if err!=nil{t.Fatal(err)}
+    if result["verdict"]!="FAIL"{t.Fatalf("orphan task must fail closed, got %+v",result)}
+    if err=other.tx([]string{"DELETE FROM tasks WHERE id='orphan';"});err!=nil{t.Fatal(err)}
+    // A recorded PASS cannot survive RAW tampering.
     if err=other.tx([]string{fmt.Sprintf("UPDATE steps SET evidence_sha256='tampered' WHERE run=(SELECT id FROM runs LIMIT 1);")});err!=nil{t.Fatal(err)}
     result,err=other.gate(g.ID);if err!=nil{t.Fatal(err)}
     if result["verdict"]!="FAIL"{t.Fatalf("changed evidence hash must fail closed, got %+v",result)}
