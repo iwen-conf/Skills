@@ -9,7 +9,7 @@ This reference extends (not replaces) flow-model, flow-matrix and the existing v
 5. Keep task cards minimal and reference graph node/edge IDs. Expand only the selected task into an executable context. Never pre-materialize every path of a cyclic graph.
 6. Before starting a run, check the allowed environment alias, existing fixture ID and current source identity. E2E means interacting with the real client. The remote test server is ONLY the target system; the graph ledger is local.
 7. Save per-step RAW and observed business states. Verdict derives from an independently specified expected state, never from the implementation under test. On divergence: FAIL the original path; if the observed state is a known safe state, REPLAN as a *new* task; otherwise HALT/BLOCK. Passing a newly explored path does not rewrite the failed one.
-8. The Go CLI is a short-lived client of the official `tursodb` executable, opening `.arc/verify/data.db` directly. No daemon, remote DB token, Python CLI, PostgreSQL or object store.
+8. The Go CLI is a short-lived in-process user of the official Go `tursogo` driver, opening `.arc/verify/data.db` directly. No daemon, remote DB token, Python CLI, PostgreSQL or object store.
 9. A reproducible fixture is a recipe plus code/environment identity, not necessarily a snapshot. Verify state before resuming. Do not reuse dirty shared test entities or modify a production database. A local log cannot prove undo of external side effects.
 10. Gate only against user-confirmed rules, verified RAW and explicit coverage requirements. Unknown functionality and uncovered paths remain visible; never claim mathematical exhaustiveness.
 

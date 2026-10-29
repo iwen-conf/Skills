@@ -19,7 +19,7 @@ now checks the independent **Go** `arc-verify` business graph ledger when
 `.arc/verify/config.jsonc` exists or `verification.business_graph` is configured.
 
 The graph ledger lives in the target repository's local
-`.arc/verify/data.db` file, opened via the official `tursodb` SQL CLI.
+`.arc/verify/data.db` file, opened by the official in-process `tursogo` Go driver.
 It never contacts Turso Cloud; the tested web/API application may be on a
 separate authorized remote server. The Go CLI is short-lived: no daemon,
 persistent browser process or background worker.

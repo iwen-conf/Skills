@@ -7,7 +7,7 @@ when only Go unit tests or model validation ran.
 
 - C01: Reuse existing `arc:verify` and `arc-policy` rather than introducing a seventh Arc skill.
 - C02: Add graph nodes/edges, rule/risk separation and model validation.
-- C03: Add short-lived Go CLI and project-local Turso database schema via official `tursodb`.
+- C03: Add short-lived Go CLI and project-local Turso database schema via official `tursogo`.
 - C04: Require manual business catalog and per-rule confirmation before planning mandatory tasks.
 - C05: Generate positive, per-condition negative and forced-operation task references lazily.
 - C06: Record run/step with independent expected-vs-observed comparison and SHA-256 RAW reference.
@@ -22,7 +22,7 @@ when only Go unit tests or model validation ran.
 
 ## Next verified work packages (not done)
 
-- T01 **Native Turso integration gate**: install official `tursodb` in CI, exercise real
+- T01 **Native Turso integration gate**: use official `tursogo` Go driver in CI, exercise real
   SQL transactions, serialization, snapshots and concurrent claims; test failure exit codes.
   Do not claim DB integration on Go-only unit tests.
 - T02 **Implementation observation/absence (partial)**: evidence-backed action observations and gap listing exist; expand to real UI/API crawler, versioned implementation graph, false-negative review and explicit MISSING confirmation. `NOT_FOUND` stays a candidate gap.
@@ -56,14 +56,14 @@ an exact verdict (PASS/FAIL/BLOCKED/NOT_RUN), and an explicit list of unverified
 | First deviation and safe continuation | step/trace | Implemented core | fault E2E and readback |
 | Stable retry and historical attempts | abort/retry | Implemented core | process-crash test and data restoration |
 | Accounts/fixtures reuse | fixtures + JSONC refs | Partial | true identity bindings and live state reconstruction |
-| Local-only Turso | tursodb path | Implemented adapter, integration NOT_RUN | official shell, persistence and concurrency |
+| Local-only Turso | tursogo embedded driver | Implemented adapter, integration NOT_RUN | native driver, persistence and concurrency |
 | Independent, real E2E | browser/device adapter | NOT_RUN | user-like interaction on authorized test server |
 | Strong trust against same-user tampering | CI/principal separation | NOT_DONE | protected CI; separate runner authority |
 
 The terminal approval prompt can be spoofed by an agent able to drive a PTY.
 It is a workflow guard, not cryptographic user authorization.
 The RAW runner identity is currently a declarative string; do not call it a signature.
-The `tursodb` integration job must actually report PASS before this is considered
+The embedded Turso integration job must actually report PASS before this is considered
 production-qualified. No automatic fixture restoration, real browser driving or
 complete graph-path enumeration is claimed yet.
 
@@ -83,3 +83,12 @@ complete graph-path enumeration is claimed yet.
   official Turso integration CI, real E2E and detached evidence principal.
   `REQ → RULE → FLOW` remains a documented mapping rather than a
   fully enforced foreign-key relation; do not claim otherwise.
+
+## 2026-10-29 性能优化说明
+
+- 原 Shell 方案每条 SQL 单独 fork/exec，已切换官方 Go `tursogo@v0.8.3` in-process driver。CLI 仍不常驻。
+- SQL 结果直接按列扫描，移除 HEX+分隔符序列化。流式 gate 复用扫描缓冲，按任务扫描并一次读取、校验每份 RAW。
+- 业务验收从按任务 N+1 数据库查询改为有序 JOIN；索引覆盖就绪任务、规则审批、运行历史和实现入口。
+- 保持严格 RAW 完整性验收；不能因为追求速度跳过证据或者将风险判为规则。
+- 添加 `BenchmarkTaskCardPagination`、`BenchmarkGateWithRAW` 和原生 Turso 往返集成测试。没有实际跑出性能数据之前，**不声称提升倍数或者最优值**。
+- 需要至少三组可重复基准：100/1000/10000 条规则及任务规模、多进程写入冲突、长历史 RAW。必须同时报告 p50/p95、allocs/op、内存峰值和功能一致性。

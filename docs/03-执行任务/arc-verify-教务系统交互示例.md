@@ -34,7 +34,7 @@ AI 首先盘点学生、教师、管理员的页面、菜单、按钮、API 和�
 ## 3. 实际执行（不是模拟的 PASS）
 
 ```bash
-# 安装好 official tursodb 与 Go 编译的 arc-verify 后，在业务项目根目录：
+# 使用 Go 1.24+ 编译带官方 tursogo 驱动的 arc-verify 后，在业务项目根目录：
 arc-verify init
 arc-verify import --file /path/to/Skills/tools/arc-verify/examples/academic-v1.json
 arc-verify approve --graph academic-v1
