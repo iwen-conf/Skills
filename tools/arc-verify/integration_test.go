@@ -78,3 +78,20 @@ func TestTursoLazyPlannerHonorsBoundedFrontier(t *testing.T){
  if total!=150{t.Fatalf("expected 150 obligations, materialized %d",total)}
  if n,err:=d.plan(g.ID,32);err!=nil||n!=0{t.Fatalf("duplicate batch %d %v",n,err)}
 }
+
+func TestRecoveryReadsOnlyRelevantApprovedGraphSlice(t *testing.T){
+    d,err:=openDB(filepath.Join(t.TempDir(),"recover.db"),true)
+    if err!=nil{t.Fatal(err)}
+    defer d.close()
+    for _,q:=range schema{if _,err=d.sql(q);err!=nil{t.Fatal(err)}}
+    g:=sample()
+    g.Nodes=append(g.Nodes,Node{ID:"login_action",Kind:"action",Name:"Login"})
+    g.Edges=append(g.Edges,Edge{ID:"recovery",From:"login_action",To:"login",Kind:"recovers"})
+    if err=validateGraph(g);err!=nil{t.Fatal(err)}
+    if err=d.importGraph(g);err!=nil{t.Fatal(err)}
+    result,err:=d.recover(g.ID,"login",4);if err!=nil{t.Fatal(err)}
+    if len(result.Actions)!=1||result.Actions[0].Approved||len(result.Unresolved)!=1{
+       t.Fatalf("unconfirmed recovery must be unresolved: %+v",result)
+    }
+    if result.Truncated{t.Fatal("single recovery unexpectedly truncated")}
+}

@@ -22,6 +22,23 @@ jobs:
       - run: go mod tidy && go test -race ./...
       - run: go vet ./...
       - run: go build .
+      - name: Profile synthetic local graph operations (not business E2E)
+        run: go test -run '^
+  local-turso:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/arc-verify
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: tools/arc-verify/go.mod
+      - name: Verify in-process local Turso engine and business graph integration
+        run: |
+          go mod tidy
+          go test -race -run TestTursoLocalBusinessChain -count=1 -v ./...
+ -bench 'Benchmark(TaskCardPagination|GateWithRAW)' -benchmem -benchtime=100x -count=3 ./...
   local-turso:
     runs-on: ubuntu-latest
     defaults:

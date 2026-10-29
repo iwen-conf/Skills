@@ -129,3 +129,21 @@ exits after each operation, without background service or Turso Cloud. The optio
 `tursodb .arc/verify/data.db` shell is for manual inspection, not a runtime dependency.
 Go 1.24+ is required by the official driver. `go mod tidy` downloads verified module
 checksums during setup. Avoid unbounded connection pools or untrusted remote DSNs.
+
+
+## Repeatable performance baseline
+
+```bash
+cd tools/arc-verify
+go mod tidy
+go test -run '^$' -bench 'Benchmark(TaskCardPagination|GateWithRAW)' -benchmem -count=5
+```
+
+Benchmark data is synthetic and isolated; it never accesses the remote test server
+or passes a business E2E claim. Compare p50/p95 of **complete CLI commands** as well
+as ns/op and allocs/op of the in-process components. Reject an optimization if it
+breaks any contract/risk gate, orphan/absent-task detection or RAW revalidation.
+Task materialization uses `plan --limit 128` (range 1..1024), and `recover`
+reads only an indexed bounded graph slice (max depth 8, max 128 actions).
+`gate` remains an intentionally exhaustive integrity check over *all* required
+confirmed obligations; never substitute a fast status count for an E2E receipt.
