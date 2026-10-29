@@ -4,6 +4,7 @@ import (
  "crypto/rand"
  "crypto/sha256"
  "context"
+ "database/sql"
  "time"
  "encoding/hex"
  "encoding/json"
@@ -28,42 +29,90 @@ func (d db) approve(graph,rule string)error{
     if graph==""{return errors.New("graph ID required")}
     exists,e:=d.query("SELECT "+fieldsSQL("id")+" FROM graphs WHERE id="+quote(graph)+";",1)
     if e!=nil{return e};if len(exists)!=1{return errors.New("graph not found")}
-    if rule==""{return d.tx([]string{fmt.Sprintf("UPDATE graphs SET approved=1 WHERE id=%s;",quote(graph))})}
+    if rule==""{return d.tx([]string{
+        fmt.Sprintf("UPDATE graphs SET approved=1 WHERE id=%s;",quote(graph)),
+        fmt.Sprintf("DELETE FROM plan_cursor WHERE graph=%s;",quote(graph)),
+    })}
     rows,e:=d.query("SELECT "+fieldsSQL("source")+" FROM rules WHERE graph="+quote(graph)+" AND id="+quote(rule)+";",1)
     if e!=nil{return e};if len(rows)!=1{return errors.New("rule not found")}
-    return d.tx([]string{fmt.Sprintf("UPDATE rules SET approved=1 WHERE graph=%s AND id=%s;",quote(graph),quote(rule))})
+    return d.tx([]string{
+        fmt.Sprintf("UPDATE rules SET approved=1 WHERE graph=%s AND id=%s;",quote(graph),quote(rule)),
+        fmt.Sprintf("DELETE FROM plan_cursor WHERE graph=%s;",quote(graph)),
+    })
 }
 // plan materializes only the next bounded frontier of confirmed obligations.
 // SQL performs set construction + missing-task filtering without loading all
 // graph rules or materializing a huge task array into agent context.
+// plan persists an exact rule/condition cursor in the same transaction as
+// each bounded task batch. Repeated planning is O(new obligations), not O(all
+// rules × number of batches). The CLI process can exit after every call.
 func (d db) plan(graph string,limits ...int)(int,error){
     limit:=128
     if len(limits)>0{limit=limits[0]}
     if limit<1||limit>1024{return 0,errors.New("plan limit must be 1..1024")}
-    rows,e:=d.query("SELECT "+fieldsSQL("CAST(approved AS TEXT)")+" FROM graphs WHERE id="+quote(graph)+";",1)
+    approved,e:=d.query("SELECT "+fieldsSQL("CAST(approved AS TEXT)")+" FROM graphs WHERE id="+quote(graph)+";",1)
     if e!=nil{return 0,e}
-    if len(rows)!=1||rows[0][0]!="1"{return 0,errors.New("business catalog requires explicit user approval")}
-    query:=fmt.Sprintf(
-      "WITH candidates(id,graph,rule,kind,condition,expected) AS ("+
-      "SELECT q.graph||'/'||q.id||'/POSITIVE',q.graph,q.id,'POSITIVE','',q.expected "+
-      "FROM rules q WHERE q.graph=%s AND q.approved=1 "+
-      "UNION ALL "+
-      "SELECT q.graph||'/'||q.id||'/NEGATIVE/'||j.value,q.graph,q.id,'NEGATIVE',j.value,q.rejected "+
-      "FROM rules q,json_each(q.conditions) j WHERE q.graph=%s AND q.approved=1 "+
-      "UNION ALL "+
-      "SELECT q.graph||'/'||q.id||'/FORCED/'||j.value,q.graph,q.id,'FORCED',j.value,q.rejected "+
-      "FROM rules q,json_each(q.conditions) j WHERE q.graph=%s AND q.approved=1 "+
-      ") INSERT OR IGNORE INTO tasks(id,graph,rule,kind,condition,expected) "+
-      "SELECT c.id,c.graph,c.rule,c.kind,c.condition,c.expected FROM candidates c "+
-      "WHERE NOT EXISTS(SELECT 1 FROM tasks t WHERE t.id=c.id) ORDER BY c.id LIMIT %d;",
-      quote(graph),quote(graph),quote(graph),limit)
+    if len(approved)!=1||approved[0][0]!="1"{return 0,errors.New("business catalog requires explicit user approval")}
     ctx,cancel:=context.WithTimeout(context.Background(),60*time.Second)
     defer cancel()
-    result,e:=d.handle.ExecContext(ctx,query)
+    tx,e:=d.handle.BeginTx(ctx,nil)
     if e!=nil{return 0,e}
-    n,e:=result.RowsAffected()
+    defer tx.Rollback()
+    cursor:=""
+    offset:=0
+    err:=tx.QueryRowContext(ctx,
+        "SELECT rule_id,offset FROM plan_cursor WHERE graph=?",graph,
+    ).Scan(&cursor,&offset)
+    if err!=nil&&err!=sql.ErrNoRows{return 0,err}
+    rows,e:=tx.QueryContext(ctx,
+        "SELECT id,conditions,expected,rejected FROM rules "+
+        "WHERE graph=? AND approved=1 AND id>=? ORDER BY id LIMIT ?",
+        graph,cursor,limit+2)
     if e!=nil{return 0,e}
-    return int(n),nil
+    type obligation struct{Rule,Kind,Condition,Expected,ID string}
+    pending:=make([]obligation,0,limit)
+    nextRule,nextOffset:=cursor,offset
+    for rows.Next(){
+        var id,conditionsJSON,success,rejected string
+        if e=rows.Scan(&id,&conditionsJSON,&success,&rejected);e!=nil{rows.Close();return 0,e}
+        var conditions []string
+        if e=json.Unmarshal([]byte(conditionsJSON),&conditions);e!=nil{rows.Close();return 0,e}
+        if len(conditions)>64{rows.Close();return 0,fmt.Errorf("rule %s has too many conditions",id)}
+        items:=make([]obligation,0,1+len(conditions)*2)
+        prefix:=graph+"/"+id
+        items=append(items,obligation{Rule:id,Kind:"POSITIVE",Expected:success,ID:prefix+"/POSITIVE"})
+        for _,condition:=range conditions {
+            items=append(items,obligation{Rule:id,Kind:"NEGATIVE",Condition:condition,Expected:rejected,ID:prefix+"/NEGATIVE/"+condition})
+            items=append(items,obligation{Rule:id,Kind:"FORCED",Condition:condition,Expected:rejected,ID:prefix+"/FORCED/"+condition})
+        }
+        start:=0
+        if id==cursor{start=offset}
+        if start<0||start>len(items){rows.Close();return 0,errors.New("planner cursor is invalid; refusing to skip tasks")}
+        for pos:=start;pos<len(items)&&len(pending)<limit;pos++ {
+            pending=append(pending,items[pos])
+            nextRule,nextOffset=id,pos+1
+        }
+        if len(pending)==limit{break}
+    }
+    if e=rows.Err();e!=nil{rows.Close();return 0,e}
+    if e=rows.Close();e!=nil{return 0,e}
+    if len(pending)==0{return 0,tx.Commit()}
+    statement,e:=tx.PrepareContext(ctx,
+        "INSERT OR IGNORE INTO tasks(id,graph,rule,kind,condition,expected) VALUES(?,?,?,?,?,?)")
+    if e!=nil{return 0,e}
+    for _,task:=range pending{
+        if _,e=statement.ExecContext(ctx,task.ID,graph,task.Rule,task.Kind,task.Condition,task.Expected);e!=nil{
+            statement.Close();return 0,e
+        }
+    }
+    if e=statement.Close();e!=nil{return 0,e}
+    _,e=tx.ExecContext(ctx,
+        "INSERT INTO plan_cursor(graph,rule_id,offset) VALUES(?,?,?) "+
+        "ON CONFLICT(graph) DO UPDATE SET rule_id=excluded.rule_id,offset=excluded.offset",
+        graph,nextRule,nextOffset)
+    if e!=nil{return 0,e}
+    if e=tx.Commit();e!=nil{return 0,e}
+    return len(pending),nil
 }
 type TaskCard struct {
     ID string `json:"id"`

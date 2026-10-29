@@ -111,6 +111,7 @@ var schema=[]string{
     "CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, task TEXT NOT NULL, environment TEXT NOT NULL, commit_sha TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'RUNNING', created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);",
     "CREATE TABLE IF NOT EXISTS steps (run TEXT NOT NULL, idx INTEGER NOT NULL, expected TEXT NOT NULL, observed TEXT NOT NULL, verdict TEXT NOT NULL, decision TEXT NOT NULL, evidence_path TEXT NOT NULL, evidence_sha256 TEXT NOT NULL, PRIMARY KEY(run,idx));",
     "CREATE TABLE IF NOT EXISTS fixtures (id TEXT PRIMARY KEY, body TEXT NOT NULL);",
+"CREATE TABLE IF NOT EXISTS plan_cursor (graph TEXT PRIMARY KEY, rule_id TEXT NOT NULL, offset INTEGER NOT NULL);",
 "CREATE INDEX IF NOT EXISTS idx_edges_reverse ON edges(graph,kind,target,source);",
 "CREATE INDEX IF NOT EXISTS idx_rules_action ON rules(graph,action,approved);",
 "CREATE INDEX IF NOT EXISTS idx_tasks_ready ON tasks(graph,status,id);",

@@ -71,7 +71,12 @@ func validateGraph(g Graph) error {
         if r.Source!="user"&&r.Source!="document"{return fmt.Errorf("rule %s must come from user or explicit document; inferred requirements belong in risks",r.ID)}
         if _,ok:=ids[r.ID];ok{return fmt.Errorf("duplicate id %s",r.ID)}
         ids[r.ID]="rule"
-        for _,c:=range r.Conditions{if ids[c]!="condition"{return fmt.Errorf("rule %s has unknown condition %s",r.ID,c)}}
+        if len(r.Conditions)>64{return fmt.Errorf("rule %s exceeds 64 preconditions",r.ID)}
+        seenConditions:=map[string]bool{}
+        for _,c:=range r.Conditions{
+            if ids[c]!="condition"||seenConditions[c]{return fmt.Errorf("rule %s has invalid or duplicated condition %s",r.ID,c)}
+            seenConditions[c]=true
+        }
         connected:=map[string]bool{}
         for _,e:=range g.Edges{
             if e.Kind=="requires"&&e.To==r.Action{connected[e.From]=true}
