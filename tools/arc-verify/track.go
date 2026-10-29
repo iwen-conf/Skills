@@ -18,6 +18,7 @@ type StepRAW struct {
     Step int `json:"step"`
     Expected string `json:"expected"`
     Observed string `json:"observed"`
+    Preconditions map[string]bool `json:"preconditions"`
     Before string `json:"before,omitempty"`
     After string `json:"after,omitempty"`
     Denied bool `json:"denied,omitempty"`
@@ -62,6 +63,19 @@ func parseStepRAW(raw []byte, run, expected, observed string, index int) (StepRA
     return v,nil
 }
 
+// Validate actual preconditions independently before evaluating the action's
+// result. A rejection for the wrong reason is never a PASS.
+func conditionsMatch(v StepRAW, kind, failed string, required []string) bool {
+    if len(v.Preconditions)<len(required){return false}
+    for _,condition:=range required{
+        actual,found:=v.Preconditions[condition]
+        if !found{return false}
+        shouldBeSatisfied:=kind=="POSITIVE"||condition!=failed
+        if actual!=shouldBeSatisfied{return false}
+    }
+    return true
+}
+
 func loadEvidence(path string)(string,[]byte,error){
     abs,e:=filepath.Abs(path);if e!=nil{return "",nil,e}
     stat,e:=os.Lstat(abs);if e!=nil{return "",nil,e}
@@ -72,7 +86,7 @@ func loadEvidence(path string)(string,[]byte,error){
 }
 
 func (d db) step(run,expected,observed,evidence string)(map[string]any,error){
-    rows,e:=d.query("SELECT "+fieldsSQL("t.expected","t.graph","r.status")+" FROM runs r JOIN tasks t ON t.id=r.task WHERE r.id="+quote(run)+";",3)
+    rows,e:=d.query("SELECT "+fieldsSQL("t.expected","t.graph","r.status","t.kind","t.condition","q.conditions")+" FROM runs r JOIN tasks t ON t.id=r.task JOIN rules q ON q.graph=t.graph AND q.id=t.rule WHERE r.id="+quote(run)+";",6)
     if e!=nil{return nil,e}
     if len(rows)!=1||rows[0][2]!="RUNNING"{return nil,errors.New("run not RUNNING")}
     finalExpected,graph:=rows[0][0],rows[0][1]
@@ -90,7 +104,14 @@ func (d db) step(run,expected,observed,evidence string)(map[string]any,error){
     observation,e:=parseStepRAW(raw,run,expected,observed,index);if e!=nil{return nil,e}
     h:=sha256.Sum256(raw);sha:=hex.EncodeToString(h[:])
     verdict,decision:="PASS","CONTINUE"
-    if expected!=observed||observation.ExitCode!=0{
+    if expected==finalExpected {
+        var required []string
+        if e=json.Unmarshal([]byte(rows[0][5]),&required);e!=nil{return nil,e}
+        if !conditionsMatch(observation,rows[0][3],rows[0][4],required){
+            verdict,decision="BLOCKED","RESET"
+        }
+    }
+    if verdict=="PASS"&&(expected!=observed||observation.ExitCode!=0){
         verdict,decision="FAIL","HALT"
         // Replan only when a known state was independently observed and the
         // observer explicitly certifies the state is safe for a new branch.
@@ -104,9 +125,9 @@ func (d db) step(run,expected,observed,evidence string)(map[string]any,error){
         fmt.Sprintf("INSERT INTO steps(run,idx,expected,observed,verdict,decision,evidence_path,evidence_sha256) SELECT %s,%d,%s,%s,%s,%s,%s,%s FROM runs WHERE id=%s AND status='RUNNING';",
           quote(run),index,quote(expected),quote(observed),quote(verdict),quote(decision),quote(path),quote(sha),quote(run)),
     }
-    if verdict=="FAIL"{
-        stmts=append(stmts,fmt.Sprintf("UPDATE runs SET status='FAIL' WHERE id=%s AND status='RUNNING';",quote(run)))
-        stmts=append(stmts,fmt.Sprintf("UPDATE tasks SET status='FAIL' WHERE id=(SELECT task FROM runs WHERE id=%s);",quote(run)))
+    if verdict!="PASS"{
+        stmts=append(stmts,fmt.Sprintf("UPDATE runs SET status=%s WHERE id=%s AND status='RUNNING';",quote(verdict),quote(run)))
+        stmts=append(stmts,fmt.Sprintf("UPDATE tasks SET status=%s WHERE id=(SELECT task FROM runs WHERE id=%s);",quote(verdict),quote(run)))
     }
     if e=d.tx(stmts);e!=nil{return nil,e}
     check,e:=d.query("SELECT "+fieldsSQL("verdict","evidence_sha256")+" FROM steps WHERE run="+quote(run)+" AND idx="+fmt.Sprint(index)+";",2)

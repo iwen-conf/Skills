@@ -14,5 +14,10 @@
       "ui": "success banner",
       "database": "one enrollment"
     }
-  ]
+  ],
+  "preconditions": {
+    "logged_in": true,
+    "window_open": true,
+    "seats_available": true
+  }
 }

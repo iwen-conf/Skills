@@ -29,6 +29,7 @@ func TestTursoLocalBusinessChain(t *testing.T){
         raw:=StepRAW{
             Run:run,Step:1,Expected:card.Expected,Observed:card.Expected,
             Oracle:"independent database readback",Runner:"test-e2e-adapter",ExitCode:0,
+            Preconditions:map[string]bool{"login":card.Type=="POSITIVE"},
         }
         if card.Expected=="UNCHANGED"{raw.Before="PENDING";raw.After="PENDING";raw.Denied=true}
         content,_:=json.Marshal(raw)

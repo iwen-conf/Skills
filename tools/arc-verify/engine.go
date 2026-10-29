@@ -104,7 +104,7 @@ func (d db) record(run,observed,evidence string)(map[string]string,error){
     detail,e:=d.step(run,"",observed,evidence)
     if e!=nil{return nil,e}
     if detail["verdict"]!="PASS"{
-        return map[string]string{"run":run,"verdict":"FAIL","decision":fmt.Sprint(detail["decision"])},nil
+        return map[string]string{"run":run,"verdict":fmt.Sprint(detail["verdict"]),"decision":fmt.Sprint(detail["decision"])},nil
     }
     finished,e:=d.finish(run)
     if e!=nil{return nil,e}
@@ -156,6 +156,18 @@ func (d db) gate(graph string)(map[string]any,error){
         want,e:=d.query("SELECT "+fieldsSQL("expected")+" FROM tasks WHERE id="+quote(t[0])+";",1)
         if e!=nil{return nil,e}
         if len(want)!=1||last[1]!=want[0][0]{trustworthy=false}
+        // No PASS for a path whose before-action conditions were never met.
+        contextRows,e:=d.query("SELECT "+fieldsSQL("t.kind","t.condition","q.conditions")+" FROM tasks t JOIN rules q ON q.graph=t.graph AND q.id=t.rule WHERE t.id="+quote(t[0])+";",3)
+        if e!=nil{return nil,e}
+        if len(contextRows)!=1{trustworthy=false}else{
+            var required []string
+            if e=json.Unmarshal([]byte(contextRows[0][2]),&required);e!=nil{return nil,e}
+            _,raw,e:=loadEvidence(last[4])
+            if e!=nil{trustworthy=false}else{
+                observed,e:=parseStepRAW(raw,runs[0][0],last[1],last[2],len(steps))
+                if e!=nil||!conditionsMatch(observed,contextRows[0][0],contextRows[0][1],required){trustworthy=false}
+            }
+        }
         if trustworthy{passed++}else{broken++}
     }
     missing:=0
