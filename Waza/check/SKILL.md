@@ -2,10 +2,11 @@
 name: check
 description: >-
   Complete authorized delivery actions on any git host (GitHub, CNB, others): commit, push, open or update a
-  pull request, tag, publish a release, and follow through on issues and PRs once the change is done.
-  Use for 提交, 推送, 开PR, 发布, 发版, 关闭 issue and release follow-through. Not while code still needs
-  changing (use arc:code first), for code review (use arc:audit), or for release evidence and GO/NO-GO
-  (use arc:verify).
+  pull request, tag, publish a release, consolidate and delete branches, build and hand over packages
+  (apk, exe, app, binaries) to a device or file server, and follow through on issues and PRs once the
+  change is done. Use for 提交, 推送, 开PR, 发布, 发版, 合并分支, 删除多余分支, 打包构建, 出包, 安装到手机,
+  上传到文件服务器, 关闭 issue and release follow-through. Not while code still needs changing (use
+  arc:code first), for code review (use arc:audit), or for release evidence and GO/NO-GO (use arc:verify).
 ---
 
 # Check: Delivery Follow-through
@@ -20,6 +21,7 @@ Adapted from [tw93/Waza](https://github.com/tw93/Waza), under the [MIT license](
 | Requested result | Owner |
 |---|---|
 | Commit, push, branch and PR on any host, tag, publish, release, authorized issue/PR follow-through | This skill |
+| Branch consolidation, package builds handed to a device, tester or file server | This skill |
 | Other CNB platform actions (TAPD, NPC, attachments, review comments) | `cnb` |
 | Review a diff, assess release readiness or triage code risks without changes | `arc:audit` |
 | Implement a plan or fix a confirmed defect | `arc:code` |

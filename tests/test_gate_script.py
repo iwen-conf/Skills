@@ -384,6 +384,36 @@ def test_go_module_vets_and_tests_affected_packages(tmp_path: Path) -> None:
     assert result.returncode == 1
 
 
+@pytest.mark.parametrize("system", ["Darwin", "Linux"])
+def test_rust_clippy_and_tests_never_compile_on_macos(tmp_path: Path, system: str) -> None:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    calls = tmp_path / "cargo-calls"
+    (bin_dir / "uname").write_text(f"#!/bin/sh\necho {system}\n", encoding="utf-8")
+    (bin_dir / "cargo").write_text(f'#!/bin/sh\necho "$*" >> "{calls}"\n', encoding="utf-8")
+    for stub in bin_dir.iterdir():
+        stub.chmod(0o755)
+    repo = make_repo(tmp_path)
+    (repo / "Cargo.toml").write_text("[package]\nname = 'demo'\n", encoding="utf-8")
+    (repo / "src").mkdir()
+    (repo / "src" / "lib.rs").write_text("pub fn one() -> u8 { 1 }\n", encoding="utf-8")
+    commit_all(repo)
+    env = {**ENV, "PATH": f"{bin_dir}{os.pathsep}{ENV['PATH']}"}
+    assert gate(repo, "start", env=env).returncode == 0
+    (repo / "src" / "lib.rs").write_text("pub fn one() -> u8 { 2 }\n", encoding="utf-8")
+
+    status = checks(gate(repo, "check", env=env).stdout)
+    invoked = calls.read_text(encoding="utf-8") if calls.exists() else ""
+
+    if system == "Darwin":
+        assert status["lint(rust)"].startswith("NOT_RUN(no Rust compilation on macOS")
+        assert status["tests(rust)"].startswith("NOT_RUN(no Rust compilation on macOS")
+        assert "clippy --quiet" not in invoked and "test --quiet" not in invoked
+    else:
+        assert "clippy --quiet -- -D warnings" in invoked
+        assert "test --quiet" in invoked
+
+
 def test_python_runs_tests_named_after_changed_module(tmp_path: Path) -> None:
     bindir = str(Path(sys.executable).parent)
     if shutil.which("pytest", path=bindir) is None:

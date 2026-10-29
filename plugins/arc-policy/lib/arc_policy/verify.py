@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from arc_policy.detect import detect_languages, recommended_skill
-from arc_policy.gitutil import dirty_paths, tree_fingerprint
+from arc_policy.gitutil import dirty_paths, index_tree, tree_fingerprint
 from arc_policy.policy import load_for_repo
 from arc_policy.store import active_task, invalidate_receipt, save_receipt, task_lock
 
@@ -152,7 +152,8 @@ def _check_command(
     if not configured and sys.platform == "darwin" and argv[:2] == ["cargo", "test"]:
         return {
             "verdict": "BLOCKED",
-            "reason": f"{label}: configure verification.test_commands for Rust tests; local compilation must use cargo zigbuild",
+            "reason": f"{label}: Rust does not compile on this Mac (not even with cargo zigbuild); "
+            "configure verification.test_commands that run the tests on the remote build host",
         }
     try:
         result = _run(cwd, argv)
@@ -260,6 +261,7 @@ def _verify_task(
 ) -> dict[str, Any]:
     task = invalidate_receipt(root)
     fingerprint = tree_fingerprint(root)
+    tree = index_tree(root)
     if policy is None:
         policy = load_for_repo(root, languages=detect_languages(root))
     checks = [check_architecture(root, policy, task)]
@@ -298,6 +300,7 @@ def _verify_task(
         "head": fingerprint["head"],
         "dirty": fingerprint["dirty"],
         "digest": fingerprint["digest"],
+        "tree": tree,
         "verdict": overall,
         "checks": checks,
     }
@@ -323,3 +326,41 @@ def _verify_task(
         receipt["checks"] = checks
         receipt["verdict"] = "FAIL"
     return receipt
+
+
+def authorize_task(root: Path, quote: str) -> dict[str, Any]:
+    """Bind the user's explicit go-ahead to commit and push this tree without verification.
+
+    The receipt records the user's words; it is not evidence that any check passed.
+    """
+    quote = " ".join(quote.split())
+    if not quote:
+        raise ValueError("--quote must hold the user's own words confirming the commit")
+    with task_lock(root):
+        task = active_task(root)
+        if not task:
+            raise RuntimeError(
+                "no active task; run `arc-policy task begin --skill …` first"
+            )
+        fingerprint = tree_fingerprint(root)
+        receipt = {
+            "slug": task["slug"],
+            "skill": task["skill"],
+            "task_id": task["id"],
+            "created_at": _now(),
+            "head": fingerprint["head"],
+            "dirty": fingerprint["dirty"],
+            "digest": fingerprint["digest"],
+            "tree": index_tree(root),
+            "verdict": "AUTHORIZED",
+            "authorization": {"by": "user", "quote": quote},
+            "checks": [
+                {
+                    "id": "user_authorization",
+                    "verdict": "NOT_RUN",
+                    "reason": "the user confirmed delivery without `task verify`; no check ran",
+                }
+            ],
+        }
+        save_receipt(root, receipt)
+        return receipt

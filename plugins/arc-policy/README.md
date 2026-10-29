@@ -114,12 +114,21 @@ Add `"dsh-arc-policy": "link:../../plugins/dsh-arc-policy"` (a link; a `file:` c
 ```bash
 arc-policy task begin --skill arc-code
 # agent writes code, follows the Arc skill
+git -C <repo> add <owned files>        # stage first: the receipt binds the index
 arc-policy task verify
 # receipt matches task + HEAD + index and file contents → Stop unblocks delivery claims
-# git commit is allowed
+# git -C <repo> commit is allowed; pushing that exact commit needs no second verify
 ```
 
-A task is delivered once HEAD has moved past its PASS receipt and the changes that receipt
+When verification cannot pass and the user explicitly confirms committing anyway, the agent
+stages the commit and runs `arc-policy task authorize --quote '<the user's words>'`. The
+`AUTHORIZED` receipt binds the same tree and records the quote; it proves the user's decision,
+not any check. On hosts that send a transcript (Claude Code, Codex), `PreToolUse` refuses a quote
+that is not in one of the user's last 5 typed messages (host-injected text and pasted material
+excluded). The agent then commits and pushes itself; it never hands `git add` or `git commit`
+to the user.
+
+A task is delivered once HEAD has moved past its PASS or AUTHORIZED receipt and the changes that receipt
 verified are committed. A delivered task no longer covers new edits: `PreToolUse` denies source
 edits until the next `task begin`, which archives the delivered task to history without
 `--force`. `task end` also accepts a delivered task. If the verified changes are still
@@ -142,10 +151,15 @@ child repositories and `Stop` checks them. An edit tool whose input names no pat
 `task begin` also registers the Git-level gate in that repository (`arc-policy install-git-hooks`
 does the same by hand): config-based `pre-commit` and `pre-push` hooks (Git 2.54+), which run
 beside any hook files or `core.hooksPath`. When an agent commits or pushes, however Git is invoked
-(`bash -c`, a script, a subprocess), the hook requires a receipt matching the tree; push after a
-commit therefore needs another `task verify`. Humans are not gated: the check applies only when an
-agent marker is set (`CLAUDECODE`, `GROK_AGENT`, `CODEX_THREAD_ID`, `CODEX_CI`, `CURSOR_AGENT`,
-`PI_CODING_AGENT`, `AI_AGENT`, or `ARC_POLICY_AGENT`, which the DSH adapter exports).
+(`bash -c`, a script, a subprocess), the hook requires a receipt matching the tree. A push also
+passes when every commit it sends (read from the pre-push ref list; `HEAD` when Git sends none)
+is exactly the receipt's tree and descends from the receipt's `HEAD`, so a verified or authorized
+commit is pushed without another `task verify`. Ref deletions still need a matching receipt.
+Humans are not gated: the check applies only when an agent marker is set (`CLAUDECODE`,
+`GROK_AGENT`, `CODEX_THREAD_ID`, `CODEX_CI`, `CURSOR_AGENT`, `PI_CODING_AGENT`, `AI_AGENT`, or
+`ARC_POLICY_AGENT`, which the DSH adapter exports). A command the user types into the host
+(Claude Code `!`) inherits those markers: pushing the agent's receipt-covered commit works there;
+anything else runs from a separate terminal.
 
 Project overlay: `.arc/policy.yaml` (merged on top of `policies/default.yaml`).
 
@@ -153,7 +167,8 @@ Verification checks every detected affected Go, Rust, Python and JavaScript test
 including nested modules and untracked files. Rust defaults to all test targets, without
 `--lib`. Missing runners, missing JavaScript `scripts.test`, and failed commands cannot produce a PASS. Python uses the existing
 project virtual environment when available. On macOS, automatic Rust tests are `BLOCKED`:
-local compilation must use `cargo zigbuild`; declare the project's actual test workflow.
+Rust is not compiled on the Mac, not even with `cargo zigbuild`; declare test commands that run
+on the remote build host.
 
 For a project with its own test entry points, declare the complete required plan explicitly.
 Every command runs without a shell; `cwd` must stay inside the repository. For this Skills

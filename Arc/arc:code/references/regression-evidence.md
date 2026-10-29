@@ -4,6 +4,23 @@ Additional probes adapted from Waza's Hunt workflow; [MIT license](../../../Waza
 Use the sections matching the observed failure. The owning procedure remains
 [repair.md](repair.md); hypotheses, scope, evidence verdicts and investigation limits stay there.
 
+## Earlier work
+
+Other agents (Grok, Codex, another Claude session) edit the same repositories. A recent commit
+or dirty change that reverted or replaced this task's earlier work is reported with its diff
+before editing over it.
+
+When the user says the problem was already fixed or the feature already built (昨天修过、之前做过、
+按照昨天那个、某个 agent 改过), find that change before re-deriving it:
+
+1. `git log --all --since=<date> --format='%h %an %ci %d %s'` in every repository of the product
+   (client, server, other platforms), plus `git stash list`, unmerged branches, `git worktree list`
+   and the task progress table.
+2. Diff the found change against the current branch: is it merged, partly merged, reverted by a
+   later commit, or only in a stash or another worktree?
+3. Reuse it as the baseline; take only its owned parts when a stash or branch mixes unrelated work,
+   and name what was left out. Report where it was found. Nothing found → say so with the queries run.
+
 ## Known-good history
 
 - Record the reported last-good commit/version and a reproducible pass/fail command. For a small

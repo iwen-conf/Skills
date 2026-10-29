@@ -20,7 +20,7 @@ from arc_policy.store import (
     end_task,
     receipt_matches_tree,
 )
-from arc_policy.verify import verify_task
+from arc_policy.verify import authorize_task, verify_task
 
 
 def _print_json(data: object) -> int:
@@ -76,7 +76,13 @@ def cmd_git_hook(args: argparse.Namespace) -> int:
     # During `git commit -a` Git points hooks at a temporary index; receipts bind the real one.
     os.environ.pop("GIT_INDEX_FILE", None)
     root = repo_root(Path(args.cwd) if args.cwd else None)
-    reason = refusal(root, args.event, os.environ)
+    # pre-push receives `<local ref> <local sha> <remote ref> <remote sha>` lines on stdin.
+    updates = (
+        sys.stdin.read()
+        if args.event == "pre-push" and sys.stdin and not sys.stdin.isatty()
+        else ""
+    )
+    reason = refusal(root, args.event, os.environ, updates)
     if reason:
         print(reason, file=sys.stderr)
         return 1
@@ -106,6 +112,11 @@ def cmd_task_verify(args: argparse.Namespace) -> int:
         return 2
     _print_json(receipt)
     return 0 if receipt.get("verdict") == "PASS" else 1
+
+
+def cmd_task_authorize(args: argparse.Namespace) -> int:
+    root = repo_root(Path(args.cwd) if args.cwd else None)
+    return _print_json(authorize_task(root, args.quote))
 
 
 def cmd_task_end(args: argparse.Namespace) -> int:
@@ -196,6 +207,14 @@ def build_parser() -> argparse.ArgumentParser:
     verify = task_sub.add_parser("verify")
     verify.add_argument("--no-tests", action="store_true")
     verify.set_defaults(func=cmd_task_verify)
+    authorize = task_sub.add_parser(
+        "authorize",
+        help="the user explicitly confirmed committing and pushing this tree without verify",
+    )
+    authorize.add_argument(
+        "--quote", required=True, help="the user's own words from this conversation"
+    )
+    authorize.set_defaults(func=cmd_task_authorize)
     end = task_sub.add_parser("end")
     end.add_argument("--force", action="store_true")
     end.add_argument("--incomplete", action="store_true")

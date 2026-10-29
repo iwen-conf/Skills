@@ -9,13 +9,20 @@ have produced theirs.
 
 - Write three lines: **Observed**, **Expected**, **Surface** (environment, branch, deploy track
   per execution-truth §1).
-- Re-check every claimed earlier fix on the current code before relying on it.
+- Re-check every claimed earlier fix on the current code before relying on it. When the user
+  cites earlier work or another agent changed the scope, follow
+  [regression-evidence.md](regression-evidence.md) §Earlier work.
 - Before substantial edits, save sanitized evidence under `.arc/artifacts/<task-slug>/logs/`:
   command stdout/stderr, server logs, traces, screenshots; for UI failures also the browser
   console, failed network requests and runtime errors. Redact per contract §5.
 - IF runtime evidence can be captured THEN capture it; reading source alone is not a diagnosis.
 - IF the target environment, data or access is unavailable THEN record `BLOCKED(<missing item>)`
   and do not change production behavior.
+- IF the failure is somewhere the developer cannot reach (customer intranet, a tester's phone)
+  THEN first ship a diagnostic build (§6 probes): each user-visible failure shows stage, address,
+  status, exception chain and app version with one-tap copy; the server logs every request hop
+  under one trace id, secrets masked. Never a silent no-op or blank page. The copied text is the
+  step 2 evidence.
 
 Artifact: the three lines plus the saved log paths.
 
@@ -94,6 +101,7 @@ Use when step 2 cannot reproduce or step 4 cannot confirm.
 - Budget: 2 probe rounds. Then stop and report `hypothesis only` with the exact data,
   environment or access needed.
 - Before completion remove the probes, or keep them behind a log level when the task asks.
+  Diagnostics the user asked for stay; debug-only switches stay off in production packages.
 
 ## 7. Flaky checks
 

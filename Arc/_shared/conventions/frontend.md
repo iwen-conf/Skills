@@ -76,6 +76,11 @@ observation; keep the same ownership separation without installing JavaScript eq
 3. Responsive layouts use explicit constraints; never viewport-scaled fonts as the layout solution; no
    overlapping or overflowing text in the target viewports.
 4. Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining.
+5. Show each fact once per view; a count or status already in the list is not repeated in a header.
+6. End, transfer and delete confirm in a modal dialog stating the consequence in one sentence.
+   One feedback per action: no toast when the screen already shows the result.
+7. A visible failure says what failed and why; unreachable environments add copyable detail
+   ([repair.md](../../arc:code/references/repair.md) §1).
 
 ## 6. API client
 

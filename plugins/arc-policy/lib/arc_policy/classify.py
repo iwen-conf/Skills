@@ -511,7 +511,9 @@ def classify(
                 if "unverified_commit" in deny_direct and not receipt_ok:
                     return {
                         "action": "deny",
-                        "reason": "git commit/push is a controlled operation. Run `arc-policy task verify` first.",
+                        "reason": "git commit/push is a controlled operation. Stage the commit, then run "
+                        "`arc-policy task verify` in its own call. If the user explicitly confirmed committing "
+                        "without verification, run `arc-policy task authorize --quote '<their words>'` instead.",
                         "operation": "commit",
                     }
             executable = Path(argv[0]).name

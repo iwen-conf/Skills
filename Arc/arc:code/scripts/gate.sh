@@ -456,6 +456,9 @@ empty_tree() { git hash-object -t tree /dev/null; }
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# Rust is never compiled on the developer Mac; clippy and tests run on the remote build host.
+rust_compiles_here() { [ "$(uname -s)" != Darwin ]; }
+
 run_tool() {
   local dir=$1
   shift
@@ -841,6 +844,8 @@ check_lint() {
     files_for_root "$r"
     if [ ${#R_FILES[@]} -eq 0 ]; then
       emit "lint(rust$SFX)" NOT_RUN "no changed Rust files"
+    elif ! rust_compiles_here; then
+      emit "lint(rust$SFX)" NOT_RUN "no Rust compilation on macOS; run cargo clippy on the remote build host and cite it"
     elif ! have cargo; then
       emit "lint(rust$SFX)" NOT_RUN "cargo not installed"
     elif ! cargo clippy --version >/dev/null 2>&1; then
@@ -952,6 +957,8 @@ check_tests() {
     files_for_root "$r"
     if [ "$STRICT" -ne 1 ] && [ ${#R_FILES[@]} -eq 0 ]; then
       emit "tests(rust$SFX)" NOT_RUN "no changed Rust files"
+    elif ! rust_compiles_here; then
+      emit "tests(rust$SFX)" NOT_RUN "no Rust compilation on macOS; run cargo test on the remote build host and cite it"
     elif ! have cargo; then
       emit "tests(rust$SFX)" NOT_RUN "cargo not installed"
     else

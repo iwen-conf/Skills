@@ -43,6 +43,18 @@ Use the existing Arc evidence and gate semantics; do not replace them with an ov
 - After push, read the target remote SHA and required CI status for that SHA. Poll structured
   state rather than piping a watch command through output filters that hide its exit status.
 
+### Under the arc-policy runtime
+
+Order, each in its own tool call: `git -C <repo> add <owned files>` → `arc-policy task verify`
+→ `git -C <repo> commit` → `git -C <repo> push`. Never `cd <repo> && git …`; the hook refuses
+it. Pushing the commit the receipt covers needs no second verify. Verify `NOT_RUN` for missing
+test commands is fixed by declaring the project's real commands, a real failure is reported,
+and only the user's explicit go-ahead ("直接提交", "不 verify 了") becomes
+`arc-policy task authorize --quote '<their words>'` (arc-policy skill, "When verify cannot pass").
+The agent runs `git add` and `git commit` itself and never hands them to the user; the user may
+push the resulting commit themselves. A "现在提交并推送，不等 X" skips the named wait, not the
+receipt.
+
 ## Branches and pull requests (any host)
 
 Host CLI follows the remote: `gh` for GitHub, `cnb` for CNB (read [cnb-runtime.md](../../../docs/cnb-runtime.md)
@@ -75,6 +87,38 @@ every flag with the CLI's current `--help`; do not invent body-file or format op
    is `blocked`.
 5. **No history rewrite** (`--force`, `--force-with-lease`) without explicit authorization for that
    branch; with authorization, read the remote state first and prefer lease protection.
+
+## Branch consolidation (合并分支、删除多余分支)
+
+1. Inventory every repository the request names (each platform's repository is separate):
+   `git for-each-ref --format='%(refname:short) %(authoremail) %(committerdate:short) %(upstream:track)' refs/heads refs/remotes`
+   plus `git worktree list` and `git stash list`.
+2. Scope is the user's own branches: branches whose unique commits (`git log <base>..<branch>`)
+   are all authored by the configured `user.email`/`user.name`, unless the user names others.
+   Another person's branch is listed, never merged, reset or deleted. The default branch
+   (main/master) is not changed unless the request says so.
+3. Write the plan as a table before the first write: branch → keep / merge into `<target>` /
+   delete, with its unique commit count. A content conflict where the user said "按新的来" keeps
+   the target's content while recording history (`merge -s ours` or a resolved merge); any other
+   conflict is the user's decision.
+4. Merge with history preserved; new branch names follow the user's language and naming rule
+   (Chinese names when asked). Delete only after `git merge-base --is-ancestor <branch> <target>`
+   proves it merged, then remote and local refs and their worktrees. Remote deletion is a push:
+   it needs the receipt or the user's authorization like any other.
+5. Report the final branch list per repository and every branch left untouched with its reason.
+
+## Packages handed to a device, tester or file server
+
+- Build from the track and branch matching the named environment (行内测试, 生产, 实验室) per
+  [execution-truth](../../../docs/execution-truth.md) §1; the project's `AGENTS.md` names the build host for each target (for
+  example a Windows build machine, a remote Linux host, or the local Mac only where a native
+  macOS app requires it).
+- Report the artifact path, version/build number, environment and server addresses baked in,
+  SHA-256 and signer, and which fixes it contains. A debug-only switch (crash dialog, skipped
+  zero-trust login) is checked against the target environment before handing over.
+- Install or upload only to the named target, then read it back: installed version on the
+  device, or the download URL and checksum on the file server. Building is not installing;
+  installing is not testing on the device, and the report says which ones happened.
 
 ## Publish or release
 

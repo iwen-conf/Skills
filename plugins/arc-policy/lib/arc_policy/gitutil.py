@@ -91,6 +91,17 @@ def dirty_stats(root: Path) -> dict[str, str]:
     return stats
 
 
+def index_tree(root: Path) -> str | None:
+    """Tree object the index would commit, or None (e.g. unmerged entries)."""
+    result = git(root, "write-tree")
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def commit_tree(root: Path, revision: str) -> str | None:
+    result = git(root, "rev-parse", "--verify", "--quiet", f"{revision}^{{tree}}")
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
 def tree_fingerprint(root: Path) -> dict[str, object]:
     commit = head(root)
     dirty = dirty_paths(root)

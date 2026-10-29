@@ -13,10 +13,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from arc_policy.gitutil import dirty_paths, git, head, tree_fingerprint
+from arc_policy.gitutil import commit_tree, dirty_paths, git, head, tree_fingerprint
 from arc_policy.paths import policy_state_dir
 
 STATE_NAME = "state.json"
+# PASS: `task verify` ran. AUTHORIZED: the user explicitly confirmed delivery without it.
+RECEIPT_VERDICTS = frozenset({"PASS", "AUTHORIZED"})
 
 
 @contextmanager
@@ -231,7 +233,11 @@ def current_receipt(root: Path) -> dict[str, Any] | None:
 
 
 def receipt_matches_tree(root: Path, receipt: dict[str, Any] | None) -> bool:
-    if not receipt or receipt.get("verdict") != "PASS" or not receipt.get("digest"):
+    if (
+        not receipt
+        or receipt.get("verdict") not in RECEIPT_VERDICTS
+        or not receipt.get("digest")
+    ):
         return False
     task = active_task(root)
     if (
@@ -249,12 +255,12 @@ def receipt_matches_tree(root: Path, receipt: dict[str, Any] | None) -> bool:
 
 
 def delivered_receipt(root: Path, task: dict[str, Any]) -> dict[str, Any] | None:
-    """Return the task's PASS receipt once its verified work is committed and HEAD has moved on.
+    """Return the task's receipt once its verified work is committed and HEAD has moved on.
 
     A delivered task no longer covers new edits; they need their own `task begin`.
     """
     receipt = task.get("receipt")
-    if not isinstance(receipt, dict) or receipt.get("verdict") != "PASS":
+    if not isinstance(receipt, dict) or receipt.get("verdict") not in RECEIPT_VERDICTS:
         return None
     verified_head = receipt.get("head")
     if not isinstance(verified_head, str) or verified_head == head(root):
@@ -267,3 +273,30 @@ def delivered_receipt(root: Path, task: dict[str, Any]) -> dict[str, Any] | None
     if own & set(dirty_paths(root)):
         return None
     return receipt
+
+
+def receipt_covers_commits(root: Path, revisions: list[str]) -> bool:
+    """Whether every revision commits exactly the index the active task's receipt bound.
+
+    A commit made from a matching receipt is already verified or authorized, so pushing
+    it needs no second verification; whoever pushes, the content is the receipt's.
+    """
+    task = active_task(root)
+    receipt = task.get("receipt") if task else None
+    if (
+        not revisions
+        or not isinstance(receipt, dict)
+        or receipt.get("verdict") not in RECEIPT_VERDICTS
+        or receipt.get("task_id") != task.get("id")
+        or not isinstance(receipt.get("tree"), str)
+        or not isinstance(receipt.get("head"), str)
+    ):
+        return False
+    for revision in revisions:
+        if commit_tree(root, revision) != receipt["tree"]:
+            return False
+        if receipt["head"] != "UNBORN" and git(
+            root, "merge-base", "--is-ancestor", receipt["head"], revision
+        ).returncode:
+            return False
+    return True

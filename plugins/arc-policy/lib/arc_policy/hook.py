@@ -27,10 +27,12 @@ from arc_policy.host import (
     event_name,
     last_assistant_message,
     payload_cwd,
+    recent_user_messages,
     session_id,
     stop_reason,
     tool_input,
     tool_name,
+    transcript_path,
 )
 from arc_policy.paths import git_root, repo_root
 from arc_policy.policy import load_for_repo
@@ -53,10 +55,13 @@ from arc_policy.store import (
     child_tasks,
     current_receipt,
     delivered_receipt,
+    receipt_covers_commits,
     receipt_matches_tree,
 )
 
 BEGIN_COMMAND = "task begin --skill arc-code"
+# `task authorize` must quote one of the user's latest messages, not an old approval.
+AUTHORIZATION_WINDOW = 5
 
 
 def _session_context(text: str) -> dict[str, Any]:
@@ -136,6 +141,8 @@ def handle_session_start(cwd: Path, policy: dict[str, Any]) -> dict[str, Any]:
             task_line,
             "If an edit needs a new task, run the suggested task begin yourself and retry the edit without asking the user.",
             "Write/Edit are allowed after begin. git commit/push and schema migrations need `arc-policy task verify`.",
+            "Only when the user explicitly confirms committing without verification: stage the commit, "
+            "run `arc-policy task authorize --quote '<their words>'`, then commit and push yourself.",
             "Delivery: arc-policy task verify",
         ]
     )
@@ -220,6 +227,9 @@ def handle_pre_tool_use(
             )
         roots = shell_roots(command_text(tool_input(payload)), directory)
         touch(session, roots)
+        denial = _authorization_denial(payload)
+        if denial:
+            return denial
     has_task = active_task(cwd) is not None
     decision = classify(
         tool_name=tool_name(payload),
@@ -232,7 +242,7 @@ def handle_pre_tool_use(
         "commit",
         "schema_migration",
     }:
-        targets: set[Path] = set()
+        targets: dict[Path, set[str]] = {}
         try:
             commands = shell_commands(
                 command_text(tool_input(payload)), require_known_cwd=True
@@ -247,7 +257,9 @@ def handle_pre_tool_use(
                     return _deny(
                         "cannot resolve Git target repository; verification remains pending"
                     )
-                targets.add(Path(result.stdout.strip()).resolve())
+                targets.setdefault(Path(result.stdout.strip()).resolve(), set()).add(
+                    parsed[1][0]
+                )
             elif (
                 classify(
                     tool_name="shell",
@@ -258,12 +270,10 @@ def handle_pre_tool_use(
                 )["operation"]
                 == "schema_migration"
             ):
-                targets.add(repo_root(directory))
+                targets.setdefault(repo_root(directory), set()).add("schema_migration")
         if decision["operation"] == "schema_migration" or not targets:
-            targets.add(repo_root(directory))
-        if all(
-            receipt_matches_tree(target, current_receipt(target)) for target in targets
-        ):
+            targets.setdefault(repo_root(directory), set()).add(decision["operation"])
+        if all(_receipt_covers(target, ops) for target, ops in targets.items()):
             decision = classify(
                 tool_name=tool_name(payload),
                 tool_input=tool_input(payload),
@@ -274,6 +284,59 @@ def handle_pre_tool_use(
     if decision["action"] == "deny":
         return _deny(decision["reason"])
     open_window(session, call_key(payload), roots)
+    return None
+
+
+def _receipt_covers(root: Path, operations: set[str]) -> bool:
+    """A receipt matching the tree covers anything; a push of HEAD also passes when HEAD
+    commits exactly the receipt's tree. The Git pre-push hook checks the actual refs."""
+    if receipt_matches_tree(root, current_receipt(root)):
+        return True
+    return operations == {"push"} and receipt_covers_commits(root, ["HEAD"])
+
+
+def _authorize_quote(argv: list[str]) -> str | None:
+    """The --quote of an `arc-policy task authorize` call ("" when missing), else None."""
+    if not argv or Path(argv[0]).name != "arc-policy" or "authorize" not in argv:
+        return None
+    position = argv.index("authorize")
+    if "task" not in argv[1:position]:
+        return None
+    options = argv[position + 1 :]
+    for index, arg in enumerate(options):
+        if arg == "--quote" and index + 1 < len(options):
+            return options[index + 1]
+        if arg.startswith("--quote="):
+            return arg.split("=", 1)[1]
+    return ""
+
+
+def _authorization_denial(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """`task authorize` needs the user's words; the transcript, when the host sends one, proves them."""
+    try:
+        commands = shell_commands(command_text(tool_input(payload)))
+    except ValueError:
+        return None
+    quotes = [
+        quote for argv in commands for quote in [_authorize_quote(argv)] if quote is not None
+    ]
+    if not quotes:
+        return None
+    path = transcript_path(payload)
+    if path is None or not path.is_file():
+        return None
+    said = [
+        " ".join(message.split())
+        for message in recent_user_messages(path, AUTHORIZATION_WINDOW)
+    ]
+    for quote in quotes:
+        words = " ".join(quote.split())
+        if not words or not any(words in message for message in said):
+            return _deny(
+                "`arc-policy task authorize --quote` must copy the user's own words confirming the "
+                f"commit from one of their last {AUTHORIZATION_WINDOW} messages; {words!r} is not "
+                "among them. Report the unverified state and let the user decide."
+            )
     return None
 
 

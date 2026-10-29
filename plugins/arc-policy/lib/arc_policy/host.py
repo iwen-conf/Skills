@@ -134,6 +134,64 @@ def last_assistant_message(payload: dict[str, Any]) -> str:
     return value if isinstance(value, str) else ""
 
 
+def transcript_path(payload: dict[str, Any]) -> Path | None:
+    value = payload.get("transcript_path") or payload.get("transcriptPath")
+    return Path(value).expanduser() if isinstance(value, str) and value else None
+
+
+# Host-injected wrappers and pasted material are not words the user typed.
+_NOT_TYPED = re.compile(
+    r"<(system-reminder|local-command-caveat|local-command-stdout|command-name|command-message"
+    r"|command-args|pasted_content)\b[^>]*>.*?</\1\b[^>]*>",
+    re.DOTALL,
+)
+
+
+def _typed_text(entry: dict[str, Any]) -> str:
+    # Claude Code: {"type": "user", "message": {"content": str | [blocks]}}; tool results are blocks too.
+    if entry.get("type") == "user" and not entry.get("isMeta") and not entry.get("isSidechain"):
+        content = (entry.get("message") or {}).get("content")
+        if isinstance(content, str):
+            parts = [content]
+        elif isinstance(content, list):
+            parts = [
+                block["text"]
+                for block in content
+                if isinstance(block, dict)
+                and block.get("type") == "text"
+                and isinstance(block.get("text"), str)
+            ]
+        else:
+            parts = []
+        text = _NOT_TYPED.sub("", "\n".join(parts)).strip()
+        return "" if text.startswith("[Request interrupted") else text
+    # Codex: {"type": "event_msg", "payload": {"type": "user_message", "message": str}}
+    payload = entry.get("payload")
+    if (
+        entry.get("type") == "event_msg"
+        and isinstance(payload, dict)
+        and payload.get("type") == "user_message"
+        and isinstance(payload.get("message"), str)
+    ):
+        return _NOT_TYPED.sub("", payload["message"]).strip()
+    return ""
+
+
+def recent_user_messages(path: Path, limit: int) -> list[str]:
+    """The last `limit` messages the user typed, read from a Claude Code or Codex transcript."""
+    messages = []
+    with path.open(encoding="utf-8", errors="replace") as stream:
+        for line in stream:
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            text = _typed_text(entry) if isinstance(entry, dict) else ""
+            if text:
+                messages.append(text)
+    return messages[-limit:]
+
+
 def stop_reason(payload: dict[str, Any]) -> str:
     value = payload.get("reason") or ""
     return value if isinstance(value, str) else ""

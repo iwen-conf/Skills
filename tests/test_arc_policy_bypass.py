@@ -160,6 +160,11 @@ def test_task_begin_installs_agent_only_git_hooks(tmp_path: Path) -> None:
     assert verify_task(repo, policy_for(repo), run_tests=False)["verdict"] == "PASS"
     assert git_run(repo, "commit", "-q", "-am", "agent", CLAUDECODE="1").returncode == 0
     push = ("hook", "run", "pre-push", "--", "origin", "https://example.invalid/x")
+    # HEAD commits exactly the verified tree: pushing it needs no second verification.
+    assert git_run(repo, *push, CODEX_THREAD_ID="t").returncode == 0
+    (repo / "c.txt").write_text("unverified\n")
+    git(repo, "add", "c.txt")
+    git(repo, "commit", "-q", "-m", "human")
     assert git_run(repo, *push, CODEX_THREAD_ID="t").returncode != 0
     assert git_run(repo, *push).returncode == 0
 

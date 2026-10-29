@@ -9,7 +9,10 @@ Arc rules for every implementation or repair edit; `arc:code` reads this file on
 Applies to every implementation or repair request before the first edit.
 
 1. **State assumptions.** Name the assumptions the plan depends on. If multiple readings of the
-   request exist, present them — do not silently pick one.
+   request exist, present them — do not silently pick one. Environment facts (database engine,
+   host, port, http/https, which machine runs what) cite a project file, log or the user;
+   otherwise they are labelled `假设` with the command that confirms them. A product, platform
+   or environment decision the user makes mid-task goes into the project `AGENTS.md` with its date.
 2. **Offer the simpler path.** If a materially simpler approach exists, say so before building the
    requested one. Push back when the request itself looks wrong.
 3. **Ask/autonomy boundary.** Proceed end-to-end without asking for bug fixes and for work with one
