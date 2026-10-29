@@ -10,8 +10,8 @@ import (
 func sample()Graph{
  return Graph{ID:"academic-v1",Scope:"course enrollment",
  Nodes:[]Node{{"enroll","action","Enroll"},{"login","condition","Logged in"},{"ready","state","Ready"}},
- Edges:[]Edge{{"e1","login","enroll","requires"}},
- Rules:[]Rule{{"R1","enroll",[]string{"login"},"ready","UNCHANGED","user","Only authenticated students can enroll"}},
+ Edges:[]Edge{{"e1","login","enroll","requires"},{"e2","enroll","ready","transitions"}},
+ Rules:[]Rule{{ID:"R1",Action:"enroll",Actor:"STUDENT",Entry:"/courses",Oracle:"independent enrollment SQL readback",Conditions:[]string{"login"},Expected:"ready",Rejected:"UNCHANGED",Source:"user",Description:"Only authenticated students can enroll"}},
  Risks:[]Risk{{"K1","Possible schedule clash","enroll"}}}
 }
 func TestGraphAndRules(t *testing.T){

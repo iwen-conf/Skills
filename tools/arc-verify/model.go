@@ -13,6 +13,9 @@ type Edge struct { ID string `json:"id"`; From string `json:"from"`; To string `
 type Rule struct {
     ID string `json:"id"`
     Action string `json:"action"`
+    Actor string `json:"actor"`
+    Entry string `json:"entry"`
+    Oracle string `json:"oracle"`
     Conditions []string `json:"conditions"`
     Expected string `json:"expected"`
     Rejected string `json:"rejected"`
@@ -50,11 +53,21 @@ func validateGraph(g Graph) error {
         ids[e.ID]="edge"
     }
     for _,r:=range g.Rules {
-        if r.ID==""||ids[r.Action]!="action"||r.Expected==""||r.Rejected==""||strings.TrimSpace(r.Description)==""{return fmt.Errorf("invalid rule %s",r.ID)}
+        if r.ID==""||ids[r.Action]!="action"||r.Expected==""||r.Rejected==""||strings.TrimSpace(r.Description)==""||r.Actor==""||r.Entry==""||r.Oracle==""{return fmt.Errorf("invalid rule %s",r.ID)}
+        if ids[r.Expected]!="state"{return fmt.Errorf("rule %s expected is not a state node",r.ID)}
+        if r.Rejected!="UNCHANGED"&&ids[r.Rejected]!="state"{return fmt.Errorf("rule %s rejected is not a state node or UNCHANGED",r.ID)}
         if r.Source!="user"&&r.Source!="document"&&r.Source!="derived"{return fmt.Errorf("rule %s has invalid source",r.ID)}
         if _,ok:=ids[r.ID];ok{return fmt.Errorf("duplicate id %s",r.ID)}
         ids[r.ID]="rule"
         for _,c:=range r.Conditions{if ids[c]!="condition"{return fmt.Errorf("rule %s has unknown condition %s",r.ID,c)}}
+        connected:=map[string]bool{}
+        for _,e:=range g.Edges{
+            if e.Kind=="requires"&&e.To==r.Action{connected[e.From]=true}
+        }
+        for _,c:=range r.Conditions{if !connected[c]{return fmt.Errorf("rule %s condition %s missing requires edge",r.ID,c)}}
+        hasTransition:=false
+        for _,e:=range g.Edges{if e.Kind=="transitions"&&e.From==r.Action&&e.To==r.Expected{hasTransition=true}}
+        if !hasTransition{return fmt.Errorf("rule %s missing expected transition",r.ID)}
     }
     for _,r:=range g.Risks {
         if r.ID==""||r.Description==""||ids[r.Action]!="action"{return fmt.Errorf("invalid risk %s",r.ID)}

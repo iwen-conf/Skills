@@ -82,7 +82,10 @@
       "expected": "ENROLLED",
       "rejected": "UNCHANGED",
       "source": "user",
-      "description": "Only authenticated students may enroll in open courses with remaining seats; each failure must not change enrollment."
+      "description": "Only authenticated students may enroll in open courses with remaining seats; each failure must not change enrollment.",
+      "actor": "STUDENT",
+      "entry": "/student/course",
+      "oracle": "independent enrollment database readback and student timetable refresh"
     }
   ],
   "risks": [

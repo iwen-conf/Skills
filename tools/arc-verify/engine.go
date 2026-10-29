@@ -16,7 +16,7 @@ func (d db) importGraph(g Graph)error{
     for _,e:=range g.Edges{stmts=append(stmts,fmt.Sprintf("INSERT INTO edges VALUES(%s,%s,%s,%s,%s);",quote(g.ID),quote(e.ID),quote(e.From),quote(e.To),quote(e.Kind)))}
     for _,r:=range g.Rules{
        cond,_:=json.Marshal(r.Conditions)
-       stmts=append(stmts,fmt.Sprintf("INSERT INTO rules(graph,id,action,conditions,expected,rejected,source,description) VALUES(%s,%s,%s,%s,%s,%s,%s,%s);",quote(g.ID),quote(r.ID),quote(r.Action),quote(string(cond)),quote(r.Expected),quote(r.Rejected),quote(r.Source),quote(r.Description)))
+       stmts=append(stmts,fmt.Sprintf("INSERT INTO rules(graph,id,action,actor,entry,oracle,conditions,expected,rejected,source,description) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s);",quote(g.ID),quote(r.ID),quote(r.Action),quote(r.Actor),quote(r.Entry),quote(r.Oracle),quote(string(cond)),quote(r.Expected),quote(r.Rejected),quote(r.Source),quote(r.Description)))
     }
     for _,r:=range g.Risks{stmts=append(stmts,fmt.Sprintf("INSERT INTO risks(graph,id,action,description) VALUES(%s,%s,%s,%s);",quote(g.ID),quote(r.ID),quote(r.Action),quote(r.Description)))}
     return d.tx(stmts)
@@ -51,8 +51,36 @@ func (d db) plan(graph string)(int,error){
     // Risks remain recorded but are not FAIL or MISSING.
     return len(stmts),d.tx(stmts)
 }
-func (d db) next(graph string)([][]string,error){
-    return d.query("SELECT "+fieldsSQL("id","rule","kind","condition","expected")+" FROM tasks WHERE graph="+quote(graph)+" AND status='READY' ORDER BY id LIMIT 8;",5)
+type TaskCard struct {
+    ID string `json:"id"`
+    Rule string `json:"rule"`
+    Type string `json:"type"`
+    Actor string `json:"actor"`
+    Entry string `json:"entry"`
+    Action string `json:"action"`
+    Preconditions map[string]string `json:"preconditions"`
+    Expected string `json:"expected"`
+    Oracle string `json:"oracle"`
+    Instruction string `json:"instruction"`
+}
+func (d db) next(graph string)([]TaskCard,error){
+    rows,e:=d.query("SELECT "+fieldsSQL("t.id","t.rule","t.kind","t.condition","t.expected","r.action","r.actor","r.entry","r.oracle","r.conditions")+" FROM tasks t JOIN rules r ON t.graph=r.graph AND t.rule=r.id WHERE t.graph="+quote(graph)+" AND t.status='READY' AND r.approved=1 ORDER BY t.id LIMIT 8;",10)
+    if e!=nil{return nil,e}
+    cards:=make([]TaskCard,0,len(rows))
+    for _,r:=range rows{
+        var conditions []string
+        if e=json.Unmarshal([]byte(r[9]),&conditions);e!=nil{return nil,e}
+        conditionsMap:=map[string]string{}
+        for _,c:=range conditions{
+            conditionsMap[c]="SATISFIED"
+            if (r[2]=="NEGATIVE"||r[2]=="FORCED")&&c==r[3]{conditionsMap[c]="UNSATISFIED"}
+        }
+        instruction:="From a real client, perform the action and verify independent readback."
+        if r[2]=="NEGATIVE"{instruction="Perform the normal UI operation with the failed condition, verify rejection and no state change."}
+        if r[2]=="FORCED"{instruction="In an authorized isolated environment, attempt the operation via the legitimate API with the failed condition; expect server-side rejection and no state change."}
+        cards=append(cards,TaskCard{ID:r[0],Rule:r[1],Type:r[2],Actor:r[6],Entry:r[7],Action:r[5],Preconditions:conditionsMap,Expected:r[4],Oracle:r[8],Instruction:instruction})
+    }
+    return cards,nil
 }
 func newID(prefix string)string{
     b:=make([]byte,16);if _,e:=rand.Read(b);e!=nil{panic(e)}
