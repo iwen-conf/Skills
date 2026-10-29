@@ -48,8 +48,20 @@ func validateGraph(g Graph) error {
     }
     for _,e:=range g.Edges {
         if e.ID==""||ids[e.From]==""||ids[e.To]==""{return fmt.Errorf("edge %s has missing endpoint",e.ID)}
-        switch e.Kind {case "contains","requires","transitions","recovers","forbids":default:return fmt.Errorf("invalid edge kind %q",e.Kind)}
+        switch e.Kind {case "contains","requires","transitions","recovers","forbids","next":default:return fmt.Errorf("invalid edge kind %q",e.Kind)}
         if _,ok:=ids[e.ID];ok{return fmt.Errorf("duplicate id %q",e.ID)}
+        switch e.Kind {
+        case "contains":
+            if ids[e.From]!="feature"||ids[e.To]!="action"{return fmt.Errorf("contains %s must be feature -> action",e.ID)}
+        case "requires","forbids":
+            if ids[e.From]!="condition"||ids[e.To]!="action"{return fmt.Errorf("%s %s must be condition -> action",e.Kind,e.ID)}
+        case "transitions":
+            if ids[e.From]!="action"||ids[e.To]!="state"{return fmt.Errorf("transitions %s must be action -> state",e.ID)}
+        case "recovers":
+            if ids[e.From]!="action"||ids[e.To]!="condition"{return fmt.Errorf("recovers %s must be action -> condition",e.ID)}
+        case "next":
+            if ids[e.From]!="state"||ids[e.To]!="action"{return fmt.Errorf("next %s must be state -> action",e.ID)}
+        }
         ids[e.ID]="edge"
     }
     for _,r:=range g.Rules {

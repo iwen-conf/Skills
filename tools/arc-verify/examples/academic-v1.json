@@ -36,6 +36,11 @@
       "id": "ENROLLED",
       "kind": "state",
       "name": "Enrolled"
+    },
+    {
+      "id": "login",
+      "kind": "action",
+      "name": "Log in through the real student UI"
     }
   ],
   "edges": [
@@ -68,6 +73,12 @@
       "from": "enroll",
       "to": "ENROLLED",
       "kind": "transitions"
+    },
+    {
+      "id": "E6",
+      "from": "login",
+      "to": "logged_in",
+      "kind": "recovers"
     }
   ],
   "rules": [

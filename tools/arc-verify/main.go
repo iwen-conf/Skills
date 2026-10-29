@@ -13,13 +13,15 @@ import (
 func emit(v any){b,_:=json.MarshalIndent(v,"","  ");fmt.Println(string(b))}
 func main(){if e:=run(os.Args[1:]);e!=nil{fmt.Fprintln(os.Stderr,"arc-verify:",e);os.Exit(1)}}
 func run(args []string)error{
- if len(args)==0{return errors.New("usage: arc-verify <init|validate|import|approve|plan|next|start|step|finish|record|trace|gate|risk|scan|gaps|fixtures|fixture> [options]")}
+ if len(args)==0{return errors.New("usage: arc-verify <init|validate|import|approve|plan|next|recover|start|step|finish|record|trace|gate|risk|scan|gaps|fixtures|fixture> [options]")}
  name:=args[0]
  f:=flag.NewFlagSet(name,flag.ContinueOnError)
  dbfile:=f.String("db",".arc/verify/data.db","local Turso database path")
  file:=f.String("file","","business graph JSON file")
  graph:=f.String("graph","","graph id")
  rule:=f.String("rule","","rule id for approval")
+ condition:=f.String("condition","","condition node id")
+ maxDepth:=f.Int("max-depth",6,"recovery graph traversal depth, 1..8")
  task:=f.String("task","","task id")
  runID:=f.String("run","","run id")
  env:=f.String("env","","approved environment alias")
@@ -43,7 +45,7 @@ func run(args []string)error{
     emit(map[string]string{"database":d.file,"status":"initialized"})
     return nil
  }
- if (name=="approve"||name=="plan"||name=="next"||name=="gate"||name=="risk"||name=="gaps")&&*graph==""{
+ if (name=="approve"||name=="plan"||name=="next"||name=="gate"||name=="risk"||name=="gaps"||name=="recover")&&*graph==""{
      return errors.New("--graph required")
  }
  d,e:=openDB(*dbfile,false);if e!=nil{return e}
@@ -65,6 +67,9 @@ func run(args []string)error{
    return e
  case "plan":
    n,e:=d.plan(*graph);if e==nil{emit(map[string]any{"graph":*graph,"task_candidates":n})};return e
+ case "recover":
+   if *condition==""{return errors.New("--condition required")}
+   v,e:=d.recover(*graph,*condition,*maxDepth);if e==nil{emit(v)};return e
  case "next":
    rows,e:=d.next(*graph);if e==nil{emit(rows)};return e
  case "start":
