@@ -4,9 +4,9 @@
 
 ### arc:verify 3.3.0 / arc-policy 0.2.0 — local graph-based business chain evidence
 
-- Introduced a lightweight Go `arc-verify` CLI backed by the official in-process local-file `tursodb` SQL shell, no cloud service or daemon.
-- Added versioned business graph nodes/edges, user-reviewed contract RULE vs non-gating RISK, minimal task cards and run/step RAW hash ledger.
-- Augmented `arc-policy task verify` with an opt-in project graph gate and an automatic fail-closed check when the project has `.arc/verify/config.jsonc`.
+- Introduced a lightweight Go `arc-verify` CLI invoking the official short-lived local-file `tursodb` SQL shell, no cloud service or daemon.
+- Added versioned business graph nodes/edges, user-reviewed contract RULE vs non-gating RISK, executable task cards with actor/entry/conditions/oracle and multi-step RAW trace with first-divergence semantics.
+- Augmented `arc-policy task verify` with an opt-in project graph gate and automatic fail-closed checks when a project has `.arc/verify/config.jsonc`. Receipt revalidation checks changed local DB/WAL and referenced evidence.
 - Added academic enrollment example, verification reference and separate incomplete integration work packages. Real Turso/database and browser E2E remain unverified.
 
 

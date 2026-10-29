@@ -14,6 +14,11 @@ when only Go unit tests or model validation ran.
 - C07: Fail closed in `arc-policy task verify` when project graph verification is configured.
 - C08: Add model and policy regression tests, sample academic contract and CLI documentation.
 - C09: Add fixture reference import/query and implementation observation graph gap inventory (absence remains unconfirmed).
+- C10: Enrich task cards with actor, entry, preconditions and independent oracle; confirm the structural rule-edge mapping.
+- C11: Add per-step RAW, first divergence, verified before-action conditions, halted/blocked/replan outcomes.
+- C12: Add bounded recovery graph traversal with cycle detection; unconfirmed recovery actions remain unresolved.
+- C13: Add abort/retry with reason and immutable historic runs.
+- C14: Revalidate gitignored local DB and evidence at arc-policy receipt check; add Turso integration test and CI job (execution pending).
 
 ## Next verified work packages (not done)
 
@@ -37,3 +42,27 @@ when only Go unit tests or model validation ran.
 
 Each task must deliver changed files, real test command and exit, expected+RAW evidence,
 an exact verdict (PASS/FAIL/BLOCKED/NOT_RUN), and an explicit list of unverified claims.
+
+## Review/acceptance matrix (do not claim all complete)
+
+| Requirement | Source of truth | Status | Required real evidence |
+|---|---|---|---|
+| User-reviewed feature catalog | graph approval + scoped RULE | Implemented, trust limited to local terminal | human-reviewed contract and user decision |
+| Risk never becomes RULE automatically | validation + approval | Implemented | negative tests for derived-rule rejection |
+| Expected vs actual feature inventory | scan/gaps | Partial | actual browser/API traversal and source evidence |
+| Directed graph + AND prerequisite recovery | nodes/edges/recover | Partial | recovery chains including OR/cycles and other actors |
+| Direct executable task cards | next (actor/entry/conditions/oracle) | Partial | real runner action binding |
+| Per-step observed precondition | step RAW | Implemented core | actual independently observed conditions |
+| First deviation and safe continuation | step/trace | Implemented core | fault E2E and readback |
+| Stable retry and historical attempts | abort/retry | Implemented core | process-crash test and data restoration |
+| Accounts/fixtures reuse | fixtures + JSONC refs | Partial | true identity bindings and live state reconstruction |
+| Local-only Turso | tursodb path | Implemented adapter, integration NOT_RUN | official shell, persistence and concurrency |
+| Independent, real E2E | browser/device adapter | NOT_RUN | user-like interaction on authorized test server |
+| Strong trust against same-user tampering | CI/principal separation | NOT_DONE | protected CI; separate runner authority |
+
+The terminal approval prompt can be spoofed by an agent able to drive a PTY.
+It is a workflow guard, not cryptographic user authorization.
+The RAW runner identity is currently a declarative string; do not call it a signature.
+The `tursodb` integration job must actually report PASS before this is considered
+production-qualified. No automatic fixture restoration, real browser driving or
+complete graph-path enumeration is claimed yet.

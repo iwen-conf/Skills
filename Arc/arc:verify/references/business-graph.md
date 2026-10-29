@@ -59,3 +59,14 @@ be a REPLAN candidate, never a silent correction. `finish` and `gate`
 independently validate evidence file identity/hash; changed or deleted
 evidence invalidates completion. Each `UNCHANGED` rejection requires
 before/after equality and rejected-operation evidence, not merely a string.
+
+## Execution card semantics (frozen contract)
+
+- Every RULE declares actor, UI/API entry, operation, AND conditions, positive and rejected outcomes and a separately sourced oracle. A missing declaration blocks model validation.
+- `next` expands only up to eight ready cards at a time, providing their actor, entry, expected condition truth values, action and oracle. The model is never copied wholesale into the AI context.
+- `recover --graph <id> --condition <id>` searches known recovery actions, their prerequisites and cycles up to a bounded depth. Actions not backed by approved rules are marked unresolved, not executed.
+- `step --run --expected --observed --evidence` records a sequential step. A final action step must include every observed precondition in RAW; a wrong prerequisite is BLOCKED/RESET, not PASS.
+- A verified negative/forced rejection requires a server-side denial and equal before/after readbacks. A real client success message by itself does not prove the business postcondition.
+- `trace` identifies the first divergent step and the latest observed state; `finish` cannot pass an empty run or a run with altered evidence.
+- `abort --run --reason` and `retry --task --reason` retain old runs and expose a new READY attempt, but **do not restore data**. Check fixture state before a new attempt.
+- `arc-policy` receipts must be revalidated against the local graph and RAW before delivery, not just against the Git tree.
