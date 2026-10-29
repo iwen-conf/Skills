@@ -5,14 +5,15 @@ It opens `.arc/verify/data.db` inside the tested repository and exits after ever
 No Python runtime, no Turso Cloud URL/auth token, no daemon and no background processes.
 Turso's `tursodb` is distinct from the cloud-management `turso` CLI.
 
-Build: `cd tools/arc-verify && go test ./... && go build -o ~/.local/bin/arc-verify .`
+Build from this Skills repository: `mkdir -p ~/.local/bin && cd tools/arc-verify && go test ./... && go build -o ~/.local/bin/arc-verify .`
+The same binary runs from the **target project** root. Keep the target project's `.arc/verify/` private and gitignored.
 Requires the official `tursodb` executable in PATH for DB commands.
 
 Project lifecycle:
 
     arc-verify init
-    arc-verify validate --file docs/verify/academic-v1.json
-    arc-verify import --file docs/verify/academic-v1.json
+    arc-verify validate --file /path/to/Skills/tools/arc-verify/examples/academic-v1.json
+    arc-verify import --file /path/to/Skills/tools/arc-verify/examples/academic-v1.json
     arc-verify approve --graph academic-v1           # USER terminal approval
     arc-verify approve --graph academic-v1 --rule R-ENROLL
     arc-verify plan --graph academic-v1
@@ -44,3 +45,9 @@ Do not store passwords/tokens in config, graph, committed evidence, or RAW.
 Evidence hash alone is not proof of an independent observer; use a separate trusted
 runner/CI for strong authenticity. This CLI does not implement browser automation
 or automatic database snapshot restoration yet; those are separate guarded adapters.
+
+Current implementation is a **core test ledger**, not a full E2E runner. It does not
+discover hidden UI features, execute browsers or restore target-system state automatically;
+those adapters are tracked in `docs/03-执行任务/arc-verify-graph-runtime.md`.
+The offline Go tests cover model/JSONC checks. Real Turso SQL and remote-system E2E
+must be executed before claiming end-to-end delivery.

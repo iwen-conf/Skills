@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### arc:verify 3.3.0 / arc-policy 0.2.0 — local graph-based business chain evidence
+
+- Introduced a lightweight Go `arc-verify` CLI backed by the official in-process local-file `tursodb` SQL shell, no cloud service or daemon.
+- Added versioned business graph nodes/edges, user-reviewed contract RULE vs non-gating RISK, minimal task cards and run/step RAW hash ledger.
+- Augmented `arc-policy task verify` with an opt-in project graph gate and an automatic fail-closed check when the project has `.arc/verify/config.jsonc`.
+- Added academic enrollment example, verification reference and separate incomplete integration work packages. Real Turso/database and browser E2E remain unverified.
+
+
 ### arc-policy — drop the OMP / PI host adapter
 
 - Removed `hosts/omp/`, `.omp-plugin/`, and the OMP/PI `package.json` native-extension manifest. Remaining hosts are Claude Code, Codex, Grok, Cursor Agent, and DeepSeek Harness.

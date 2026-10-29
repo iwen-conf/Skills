@@ -17,8 +17,8 @@ Example command sequence:
 
     go build -o ~/.local/bin/arc-verify ./tools/arc-verify
     arc-verify init
-    arc-verify validate --file docs/verify/academic-v1.json
-    arc-verify import --file docs/verify/academic-v1.json
+    arc-verify validate --file /path/to/Skills/tools/arc-verify/examples/academic-v1.json
+    arc-verify import --file /path/to/Skills/tools/arc-verify/examples/academic-v1.json
     arc-verify approve --graph academic-v1
     arc-verify approve --graph academic-v1 --rule R-ENROLL
     arc-verify plan --graph academic-v1

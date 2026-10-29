@@ -1,6 +1,6 @@
 ---
 name: arc:verify
-version: 3.2.0
+version: 3.3.0
 description: >-
   Proves business code meets business expectations: business-flow inventories and flowcharts
   tracing branches to cases (业务流, 端到端业务流, 分支覆盖), test plans (测试方案, 用例设计,
