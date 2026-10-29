@@ -95,3 +95,26 @@ An abort saves BLOCKED plus an immutable event. A retry creates a new
 READY task attempt without deleting old FAIL/BLOCKED runs or RAW. This is not
 database snapshot restoration, remote service rollback or permission to reuse
 uncertain shared state.
+
+## Existing Arc skill integration
+
+No seventh top-level Arc skill is installed. The graph ledger is owned by
+`arc:verify`; all phases reuse one existing handoff record and the graph
+identifiers rather than keeping separate agent memory or a second task tree.
+
+```sh
+arc-verify handoff --to arc-explore --graph academic-v1
+arc-verify handoff --to arc-plan --graph academic-v1
+arc-verify handoff --to arc-verify --graph academic-v1
+arc-verify handoff --to arc-code --run R-FAILED
+arc-verify handoff --to arc-audit --graph academic-v1
+arc-verify handoff --to arc-vet --graph academic-v1
+```
+
+The response is bounded JSON: `arc:code` receives only an observed FAILED
+run, first divergent step, frozen rule, source SHA, environment, actor, entry,
+oracle and RAW reference; `arc:plan` gets open rules and risks; `arc:explore`
+gets unconfirmed implementation gap candidates; `arc:verify` gets READY
+cards; `arc:audit` gets read-only mismatch observations; `arc:vet` gets
+runtime constraints. A handoff does not approve a rule, prove an E2E run,
+fix source code or authorize a new environment.

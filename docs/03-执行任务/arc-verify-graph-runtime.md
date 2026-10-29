@@ -66,3 +66,20 @@ The RAW runner identity is currently a declarative string; do not call it a sign
 The `tursodb` integration job must actually report PASS before this is considered
 production-qualified. No automatic fixture restoration, real browser driving or
 complete graph-path enumeration is claimed yet.
+
+## Cross-skill integration (2026-10-29)
+
+- Connected the six existing Arc SKILL.md files to the existing shared
+  handoff §6; did not install a seventh Arc entry.
+- Added `arc-verify handoff --to arc-* --graph/--run` with bounded, read-only
+  context packets. `arc:code` requires an actual FAIL run to consume a repair
+  packet; `arc:plan` and `arc:audit` cannot change graph state.
+- Made `arc-policy` business-graph gate phase-aware: `arc:verify` must
+  prove the graph, while `arc:code` can repair a red graph under its
+  ordinary source/test checks. Explicit `require_for_skills` adds phases.
+- Added static cross-skill handoff/registry tests and phase-aware policy tests.
+- Synchronized the registry and enforced SKILL heading/token budgets.
+- Still NOT_RUN: full skill distribution validation on a cloned repository,
+  official Turso integration CI, real E2E and detached evidence principal.
+  `REQ → RULE → FLOW` remains a documented mapping rather than a
+  fully enforced foreign-key relation; do not claim otherwise.

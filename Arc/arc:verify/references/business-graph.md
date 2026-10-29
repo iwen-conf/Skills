@@ -70,3 +70,15 @@ before/after equality and rejected-operation evidence, not merely a string.
 - `trace` identifies the first divergent step and the latest observed state; `finish` cannot pass an empty run or a run with altered evidence.
 - `abort --run --reason` and `retry --task --reason` retain old runs and expose a new READY attempt, but **do not restore data**. Check fixture state before a new attempt.
 - `arc-policy` receipts must be revalidated against the local graph and RAW before delivery, not just against the Git tree.
+
+## Six-skill phase handoff
+
+The canonical phase mapping and authority limits are
+[Arc shared workflow §6](../../_shared/workflow.md).
+The current `arc-verify handoff` command builds a bounded read-only packet:
+`arc:explore` verifies implementation facts; `arc:plan` owns accepted
+requirements; `arc:verify` maintains test graph/RAW; `arc:code` repairs
+confirmed failures; `arc:audit` evaluates findings; `arc:vet` evaluates
+new runner dependencies. One existing task handoff record remains the
+single progress tracker. Graph FAIL must not deadlock code repairs;
+the graph gate is compulsory on `arc:verify` completion claims.
