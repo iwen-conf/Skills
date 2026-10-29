@@ -68,13 +68,15 @@ func (d db) each(statement string,columns int,visit func([]string)error)error{
     defer rows.Close()
     values:=make([]sql.NullString,columns)
     targets:=make([]any,columns)
+    row:=make([]string,columns)
     for i:=range values{targets[i]=&values[i]}
     for rows.Next(){
         if e=rows.Scan(targets...);e!=nil{return e}
-        row:=make([]string,columns)
         for i,value:=range values{
-            if value.Valid{row[i]=value.String}
+            if value.Valid{row[i]=value.String}else{row[i]=""}
         }
+        // A visitor must not retain the row; query() copies it for callers
+        // that materialize results. Gate visitors consume it immediately.
         if e=visit(row);e!=nil{return e}
     }
     return rows.Err()
@@ -82,7 +84,7 @@ func (d db) each(statement string,columns int,visit func([]string)error)error{
 func (d db) query(statement string,columns int)([][]string,error){
     result:=make([][]string,0,16)
     e:=d.each(statement,columns,func(row []string)error{
-        result=append(result,row);return nil
+        result=append(result,append([]string(nil),row...));return nil
     })
     return result,e
 }
