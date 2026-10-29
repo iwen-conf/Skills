@@ -12,6 +12,37 @@ A Coding Agent Policy Runtime, not a skill pack.
 
 Default mode: **the agent still writes code with host tools**. The CLI is the gate for `task begin`, commits, schema migrations, and delivery. Putting every file write behind the CLI is a later, much more expensive mode.
 
+## Local business-graph gate (opt-in)
+
+The existing Python `arc-policy` runtime stays intact. Its `task verify` command
+now checks the independent **Go** `arc-verify` business graph ledger when
+`.arc/verify/config.jsonc` exists or `verification.business_graph` is configured.
+
+The graph ledger lives in the target repository's local
+`.arc/verify/data.db` file, opened via the official `tursodb` SQL CLI.
+It never contacts Turso Cloud; the tested web/API application may be on a
+separate authorized remote server. The Go CLI is short-lived: no daemon,
+persistent browser process or background worker.
+
+```yaml
+verification:
+  business_graph:
+    graph: academic-v1
+    db: .arc/verify/data.db
+```
+
+The graph check is an additional fail-closed receipt condition; existing
+unit/integration/E2E `verification.test_commands` continue to run.
+No graph ID, no local DB, unconfirmed business rules, unexecuted tasks,
+or a failing observed state => no graph PASS. Risks discovered by AI
+remain non-gating until the user confirms them as business rules.
+See `tools/arc-verify/README.md` and
+`Arc/arc:verify/references/business-graph.md`.
+
+This is workflow enforcement, not an adversarial security boundary:
+a same-user agent can alter local files or disable hooks. Use protected CI
+and separately trusted execution for high-assurance evidence.
+
 ## Install
 
 CLI (once per machine):

@@ -1,0 +1,14 @@
+{
+  "run": "R-REPLACE_WITH_REAL_RUN_ID",
+  "observed": "ENROLLED",
+  "oracle": "independent enrollment readback + UI state",
+  "runner": "browser-test-runner",
+  "exit_code": 0,
+  "steps": [
+    {
+      "action": "select course",
+      "ui": "success banner",
+      "database": "one enrollment"
+    }
+  ]
+}
