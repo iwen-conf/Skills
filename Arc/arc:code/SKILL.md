@@ -24,7 +24,7 @@ Change source code so the requested behavior holds on its real entry point, with
 - Tests, reliability, PostgreSQL, flaky, web performance or release gates → `arc:verify`.
 - PRD, model or task docs → `arc:plan`.
 - Visual direction without code → `ui-design`; commit, push, PR → `check`.
-- Lark documents or project status sync → `lark`.
+- Lark docs/status → `lark`.
 
 ## Goal
 
