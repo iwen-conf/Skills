@@ -158,12 +158,12 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         if policy_ok else (root / ".arc/verify/config.jsonc").is_file()
     )
     verify_binary = shutil.which("arc-verify")
-    turso_binary = shutil.which("tursodb")
+    turso_binary = shutil.which("tursodb")  # optional manual database inspection only
     report = {
         "graph_configured": graph_declared,
         "arc_verify_on_path": bool(verify_binary),
         "tursodb_on_path": bool(turso_binary),
-        "graph_runtime_ready": not graph_declared or bool(verify_binary and turso_binary),
+        "graph_runtime_ready": not graph_declared or bool(verify_binary),
         "version": __version__,
         "repo_root": str(root),
         "plugin_root": str(plugin_root()),

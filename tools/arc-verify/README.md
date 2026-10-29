@@ -1,13 +1,13 @@
 # ARC Verify (local graph test ledger, Go)
 
-Short-lived Go CLI using the **official local `tursodb` SQL shell** as its database engine.
+Short-lived Go CLI using the **official in-process `tursogo` driver** as its database engine.
 It opens `.arc/verify/data.db` inside the tested repository and exits after every command.
 No Python runtime, no Turso Cloud URL/auth token, no daemon and no background processes.
 Turso's `tursodb` is distinct from the cloud-management `turso` CLI.
 
 Build from this Skills repository: `mkdir -p ~/.local/bin && cd tools/arc-verify && go test ./... && go build -o ~/.local/bin/arc-verify .`
 The same binary runs from the **target project** root. Keep the target project's `.arc/verify/` private and gitignored.
-Requires the official `tursodb` executable in PATH for DB commands.
+The official `tursodb` shell is optional and intended only for manually inspecting the local database.
 
 Project lifecycle:
 
@@ -118,3 +118,14 @@ gets unconfirmed implementation gap candidates; `arc:verify` gets READY
 cards; `arc:audit` gets read-only mismatch observations; `arc:vet` gets
 runtime constraints. A handoff does not approve a rule, prove an E2E run,
 fix source code or authorize a new environment.
+
+
+### Performance architecture (native Go)
+
+The original SQL-shell implementation forked `tursodb` for every query. This version
+uses official `turso.tech/database/tursogo@v0.8.3` directly through `database/sql` in
+one process, one local-file connection and real Go-managed transactions. The CLI still
+exits after each operation, without background service or Turso Cloud. The optional
+`tursodb .arc/verify/data.db` shell is for manual inspection, not a runtime dependency.
+Go 1.24+ is required by the official driver. `go mod tidy` downloads verified module
+checksums during setup. Avoid unbounded connection pools or untrusted remote DSNs.

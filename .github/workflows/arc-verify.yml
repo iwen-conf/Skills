@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: tools/arc-verify/go.mod
-      - run: go test -race ./...
+      - run: go mod tidy && go test -race ./...
       - run: go vet ./...
       - run: go build .
   local-turso:
@@ -32,12 +32,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: tools/arc-verify/go.mod
-      - name: Install official tursodb shell
+      - name: Verify in-process local Turso engine and business graph integration
         run: |
-          curl -fsSL https://github.com/tursodatabase/turso/releases/latest/download/turso_cli-installer.sh -o /tmp/turso_cli-installer.sh
-          sh /tmp/turso_cli-installer.sh
-          for dir in "$HOME/.local/bin" "$HOME/.turso/bin" "$HOME/.cargo/bin"; do echo "$dir" >> "$GITHUB_PATH"; done
-      - name: Verify local Turso engine and business graph integration
-        run: |
-          command -v tursodb
+          go mod tidy
           go test -race -run TestTursoLocalBusinessChain -count=1 -v ./...
