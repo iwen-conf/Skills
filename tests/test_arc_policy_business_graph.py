@@ -72,3 +72,23 @@ def test_verify_phase_fails_closed_when_graph_missing(tmp_path, monkeypatch):
     )
     assert receipt["verdict"] == "FAIL"
     assert any(x["id"] == "business_graph" and x["verdict"] == "BLOCKED" for x in receipt["checks"])
+
+def test_doctor_reports_local_graph_runtime_requirements(tmp_path, monkeypatch, capsys):
+    from arc_policy.cli import main
+    import subprocess
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    (repo / ".arc/verify").mkdir(parents=True)
+    (repo / ".arc/verify/config.jsonc").write_text("{}")
+    import arc_policy.cli as m
+    monkeypatch.setattr(m.shutil if hasattr(m, "shutil") else __import__("shutil"),
+                       "which", lambda cmd: None)
+    result = main(["--cwd", str(repo), "doctor"])
+    import json
+    report = json.loads(capsys.readouterr().out)
+    assert result == 1
+    assert report["graph_configured"] is True
+    assert report["graph_runtime_ready"] is False
+    assert report["arc_verify_on_path"] is False
+    assert report["tursodb_on_path"] is False
