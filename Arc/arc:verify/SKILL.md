@@ -45,6 +45,21 @@ required, a sensitivity record.
 | Cadence: PR, nightly, pre-release | no | PR |
 | Authorization for shared-target load, fault injection or destructive reset | no | none; those steps stay `BLOCKED` |
 
+## Graph-based business-chain verification (local Turso)
+
+For requests such as "test all interactions in the academic system", first discover the
+*expected* business catalog with the user, independent of implementation. Read
+[local graph verification](references/business-graph.md) for contract / implementation
+comparison, task generation, runtime observations and CLI use. AI-derived industry
+assumptions are RISK only; only user-confirmed RULE may produce a required FAIL/MISSING
+claim. Store project-local graph and run ledger in `.arc/verify/data.db`; never use
+Turso Cloud, network URLs, permanent workers, or a second database.
+
+Use the short-lived Go `arc-verify` CLI to record graph versions, approvals, tasks,
+observations and evidence; do not claim E2E PASS without a real client runner and
+independent RAW. Existing FLOW catalog and test modes remain authoritative; graph
+verification adds tracking and must not replace browser/device/real-DB evidence.
+
 ## Intent Router
 
 | Condition | Mode | Read |
