@@ -3,6 +3,8 @@ package main
 import (
  "crypto/rand"
  "crypto/sha256"
+ "context"
+ "time"
  "encoding/hex"
  "encoding/json"
  "errors"
@@ -31,26 +33,37 @@ func (d db) approve(graph,rule string)error{
     if e!=nil{return e};if len(rows)!=1{return errors.New("rule not found")}
     return d.tx([]string{fmt.Sprintf("UPDATE rules SET approved=1 WHERE graph=%s AND id=%s;",quote(graph),quote(rule))})
 }
-func (d db) plan(graph string)(int,error){
-    rows,e:=d.query("SELECT "+fieldsSQL("approved")+" FROM graphs WHERE id="+quote(graph)+";",1)
-    if e!=nil{return 0,e};if len(rows)!=1||rows[0][0]!="1"{return 0,errors.New("business catalog requires explicit user approval")}
-    rows,e=d.query("SELECT "+fieldsSQL("id","conditions","expected","rejected")+" FROM rules WHERE graph="+quote(graph)+" AND approved=1;",4)
+// plan materializes only the next bounded frontier of confirmed obligations.
+// SQL performs set construction + missing-task filtering without loading all
+// graph rules or materializing a huge task array into agent context.
+func (d db) plan(graph string,limits ...int)(int,error){
+    limit:=128
+    if len(limits)>0{limit=limits[0]}
+    if limit<1||limit>1024{return 0,errors.New("plan limit must be 1..1024")}
+    rows,e:=d.query("SELECT "+fieldsSQL("CAST(approved AS TEXT)")+" FROM graphs WHERE id="+quote(graph)+";",1)
     if e!=nil{return 0,e}
-    stmts:=[]string{}
-    for _,r:=range rows{
-        id:=r[0];var conditions []string
-        if e=json.Unmarshal([]byte(r[1]),&conditions);e!=nil{return 0,e}
-        add:=func(kind,condition,expected string){
-            taskID:=graph+"/"+id+"/"+kind
-            if condition!=""{taskID+="/"+condition}
-            stmts=append(stmts,fmt.Sprintf("INSERT OR IGNORE INTO tasks(id,graph,rule,kind,condition,expected) VALUES(%s,%s,%s,%s,%s,%s);",quote(taskID),quote(graph),quote(id),quote(kind),quote(condition),quote(expected)))
-        }
-        add("POSITIVE","",r[2])
-        for _,c:=range conditions{add("NEGATIVE",c,r[3]);add("FORCED",c,r[3])}
-    }
-    // Only explicit user-approved rules can create mandatory test tasks.
-    // Risks remain recorded but are not FAIL or MISSING.
-    return len(stmts),d.tx(stmts)
+    if len(rows)!=1||rows[0][0]!="1"{return 0,errors.New("business catalog requires explicit user approval")}
+    query:=fmt.Sprintf(
+      "WITH candidates(id,graph,rule,kind,condition,expected) AS ("+
+      "SELECT q.graph||'/'||q.id||'/POSITIVE',q.graph,q.id,'POSITIVE','',q.expected "+
+      "FROM rules q WHERE q.graph=%s AND q.approved=1 "+
+      "UNION ALL "+
+      "SELECT q.graph||'/'||q.id||'/NEGATIVE/'||j.value,q.graph,q.id,'NEGATIVE',j.value,q.rejected "+
+      "FROM rules q,json_each(q.conditions) j WHERE q.graph=%s AND q.approved=1 "+
+      "UNION ALL "+
+      "SELECT q.graph||'/'||q.id||'/FORCED/'||j.value,q.graph,q.id,'FORCED',j.value,q.rejected "+
+      "FROM rules q,json_each(q.conditions) j WHERE q.graph=%s AND q.approved=1 "+
+      ") INSERT OR IGNORE INTO tasks(id,graph,rule,kind,condition,expected) "+
+      "SELECT c.id,c.graph,c.rule,c.kind,c.condition,c.expected FROM candidates c "+
+      "WHERE NOT EXISTS(SELECT 1 FROM tasks t WHERE t.id=c.id) ORDER BY c.id LIMIT %d;",
+      quote(graph),quote(graph),quote(graph),limit)
+    ctx,cancel:=context.WithTimeout(context.Background(),60*time.Second)
+    defer cancel()
+    result,e:=d.handle.ExecContext(ctx,query)
+    if e!=nil{return 0,e}
+    n,e:=result.RowsAffected()
+    if e!=nil{return 0,e}
+    return int(n),nil
 }
 type TaskCard struct {
     ID string `json:"id"`

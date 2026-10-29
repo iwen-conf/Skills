@@ -24,6 +24,7 @@ func run(args []string)error{
  reason:=f.String("reason","","required human-readable reason for abort/retry")
  condition:=f.String("condition","","condition node id")
  maxDepth:=f.Int("max-depth",6,"recovery graph traversal depth, 1..8")
+ limit:=f.Int("limit",128,"bounded number of task cards to materialize, 1..1024")
  task:=f.String("task","","task id")
  runID:=f.String("run","","run id")
  env:=f.String("env","","approved environment alias")
@@ -70,7 +71,7 @@ func run(args []string)error{
    if e=d.approve(*graph,*rule);e==nil{emit(map[string]string{"approved":approved})}
    return e
  case "plan":
-   n,e:=d.plan(*graph);if e==nil{emit(map[string]any{"graph":*graph,"task_candidates":n})};return e
+   n,e:=d.plan(*graph,*limit);if e==nil{emit(map[string]any{"graph":*graph,"task_candidates":n})};return e
  case "recover":
    if *condition==""{return errors.New("--condition required")}
    v,e:=d.recover(*graph,*condition,*maxDepth);if e==nil{emit(v)};return e

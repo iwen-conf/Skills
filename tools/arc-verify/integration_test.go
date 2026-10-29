@@ -52,3 +52,29 @@ func TestTursoLocalBusinessChain(t *testing.T){
     result,err=other.gate(g.ID);if err!=nil{t.Fatal(err)}
     if result["verdict"]!="FAIL"{t.Fatalf("changed evidence hash must fail closed, got %+v",result)}
 }
+
+func TestTursoLazyPlannerHonorsBoundedFrontier(t *testing.T){
+ path:=filepath.Join(t.TempDir(),"lazy.db")
+ d,err:=openDB(path,true);if err!=nil{t.Fatal(err)}
+ defer d.close()
+ for _,q:=range schema{if _,err=d.sql(q);err!=nil{t.Fatal(err)}}
+ g:=sample()
+ for i:=1;i<50;i++{rule:=g.Rules[0];rule.ID=fmt.Sprintf("RULE-%03d",i);g.Rules=append(g.Rules,rule)}
+ if err=validateGraph(g);err!=nil{t.Fatal(err)}
+ if err=d.importGraph(g);err!=nil{t.Fatal(err)}
+ if err=d.approve(g.ID,"");err!=nil{t.Fatal(err)}
+ var approvals []string
+ for _,r:=range g.Rules{approvals=append(approvals,"UPDATE rules SET approved=1 WHERE graph="+quote(g.ID)+" AND id="+quote(r.ID)+";")}
+ if err=d.tx(approvals);err!=nil{t.Fatal(err)}
+ first,err:=d.plan(g.ID,32);if err!=nil||first!=32{t.Fatalf("first batch %d %v",first,err)}
+ verdict,err:=d.gate(g.ID);if err!=nil{t.Fatal(err)}
+ if verdict["verdict"]!="FAIL"||verdict["missing_tasks"]==0{t.Fatalf("partial frontier must fail gate %+v",verdict)}
+ total:=first
+ for i:=0;i<10;i++{
+  n,err:=d.plan(g.ID,32);if err!=nil{t.Fatal(err)}
+  total+=n
+  if n==0{break}
+ }
+ if total!=150{t.Fatalf("expected 150 obligations, materialized %d",total)}
+ if n,err:=d.plan(g.ID,32);err!=nil||n!=0{t.Fatalf("duplicate batch %d %v",n,err)}
+}
