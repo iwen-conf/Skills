@@ -150,3 +150,12 @@ confirmed obligations; never substitute a fast status count for an E2E receipt.
 
 
 The planner cursor is stored in `plan_cursor` and committed atomically with each task batch, so invoking the short-lived CLI again resumes without re-scanning earlier rules. Explicit approval of a previously unconfirmed rule resets the cursor safely; `INSERT OR IGNORE` keeps old task/run history untouched. Run `arc-verify init` after upgrading an existing local graph DB to add indexes and the cursor table. Each rule is capped at 64 named preconditions to bound the working set.
+
+
+### Initialization and migrations
+
+Run `arc-verify init` from the tested repository root before the first graph import
+and after upgrading the Go CLI. Initialization creates the tables **before** their
+indexes in a single transaction, is safe to repeat, and preserves existing graph,
+task and run records. The integration tests include fresh, repeated and existing
+ledger initialization. This does not install a browser or grant remote access.

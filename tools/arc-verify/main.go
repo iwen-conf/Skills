@@ -45,7 +45,9 @@ func run(args []string)error{
  if name=="init" {
     d,e:=openDB(*dbfile,true);if e!=nil{return e}
     defer d.close()
-    for _,s:=range schema{if _,e=d.sql(s);e!=nil{return e}}
+    // DDL and indexes are committed together; a failed migration never
+    // leaves a partially initialized graph ledger behind.
+    if e=d.tx(schema);e!=nil{return fmt.Errorf("initialize local Turso schema: %w",e)}
     emit(map[string]string{"database":d.file,"status":"initialized"})
     return nil
  }

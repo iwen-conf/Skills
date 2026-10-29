@@ -117,7 +117,7 @@ var schema=[]string{
 "CREATE INDEX IF NOT EXISTS idx_tasks_ready ON tasks(graph,status,id);",
 "CREATE INDEX IF NOT EXISTS idx_rules_approved ON rules(graph,approved,id);",
 "CREATE INDEX IF NOT EXISTS idx_runs_task_history ON runs(task,id);",
-"CREATE INDEX IF NOT EXISTS idx_scans_action_history ON implementation_scans(graph,action,id DESC);",
 "CREATE TABLE IF NOT EXISTS task_events (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT NOT NULL, run TEXT NOT NULL, event TEXT NOT NULL, reason TEXT NOT NULL, created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);",
 "CREATE TABLE IF NOT EXISTS implementation_scans (id INTEGER PRIMARY KEY AUTOINCREMENT, graph TEXT NOT NULL, action TEXT NOT NULL, status TEXT NOT NULL, evidence TEXT NOT NULL, sha256 TEXT NOT NULL, created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);",
+"CREATE INDEX IF NOT EXISTS idx_scans_action_history ON implementation_scans(graph,action,id DESC);",
 }

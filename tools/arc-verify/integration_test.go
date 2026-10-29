@@ -117,3 +117,41 @@ func TestPlannerCursorRewindsAfterLateUserApproval(t *testing.T){
     if len(rows)!=1||rows[0][0]!="6"{t.Fatalf("task count after user approval %+v",rows)}
     if n,err:=d.plan(g.ID,16);err!=nil||n!=0{t.Fatalf("cursor termination %d %v",n,err)}
 }
+
+
+// TestInitFreshAndRepeated exercises the public CLI entry, not just schema SQL.
+// The scan index used to be created before its table; a new database failed.
+func TestInitFreshAndRepeated(t *testing.T) {
+    database := filepath.Join(t.TempDir(), "verify.db")
+    for attempt:=0;attempt<2;attempt++ {
+        if err:=run([]string{"init","--db",database});err!=nil {
+            t.Fatalf("init attempt %d: %v",attempt+1,err)
+        }
+    }
+    d,err:=openDB(database,false);if err!=nil{t.Fatal(err)}
+    defer d.close()
+    rows,err:=d.query("SELECT "+fieldsSQL("name")+" FROM sqlite_master WHERE type='index' AND name='idx_scans_action_history'",1)
+    if err!=nil{t.Fatal(err)}
+    if len(rows)!=1 {t.Fatalf("implementation scan index not created: %+v",rows)}
+    rows,err=d.query("SELECT "+fieldsSQL("name")+" FROM sqlite_master WHERE type='table' AND name='implementation_scans'",1)
+    if err!=nil{t.Fatal(err)}
+    if len(rows)!=1 {t.Fatal("implementation scan table not created")}
+}
+
+// Existing local ledgers are upgraded in place without dropping prior tasks.
+func TestInitUpgradesExistingLedger(t *testing.T) {
+    database:=filepath.Join(t.TempDir(),"existing.db")
+    d,err:=openDB(database,true);if err!=nil{t.Fatal(err)}
+    if _,err=d.sql("CREATE TABLE IF NOT EXISTS graphs (id TEXT PRIMARY KEY, scope TEXT NOT NULL, approved INTEGER NOT NULL DEFAULT 0)");err!=nil{t.Fatal(err)}
+    if _,err=d.sql("INSERT INTO graphs(id,scope,approved) VALUES('legacy-v1','test',1)");err!=nil{t.Fatal(err)}
+    if err=d.close();err!=nil{t.Fatal(err)}
+    if err=run([]string{"init","--db",database});err!=nil{t.Fatal(err)}
+    upgraded,err:=openDB(database,false);if err!=nil{t.Fatal(err)}
+    defer upgraded.close()
+    rows,err:=upgraded.query("SELECT "+fieldsSQL("scope")+" FROM graphs WHERE id='legacy-v1'",1)
+    if err!=nil{t.Fatal(err)}
+    if len(rows)!=1||rows[0][0]!="test"{t.Fatalf("upgrade dropped old graph: %+v",rows)}
+    rows,err=upgraded.query("SELECT "+fieldsSQL("name")+" FROM sqlite_master WHERE type='table' AND name='plan_cursor'",1)
+    if err!=nil{t.Fatal(err)}
+    if len(rows)!=1{t.Fatal("plan cursor table was not created")}
+}

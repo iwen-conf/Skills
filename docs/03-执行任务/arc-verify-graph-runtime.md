@@ -101,3 +101,5 @@ complete graph-path enumeration is claimed yet.
 - 真实速度数据仍需要在 Go1.24+/官方 tursogo 的运行环境通过测试和基准产生；没有实际数据前拒绝声称达到最优。
 
 - 规划游标与任务卡同一事务持久化；晚确认的新规则会使游标回到起点，保留已生成任务和 Run 历史。增量规划只扫描未访问的规则段，运行结束后无常驻进程。已有 `.arc/verify/data.db` 升级后先执行 `arc-verify init` 完成幂等建表/索引。
+
+- [x] Fresh local Turso initialization: ensure all CREATE TABLE operations precede dependent indexes; wrap idempotent DDL in a transaction. Tests cover fresh/repeated initialization and preserving an existing graph. Latest GitHub Actions results must still confirm the tests before claiming PASS.
