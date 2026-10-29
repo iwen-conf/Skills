@@ -152,7 +152,18 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     except Exception as exc:
         policy_ok = False
         error = str(exc)
+    graph_declared = (
+        (root / ".arc/verify/config.jsonc").is_file()
+        or bool(((load_for_repo(root, languages=detect_languages(root)).get("verification") or {}).get("business_graph")))
+        if policy_ok else (root / ".arc/verify/config.jsonc").is_file()
+    )
+    verify_binary = shutil.which("arc-verify")
+    turso_binary = shutil.which("tursodb")  # optional manual database inspection only
     report = {
+        "graph_configured": graph_declared,
+        "arc_verify_on_path": bool(verify_binary),
+        "tursodb_on_path": bool(turso_binary),
+        "graph_runtime_ready": not graph_declared or bool(verify_binary),
         "version": __version__,
         "repo_root": str(root),
         "plugin_root": str(plugin_root()),
@@ -164,7 +175,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         "active_task": active_task(root),
     }
     _print_json(report)
-    return 0 if policy_ok else 1
+    return 0 if policy_ok and report["graph_runtime_ready"] else 1
 
 
 def build_parser() -> argparse.ArgumentParser:

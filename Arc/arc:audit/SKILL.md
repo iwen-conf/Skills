@@ -1,6 +1,6 @@
 ---
 name: arc:audit
-version: 2.6.0
+version: 2.7.0
 description: >-
   Read-only evaluation (只读) that produces ranked, evidence-backed code findings and never edits code:
   review any diff, PR or branch (代码评审, 能不能合), project health, code rot, over-engineering and
@@ -53,6 +53,8 @@ Deliver located findings, evidence, severity/status and coverage; preserve sourc
 | AppSec audit plus tool scans | appsec, then scan | [references/appsec.md](references/appsec.md), [references/scanners.md](references/scanners.md) |
 
 ## Workflow
+
+Graph review: [workflow §6](../_shared/workflow.md), `arc-verify handoff --to arc-audit --graph <id>` (read-only); NOT_FOUND/RISK ≠ defect.
 
 Document-only API reviews cite sections/lines; without a repository skip git/index steps.
 

@@ -1,6 +1,6 @@
 ---
 name: arc:code
-version: 2.6.0
+version: 2.7.0
 description: >-
   Every task that changes source code: write code to implement (写代码, 实现, 开发功能, 落地改动)
   a feature, endpoint or page (前端, 落地页, 要好看, shadcn, 小程序) on the project's stack; fix (修复) a bug,
@@ -19,16 +19,16 @@ Change source code so the requested behavior holds on its real entry point, with
 
 ## Non-trigger
 
-- Explain, locate or map code without editing → `arc:explore`.
-- Review a diff, PR, project health or security without editing → `arc:audit`.
-- Tests as the deliverable, reliability, PostgreSQL qualification, flaky triage, web performance, release go/no-go → `arc:verify`.
-- PRD, brief, closure model, task documents, progress → `arc:plan`.
+- Code location or mapping only → `arc:explore`.
+- Read-only review, health or security → `arc:audit`.
+- Tests, reliability, PostgreSQL, flaky, web performance or release gates → `arc:verify`.
+- PRD, model or task docs → `arc:plan`.
 - Visual direction without code → `ui-design`; commit, push, PR → `check`.
-- Lark documents or project status sync → `lark`.
+- Lark docs/status → `lark`.
 
 ## Goal
 
-The behavior works through its real entry point (HTTP, CLI, UI, job), every impacted site and sibling path is updated, and `gate.sh check` has no `FAIL`.
+Implement behavior through the real HTTP/CLI/UI/job entry, update affected siblings and pass `gate.sh check`.
 
 ## Inputs
 
@@ -58,6 +58,8 @@ The behavior works through its real entry point (HTTP, CLI, UI, job), every impa
 | Feature needs semantic judgment: classify, route, score, extract, verify (分类器, 意图识别) | adds to mode | `typesafe-ai` skill and its live docs before any integration code |
 
 ## Workflow
+
+Graph repairs: [workflow §6](../_shared/workflow.md); `arc-verify handoff --to arc-code --run <id>`. Preserve prior FAIL, RAW and rules; verify reruns E2E.
 
 1. Read [contract.md](../_shared/contract.md), [code-intel.md](../_shared/code-intel.md) and [coding-discipline.md](../_shared/coding-discipline.md). Write one line: `Mode · Tier · Scope lock · Task slug`. IF T2 and no task document THEN write an inline brief (≤10 lines, contract §2) before any edit.
 2. Run the code-intel preflight. For T1/T2 run `bash <skill-dir>/scripts/gate.sh start --task <slug>` (`<skill-dir>` holds this file) before the first edit. Output: baseline recorded.

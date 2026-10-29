@@ -59,6 +59,21 @@ Missing tools or JavaScript `scripts.test` are `NOT_RUN`; automatic local Rust t
 must use `cargo zigbuild`. Projects can declare their complete test workflow with
 `verification.test_commands: [{argv: [...], cwd: .}]` in `.arc/policy.yaml`.
 
+## Business graph and cross-Skill phase gates
+
+For scoped business-chain verification, follow the installed `arc-verify`
+Skill's shared Arc workflow §6. `arc-verify handoff --to <arc-skill> --graph
+<graph-version>` gives a bounded read-only transfer; a confirmed failed
+`--run` can be handed to `arc-code`. Do not treat the packet as a
+user-approved rule or a verified test. `arc-plan` writes canonical requirement
+documents; only `arc-verify` changes the local graph ledger.
+
+The `business_graph` verification gate is **mandatory for `arc-verify`**
+when enabled, but a red pre-fix graph must not block `arc-code` from committing
+an authorized root-cause repair under its usual code/test gates. A new E2E
+`arc-verify` run must independently verify the repair before declaring the
+business claim PASS. Other skills may be explicitly opted into this gate.
+
 ## Hook enforcement
 
 - `SessionStart` injects stack, skill, and CLI instructions.
