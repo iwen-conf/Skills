@@ -2,6 +2,7 @@ package main
 
 import (
  "crypto/rand"
+ "crypto/sha256"
  "encoding/hex"
  "encoding/json"
  "errors"
@@ -110,78 +111,104 @@ func (d db) record(run,observed,evidence string)(map[string]string,error){
     if e!=nil{return nil,e}
     return map[string]string{"run":run,"verdict":fmt.Sprint(finished["verdict"])},nil
 }
+// gate scans the execution ledger once, in order, and re-reads each RAW
+// exactly once. The previous implementation used 3+ SQL queries per
+// PASS task (N+1), and loaded every step set repeatedly into memory.
 func (d db) gate(graph string)(map[string]any,error){
-    g,e:=d.query("SELECT "+fieldsSQL("approved")+" FROM graphs WHERE id="+quote(graph)+";",1)
+    versions,e:=d.query("SELECT "+fieldsSQL("CAST(approved AS TEXT)")+" FROM graphs WHERE id="+quote(graph)+";",1)
     if e!=nil{return nil,e}
-    if len(g)!=1{return nil,errors.New("graph not found")}
-    rules,e:=d.query("SELECT "+fieldsSQL("id","conditions","approved")+" FROM rules WHERE graph="+quote(graph)+";",3)
+    if len(versions)!=1{return nil,errors.New("graph not found")}
+    rules,e:=d.query("SELECT "+fieldsSQL("id","conditions","CAST(approved AS TEXT)")+" FROM rules WHERE graph="+quote(graph)+";",3)
     if e!=nil{return nil,e}
-    expectedTasks:=map[string]bool{}
+    required:=map[string]bool{}
     unconfirmed:=0
     for _,r:=range rules{
         if r[2]!="1"{unconfirmed++;continue}
-        id:=graph+"/"+r[0]
-        expectedTasks[id+"/POSITIVE"]=true
+        name:=graph+"/"+r[0]
+        required[name+"/POSITIVE"]=true
         var conditions []string
         if e=json.Unmarshal([]byte(r[1]),&conditions);e!=nil{return nil,e}
         for _,c:=range conditions{
-            expectedTasks[id+"/NEGATIVE/"+c]=true
-            expectedTasks[id+"/FORCED/"+c]=true
+            required[name+"/NEGATIVE/"+c]=true
+            required[name+"/FORCED/"+c]=true
         }
     }
-    tasks,e:=d.query("SELECT "+fieldsSQL("id","status")+" FROM tasks WHERE graph="+quote(graph)+";",2)
-    if e!=nil{return nil,e}
-    present:=map[string]bool{};passed,broken:=0,0
-    for _,t:=range tasks{
-        present[t[0]]=true
-        if !expectedTasks[t[0]]{broken++;continue}
-        if t[1]!="PASS"{continue}
-        runs,e:=d.query("SELECT "+fieldsSQL("id","status")+" FROM runs WHERE task="+quote(t[0])+" ORDER BY rowid DESC LIMIT 1;",2)
-        if e!=nil{return nil,e}
-        if len(runs)!=1||runs[0][1]!="PASS"{broken++;continue}
-        steps,e:=d.query("SELECT "+fieldsSQL("CAST(idx AS TEXT)","expected","observed","verdict","evidence_path","evidence_sha256")+" FROM steps WHERE run="+quote(runs[0][0])+" ORDER BY idx;",6)
-        if e!=nil{return nil,e}
-        if len(steps)==0{broken++;continue}
-        trustworthy:=true
-        for i,s:=range steps{
-            if s[0]!=fmt.Sprint(i+1)||s[3]!="PASS"||s[1]!=s[2]{
-                trustworthy=false;break
-            }
-            if e=validateEvidenceHash(s[4],s[5]);e!=nil{trustworthy=false;break}
-            _,raw,e:=loadEvidence(s[4]);if e!=nil{trustworthy=false;break}
-            v,e:=parseStepRAW(raw,runs[0][0],s[1],s[2],i+1)
-            if e!=nil||v.ExitCode!=0{trustworthy=false;break}
+    // The task, latest attempt, rule and every step are fetched in one
+    // stable ordered query. Evidence bytes remain on disk until checked.
+    statement:="SELECT "+fieldsSQL(
+        "t.id","t.status","t.kind","t.condition","t.expected",
+        "q.conditions","COALESCE(r.id,'')","COALESCE(r.status,'')",
+        "COALESCE(CAST(s.idx AS TEXT),'')","COALESCE(s.expected,'')",
+        "COALESCE(s.observed,'')","COALESCE(s.verdict,'')",
+        "COALESCE(s.evidence_path,'')","COALESCE(s.evidence_sha256,'')",
+    )+" FROM tasks t JOIN rules q ON q.graph=t.graph AND q.id=t.rule "+
+      "LEFT JOIN runs r ON r.rowid=(SELECT MAX(rr.rowid) FROM runs rr WHERE rr.task=t.id) "+
+      "LEFT JOIN steps s ON s.run=r.id WHERE t.graph="+quote(graph)+
+      " ORDER BY t.id,s.idx;"
+    total,passed,broken:=0,0,0
+    current:=""
+    currentPass:=false
+    currentExpected:=""
+    stepCount:=0
+    lastExpected,lastObserved:="",""
+    lastRAW:=StepRAW{}
+    var lastRequired []string
+    var lastKind,lastFailed string
+    finishTask:=func(){
+        if current==""{return}
+        if stepCount==0||lastExpected!=currentExpected||lastObserved!=currentExpected{
+            currentPass=false
         }
-        last:=steps[len(steps)-1]
-        want,e:=d.query("SELECT "+fieldsSQL("expected")+" FROM tasks WHERE id="+quote(t[0])+";",1)
-        if e!=nil{return nil,e}
-        if len(want)!=1||last[1]!=want[0][0]{trustworthy=false}
-        // No PASS for a path whose before-action conditions were never met.
-        contextRows,e:=d.query("SELECT "+fieldsSQL("t.kind","t.condition","q.conditions")+" FROM tasks t JOIN rules q ON q.graph=t.graph AND q.id=t.rule WHERE t.id="+quote(t[0])+";",3)
-        if e!=nil{return nil,e}
-        if len(contextRows)!=1{trustworthy=false}else{
-            var required []string
-            if e=json.Unmarshal([]byte(contextRows[0][2]),&required);e!=nil{return nil,e}
-            _,raw,e:=loadEvidence(last[4])
-            if e!=nil{trustworthy=false}else{
-                observed,e:=parseStepRAW(raw,runs[0][0],last[1],last[2],len(steps))
-                if e!=nil||!conditionsMatch(observed,contextRows[0][0],contextRows[0][1],required){trustworthy=false}
-            }
+        if currentPass&&!conditionsMatch(lastRAW,lastKind,lastFailed,lastRequired){
+            currentPass=false
         }
-        if trustworthy{passed++}else{broken++}
+        if currentPass{passed++}else{broken++}
     }
-    missing:=0
-    for id:=range expectedTasks{if !present[id]{missing++}}
-    risks,e:=d.query("SELECT "+fieldsSQL("id")+" FROM risks WHERE graph="+quote(graph)+";",1)
+    e=d.each(statement,14,func(row []string)error{
+        id:=row[0]
+        if id!=current{
+            finishTask()
+            current=id;total++;stepCount=0
+            lastExpected="";lastObserved="";lastRAW=StepRAW{}
+            currentPass=required[id]&&row[1]=="PASS"&&row[7]=="PASS"&&row[6]!=""
+            lastKind,lastFailed,currentExpected=row[2],row[3],row[4]
+            delete(required,id)
+            if e=json.Unmarshal([]byte(row[5]),&lastRequired);e!=nil{return e}
+        }
+        if row[8]==""{return nil}
+        stepCount++
+        expectedIndex:=fmt.Sprint(stepCount)
+        if row[8]!=expectedIndex||row[11]!="PASS"||row[9]!=row[10]{
+            currentPass=false
+        }
+        lastExpected,lastObserved=row[9],row[10]
+        if !currentPass{return nil}
+        // A mutable RAW cannot be trusted from a stored verdict. Rehash it.
+        _,raw,e:=loadEvidence(row[12])
+        if e!=nil{currentPass=false;return nil}
+        hash:=sha256.Sum256(raw)
+        if hex.EncodeToString(hash[:])!=row[13]{currentPass=false;return nil}
+        parsed,e:=parseStepRAW(raw,row[6],row[9],row[10],stepCount)
+        if e!=nil||parsed.ExitCode!=0{currentPass=false;return nil}
+        lastRAW=parsed
+        return nil
+    })
     if e!=nil{return nil,e}
-    valid:=g[0][0]=="1"&&len(rules)>0&&unconfirmed==0&&len(tasks)==len(expectedTasks)&&missing==0&&broken==0&&passed==len(expectedTasks)
-    verdict:="FAIL";if valid{verdict="PASS"}
+    finishTask()
+    risks,e:=d.query("SELECT "+fieldsSQL("CAST(COUNT(*) AS TEXT)")+" FROM risks WHERE graph="+quote(graph)+";",1)
+    if e!=nil{return nil,e}
+    openRisks:=0
+    if len(risks)==1{if _,e=fmt.Sscan(risks[0][0],&openRisks);e!=nil{return nil,e}}
+    missing:=len(required)
+    ok:=versions[0][0]=="1"&&len(rules)>0&&unconfirmed==0&&
+        total>0&&total==passed&&missing==0&&broken==0
+    verdict:="FAIL";if ok{verdict="PASS"}
     return map[string]any{
-        "verdict":verdict,"catalog_approved":g[0][0]=="1",
+        "verdict":verdict,"catalog_approved":versions[0][0]=="1",
         "confirmed_rules":len(rules)-unconfirmed,"unconfirmed_rules":unconfirmed,
-        "required_tasks":len(expectedTasks),"actual_tasks":len(tasks),
+        "required_tasks":total+missing,"actual_tasks":total,
         "passed_with_valid_raw":passed,"missing_tasks":missing,
-        "invalid_tasks_or_evidence":broken,"open_risks":len(risks),
+        "invalid_tasks_or_evidence":broken,"open_risks":openRisks,
     },nil
 }
 type StepTrace struct {
