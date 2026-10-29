@@ -61,13 +61,7 @@ Checker findings: [closure-rules.md](references/closure-rules.md). HTTP specs us
 
 ## Workflow
 
-When business-chain verification requires a new or clarified rule, use
-[workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills)
-and the optional read-only `arc-verify handoff --to arc-plan --graph <version>`.
-Keep canonical PRD/closure-spec and approved rule wording in project docs.
-AI-inferred industry expectations remain RISK; only explicit user approval makes
-a rule normative. Handoff existing REQ/RULE IDs to `arc:verify` for local DB
-import/approval and execution; do not write the Turso ledger in docs-only mode.
+Graph chain: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills); read-only `arc-verify handoff --to arc-plan --graph <id>`. User approves RULEs; hypotheses remain RISK; write docs, not the ledger.
 
 Cross-phase handoffs follow [workflow.md](../_shared/workflow.md); bind tasks to requirement,
 transition, invariant and scenario IDs. A model PASS never marks implementation tasks complete.

@@ -52,12 +52,7 @@ First matching row wins.
 
 ## Workflow
 
-When a scoped business-chain verification needs actual implementation facts, follow
-[workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills):
-`arc-verify handoff --to arc-explore --graph <version>` is read-only and
-provides candidate entry points. Supply indexed source evidence back to
-`arc:verify`; do not use `scan` (it writes the ledger), approve a rule or
-turn one `NOT_FOUND` into a product defect. Keep this phase read-only.
+Graph chain: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills); `arc-verify handoff --to arc-explore --graph <id>` is read-only. Supply source facts, not FAIL claims.
 
 1. Read [contract.md](../_shared/contract.md) and [code-intel.md](../_shared/code-intel.md); run the
    code-intel §1 preflight. Output one line: `arc-idx <version> · repo_root · healthy · index_stale ·

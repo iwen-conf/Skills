@@ -54,13 +54,7 @@ First matching row wins.
 
 ## Workflow
 
-When `arc:verify` genuinely needs a new browser runner, device adapter or
-database/CLI dependency, use `arc-verify handoff --to arc-vet --graph <version>`
-only as bounded context and follow
-[workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
-Compare existing native project runners before adding tools; preserve the
-user's short-lived Go CLI, project-local Turso and no-daemon/no-extra-service
-constraints. Return the pinned choice to code/verify, not a new business rule.
+Graph runner selection: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills), `arc-verify handoff --to arc-vet --graph <id>`; prefer existing runners and no new daemon/cloud database.
 
 1. Read [contract.md](../_shared/contract.md). A new dependency is T2 (contract §2). Output: need,
    boundary, language and version, platforms, constraints, project license, mode, `as_of`.

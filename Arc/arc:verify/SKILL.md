@@ -45,21 +45,6 @@ required, a sensitivity record.
 | Cadence: PR, nightly, pre-release | no | PR |
 | Authorization for shared-target load, fault injection or destructive reset | no | none; those steps stay `BLOCKED` |
 
-## Graph-based business-chain verification (local Turso)
-
-For requests such as "test all interactions in the academic system", first discover the
-*expected* business catalog with the user, independent of implementation. Read
-[local graph verification](references/business-graph.md) for contract / implementation
-comparison, task generation, runtime observations and CLI use. AI-derived industry
-assumptions are RISK only; only user-confirmed RULE may produce a required FAIL/MISSING
-claim. Store project-local graph and run ledger in `.arc/verify/data.db`; never use
-Turso Cloud, network URLs, permanent workers, or a second database.
-
-Use the short-lived Go `arc-verify` CLI to record graph versions, approvals, tasks,
-observations and evidence; do not claim E2E PASS without a real client runner and
-independent RAW. Existing FLOW catalog and test modes remain authoritative; graph
-verification adds tracking and must not replace browser/device/real-DB evidence.
-
 ## Intent Router
 
 | Condition | Mode | Read |
@@ -87,15 +72,7 @@ HTTP/JSON/upload claims use [API cases](references/api-contract-tests.md) within
 
 ## Workflow
 
-For a graph-enabled business-chain request, use the shared
-[workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills)
-and `arc-verify handoff --to arc-verify --graph <version>` to fetch only
-the next executable cards. `arc:plan` owns user-approved rule wording,
-`arc:explore` supplies implementation locations, and `arc:verify` alone
-writes test graph execution state. Confirmed FAIL → `arc:code` via
-`arc-verify handoff --to arc-code --run <id>`; specification gaps → plan;
-unconfirmed NOT_FOUND/risk → investigate without business FAIL; dependency
-selection → vet. Retain existing FLOW/branch-ledger proof and environment gates.
+Graph-enabled work: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills); use `arc-verify handoff --to arc-verify --graph <id>` for bounded cards. User RULEs alone define business verdicts; preserve RAW and FLOW IDs.
 
 1. Read [contract](../_shared/contract.md). Record tier, scope, mode, environment and entry `git diff`/status baseline.
    Output: task-log header.

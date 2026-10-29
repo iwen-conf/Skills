@@ -54,14 +54,7 @@ Deliver located findings, evidence, severity/status and coverage; preserve sourc
 
 ## Workflow
 
-For review of a graph-enabled business chain, obtain a bounded **read-only**
-`arc-verify handoff --to arc-audit --graph <version>` and apply
-[workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
-A `NOT_FOUND` implementation observation is not proof of a missing function;
-a domain hypothesis is RISK until user confirmation. Review independent RAW,
-approval/source, source commit and environment; send unresolved requirements to
-`arc:plan`, confirmed defects to `arc:code`, proof gaps to `arc:verify`.
-Do not write the graph ledger.
+Graph evidence review: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills), `arc-verify handoff --to arc-audit --graph <id>` (read-only). NOT_FOUND and RISK are not confirmed defects.
 
 Document-only API reviews cite sections/lines; without a repository skip git/index steps.
 

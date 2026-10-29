@@ -59,14 +59,7 @@ The behavior works through its real entry point (HTTP, CLI, UI, job), every impa
 
 ## Workflow
 
-When repairing a confirmed business-graph failure, obtain
-`arc-verify handoff --to arc-code --run <failed-run-id>` and follow
-[workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
-The packet binds rule, first divergence, environment, source commit, entry and
-independent RAW. Reproduce the root cause through code-intel and existing tests;
-do not rewrite the approved rule, prior RAW or FAIL. Code fixes use their normal
-compile/test/receipt gate, then return to `arc:verify` for fresh E2E proof;
-a red pre-fix graph does not prevent an authorized repair commit.
+Graph repair: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills); `arc-verify handoff --to arc-code --run <id>` binds failed evidence. Fix code, not frozen rules or old RAW; verify reruns E2E.
 
 1. Read [contract.md](../_shared/contract.md), [code-intel.md](../_shared/code-intel.md) and [coding-discipline.md](../_shared/coding-discipline.md). Write one line: `Mode · Tier · Scope lock · Task slug`. IF T2 and no task document THEN write an inline brief (≤10 lines, contract §2) before any edit.
 2. Run the code-intel preflight. For T1/T2 run `bash <skill-dir>/scripts/gate.sh start --task <slug>` (`<skill-dir>` holds this file) before the first edit. Output: baseline recorded.
