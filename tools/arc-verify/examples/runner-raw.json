@@ -1,6 +1,10 @@
 {
   "run": "R-REPLACE_WITH_REAL_RUN_ID",
+  "step": 1,
+  "expected": "ENROLLED",
   "observed": "ENROLLED",
+  "before": "NOT_ENROLLED",
+  "after": "ENROLLED",
   "oracle": "independent enrollment readback + UI state",
   "runner": "browser-test-runner",
   "exit_code": 0,

@@ -2,13 +2,10 @@ package main
 
 import (
  "crypto/rand"
- "crypto/sha256"
  "encoding/hex"
  "encoding/json"
  "errors"
  "fmt"
- "os"
- "path/filepath"
 )
 
 func (d db) importGraph(g Graph)error{

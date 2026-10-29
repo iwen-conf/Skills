@@ -13,7 +13,7 @@ import (
 func emit(v any){b,_:=json.MarshalIndent(v,"","  ");fmt.Println(string(b))}
 func main(){if e:=run(os.Args[1:]);e!=nil{fmt.Fprintln(os.Stderr,"arc-verify:",e);os.Exit(1)}}
 func run(args []string)error{
- if len(args)==0{return errors.New("usage: arc-verify <init|validate|import|approve|plan|next|start|record|trace|gate|risk|scan|gaps|fixtures|fixture> [options]")}
+ if len(args)==0{return errors.New("usage: arc-verify <init|validate|import|approve|plan|next|start|step|finish|record|trace|gate|risk|scan|gaps|fixtures|fixture> [options]")}
  name:=args[0]
  f:=flag.NewFlagSet(name,flag.ContinueOnError)
  dbfile:=f.String("db",".arc/verify/data.db","local Turso database path")
@@ -24,6 +24,7 @@ func run(args []string)error{
  runID:=f.String("run","","run id")
  env:=f.String("env","","approved environment alias")
  commit:=f.String("commit","","source commit")
+ expected:=f.String("expected","","expected graph state for this step (default final task state)")
  observed:=f.String("observed","","observed business state")
  evidence:=f.String("evidence","","local runner evidence path")
  id:=f.String("id","","fixture id")
@@ -70,6 +71,12 @@ func run(args []string)error{
    if *task==""||*env==""||*commit==""{return errors.New("--task --env --commit required")}
    if e=approvedEnvironment(*config,*env);e!=nil{return e}
    id,e:=d.start(*task,*env,*commit);if e==nil{emit(map[string]string{"run":id,"status":"RUNNING"})};return e
+ case "step":
+   if *runID==""||*evidence==""||*observed==""{return errors.New("--run --observed --evidence required")}
+   v,e:=d.step(*runID,*expected,*observed,*evidence);if e==nil{emit(v)};return e
+ case "finish":
+   if *runID==""{return errors.New("--run required")}
+   v,e:=d.finish(*runID);if e==nil{emit(v)};return e
  case "record":
    if *runID==""||*evidence==""||*observed==""{return errors.New("--run --observed --evidence required")}
    rawPath,e:=filepath.Abs(*evidence);if e!=nil{return e}

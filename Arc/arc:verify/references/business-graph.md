@@ -24,7 +24,8 @@ Example command sequence:
     arc-verify plan --graph academic-v1
     arc-verify next --graph academic-v1
     arc-verify start --task academic-v1/R-ENROLL/POSITIVE --env test60 --commit <sha>
-    arc-verify record --run <run> --observed ENROLLED --evidence .arc/verify/raw/<run>.json
+    arc-verify step --run <run> --expected ENROLLED --observed ENROLLED --evidence .arc/verify/raw/<run>-01.json
+    arc-verify finish --run <run>
     arc-verify trace --run <run>
     arc-verify gate --graph academic-v1
 
@@ -51,3 +52,10 @@ and `gaps --graph` (contract action compared with most recent observation).
 `fixtures --file` imports a fixture recipe and `fixture --id` retrieves it;
 no real server data is mutated by these commands. User-approved test-data setup
 and replay operations require explicit runner adapters and a state readback.
+
+Each execution step has its own RAW and independent expected graph state.
+The first diverging step is preserved as FAIL; a known safe observed state can
+be a REPLAN candidate, never a silent correction. `finish` and `gate`
+independently validate evidence file identity/hash; changed or deleted
+evidence invalidates completion. Each `UNCHANGED` rejection requires
+before/after equality and rejected-operation evidence, not merely a string.

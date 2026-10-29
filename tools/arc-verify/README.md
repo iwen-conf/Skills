@@ -19,7 +19,9 @@ Project lifecycle:
     arc-verify plan --graph academic-v1
     arc-verify next --graph academic-v1
     arc-verify start --task academic-v1/R-ENROLL/POSITIVE --env test60 --commit HEAD_SHA
-    arc-verify record --run RUN_ID --observed ENROLLED --evidence .arc/verify/raw/RUN_ID.json
+    arc-verify step --run RUN_ID --expected ENROLLED --observed ENROLLED --evidence .arc/verify/raw/RUN_ID-step-1.json
+    arc-verify finish --run RUN_ID
+    # record remains a shorthand for a single step plus finish
     arc-verify trace --run RUN_ID
     arc-verify risk --graph academic-v1
     arc-verify gate --graph academic-v1
@@ -64,3 +66,16 @@ Fixtures retain logical IDs, intended states, role metadata and only secret refe
 recipe/reference; no automatic server-side restoration is claimed. Implementation
 observations require an evidence file and are append-only; a `NOT_FOUND` observation
 remains a **candidate missing-functionality risk**, never an automatic product FAIL.
+
+## Step-level trace and freeze rules
+
+Each RAW JSON object needs `run`, sequential `step`, `expected`, `observed`,
+`runner`, `oracle`, and numeric `exit_code`. The CLI independently looks up
+the frozen graph expectation, checks the identities and hashes the RAW. A
+`UNCHANGED` negative/forced outcome additionally needs `before` and `after`
+to be identical plus `denied: true`. A mismatch creates a permanent FAIL at
+that step. Only an explicitly safe, known observed state can be marked
+`REPLAN`; it never rewrites the original FAIL. `finish` requires at least
+one PASS step, valid unchanged RAW files, and a final observation matching the
+task's frozen expected state. The gate reconstructs the mandatory task set
+and rechecks evidence hashes; counts alone cannot grant PASS.
