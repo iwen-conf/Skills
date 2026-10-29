@@ -21,14 +21,14 @@ Change source code so the requested behavior holds on its real entry point, with
 
 - Explain, locate or map code without editing → `arc:explore`.
 - Review a diff, PR, project health or security without editing → `arc:audit`.
-- Tests as the deliverable, reliability, PostgreSQL qualification, flaky triage, web performance, release go/no-go → `arc:verify`.
+- Tests, reliability, PostgreSQL, flaky, web performance or release gates → `arc:verify`.
 - PRD, brief, closure model, task documents, progress → `arc:plan`.
 - Visual direction without code → `ui-design`; commit, push, PR → `check`.
 - Lark documents or project status sync → `lark`.
 
 ## Goal
 
-The behavior works through its real entry point (HTTP, CLI, UI, job), every impacted site and sibling path is updated, and `gate.sh check` has no `FAIL`.
+Implement behavior through the real HTTP/CLI/UI/job entry, update affected siblings and pass `gate.sh check`.
 
 ## Inputs
 
@@ -59,7 +59,7 @@ The behavior works through its real entry point (HTTP, CLI, UI, job), every impa
 
 ## Workflow
 
-Graph repair: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills); `arc-verify handoff --to arc-code --run <id>` binds failed evidence. Fix code, not frozen rules or old RAW; verify reruns E2E.
+Graph repairs: [workflow §6](../_shared/workflow.md); `arc-verify handoff --to arc-code --run <id>`. Preserve prior FAIL, RAW and rules; verify reruns E2E.
 
 1. Read [contract.md](../_shared/contract.md), [code-intel.md](../_shared/code-intel.md) and [coding-discipline.md](../_shared/coding-discipline.md). Write one line: `Mode · Tier · Scope lock · Task slug`. IF T2 and no task document THEN write an inline brief (≤10 lines, contract §2) before any edit.
 2. Run the code-intel preflight. For T1/T2 run `bash <skill-dir>/scripts/gate.sh start --task <slug>` (`<skill-dir>` holds this file) before the first edit. Output: baseline recorded.

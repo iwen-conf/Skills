@@ -54,7 +54,7 @@ Deliver located findings, evidence, severity/status and coverage; preserve sourc
 
 ## Workflow
 
-Graph evidence review: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills), `arc-verify handoff --to arc-audit --graph <id>` (read-only). NOT_FOUND and RISK are not confirmed defects.
+Graph review: [workflow §6](../_shared/workflow.md), `arc-verify handoff --to arc-audit --graph <id>` (read-only); NOT_FOUND/RISK ≠ defect.
 
 Document-only API reviews cite sections/lines; without a repository skip git/index steps.
 

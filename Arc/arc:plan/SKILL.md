@@ -27,9 +27,8 @@ Turns intent into specs and checkable models an executor can verify without hidd
 
 ## Goal
 
-The spec or model exists at its agreed path; requirements trace to the user's words or `file:line`;
-tasks carry scope, non-goals and runnable acceptance; models carry current check and gate results; no
-source, test or config file changed.
+Write the agreed spec with user/`file:line` traceability, scoped runnable tasks,
+model check/gate results and no source/test/config edits.
 
 ## Inputs
 
@@ -61,10 +60,9 @@ Checker findings: [closure-rules.md](references/closure-rules.md). HTTP specs us
 
 ## Workflow
 
-Graph chain: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills); read-only `arc-verify handoff --to arc-plan --graph <id>`. User approves RULEs; hypotheses remain RISK; write docs, not the ledger.
-
-Cross-phase handoffs follow [workflow.md](../_shared/workflow.md); bind tasks to requirement,
-transition, invariant and scenario IDs. A model PASS never marks implementation tasks complete.
+Use [graph handoffs](../_shared/workflow.md) and read-only `arc-verify handoff --to arc-plan --graph <id>`.
+Only user-approved rules are normative; document changes remain docs-only.
+Keep requirement/transition/scenario IDs; model PASS is not runtime PASS.
 
 1. Read [contract.md](../_shared/contract.md) and [execution-truth.md](../../docs/execution-truth.md)
    §2, §3. Record the tier, scope tokens and a `git status --porcelain` baseline. Output: three
