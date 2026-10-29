@@ -4,15 +4,14 @@ import (
     "encoding/json"
     "fmt"
     "os"
-    "os/exec"
     "path/filepath"
     "testing"
 )
 
 func TestTursoLocalBusinessChain(t *testing.T){
-    if _,err:=exec.LookPath("tursodb");err!=nil{t.Skip("official tursodb not installed; required in CI integration job")}
     path:=filepath.Join(t.TempDir(),"data.db")
     d,err:=openDB(path,true);if err!=nil{t.Fatal(err)}
+    defer d.close()
     for _,sql:=range schema{if _,err=d.sql(sql);err!=nil{t.Fatalf("schema: %v",err)}}
     g:=sample()
     if err=validateGraph(g);err!=nil{t.Fatal(err)}
@@ -40,6 +39,7 @@ func TestTursoLocalBusinessChain(t *testing.T){
     }
     // Separate DB object opens the same local file; no daemon or cloud endpoint.
     other,err:=openDB(path,false);if err!=nil{t.Fatal(err)}
+    defer other.close()
     result,err:=other.gate(g.ID);if err!=nil{t.Fatal(err)}
     if result["verdict"]!="PASS"{t.Fatalf("expected full verified task set, got %+v",result)}
     // A brand-new task cannot be marked passed merely by inserting a fake PASS status.

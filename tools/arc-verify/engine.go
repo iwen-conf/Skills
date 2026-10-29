@@ -145,6 +145,7 @@ func (d db) gate(graph string)(map[string]any,error){
       "LEFT JOIN runs r ON r.rowid=(SELECT MAX(rr.rowid) FROM runs rr WHERE rr.task=t.id) "+
       "LEFT JOIN steps s ON s.run=r.id WHERE t.graph="+quote(graph)+
       " ORDER BY t.id,s.idx;"
+    expectedCount:=len(required)
     total,passed,broken:=0,0,0
     current:=""
     currentPass:=false
@@ -206,7 +207,7 @@ func (d db) gate(graph string)(map[string]any,error){
     return map[string]any{
         "verdict":verdict,"catalog_approved":versions[0][0]=="1",
         "confirmed_rules":len(rules)-unconfirmed,"unconfirmed_rules":unconfirmed,
-        "required_tasks":total+missing,"actual_tasks":total,
+        "required_tasks":expectedCount,"actual_tasks":total,
         "passed_with_valid_raw":passed,"missing_tasks":missing,
         "invalid_tasks_or_evidence":broken,"open_risks":openRisks,
     },nil

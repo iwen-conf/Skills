@@ -43,6 +43,7 @@ func run(args []string)error{
  }
  if name=="init" {
     d,e:=openDB(*dbfile,true);if e!=nil{return e}
+    defer d.close()
     for _,s:=range schema{if _,e=d.sql(s);e!=nil{return e}}
     emit(map[string]string{"database":d.file,"status":"initialized"})
     return nil
@@ -51,6 +52,7 @@ func run(args []string)error{
      return errors.New("--graph required")
  }
  d,e:=openDB(*dbfile,false);if e!=nil{return e}
+ defer d.close()
  switch name {
  case "import":
    if *file==""{return errors.New("--file required")}

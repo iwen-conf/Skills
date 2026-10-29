@@ -37,3 +37,7 @@ func TestConfigPreflight(t *testing.T){
  if e:=approvedEnvironment(path,"test");e!=nil{t.Fatal(e)}
  if e:=approvedEnvironment(path,"prod");e==nil{t.Fatal("unapproved environment accepted")}
 }
+
+func TestNativeSQLProjectionDoesNotHexEncode(t *testing.T){
+ if got:=fieldsSQL("t.id","CAST(approved AS TEXT)");got!="t.id,CAST(approved AS TEXT)"{t.Fatalf("unexpected native projection %q",got)}
+}

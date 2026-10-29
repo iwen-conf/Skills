@@ -3,7 +3,6 @@ package main
 import (
     "context"
     "database/sql"
-    "encoding/hex"
     "errors"
     "fmt"
     "os"
@@ -56,28 +55,27 @@ func (d db) sql(statement string)(string,error){
 }
 func quote(v string)string{return "'"+strings.ReplaceAll(v,"'","''")+"'"}
 func fieldsSQL(columns ...string)string{
-    a:=make([]string,len(columns))
-    for i,c:=range columns{a[i]="hex("+c+")"}
-    return strings.Join(a,"||'|'||")
+    // Pass the projection as real SQL columns. No hex/string concatenation.
+    return strings.Join(columns,",")
 }
+// each streams a typed SQL result. A single reusable scan-target allocation
+// replaces hex encode/decode and splitting of one huge joined TEXT cell.
 func (d db) each(statement string,columns int,visit func([]string)error)error{
     ctx,cancel:=context.WithTimeout(context.Background(),30*time.Second)
     defer cancel()
     rows,e:=d.handle.QueryContext(ctx,statement)
     if e!=nil{return e}
     defer rows.Close()
+    values:=make([]sql.NullString,columns)
+    targets:=make([]any,columns)
+    for i:=range values{targets[i]=&values[i]}
     for rows.Next(){
-        var line string
-        if e=rows.Scan(&line);e!=nil{return e}
-        parts:=strings.Split(line,"|")
-        if len(parts)!=columns{return fmt.Errorf("unexpected columns: got %d, want %d",len(parts),columns)}
-        values:=make([]string,columns)
-        for i,encoded:=range parts{
-            b,e:=hex.DecodeString(encoded)
-            if e!=nil{return fmt.Errorf("invalid hex in column %d: %w",i,e)}
-            values[i]=string(b)
+        if e=rows.Scan(targets...);e!=nil{return e}
+        row:=make([]string,columns)
+        for i,value:=range values{
+            if value.Valid{row[i]=value.String}
         }
-        if e=visit(values);e!=nil{return e}
+        if e=visit(row);e!=nil{return e}
     }
     return rows.Err()
 }
