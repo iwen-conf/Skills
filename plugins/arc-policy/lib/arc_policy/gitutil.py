@@ -6,6 +6,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import yaml
+
 
 def _env() -> dict[str, str]:
     env = dict(os.environ)
@@ -108,13 +110,23 @@ def tree_fingerprint(root: Path) -> dict[str, object]:
     graph_config = root / ".arc/verify/config.jsonc"
     policy_overlay = root / ".arc/policy.yaml"
     policy_text = policy_overlay.read_text(encoding="utf-8") if policy_overlay.is_file() else ""
-    graph_enabled = graph_config.is_file() or "business_graph:" in policy_text
+    overlay = yaml.safe_load(policy_text) if policy_text else {}
+    graph_policy = ((overlay or {}).get("verification") or {}).get("business_graph")
+    graph_enabled = graph_config.is_file() or graph_policy is not None
     if graph_enabled:
+        location = (
+            graph_policy.get("db", ".arc/verify/data.db")
+            if isinstance(graph_policy, dict) else ".arc/verify/data.db"
+        )
+        if not isinstance(location, str) or not location:
+            raise RuntimeError("invalid verification.business_graph.db path")
+        path = (root / location).resolve()
+        if not path.is_relative_to(root):
+            raise RuntimeError("verification.business_graph.db escapes the repository")
+        rel_db = path.relative_to(root).as_posix()
         for rel in (
             ".arc/verify/config.jsonc",
-            ".arc/verify/data.db",
-            ".arc/verify/data.db-wal",
-            ".arc/verify/data.db-shm",
+            rel_db, rel_db + "-wal", rel_db + "-shm",
         ):
             content[rel] = _file_digest(root / rel)
 
