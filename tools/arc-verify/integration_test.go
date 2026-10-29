@@ -95,3 +95,25 @@ func TestRecoveryReadsOnlyRelevantApprovedGraphSlice(t *testing.T){
     }
     if result.Truncated{t.Fatal("single recovery unexpectedly truncated")}
 }
+
+func TestPlannerCursorRewindsAfterLateUserApproval(t *testing.T){
+    d,err:=openDB(filepath.Join(t.TempDir(),"approval.db"),true)
+    if err!=nil{t.Fatal(err)}
+    defer d.close()
+    for _,q:=range schema{if _,err=d.sql(q);err!=nil{t.Fatal(err)}}
+    g:=sample()
+    earlier:=g.Rules[0];earlier.ID="R0"
+    later:=g.Rules[0];later.ID="R2"
+    g.Rules=append(g.Rules,earlier,later)
+    if err=validateGraph(g);err!=nil{t.Fatal(err)}
+    if err=d.importGraph(g);err!=nil{t.Fatal(err)}
+    if err=d.approve(g.ID,"");err!=nil{t.Fatal(err)}
+    if err=d.approve(g.ID,later.ID);err!=nil{t.Fatal(err)}
+    first,err:=d.plan(g.ID,16);if err!=nil||first!=3{t.Fatalf("first %d %v",first,err)}
+    if err=d.approve(g.ID,earlier.ID);err!=nil{t.Fatal(err)}
+    second,err:=d.plan(g.ID,16);if err!=nil||second!=6{t.Fatalf("rewind %d %v",second,err)}
+    rows,err:=d.query("SELECT "+fieldsSQL("CAST(COUNT(*) AS TEXT)")+" FROM tasks WHERE graph="+quote(g.ID)+";",1)
+    if err!=nil{t.Fatal(err)}
+    if len(rows)!=1||rows[0][0]!="6"{t.Fatalf("task count after user approval %+v",rows)}
+    if n,err:=d.plan(g.ID,16);err!=nil||n!=0{t.Fatalf("cursor termination %d %v",n,err)}
+}

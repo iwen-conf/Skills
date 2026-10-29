@@ -143,7 +143,10 @@ Benchmark data is synthetic and isolated; it never accesses the remote test serv
 or passes a business E2E claim. Compare p50/p95 of **complete CLI commands** as well
 as ns/op and allocs/op of the in-process components. Reject an optimization if it
 breaks any contract/risk gate, orphan/absent-task detection or RAW revalidation.
-Task materialization uses `plan --limit 128` (range 1..1024), and `recover`
+Task materialization uses a transactional seek cursor with `plan --limit 128` (range 1..1024), and `recover`
 reads only an indexed bounded graph slice (max depth 8, max 128 actions).
 `gate` remains an intentionally exhaustive integrity check over *all* required
 confirmed obligations; never substitute a fast status count for an E2E receipt.
+
+
+The planner cursor is stored in `plan_cursor` and committed atomically with each task batch, so invoking the short-lived CLI again resumes without re-scanning earlier rules. Explicit approval of a previously unconfirmed rule resets the cursor safely; `INSERT OR IGNORE` keeps old task/run history untouched. Run `arc-verify init` after upgrading an existing local graph DB to add indexes and the cursor table. Each rule is capped at 64 named preconditions to bound the working set.
