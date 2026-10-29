@@ -89,7 +89,8 @@ func (d db) handoff(to,graph,runID string)(HandoffPacket,error){
         packet.PendingRules,packet.Truncated=takeRows(unconfirmed,8)
         risks,e:=d.query("SELECT "+fieldsSQL("id","description","status")+" FROM risks WHERE graph="+quote(packet.Graph)+" ORDER BY id LIMIT 9;",3)
         if e!=nil{return HandoffPacket{},e}
-        packet.Risks,more:=takeRows(risks,8);packet.Truncated=packet.Truncated||more
+        var more bool
+        packet.Risks,more=takeRows(risks,8);packet.Truncated=packet.Truncated||more
         packet.Actions=[]string{"review business intent in the existing PRD/closure model","obtain explicit user confirmation before changing any RULE","hand confirmed contract and unchanged IDs to arc-verify"}
     case "arc-explore":
         gaps,e:=d.gaps(packet.Graph);if e!=nil{return HandoffPacket{},e}
