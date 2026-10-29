@@ -13,7 +13,7 @@ import (
 func emit(v any){b,_:=json.MarshalIndent(v,"","  ");fmt.Println(string(b))}
 func main(){if e:=run(os.Args[1:]);e!=nil{fmt.Fprintln(os.Stderr,"arc-verify:",e);os.Exit(1)}}
 func run(args []string)error{
- if len(args)==0{return errors.New("usage: arc-verify <init|validate|import|approve|plan|next|recover|start|step|finish|record|trace|abort|retry|gate|risk|scan|gaps|fixtures|fixture|handoff> [options]")}
+ if len(args)==0{return errors.New("usage: arc-verify <init|selftest|validate|import|approve|plan|next|recover|start|step|finish|record|trace|abort|retry|gate|risk|scan|gaps|fixtures|fixture|handoff> [options]")}
  name:=args[0]
  f:=flag.NewFlagSet(name,flag.ContinueOnError)
  dbfile:=f.String("db",".arc/verify/data.db","local Turso database path")
@@ -36,6 +36,11 @@ func run(args []string)error{
  config:=f.String("config",".arc/verify/config.jsonc","test data and environment config")
  if e:=f.Parse(args[1:]);e!=nil{return e}
  if len(f.Args())!=0{return fmt.Errorf("unexpected arguments %v",f.Args())}
+ if name=="selftest" {
+    if e:=selftestLocalTurso();e!=nil{return fmt.Errorf("local Turso self-test failed: %w",e)}
+    emit(map[string]string{"status":"PASS","database":"temporary local Turso","network":"none"})
+    return nil
+ }
  if name=="validate" {
     if *file==""{return errors.New("--file required")}
     g,e:=loadGraph(*file)

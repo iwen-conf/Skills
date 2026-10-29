@@ -159,3 +159,16 @@ and after upgrading the Go CLI. Initialization creates the tables **before** the
 indexes in a single transaction, is safe to repeat, and preserves existing graph,
 task and run records. The integration tests include fresh, repeated and existing
 ledger initialization. This does not install a browser or grant remote access.
+
+### Real native-Turso readiness check
+
+```bash
+arc-verify selftest
+arc-policy doctor
+```
+
+`selftest` creates and removes a temporary local database, checking the actual
+embedded driver, schema, index creation, insert and independent SQL readback.
+It does not access a remote system or reuse a test account. When graph
+verification is enabled, `arc-policy doctor` now runs this self-test rather
+than only checking that an `arc-verify` binary exists.

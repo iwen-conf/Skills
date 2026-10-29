@@ -155,3 +155,7 @@ func TestInitUpgradesExistingLedger(t *testing.T) {
     if err!=nil{t.Fatal(err)}
     if len(rows)!=1{t.Fatal("plan cursor table was not created")}
 }
+
+func TestNativeDriverSelftest(t *testing.T) {
+    if err:=selftestLocalTurso();err!=nil{t.Fatal(err)}
+}

@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import sys
+import subprocess
 from pathlib import Path
 
 from arc_policy import __version__
@@ -158,12 +159,27 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         if policy_ok else (root / ".arc/verify/config.jsonc").is_file()
     )
     verify_binary = shutil.which("arc-verify")
-    turso_binary = shutil.which("tursodb")  # optional manual database inspection only
+    turso_binary = shutil.which("tursodb")  # optional manual inspection only
+    native_db_ok = False
+    native_db_error = None
+    if graph_declared and verify_binary:
+        try:
+            selftest = subprocess.run(
+                [verify_binary, "selftest"], capture_output=True, text=True,
+                timeout=30, check=False,
+            )
+            native_db_ok = selftest.returncode == 0
+            if not native_db_ok:
+                native_db_error = (selftest.stderr or selftest.stdout).strip()[-600:]
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            native_db_error = str(exc)
     report = {
         "graph_configured": graph_declared,
         "arc_verify_on_path": bool(verify_binary),
         "tursodb_on_path": bool(turso_binary),
-        "graph_runtime_ready": not graph_declared or bool(verify_binary),
+        "graph_runtime_ready": not graph_declared or bool(verify_binary and native_db_ok),
+        "native_turso_selftest": native_db_ok if graph_declared else None,
+        "native_turso_error": native_db_error,
         "version": __version__,
         "repo_root": str(root),
         "plugin_root": str(plugin_root()),
