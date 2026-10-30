@@ -12,6 +12,37 @@ A Coding Agent Policy Runtime, not a skill pack.
 
 Default mode: **the agent still writes code with host tools**. The CLI is the gate for `task begin`, commits, schema migrations, and delivery. Putting every file write behind the CLI is a later, much more expensive mode.
 
+## Local business-graph gate (opt-in)
+
+The existing Python `arc-policy` runtime stays intact. Its `task verify` command
+now checks the independent **Go** `arc-verify` business graph ledger when
+`.arc/verify/config.jsonc` exists or `verification.business_graph` is configured.
+
+The graph ledger lives in the target repository's local
+`.arc/verify/data.db` file, opened by the official in-process `tursogo` Go driver.
+It never contacts Turso Cloud; the tested web/API application may be on a
+separate authorized remote server. The Go CLI is short-lived: no daemon,
+persistent browser process or background worker.
+
+```yaml
+verification:
+  business_graph:
+    graph: academic-v1
+    db: .arc/verify/data.db
+```
+
+The graph check is an additional fail-closed receipt condition; existing
+unit/integration/E2E `verification.test_commands` continue to run.
+No graph ID, no local DB, unconfirmed business rules, unexecuted tasks,
+or a failing observed state => no graph PASS. Risks discovered by AI
+remain non-gating until the user confirms them as business rules.
+See `tools/arc-verify/README.md` and
+`Arc/arc:verify/references/business-graph.md`.
+
+This is workflow enforcement, not an adversarial security boundary:
+a same-user agent can alter local files or disable hooks. Use protected CI
+and separately trusted execution for high-assurance evidence.
+
 ## Install
 
 CLI (once per machine):
@@ -285,3 +316,26 @@ plugins/arc-policy/
 ```
 
 The six Arc skills (including `arc-vet`) stay in `Arc/` and continue to install through `scripts/sync_skills.py`. This plugin adds the enforcement plane; it does not fork those skills.
+
+### Phase-aware graph gate
+
+When graph verification is configured, `arc:verify` MUST satisfy the local
+`arc-verify gate` before a PASS receipt. This does **not** block
+`arc:code` repair work solely because the pre-fix E2E graph is red:
+its normal compile/test/quality gates remain mandatory, and the old graph
+failure remains FAIL until a subsequent `arc:verify` run proves the fix.
+
+Other skills do not receive a false "business graph PASS"; they are simply
+not authorized to assert the graph's runtime coverage. A project may
+explicitly opt additional skill phases into this gate:
+
+```yaml
+verification:
+  business_graph:
+    graph: academic-v1
+    db: .arc/verify/data.db
+    require_for_skills: [arc-code]
+```
+
+`arc-verify` can never be removed from the required phases. This avoids a
+verification ↔ repair deadlock without weakening `arc:verify` claims.

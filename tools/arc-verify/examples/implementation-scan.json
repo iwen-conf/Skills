@@ -1,0 +1,10 @@
+{
+  "graph": "academic-v1",
+  "entrances": [
+    {
+      "action": "enroll",
+      "status": "PRESENT",
+      "evidence": ".arc/verify/raw/enroll-discovery.json"
+    }
+  ]
+}

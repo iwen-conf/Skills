@@ -112,3 +112,58 @@ injects project rules. Docs-only requests stop before code. For authorized end-t
 activate the next available skill and continue; ask only for an actual unresolved decision or
 action outside the existing authorization. If a required skill is unavailable, name it and the
 blocked output; do not claim the handoff ran or silently use a retired alias.
+
+## 6. Graph-based business-chain verification across Arc skills (opt-in)
+
+This extends sections 1–5; it does not replace the canonical closure spec,
+business-flow catalog, phase authorities or existing handoff task card.
+Trigger only for an explicitly requested business-chain verification effort or
+a project with a configured `verification.business_graph` / confirmed graph
+version. Ordinary code changes do **not** require starting a new graph.
+
+The local `arc-verify` Go CLI is an ephemeral process. Its persistent ledger is
+the current *target repository*'s `.arc/verify/data.db` (local Turso file).
+It must not contact Turso Cloud. Remote addresses in `config.jsonc` are
+**authorization-scoped targets under test**, never the ledger database.
+No remote host/service other than those explicitly permitted by the user's
+environment constraints may be accessed as a workaround.
+
+| Existing skill | Receives | Output / boundary |
+|---|---|---|
+| `arc:explore` | feature/action IDs and missing implementation facts | Read-only indexed entry / route / API / caller facts with `file:line`. Never write graph DB or assert a missing feature from one failed search. |
+| `arc:plan` | user intent, PRD, closure-spec, unresolved RULE / RISK | Own canonical requirement and business rule wording in project docs. Get explicit user approval for each normative rule; risk is not a mandatory business contract. Docs-only authority means no DB updates in plan phase. |
+| `arc:verify` | confirmed rule IDs, current implementation/flow facts and environment scope | Import approved graph, lazy task generation, real E2E/independent Oracle, per-step trace + RAW and gate. Owns the local graph ledger and test-flow catalog, never production repairs. |
+| `arc:code` | confirmed failing run/step, rule, independent RAW, impacted route and tested commit | Root-cause repair on existing code; keep frozen rule, old FAIL and RAW unchanged. Hand to verify for new runtime proof. Fix-phase code/test receipt must not require a pre-fix red graph to go green. |
+| `arc:audit` | rule/risk and implementation gap candidates | Read-only critical review; distinguish confirmed contract violation from `NOT_FOUND` candidate, absent evidence and industry hypotheses. |
+| `arc:vet` | a concrete missing runner or tool dependency with cost/environment constraints | Date-stamped choice and version/rollback record; never install persistent infra or substitute mock proof. |
+
+**Bridge command** (read-only; no extra tracker):
+
+```bash
+arc-verify handoff --to arc-explore --graph academic-v1
+arc-verify handoff --to arc-plan --graph academic-v1
+arc-verify handoff --to arc-verify --graph academic-v1
+arc-verify handoff --to arc-code --run R-FAILED   # requires failed run
+arc-verify handoff --to arc-audit --graph academic-v1
+arc-verify handoff --to arc-vet --graph academic-v1
+```
+
+This bounded JSON packet is **context**, not an authority to change scope, access
+an unauthorized server, edit canonical docs, alter the graph or approve rules.
+Use the existing handoff record (§2) as the unique tracker. Preserve IDs
+`REQ → RULE → graph version → edge/condition → task → run → step → RAW` and
+source commit/environment/actor. Missing links remain explicit gaps, not
+synthetic "PASS". Record a code or model change as making affected prior runs
+stale; do not silently rewrite immutable history. A later PASS only proves a
+new run of the newer version.
+
+Business expectations derive from explicit user-approved rules. Other domain
+guesses remain `RISK` and do not become `MISSING`/business FAIL. Actual UI/API
+behavior is evidence of implementation, **not** of correctness. A failed or
+not-yet-run graph blocks the graph-verification receipt; it must not prevent
+`arc:code` from repairing the failure under its own test gates.
+
+The graph engine supports limited graph exploration; real browser/device
+execution, complete multi-actor sequences, fixture reconstruction and
+production-grade authenticity remain separate proof obligations. Never
+claim those checks ran because a handoff or model operation succeeded.

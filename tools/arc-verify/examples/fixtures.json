@@ -1,0 +1,23 @@
+{
+  "fixtures": [
+    {
+      "id": "student-01",
+      "kind": "account",
+      "state": "ACTIVE",
+      "secretRef": "env://TEST_STUDENT_PASSWORD",
+      "refs": {
+        "role": "STUDENT",
+        "username": "test-student"
+      }
+    },
+    {
+      "id": "course-open",
+      "kind": "course",
+      "state": "OPEN",
+      "refs": {
+        "external_id": "C-1001",
+        "owner": "test60"
+      }
+    }
+  ]
+}

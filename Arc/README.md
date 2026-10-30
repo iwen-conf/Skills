@@ -29,6 +29,18 @@ Typical sequences: `explore → code → verify` for a change (verify starts fro
 Skip phases with current usable outputs. A closure model gate proves model checks only;
 implementation and release claims still require their own runtime evidence.
 
+## Business-chain graph verification bridge
+
+For an explicit business-chain test request, the existing six Arc skills
+exchange one bounded local ledger view rather than creating a seventh skill.
+`arc:explore` traces implementation, `arc:plan` owns user-confirmed rules,
+`arc:verify` manages graph and real tests, `arc:code` repairs confirmed
+failures, `arc:audit` evaluates evidence, and `arc:vet` selects missing
+runner tools. See [workflow §6](_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills)
+and [arc:verify graph reference](arc:verify/references/business-graph.md).
+The short-lived `arc-verify handoff` command returns only the target phase's
+facts and identifiers; it does not approve business rules or grant permission.
+
 ## Shared layer
 
 [`_shared/`](_shared/) holds rules several skills apply. It has no `SKILL.md` and is never

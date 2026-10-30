@@ -249,9 +249,27 @@ def receipt_matches_tree(root: Path, receipt: dict[str, Any] | None) -> bool:
     ):
         return False
     fingerprint = tree_fingerprint(root)
-    return all(
+    if not all(
         receipt.get(key) == fingerprint[key] for key in ("head", "dirty", "digest")
-    )
+    ):
+        return False
+    # Graph evidence is local/ignored: verify its RAW references again when
+    # checking a receipt, not just the database file fingerprint. This also
+    # rejects removed runner evidence and policy/binary failures.
+    if any(
+        check.get("id") == "business_graph" and check.get("verdict") == "PASS"
+        for check in receipt.get("checks", [])
+        if isinstance(check, dict)
+    ):
+        from arc_policy.policy import load_for_repo
+        from arc_policy.verify import check_business_graph
+        try:
+            check = check_business_graph(root, load_for_repo(root))
+        except (OSError, RuntimeError, ValueError):
+            return False
+        if check is None or check.get("verdict") != "PASS":
+            return False
+    return True
 
 
 def delivered_receipt(root: Path, task: dict[str, Any]) -> dict[str, Any] | None:

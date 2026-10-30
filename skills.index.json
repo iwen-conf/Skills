@@ -1,14 +1,14 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-10-24T06:08:03.722078Z",
+  "generated_at": "2026-10-30T02:40:18.689832Z",
   "skill_count": 6,
   "skills": [
     {
       "name": "arc:audit",
       "description": "Read-only evaluation (只读) that produces ranked, evidence-backed code findings and never edits code: review any diff, PR or branch (代码评审, 能不能合), project health, code rot, over-engineering and tech debt (体检, 技术债, 过度设计, 可删代码), HTTP API design review (接口设计, 上传约束, JSON字段限制), AppSec audit, threat model and source-first pen test (威胁建模, 渗透测试) across web, identity, client, cloud, CI, RPC, mobile and LLM-agent surfaces, secret, dependency and SAST scans (安全扫描, Semgrep, 漏洞), and authorized DAST. Business lifecycle gaps (状态机漏洞, 闭环检查) go to arc:plan model mode. Not for fixes (use arc:code), tests (use arc:verify), or posting comments on CNB pull requests (use cnb).",
-      "version": "2.6.0",
+      "version": "2.7.0",
       "source_path": "Arc/arc:audit/SKILL.md",
-      "line_count": 147,
+      "line_count": 150,
       "intent_router": [
         {
           "Condition": "HTTP API design, upload or JSON contract",
@@ -18,7 +18,7 @@
         {
           "Condition": "Diff, PR, branch, commit range or patch file",
           "Mode": "review",
-          "Read": "[references/diff-review.md](references/diff-review.md)"
+          "Read": "[references/diff-review.md](references/diff-review.md); prior findings or `deep`: [review-loop.md](references/review-loop.md)"
         },
         {
           "Condition": "Health, code rot, over-engineering (过度设计), tech debt, maintainability, architecture or release readiness; \"审计/audit\" with no security word",
@@ -48,9 +48,9 @@
     {
       "name": "arc:code",
       "description": "Every task that changes source code: write code to implement (写代码, 实现, 开发功能, 落地改动) a feature, endpoint or page (前端, 落地页, 要好看, shadcn, 小程序) on the project's stack; fix (修复) a bug, error (报错), incident or failing test by evidence-first root-cause repair (根因); refactor (重构) or migrate; change an API or schema; apply Go backend layering (DIP, usecase, 分层); write comments (注释); add timing probes to a Gin SSR path (计时, 探针, 埋点); or build TypeSafe classifiers and routers (分类器, 意图识别). Implements an existing DESIGN.md. Ends with the gate.sh completion check. Not for read-only review (use arc:audit), tests as the deliverable or release evidence (use arc:verify), PRDs, task docs or closure models (use arc:plan), visual direction without code (use ui-design), or commit, push and PR delivery (use check).",
-      "version": "2.6.0",
+      "version": "2.7.0",
       "source_path": "Arc/arc:code/SKILL.md",
-      "line_count": 155,
+      "line_count": 157,
       "intent_router": [
         {
           "Condition": "New feature, endpoint, job or behavior from a known requirement",
@@ -120,9 +120,9 @@
     {
       "name": "arc:explore",
       "description": "Read-only code intelligence for a local repository: find where code lives (代码在哪, 搜代码), locate definitions, list callers (谁调用), trace a call chain (调用链) or data flow, list everything a planned change would touch (影响面 / impact analysis), and draw a module or architecture map (架构地图). Also maintains the arc-idx / zoekt index (索引维护: doctor, index, daemon). Not for edits (use arc:code), read-only risk review (use arc:audit), or tests (use arc:verify).",
-      "version": "2.2.0",
+      "version": "2.3.0",
       "source_path": "Arc/arc:explore/SKILL.md",
-      "line_count": 179,
+      "line_count": 181,
       "intent_router": [
         {
           "Condition": "Question contains 改, 换, 删, 重命名, rename, remove, replace, or asks what a change touches (影响面)",
@@ -157,7 +157,7 @@
     {
       "name": "arc:plan",
       "description": "Turns intent into written specs and checkable models without touching source code: PRD or blueprint (写PRD, 立项, 需求文档), clarify a vague request into a brief with acceptance criteria (需求澄清, 验收标准), business closure models — design a lifecycle or check an existing flow for dead ends, missing compensation or illegal transitions (业务闭环, 状态机, 状态流转漏洞, 事件联动, 异常恢复, 闭环检查) with the closure checker and gate (闭环闸门), Markdown API contracts (接口契约, 接口文档), tasks (拆任务, 任务文档, 进度跟踪), and audit findings into task batches. Not for implementation (use arc:code), code review (use arc:audit), or Lark workspace sync (use lark).",
-      "version": "2.5.0",
+      "version": "2.6.0",
       "source_path": "Arc/arc:plan/SKILL.md",
       "line_count": 199,
       "intent_router": [
@@ -209,9 +209,9 @@
     {
       "name": "arc:verify",
       "description": "Proves business code meets business expectations: business-flow inventories and flowcharts tracing branches to cases (业务流, 端到端业务流, 分支覆盖), test plans (测试方案, 用例设计, 测试范围), write tests (写测试), test-first acceptance tests (测试先行, TDD), test-value review (测试价值), regression and browser E2E suites (网页实测), coverage (覆盖率), fuzz campaigns (模糊测试), property and model-based tests (属性测试, 模型一致性), SQL lint gates (SQL 语法检查), transaction design per engine (事务设计), reliability checks (可靠性, 业务不变量) for transactions and concurrency (事务并发), idempotency (幂等), faults and recovery; PostgreSQL release qualification (G0-G31); flaky-test triage; load tests (压测); and release go/no-go gates (发布验收, 发布证据). Verdicts are PASS/FAIL/BLOCKED/NOT_RUN/FLAKY backed by independent oracles. Not for fixing the defects it finds (use arc:code) or static review (use arc:audit).",
-      "version": "3.2.0",
+      "version": "3.4.0",
       "source_path": "Arc/arc:verify/SKILL.md",
-      "line_count": 184,
+      "line_count": 186,
       "intent_router": [
         {
           "Condition": "Business flows: inventory, flowcharts, branch → case ledger, flow coverage; T1/T2 behavior no current flow covers",
@@ -301,9 +301,9 @@
     {
       "name": "arc:vet",
       "description": "Open-source due diligence before a new dependency or a non-trivial generic component (开源选型, 技术选型, 引入依赖, 不要重复造轮子, build vs buy): checks existing code and the standard library first, compares at least three GitHub candidates, verifies substantive maintenance, stable releases, license compatibility (许可证), advisories, transitive dependencies and integration cost with dated source links, rejects archived or 36-month-stale libraries (停更) unless an evidenced exception is recorded, and writes a decision record (选型记录): reuse, adopt, borrow the design, or build. Also re-vets a named dependency or finds a successor. Not for implementing the chosen option (use arc:code), dependency vulnerability scans (use arc:audit), or research articles (use research-write).",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source_path": "Arc/arc:vet/SKILL.md",
-      "line_count": 169,
+      "line_count": 171,
       "intent_router": [
         {
           "Condition": "A named dependency in use is stale, archived, relicensed or vulnerable; find a successor (停更, 换库)",

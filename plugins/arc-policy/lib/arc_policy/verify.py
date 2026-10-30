@@ -227,6 +227,35 @@ def check_tests(root: Path, policy: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def check_business_graph(root: Path, policy: dict[str, Any]) -> dict[str, Any] | None:
+    """Project-local business-graph gate; never contacts Turso Cloud.
+
+    Automatic when .arc/verify/config.jsonc exists, or when the project
+    explicitly configures verification.business_graph. No model -> BLOCKED.
+    """
+    config = (policy.get("verification") or {}).get("business_graph")
+    declared = (root / ".arc/verify/config.jsonc").is_file()
+    if config is None and not declared:
+        return None
+    if not isinstance(config, dict) or not isinstance(config.get("graph"), str) or not config["graph"]:
+        return {
+            "id": "business_graph",
+            "verdict": "BLOCKED",
+            "reason": "local verification configured but verification.business_graph.graph is missing",
+        }
+    db = config.get("db", ".arc/verify/data.db")
+    if not isinstance(db, str) or not db or Path(db).is_absolute():
+        return {"id": "business_graph", "verdict": "BLOCKED",
+                "reason": "business_graph.db must be a repository-relative path"}
+    target = (root / db).resolve()
+    if not target.is_relative_to(root):
+        return {"id": "business_graph", "verdict": "BLOCKED",
+                "reason": "business_graph.db resolves outside the repository"}
+    argv = ["arc-verify", "gate", "--db", db, "--graph", config["graph"]]
+    result = _check_command(root, argv, root, configured=True)
+    return {"id": "business_graph", **result}
+
+
 def summarize(checks: list[dict[str, Any]], policy: dict[str, Any]) -> str:
     required = list((policy.get("verification") or {}).get("required") or [])
     fail_closed = bool((policy.get("verification") or {}).get("fail_closed", True))
@@ -265,6 +294,24 @@ def _verify_task(
     if policy is None:
         policy = load_for_repo(root, languages=detect_languages(root))
     checks = [check_architecture(root, policy, task)]
+    # A graph FAIL must never prevent arc:code from fixing the defect.
+    # Only arc:verify (and explicitly opted-in other skills) must close
+    # the business graph before receiving a delivery receipt.
+    graph_skills = {"arc-verify"}
+    graph_config = (policy.get("verification") or {}).get("business_graph")
+    if isinstance(graph_config, dict):
+        additional_skills = graph_config.get("require_for_skills", [])
+        if not isinstance(additional_skills, list) or any(
+            not isinstance(name, str) or not name.strip()
+            for name in additional_skills
+        ):
+            raise ValueError("verification.business_graph.require_for_skills must be a list of skill names")
+        graph_skills.update(additional_skills)
+    business_check = (
+        check_business_graph(root, policy) if task.get("skill") in graph_skills else None
+    )
+    if business_check is not None:
+        checks.append(business_check)
     if run_tests:
         checks.append(check_tests(root, policy))
     else:
@@ -284,6 +331,8 @@ def _verify_task(
         }
     )
     required = list((policy.get("verification") or {}).get("required") or [])
+    if business_check is not None and "business_graph" not in required:
+        required.append("business_graph")
     pre_policy = {
         **policy,
         "verification": {

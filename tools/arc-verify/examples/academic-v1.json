@@ -1,0 +1,109 @@
+{
+  "id": "academic-v1",
+  "scope": "Student course enrollment interaction",
+  "nodes": [
+    {
+      "id": "course",
+      "kind": "feature",
+      "name": "Course selection"
+    },
+    {
+      "id": "enroll",
+      "kind": "action",
+      "name": "Submit course selection"
+    },
+    {
+      "id": "logged_in",
+      "kind": "condition",
+      "name": "Student is authenticated"
+    },
+    {
+      "id": "window_open",
+      "kind": "condition",
+      "name": "Enrollment window is open"
+    },
+    {
+      "id": "seats_available",
+      "kind": "condition",
+      "name": "Seat capacity remains"
+    },
+    {
+      "id": "not_enrolled",
+      "kind": "state",
+      "name": "Not enrolled"
+    },
+    {
+      "id": "ENROLLED",
+      "kind": "state",
+      "name": "Enrolled"
+    },
+    {
+      "id": "login",
+      "kind": "action",
+      "name": "Log in through the real student UI"
+    }
+  ],
+  "edges": [
+    {
+      "id": "E1",
+      "from": "course",
+      "to": "enroll",
+      "kind": "contains"
+    },
+    {
+      "id": "E2",
+      "from": "logged_in",
+      "to": "enroll",
+      "kind": "requires"
+    },
+    {
+      "id": "E3",
+      "from": "window_open",
+      "to": "enroll",
+      "kind": "requires"
+    },
+    {
+      "id": "E4",
+      "from": "seats_available",
+      "to": "enroll",
+      "kind": "requires"
+    },
+    {
+      "id": "E5",
+      "from": "enroll",
+      "to": "ENROLLED",
+      "kind": "transitions"
+    },
+    {
+      "id": "E6",
+      "from": "login",
+      "to": "logged_in",
+      "kind": "recovers"
+    }
+  ],
+  "rules": [
+    {
+      "id": "R-ENROLL",
+      "action": "enroll",
+      "conditions": [
+        "logged_in",
+        "window_open",
+        "seats_available"
+      ],
+      "expected": "ENROLLED",
+      "rejected": "UNCHANGED",
+      "source": "user",
+      "description": "Only authenticated students may enroll in open courses with remaining seats; each failure must not change enrollment.",
+      "actor": "STUDENT",
+      "entry": "/student/course",
+      "oracle": "independent enrollment database readback and student timetable refresh"
+    }
+  ],
+  "risks": [
+    {
+      "id": "K-SCHEDULE",
+      "action": "enroll",
+      "description": "Potential schedule conflict policy is unknown; do not call it a product defect without user confirmation."
+    }
+  ]
+}

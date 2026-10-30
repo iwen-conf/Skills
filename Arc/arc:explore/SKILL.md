@@ -1,6 +1,6 @@
 ---
 name: arc:explore
-version: 2.2.0
+version: 2.3.0
 description: >-
   Read-only code intelligence for a local repository: find where code lives (代码在哪, 搜代码),
   locate definitions, list callers (谁调用), trace a call chain (调用链) or data flow, list
@@ -51,6 +51,8 @@ First matching row wins.
 | doctor, index, daemon, stale or suspicious results, index config | index-ops | [code-intel §1](../_shared/code-intel.md#1-preflight-once-per-repository-per-session) |
 
 ## Workflow
+
+Graph chain: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills); `arc-verify handoff --to arc-explore --graph <id>` is read-only. Supply source facts, not FAIL claims.
 
 1. Read [contract.md](../_shared/contract.md) and [code-intel.md](../_shared/code-intel.md); run the
    code-intel §1 preflight. Output one line: `arc-idx <version> · repo_root · healthy · index_stale ·

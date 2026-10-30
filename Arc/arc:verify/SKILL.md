@@ -1,6 +1,6 @@
 ---
 name: arc:verify
-version: 3.2.0
+version: 3.4.0
 description: >-
   Proves business code meets business expectations: business-flow inventories and flowcharts
   tracing branches to cases (业务流, 端到端业务流, 分支覆盖), test plans (测试方案, 用例设计,
@@ -71,6 +71,8 @@ write/reliability/db → flaky → release.
 HTTP/JSON/upload claims use [API cases](references/api-contract-tests.md) within that budget.
 
 ## Workflow
+
+Graph-enabled work: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills); use `arc-verify handoff --to arc-verify --graph <id>` for bounded cards. User RULEs alone define business verdicts; preserve RAW and FLOW IDs.
 
 1. Read [contract](../_shared/contract.md). Record tier, scope, mode, environment and entry `git diff`/status baseline.
    Output: task-log header.

@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Arc skills — graph-handoff integration with existing workflow
+
+- Connected `arc:explore`, `arc:plan`, `arc:code`, `arc:verify`,
+  `arc:audit` and `arc:vet` to the single existing handoff record and
+  local short-lived `arc-verify handoff` CLI, preserving each phase's authority.
+- Scoped the business graph gate to `arc:verify` by default, so a red graph
+  cannot deadlock authorized repairs, while preserving fail-closed verify claims.
+- The bridge never turns inferred risks into approved business rules,
+  duplicates the task tracker or treats source discovery as real E2E evidence.
+
+
+### arc:verify 3.3.0 / arc-policy 0.2.0 — local graph-based business chain evidence
+
+- Introduced a lightweight Go `arc-verify` CLI using the official in-process `tursogo` Go driver, no cloud service or daemon.
+- Added versioned business graph nodes/edges, user-reviewed contract RULE vs non-gating RISK, executable task cards with actor/entry/conditions/oracle and multi-step RAW trace with first-divergence semantics.
+- Augmented `arc-policy task verify` with an opt-in project graph gate and automatic fail-closed checks when a project has `.arc/verify/config.jsonc`. Receipt revalidation checks changed local DB/WAL and referenced evidence.
+- Added academic enrollment example, verification reference and separate incomplete integration work packages. Real Turso/database and browser E2E remain unverified.
+
+
 ### arc-policy — drop the OMP / PI host adapter
 
 - Removed `hosts/omp/`, `.omp-plugin/`, and the OMP/PI `package.json` native-extension manifest. Remaining hosts are Claude Code, Codex, Grok, Cursor Agent, and DeepSeek Harness.
