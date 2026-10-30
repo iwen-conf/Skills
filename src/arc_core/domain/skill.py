@@ -44,6 +44,10 @@ ARC_LOAD_SCENARIOS: dict[str, tuple[int, tuple[str, ...]]] = {
         "Arc/arc:audit/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
         "Arc/arc:audit/references/diff-review.md",
     )),
+    "pr-re-review": (10500, (
+        "Arc/arc:audit/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
+        "Arc/arc:audit/references/diff-review.md", "Arc/arc:audit/references/review-loop.md",
+    )),
     "appsec-campaign": (19000, (
         "Arc/arc:audit/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
         "Arc/arc:audit/references/appsec.md", "Arc/arc:audit/references/attack-classes.md",

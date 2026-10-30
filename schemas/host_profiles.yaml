@@ -13,11 +13,12 @@ hosts:
   claude:
     root: ~/.claude/skills
     profiles: [core, work, mobile, makers]
+    extra: [humanizer-zh]
     ignore: [synced]  # Claude-managed copies of claude.ai skills
   codex:
     root: ~/.codex/skills
     profiles: [core, work, mobile, makers]
-    extra: [cloudflare, lanhu-design]
+    extra: [cloudflare, lanhu-design, humanizer-zh]
   grok:
     root: ~/.grok/skills
-    extra: [arc-explore, arc-plan, arc-code, arc-verify, arc-audit, arc-vet, typesafe-ai, easyeda-api, threejs]
+    extra: [arc-explore, arc-plan, arc-code, arc-verify, arc-audit, arc-vet, typesafe-ai, easyeda-api, threejs, humanizer-zh]

@@ -17,7 +17,7 @@
 | 领域路由 | `cloudflare` | `Cloudflare/cloudflare`，库源 `Library/cloudflare/`（本机） | 14 |
 | 领域路由 | `threejs` | `ThreeJS/threejs`，库源 `Library/threejs/`（本机） | 25 |
 
-## 仓外入口（5）
+## 仓外入口（6）
 
 | 入口 | 位置 | 说明 |
 | --- | --- | --- |
@@ -26,10 +26,11 @@
 | `easyeda-api` | `~/.agents/skills/easyeda-api` | 第三方 |
 | `swiftui-pro` | `~/.agents/skills/swiftui-pro` | 第三方（MIT），插件布局的嵌套旧版已移除 |
 | `lanhu-design` | `~/Documents/Code/Go/lanhu-cli/skills/lanhu-design` | 随 CLI 仓发布 |
+| `humanizer-zh` | `~/.agents/skills/humanizer-zh` | 第三方（MIT，op7418/Humanizer-zh）；中文润色，Claude/Codex/Grok extra |
 
 ## 宿主安装面
 
-`schemas/host_profiles.yaml` 是唯一来源，`scripts/link_hosts.py --check` 校验：Claude 19、Codex 21、Grok 9 个入口（2026-10-24 移除未使用的 Gemini、Pi 宿主配置）。打包器只安装路由与独立入口；库成员不可单独安装，`--check` 发现残留独立副本即报错。Cloudflare `security-audit` 已于 2026-10-24 撤出全部宿主（含 DSH、Cursor）并删除本机副本，只以上游 GitHub 作为 `arc:audit` 的学习源，见 [04 安全审计上游学习](01-系统设计/04-安全审计上游学习.md)。
+`schemas/host_profiles.yaml` 是唯一来源，`scripts/link_hosts.py --check` 校验：Claude 20、Codex 22、Grok 10 个入口（2026-10-24 移除未使用的 Gemini、Pi 宿主配置；2026-10-27 增加 `humanizer-zh`）。打包器只安装路由与独立入口；库成员不可单独安装，`--check` 发现残留独立副本即报错。Cloudflare `security-audit` 已于 2026-10-24 撤出全部宿主（含 DSH、Cursor）并删除本机副本，只以上游 GitHub 作为 `arc:audit` 的学习源，见 [04 安全审计上游学习](01-系统设计/04-安全审计上游学习.md)。
 
 ## 校验
 

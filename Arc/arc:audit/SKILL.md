@@ -40,13 +40,14 @@ Deliver located findings, evidence, severity/status and coverage; preserve sourc
 | DAST target + written authorization | scan with DAST | none: DAST not run |
 | install permission | no | not granted: missing tools skipped |
 | prior findings (earlier reports, `.lark.json` records) | no | none |
+| intent (PR text, issue, task doc) | review | commit messages |
 
 ## Intent Router
 
 | Condition | Mode | Read |
 |---|---|---|
 | HTTP API design, upload or JSON contract | api-design | [api-design-review.md](references/api-design-review.md); also review if a diff is supplied |
-| Diff, PR, branch, commit range or patch file | review | [references/diff-review.md](references/diff-review.md) |
+| Diff, PR, branch, commit range or patch file | review | [references/diff-review.md](references/diff-review.md); prior findings or `deep`: [review-loop.md](references/review-loop.md) |
 | Health, code rot, over-engineering (过度设计), tech debt, maintainability, architecture or release readiness; "审计/audit" with no security word | health | [../_shared/code-rot.md](../_shared/code-rot.md) |
 | Security, vulnerability, AppSec, threat model, pen test, data exposure, AuthZ | appsec | [references/appsec.md](references/appsec.md), [attack-classes.md](references/attack-classes.md) |
 | Scanner name, secrets/dependency/SAST scan, DAST, re-scan | scan | [references/scanners.md](references/scanners.md) |
@@ -100,7 +101,7 @@ Document-only API reviews cite sections/lines; without a repository skip git/ind
 - IF scanner severity differs from reachability, auth context or data yield THEN re-rank and record both.
 - IF a finding has no source rule (contract, conventions, api-contract, code-rot) and no defect THEN it is not a finding. An established frontend stack that differs from the default is not a defect; same-duty library duplication, mixed state layers and undocumented exceptions on new surfaces are.
 - Fix directions name the layer and change; "strengthen validation" is insufficient.
-- **Review**: confirmed/likely correctness, security, data-loss or contract-break findings → `FAIL`; style is advisory.
+- **Review**: confirmed/likely `new` correctness, security, data-loss or contract-break findings → `FAIL`; `pre-existing` and style are advisory; re-review stops at round 3.
 - IF nothing is found THEN write "no findings in checked scope" beside the coverage table; never "safe".
 - **Size**: IF a diff exceeds 1,500 changed lines THEN use the risk tiers in diff-review.md §2. IF health or appsec scope exceeds 50 entrypoints or 2,000 source files THEN deep-review the top 20 entrypoints or hotspots by data yield × exposure (appsec) or churn (health) and list the rest as not checked.
 - **Scan volume**: IF more than 500 raw signals THEN group by rule and root cause, triage the top 50 groups by severity × yield, and leave the rest `needs-triage`. Run `quick` before `full` on any monorepo.

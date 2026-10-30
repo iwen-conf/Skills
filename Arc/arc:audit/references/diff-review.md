@@ -24,6 +24,12 @@ Rubrics: [api-contract.md](../../_shared/api-contract.md),
   missing locally THEN report `BLOCKED` and ask for a locally available ref or a patch file.
 - A remote PR (CNB, GitHub) is reviewed from refs or a patch the user already has locally;
   posting comments is `cnb-code-review`'s job.
+- Intent: record `Intent: <claim> (<source>)` from the PR description, linked issue, task
+  document or commit messages, else `Intent: not stated`. A claimed fix or behavior the diff does
+  not deliver is a finding (`High`); a bug fix must remove a named root cause.
+- IF a `REVIEW.md` exists at the root or above a changed path THEN read it first. Its failure
+  definitions, ignored paths and nit limits apply; they never relax Blocking or security checks.
+- Prior findings for this change → also [review-loop.md](review-loop.md) §1.
 
 ## 2. Classify and size
 
@@ -45,6 +51,15 @@ Changed lines = added + deleted from `--numstat` after exclusions.
   lines; Tier 1 full; Tier 2 sampled: <files>`.
 - IF > 5,000 lines or > 100 files THEN do the Tier 1 review and recommend splitting the
   change by commit or directory in the report.
+
+Depth, stated in the report: `quick` when no file is Tier 1 or 2 or the diff is ≤ 50 lines with
+no changed public symbol (§3, §5 Contract and Error rows, §6); `deep` when the user asks or
+Tier 1 touches auth, money, migrations, CI workflows, installers or release config (standard
+plus [review-loop.md](review-loop.md) §2); `standard` otherwise.
+
+IF the diff touches auth, money, CI workflow files, installers, release or deploy config, or a
+path `REVIEW.md` or CODEOWNERS marks sensitive THEN report `Human approval: required (<paths>)`;
+an agent review never satisfies it.
 
 ## 3. Map changed symbols
 
@@ -104,18 +119,21 @@ Behavior change = changed condition, return value, error, query, contract or sta
 ## 7. Output
 
 ```text
-| ID | Sev | Status | Blocking | file:line | Evidence | Fix direction | Owner |
-| F-001 | High | confirmed | yes | api/order.go:88 | GetOrder loads by id only; Q2 → no owner predicate | add owner_id = caller to OrderRepo.Get (repo/order.go:41) | arc:code |
+| ID | Sev | Status | Origin | Blocking | file:line | Evidence | Fix direction | Owner |
+| F-001 | High | confirmed | new | yes | api/order.go:88 | GetOrder loads by id only; Q2 → no owner predicate | add owner_id = caller to OrderRepo.Get (repo/order.go:41) | arc:code |
 ```
 
 - `file:line` refers to the head revision. Evidence is a hunk excerpt of at most 5 lines or a
   query line in code-intel §7 format.
 - Blocking = correctness, security, data loss or contract break. Readability and style are
   advisory and never blocking.
+- Origin: `new` when the diff adds the code or makes it reachable or worse; `pre-existing` when
+  `git blame` at base predates the change and the diff leaves it as it was. Pre-existing findings
+  never block; list at most 5 after the new ones.
 - Owner: `arc:code` for source fixes; `arc:verify` for missing or weakened tests and proof;
   `arc:plan` when three or more confirmed or likely findings need a tracked campaign.
 - Order: blocking first, then severity, then tier.
-- Verdict: `FAIL` if any blocking finding is `confirmed` or `likely`; `PASS` only when §8
+- Verdict: `FAIL` if any blocking `new` finding is `confirmed` or `likely`; `PASS` only when §8
   holds; `BLOCKED` if the diff cannot be obtained. Unreviewed parts are listed as `NOT_RUN`
   with the reason.
 
@@ -128,6 +146,7 @@ Write "no findings in reviewed scope" only when all hold:
 3. §5 is marked checked or N/A for every Tier 1 and Tier 2 file in scope.
 4. §6 was applied to every behavior change.
 5. The sampled scope is stated when the diff exceeded 1,500 lines.
-6. Zero `confirmed` or `likely` findings; `needs-triage` items are listed separately.
+6. Zero `confirmed` or `likely` `new` findings; `needs-triage` and `pre-existing` items are listed
+   separately.
 
 Never write "safe", "approved" or "LGTM".
