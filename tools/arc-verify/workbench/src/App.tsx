@@ -659,6 +659,20 @@ function EntityPanel({
                 ? ` · ${snapshot.exploration[id].evidence_missing}`
                 : ""}
             </dd>
+            <dt>已执行路径</dt>
+            <dd>{snapshot.exploration[id].executed_paths?.join("、") || "无"}</dd>
+            <dt>未执行 Frontier</dt>
+            <dd>{snapshot.exploration[id].frontier?.join("、") || "无"}</dd>
+            <dt>AI 边界候选</dt>
+            <dd>{snapshot.exploration[id].ai_candidates?.join("、") || "无"}</dd>
+            <dt>FAIL 证据</dt>
+            <dd>{snapshot.exploration[id].fail_evidence?.join("、") || "无"}</dd>
+            <dt>故障恢复</dt>
+            <dd>{snapshot.exploration[id].recovery_status?.join("、") || "无"}</dd>
+            <dt>未知状态</dt>
+            <dd>{snapshot.exploration[id].unknown_states?.join("、") || "无"}</dd>
+            <dt>探索模式对照</dt>
+            <dd>{snapshot.exploration[id].mode_contrast?.join("、") || "无"}</dd>
           </dl>
         </>
       ) : null}

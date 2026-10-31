@@ -153,6 +153,12 @@ Details and semantics: `Arc/arc:verify/references/business-graph-v2.md`.
       --account A --fixture F --max-steps 16 --deadline 10m      # exit 0 done, 10-15 = stop reason
     arc-verify derive --run RUN [--budget 16]                     # obligations from a failed run
     arc-verify discover record --file exploration.json            # UNSPECIFIED, never PASS/FAIL
+    arc-verify discover run --file adapter.json --graph G --flow F --env E --round Q \
+      --account A --fixture F --commit SHA [--mode heuristic|deterministic|ai] [--planner file]
+    arc-verify discover status [--id CAMPAIGN] [--graph G]
+    arc-verify discover resume --id CAMPAIGN --file adapter.json --graph G --flow F --env E --round Q \
+      --account A --fixture F --commit SHA
+    arc-verify discover abort --id CAMPAIGN --reason TEXT
     arc-verify discover triage --graph G --id ITEM --as missing_requirement   # USER terminal
     arc-verify report --graph G --kind acceptance|risk
     arc-verify reject-risk --graph G --risk ID                    # USER terminal

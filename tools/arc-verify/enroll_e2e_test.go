@@ -186,3 +186,42 @@ func TestIndependentEnrollRetestKeepsHistoricFail(t *testing.T) {
 		t.Fatalf("later PASS overwrote the historic FAIL: %+v", packet)
 	}
 }
+
+func TestIndependentEnrollExploreModeContrast(t *testing.T) {
+	planner := &ScriptedExplorePlanner{Suggestions: []PlannerSuggestion{{
+		Capability: "reservation.claim", Action: "force", Entry: "/force", Role: "STUDENT",
+		Reason: "students may still reach force after a claim", Observe: "state", Risk: "high",
+	}}}
+	run := func(mode string, planner ExplorePlanner, seed int) (ExploreReport, BlindCampaignResult) {
+		t.Helper()
+		url, _ := startEnrollSUT(t, "skipReview,unauthorizedForce,duplicateRecords")
+		fixture := prepareSeatFixture(t, url)
+		fixture.openRound(t)
+		report, err := fixture.d.runExploration(t.Context(), ExploreRequest{
+			Graph: "seat-v2", Flow: "flow.reservation", Environment: "independent", Round: fixture.round,
+			Root: fixture.root, Config: fixture.config, Commit: fixture.commit,
+			Account: fixture.account, Fixture: fixture.fixture, Adapter: seatExploreAdapter(t, seatIsolationScope),
+			Mode: mode, Planner: planner,
+			Budget: ExploreRuntimeBudget{MaxStates: 12, MaxPaths: 12, MaxActions: 6, Deadline: 12 * time.Second, Seed: seed},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return report, AttributeBlindCampaign(report, seatBlindMutations(), ExploreRuntimeBudget{MaxActions: 6})
+	}
+	deterministic, detAttr := run("deterministic", nil, 1)
+	heuristic, heurAttr := run("heuristic", nil, 2)
+	assisted, aiAttr := run("ai", planner, 3)
+	writeExploreArtifact(t, "reports/enroll-mode-contrast.json", map[string]any{
+		"deterministic": map[string]any{"campaign": deterministic.Campaign, "actions": deterministic.Actions, "counts": detAttr.Counts, "spent": detAttr.Spent},
+		"heuristic":     map[string]any{"campaign": heuristic.Campaign, "actions": heuristic.Actions, "counts": heurAttr.Counts, "spent": heurAttr.Spent, "unspecified": len(heuristic.Unspecified)},
+		"ai":            map[string]any{"campaign": assisted.Campaign, "actions": assisted.Actions, "counts": aiAttr.Counts, "spent": aiAttr.Spent, "planner_calls": planner.Calls},
+		"im_mongo":      "BLOCKED: iso28886 fixtures still bind lan50; shared .50 writes and fault injection are not approved",
+	})
+	if deterministic.Mode != "deterministic" || heuristic.Mode != "heuristic" || assisted.Mode != "ai" {
+		t.Fatalf("mode labels %s %s %s", deterministic.Mode, heuristic.Mode, assisted.Mode)
+	}
+	if deterministic.Actions == 0 || heuristic.Actions == 0 || assisted.Actions == 0 {
+		t.Fatal("each isolated enroll-sut mode must execute live actions")
+	}
+}

@@ -152,6 +152,9 @@ describe("static workbench", () => {
       "当前有效 PASS",
       "尚未完整验证",
       "结果不稳定",
+      "AI 边界候选",
+      "已执行路径",
+      "未执行 Frontier",
     ]) {
       expect(html).toContain(text);
     }

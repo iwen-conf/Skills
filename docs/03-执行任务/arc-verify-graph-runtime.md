@@ -259,3 +259,17 @@ IM 增量发现已找到 57 专属 `.60` 隔离授权，范围见现行 `57/evid
 报告：[verify-explore-e2e-验收.md](arc-verify-graph-runtime/verify-explore-e2e-验收.md)；运行证据 `.arc/artifacts/verify-explore-e2e/`。
 W06 / W20 的 IM-mongo 项仍为 `[!]`。
 
+## 2026-10-31：盲测归因、续探与 AI 规划（verify-blind-resume）
+
+基线 `923186a`。不新增第七个 Skill，不恢复常驻工作台。
+
+| 批次 | 状态 | 范围与验收 |
+| --- | --- | --- |
+| W31 | [x] | [盲测归因](arc-verify-graph-runtime/W31-blind-attribution.md)：独立评估器 + 旧字符串误判证明 |
+| W32 | [x] | [业务判定](arc-verify-graph-runtime/W32-judgment-evidence.md)：允许被拒 FAIL；并发双方入账 |
+| W33 | [x] | [Frontier 续探](arc-verify-graph-runtime/W33-frontier-resume.md)：`discover status/resume/abort` |
+| W34 | [x] | [AI 规划](arc-verify-graph-runtime/W34-ai-planner.md)：可替换接口，建议须过白名单 |
+| W35 | [x]/`[!]` | [跨项目 E2E](arc-verify-graph-runtime/W35-cross-project-e2e.md)：enroll-sut 对照通过；IM-mongo BLOCKED |
+
+报告：[verify-blind-resume-验收.md](arc-verify-graph-runtime/verify-blind-resume-验收.md)。
+

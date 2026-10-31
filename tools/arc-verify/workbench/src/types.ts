@@ -351,6 +351,13 @@ export interface ExplorationCoverage {
   stop_reasons: string[];
   budget_exhausted: boolean;
   evidence_missing?: string;
+  executed_paths?: string[];
+  frontier?: string[];
+  ai_candidates?: string[];
+  fail_evidence?: string[];
+  recovery_status?: string[];
+  unknown_states?: string[];
+  mode_contrast?: string[];
 }
 export interface Snapshot {
   meta: SnapshotMeta;

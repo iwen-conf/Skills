@@ -64,6 +64,7 @@ type ExploreRuntimeBudget struct {
 	MaxActions int           `json:"max_actions"`
 	Deadline   time.Duration `json:"deadline"`
 	MaxReplans int           `json:"max_replans"`
+	Seed       int           `json:"seed,omitempty"`
 }
 
 type ExploreRequest struct {
@@ -72,6 +73,9 @@ type ExploreRequest struct {
 	Accounts                                              map[string]string
 	Adapter                                               ExploreAdapter
 	Budget                                                ExploreRuntimeBudget
+	Campaign                                              string
+	Mode                                                  string
+	Planner                                               ExplorePlanner
 }
 
 type CandidateAction struct {
@@ -98,15 +102,30 @@ type ExploreFinding struct {
 	Evidence string `json:"evidence,omitempty"`
 }
 
+type ExploreCallRecord struct {
+	Role           string `json:"role"`
+	Account        string `json:"account,omitempty"`
+	RequestID      string `json:"request_id,omitempty"`
+	Denied         bool   `json:"denied"`
+	StatusCode     int    `json:"status_code,omitempty"`
+	Error          string `json:"error,omitempty"`
+	Started        string `json:"started,omitempty"`
+	Completed      string `json:"completed,omitempty"`
+	RequestSHA256  string `json:"request_sha256,omitempty"`
+	ResponseSHA256 string `json:"response_sha256,omitempty"`
+}
+
 type ExploreStep struct {
-	Candidate CandidateAction  `json:"candidate"`
-	Before    IndependentFacts `json:"before"`
-	After     IndependentFacts `json:"after"`
-	Denied    bool             `json:"denied"`
-	RAW       string           `json:"raw"`
-	SHA256    string           `json:"sha256"`
-	Findings  []ExploreFinding `json:"findings"`
-	Discovery *DiscoveryReport `json:"discovery,omitempty"`
+	Candidate     CandidateAction     `json:"candidate"`
+	Before        IndependentFacts    `json:"before"`
+	After         IndependentFacts    `json:"after"`
+	Denied        bool                `json:"denied"`
+	RAW           string              `json:"raw"`
+	SHA256        string              `json:"sha256"`
+	Findings      []ExploreFinding    `json:"findings"`
+	Discovery     *DiscoveryReport    `json:"discovery,omitempty"`
+	Calls         []ExploreCallRecord `json:"calls,omitempty"`
+	ClassifyError string              `json:"classify_error,omitempty"`
 }
 
 type ExploreReport struct {
@@ -122,11 +141,15 @@ type ExploreReport struct {
 	Unspecified    []UnspecifiedItem `json:"unspecified"`
 	RuleFails      []ExploreFinding  `json:"rule_fails"`
 	Risks          []ExploreFinding  `json:"risks"`
+	Blocked        []ExploreFinding  `json:"blocked,omitempty"`
 	States         int               `json:"states"`
 	Actions        int               `json:"actions"`
 	Truncated      bool              `json:"truncated"`
 	Recovery       RecoveryOutcome   `json:"recovery"`
 	RecoveryClass  RecoveryClass     `json:"recovery_class"`
+	Spent          ExploreSpent      `json:"spent,omitempty"`
+	Mode           string            `json:"mode,omitempty"`
+	Checkpoint     string            `json:"checkpoint,omitempty"`
 }
 
 type exploreWorld struct {
@@ -198,7 +221,11 @@ func validateExploreAdapter(adapter ExploreAdapter, graph string) error {
 }
 
 func (d db) runExploration(parent context.Context, request ExploreRequest) (ExploreReport, error) {
-	report := ExploreReport{Graph: request.Graph, Flow: request.Flow, Remaining: []CandidateAction{}, Steps: []ExploreStep{}, Unspecified: []UnspecifiedItem{}, RuleFails: []ExploreFinding{}, Risks: []ExploreFinding{}}
+	request.Mode = decodePlannerMode(request.Mode)
+	if request.Campaign != "" {
+		return d.resumeExploration(parent, request)
+	}
+	report := ExploreReport{Graph: request.Graph, Flow: request.Flow, Remaining: []CandidateAction{}, Steps: []ExploreStep{}, Unspecified: []UnspecifiedItem{}, RuleFails: []ExploreFinding{}, Risks: []ExploreFinding{}, Mode: request.Mode}
 	if request.Graph == "" || request.Flow == "" || request.Environment == "" || request.Round == "" || request.Root == "" || request.Config == "" || request.Commit == "" || request.Account == "" || request.Fixture == "" {
 		return report, errors.New("discover run needs graph, flow, approved environment, round, candidate, account and fixture")
 	}
@@ -249,8 +276,9 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 	world, err := d.observeWorld(ctx, request.Adapter, binding, accounts["primary"], flow.Initial)
 	if err != nil {
 		report.StopReason = "blocked"
-		return report, err
+		return d.finishExplore(ctx, report, binding, request.Adapter, accounts, actors, fixture, campaign, err)
 	}
+	modelSHA, _ := d.graphFingerprint(request.Graph)
 	seen := map[string]bool{}
 	tried := map[string]bool{}
 	replans := 0
@@ -285,17 +313,40 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 			break
 		}
 		candidates := proposeCandidates(g, x, flow, request.Adapter, approvals, world, tried)
+		if request.Mode == "deterministic" {
+			candidates = filterDeterministic(candidates)
+		}
+		if shouldAskPlanner(request.Mode, candidates, report, world) && request.Planner != nil {
+			proposal, planErr := request.Planner.Suggest(ctx, plannerContext(request, flow, approvals, world, report, candidates, budget.MaxActions-report.Actions))
+			if planErr == nil {
+				rejected := []string{}
+				for _, suggestion := range proposal.Suggestions {
+					item, reason := validatePlannerSuggestion(suggestion, request.Adapter, request.Adapter.Accounts, budget.MaxActions-report.Actions)
+					if reason != "" {
+						rejected = append(rejected, reason)
+						continue
+					}
+					item.ID = shortDigest(string(item.Kind) + "|" + item.Action + "|" + item.Role + "|" + item.RequestID + "|" + world.state)
+					if !tried[candidateKey(item, world.state)] {
+						candidates = append(candidates, item)
+					}
+				}
+				_ = marshalPlannerAudit(proposal, candidates, rejected)
+			}
+		}
+		candidates = rotateCandidates(candidates, budget.Seed)
 		if len(candidates) == 0 {
 			report.StopReason = "no_candidates"
 			break
 		}
-		chosen, ok := selectCandidate(candidates, tried)
+		chosen, ok := selectCandidate(candidates, tried, world.state)
 		if !ok {
 			report.StopReason = "complete"
 			report.Remaining = candidates
 			break
 		}
 		tried[candidateKey(chosen, world.state)] = true
+		tried[chosen.ID] = true
 		needsReplan := chosen.Kind == kindUndeclared || chosen.Kind == kindSkipPre || chosen.Source == sourceInfer && (world.state == "" || !modelState(g, world.state))
 		if needsReplan {
 			replans++
@@ -307,13 +358,29 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 		}
 		step, live, execErr := d.exploreOnce(ctx, binding, request.Adapter, accounts, actors, chosen, campaign, report.Actions+1, world)
 		if execErr != nil {
+			if step.RAW != "" || step.ClassifyError != "" || len(step.Calls) > 0 || len(step.Findings) > 0 {
+				report.Steps = append(report.Steps, step)
+				report.Actions++
+				for _, finding := range step.Findings {
+					if finding.Kind == "BLOCKED" {
+						report.Blocked = append(report.Blocked, finding)
+					}
+					if finding.Kind == "FAIL" {
+						report.RuleFails = append(report.RuleFails, finding)
+					}
+				}
+			}
 			if ctx.Err() != nil {
 				report.StopReason, report.Truncated = "budget_time", true
 				report.Remaining = remainingCandidates(candidates, tried, world.state)
 				break
 			}
-			report.StopReason = "blocked"
-			return report, execErr
+			if step.ClassifyError != "" {
+				report.StopReason = "classify_failed"
+			} else {
+				report.StopReason = "blocked"
+			}
+			return d.finishExplore(ctx, report, binding, request.Adapter, accounts, actors, fixture, campaign, execErr)
 		}
 		report.Steps = append(report.Steps, step)
 		report.Actions++
@@ -323,6 +390,8 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 				report.RuleFails = append(report.RuleFails, finding)
 			case "RISK":
 				report.Risks = append(report.Risks, finding)
+			case "BLOCKED":
+				report.Blocked = append(report.Blocked, finding)
 			}
 		}
 		if step.Discovery != nil {
@@ -340,6 +409,13 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 		}
 		world = live
 		recordWorld(world)
+		report.Checkpoint = newID("CK")
+		_ = d.saveExploreCheckpoint(ExploreCheckpoint{
+			Campaign: campaign, Graph: request.Graph, Flow: request.Flow, Environment: request.Environment, Round: request.Round,
+			ModelSHA: modelSHA, SourceCommit: request.Commit, Status: exploreRunning, World: persistWorld(world),
+			Tried: mapKeys(tried), Budget: budget, Spent: ExploreSpent{Actions: report.Actions, States: report.States, Replans: replans},
+			Account: request.Account, Fixture: request.Fixture, Checkpoint: report.Checkpoint, Mode: request.Mode, Report: report,
+		})
 	}
 	if report.StopReason == "" {
 		report.StopReason = "complete"
@@ -350,20 +426,197 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 	if len(report.Remaining) > 0 && (report.StopReason == "budget_actions" || report.StopReason == "budget_states" || report.StopReason == "budget_time" || report.StopReason == "budget_replans") {
 		report.Truncated = true
 	}
-	report.Recovery = d.restoreExplore(ctx, binding, request.Adapter, accounts, actors, fixture, campaign)
-	locks, _ := d.query("SELECT COUNT(*) FROM fixture_locks WHERE run="+quote(campaign), 1)
-	lockCount := 0
-	if len(locks) == 1 {
-		lockCount, _ = strconv.Atoi(locks[0][0])
+	final, err := d.finishExplore(ctx, report, binding, request.Adapter, accounts, actors, fixture, campaign, nil)
+	status := exploreCompleted
+	if final.StopReason == "blocked" || final.StopReason == "recovery_blocked" || final.StopReason == "classify_failed" {
+		status = exploreBlocked
 	}
-	report.RecoveryClass = classifyRecovery(report.Recovery, lockCount)
-	if report.RecoveryClass == RecoveryRestored {
-		_ = d.transition([]string{fmt.Sprintf("DELETE FROM fixture_locks WHERE run=%s", quote(campaign))})
+	if final.Truncated {
+		status = exploreInterrupted
 	}
-	if err := d.persistExploration(report); err != nil {
+	_ = d.saveExploreCheckpoint(ExploreCheckpoint{
+		Campaign: campaign, Graph: request.Graph, Flow: request.Flow, Environment: request.Environment, Round: request.Round,
+		ModelSHA: modelSHA, SourceCommit: request.Commit, Status: status, World: persistWorld(world),
+		Tried: mapKeys(tried), Frontier: final.Remaining, Budget: budget, Spent: final.Spent,
+		Recovery: final.Recovery, RecoveryClass: final.RecoveryClass, Account: request.Account, Fixture: request.Fixture,
+		Checkpoint: final.Checkpoint, Mode: request.Mode, Report: final,
+	})
+	return final, err
+}
+
+func mapKeys(values map[string]bool) []string {
+	out := []string{}
+	for key, ok := range values {
+		if ok {
+			out = append(out, key)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+func (d db) resumeExploration(parent context.Context, request ExploreRequest) (ExploreReport, error) {
+	state, err := d.loadExploreCheckpoint(request.Campaign)
+	if err != nil {
+		return ExploreReport{}, err
+	}
+	report := state.Report
+	if report.Campaign == "" {
+		report.Campaign = state.Campaign
+		report.Graph, report.Flow, report.Environment, report.Round = state.Graph, state.Flow, state.Environment, state.Round
+	}
+	if request.Graph != "" && request.Graph != state.Graph {
+		return report, errors.New("resume graph does not match the checkpoint")
+	}
+	modelSHA, err := d.graphFingerprint(state.Graph)
+	if err != nil {
 		return report, err
 	}
-	return report, nil
+	if err := versionsMatch(state, request.Commit, modelSHA); err != nil {
+		return report, err
+	}
+	if state.RecoveryClass == RecoveryFailedLocked {
+		return report, errors.New("refusing to continue after failed fixture recovery")
+	}
+	if state.Status == exploreAborted || state.Status == exploreCompleted {
+		return report, fmt.Errorf("campaign %s is %s", state.Campaign, state.Status)
+	}
+	worker := exploreWorkerID()
+	if err := d.claimExploreCampaign(state.Campaign, worker); err != nil {
+		return report, err
+	}
+	request.Graph = firstNonEmpty(request.Graph, state.Graph)
+	request.Flow = firstNonEmpty(request.Flow, state.Flow)
+	request.Environment = firstNonEmpty(request.Environment, state.Environment)
+	request.Round = firstNonEmpty(request.Round, state.Round)
+	request.Account = firstNonEmpty(request.Account, state.Account)
+	request.Fixture = firstNonEmpty(request.Fixture, state.Fixture)
+	if request.Adapter.Graph == "" {
+		request.Adapter = ExploreAdapter{}
+	}
+	g, err := d.model(request.Graph)
+	if err != nil {
+		return report, err
+	}
+	x := indexModel(g)
+	flow, found := x.flows[request.Flow]
+	if !found {
+		return report, fmt.Errorf("flow %s not found", request.Flow)
+	}
+	approvals, err := d.ruleApprovals(request.Graph)
+	if err != nil {
+		return report, err
+	}
+	binding, err := d.exploreBinding(request.Graph, request.Environment, request.Commit, request.Account, request.Fixture, request.Root, request.Config, request.Adapter.Oracle.ID, "explore/"+state.Campaign)
+	if err != nil {
+		return report, err
+	}
+	accounts, actors, ids, err := d.exploreAccounts(request.Adapter, binding, request.Account, request.Fixture)
+	if err != nil {
+		return report, err
+	}
+	_ = ids
+	if err := d.reconcileUnknownActions(parent, binding, request.Adapter, accounts, &state); err != nil {
+		return report, err
+	}
+	budget := request.Budget.normalized()
+	if budget.MaxActions < state.Spent.Actions {
+		budget.MaxActions = state.Spent.Actions
+	}
+	ctx, cancel := context.WithTimeout(parent, budget.Deadline)
+	defer cancel()
+	fixture, _, err := d.bindingFixture(request.Fixture)
+	if err != nil {
+		return report, err
+	}
+	world := restoreWorld(state.World)
+	tried := map[string]bool{}
+	for _, key := range state.Tried {
+		tried[key] = true
+	}
+	seen := map[string]bool{}
+	for _, key := range state.Seen {
+		seen[key] = true
+	}
+	replans := state.Spent.Replans
+	report = state.Report
+	report.Mode = firstNonEmpty(request.Mode, state.Mode)
+	for {
+		if ctx.Err() != nil {
+			report.StopReason, report.Truncated = "budget_time", true
+			break
+		}
+		if report.Actions >= budget.MaxActions {
+			leftover := remainingCandidates(proposeCandidates(g, x, flow, request.Adapter, approvals, world, tried), tried, world.state)
+			if len(leftover) == 0 {
+				report.StopReason = "complete"
+			} else {
+				report.StopReason, report.Truncated = "budget_actions", true
+				report.Remaining = leftover
+			}
+			break
+		}
+		candidates := proposeCandidates(g, x, flow, request.Adapter, approvals, world, tried)
+		if request.Mode == "deterministic" {
+			candidates = filterDeterministic(candidates)
+		}
+		candidates = rotateCandidates(candidates, budget.Seed)
+		chosen, ok := selectCandidate(candidates, tried, world.state)
+		if !ok {
+			if len(state.Frontier) > 0 {
+				chosen, ok = selectCandidate(state.Frontier, tried, world.state)
+			}
+			if !ok {
+				report.StopReason = "complete"
+				report.Remaining = candidates
+				break
+			}
+		}
+		tried[candidateKey(chosen, world.state)] = true
+		tried[chosen.ID] = true
+		step, live, execErr := d.exploreOnce(ctx, binding, request.Adapter, accounts, actors, chosen, state.Campaign, report.Actions+1, world)
+		if execErr != nil {
+			if step.RAW != "" || step.ClassifyError != "" || len(step.Calls) > 0 {
+				report.Steps = append(report.Steps, step)
+				report.Actions++
+			}
+			if ctx.Err() != nil {
+				report.StopReason, report.Truncated = "budget_time", true
+				break
+			}
+			report.StopReason = "blocked"
+			return d.finishExplore(ctx, report, binding, request.Adapter, accounts, actors, fixture, state.Campaign, execErr)
+		}
+		report.Steps = append(report.Steps, step)
+		report.Actions++
+		for _, finding := range step.Findings {
+			if finding.Kind == "FAIL" {
+				report.RuleFails = append(report.RuleFails, finding)
+			}
+		}
+		if step.Discovery != nil {
+			report.WithinContract += step.Discovery.WithinContract
+			report.Unspecified = append(report.Unspecified, step.Discovery.Unspecified...)
+		}
+		world = live
+		_ = replans
+	}
+	if report.StopReason == "" {
+		report.StopReason = "complete"
+	}
+	final, err := d.finishExplore(ctx, report, binding, request.Adapter, accounts, actors, fixture, state.Campaign, nil)
+	status := exploreCompleted
+	if final.Truncated {
+		status = exploreInterrupted
+	}
+	_ = d.saveExploreCheckpoint(ExploreCheckpoint{
+		Campaign: state.Campaign, Graph: request.Graph, Flow: request.Flow, Environment: request.Environment, Round: request.Round,
+		ModelSHA: modelSHA, SourceCommit: request.Commit, Status: status, World: persistWorld(world),
+		Tried: mapKeys(tried), Frontier: final.Remaining, Budget: budget, Spent: final.Spent,
+		Recovery: final.Recovery, RecoveryClass: final.RecoveryClass, Account: request.Account, Fixture: request.Fixture,
+		Checkpoint: final.Checkpoint, Mode: request.Mode, Report: final,
+	})
+	return final, err
 }
 
 func (d db) ruleApprovals(graph string) (map[string]bool, error) {
@@ -655,14 +908,24 @@ func candidateScore(item CandidateAction) int {
 	return score
 }
 
-func selectCandidate(candidates []CandidateAction, tried map[string]bool) (CandidateAction, bool) {
+func rotateCandidates(candidates []CandidateAction, seed int) []CandidateAction {
+	if seed == 0 || len(candidates) < 2 {
+		return candidates
+	}
+	shift := seed % len(candidates)
+	if shift == 0 {
+		return candidates
+	}
+	out := make([]CandidateAction, 0, len(candidates))
+	out = append(out, candidates[shift:]...)
+	return append(out, candidates[:shift]...)
+}
+
+func selectCandidate(candidates []CandidateAction, tried map[string]bool, state string) (CandidateAction, bool) {
 	for _, item := range candidates {
-		if !tried[item.ID] {
+		if !tried[candidateKey(item, state)] && !tried[item.ID] {
 			return item, true
 		}
-	}
-	if len(candidates) == 0 {
-		return CandidateAction{}, false
 	}
 	return CandidateAction{}, false
 }
@@ -738,7 +1001,8 @@ func (d db) exploreOnce(ctx context.Context, binding RunBinding, adapter Explore
 		}
 		return step, live, nil
 	}
-	output, callErr := d.performExplore(ctx, binding, adapter, accounts, candidate)
+	output, calls, callErr := d.performExplore(ctx, binding, adapter, accounts, candidate)
+	step.Calls = calls
 	if callErr != nil && !isTimeout(callErr) {
 		return step, live, callErr
 	}
@@ -780,13 +1044,16 @@ func (d db) exploreOnce(ctx context.Context, binding RunBinding, adapter Explore
 		observation.Principal = before.Principal
 	}
 	discovery, discErr := d.recordExploration(Exploration{Graph: binding.Identity.Graph, Exploration: run, Observations: []ExploredObservation{observation}}, 32)
-	if discErr == nil {
-		step.Discovery = &discovery
+	if discErr != nil {
+		step.ClassifyError = discErr.Error()
+		step.Findings = append(step.Findings, ExploreFinding{Kind: "BLOCKED", Reason: "discovery classification failed: " + discErr.Error(), Evidence: path})
+		return step, live, fmt.Errorf("discovery classification failed: %w", discErr)
 	}
+	step.Discovery = &discovery
 	return step, live, nil
 }
 
-func (d db) performExplore(ctx context.Context, binding RunBinding, adapter ExploreAdapter, accounts map[string]Fixture, candidate CandidateAction) (AdapterOutput, error) {
+func (d db) performExplore(ctx context.Context, binding RunBinding, adapter ExploreAdapter, accounts map[string]Fixture, candidate CandidateAction) (AdapterOutput, []ExploreCallRecord, error) {
 	stepTimeout := time.Duration(adapter.StepTimeoutMS) * time.Millisecond
 	if candidate.Kind == kindConcurrent && candidate.PartnerRole != "" {
 		type result struct {
@@ -809,16 +1076,32 @@ func (d db) performExplore(ctx context.Context, binding RunBinding, adapter Expl
 			}(i)
 		}
 		workers.Wait()
-		for _, item := range results {
-			if item.err != nil {
-				return item.out, item.err
-			}
+		records := []ExploreCallRecord{callRecord(partners[0], results[0].out, results[0].err), callRecord(partners[1], results[1].out, results[1].err)}
+		if results[0].err != nil && results[1].err != nil {
+			return results[0].out, records, results[0].err
 		}
-		return results[0].out, nil
+		primary := results[0].out
+		if results[0].err != nil {
+			primary = results[1].out
+		}
+		return primary, records, nil
 	}
 	callCtx, cancel := context.WithTimeout(ctx, stepTimeout)
 	defer cancel()
-	return performCall(callCtx, exploreCall(adapter, candidate), binding, accountFor(accounts, candidate))
+	output, err := performCall(callCtx, exploreCall(adapter, candidate), binding, accountFor(accounts, candidate))
+	return output, []ExploreCallRecord{callRecord(candidate, output, err)}, err
+}
+
+func callRecord(candidate CandidateAction, out AdapterOutput, err error) ExploreCallRecord {
+	record := ExploreCallRecord{
+		Role: candidate.Role, Account: candidate.Account, RequestID: candidate.RequestID,
+		Denied: out.Denied, StatusCode: out.StatusCode, Started: out.Started, Completed: out.Completed,
+		RequestSHA256: out.RequestSHA256, ResponseSHA256: out.ResponseSHA256,
+	}
+	if err != nil {
+		record.Error = err.Error()
+	}
+	return record
 }
 
 func exploreCall(adapter ExploreAdapter, candidate CandidateAction) AdapterCall {
@@ -827,7 +1110,7 @@ func exploreCall(adapter ExploreAdapter, candidate CandidateAction) AdapterCall 
 	if header == "" {
 		header = "X-Fixture-Actor"
 	}
-	return AdapterCall{Kind: adapterHTTP, Method: method, Path: candidate.Entry, Body: candidateBody(adapter, candidate), SuccessStatuses: []int{200}, RejectionStatuses: []int{401, 403}, CredentialHeader: header}
+	return AdapterCall{Kind: adapterHTTP, Method: method, Path: candidate.Entry, Body: candidateBody(adapter, candidate), SuccessStatuses: []int{200}, RejectionStatuses: []int{400, 401, 403, 404, 409, 422}, CredentialHeader: header}
 }
 
 func httpMethod(adapter ExploreAdapter, candidate CandidateAction) string {
@@ -886,28 +1169,39 @@ func actorRole(accounts map[string]Fixture, candidate CandidateAction) string {
 
 func judgeExploration(g Graph, approvals map[string]bool, role, action string, before, after IndependentFacts, denied bool) []ExploreFinding {
 	findings := []ExploreFinding{}
+	changed := after.State != before.State || measurementGrew(before, after, "records")
+	hasActorRule := false
 	for _, rule := range g.Rules {
-		if !approvals[rule.ID] || rule.Action != action {
+		if !approvals[rule.ID] || rule.Action != action || rule.Actor != role {
 			continue
 		}
+		hasActorRule = true
 		required := map[string]bool{}
 		for _, condition := range rule.Conditions {
 			required[condition] = true
 		}
 		condsMet := observedConditions(map[string]bool(before.Conditions), required, rule.Conditions)
-		if rule.Actor == role {
-			if condsMet && !denied && rule.Expected != "UNCHANGED" && after.State != rule.Expected {
-				findings = append(findings, ExploreFinding{Kind: "FAIL", Rule: rule.ID, Reason: "confirmed rule " + rule.ID + " expected " + rule.Expected + " and observed " + after.State})
-			}
-			if condsMet && denied && after.State != before.State {
-				findings = append(findings, ExploreFinding{Kind: "FAIL", Rule: rule.ID, Reason: "confirmed rule " + rule.ID + " was rejected but the state changed"})
-			}
-			if !condsMet && rule.Rejected == "UNCHANGED" && !denied && after.State != before.State {
-				findings = append(findings, ExploreFinding{Kind: "FAIL", Rule: rule.ID, Reason: "confirmed rule " + rule.ID + " must stay unchanged when a guard is false"})
-			}
+		switch {
+		case condsMet && !denied && rule.Expected != "UNCHANGED" && after.State == rule.Expected:
+			findings = append(findings, ExploreFinding{Kind: "PASS", Rule: rule.ID, Reason: "confirmed rule " + rule.ID + " allowed " + action + " and reached " + after.State})
+		case condsMet && !denied && rule.Expected != "UNCHANGED" && after.State != rule.Expected:
+			findings = append(findings, ExploreFinding{Kind: "FAIL", Rule: rule.ID, Reason: "confirmed rule " + rule.ID + " expected " + rule.Expected + " and observed " + after.State})
+		case denied && changed:
+			findings = append(findings, ExploreFinding{Kind: "FAIL", Rule: rule.ID, Reason: "confirmed rule " + rule.ID + " was rejected but the business state or records changed"})
+		case condsMet && denied && !changed && rule.Expected != "UNCHANGED":
+			findings = append(findings, ExploreFinding{Kind: "FAIL", Rule: rule.ID, Reason: "confirmed rule " + rule.ID + " requires allowing " + action + " but the request was rejected"})
+		case !condsMet && rule.Rejected == "UNCHANGED" && denied && !changed:
+			findings = append(findings, ExploreFinding{Kind: "PASS", Rule: rule.ID, Reason: "confirmed rule " + rule.ID + " correctly rejected " + action + " without side effects"})
+		case !condsMet && rule.Rejected == "UNCHANGED" && !denied && changed:
+			findings = append(findings, ExploreFinding{Kind: "FAIL", Rule: rule.ID, Reason: "confirmed rule " + rule.ID + " must stay unchanged when a guard is false"})
 		}
-		if rule.Actor != role && rule.Rejected == "UNCHANGED" && !denied && after.State != before.State {
-			findings = append(findings, ExploreFinding{Kind: "FAIL", Rule: rule.ID, Reason: "confirmed rule " + rule.ID + " forbids " + role + " from changing state with " + action})
+	}
+	if !hasActorRule && changed && !denied {
+		for _, rule := range g.Rules {
+			if approvals[rule.ID] && rule.Action == action && rule.Rejected == "UNCHANGED" {
+				findings = append(findings, ExploreFinding{Kind: "FAIL", Rule: rule.ID, Reason: "confirmed rule " + rule.ID + " forbids " + role + " from changing state with " + action})
+				break
+			}
 		}
 	}
 	return findings
@@ -917,9 +1211,14 @@ func invariantFindings(g Graph, after IndependentFacts) []ExploreFinding {
 	findings := []ExploreFinding{}
 	for _, invariant := range g.Invariants {
 		for _, outcome := range evaluateProperties(invariant.Checks, after.Values) {
-			if outcome.Verdict != "PASS" {
-				findings = append(findings, ExploreFinding{Kind: "FAIL", Rule: invariant.ID, Reason: "confirmed invariant " + invariant.ID + ": " + outcome.Reason})
+			if outcome.Verdict == "PASS" {
+				continue
 			}
+			kind := "FAIL"
+			if outcome.Verdict == "BLOCKED" {
+				kind = "BLOCKED"
+			}
+			findings = append(findings, ExploreFinding{Kind: kind, Rule: invariant.ID, Reason: "confirmed invariant " + invariant.ID + ": " + outcome.Reason})
 		}
 	}
 	return findings
@@ -1008,7 +1307,11 @@ func (d db) persistExploration(report ExploreReport) error {
 	if err != nil {
 		return err
 	}
-	statements := []string{fmt.Sprintf("INSERT INTO exploration_campaigns(id,graph,flow,environment,round,stop_reason,body) VALUES(%s,%s,%s,%s,%s,%s,%s);", quote(report.Campaign), quote(report.Graph), quote(report.Flow), quote(report.Environment), quote(report.Round), quote(report.StopReason), quote(string(body)))}
+	statements := []string{
+		fmt.Sprintf("DELETE FROM exploration_actions WHERE campaign=%s;", quote(report.Campaign)),
+		fmt.Sprintf("DELETE FROM exploration_frontier WHERE campaign=%s;", quote(report.Campaign)),
+		fmt.Sprintf("INSERT OR REPLACE INTO exploration_campaigns(id,graph,flow,environment,round,stop_reason,body) VALUES(%s,%s,%s,%s,%s,%s,%s);", quote(report.Campaign), quote(report.Graph), quote(report.Flow), quote(report.Environment), quote(report.Round), quote(report.StopReason), quote(string(body))),
+	}
 	for index, step := range report.Steps {
 		stepBody, err := json.Marshal(step)
 		if err != nil {
@@ -1021,8 +1324,12 @@ func (d db) persistExploration(report ExploreReport) error {
 		if err != nil {
 			return err
 		}
-		key := leftover.ID + "|" + leftover.Action + "|" + leftover.Role
-		statements = append(statements, fmt.Sprintf("INSERT OR REPLACE INTO exploration_frontier(id,campaign,equivalence_key,state,role,body) VALUES(%s,%s,%s,%s,%s,%s);", quote(report.Campaign+"/"+shortDigest(key)), quote(report.Campaign), quote(key), quote(leftover.Scope), quote(leftover.Role), quote(string(item))))
+		key := leftover.ID + "|" + leftover.Action + "|" + leftover.Role + "|" + leftover.RequestID
+		worldState := leftover.Scope
+		if len(report.Steps) > 0 {
+			worldState = firstNonEmpty(report.Steps[len(report.Steps)-1].After.State, leftover.Scope)
+		}
+		statements = append(statements, fmt.Sprintf("INSERT OR REPLACE INTO exploration_frontier(id,campaign,equivalence_key,state,role,body) VALUES(%s,%s,%s,%s,%s,%s);", quote(report.Campaign+"/"+shortDigest(key)), quote(report.Campaign), quote(key), quote(worldState), quote(leftover.Role), quote(string(item))))
 	}
 	return d.tx(statements)
 }
@@ -1047,7 +1354,7 @@ func (d db) explorationCoverage(graph string) (map[string]ExplorationCoverage, e
 		analysis = ModelAnalysis{Nodes: map[string]BusinessNodeStatus{}}
 	}
 	for _, capability := range capabilityIDs(g) {
-		cover := ExplorationCoverage{Explored: []string{}, Unexplored: []string{}, Unspecified: []string{}, ConfirmedFails: []string{}, CurrentPass: []string{}, PendingRecovery: []string{}}
+		cover := ExplorationCoverage{Explored: []string{}, Unexplored: []string{}, Unspecified: []string{}, ConfirmedFails: []string{}, CurrentPass: []string{}, PendingRecovery: []string{}, ExecutedPaths: []string{}, Frontier: []string{}, AICandidates: []string{}, FailEvidence: []string{}, RecoveryStatus: []string{}, UnknownStates: []string{}, ModeContrast: []string{}}
 		if status, ok := analysis.Nodes[capability]; ok {
 			cover.Tested = status.Required > 0 && status.Status != "" && status.Status != "NOT_RUN"
 			if status.Status == "PASS" {
@@ -1071,6 +1378,7 @@ func (d db) explorationCoverage(graph string) (map[string]ExplorationCoverage, e
 		if json.Unmarshal([]byte(row[0]), &report) != nil {
 			continue
 		}
+		path := []string{}
 		for _, step := range report.Steps {
 			capability := step.Candidate.Scope
 			if capability == "" {
@@ -1078,6 +1386,16 @@ func (d db) explorationCoverage(graph string) (map[string]ExplorationCoverage, e
 			}
 			cover := out[capability]
 			cover.Explored = append(cover.Explored, string(step.Candidate.Kind)+":"+step.Candidate.Action)
+			path = append(path, string(step.Candidate.Kind)+":"+step.Candidate.Action+":"+step.Candidate.Role)
+			if strings.HasPrefix(step.Candidate.RequestID, "ai-") || step.Candidate.Source == sourceInfer && step.Candidate.Kind == kindHistory {
+				cover.AICandidates = appendUnique(cover.AICandidates, step.Candidate.Action+":"+string(step.Candidate.Kind))
+			}
+			for _, finding := range step.Findings {
+				if finding.Kind == "FAIL" {
+					cover.FailEvidence = appendUnique(cover.FailEvidence, firstNonEmpty(finding.Evidence, step.RAW, finding.Rule))
+					cover.ConfirmedFails = appendUnique(cover.ConfirmedFails, finding.Rule)
+				}
+			}
 			if report.RecoveryClass == RecoveryFailedLocked || report.RecoveryClass == RecoveryUnknown {
 				cover.PendingRecovery = append(cover.PendingRecovery, report.Campaign)
 			}
@@ -1085,7 +1403,22 @@ func (d db) explorationCoverage(graph string) (map[string]ExplorationCoverage, e
 				cover.BudgetExhausted = true
 				cover.StopReasons = append(cover.StopReasons, report.StopReason)
 			}
+			if report.RecoveryClass != "" {
+				cover.RecoveryStatus = appendUnique(cover.RecoveryStatus, string(report.RecoveryClass))
+			}
+			if report.Mode != "" {
+				cover.ModeContrast = appendUnique(cover.ModeContrast, report.Mode+":"+report.StopReason)
+			}
 			out[capability] = cover
+		}
+		if len(path) > 0 {
+			joined := strings.Join(path, " -> ")
+			for capability, cover := range out {
+				if len(cover.Explored) > 0 {
+					cover.ExecutedPaths = appendUnique(cover.ExecutedPaths, joined)
+					out[capability] = cover
+				}
+			}
 		}
 		for _, leftover := range report.Remaining {
 			capability := leftover.Scope
@@ -1094,8 +1427,16 @@ func (d db) explorationCoverage(graph string) (map[string]ExplorationCoverage, e
 			}
 			cover := out[capability]
 			cover.Unexplored = append(cover.Unexplored, string(leftover.Kind)+":"+leftover.Action)
+			cover.Frontier = appendUnique(cover.Frontier, string(leftover.Kind)+":"+leftover.Action+":"+leftover.Role)
 			cover.StopReasons = appendUnique(cover.StopReasons, report.StopReason)
 			out[capability] = cover
+		}
+		for _, item := range report.Unspecified {
+			for _, capability := range item.Capabilities {
+				cover := out[capability]
+				cover.UnknownStates = appendUnique(cover.UnknownStates, item.Kind+":"+item.AfterState)
+				out[capability] = cover
+			}
 		}
 	}
 	return out, nil
@@ -1141,4 +1482,11 @@ type ExplorationCoverage struct {
 	StopReasons     []string `json:"stop_reasons"`
 	BudgetExhausted bool     `json:"budget_exhausted"`
 	EvidenceMissing string   `json:"evidence_missing,omitempty"`
+	ExecutedPaths   []string `json:"executed_paths,omitempty"`
+	Frontier        []string `json:"frontier,omitempty"`
+	AICandidates    []string `json:"ai_candidates,omitempty"`
+	FailEvidence    []string `json:"fail_evidence,omitempty"`
+	RecoveryStatus  []string `json:"recovery_status,omitempty"`
+	UnknownStates   []string `json:"unknown_states,omitempty"`
+	ModeContrast    []string `json:"mode_contrast,omitempty"`
 }

@@ -52,8 +52,8 @@ func runContext(ctx context.Context, args []string) error {
 		subcommand, args = args[1], append([]string{name}, args[2:]...)
 	}
 	if name == "discover" {
-		if len(args) < 2 || !slices.Contains([]string{"record", "list", "triage", "run"}, args[1]) {
-			return errors.New("usage: arc-verify discover <record|list|triage|run> [options]")
+		if len(args) < 2 || !slices.Contains([]string{"record", "list", "triage", "run", "status", "resume", "abort"}, args[1]) {
+			return errors.New("usage: arc-verify discover <record|list|triage|run|status|resume|abort> [options]")
 		}
 		subcommand, args = args[1], append([]string{name}, args[2:]...)
 	}
@@ -109,6 +109,8 @@ func runContext(ctx context.Context, args []string) error {
 	riskScope := f.String("scope", "", "explicit scope of an accepted risk")
 	reportKind := f.String("kind", "", "report kind: acceptance or risk")
 	riskReview := f.Bool("risk-review", false, "fail the gate while user-undecided risks remain")
+	exploreMode := f.String("mode", "heuristic", "explore planner: deterministic, heuristic or ai")
+	plannerFile := f.String("planner", "", "optional JSON file of structured explore suggestions")
 	if e := f.Parse(args[1:]); e != nil {
 		return e
 	}
@@ -220,9 +222,12 @@ func runContext(ctx context.Context, args []string) error {
 				emit(items)
 			}
 			return err
-		case "run":
+		case "run", "resume":
 			if *file == "" || *graph == "" || *flow == "" || *env == "" || *round == "" || *account == "" || *fixture == "" || *commit == "" {
 				return errors.New("discover run needs --file adapter, --graph, --flow, --env, --round, --account, --fixture and --commit")
+			}
+			if subcommand == "resume" && *id == "" {
+				return errors.New("discover resume needs --id campaign")
 			}
 			body, err := os.ReadFile(*file)
 			if err != nil {
@@ -240,13 +245,39 @@ func runContext(ctx context.Context, args []string) error {
 			if err := decodeStrictJSON([]byte(*participantAccounts), &accounts); err != nil {
 				return err
 			}
+			var planner ExplorePlanner
+			if *plannerFile != "" {
+				planner = FileExplorePlanner{Path: *plannerFile}
+			}
 			report, err := d.runExploration(ctx, ExploreRequest{
 				Graph: *graph, Flow: *flow, Environment: *env, Round: *round, Root: *root, Config: *config, Commit: *commit,
-				Account: *account, Fixture: *fixture, Accounts: accounts, Adapter: adapter,
+				Account: *account, Fixture: *fixture, Accounts: accounts, Adapter: adapter, Campaign: *id, Mode: *exploreMode, Planner: planner,
 				Budget: ExploreRuntimeBudget{MaxStates: *maxStates, MaxPaths: *maxPaths, MaxActions: *maxSteps, Deadline: deadline, MaxReplans: *budget},
 			})
 			if err == nil {
 				emit(report)
+			}
+			return err
+		case "status":
+			if *id != "" {
+				state, err := d.loadExploreCheckpoint(*id)
+				if err == nil {
+					emit(state)
+				}
+				return err
+			}
+			items, err := d.listExploreCheckpoints(*graph)
+			if err == nil {
+				emit(items)
+			}
+			return err
+		case "abort":
+			if *id == "" {
+				return errors.New("discover abort needs --id campaign")
+			}
+			state, err := d.abortExploreCampaign(*id, *reason)
+			if err == nil {
+				emit(state)
 			}
 			return err
 		default:
