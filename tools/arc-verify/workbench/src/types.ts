@@ -340,6 +340,18 @@ export interface SnapshotRun {
   trace: Trace;
   evidence: SnapshotEvidence[];
 }
+export interface ExplorationCoverage {
+  explored_branches: string[];
+  unexplored_branches: string[];
+  unspecified: string[];
+  confirmed_fails: string[];
+  current_pass: string[];
+  tested: boolean;
+  pending_recovery: string[];
+  stop_reasons: string[];
+  budget_exhausted: boolean;
+  evidence_missing?: string;
+}
 export interface Snapshot {
   meta: SnapshotMeta;
   catalog: Catalog;
@@ -347,6 +359,7 @@ export interface Snapshot {
   views: Record<BusinessView, Projection>;
   impact?: Impact;
   runs: SnapshotRun[];
+  exploration?: Record<string, ExplorationCoverage>;
 }
 
 export interface PositionedNode {

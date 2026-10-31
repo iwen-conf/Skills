@@ -115,6 +115,47 @@ describe("static workbench", () => {
     const unchanged = renderToStaticMarkup(<App state={{ snapshot }} initialView="impact" />);
     expect(unchanged).toContain("没有可比较的差异");
   });
+  it("shows ledger exploration coverage without greening a capability by explore count", () => {
+    const explored = parseSnapshot(JSON.parse(JSON.stringify(sample)));
+    explored.exploration = {
+      "enrollment.submit": {
+        explored_branches: ["repeat:enroll"],
+        unexplored_branches: ["skip_precondition:enroll"],
+        unspecified: ["UNDECLARED_TRANSITION:force"],
+        confirmed_fails: ["enrollment.submit historic FAIL"],
+        current_pass: [],
+        tested: true,
+        pending_recovery: ["X-blocked"],
+        stop_reasons: ["budget_actions"],
+        budget_exhausted: true,
+        evidence_missing: "oracle timeout",
+      },
+    };
+    const html = renderToStaticMarkup(
+      <App
+        state={{ snapshot: explored }}
+        initialView="capabilities"
+        initialSelected="enrollment.submit"
+      />,
+    );
+    for (const text of [
+      "探索与验证",
+      "已测试",
+      "尚未完整验证",
+      "repeat:enroll",
+      "skip_precondition:enroll",
+      "UNDECLARED_TRANSITION:force",
+      "enrollment.submit historic FAIL",
+      "X-blocked",
+      "预算耗尽",
+      "oracle timeout",
+      "当前有效 PASS",
+      "尚未完整验证",
+      "结果不稳定",
+    ]) {
+      expect(html).toContain(text);
+    }
+  });
   it("shows the failing stage instead of sample data when the snapshot is broken", () => {
     const html = renderToStaticMarkup(
       <App

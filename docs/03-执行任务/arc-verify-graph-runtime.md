@@ -244,3 +244,18 @@ IM 增量发现已找到 57 专属 `.60` 隔离授权，范围见现行 `57/evid
 
 下一轮能否进正式项目验证：工具与隔离链可以；IM-mongo 正式验证仍要用户确认的 v2 RULE、环境 `approved:true` 和账号/fixture 授权。
 
+## 2026-10-31：自主探索与独立进程 E2E（verify-explore-e2e）
+
+基线 `78666ea`。不重做 v2 图、DISCOVERY、run-chain、六视图或 seat-v2 合同。
+
+| 批次 | 状态 | 范围与验收 |
+| --- | --- | --- |
+| W26 | [x] | [测试可信度](arc-verify-graph-runtime/W26-test-credibility.md)：恢复四类与 occupancy barrier；检出 FAIL ≠ 恢复 PASS |
+| W27 | [x] | [自主探索](arc-verify-graph-runtime/W27-autonomous-explore.md)：`discover run` 真实执行 + Frontier + 预算停止 |
+| W28 | [x] | [盲测](arc-verify-graph-runtime/W28-blind-explore.md)：4 检出 / 1 漏检（B-VALID 无关课动作）；不是预写五测 |
+| W29 | [x]/`[!]` | [独立进程 E2E](arc-verify-graph-runtime/W29-independent-e2e.md)：`enroll-sut` 通过；IM-mongo 未批准，保持 BLOCKED |
+| W30 | [x] | [探索快照](arc-verify-graph-runtime/W30-explore-snapshot.md)：能力节点展示探索/义务，不按探索次数点绿 |
+
+报告：[verify-explore-e2e-验收.md](arc-verify-graph-runtime/verify-explore-e2e-验收.md)；运行证据 `.arc/artifacts/verify-explore-e2e/`。
+W06 / W20 的 IM-mongo 项仍为 `[!]`。
+

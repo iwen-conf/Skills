@@ -82,12 +82,20 @@ function Status({ value }: { value: string }) {
 export default function App({
   state,
   initialView = "overview",
+  initialSelected = "",
 }: {
   state: AppState;
   initialView?: BusinessView;
+  initialSelected?: string;
 }) {
   if (state.error) return <SnapshotFailure error={state.error} />;
-  return <Workbench snapshot={state.snapshot} initialView={initialView} />;
+  return (
+    <Workbench
+      snapshot={state.snapshot}
+      initialView={initialView}
+      initialSelected={initialSelected}
+    />
+  );
 }
 
 function SnapshotFailure({ error }: { error: SnapshotError }) {
@@ -109,9 +117,17 @@ function SnapshotFailure({ error }: { error: SnapshotError }) {
   );
 }
 
-function Workbench({ snapshot, initialView }: { snapshot: Snapshot; initialView: BusinessView }) {
+function Workbench({
+  snapshot,
+  initialView,
+  initialSelected,
+}: {
+  snapshot: Snapshot;
+  initialView: BusinessView;
+  initialSelected: string;
+}) {
   const [view, setView] = useState<BusinessView>(initialView);
-  const [selected, setSelected] = useState("");
+  const [selected, setSelected] = useState(initialSelected);
   const [root, setRoot] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [readinessFilter, setReadinessFilter] = useState("");
@@ -612,6 +628,40 @@ function EntityPanel({
           ),
         )}
       </ul>
+      {node && snapshot.exploration?.[id] ? (
+        <>
+          <h3>探索与验证</h3>
+          <dl className="facts">
+            <dt>已描述 / 已实现 / 已测试 / 已完整验证</dt>
+            <dd>
+              {node.readiness.described ? "已描述" : "未描述"} ·{" "}
+              {node.readiness.implemented ? "已实现" : node.readiness.implementation_status} ·{" "}
+              {snapshot.exploration[id].tested ? "已测试" : "尚未测试"} ·{" "}
+              {node.readiness.verified ? "已完整验证" : "尚未完整验证"}
+            </dd>
+            <dt>已探索分支</dt>
+            <dd>{snapshot.exploration[id].explored_branches.join("、") || "无"}</dd>
+            <dt>未探索分支</dt>
+            <dd>{snapshot.exploration[id].unexplored_branches.join("、") || "无"}</dd>
+            <dt>UNSPECIFIED</dt>
+            <dd>{snapshot.exploration[id].unspecified.join("、") || "无"}</dd>
+            <dt>确认失败</dt>
+            <dd>{snapshot.exploration[id].confirmed_fails.join("、") || "无"}</dd>
+            <dt>当前有效 PASS</dt>
+            <dd>{snapshot.exploration[id].current_pass.join("、") || "无"}</dd>
+            <dt>待恢复 / 待复验</dt>
+            <dd>{snapshot.exploration[id].pending_recovery.join("、") || "无"}</dd>
+            <dt>停止原因</dt>
+            <dd>
+              {snapshot.exploration[id].budget_exhausted ? "预算耗尽 · " : ""}
+              {snapshot.exploration[id].stop_reasons.join("、") || "无"}
+              {snapshot.exploration[id].evidence_missing
+                ? ` · ${snapshot.exploration[id].evidence_missing}`
+                : ""}
+            </dd>
+          </dl>
+        </>
+      ) : null}
       {rule && (
         <>
           <h3>规则 {rule.id}</h3>

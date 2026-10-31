@@ -38,7 +38,49 @@ type seatServer struct {
 	duplicateRecords         bool
 	acceptWhenClosed         bool
 	claimNoop                bool
+	raceGate                 *occupancyBarrier
+	scheduleMisses           int
 	claims, forces, approves int
+}
+
+// occupancyBarrier holds concurrent claims after each has read occupancy and
+// releases them together. A timeout is a scheduling miss, not a product verdict.
+type occupancyBarrier struct {
+	mu       sync.Mutex
+	waiting  int
+	need     int
+	released chan struct{}
+}
+
+func newOccupancyBarrier(need int) *occupancyBarrier {
+	if need < 2 {
+		need = 2
+	}
+	return &occupancyBarrier{need: need, released: make(chan struct{})}
+}
+
+func (b *occupancyBarrier) isReleased() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.waiting >= b.need
+}
+
+func (b *occupancyBarrier) arrive(ctx context.Context) error {
+	b.mu.Lock()
+	b.waiting++
+	if b.waiting == b.need {
+		close(b.released)
+		b.mu.Unlock()
+		return nil
+	}
+	released := b.released
+	b.mu.Unlock()
+	select {
+	case <-released:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func seatModel(t *testing.T) Graph {
@@ -151,9 +193,19 @@ func (s *seatServer) handleClaim(w http.ResponseWriter, r *http.Request) {
 
 func (s *seatServer) raceClaim(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
+	if s.raceGate == nil || s.raceGate.isReleased() {
+		s.raceGate = newOccupancyBarrier(2)
+	}
+	gate := s.raceGate
 	observed := len(s.rows)
 	s.mu.Unlock()
-	time.Sleep(25 * time.Millisecond)
+	if err := gate.arrive(r.Context()); err != nil {
+		s.mu.Lock()
+		s.scheduleMisses++
+		s.mu.Unlock()
+		http.Error(w, `{"error":"schedule_inconclusive"}`, http.StatusServiceUnavailable)
+		return
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.claimLocked(w, r, observed)
@@ -628,7 +680,14 @@ func TestIsolatedSeatMutationDetectsFiveDefects(t *testing.T) {
 	}
 	cases := []injected{
 		{id: "M-AUTH", category: "unauthorized_access", location: "force handler skips admin check", runner: "no-force", task: "R-NO-FORCE/NEGATIVE/is_admin", enable: func() { target.unauthorizedForce = true }, disable: func() { target.unauthorizedForce = false }},
-		{id: "M-RACE", category: "race_oversell", location: "claim occupancy check released before write", runner: "concurrent", task: "test.concurrency.last-seat", accounts: map[string]string{"contender": "fixture.contender"}, enable: func() { target.raceNoLock = true }, disable: func() { target.raceNoLock = false }},
+		{id: "M-RACE", category: "race_oversell", location: "claim occupancy check released before write", runner: "concurrent", task: "test.concurrency.last-seat", accounts: map[string]string{"contender": "fixture.contender"}, enable: func() {
+			target.raceNoLock = true
+			target.raceGate = newOccupancyBarrier(2)
+			target.scheduleMisses = 0
+		}, disable: func() {
+			target.raceNoLock = false
+			target.raceGate = nil
+		}},
 		{id: "M-STATE", category: "illegal_transition", location: "claim writes enrolled and skips review", runner: "claim-positive", task: "R-CLAIM/POSITIVE", enable: func() { target.skipReview = true }, disable: func() { target.skipReview = false }},
 		{id: "M-IDEM", category: "idempotency", location: "duplicate request_id inserts a second record", runner: "idempotent", task: "test.idempotency.duplicate-claim", enable: func() { target.duplicateRecords = true }, disable: func() { target.duplicateRecords = false }},
 		{id: "M-VALID", category: "missing_server_validation", location: "claim accepts while course_open is false", runner: "claim-closed", task: "R-CLAIM/NEGATIVE/course_open", enable: func() {
@@ -640,6 +699,7 @@ func TestIsolatedSeatMutationDetectsFiveDefects(t *testing.T) {
 		}},
 	}
 	mutations := []map[string]any{}
+	campaign := []map[string]any{}
 	for _, item := range cases {
 		target.mu.Lock()
 		item.enable()
@@ -653,16 +713,41 @@ func TestIsolatedSeatMutationDetectsFiveDefects(t *testing.T) {
 		if result.Verdict != "FAIL" {
 			t.Fatalf("%s (%s) was not detected by %s: %+v", item.id, item.category, item.task, result)
 		}
-		if result.Recovery.Verdict != "PASS" && item.category != "race_oversell" {
-			// recovery should still restore after a product FAIL
+		locks, err := fixture.d.query("SELECT COUNT(*) FROM fixture_locks", 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lockCount := 0
+		if _, scanErr := fmt.Sscanf(locks[0][0], "%d", &lockCount); scanErr != nil {
+			t.Fatal(scanErr)
+		}
+		class := classifyRecovery(result.Recovery, lockCount)
+		if result.Verdict == "FAIL" && result.Recovery.Verdict != "PASS" && class == RecoveryRestored {
+			t.Fatalf("%s treated defect detection as a restored fixture: %+v", item.id, result)
+		}
+		switch class {
+		case RecoveryRestored:
+			if result.Recovery.Verdict != "PASS" || !result.Recovery.Safe {
+				t.Fatalf("%s recovery class restored without an independent PASS: %+v", item.id, result.Recovery)
+			}
+		case RecoveryFailedLocked:
+			t.Fatalf("%s recovery failed and the lock was kept; fixture reuse is forbidden: %+v locks=%d", item.id, result.Recovery, lockCount)
+		case RecoveryUnknown, RecoveryNotAttempted:
+			t.Fatalf("%s recovery is %s (%s); fixture reuse is forbidden after an unknown restore: %+v", item.id, class, result.Recovery.Reason, result)
+		default:
+			t.Fatalf("%s recovery class %s is not one of the four contracts", item.id, class)
 		}
 		mutations = append(mutations, map[string]any{
 			"id": item.id, "category": item.category, "location": item.location,
 			"expected_failing": []string{item.task}, "runs": []string{result.Run},
 		})
+		campaign = append(campaign, map[string]any{
+			"id": item.id, "category": item.category, "location": item.location,
+			"expected_failing": []string{item.task}, "runs": []string{result.Run},
+			"detection": result.Verdict, "recovery_class": class, "recovery": result.Recovery,
+		})
 		target.mu.Lock()
 		item.disable()
-		target.rows = nil
 		target.mu.Unlock()
 	}
 	body, err := json.Marshal(map[string]any{"graph": "seat-v2", "mutations": mutations})
@@ -680,7 +765,7 @@ func TestIsolatedSeatMutationDetectsFiveDefects(t *testing.T) {
 	writeSeatJSON(t, "reports/mutation-campaign.json", map[string]any{
 		"graph": "seat-v2", "round": fixture.round, "commit": fixture.commit,
 		"environment": "independent", "target": "isolated httptest switches; not IM-mongo",
-		"mutations": mutations, "report": report,
+		"mutations": campaign, "report": report,
 	})
 }
 
@@ -890,4 +975,125 @@ func TestIsolatedSeatHandoffKeepsFirstFail(t *testing.T) {
 	writeSeatJSON(t, "reports/handoff-first-fail.json", map[string]any{
 		"failed": failed, "passed": passed, "packet": packet, "historic": again,
 	})
+}
+
+func TestIsolatedSeatBarrierReproducesOversell(t *testing.T) {
+	target, server := newSeatServer(t)
+	target.raceNoLock = true
+	target.raceGate = newOccupancyBarrier(2)
+	var workers sync.WaitGroup
+	for _, id := range []string{"barrier-a", "barrier-b"} {
+		workers.Add(1)
+		go func(requestID string) {
+			defer workers.Done()
+			resp, err := http.Post(server.URL+"/claim", "application/json", strings.NewReader(`{"request_id":"`+requestID+`"}`))
+			if err == nil {
+				resp.Body.Close()
+			}
+		}(id)
+	}
+	workers.Wait()
+	target.mu.Lock()
+	defer target.mu.Unlock()
+	outcome := classifyConcurrency(len(target.rows), target.capacity, target.scheduleMisses)
+	if outcome == concurrencyScheduleMiss {
+		t.Fatalf("barrier timed out; this is a test scheduling miss, not a product verdict: misses=%d rows=%+v", target.scheduleMisses, target.rows)
+	}
+	if outcome != concurrencyConflict || len(target.rows) != 2 {
+		t.Fatalf("deterministic barrier must oversell exactly once: outcome=%s rows=%+v", outcome, target.rows)
+	}
+}
+
+func TestIsolatedSeatConcurrencyScenarios(t *testing.T) {
+	target, server := newSeatServer(t)
+	post := func(path, id, actor string) int {
+		t.Helper()
+		req, err := http.NewRequest(http.MethodPost, server.URL+path, strings.NewReader(`{"request_id":"`+id+`"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		if actor != "" {
+			req.Header.Set("X-Fixture-Actor", actor)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+	read := func(actor string) int {
+		t.Helper()
+		req, err := http.NewRequest(http.MethodGet, server.URL+"/oracle", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if actor != "" {
+			req.Header.Set("X-Fixture-Actor", actor)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		return resp.StatusCode
+	}
+
+	var readers sync.WaitGroup
+	for i := 0; i < 2; i++ {
+		readers.Add(1)
+		go func() {
+			defer readers.Done()
+			if code := read("student"); code != http.StatusOK {
+				t.Errorf("simultaneous read: %d", code)
+			}
+		}()
+	}
+	readers.Wait()
+
+	var writers sync.WaitGroup
+	writers.Add(2)
+	go func() { defer writers.Done(); post("/claim", "write-a", "student") }()
+	go func() { defer writers.Done(); post("/claim", "write-b", "contender") }()
+	writers.Wait()
+	target.mu.Lock()
+	serialized := classifyConcurrency(len(target.rows), target.capacity, target.scheduleMisses)
+	if serialized != concurrencySerialized || len(target.rows) != 1 {
+		t.Fatalf("simultaneous writes without the race switch must keep the invariant: outcome=%s rows=%+v", serialized, target.rows)
+	}
+	target.rows = nil
+	target.mu.Unlock()
+
+	if code := read("student"); code != http.StatusOK {
+		t.Fatalf("read before write: %d", code)
+	}
+	if code := post("/claim", "read-then-write", "student"); code != http.StatusOK {
+		t.Fatalf("write after read: %d", code)
+	}
+	if code := post("/claim", "read-then-write", "student"); code != http.StatusOK {
+		t.Fatalf("duplicate submit must stay idempotent: %d", code)
+	}
+	target.mu.Lock()
+	if len(target.rows) != 1 {
+		t.Fatalf("duplicate submit created extra records: %+v", target.rows)
+	}
+	target.mu.Unlock()
+
+	if code := post("/force", "cross-role", "student"); code != http.StatusForbidden {
+		t.Fatalf("cross-role force must be rejected: %d", code)
+	}
+
+	target.mu.Lock()
+	target.resetBroken = true
+	target.mu.Unlock()
+	if code := post("/reset", "interrupt", "admin"); code != http.StatusServiceUnavailable {
+		t.Fatalf("interrupted recovery must stay failed: %d", code)
+	}
+	target.mu.Lock()
+	if len(target.rows) == 0 {
+		t.Fatal("failed recovery cleared business rows")
+	}
+	target.resetBroken = false
+	target.mu.Unlock()
 }

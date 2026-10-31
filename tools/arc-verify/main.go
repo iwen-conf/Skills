@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strings"
 	"syscall"
+	"time"
 )
 
 func emit(v any) { b, _ := json.MarshalIndent(v, "", "  "); fmt.Println(string(b)) }
@@ -51,8 +52,8 @@ func runContext(ctx context.Context, args []string) error {
 		subcommand, args = args[1], append([]string{name}, args[2:]...)
 	}
 	if name == "discover" {
-		if len(args) < 2 || !slices.Contains([]string{"record", "list", "triage"}, args[1]) {
-			return errors.New("usage: arc-verify discover <record|list|triage> [options]")
+		if len(args) < 2 || !slices.Contains([]string{"record", "list", "triage", "run"}, args[1]) {
+			return errors.New("usage: arc-verify discover <record|list|triage|run> [options]")
 		}
 		subcommand, args = args[1], append([]string{name}, args[2:]...)
 	}
@@ -217,6 +218,35 @@ func runContext(ctx context.Context, args []string) error {
 			items, err := d.unspecified(*graph)
 			if err == nil {
 				emit(items)
+			}
+			return err
+		case "run":
+			if *file == "" || *graph == "" || *flow == "" || *env == "" || *round == "" || *account == "" || *fixture == "" || *commit == "" {
+				return errors.New("discover run needs --file adapter, --graph, --flow, --env, --round, --account, --fixture and --commit")
+			}
+			body, err := os.ReadFile(*file)
+			if err != nil {
+				return err
+			}
+			var adapter ExploreAdapter
+			if err := decodeStrictJSON(body, &adapter); err != nil {
+				return err
+			}
+			deadline := *deadline
+			if deadline == 0 {
+				deadline = 30 * time.Second
+			}
+			accounts := map[string]string{}
+			if err := decodeStrictJSON([]byte(*participantAccounts), &accounts); err != nil {
+				return err
+			}
+			report, err := d.runExploration(ctx, ExploreRequest{
+				Graph: *graph, Flow: *flow, Environment: *env, Round: *round, Root: *root, Config: *config, Commit: *commit,
+				Account: *account, Fixture: *fixture, Accounts: accounts, Adapter: adapter,
+				Budget: ExploreRuntimeBudget{MaxStates: *maxStates, MaxPaths: *maxPaths, MaxActions: *maxSteps, Deadline: deadline, MaxReplans: *budget},
+			})
+			if err == nil {
+				emit(report)
 			}
 			return err
 		default:

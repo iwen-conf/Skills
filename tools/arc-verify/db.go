@@ -209,4 +209,10 @@ var schema = []string{
 	"CREATE TABLE IF NOT EXISTS risk_meta (graph TEXT NOT NULL, id TEXT NOT NULL, origin TEXT NOT NULL, reference TEXT NOT NULL, PRIMARY KEY(graph,id));",
 	"CREATE TABLE IF NOT EXISTS risk_events (seq INTEGER PRIMARY KEY AUTOINCREMENT, graph TEXT NOT NULL, risk TEXT NOT NULL, status TEXT NOT NULL, scope TEXT NOT NULL, quote TEXT NOT NULL, rule TEXT NOT NULL, created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);",
 	"CREATE INDEX IF NOT EXISTS idx_risk_events ON risk_events(graph,risk,seq);",
+	"CREATE TABLE IF NOT EXISTS exploration_campaigns (id TEXT PRIMARY KEY, graph TEXT NOT NULL, flow TEXT NOT NULL, environment TEXT NOT NULL, round TEXT NOT NULL, stop_reason TEXT NOT NULL, body TEXT NOT NULL, created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);",
+	"CREATE INDEX IF NOT EXISTS idx_exploration_campaigns ON exploration_campaigns(graph,created);",
+	"CREATE TABLE IF NOT EXISTS exploration_frontier (id TEXT PRIMARY KEY, campaign TEXT NOT NULL, equivalence_key TEXT NOT NULL, state TEXT NOT NULL, role TEXT NOT NULL, body TEXT NOT NULL);",
+	"CREATE INDEX IF NOT EXISTS idx_exploration_frontier ON exploration_frontier(campaign,equivalence_key);",
+	"CREATE TABLE IF NOT EXISTS exploration_actions (seq INTEGER PRIMARY KEY AUTOINCREMENT, campaign TEXT NOT NULL, candidate TEXT NOT NULL, run TEXT NOT NULL, verdict TEXT NOT NULL, body TEXT NOT NULL);",
+	"CREATE INDEX IF NOT EXISTS idx_exploration_actions ON exploration_actions(campaign,seq);",
 }

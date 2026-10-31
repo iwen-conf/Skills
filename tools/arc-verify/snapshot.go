@@ -57,12 +57,13 @@ type SnapshotRun struct {
 
 // Snapshot is the read-only document embedded in the static workbench page.
 type Snapshot struct {
-	Meta    SnapshotMeta                        `json:"meta"`
-	Catalog WorkbenchCatalog                    `json:"catalog"`
-	Model   SnapshotModel                       `json:"model"`
-	Views   map[BusinessView]BusinessProjection `json:"views"`
-	Impact  *ImpactReport                       `json:"impact,omitempty"`
-	Runs    []SnapshotRun                       `json:"runs"`
+	Meta        SnapshotMeta                        `json:"meta"`
+	Catalog     WorkbenchCatalog                    `json:"catalog"`
+	Model       SnapshotModel                       `json:"model"`
+	Views       map[BusinessView]BusinessProjection `json:"views"`
+	Impact      *ImpactReport                       `json:"impact,omitempty"`
+	Runs        []SnapshotRun                       `json:"runs"`
+	Exploration map[string]ExplorationCoverage      `json:"exploration,omitempty"`
 }
 
 // SnapshotRequest selects an existing ledger context to export.
@@ -206,6 +207,13 @@ func (d db) buildSnapshot(request SnapshotRequest) (Snapshot, error) {
 		return Snapshot{}, err
 	}
 	snapshot.Catalog = catalogForGraph(catalog, g)
+	coverage, err := d.explorationCoverage(g.ID)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	if len(coverage) > 0 {
+		snapshot.Exploration = coverage
+	}
 	for _, run := range request.Runs {
 		exported, err := d.snapshotRun(g.ID, run)
 		if err != nil {

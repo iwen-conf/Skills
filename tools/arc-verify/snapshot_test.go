@@ -311,10 +311,61 @@ func goJSONFields(t reflect.Type) []string {
 	return fields
 }
 
+func TestSnapshotExplorationCoverageFromLedger(t *testing.T) {
+	fixture, stop := passingCourseFixture(t)
+	defer stop()
+	report := ExploreReport{
+		Campaign: "X-coverage", Graph: "course-v2", Flow: "flow.enrollment",
+		Environment: "independent", Round: fixture.round,
+		StopReason: "budget_actions", Truncated: true,
+		Steps: []ExploreStep{{
+			Candidate: CandidateAction{ID: "c-repeat", Kind: kindRepeat, Action: "enroll", Scope: "enrollment.submit"},
+		}},
+		Remaining: []CandidateAction{{ID: "c-skip", Kind: kindSkipPre, Action: "enroll", Scope: "enrollment.submit"}},
+	}
+	if err := fixture.d.persistExploration(report); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(t.TempDir(), "snapshot")
+	cliJSON(t, "snapshot", "--db", fixture.d.file, "--graph", "course-v2", "--env", "independent", "--round", fixture.round, "--config", fixture.config, "--assets", snapshotAssets(t), "--out", out)
+	snapshot := readSnapshot(t, out)
+	cover, ok := snapshot.Exploration["enrollment.submit"]
+	if !ok {
+		t.Fatal("capability node lost its exploration coverage")
+	}
+	if len(cover.Explored) == 0 || len(cover.Unexplored) == 0 {
+		t.Fatalf("explored/unexplored branches were not exported: %+v", cover)
+	}
+	if !cover.Tested {
+		t.Fatal("ledger execution must mark the capability tested; explore count must not be the signal")
+	}
+	if len(cover.CurrentPass) != 0 {
+		t.Fatalf("exploring a capability that is not fully verified must not invent a current PASS: %+v", cover)
+	}
+	if !cover.BudgetExhausted || len(cover.StopReasons) == 0 {
+		t.Fatalf("budget stop was dropped: %+v", cover)
+	}
+	if site := os.Getenv("ARC_VERIFY_EXPLORE_SITE"); site != "" {
+		assets := os.Getenv("ARC_VERIFY_SAMPLE_ASSETS")
+		if assets == "" {
+			t.Fatal("ARC_VERIFY_EXPLORE_SITE needs ARC_VERIFY_SAMPLE_ASSETS")
+		}
+		cliJSON(t, "snapshot", "--db", fixture.d.file, "--graph", "course-v2", "--env", "independent", "--round", fixture.round, "--config", fixture.config, "--assets", assets, "--out", site)
+	}
+	frontier, err := fixture.d.query("SELECT COUNT(*) FROM exploration_frontier WHERE campaign='X-coverage'", 1)
+	if err != nil || frontier[0][0] == "0" {
+		t.Fatalf("remaining candidates were not persisted as frontier: %v %v", frontier, err)
+	}
+	campaign, err := fixture.d.query("SELECT environment,round FROM exploration_campaigns WHERE id='X-coverage'", 2)
+	if err != nil || campaign[0][0] != "independent" || campaign[0][1] != fixture.round {
+		t.Fatalf("campaign lost environment/round: %v %v", campaign, err)
+	}
+}
+
 func TestSnapshotTypesMatchFrontend(t *testing.T) {
 	interfaces := tsInterfaces(t)
 	pairs := map[string]any{
-		"Snapshot": Snapshot{}, "SnapshotMeta": SnapshotMeta{}, "SnapshotModel": SnapshotModel{}, "SnapshotRun": SnapshotRun{}, "SnapshotEvidence": SnapshotEvidence{},
+		"Snapshot": Snapshot{}, "SnapshotMeta": SnapshotMeta{}, "SnapshotModel": SnapshotModel{}, "SnapshotRun": SnapshotRun{}, "SnapshotEvidence": SnapshotEvidence{}, "ExplorationCoverage": ExplorationCoverage{},
 		"Model": Graph{}, "BusinessNode": Node{}, "Relation": Edge{}, "Rule": Rule{}, "TestDefinition": TestDefinition{},
 		"Projection": BusinessProjection{}, "ProjectedNode": ProjectedNode{}, "Readiness": NodeReadiness{}, "Obligation": ObligationStatus{},
 		"Coverage": BusinessCoverage{}, "Measure": CoverageMeasure{}, "Diagnostic": BusinessDiagnostic{}, "ProofContext": ProofContext{},
