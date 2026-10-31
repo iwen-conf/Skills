@@ -38,6 +38,8 @@
 - 不需要用户先做全局业务判断：历史属性由各项目在模型中显式声明（带来源）。IM-mongo 的 `responsible_agent` 只是代码里看到的实现事实（`support_service_cycle.go:53-54`），写入 IM-mongo 模型前由用户确认，归 W06。
 - 交接：W02 实现 `history[]` 字段、按 `EK` 去重与 `merges[]`；W08、W09 按运行时规则去重。
 
+2026-10-31 晚：`TestExplorationKeepsHistoryDistinctWorlds` 验证声明了 `responsible_agent` 时，可评分的 resolved 与用户直接结束的 resolved 不会被合成一类，评价路径仍可达。未声明历史时仍按状态合并。这是夹具图，不是 IM-mongo 合同。
+
 ## 上下文检索
 
 <Context-Queries>

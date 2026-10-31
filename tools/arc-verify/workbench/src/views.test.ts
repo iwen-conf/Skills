@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import sample from "../dev/sample-snapshot.json";
 import { parseSnapshot } from "./snapshot";
-import { drillRoot, visibleNodes } from "./views";
+import { drillRoot, evidenceRun, visibleNodes } from "./views";
 
 const snapshot = parseSnapshot(JSON.parse(JSON.stringify(sample)));
 const ids = (nodes: { id: string }[]) => nodes.map((node) => node.id).sort();
@@ -37,5 +37,17 @@ describe("drill-down and filters", () => {
     expect(flaky.length).toBeGreaterThan(0);
     expect(flaky.every((node) => node.status === "FLAKY")).toBe(true);
     expect(JSON.stringify(view.coverage)).toBe(before);
+  });
+  it("opens the first FAIL with first-divergence instead of the latest retry", () => {
+    const obligation = snapshot.views.verification.obligations.find(
+      (item) => item.definition.id === "R1/POSITIVE",
+    );
+    const failed = snapshot.runs.find(
+      (run) => run.trace.status === "FAIL" && Boolean(run.trace.first_divergence),
+    );
+    expect(obligation).toBeTruthy();
+    expect(failed).toBeTruthy();
+    expect(obligation?.run).not.toBe(failed?.trace.run);
+    expect(evidenceRun(obligation!, snapshot.runs)).toBe(failed?.trace.run);
   });
 });

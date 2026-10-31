@@ -75,6 +75,15 @@ func TestDiscoveryOutsideContractIsUnspecified(t *testing.T) {
 		if item.Status != "UNSPECIFIED" || len(item.EvidenceSHA256) != 64 || item.Entry == "" || item.Principal == "" {
 			t.Fatalf("UNSPECIFIED item lacks status, evidence or subject: %+v", item)
 		}
+		if item.Action == "enroll" || item.Action == "confirm" {
+			found := false
+			for _, capability := range item.Capabilities {
+				found = found || capability == "enrollment.submit"
+			}
+			if !found {
+				t.Fatalf("UNSPECIFIED %s is not bound to its capability: %+v", item.Action, item)
+			}
+		}
 	}
 	want := map[string]string{"confirm/confirmed": "UNDECLARED_TRANSITION", "refund/pending": "UNDECLARED_ACTION", "enroll/waitlisted": "UNDECLARED_STATE", "enroll/ready": "UNDECLARED_TRANSITION"}
 	deniedChanged := false

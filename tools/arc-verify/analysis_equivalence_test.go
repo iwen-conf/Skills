@@ -109,6 +109,37 @@ func mergedPaths(result FlowExploration) [][]string {
 	return paths
 }
 
+func TestExplorationKeepsHistoryDistinctWorlds(t *testing.T) {
+	result, err := exploreFlow(supportCycleDraft(true), "flow", ExplorationBudget{MaxStates: 500, MaxSteps: 12, MaxPaths: 256, TimeoutMS: 1000})
+	if err != nil {
+		t.Fatal(err)
+	}
+	worlds := map[string]bool{}
+	for _, path := range append(append([][]string{}, result.Paths...), mergedPaths(result)...) {
+		responsible, sawResolved := false, false
+		for _, edge := range path {
+			switch edge {
+			case "dispatch", "claim":
+				responsible = true
+			case "reopen":
+				responsible = false
+			case "agent-end", "user-end-pending", "user-end-queued":
+				sawResolved = true
+				worlds[fmt.Sprintf("responsible=%t", responsible)] = true
+			}
+		}
+		_ = sawResolved
+	}
+	if !worlds["responsible=true"] || !worlds["responsible=false"] {
+		t.Fatalf("declared history must keep the rate-eligible and user-ended resolved worlds apart: %v", worlds)
+	}
+	for _, merge := range result.Merges {
+		if strings.Contains(merge.Key, "state=resolved|h:responsible_agent=true") && strings.Contains(strings.Join(merge.Merged, ","), "user-end") {
+			t.Fatalf("a user-ended path was merged into the rate-eligible resolved world: %+v", merge)
+		}
+	}
+}
+
 func TestExplorationWithoutHistoryMergesByStateOnly(t *testing.T) {
 	result, err := exploreFlow(supportCycleDraft(false), "flow", ExplorationBudget{MaxStates: 500, MaxSteps: 12, MaxPaths: 256, TimeoutMS: 1000})
 	if err != nil {

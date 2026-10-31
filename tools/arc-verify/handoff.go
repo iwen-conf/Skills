@@ -52,6 +52,36 @@ func firstDivergence(steps []StepTrace) (StepTrace, bool) {
 	}
 	return StepTrace{}, false
 }
+
+// handoffConditionsMatch accepts v1 POSITIVE/NEGATIVE/FORCED and v2 MODEL
+// obligations. Kind MODEL is not a missing precondition; it is the frozen
+// v2 task kind whose required values live on the obligation definition.
+func handoffConditionsMatch(contract runContract, observation StepRAW) bool {
+	if contract.Task.Kind == "MODEL" {
+		if contract.Obligation == nil {
+			return false
+		}
+		required := contract.Obligation.Definition.Preconditions
+		if len(observation.Preconditions) < len(required) {
+			return false
+		}
+		for condition, want := range required {
+			actual, found := observation.Preconditions[condition]
+			if !found || actual != want {
+				return false
+			}
+		}
+		return true
+	}
+	return conditionsMatch(observation, contract.Task.Kind, contract.Task.Condition, contract.Rule.Conditions)
+}
+
+func handoffNeedsRejectionEvidence(contract runContract) bool {
+	if contract.Task.Kind == "MODEL" {
+		return contract.Obligation != nil && contract.Obligation.Definition.Denied
+	}
+	return contract.Task.Kind != "POSITIVE"
+}
 func takeRows(rows [][]string, max int) ([][]string, bool) {
 	if len(rows) <= max {
 		return rows, false
@@ -129,10 +159,10 @@ func (d db) handoff(to, graph, runID string) (HandoffPacket, error) {
 				return HandoffPacket{}, errors.New("runner did not complete; return to verify before declaring a product defect")
 			}
 			if failure.Expected == contract.Task.Expected {
-				if !conditionsMatch(observation, contract.Task.Kind, contract.Task.Condition, contract.Rule.Conditions) {
+				if !handoffConditionsMatch(contract, observation) {
 					return HandoffPacket{}, errors.New("failed action had different preconditions; return to verify")
 				}
-				if contract.Task.Kind != "POSITIVE" && !rejectionEvidencePresent(observation) {
+				if handoffNeedsRejectionEvidence(contract) && !rejectionEvidencePresent(observation) {
 					return HandoffPacket{}, errors.New("rejected action is missing independent readback")
 				}
 			}

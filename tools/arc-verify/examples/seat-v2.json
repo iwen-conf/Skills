@@ -1,0 +1,205 @@
+{
+  "schema_version": 2,
+  "id": "seat-v2",
+  "system": "seat",
+  "scope": "Isolated limited-seat reservation fixture for executor and mutation proof; not an IM-mongo or product contract",
+  "nodes": [
+    {"id": "seat", "kind": "system", "name": "名额系统"},
+    {"id": "reservation", "kind": "domain", "name": "占座业务"},
+    {"id": "reservation.claim", "kind": "capability", "name": "申请并确认名额"},
+    {"id": "seat.boundary", "kind": "boundary", "name": "名额边界"},
+    {"id": "STUDENT", "kind": "role", "name": "学员"},
+    {"id": "ADMIN", "kind": "role", "name": "管理员"},
+    {"id": "claim", "kind": "action", "name": "申请名额"},
+    {"id": "approve", "kind": "action", "name": "审批名额"},
+    {"id": "force", "kind": "action", "name": "强制占用"},
+    {"id": "login", "kind": "condition", "name": "已认证"},
+    {"id": "course_open", "kind": "condition", "name": "课程开放"},
+    {"id": "is_admin", "kind": "condition", "name": "管理员权限"},
+    {"id": "idle", "kind": "state", "name": "无名额占用"},
+    {"id": "pending", "kind": "state", "name": "待审批"},
+    {"id": "enrolled", "kind": "state", "name": "已占用"},
+    {"id": "reservation.records", "kind": "data", "name": "占用记录"}
+  ],
+  "contracts": [
+    {
+      "subject": "reservation.claim",
+      "description": "Student claims a seat; admin approves or a student force is rejected",
+      "inputs": ["student", "course"],
+      "outputs": ["reservation_id"],
+      "source": "document",
+      "source_ref": "isolated-seat"
+    }
+  ],
+  "edges": [
+    {"id": "contains-domain", "from": "seat", "to": "reservation", "kind": "contains"},
+    {"id": "contains-capability", "from": "reservation", "to": "reservation.claim", "kind": "contains"},
+    {"id": "implements-claim", "from": "reservation.claim", "to": "claim", "kind": "implements"},
+    {"id": "implements-approve", "from": "reservation.claim", "to": "approve", "kind": "implements"},
+    {"id": "implements-force", "from": "reservation.claim", "to": "force", "kind": "implements"},
+    {"id": "owns-claim", "from": "seat.boundary", "to": "reservation.claim", "kind": "owns"},
+    {"id": "owns-data", "from": "seat.boundary", "to": "reservation.records", "kind": "owns"},
+    {"id": "serves-student", "from": "STUDENT", "to": "reservation", "kind": "serves"},
+    {"id": "serves-admin", "from": "ADMIN", "to": "reservation", "kind": "serves"},
+    {"id": "requires-login-claim", "from": "login", "to": "claim", "kind": "requires"},
+    {"id": "requires-open-claim", "from": "course_open", "to": "claim", "kind": "requires"},
+    {"id": "requires-login-approve", "from": "login", "to": "approve", "kind": "requires"},
+    {"id": "requires-admin-approve", "from": "is_admin", "to": "approve", "kind": "requires"},
+    {"id": "requires-login-force", "from": "login", "to": "force", "kind": "requires"},
+    {"id": "requires-admin-force", "from": "is_admin", "to": "force", "kind": "requires"},
+    {"id": "creates-pending", "from": "claim", "to": "pending", "kind": "transitions"},
+    {"id": "creates-approved", "from": "approve", "to": "enrolled", "kind": "transitions"},
+    {"id": "creates-forced", "from": "force", "to": "enrolled", "kind": "transitions"},
+    {"id": "claim-flow", "from": "idle", "to": "pending", "kind": "transitions_to"},
+    {"id": "approve-flow", "from": "pending", "to": "enrolled", "kind": "transitions_to"},
+    {"id": "force-flow", "from": "idle", "to": "enrolled", "kind": "transitions_to"},
+    {"id": "verifies-idempotency", "from": "test.idempotency.duplicate-claim", "to": "invariant.capacity", "kind": "verifies"},
+    {"id": "verifies-concurrency", "from": "test.concurrency.last-seat", "to": "invariant.capacity", "kind": "verifies"}
+  ],
+  "rules": [
+    {
+      "id": "R-CLAIM",
+      "action": "claim",
+      "actor": "STUDENT",
+      "entry": "/claim",
+      "oracle": "seat-store",
+      "conditions": ["login", "course_open"],
+      "expected": "pending",
+      "rejected": "UNCHANGED",
+      "source": "document",
+      "description": "Authenticated student claims an open seat"
+    },
+    {
+      "id": "R-APPROVE",
+      "action": "approve",
+      "actor": "ADMIN",
+      "entry": "/approve",
+      "oracle": "seat-store",
+      "conditions": ["login", "is_admin"],
+      "expected": "enrolled",
+      "rejected": "UNCHANGED",
+      "source": "document",
+      "description": "Admin confirms a pending claim"
+    },
+    {
+      "id": "R-FORCE",
+      "action": "force",
+      "actor": "ADMIN",
+      "entry": "/force",
+      "oracle": "seat-store",
+      "conditions": ["login", "is_admin"],
+      "expected": "enrolled",
+      "rejected": "UNCHANGED",
+      "source": "document",
+      "description": "Admin may occupy a seat without review"
+    },
+    {
+      "id": "R-NO-FORCE",
+      "action": "force",
+      "actor": "STUDENT",
+      "entry": "/force",
+      "oracle": "seat-store",
+      "conditions": ["login", "is_admin"],
+      "expected": "enrolled",
+      "rejected": "UNCHANGED",
+      "source": "document",
+      "description": "A student force must be rejected unless admin"
+    }
+  ],
+  "transitions": [
+    {"edge": "claim-flow", "action": "claim", "rule": "R-CLAIM", "preconditions": {"login": true, "course_open": true}, "outcome": "success"},
+    {"edge": "approve-flow", "action": "approve", "rule": "R-APPROVE", "preconditions": {"login": true, "is_admin": true}, "outcome": "success"},
+    {"edge": "force-flow", "action": "force", "rule": "R-FORCE", "preconditions": {"login": true, "is_admin": true}, "outcome": "success"}
+  ],
+  "flows": [{"id": "flow.reservation", "capability": "reservation.claim", "initial": "idle"}],
+  "invariants": [
+    {
+      "id": "invariant.capacity",
+      "name": "占用记录不得超过容量",
+      "scope": ["reservation.claim"],
+      "oracle": "seat-store",
+      "observation_boundary": "after committed reservation and fixture restoration",
+      "checks": [{"left": "records", "operator": "lte", "right": "capacity"}],
+      "source": "document",
+      "source_ref": "isolated-seat"
+    }
+  ],
+  "tests": [
+    {
+      "id": "test.sequence.claim-approve",
+      "name": "学员申请后管理员审批",
+      "rule": "R-APPROVE",
+      "kind": "SEQUENCE",
+      "flow": "flow.reservation",
+      "steps": ["claim-flow", "approve-flow"],
+      "expected": "enrolled",
+      "actors": [{"alias": "claimant", "role": "STUDENT"}],
+      "source": "document",
+      "source_ref": "isolated-seat"
+    },
+    {
+      "id": "test.concurrency.last-seat",
+      "name": "最后一名额并发申请不得超卖",
+      "rule": "R-CLAIM",
+      "kind": "CONCURRENCY",
+      "actors": [{"alias": "contender", "role": "STUDENT"}],
+      "preconditions": {"login": true, "course_open": true},
+      "expected": "pending",
+      "source": "document",
+      "source_ref": "isolated-seat"
+    },
+    {
+      "id": "test.idempotency.duplicate-claim",
+      "name": "同一请求重复提交只占用一次",
+      "rule": "R-CLAIM",
+      "kind": "IDEMPOTENCY",
+      "preconditions": {"login": true, "course_open": true},
+      "expected": "pending",
+      "source": "document",
+      "source_ref": "isolated-seat"
+    }
+  ],
+  "applicability": [
+    {
+      "capability": "reservation.claim",
+      "kind": "CONCURRENCY",
+      "applicable": true,
+      "reason": "Last-seat occupancy is a confirmed business invariant of this fixture",
+      "source": "document",
+      "source_ref": "isolated-seat"
+    },
+    {
+      "capability": "reservation.claim",
+      "kind": "IDEMPOTENCY",
+      "applicable": true,
+      "reason": "Duplicate claim with the same request id must not create a second record",
+      "source": "document",
+      "source_ref": "isolated-seat"
+    },
+    {
+      "capability": "reservation.claim",
+      "kind": "BOUNDARY",
+      "applicable": false,
+      "reason": "Timeout and transport cuts are isolated exception cases, not a bound BOUNDARY scenario",
+      "source": "document",
+      "source_ref": "isolated-seat"
+    },
+    {
+      "capability": "reservation.claim",
+      "kind": "RECOVERY",
+      "applicable": false,
+      "reason": "Fixture recovery is the execute protocol, not a separate recovery scenario",
+      "source": "document",
+      "source_ref": "isolated-seat"
+    },
+    {
+      "capability": "reservation.claim",
+      "kind": "FAULT",
+      "applicable": false,
+      "reason": "Fault injection is the isolated mutation campaign, not a bound FAULT scenario",
+      "source": "document",
+      "source_ref": "isolated-seat"
+    }
+  ],
+  "risks": []
+}

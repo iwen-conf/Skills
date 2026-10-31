@@ -66,6 +66,16 @@ func (d db) derive(run string, budget int) (DerivationReport, error) {
 	if contract.Status != "FAIL" {
 		return report, fmt.Errorf("derivation needs an independently observed failure; run %s is %s", run, contract.Status)
 	}
+	if contract.Receipt == nil {
+		return report, errors.New("derivation needs a registered model run receipt")
+	}
+	round, err := d.verificationRound(contract.Receipt.Round)
+	if err != nil {
+		return report, err
+	}
+	if err := d.validateRound(round); err != nil {
+		return report, fmt.Errorf("derivation refuses a stale round: %w", err)
+	}
 	trace, err := d.trace(run)
 	if err != nil {
 		return report, err

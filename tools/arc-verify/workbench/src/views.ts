@@ -1,4 +1,4 @@
-import type { ProjectedNode, Projection } from "./types";
+import type { Obligation, ProjectedNode, Projection, SnapshotRun } from "./types";
 
 export interface NodeFilter {
   root?: string;
@@ -40,4 +40,20 @@ export function visibleNodes(projection: Projection, filter: NodeFilter): Projec
 /** A hierarchical view narrows to the entity's subtree; other views keep every node. */
 export function drillRoot(target: Projection, id: string): string {
   return visibleNodes(target, { root: id }).some((node) => node.id !== id) ? id : "";
+}
+
+/** Prefer the exported FAIL that still carries first-divergence over the latest retry. */
+export function evidenceRun(obligation: Obligation, runs: SnapshotRun[]): string | undefined {
+  const matching = runs.filter((run) => {
+    const task = run.trace.task;
+    return (
+      task === obligation.run ||
+      task.endsWith("/" + obligation.definition.id) ||
+      task === obligation.definition.id
+    );
+  });
+  const failed = matching.find(
+    (run) => run.trace.status === "FAIL" && Boolean(run.trace.first_divergence),
+  );
+  return failed?.trace.run ?? obligation.run;
 }

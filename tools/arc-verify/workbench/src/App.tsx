@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Background, Controls, MarkerType, Position, ReactFlow } from "@xyflow/react";
 import type { Edge, Node } from "@xyflow/react";
 import { layoutNodes } from "./layout";
-import { drillRoot, visibleNodes } from "./views";
+import { drillRoot, evidenceRun, visibleNodes } from "./views";
 import { SnapshotError, businessViews } from "./snapshot";
 import type {
   BusinessView,
@@ -657,14 +657,17 @@ function ObligationList({
           <small>
             {item.definition.kind} · {item.reason}
           </small>
-          {item.run &&
-            (exported.has(item.run) ? (
-              <button type="button" className="link" onClick={() => openRun(item.run!)}>
-                回放 {item.run}
+          {(() => {
+            const run = evidenceRun(item, runs);
+            if (!run) return null;
+            return exported.has(run) ? (
+              <button type="button" className="link" onClick={() => openRun(run)}>
+                回放 {run}
               </button>
             ) : (
-              <small className="muted">运行 {item.run} 未导出到本快照</small>
-            ))}
+              <small className="muted">运行 {run} 未导出到本快照</small>
+            );
+          })()}
         </li>
       ))}
     </ul>

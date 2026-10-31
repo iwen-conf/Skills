@@ -183,7 +183,7 @@ IM-mongo 已确认默认 API 面为 `.50:28885`；共享数据写入需具体任
 | W03 | [x] | 后端 / P1 / D3 | [执行与恢复](arc-verify-graph-runtime/W03-execution.md)：2026-10-31 核实既有实现、补 3 个缺失测试，修复"错误放行被记成 BLOCKED 而非 FAIL"（`StepRAW.Denied` 的 `omitempty`）；真实业务目标归 W06 |
 | W04 | [-] | 后端 / — / D2 | [本地接口](arc-verify-graph-runtime/W04-server.md)：2026-10-31 用户裁决"改成静态快照"，前台服务与 `/api/*` 作废，由 W13 取代。重启条件：用户重新要求页面内可执行/批准 |
 | W05 | [x] | 前端 / P1 / D3 | [静态快照工作台](arc-verify-graph-runtime/W05-workbench.md)：2026-10-31 改为只读读取内嵌快照，删除网络层与写操作；`vp check`/`vp test`(14)/`vp build` 通过，真实浏览器 `file://` 零外部请求、六视图/下钻/回放验收通过，截图在 `.arc/artifacts/verify-static-workbench/` |
-| W06 | [!] | 集成 / P1 / D3 | [完整验收](arc-verify-graph-runtime/W06-acceptance.md)：2026-10-31 工具层全部通过（Go race/vet/build/selftest、Python 476、DBqual 160、技能校验、工作台、arc-policy verify PASS）；IM-mongo 真实验收阻塞：缺用户确认的 v2 规则与终端批准、`.60` 账号/fixture 与执行授权 |
+| W06 | [!] | 集成 / P1 / D3 | [完整验收](arc-verify-graph-runtime/W06-acceptance.md)：工具层通过；隔离 seat-v2 链见 W25。IM-mongo 仍阻塞：缺用户确认的 v2 规则、环境 `approved` 与账号/fixture 授权。不得把 seat PASS 记成 IM-mongo PASS |
 | W07 | [x] | 后端 / P1 / D3 | [补齐 EXISTENCE/SEQUENCE/CONSISTENCY 义务](arc-verify-graph-runtime/W07-obligation-kinds.md)（BG19）：2026-10-31 完成，全量 race 182 项 PASS，12 个种下缺陷全抓到；人工 approve 后的 CLI 路径与 IM-mongo 未验 |
 | W08 | [x] | 后端 / P2 / D3 | [任务卡自动繁殖](arc-verify-graph-runtime/W08-derived-obligations.md)（BG23）：2026-10-31 `derive` 落地，规则派生义务进分母、推断项只进风险报告，等价键去重、预算截断、原 FAIL 不变；14 个种下缺陷全抓到 |
 | W09 | [x] | 后端 / P2 / D3 | [DISCOVERY 与 UNSPECIFIED](arc-verify-graph-runtime/W09-discovery.md)（BG24）：2026-10-31 `discover record/list/triage` 落地，四类契约外行为、等价键去重与预算、交互分流（遗漏需求交 arc-plan、不应存在进风险报告） |
@@ -197,11 +197,12 @@ IM-mongo 已确认默认 API 面为 `.50:28885`；共享数据写入需具体任
 | W17 | [x] | 后端 / P2 / D2 | [三向比对报告](arc-verify-graph-runtime/W17-three-way-report.md)（BG26）：2026-10-31 风险报告 `three_way` 三栏（要求有而实现无、实现有而要求无、参照有而要求无），各带来源与证据，不判 FAIL |
 | W18 | [x] | 后端 / P2 / D2 | [风险反证记录](arc-verify-graph-runtime/W18-risk-refutation.md)（BG27）：2026-10-31 `risk refute` 落地，证据 hash 绑定、报告展示 `not_attempted`/结果/`evidence_changed`，反证不关闭风险 |
 | W19 | [x] | 研究 / P2 / D4 | [同类系统参照库研究](arc-verify-graph-runtime/W19-reference-catalog.md)（BG28）：2026-10-31 定稿槽位+关系格式、四级来源与降噪合同（设计 05"参照库"），实现卡 W24 |
-| W20 | [!] | 验证 / P1 / D3 | [注入缺陷检出率](arc-verify-graph-runtime/W20-mutation-detection.md)（BG29）：2026-10-31 `mutation-report` CLI 完成；真实注入/部署缺少针对本卡的 IM-mongo `.60` 部署授权，且依赖 W06 的 IM-mongo 模型与 runner，未执行、无检出率结论 |
+| W20 | [!] | 验证 / P1 / D3 | [注入缺陷检出率](arc-verify-graph-runtime/W20-mutation-detection.md)（BG29）：CLI 完成；隔离 seat 五类注入 5/0/0（`insufficient_sample`）。IM-mongo `.60` 注入部署仍未授权 |
 | W21 | [x] | 后端 / P3 / D2 | [分流精度台账](arc-verify-graph-runtime/W21-triage-ledger.md)（BG30）：2026-10-31 `reject-risk` 与风险报告 `triage_summary`（按来源统计接受/驳回/待定与样本量，不足 10 标注），驳回的参照同绑定不再生成；不进门禁 |
 | W22 | [x] | 选型 / P2 / D2 | [Schemathesis 选型](arc-verify-graph-runtime/W22-schemathesis-vet.md)（BG31）：2026-10-31 结论"借鉴设计"，DISCOVERY 模型驱动自建；Schemathesis 4.32.7 作为有 OpenAPI 时的可选命令适配器；IM-mongo 无 OpenAPI。记录 [docs/10-复盘决策/01](../10-复盘决策/01-选型-API状态化探索.md) |
 | W24 | [x] | 后端 / P2 / D3 | [参照库导入与匹配](arc-verify-graph-runtime/W24-reference-matching.md)（BG28）：2026-10-31 `reference-import`/`reference-match` 落地，RISK/NO_BINDING/AMBIGUOUS/SUPPRESSED 四种结果、上限 50、只进风险报告；示例参照库复现 W19 演示 |
 | W23 | [x] | 工具 / P3 / D1 | [arc-policy 传入风险审查开关](arc-verify-graph-runtime/W23-policy-risk-review.md)：2026-10-31 `risk_review: true` 时传 `--risk-review`；顺带修复 arc-policy 不接受 v2 证明范围（`complete_business_model_obligations`）导致 v2 图永远过不了门禁 |
+| W25 | [x] | 集成 / P0 / D3 | [隔离业务链与缺陷检出](arc-verify-graph-runtime/W25-isolated-real-chain.md)：seat-v2 正常/异常/并发/恢复、五类注入、六视图真实回放、MODEL FAIL 可交 arc-code。IM-mongo 仍归 W06/W20 `[!]` |
 
 W01 的持久化合同、W02 的义务与状态、W03 的执行与恢复分别不可拆散其不变量；W13/W05 分别开发与验收（快照导出与只读前端），W06 承接真实联合行为。Go 使用原生 Turso；Rust 编译仅在 `.60`。前端不安装 ELK/Dagre 或新的图服务。
 
@@ -222,7 +223,7 @@ IM 增量发现已找到 57 专属 `.60` 隔离授权，范围见现行 `57/evid
 | 5 | W13 `[x]` → W05 `[x]` | 快照导出依赖 W02 视图与 W03 trace/证据 DTO；前端依赖快照 JSON 合同 |
 | 6 | W11 `[x]` → W08 `[x]` → W22 `[x]` → W09 `[x]` | 都建在 W03 的真实执行上；W08、W09 去重依赖 W10；W09 的探索适配器先等 W22 选型 |
 | 7 | W24 `[x]` → W18 `[x]` → W17 `[x]` → W21 `[x]` | 参照匹配依赖 W19 合同与 W12 来源字段；反证依赖 W12 的风险字段；三向比对依赖 W07、W09、W12、W24；精度台账依赖前面的分流事件 |
-| 8 | W20 `[!]`（CLI 完成，真实部分待授权） | 检出率要用真实执行和已授权隔离环境，放在联合验收前，作为"凭什么确信"的证据 |
+| 8 | W20 `[!]`（CLI + 隔离 seat 5/5；IM-mongo 待授权） | 检出率要用真实执行和已授权隔离环境，放在联合验收前，作为"凭什么确信"的证据 |
 | 9 | W14 `[x]` | 在功能定型后同步技能文档，避免反复改 |
 | 10 | W06 `[!]`（工具层完成，真实业务待输入） | 最终 IM-mongo 联合验收 |
 | 11 | W15 `[?]`（清单待确认） | 交付收尾；删分支前逐个核对独有提交并请用户确认 |
@@ -234,4 +235,12 @@ IM 增量发现已找到 57 专属 `.60` 隔离授权，范围见现行 `57/evid
 2026-10-31 授权：用户回复"允许你直接完成剩余任务"，本会话按上表顺序连续执行，不再逐项停下确认；删分支（W15）、提交推送和改远程共享数据仍按全局规则单独确认。
 
 2026-10-31 追加：用户贴来外部研究评估，要求结合进 Verify。核对结果和借鉴结论见 [PRD 06 外部研究核对与借鉴](../00-产品需求/06-业务模型驱动验证.md#2026-10-31外部研究核对与借鉴)；新增 W17–W22，已排进上表。
+
+## 2026-10-31：隔离 seat-v2 真实链与缺陷检出
+
+目标不是重做框架，而是证明现有 CLI 能在已授权入口上执行、发现缺陷、留证据、恢复并展示。IM-mongo 环境未批准，改用仓库内 seat-v2 httptest（W25），明确不是 IM-mongo 验收。
+
+本轮修正：空 `run-chain` 记 blocked；`derive` 拒陈旧轮次；UNSPECIFIED 绑定能力；工作台回放首次 FAIL；v2 MODEL FAIL 可交 `arc-code`。Go race 276 passed；Python 476；DBqual 160；技能 65；工作台 18 项；快照 `.arc/artifacts/verify-isolated-seat/site/index.html`。
+
+下一轮能否进正式项目验证：工具与隔离链可以；IM-mongo 正式验证仍要用户确认的 v2 RULE、环境 `approved:true` 和账号/fixture 授权。
 

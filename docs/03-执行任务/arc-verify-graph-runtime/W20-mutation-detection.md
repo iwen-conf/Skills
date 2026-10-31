@@ -28,6 +28,20 @@
 
 CLI 部分已完成：`arc-verify mutation-report --file mutations.json`。
 
+## 2026-10-31 晚：隔离注入（不是 IM-mongo）
+
+在进程内 seat 夹具上用开关注入五类缺陷，不改任何被测生产源码、不部署到 `.60`：
+
+| ID | 类别 | 预期义务 | 结果 | 运行 |
+| --- | --- | --- | --- | --- |
+| M-AUTH | unauthorized_access | R-NO-FORCE/NEGATIVE/is_admin | detected | R-87aea89f55194525a226b00b48df29b9 |
+| M-RACE | race_oversell | test.concurrency.last-seat | detected | R-790d4dd59175987d6645db684424056c |
+| M-STATE | illegal_transition | R-CLAIM/POSITIVE | detected | R-886822947b2c144424d3f0d8432f8a16 |
+| M-IDEM | idempotency | test.idempotency.duplicate-claim | detected | R-74db13dc138bc5a773c9271ad22d20d7 |
+| M-VALID | missing_server_validation | R-CLAIM/NEGATIVE/course_open | detected | R-12eeb5cae8924e99b3aec15f47154482 |
+
+报告：`.arc/artifacts/verify-isolated-seat/reports/detection.json`。检出 5、漏检 0、不可判定 0；样本量 <10 仍标 `insufficient_sample`，没有另设及格线。IM-mongo 注入/部署/回收仍未授权，本卡真实部分保持 `[!]`。
+
 - 输入：`graph` 与 `mutations[]`（`id`、`category` 取 `unauthorized_access`/`race_oversell`/`illegal_transition`/`idempotency`/`missing_server_validation`/`other`、`location`、`expected_failing`（义务定义 ID，必须存在）、`runs`（对注入版本执行的运行，必须属于该图））。
 - 判定只看独立运行结论：预期义务有证据完好的 FAIL → `detected`；预期义务全部合格 PASS → `survived`（列入 `survivors`，要设计新义务）；没运行或结论不合格 → `inconclusive`。别的义务失败不算检出。按类别分组；检出加漏检少于 10 标 `insufficient_sample`；不设阈值。
 - 新文件 `mutation.go`、`mutation_test.go`；`main.go` 增加命令。验收：`go -C tools/arc-verify test -race -count=1 ./...` PASS；red `.arc/artifacts/verify-mutation-report/red/red-001.json`；种下缺陷 7 个全部抓到（"别的义务失败也算检出"首轮漏网，补了用例）。

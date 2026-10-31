@@ -92,8 +92,12 @@ func (d db) runChain(ctx context.Context, request ChainRequest) (ChainPacket, er
 		return packet, err
 	}
 	packet.Unautomated = unautomated
-	if len(path) == 0 && len(unautomated) > 0 {
-		packet.Stop, packet.Reason = "blocked", fmt.Sprintf("none of %d READY cards has exactly one current registered runner (missing, stale or ambiguous)", len(unautomated))
+	if len(path) == 0 {
+		if len(unautomated) > 0 {
+			packet.Stop, packet.Reason = "blocked", fmt.Sprintf("none of %d READY cards has exactly one current registered runner (missing, stale or ambiguous)", len(unautomated))
+		} else {
+			packet.Stop, packet.Reason = "blocked", "no READY model cards remain; an empty known path is not a completed run"
+		}
 		return packet, chainStop{packet: packet, code: chainExitBlocked}
 	}
 	chainCtx, cancel := context.WithTimeout(ctx, request.Deadline)

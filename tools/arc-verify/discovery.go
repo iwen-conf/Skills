@@ -34,22 +34,23 @@ type ExploredObservation struct {
 // UnspecifiedItem is behavior observed outside the business model. It is never
 // PASS or FAIL; only the user's triage gives it a meaning.
 type UnspecifiedItem struct {
-	ID             string `json:"id"`
-	Kind           string `json:"kind"`
-	Entry          string `json:"entry"`
-	Role           string `json:"role"`
-	Principal      string `json:"principal"`
-	Action         string `json:"action"`
-	BeforeState    string `json:"before_state"`
-	AfterState     string `json:"after_state"`
-	Denied         bool   `json:"denied"`
-	Reason         string `json:"reason"`
-	Evidence       string `json:"evidence"`
-	EvidenceSHA256 string `json:"evidence_sha256"`
-	Key            string `json:"equivalence_key"`
-	Status         string `json:"status"`
-	Triage         string `json:"triage"`
-	Words          string `json:"words,omitempty"`
+	ID             string   `json:"id"`
+	Kind           string   `json:"kind"`
+	Entry          string   `json:"entry"`
+	Role           string   `json:"role"`
+	Principal      string   `json:"principal"`
+	Action         string   `json:"action"`
+	Capabilities   []string `json:"capabilities,omitempty"`
+	BeforeState    string   `json:"before_state"`
+	AfterState     string   `json:"after_state"`
+	Denied         bool     `json:"denied"`
+	Reason         string   `json:"reason"`
+	Evidence       string   `json:"evidence"`
+	EvidenceSHA256 string   `json:"evidence_sha256"`
+	Key            string   `json:"equivalence_key"`
+	Status         string   `json:"status"`
+	Triage         string   `json:"triage"`
+	Words          string   `json:"words,omitempty"`
 }
 
 // DiscoveryReport is the outcome of registering one exploration.
@@ -103,7 +104,7 @@ func (d db) recordExploration(exploration Exploration, budget int) (DiscoveryRep
 		facts.facts.Values = nil
 		baseKey := runtimeKey(g, x, observation.Action, facts, source)
 		identity := kind + "|" + observation.Action + "|" + observation.AfterState
-		item := UnspecifiedItem{Kind: kind, Entry: observation.Entry, Role: observation.Role, Principal: observation.Principal, Action: observation.Action, BeforeState: observation.BeforeState, AfterState: observation.AfterState, Denied: observation.Denied, Reason: reason, Evidence: path, EvidenceSHA256: digestBytes(raw), Key: key, Status: "UNSPECIFIED", Triage: "OPEN"}
+		item := UnspecifiedItem{Kind: kind, Entry: observation.Entry, Role: observation.Role, Principal: observation.Principal, Action: observation.Action, Capabilities: actionCapabilities(g, observation.Action), BeforeState: observation.BeforeState, AfterState: observation.AfterState, Denied: observation.Denied, Reason: reason, Evidence: path, EvidenceSHA256: digestBytes(raw), Key: key, Status: "UNSPECIFIED", Triage: "OPEN"}
 		item.ID = exploration.Graph + "/unspecified/" + shortDigest(identity+"|"+key)
 		exists, err := d.query("SELECT id FROM unspecified_items WHERE id="+quote(item.ID), 1)
 		if err != nil {
@@ -209,9 +210,13 @@ func (d db) unspecified(graph string) ([]UnspecifiedItem, error) {
 	if err != nil {
 		return nil, err
 	}
+	g, err := d.model(graph)
+	if err != nil {
+		return nil, err
+	}
 	result := []UnspecifiedItem{}
 	for _, row := range rows {
-		result = append(result, UnspecifiedItem{ID: row[0], Kind: row[1], Entry: row[2], Role: row[3], Principal: row[4], Action: row[5], BeforeState: row[6], AfterState: row[7], Denied: row[8] == "1", Reason: row[9], Evidence: row[10], EvidenceSHA256: row[11], Key: row[12], Status: "UNSPECIFIED", Triage: row[13], Words: row[14]})
+		result = append(result, UnspecifiedItem{ID: row[0], Kind: row[1], Entry: row[2], Role: row[3], Principal: row[4], Action: row[5], Capabilities: actionCapabilities(g, row[5]), BeforeState: row[6], AfterState: row[7], Denied: row[8] == "1", Reason: row[9], Evidence: row[10], EvidenceSHA256: row[11], Key: row[12], Status: "UNSPECIFIED", Triage: row[13], Words: row[14]})
 	}
 	return result, nil
 }

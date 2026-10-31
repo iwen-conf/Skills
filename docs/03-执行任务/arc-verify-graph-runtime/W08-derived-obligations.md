@@ -49,6 +49,8 @@
 
 未验证：IM-mongo 真实运行上的派生归 W06。
 
+2026-10-31 晚：`derive` 在轮次过期时拒绝（`TestDerivationRefusesStaleRound`）。隔离 seat 上 noop claim 的 FAIL 能派生义务。陈旧轮次不再派生，避免证据上下文已变还扩分母。
+
 ## 上下文检索
 
 <Context-Queries>

@@ -51,6 +51,8 @@
 
 未验证：真实探索（IM-mongo `.60`）由已有浏览器/设备能力执行后再用 `discover record` 登记，归 W06；Schemathesis 适配器未接入（W22 结论：可选，IM-mongo 无 OpenAPI）。
 
+2026-10-31 晚：UNSPECIFIED 条目补 `capabilities`（seat 上 skip-review 观察绑定 `reservation.claim`，状态仍是 UNSPECIFIED，不升 RULE）。`unspecified()` 列清单时要读到图。
+
 ## 上下文检索
 
 <Context-Queries>

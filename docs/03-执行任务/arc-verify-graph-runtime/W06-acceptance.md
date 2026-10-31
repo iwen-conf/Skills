@@ -43,6 +43,10 @@
 
 恢复条件：用户提供第 1、2 项（至少一张卡的确认规则和授权）后，按 W03/W11 在 `.60` 跑并留 RAW。工具层 PASS 不代表真实业务 PASS。
 
+## 2026-10-31 晚：隔离替补（不是 IM-mongo）
+
+W25 在仓库内已授权 httptest 目标 `seat-v2` 上完成一条业务链的正常/异常/多角色/并发/恢复，证据在 `.arc/artifacts/verify-isolated-seat/`。IM-mongo `lan50`/`tx` 仍为 `approved: false`；对根路径探测得到 HTTP 404，没有执行或注入授权。本卡保持 `[!]`，不得把 seat-v2 PASS 记成 IM-mongo PASS。
+
 ## 上下文检索
 
 <Context-Queries>

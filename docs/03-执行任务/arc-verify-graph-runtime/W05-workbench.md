@@ -55,6 +55,10 @@
 
 未验证：Safari/Firefox 未测；诊断与合同变更只在组件测试里用合成数据验证过，没有在浏览器里看真实案例；样例是本机合成夹具，IM-mongo 真实快照归 W06；减少动态效果只靠 CSS 规则，未在系统设置里实测。
 
+## 2026-10-31 晚：首次 FAIL 回放与 seat 快照
+
+回放改为优先打开带 `first_divergence` 的首次 FAIL（`views.ts` `evidenceRun`），避免义务上的最近 PASS 盖住历史偏离。组件测试 18 项通过。真实浏览器打开 W25 导出的 seat-v2 快照（`.arc/artifacts/verify-isolated-seat/site/`）：六视图、能力 `reservation.claim` 为 FLAKY、回放 `R-d4a8d1faf1b6e8152b1a071a3bf95bb0`（确认失败，idle→enrolled）、义务分母 33/33，网络只有同目录 `file://` 资源。
+
 ## 上下文检索
 
 <Context-Queries>

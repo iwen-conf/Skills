@@ -49,6 +49,8 @@
 
 未验证：IM-mongo 真实目标上的连续执行归 W06。
 
+2026-10-31 晚：隔离 seat 上 `run-chain` 在 skip-review FAIL 处以 `divergence` 停机并留下 run；空路径继续报 `blocked`（`TestRunChainWithoutRunnableCardsIsBlocked`）。
+
 ## 上下文检索
 
 <Context-Queries>
