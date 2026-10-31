@@ -42,6 +42,22 @@ func TestRefuseSharedIMWriteTarget(t *testing.T) {
 	}
 }
 
+func TestParseFirstPositiveIDIgnoresPSQLTag(t *testing.T) {
+	id, err := parseFirstPositiveID("161407\nINSERT 0 1\n")
+	if err != nil || id != 161407 {
+		t.Fatalf("got %d %v", id, err)
+	}
+}
+
+func TestIsolationSessionIsFreshRejectsExistingCycle(t *testing.T) {
+	if isolationSessionIsFresh(map[string]any{"session_id": 61017, "cycle_id": 1, "cycle_status": "assigned"}) {
+		t.Fatal("a session that already has a cycle is not a first-consult fixture")
+	}
+	if !isolationSessionIsFresh(map[string]any{"session_id": 1, "session_version": 1}) {
+		t.Fatal("browse-only open without cycle_id must stay fresh")
+	}
+}
+
 func TestIMMongoConfigKeepsSharedStacksUnapproved(t *testing.T) {
 	path := imMongoConfigPath()
 	if path == "" {

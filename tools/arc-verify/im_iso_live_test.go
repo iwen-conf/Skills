@@ -90,16 +90,34 @@ func TestIMMongoIsolatedKnownRuleExploreAndContrast(t *testing.T) {
 	if shared != 200 {
 		t.Fatalf("shared 28885 must stay healthy after isolation writes: %d", shared)
 	}
-	writeExploreArtifact(t, "reports/im-mongo-iso28886.json", map[string]any{
+	report := map[string]any{
 		"env": imIsolationEnv, "target": imISOBase, "shared": imSharedBase,
 		"human_live": world.humanLive, "iso_live": world.isoLive, "writer_ok": world.writerOK,
 		"customer_uid": world.customerUID, "session_id": world.sessionID, "assigned": world.assigned,
-		"known_rules":   claims,
-		"deterministic": map[string]any{"campaign": det.Campaign, "actions": det.Actions, "stop": det.StopReason, "unspecified": len(det.Unspecified)},
-		"heuristic":     map[string]any{"campaign": heur.Campaign, "actions": heur.Actions, "unspecified": len(heur.Unspecified)},
-		"ai":            map[string]any{"campaign": assisted.Campaign, "actions": assisted.Actions, "planner_calls": planner.Calls},
-		"not":           []string{"lan50-write", "28885-write", "28895", "production"},
-	})
+		"known_rules":            claims,
+		"deterministic":          map[string]any{"campaign": det.Campaign, "actions": det.Actions, "stop": det.StopReason, "unspecified": len(det.Unspecified)},
+		"heuristic":              map[string]any{"campaign": heur.Campaign, "actions": heur.Actions, "unspecified": len(heur.Unspecified)},
+		"ai":                     map[string]any{"campaign": assisted.Campaign, "actions": assisted.Actions, "planner_calls": planner.Calls},
+		"not":                    []string{"lan50-write", "28885-write", "28895", "production"},
+		"binary_mutation_deploy": "NOT_RUN: living isolation writer was not restarted",
+	}
+	writeExploreArtifact(t, "reports/im-mongo-iso28886.json", report)
+	writeIMISOArtifact(t, "reports/im-mongo-iso28886.json", report)
+}
+
+func writeIMISOArtifact(t *testing.T, rel string, value any) {
+	t.Helper()
+	path := filepath.Join("..", "..", ".arc", "artifacts", "verify-im-mongo-iso", rel)
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatal(err)
+	}
+	body, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, body, 0600); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func requireIMISO(t *testing.T) *imISOWorld {
@@ -334,6 +352,9 @@ func (world *imISOWorld) openOnly() error {
 	if world.sessionID == 0 || !bizOK(opened) {
 		return fmt.Errorf("open http=%v code=%v sid=%d msg=%v", opened["_http"], opened["code"], world.sessionID, opened["message"])
 	}
+	if st, err := world.serviceState(); err == nil && !isolationSessionIsFresh(st.raw) {
+		return fmt.Errorf("open reused existing cycle sid=%d cycle=%d work_item=%d status=%v", world.sessionID, pickInt(st.raw, "cycle_id"), pickInt(st.raw, "work_item_id"), st.raw["cycle_status"])
+	}
 	return nil
 }
 
@@ -372,32 +393,78 @@ func (world *imISOWorld) openAndFirst() error {
 
 func isolationCustomerUID(t *testing.T) (int, error) {
 	t.Helper()
+	if uid, err := unusedIsolationCustomerUID(); err == nil && uid > 0 {
+		return uid, nil
+	}
+	return createIsolationCustomer()
+}
+
+func unusedIsolationCustomerUID() (int, error) {
 	script := `
 set -e
-ids=$(docker exec im-t47-ops01-20260913t092552z-pg psql -U im_t47_ops01 -d im_t47_ops01_20260913_092552 -tA -c "SELECT id FROM im_users WHERE user_type=1 AND status=1 AND deleted_at IS NULL AND length(mobile)=11 ORDER BY id DESC LIMIT 40;")
+ids=$(docker exec im-t47-ops01-20260913t092552z-pg psql -U im_t47_ops01 -d im_t47_ops01_20260913_092552 -tA -c "SELECT id FROM im_users WHERE user_type=1 AND status=1 AND deleted_at IS NULL AND length(mobile)=11 ORDER BY id DESC;")
 active=$(/home/nulltech/iluwen/deps/mongosh/bin/mongosh --quiet "mongodb://127.0.0.1:27018/?directConnection=true&replicaSet=t47ops01rs" --eval 'db=db.getSiblingDB("im_t47_ops01_20260913_092552"); print(db.im_support_sessions.find({status:"active"}).toArray().map(function(s){return String(s.user_id)}).join(" "));')
 for id in $ids; do
   echo " $active " | grep -q " $id " && continue
   echo "$id"
   exit 0
 done
-echo "$ids" | head -1
+exit 2
 `
 	cmd := exec.Command("ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=12", "nulltech@192.168.1.50", "bash", "-s")
 	cmd.Stdin = strings.NewReader(script)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return 0, fmt.Errorf("isolation customer query: %w", err)
+		return 0, fmt.Errorf("unused isolation customer: %w", err)
 	}
-	lines := strings.Fields(string(out))
-	if len(lines) == 0 {
-		return 0, fmt.Errorf("isolation customer id missing")
-	}
-	id, err := strconv.Atoi(lines[len(lines)-1])
-	if err != nil || id <= 0 {
-		return 0, fmt.Errorf("isolation customer id missing")
+	id, err := parseFirstPositiveID(string(out))
+	if err != nil {
+		return 0, fmt.Errorf("unused isolation customer missing")
 	}
 	return id, nil
+}
+
+func createIsolationCustomer() (int, error) {
+	var last error
+	for attempt := 0; attempt < 5; attempt++ {
+		mobile := fmt.Sprintf("170%08d", time.Now().UnixNano()%100000000)
+		script := fmt.Sprintf(`
+set -e
+docker exec im-t47-ops01-20260913t092552z-pg psql -U im_t47_ops01 -d im_t47_ops01_20260913_092552 -v ON_ERROR_STOP=1 -tA -c "INSERT INTO im_users (mobile, nickname, avatar, gender, motto, email, birthday, robot, merchant, open_id, is_shop, is_customer_service, user_type, inviter_id, created_at, updated_at, custom_status, account_status, status) VALUES ('%s', 'iso-arc-cust', '', 0, 'iso-arc', '', '', 0, 0, '', false, 0, 1, 0, now(), now(), '', 0, 1) RETURNING id;"
+`, mobile)
+		cmd := exec.Command("ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=12", "nulltech@192.168.1.50", "bash", "-s")
+		cmd.Stdin = strings.NewReader(script)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			last = fmt.Errorf("create isolation customer: %w: %s", err, strings.TrimSpace(string(out)))
+			time.Sleep(20 * time.Millisecond)
+			continue
+		}
+		id, err := parseFirstPositiveID(string(out))
+		if err != nil {
+			last = fmt.Errorf("create isolation customer: missing id: %s", strings.TrimSpace(string(out)))
+			continue
+		}
+		return id, nil
+	}
+	if last == nil {
+		last = fmt.Errorf("create isolation customer: exhausted retries")
+	}
+	return 0, last
+}
+
+func isolationSessionIsFresh(state map[string]any) bool {
+	return pickInt(state, "cycle_id") == 0 && pickInt(state, "work_item_id") == 0
+}
+
+func parseFirstPositiveID(raw string) (int, error) {
+	for _, line := range strings.Split(raw, "\n") {
+		id, err := strconv.Atoi(strings.TrimSpace(line))
+		if err == nil && id > 0 {
+			return id, nil
+		}
+	}
+	return 0, fmt.Errorf("missing id")
 }
 
 type imService struct {
