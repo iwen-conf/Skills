@@ -1,6 +1,6 @@
 # W29 独立进程业务 E2E
 
-状态：`[x]` 工具层；IM-mongo 仍 `[!]`
+状态：`[x]` 工具层；IM-mongo 隔离写面见 [W35](W35-cross-project-e2e.md) `[x]`
 
 独立进程 `testdata/enroll-sut` 复用 seat-v2 合同（未另建 enroll-v2 图）。正常/跨角色/并发/幂等/故障 BLOCKED/恢复失败留锁/重测保留历史 FAIL 均有 RAW。IM-mongo `lan50`/`tx` 仍 `approved: false`，不得记 PASS。
 

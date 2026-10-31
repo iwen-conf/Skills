@@ -269,7 +269,7 @@ W06 / W20 的 IM-mongo 项仍为 `[!]`。
 | W32 | [x] | [业务判定](arc-verify-graph-runtime/W32-judgment-evidence.md)：允许被拒 FAIL；并发双方入账 |
 | W33 | [x] | [Frontier 续探](arc-verify-graph-runtime/W33-frontier-resume.md)：`discover status/resume/abort` |
 | W34 | [x] | [AI 规划](arc-verify-graph-runtime/W34-ai-planner.md)：可替换接口，建议须过白名单 |
-| W35 | [x]/`[!]` | [跨项目 E2E](arc-verify-graph-runtime/W35-cross-project-e2e.md)：enroll-sut 对照通过；IM-mongo BLOCKED |
+| W35 | [x] | [跨项目 E2E](arc-verify-graph-runtime/W35-cross-project-e2e.md)：iso28886 已知规则 8/8 + 三种探索；图谱 TTY 仍未批 |
 
 报告：[verify-blind-resume-验收.md](arc-verify-graph-runtime/verify-blind-resume-验收.md)。
 

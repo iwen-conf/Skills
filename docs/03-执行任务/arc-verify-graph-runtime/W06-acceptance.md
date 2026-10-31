@@ -43,6 +43,10 @@
 
 恢复条件：用户提供第 1、2 项（至少一张卡的确认规则和授权）后，按 W03/W11 在 `.60` 跑并留 RAW。工具层 PASS 不代表真实业务 PASS。
 
+## 2026-11-01：iso28886 已授权写入（不是共享 28885）
+
+用户批准把夹具改到 `iso28886` 并在该面写数据、做业务级故障。ARC Verify 已在 `192.168.1.50:28886` 跑通进线已知规则与探索，见 [W35](W35-cross-project-e2e.md)。共享 `lan50/28885` 仍 `approved: false`，只读 live=200。本卡图谱 TTY 批准与 39 族登记仍 `[!]`。
+
 ## 2026-10-31 晚：隔离替补（不是 IM-mongo）
 
 W25 在仓库内已授权 httptest 目标 `seat-v2` 上完成一条业务链的正常/异常/多角色/并发/恢复，证据在 `.arc/artifacts/verify-isolated-seat/`。IM-mongo `lan50`/`tx` 仍为 `approved: false`；对根路径探测得到 HTTP 404，没有执行或注入授权。本卡保持 `[!]`，不得把 seat-v2 PASS 记成 IM-mongo PASS。

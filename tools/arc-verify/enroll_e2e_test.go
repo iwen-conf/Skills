@@ -216,7 +216,7 @@ func TestIndependentEnrollExploreModeContrast(t *testing.T) {
 		"deterministic": map[string]any{"campaign": deterministic.Campaign, "actions": deterministic.Actions, "counts": detAttr.Counts, "spent": detAttr.Spent},
 		"heuristic":     map[string]any{"campaign": heuristic.Campaign, "actions": heuristic.Actions, "counts": heurAttr.Counts, "spent": heurAttr.Spent, "unspecified": len(heuristic.Unspecified)},
 		"ai":            map[string]any{"campaign": assisted.Campaign, "actions": assisted.Actions, "counts": aiAttr.Counts, "spent": aiAttr.Spent, "planner_calls": planner.Calls},
-		"im_mongo":      "BLOCKED: iso28886 fixtures still bind lan50; shared .50 writes and fault injection are not approved",
+		"im_mongo":      "iso28886 authorized; see reports/im-mongo-iso28886.json",
 	})
 	if deterministic.Mode != "deterministic" || heuristic.Mode != "heuristic" || assisted.Mode != "ai" {
 		t.Fatalf("mode labels %s %s %s", deterministic.Mode, heuristic.Mode, assisted.Mode)

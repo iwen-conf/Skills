@@ -14,9 +14,9 @@
 | 6 崩溃后续探 | PASS | `TestExploreResumeContinuesFrontierWithoutReplay`、CLI resume |
 | 7 并发双方是否入账 | PASS | `TestPerformExploreKeepsBothConcurrentResults` |
 | 8 恢复失败是否阻断 | PASS | `TestExploreResumeRefusesFailedRecovery` |
-| 9 独立产品 E2E | PARTIAL | enroll-sut 进程对照 PASS；IM-mongo BLOCKED |
+| 9 独立产品 E2E | PASS | iso28886 已知规则 8/8；探索 det/heur/ai 均有动作；28885 只读 200 |
 | 10 图谱能否看到探索 | PASS | 工作台 EntityPanel 增加路径/Frontier/AI/FAIL/恢复/模式 |
 
 ## IM-mongo
 
-`BLOCKED`：夹具仍写 `lan50`；共享 `.50` 写和故障注入未批准；本环境不能起容器或改共享库。
+`PASS`（隔离写面）：夹具改绑 `iso28886`；`192.168.1.50:28886` 写入；28885 只读 live=200。证据 `.arc/artifacts/verify-im-mongo-iso/reports/im-mongo-iso28886.json`。变异二进制未部署（不重启 writer）。产品图谱 TTY 批准仍未做。
