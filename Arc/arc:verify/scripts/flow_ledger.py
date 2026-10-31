@@ -230,7 +230,11 @@ def check_flow(path: Path, flow_id: str, errors: list[str]) -> dict:
                     f"{key}: terminal rows need {TERMINAL_COLUMNS} columns and this flow's ID"
                 )
                 continue
-            terminals[match.group(2)] = row[2]
+            terminal = match.group(2)
+            if terminal in terminals:
+                local.append(f"{key}: duplicate terminal row")
+                continue
+            terminals[terminal] = row[2]
             if row[2] not in CLOSURES:
                 local.append(
                     f"{key}: closure {row[2]} is not one of {sorted(CLOSURES)}"
@@ -243,7 +247,11 @@ def check_flow(path: Path, flow_id: str, errors: list[str]) -> dict:
                     f"{key}: branch rows need {BRANCH_COLUMNS} columns and this flow's ID"
                 )
                 continue
-            ledger[(match.group(2), match.group(3))] = row
+            branch_key = (match.group(2), match.group(3))
+            if branch_key in ledger:
+                local.append(f"{key}: duplicate branch row")
+                continue
+            ledger[branch_key] = row
     for node in sorted(terminals_in_chart - set(terminals)):
         local.append(f"{flow_id}-{node} is in the chart but not in the terminal table")
     for node in sorted(set(terminals) - terminals_in_chart):

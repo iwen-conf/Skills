@@ -90,16 +90,16 @@ def session_baselines(session: str) -> dict[Path, dict[str, str]]:
 def authored_paths(session: str) -> dict[Path, set[str]] | None:
     """Paths this session's tool calls wrote, per repository.
 
-    None until the host has reported a finished tool call (PostToolUse): without one, a
-    shell write cannot be told from another session's and Stop falls back to first-touch state.
+    Exact edit targets are known without PostToolUse. Shell windows become usable after
+    PostToolUse or Stop closes them; older untracked sessions retain first-touch fallback.
     """
-    if not session or not _read_windows(session)["post"]:
+    if not session:
         return None
     authored: dict[Path, set[str]] = {}
     for entry in _entries(session):
         if "authored" in entry:
             authored.setdefault(Path(entry["root"]), set()).update(entry["authored"])
-    return authored
+    return authored if authored or _read_windows(session)["post"] else None
 
 
 def record_authored(session: str, root: Path, paths: Iterable[str]) -> None:
@@ -160,7 +160,7 @@ def _windows(session: str) -> Iterator[dict]:
 def open_window(session: str, call: str, roots: Iterable[Path]) -> None:
     """Snapshot dirty files before an allowed tool call runs; a repeated call keeps its first snapshot."""
     roots = sorted(set(roots))
-    if not session or not roots:
+    if not session:
         return
     snapshot = {str(root): dirty_stats(root) for root in roots}
     with _windows(session) as state:
@@ -184,6 +184,8 @@ def close_open_windows(session: str) -> None:
     with _windows(session) as state:
         windows = list(state["open"].values())
         state["open"] = {}
+        if windows:
+            state["post"] = True
     for window in windows:
         _charge(session, window)
 

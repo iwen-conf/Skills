@@ -21,6 +21,7 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 20
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/app_bench
+      SQLVERIFY_TIMEOUT_S: ${{ vars.SQLVERIFY_TIMEOUT_S }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -34,6 +35,7 @@ jobs:
       - name: Nightly database gate
         run: |
           python scripts/run_suite.py \
+            --timeout-s "${SQLVERIFY_TIMEOUT_S:?configure the task budget}" \
             --config examples/sql-verification.toml --root . \
             --evidence-dir .sqlverify/evidence \
             --gate-policy examples/gate-policy-nightly.json \

@@ -26,26 +26,30 @@
         ],
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "kind": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "id_prefix": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "allowed_status": {
             "type": "array",
             "items": {
               "type": "string",
               "enum": [
-                "PASS",
-                "FAIL",
-                "BLOCKED",
-                "NOT_RUN",
-                "FLAKY"
+                "PASS"
               ]
-            }
+            },
+            "minItems": 1,
+            "uniqueItems": true
           },
           "min_count": {
             "type": "integer",
@@ -87,19 +91,29 @@
         ],
         "properties": {
           "evidence_id": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "id": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "kind": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "id_prefix": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "path": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
           },
           "op": {
             "enum": [

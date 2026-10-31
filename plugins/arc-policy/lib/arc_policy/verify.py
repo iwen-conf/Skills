@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -47,7 +48,8 @@ def check_architecture(
         languages
         and actual
         and actual != expected
-        and actual not in {"arc-explore", "arc-plan", "arc-audit", "arc-verify", "arc-vet"}
+        and actual
+        not in {"arc-explore", "arc-plan", "arc-audit", "arc-verify", "arc-vet"}
     ):
         return {
             "id": "architecture",
@@ -227,6 +229,23 @@ def check_tests(root: Path, policy: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _graph_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result = {}
+    seen = set()
+    for key, value in pairs:
+        folded = key.casefold()
+        if folded in seen:
+            raise ValueError(f"duplicate graph proof field {key}")
+        seen.add(folded)
+        result[key] = value
+    return result
+
+
+# v1 graphs prove their planned rule tasks; v2 models prove every declared
+# business obligation. Any other scope is not an acceptance proof.
+PROOF_SCOPES = frozenset({"planned_rule_tasks", "complete_business_model_obligations"})
+
+
 def check_business_graph(root: Path, policy: dict[str, Any]) -> dict[str, Any] | None:
     """Project-local business-graph gate; never contacts Turso Cloud.
 
@@ -237,7 +256,11 @@ def check_business_graph(root: Path, policy: dict[str, Any]) -> dict[str, Any] |
     declared = (root / ".arc/verify/config.jsonc").is_file()
     if config is None and not declared:
         return None
-    if not isinstance(config, dict) or not isinstance(config.get("graph"), str) or not config["graph"]:
+    if (
+        not isinstance(config, dict)
+        or not isinstance(config.get("graph"), str)
+        or not config["graph"]
+    ):
         return {
             "id": "business_graph",
             "verdict": "BLOCKED",
@@ -245,15 +268,110 @@ def check_business_graph(root: Path, policy: dict[str, Any]) -> dict[str, Any] |
         }
     db = config.get("db", ".arc/verify/data.db")
     if not isinstance(db, str) or not db or Path(db).is_absolute():
-        return {"id": "business_graph", "verdict": "BLOCKED",
-                "reason": "business_graph.db must be a repository-relative path"}
+        return {
+            "id": "business_graph",
+            "verdict": "BLOCKED",
+            "reason": "business_graph.db must be a repository-relative path",
+        }
     target = (root / db).resolve()
     if not target.is_relative_to(root):
-        return {"id": "business_graph", "verdict": "BLOCKED",
-                "reason": "business_graph.db resolves outside the repository"}
+        return {
+            "id": "business_graph",
+            "verdict": "BLOCKED",
+            "reason": "business_graph.db resolves outside the repository",
+        }
+    risk_review = config.get("risk_review", False)
+    if not isinstance(risk_review, bool):
+        return {
+            "id": "business_graph",
+            "verdict": "BLOCKED",
+            "reason": "business_graph.risk_review must be true or false",
+        }
     argv = ["arc-verify", "gate", "--db", db, "--graph", config["graph"]]
-    result = _check_command(root, argv, root, configured=True)
-    return {"id": "business_graph", **result}
+    if risk_review:
+        argv.append("--risk-review")
+    try:
+        result = _run(root, argv)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return {
+            "id": "business_graph",
+            "verdict": "BLOCKED",
+            "reason": f"graph runner failed: {exc}",
+        }
+    try:
+        proof = json.loads(result.stdout, object_pairs_hook=_graph_object)
+    except (TypeError, ValueError):
+        return {
+            "id": "business_graph",
+            "verdict": "BLOCKED",
+            "reason": "graph runner emitted no valid structured proof; upgrade/rerun arc-verify",
+        }
+    if (
+        not isinstance(proof, dict)
+        or not isinstance(proof.get("verdict"), str)
+        or proof["verdict"] not in VERDICTS
+    ):
+        return {
+            "id": "business_graph",
+            "verdict": "BLOCKED",
+            "reason": "graph runner emitted an invalid verdict",
+        }
+    if result.returncode != 0 or proof["verdict"] != "PASS":
+        return {
+            "id": "business_graph",
+            "verdict": "FAIL" if proof["verdict"] == "FAIL" else "BLOCKED",
+            "reason": f"graph gate {proof['verdict']}, exit {result.returncode}",
+            "output": result.stdout[-8000:],
+        }
+    context = proof.get("context")
+    fields = {
+        "graph",
+        "environment",
+        "target",
+        "source_commit",
+        "source_sha256",
+        "config_sha256",
+        "graph_sha256",
+        "source_root",
+        "config_path",
+    }
+    if (
+        proof.get("proof_scope") not in PROOF_SCOPES
+        or proof.get("inputs_unchanged") is not True
+        or not isinstance(context, dict)
+        or set(context) != fields
+        or not all(
+            isinstance(value, str) and value.strip() for value in context.values()
+        )
+    ):
+        return {
+            "id": "business_graph",
+            "verdict": "BLOCKED",
+            "reason": "graph proof lacks a current execution context and scope",
+        }
+    if (
+        context["graph"] != config["graph"]
+        or Path(context["source_root"]).resolve() != root.resolve()
+        or Path(context["config_path"]).resolve()
+        != (root / ".arc/verify/config.jsonc").resolve()
+        or not re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", context["source_commit"])
+        or any(
+            not re.fullmatch(r"[0-9a-f]{64}", context[key])
+            for key in ("source_sha256", "config_sha256", "graph_sha256")
+        )
+    ):
+        return {
+            "id": "business_graph",
+            "verdict": "BLOCKED",
+            "reason": "graph proof belongs to another candidate repository/config/graph",
+        }
+    return {
+        "id": "business_graph",
+        "verdict": "PASS",
+        "reason": "current planned rule tasks verified; broader E2E/release claims need their own evidence",
+        "proof_scope": proof["proof_scope"],
+        "context": context,
+    }
 
 
 def summarize(checks: list[dict[str, Any]], policy: dict[str, Any]) -> str:
@@ -302,13 +420,16 @@ def _verify_task(
     if isinstance(graph_config, dict):
         additional_skills = graph_config.get("require_for_skills", [])
         if not isinstance(additional_skills, list) or any(
-            not isinstance(name, str) or not name.strip()
-            for name in additional_skills
+            not isinstance(name, str) or not name.strip() for name in additional_skills
         ):
-            raise ValueError("verification.business_graph.require_for_skills must be a list of skill names")
+            raise ValueError(
+                "verification.business_graph.require_for_skills must be a list of skill names"
+            )
         graph_skills.update(additional_skills)
     business_check = (
-        check_business_graph(root, policy) if task.get("skill") in graph_skills else None
+        check_business_graph(root, policy)
+        if task.get("skill") in graph_skills
+        else None
     )
     if business_check is not None:
         checks.append(business_check)

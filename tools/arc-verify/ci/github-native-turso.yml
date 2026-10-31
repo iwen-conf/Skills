@@ -1,10 +1,11 @@
+# Template only: this skills repository forbids active .github/workflows.
 name: ARC Verify Go native Turso performance and correctness
 on:
   workflow_dispatch:
   pull_request:
     paths:
       - 'tools/arc-verify/**'
-      - '.github/workflows/arc-verify.yml'
+      - 'tools/arc-verify/ci/github-native-turso.yml'
   push:
     branches: [main]
     paths:

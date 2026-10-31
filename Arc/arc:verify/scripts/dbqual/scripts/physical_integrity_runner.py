@@ -7,7 +7,7 @@ import os
 import time
 from pathlib import Path
 
-from sqlverify_common import evidence_base, finalize_evidence, json_dump, run, which
+from sqlverify_common import evidence_base, finalize_evidence, json_dump, run, which, command_verdict
 from sqlverify_config import load_config
 
 
@@ -20,6 +20,7 @@ def _libpq_cli_env(dsn: str) -> tuple[list[str], dict[str, str], list[str]]:
     warnings: list[str] = []
     try:
         from psycopg.conninfo import conninfo_to_dict  # type: ignore
+
         info = conninfo_to_dict(dsn)
     except Exception as exc:
         lowered = dsn.lower()
@@ -31,12 +32,21 @@ def _libpq_cli_env(dsn: str) -> tuple[list[str], dict[str, str], list[str]]:
         return ["--dbname", dsn], {}, warnings
 
     env_map = {
-        "host": "PGHOST", "hostaddr": "PGHOSTADDR", "port": "PGPORT",
-        "user": "PGUSER", "password": "PGPASSWORD", "dbname": "PGDATABASE",
-        "sslmode": "PGSSLMODE", "sslcert": "PGSSLCERT", "sslkey": "PGSSLKEY",
-        "sslrootcert": "PGSSLROOTCERT", "sslcrl": "PGSSLCRL",
-        "connect_timeout": "PGCONNECT_TIMEOUT", "application_name": "PGAPPNAME",
-        "service": "PGSERVICE", "servicefile": "PGSERVICEFILE",
+        "host": "PGHOST",
+        "hostaddr": "PGHOSTADDR",
+        "port": "PGPORT",
+        "user": "PGUSER",
+        "password": "PGPASSWORD",
+        "dbname": "PGDATABASE",
+        "sslmode": "PGSSLMODE",
+        "sslcert": "PGSSLCERT",
+        "sslkey": "PGSSLKEY",
+        "sslrootcert": "PGSSLROOTCERT",
+        "sslcrl": "PGSSLCRL",
+        "connect_timeout": "PGCONNECT_TIMEOUT",
+        "application_name": "PGAPPNAME",
+        "service": "PGSERVICE",
+        "servicefile": "PGSERVICEFILE",
         "target_session_attrs": "PGTARGETSESSIONATTRS",
     }
     env: dict[str, str] = {}
@@ -61,29 +71,47 @@ def _libpq_cli_env(dsn: str) -> tuple[list[str], dict[str, str], list[str]]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Run PostgreSQL physical/logical relation integrity verification with pg_amcheck")
+    ap = argparse.ArgumentParser(
+        description="Run PostgreSQL physical/logical relation integrity verification with pg_amcheck"
+    )
     ap.add_argument("--config", required=True)
     ap.add_argument("--out", required=True)
     ns = ap.parse_args()
-    cfg = load_config(Path(ns.config)); pcfg = cfg.get("physical_integrity", {})
-    start = time.monotonic(); ev = evidence_base("physical_integrity", "physical.integrity")
+    cfg = load_config(Path(ns.config))
+    pcfg = cfg.get("physical_integrity", {})
+    start = time.monotonic()
+    ev = evidence_base("physical_integrity", "physical.integrity")
     if not pcfg.get("enabled", False):
         ev["warnings"].append("physical integrity check disabled by config")
-        json_dump(Path(ns.out), finalize_evidence(ev, start, "NOT_RUN")); return 0
-    dsn_env = pcfg.get("dsn_env", cfg["database"]["dsn_env"]); dsn = os.environ.get(dsn_env)
+        json_dump(Path(ns.out), finalize_evidence(ev, start, "NOT_RUN"))
+        return 0
+    dsn_env = pcfg.get("dsn_env", cfg["database"]["dsn_env"])
+    dsn = os.environ.get(dsn_env)
     if not dsn:
-        ev["violations"].append(f"missing env {dsn_env}"); json_dump(Path(ns.out), finalize_evidence(ev, start, "BLOCKED")); return 2
+        ev["violations"].append(f"missing env {dsn_env}")
+        json_dump(Path(ns.out), finalize_evidence(ev, start, "BLOCKED"))
+        return 2
     if not which("pg_amcheck"):
-        ev["violations"].append("pg_amcheck not found"); json_dump(Path(ns.out), finalize_evidence(ev, start, "BLOCKED")); return 2
+        ev["violations"].append("pg_amcheck not found")
+        json_dump(Path(ns.out), finalize_evidence(ev, start, "BLOCKED"))
+        return 2
     args = ["pg_amcheck"]
-    if pcfg.get("jobs"): args += ["--jobs", str(int(pcfg["jobs"]))]
-    if pcfg.get("heapallindexed", False): args.append("--heapallindexed")
-    if pcfg.get("checkunique", True): args.append("--checkunique")
-    if pcfg.get("parent_check", False): args.append("--parent-check")
-    if pcfg.get("rootdescend", False): args.append("--rootdescend")
-    for schema in pcfg.get("schema", []): args += ["--schema", schema]
-    for ex in pcfg.get("exclude_schema", []): args += ["--exclude-schema", ex]
-    if pcfg.get("install_missing", False): args.append("--install-missing")
+    if pcfg.get("jobs"):
+        args += ["--jobs", str(int(pcfg["jobs"]))]
+    if pcfg.get("heapallindexed", False):
+        args.append("--heapallindexed")
+    if pcfg.get("checkunique", True):
+        args.append("--checkunique")
+    if pcfg.get("parent_check", False):
+        args.append("--parent-check")
+    if pcfg.get("rootdescend", False):
+        args.append("--rootdescend")
+    for schema in pcfg.get("schema", []):
+        args += ["--schema", schema]
+    for ex in pcfg.get("exclude_schema", []):
+        args += ["--exclude-schema", ex]
+    if pcfg.get("install_missing", False):
+        args.append("--install-missing")
     try:
         conn_args, conn_env, conn_warnings = _libpq_cli_env(dsn)
         args.extend(conn_args)
@@ -92,11 +120,20 @@ def main() -> int:
         # Record only connection parameter names, never values that may contain secrets.
         ev["connection_environment_keys"] = sorted(conn_env)
         cp = run(args, env=conn_env, timeout=float(pcfg.get("timeout_s", 3600)))
-        ev["observed"] = {"returncode": cp.returncode, "stdout_tail": cp.stdout[-12000:], "stderr_tail": cp.stderr[-12000:]}
-        if cp.returncode != 0: ev["violations"].append(f"pg_amcheck failed rc={cp.returncode}")
-        status = "PASS" if not ev["violations"] else "FAIL"
+        ev["observed"] = {
+            "returncode": cp.returncode,
+            "stdout_tail": cp.stdout[-12000:],
+            "stderr_tail": cp.stderr[-12000:],
+        }
+        status = command_verdict(cp.returncode, pcfg.get("oracle_failure_returncodes", []))
+        ev["observed"]["verdict"] = status
+        if status == "FAIL":
+            ev["violations"].append(f"pg_amcheck assertion failed rc={cp.returncode}")
+        elif status == "BLOCKED":
+            ev["warnings"].append(f"pg_amcheck did not yield a declared assertion result: rc={cp.returncode}")
     except Exception as e:
-        ev["violations"].append(repr(e)); status = "BLOCKED"
+        ev["warnings"].append(repr(e))
+        status = "FAIL" if ev["violations"] else "BLOCKED"
     ev["reproduction"] = {"dsn_env": dsn_env, "config": pcfg}
     json_dump(Path(ns.out), finalize_evidence(ev, start, status))
     print(json.dumps(ev, ensure_ascii=False, indent=2))

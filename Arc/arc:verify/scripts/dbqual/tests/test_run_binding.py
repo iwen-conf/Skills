@@ -1,19 +1,25 @@
 from __future__ import annotations
 
+import io
 import json
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS = ROOT / "scripts"
-sys.path.insert(0, str(SCRIPTS))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from sqlverify_common import RUN_ID_ENV, RUN_MANIFEST, begin_run, evidence_base, load_evidence_dir
+from release_gate import evaluate
+from qualification_coverage_gate import evaluate_coverage
+from regression_compare import verify_baseline_manifest
+
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS = ROOT / "scripts"
 
 GIT_ENV = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
 GIT_ENV.update({"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"})
@@ -104,8 +110,201 @@ class RunBindingTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {RUN_ID_ENV: "run-1"}):
             self.assertEqual(evidence_base("k", "x")["run_id"], "run-1")
 
+    def test_empty_evidence_cannot_pass_with_invalid_minimum(self):
+        for minimum in (0, -1, False, 1.5, "0"):
+            with self.subTest(minimum=minimum):
+                self.begin()
+                write(self.policy, {"required_evidence": [{"id": "required.claim", "min_count": minimum}]})
+                rc, gate = self.gate()
+                self.assertEqual((rc, gate["status"]), (2, "FAIL"), "invalid counts must not waive a claim")
+
+    def test_incomplete_or_malformed_evidence_cannot_satisfy_claim(self):
+        for missing in ("schema_version", "kind", "observed", "started_at", "violations", "warnings", "reproduction"):
+            with self.subTest(missing=missing):
+                run_id = self.begin()
+                item = evidence("txn.order-cancel", "transaction_scenario", run_id)
+                del item[missing]
+                write(self.evdir / "txn.order-cancel.json", item)
+                rc, gate = self.gate()
+                self.assertEqual((rc, gate["status"]), (2, "FAIL"), "a declarative PASS is not complete evidence")
+
+    def test_duplicate_json_fields_are_not_last_value_wins(self):
+        run_id = self.begin()
+        body = json.dumps(evidence("txn.order-cancel", "transaction_scenario", run_id))
+        body = body.replace('"status": "PASS"', '"status": "FAIL", "status": "PASS"')
+        (self.evdir / "txn.order-cancel.json").write_text(body, encoding="utf-8")
+        rc, gate = self.gate()
+        self.assertEqual((rc, gate["status"]), (2, "FAIL"), "ambiguous evidence must be rejected")
+
+    def test_malformed_auxiliary_record_is_reported(self):
+        run_id = self.begin()
+        write(self.evdir / "txn.order-cancel.json", evidence("txn.order-cancel", "transaction_scenario", run_id))
+        write(self.evdir / "lost-observation.json", {})
+        rc, gate = self.gate()
+        self.assertEqual((rc, gate["status"]), (2, "FAIL"), "unknown JSON must not silently disappear")
+
+    def test_metric_cannot_promote_failed_or_unexecuted_evidence(self):
+        for status in ("FAIL", "BLOCKED", "NOT_RUN", "FLAKY"):
+            with self.subTest(status=status):
+                item = evidence("bench", "pgbench", None, status, latency_ms=1)
+                policy = {"metric_rule": [{"evidence_id": "bench", "path": "observed.latency_ms", "threshold": 100}]}
+                out = evaluate([item], policy)
+                self.assertEqual(out["status"], "FAIL", "fast numbers cannot prove correctness or execution")
+
+    def test_required_claim_cannot_allow_nonpass_status(self):
+        for status in ("FAIL", "BLOCKED", "NOT_RUN", "FLAKY"):
+            with self.subTest(status=status):
+                item = evidence("claim", "transaction_scenario", None, status)
+                out = evaluate([item], {"required_evidence": [{"id": "claim", "allowed_status": [status]}]})
+                self.assertEqual(out["status"], "FAIL", "non-PASS is not release qualification")
+
+    def test_metric_numbers_and_policy_fields_are_strict(self):
+        valid = evidence("bench", "pgbench", None, latency_ms=1)
+        policies = [
+            {"metric_rule": [{"evidence_id": "bench", "path": "observed.latency_ms", "threshold": value}]}
+            for value in (True, float("inf"), float("nan"), "100")
+        ] + [
+            {"metric_rule": [{"evidence_id": "bench", "path": "", "threshold": 100}]},
+            {
+                "metric_rule": [
+                    {"evidence_id": "bench", "path": "observed.latency_ms", "threshold": 100, "op": "approximately"}
+                ]
+            },
+        ]
+        for policy in policies:
+            with self.subTest(policy=policy):
+                try:
+                    out = evaluate([valid], policy)
+                except (KeyError, TypeError, ValueError) as exc:
+                    self.fail(f"invalid policy crashed instead of returning FAIL: {exc}")
+                self.assertEqual(out["status"], "FAIL")
+        out = evaluate(
+            [evidence("bench", "pgbench", None, latency_ms=True)],
+            {"metric_rule": [{"evidence_id": "bench", "path": "observed.latency_ms", "threshold": 100}]},
+        )
+        self.assertEqual(out["status"], "FAIL", "boolean is not a measured number")
+
+    def test_warning_threshold_still_requires_a_real_measurement(self):
+        policy = {
+            "metric_rule": [
+                {"evidence_id": "bench", "path": "observed.latency_ms", "threshold": 100, "severity": "warn"}
+            ]
+        }
+        for value in (None, True, "1", float("nan"), float("inf")):
+            with self.subTest(value=value):
+                out = evaluate([evidence("bench", "pgbench", None, latency_ms=value)], policy)
+                self.assertEqual(out["status"], "FAIL", "warning severity cannot waive a missing measurement")
+        out = evaluate([evidence("bench", "pgbench", None, latency_ms=101)], policy)
+        self.assertEqual(out["status"], "PASS", "a measured warning remains advisory")
+        self.assertTrue(out["warnings"])
+
+    def test_gate_rejects_inputs_changed_during_evaluation(self):
+        import release_gate
+
+        for change in ("evidence", "policy", "candidate"):
+            with self.subTest(change=change):
+                (self.repo / "orders.sql").write_text("select 1;\n", encoding="utf-8")
+                write(self.policy, {"required_evidence": [{"id": "txn.order-cancel"}]})
+                run_id = self.begin()
+                record = self.evdir / "txn.order-cancel.json"
+                write(record, evidence("txn.order-cancel", "transaction_scenario", run_id))
+
+                def evaluate_then_change(*args):
+                    result = evaluate(*args)
+                    if change == "evidence":
+                        write(record, evidence("txn.order-cancel", "transaction_scenario", run_id, "FAIL"))
+                    elif change == "policy":
+                        write(self.policy, {"required_evidence": [{"id": "unexecuted"}]})
+                    else:
+                        (self.repo / "orders.sql").write_text("select 2;\n", encoding="utf-8")
+                    return result
+
+                argv = [
+                    "release_gate.py",
+                    "--policy",
+                    str(self.policy),
+                    "--evidence-dir",
+                    str(self.evdir),
+                    "--root",
+                    str(self.repo),
+                ]
+                output = io.StringIO()
+                with (
+                    mock.patch.object(sys, "argv", argv),
+                    mock.patch.dict(os.environ, GIT_ENV, clear=True),
+                    mock.patch.object(release_gate, "evaluate", side_effect=evaluate_then_change),
+                    redirect_stdout(output),
+                ):
+                    rc = release_gate.main()
+                gate = json.loads(output.getvalue())
+                self.assertEqual((rc, gate["status"]), (2, "FAIL"), "PASS must bind the inputs actually evaluated")
+
+    def test_qualification_requirements_are_validated_before_counting(self):
+        for req in (
+            {"kind": "toolchain", "min_pass": 0},
+            {"kind": "toolchain", "min_pass": False},
+            {},
+            {"kind": ""},
+            {"kind": "toolchain", "allowed_status": ["NOT_RUN"]},
+        ):
+            with self.subTest(requirement=req):
+                out = evaluate_coverage([], {"claims": [{"gate": "G0", "applicable": True, "require": [req]}]})
+                self.assertTrue(out["failures"], "applicable qualification must actually require valid PASS evidence")
+
+    def test_duplicate_ids_cannot_supply_multiple_required_observations(self):
+        item = evidence("bench", "pgbench", None, latency_ms=1)
+        out = evaluate([item, item], {"required_evidence": [{"kind": "pgbench", "min_count": 2}]})
+        self.assertEqual(out["status"], "FAIL", "one observation counted twice is not two independent records")
+
+    def test_baseline_promotion_revalidates_gate_inputs(self):
+        for change in ("candidate", "evidence", "policy", "extra_evidence"):
+            with self.subTest(change=change):
+                (self.repo / "orders.sql").write_text("select 1;\n", encoding="utf-8")
+                write(self.policy, {"required_evidence": [{"id": "txn.order-cancel"}]})
+                run_id = self.begin()
+                record = self.evdir / "txn.order-cancel.json"
+                write(record, evidence("txn.order-cancel", "transaction_scenario", run_id))
+                rc, gate = self.gate()
+                self.assertEqual((rc, gate["status"]), (0, "PASS"))
+                if change == "candidate":
+                    (self.repo / "orders.sql").write_text("select 2;\n", encoding="utf-8")
+                elif change == "evidence":
+                    write(record, evidence("txn.order-cancel", "transaction_scenario", run_id, "FAIL"))
+                elif change == "policy":
+                    write(self.policy, {"required_evidence": [{"id": "not-yet-checked"}]})
+                else:
+                    write(self.evdir / "unjudged.json", evidence("unjudged", "pgbench", run_id))
+                destination = self.base / f"baseline-{change}"
+                cp = subprocess.run(
+                    [
+                        sys.executable,
+                        str(SCRIPTS / "baseline_promote.py"),
+                        "--evidence-dir",
+                        str(self.evdir),
+                        "--gate",
+                        str(self.base / "gate.json"),
+                        "--destination",
+                        str(destination),
+                        "--root",
+                        str(self.repo),
+                    ],
+                    env=GIT_ENV,
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertNotEqual(cp.returncode, 0, "stale PASS must not bless changed inputs")
+                self.assertFalse((destination / "baseline-manifest.json").exists())
+
+    def test_baseline_manifest_cannot_be_empty_or_omit_records(self):
+        directory = self.base / "baseline"
+        directory.mkdir()
+        write(directory / "unlisted.json", evidence("bench", "pgbench", "old-run"))
+        write(directory / "baseline-manifest.json", {"gate_status": "PASS", "files": []})
+        out = verify_baseline_manifest(directory)
+        self.assertIs(out["ok"], False, "empty declared file set must not cover unlisted evidence")
+
     def test_leftover_pass_from_earlier_run_fails_the_gate(self):
-        self.evdir.mkdir(parents=True)
+        self.begin()
         write(self.evdir / "txn.order-cancel.json", evidence("txn.order-cancel", "transaction_scenario", "old-run"))
         self.begin()
         # begin_run archives the leftover; a copy put back afterwards is still another run's evidence.
@@ -180,6 +379,7 @@ class RunBindingTests(unittest.TestCase):
         self.assertIn("candidate_unidentified", failure_types(gate))
 
     def test_begin_run_archives_every_leftover_including_raw_logs(self):
+        self.begin()  # The previous run owns the directory before it writes its evidence.
         (self.evdir / "raw" / "w1").mkdir(parents=True)
         (self.evdir / "raw" / "w1" / "pgbench_log.123").write_text("0 0 1000 0 1 1\n", encoding="utf-8")
         write(self.evdir / "bench.w1.c1.json", evidence("bench.w1.c1", "pgbench", "old"))
@@ -254,7 +454,7 @@ class RunBindingTests(unittest.TestCase):
             "--out",
             str(self.base / "coverage.json"),
         )
-        self.assertEqual((rc, out["status"]), (2, "FAIL"))
+        self.assertEqual((rc, out["status"]), (2, "BLOCKED"))
         self.assertTrue(any("stale_evidence" in v for v in out["violations"]))
         self.assertNotEqual(run_id, "old-run")
 
@@ -298,7 +498,20 @@ class RegressionCompareTests(unittest.TestCase):
 
     def promote(self, d: Path, run_id: str) -> Path:
         gate = self.base / f"gate-{d.name}.json"
-        write(gate, {"status": "PASS", "run_id": run_id, "failures": []})
+        policy = self.base / f"policy-{d.name}.json"
+        write(policy, {"required_evidence": [{"kind": "pgbench"}, {"kind": "postgres_snapshot"}]})
+        rc, judged = script(
+            "release_gate.py",
+            "--policy",
+            str(policy),
+            "--evidence-dir",
+            str(d),
+            "--root",
+            str(self.repo),
+            "--out",
+            str(gate),
+        )
+        self.assertEqual((rc, judged["status"], judged["run_id"]), (0, "PASS", run_id))
         dest = self.base / f"baseline-{d.name}"
         cp = subprocess.run(
             [

@@ -14,6 +14,7 @@ from arc_policy.classify import (
     git_command,
     looks_like_completion,
     mentions_completion,
+    read_only_shell,
     shell_commands,
     tool_kind,
 )
@@ -283,7 +284,12 @@ def handle_pre_tool_use(
             )
     if decision["action"] == "deny":
         return _deny(decision["reason"])
-    open_window(session, call_key(payload), roots)
+    if kind == "shell":
+        open_window(
+            session,
+            call_key(payload),
+            [] if read_only_shell(command_text(tool_input(payload))) else roots,
+        )
     return None
 
 
@@ -318,7 +324,10 @@ def _authorization_denial(payload: dict[str, Any]) -> dict[str, Any] | None:
     except ValueError:
         return None
     quotes = [
-        quote for argv in commands for quote in [_authorize_quote(argv)] if quote is not None
+        quote
+        for argv in commands
+        for quote in [_authorize_quote(argv)]
+        if quote is not None
     ]
     if not quotes:
         return None

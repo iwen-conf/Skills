@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-10-30T02:40:18.689832Z",
+  "generated_at": "2026-10-30T12:15:48.732021Z",
   "skill_count": 6,
   "skills": [
     {
@@ -8,7 +8,7 @@
       "description": "Read-only evaluation (只读) that produces ranked, evidence-backed code findings and never edits code: review any diff, PR or branch (代码评审, 能不能合), project health, code rot, over-engineering and tech debt (体检, 技术债, 过度设计, 可删代码), HTTP API design review (接口设计, 上传约束, JSON字段限制), AppSec audit, threat model and source-first pen test (威胁建模, 渗透测试) across web, identity, client, cloud, CI, RPC, mobile and LLM-agent surfaces, secret, dependency and SAST scans (安全扫描, Semgrep, 漏洞), and authorized DAST. Business lifecycle gaps (状态机漏洞, 闭环检查) go to arc:plan model mode. Not for fixes (use arc:code), tests (use arc:verify), or posting comments on CNB pull requests (use cnb).",
       "version": "2.7.0",
       "source_path": "Arc/arc:audit/SKILL.md",
-      "line_count": 150,
+      "line_count": 148,
       "intent_router": [
         {
           "Condition": "HTTP API design, upload or JSON contract",
@@ -209,12 +209,12 @@
     {
       "name": "arc:verify",
       "description": "Proves business code meets business expectations: business-flow inventories and flowcharts tracing branches to cases (业务流, 端到端业务流, 分支覆盖), test plans (测试方案, 用例设计, 测试范围), write tests (写测试), test-first acceptance tests (测试先行, TDD), test-value review (测试价值), regression and browser E2E suites (网页实测), coverage (覆盖率), fuzz campaigns (模糊测试), property and model-based tests (属性测试, 模型一致性), SQL lint gates (SQL 语法检查), transaction design per engine (事务设计), reliability checks (可靠性, 业务不变量) for transactions and concurrency (事务并发), idempotency (幂等), faults and recovery; PostgreSQL release qualification (G0-G31); flaky-test triage; load tests (压测); and release go/no-go gates (发布验收, 发布证据). Verdicts are PASS/FAIL/BLOCKED/NOT_RUN/FLAKY backed by independent oracles. Not for fixing the defects it finds (use arc:code) or static review (use arc:audit).",
-      "version": "3.4.0",
+      "version": "3.6.0",
       "source_path": "Arc/arc:verify/SKILL.md",
-      "line_count": 186,
+      "line_count": 183,
       "intent_router": [
         {
-          "Condition": "Business flows: inventory, flowcharts, branch → case ledger, flow coverage; T1/T2 behavior no current flow covers",
+          "Condition": "Business inventory, charts, branch → case ledger; T1/T2 behavior no current flow covers",
           "Mode": "flow",
           "Read": "[flow-model](references/flow-model.md), [flow-matrix](references/flow-matrix.md)"
         },
@@ -234,7 +234,7 @@
           "Read": "[test-first](../_shared/test-first.md), [case-design](references/case-design.md)"
         },
         {
-          "Condition": "Write or run unit, integration, contract, E2E, UI, load or benchmark tests",
+          "Condition": "Write/run unit, integration, contract, E2E, UI, load or benchmark tests",
           "Mode": "write",
           "Read": "[stacks](references/stacks.md), [case-design](references/case-design.md), [test-value](references/test-value.md) §1–§2"
         },
@@ -249,7 +249,7 @@
           "Read": "[fuzz-campaign](references/fuzz-campaign.md)"
         },
         {
-          "Condition": "Property or model-based tests; code-to-model conformance",
+          "Condition": "Property/model tests; code-to-model conformance",
           "Mode": "write",
           "Read": "[model-conformance](references/model-conformance.md)"
         },
@@ -264,9 +264,9 @@
           "Read": "[txn-faults](references/txn-faults.md), [case-design](references/case-design.md)"
         },
         {
-          "Condition": "PostgreSQL change heading to release (DDL, migration, plan, locks, replication, backup, upgrade, roles/RLS)",
+          "Condition": "PostgreSQL release: DDL, migration, plan, locks, replication, backup, upgrade, roles/RLS",
           "Mode": "db",
-          "Read": "[db](references/db.md), then only the gate files the change hits"
+          "Read": "[db](references/db.md), then applicable gate files"
         },
         {
           "Condition": "Web page load or interaction speed, Core Web Vitals, Lighthouse (网页性能)",
@@ -274,7 +274,7 @@
           "Read": "[web-perf](references/web-perf.md)"
         },
         {
-          "Condition": "Same code passes and fails; intermittent CI failure",
+          "Condition": "Intermittent test/CI failure",
           "Mode": "flaky",
           "Read": "[release-ops](references/release-ops.md) §2, [stacks](references/stacks.md)"
         },

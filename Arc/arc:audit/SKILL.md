@@ -16,17 +16,15 @@ Read-only review producing ranked, evidence-backed findings.
 
 ## Non-trigger
 
-- Fix a defect or add a control → `arc:code`.
-- Write or run tests, prove a fix, release evidence → `arc:verify`.
-- Turn findings into task documents or a tracked campaign → `arc:plan`.
-- Map unfamiliar code or run index operations without judging it → `arc:explore`.
+- Defect/control implementation → `arc:code`; tests/fix proof/release evidence → `arc:verify`.
+- Finding tasks/campaign → `arc:plan`; code mapping/index operations → `arc:explore`.
 - Post review comments on a CNB pull request → `cnb` (review mode).
 - Business lifecycle gaps (dead ends, missing compensation, illegal transitions) → `arc:plan` model mode.
 - Probe third-party or production systems without written authorization → refuse.
 
 ## Goal
 
-Deliver located findings, evidence, severity/status and coverage; preserve source and supplied documents.
+Locate evidenced findings; preserve inputs.
 
 ## Inputs
 

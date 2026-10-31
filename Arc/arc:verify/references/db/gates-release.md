@@ -118,7 +118,7 @@ gates (extreme estimate error, temp spill) over node bans.
 
 ```bash
 python3 scripts/evidence_report.py --evidence-dir D --gate R/release-gate.json \
-  --config .sqlverify/sql-verification.toml --out-md R/sql-verification-report.md --out-html R/sql-verification-report.html
+  --config .sqlverify/sql-verification.toml --root . --out-md R/sql-verification-report.md --out-html R/sql-verification-report.html
 ```
 
 Deterministic Markdown + standalone HTML showing proof and gaps. Distinguish measured fact, gate

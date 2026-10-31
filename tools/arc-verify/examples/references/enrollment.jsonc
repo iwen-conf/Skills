@@ -1,0 +1,21 @@
+{
+  // Example catalog (W19 drafts). Matching only ever produces RISK candidates.
+  "catalog": "enrollment",
+  "entries": [
+    {"id": "ENR-CAPACITY-RACE", "domain": "enrollment", "invariant": "concurrent submissions for the last seat never exceed capacity",
+     "slots": [{"name": "submit", "kind": "action"}, {"name": "capacity", "kind": "condition", "hints": ["seat", "capacity", "quota", "名额"]}],
+     "relations": [{"kind": "requires", "from": "capacity", "to": "submit"}],
+     "trust": "user_design_document", "source": "自动化测试规范设计-6ae40e01.md", "source_ref": "L340, L442, L547"},
+    {"id": "ENR-NO-DUPLICATE", "domain": "enrollment", "invariant": "re-submitting while enrolled never creates a second enrollment",
+     "slots": [{"name": "submit", "kind": "action"}, {"name": "enrolled", "kind": "state", "hints": ["enrolled", "已报名"]}],
+     "relations": [{"kind": "transitions", "from": "submit", "to": "enrolled"}],
+     "trust": "user_design_document", "source": "自动化测试规范设计-6ae40e01.md", "source_ref": "L333"},
+    {"id": "ENR-CANCEL-RELEASES", "domain": "enrollment", "invariant": "cancelling an enrollment releases exactly one seat",
+     "slots": [{"name": "cancel", "kind": "action", "hints": ["cancel", "取消"]}],
+     "trust": "user_design_document", "source": "自动化测试规范设计-6ae40e01.md", "source_ref": "L775, L865"},
+    {"id": "ENR-CLOSED-ACTIVITY", "domain": "enrollment", "invariant": "after the activity is cancelled no enrollment is accepted",
+     "slots": [{"name": "submit", "kind": "action"}, {"name": "open", "kind": "condition", "hints": ["open", "active", "window", "开放"]}],
+     "relations": [{"kind": "requires", "from": "open", "to": "submit"}],
+     "trust": "user_design_document", "source": "自动化测试规范设计-6ae40e01.md", "source_ref": "L628"}
+  ]
+}

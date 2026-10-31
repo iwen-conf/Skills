@@ -163,7 +163,18 @@ behavior is evidence of implementation, **not** of correctness. A failed or
 not-yet-run graph blocks the graph-verification receipt; it must not prevent
 `arc:code` from repairing the failure under its own test gates.
 
-The graph engine supports limited graph exploration; real browser/device
-execution, complete multi-actor sequences, fixture reconstruction and
-production-grade authenticity remain separate proof obligations. Never
-claim those checks ran because a handoff or model operation succeeded.
+Before planning, present the expected feature/action catalog from user intent and
+accepted requirements; confirm only unresolved decisions. Explore implementation
+entrances independently, keeping possibly absent expected functionality visible.
+Each confirmed operation requires satisfied, per-condition unsatisfied and forced
+cases plus its known condition-recovery paths. Generate bounded cards from IDs;
+load only the selected neighborhood.
+
+Verdicts require complete observations: missing RAW, wrong setup or runner failure
+is BLOCKED; a successful observer proving a RULE violation is FAIL. Preserve the
+first deviation before diagnosis; resume from a verified safe actual state in a
+new run. Fixture reconstruction and a later PASS never rewrite earlier FAIL.
+Graph gate PASS currently covers planned positive/negative/forced obligations;
+additional recovery, cross-role, concurrency and E2E claims need their own RAW.
+
+A handoff/model operation does not prove runner authenticity or fixture restoration.

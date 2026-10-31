@@ -7,12 +7,16 @@ recovery) is db mode: [db.md](db.md).
 
 ## 0. Minimum cases
 
+These are experiment shapes. Their outputs come from confirmed RULEs, including side-effect
+cardinality, accounting sources/sinks and recovery destinations. Undefined semantics remain
+RISK/SPECIFICATION GAP; this table never creates a product rule.
+
 | Claim | Run before wider exploration |
 |---|---|
 | Concurrency | ≥2 parallel actors through a barrier at the racy point; race detector on where available |
-| Idempotency | same key ≥2 times sequentially and ≥2 concurrently, plus once with different parameters: exactly one side effect and the contracted mismatch response |
-| Transaction | a failure injected between the first write and commit: no partial effect visible |
-| Money, inventory, quota | a conservation invariant (sum unchanged) during and after the run |
+| Idempotency | same key ≥2 times sequentially and ≥2 concurrently, plus different parameters: contracted logical effect count and duplicate/mismatch response, including legitimate zero-effect outcomes |
+| Transaction | failure between first write and commit: promised atomicity or explicitly contracted compensation and observable destination |
+| Money, inventory, quota | the confirmed ledger invariant during and after the run, with system boundary, sources, sinks, fees, consumption and units explicit |
 
 ## 1. Transaction inventory
 

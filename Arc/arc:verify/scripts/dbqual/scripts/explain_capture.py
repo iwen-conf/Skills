@@ -10,15 +10,38 @@ from pathlib import Path
 from typing import Any
 
 from plan_analyzer import analyze_explain
-from sqlverify_common import evidence_base, finalize_evidence, json_dump, json_load, require_test_database_name, sha256_file
+from sqlverify_common import (
+    evidence_base,
+    finalize_evidence,
+    json_dump,
+    json_load,
+    require_test_database_name,
+    sha256_file,
+)
 from sqlverify_config import load_config
 
-DML_WRITE = {"INSERT", "UPDATE", "DELETE", "MERGE", "CREATE", "ALTER", "DROP", "TRUNCATE", "CALL", "DO", "COPY", "REFRESH", "GRANT", "REVOKE"}
+DML_WRITE = {
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "MERGE",
+    "CREATE",
+    "ALTER",
+    "DROP",
+    "TRUNCATE",
+    "CALL",
+    "DO",
+    "COPY",
+    "REFRESH",
+    "GRANT",
+    "REVOKE",
+}
 
 
 def _psycopg():
     try:
         import psycopg  # type: ignore
+
         return psycopg
     except ImportError as e:
         raise RuntimeError("psycopg 3 is required") from e
@@ -46,12 +69,14 @@ def potential_write(sql: str) -> str | None:
 
 def convert_pg_dollar(sql: str, params: list[Any]) -> tuple[str, list[Any]]:
     out_params: list[Any] = []
+
     def repl(m: re.Match[str]) -> str:
         idx = int(m.group(1)) - 1
         if idx < 0 or idx >= len(params):
-            raise ValueError(f"placeholder ${idx+1} has no value")
+            raise ValueError(f"placeholder ${idx + 1} has no value")
         out_params.append(params[idx])
         return "%s"
+
     converted = re.sub(r"\$(\d+)", repl, sql)
     return converted, out_params
 
@@ -79,7 +104,8 @@ def main() -> int:
     dsn = os.environ.get(dsn_env)
     if not dsn:
         ev["violations"].append(f"missing env {dsn_env}")
-        json_dump(Path(ns.out), finalize_evidence(ev, start, "BLOCKED")); return 2
+        json_dump(Path(ns.out), finalize_evidence(ev, start, "BLOCKED"))
+        return 2
     sql_path = root / q["sql_file"]
     params_path = root / ps["params_file"]
     sql = sql_path.read_text(encoding="utf-8").strip().rstrip(";")
@@ -92,18 +118,31 @@ def main() -> int:
     else:
         raise SystemExit("param_style must be pg_dollar or psycopg")
     kw = first_keyword(sql)
-    ev["reproduction"] = {"query_file": q["sql_file"], "query_sha256": sha256_file(sql_path), "params_file": ps["params_file"], "params_sha256": sha256_file(params_path), "dsn_env": dsn_env}
+    ev["reproduction"] = {
+        "query_file": q["sql_file"],
+        "query_sha256": sha256_file(sql_path),
+        "params_file": ps["params_file"],
+        "params_sha256": sha256_file(params_path),
+        "dsn_env": dsn_env,
+    }
 
+    phase = "setup"
     try:
         psycopg = _psycopg()
         with psycopg.connect(dsn, autocommit=False) as conn:
             with conn.cursor() as cur:
                 cur.execute("select current_database(), current_setting('server_version_num')::int")
                 dbname, version_num = cur.fetchone()
-                require_test_database_name(dbname, cfg["database"]["safe_database_pattern"], bool(cfg["database"].get("allow_destructive", False)))
+                require_test_database_name(
+                    dbname,
+                    cfg["database"]["safe_database_pattern"],
+                    bool(cfg["database"].get("allow_destructive", False)),
+                )
                 write_kw = potential_write(sql)
                 if write_kw and not q.get("allow_write_explain", False):
-                    raise RuntimeError(f"refusing EXPLAIN ANALYZE for potential write statement {write_kw}; set query.allow_write_explain=true only in isolated DB")
+                    raise RuntimeError(
+                        f"refusing EXPLAIN ANALYZE for potential write statement {write_kw}; set query.allow_write_explain=true only in isolated DB"
+                    )
                 statement_timeout_ms = int(q.get("statement_timeout_ms", 30000))
                 cur.execute("select set_config('statement_timeout', %s, true)", (f"{statement_timeout_ms}ms",))
                 ev["reproduction"]["statement_timeout_ms"] = statement_timeout_ms
@@ -111,18 +150,37 @@ def main() -> int:
                 if version_num >= 180000 and q.get("explain_memory", True):
                     options.append("MEMORY TRUE")
                 explain_sql = f"EXPLAIN ({', '.join(options)}) {sql_exec}"
+                phase = "candidate_sql"
                 cur.execute(explain_sql, bind)
+                phase = "observation"
                 raw = cur.fetchone()[0]
                 conn.rollback()  # even SELECT is rolled back to keep a consistent safety rule
                 analysis = analyze_explain(raw)
-                ev["observed"] = {"database": dbname, "server_version_num": version_num, "analysis": analysis, "raw_explain": raw}
+                ev["observed"] = {
+                    "database": dbname,
+                    "server_version_num": version_num,
+                    "analysis": analysis,
+                    "raw_explain": raw,
+                }
                 gates = q.get("gates", {})
-                if gates.get("max_exec_ms") is not None and (analysis.get("execution_time_ms") or 0) > float(gates["max_exec_ms"]):
-                    ev["violations"].append(f"execution_time_ms {analysis.get('execution_time_ms')} > {gates['max_exec_ms']}")
-                if gates.get("max_estimate_error_ratio") is not None and analysis.get("max_estimate_error_ratio", 1) > float(gates["max_estimate_error_ratio"]):
-                    ev["violations"].append(f"max_estimate_error_ratio {analysis.get('max_estimate_error_ratio')} > {gates['max_estimate_error_ratio']}")
-                if gates.get("max_temp_written_blocks") is not None and analysis.get("temp_written_blocks_sum_nodes", 0) > int(gates["max_temp_written_blocks"]):
-                    ev["violations"].append(f"temp_written_blocks {analysis.get('temp_written_blocks_sum_nodes')} > {gates['max_temp_written_blocks']}")
+                if gates.get("max_exec_ms") is not None and (analysis.get("execution_time_ms") or 0) > float(
+                    gates["max_exec_ms"]
+                ):
+                    ev["violations"].append(
+                        f"execution_time_ms {analysis.get('execution_time_ms')} > {gates['max_exec_ms']}"
+                    )
+                if gates.get("max_estimate_error_ratio") is not None and analysis.get(
+                    "max_estimate_error_ratio", 1
+                ) > float(gates["max_estimate_error_ratio"]):
+                    ev["violations"].append(
+                        f"max_estimate_error_ratio {analysis.get('max_estimate_error_ratio')} > {gates['max_estimate_error_ratio']}"
+                    )
+                if gates.get("max_temp_written_blocks") is not None and analysis.get(
+                    "temp_written_blocks_sum_nodes", 0
+                ) > int(gates["max_temp_written_blocks"]):
+                    ev["violations"].append(
+                        f"temp_written_blocks {analysis.get('temp_written_blocks_sum_nodes')} > {gates['max_temp_written_blocks']}"
+                    )
                 forbidden = set(gates.get("forbid_node_types", []))
                 used = set(analysis.get("node_types", {}))
                 bad = sorted(forbidden & used)
@@ -130,8 +188,12 @@ def main() -> int:
                     ev["violations"].append(f"forbidden plan node types used: {bad}")
                 status = "PASS" if not ev["violations"] else "FAIL"
     except Exception as e:
-        ev["violations"].append(repr(e))
-        status = "BLOCKED" if isinstance(e, (ImportError, RuntimeError)) else "FAIL"
+        state = getattr(e, "sqlstate", None)
+        if phase == "candidate_sql" and state and not state.startswith("08"):
+            ev["violations"].append(f"candidate SQL returned SQLSTATE {state}: {e!r}")
+        else:
+            ev["warnings"].append(f"{phase}: {e!r}")
+        status = "FAIL" if ev["violations"] else "BLOCKED"
     json_dump(Path(ns.out), finalize_evidence(ev, start, status))
     print(json.dumps(ev, ensure_ascii=False, indent=2, default=str))
     return 0 if status == "PASS" else 2

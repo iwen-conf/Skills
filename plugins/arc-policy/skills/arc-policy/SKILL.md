@@ -113,14 +113,17 @@ business claim PASS. Other skills may be explicitly opted into this gate.
   exactly the receipt's tree. A command the user types into the host (Claude Code `!`) carries the
   agent marker too, so it passes the same way; pushing other commits needs a separate terminal.
 - `Stop` checks every repository the session touched (edit targets, shell `cd` / `-C` targets,
-  paths in commands). Uncommitted changes since first touch need a receipt, including ones written
-  through the shell or before a late `task begin`. Once the host reports `PostToolUse`, only paths this
-  session's edits and shell calls wrote are charged, so concurrent sessions do not owe each other's work.
+  paths in commands). Explicit edit targets are charged even without `PostToolUse`. Known read-only
+  shell calls charge no concurrent source writes; possible writing calls charge changes within their
+  tool window, closed at `PostToolUse` or Stop. Opaque scripts still cannot distinguish concurrent
+  writes within that window. Legacy sessions without target/window records retain first-touch fallback.
 - `Stop` uses TypeSafe (`jev ask`) for completion judgments in `block_on_claim` mode; when it cannot
-  judge, `completion_markers` decide. A claim blocks the stop with the verify command; other turns stay
+  judge, `completion_markers` check positive occurrences outside Markdown examples, ignoring negated
+  occurrences while retaining separate positive claims. A claim blocks the stop with the verify command; other turns stay
   silent, and each pending tree state is reported once per session. Commits stay gated either way.
 - When Stop blocks, run the named `task verify`. If it fails on changes outside your task, report
-  that instead of claiming delivery; if the work is unfinished, say so.
+  that instead of claiming delivery; if the work is unfinished, say so. Never delete session logs,
+  clear task state or manufacture a receipt to remove a notice.
 - The engine fails closed: when it cannot load or crashes, edits and controlled operations are denied.
 - CLI and hooks prefer the plugin's `.venv`, then the linked source repository's `.venv`, before
   loading engine dependencies. They never install packages during a hook; missing PyYAML reports

@@ -17,9 +17,11 @@ Use the CI report or project format; these are required facts, not a new schema.
 
 - Replace DSNs, tokens and keys in commands with variable names; keep enough non-secret config and
   data version to replay. Redaction is never a reason the run cannot be traced.
-- Evidence belongs to the current candidate and applicable environment. Green from another commit,
-  config or migration stage carries over only with shown applicability; otherwise the case is
-  re-run. A plan, CI YAML or test file existing is preparation, not evidence.
+- Required runtime observations belong to the current candidate, config, environment and run.
+  Stable case definitions, plans, models and historical sensitivity/diagnostic records may be
+  reused with shown applicability; old business RAW keeps its historical verdict and cannot
+  satisfy the current runtime claim or gain freshness by relabeling its run ID. A plan, CI YAML
+  or test file existing is preparation, not execution evidence.
 - A gate that reads evidence files binds them to one run: a run ID stamped into every record, the
   candidate fingerprint (commit, uncommitted changes, config) recorded at the start and re-checked
   at the gate, and earlier records moved aside before the run. A file that merely exists in the
@@ -41,10 +43,13 @@ Verdict semantics (vocabulary in [contract §4](../../_shared/contract.md)):
 
 1. Keep the first failure and every rerun; record candidate, test and tool versions, environment
    and data differences.
-2. Classify with at most 3 reruns under unchanged conditions. Mixed results → `FLAKY`.
-3. Reproduce with repeat runs ([stacks.md](stacks.md) §Repeat runs): up to 50 iterations, stopping
-   after 3 captured failures; vary one factor at a time (parallelism, CPU count, order, seed, race
-   detector). Not reproduced in 50 → the verdict stays `FLAKY` from history; report the attempt.
+2. Classify with at most 3 authorized new runs on the same candidate/config and independently
+   verified initial state. Side effects require readback and isolated reconstruction before each
+   replay; unknown outcomes are `BLOCKED`. Comparable mixed results → `FLAKY`.
+3. Reproduce with repeat runs ([stacks.md](stacks.md) §Repeat runs): up to 50 authorized iterations,
+   each with a deadline and verified initial state; stop after 3 captured failures. Vary one
+   factor at a time (parallelism, CPU, order, seed, race detector). Not reproduced in 50 → the
+   verdict stays `FLAKY` from history; report the attempt.
 4. Run a known baseline or placebo (parent commit, same conditions) to separate candidate,
    environment and test causes. Control results are diagnostic only: both passing or both failing
    never settles the business claim.

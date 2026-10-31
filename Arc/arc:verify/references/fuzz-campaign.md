@@ -37,14 +37,17 @@ Budget per cadence (project-given, else proposed and recorded) / stop condition 
 
 ## 3. Oracles beyond "it did not crash"
 
+Select properties only where the confirmed contract promises them. Normalization, lossy formats,
+signed amounts and decompression can legitimately violate generic round-trip or size examples.
+
 | Oracle | Assertion |
 |---|---|
 | Safety | no crash, panic, sanitizer report (ASan, UBSan, MSan), data race, hang or unbounded allocation |
 | Documented errors only | invalid input yields the contracted error type or code, never an unexpected exception or partial state |
-| Round trip | `decode(encode(x)) == x`; `parse(print(ast)) == ast` |
+| Round trip | lossless contract: `decode(encode(x)) == x`; otherwise compare the contracted canonical/semantic form |
 | Idempotence | `normalize(normalize(x)) == normalize(x)` |
 | Differential | same verdict and value as a reference implementation, an older version or a stricter spec parser, after aligning allowed differences |
-| Invariant | business bounds hold: amount never negative, path stays under its root, tenant id unchanged, output size bounded by input size |
+| Invariant | confirmed domain bounds, path/tenant isolation and explicit output allocation limit; never infer nonnegative amounts or output ≤ input without that contract |
 
 ## 4. Tooling
 

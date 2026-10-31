@@ -53,6 +53,48 @@ def test_receipt_invalidated_by_staging(tmp_path: Path) -> None:
     assert not receipt_matches_tree(repo, current_receipt(repo))
 
 
+@pytest.mark.parametrize("name", ["tags.json", "daemon.pid", "daemon.log"])
+@pytest.mark.parametrize("tracked", [False, True])
+def test_index_runtime_changes_preserve_receipt(
+    tmp_path: Path, name: str, tracked: bool
+) -> None:
+    repo = make_repo(tmp_path)
+    policy = receipt_policy(repo)
+    runtime = repo / ".ai-code-index" / name
+    runtime.parent.mkdir()
+    runtime.write_text("old index state\n")
+    if tracked:
+        git(repo, "add", str(runtime.relative_to(repo)))
+        git(repo, "commit", "-q", "-m", "index runtime fixture")
+    begin_task(repo, skill="arc-code", slug="demo")
+    assert verify_task(repo, policy, run_tests=False)["verdict"] == "PASS"
+    for update in ("new index state\n", None):
+        if update is None:
+            runtime.unlink()
+        else:
+            runtime.write_text(update)
+        assert receipt_matches_tree(repo, current_receipt(repo))
+        assert str(runtime.relative_to(repo)) not in dirty_paths(repo)
+
+
+@pytest.mark.parametrize(
+    "name",
+    [".ai-code-index/config.json", ".ai-code-index/custom.py", "tools/arc-idx/main.go"],
+)
+def test_index_configuration_and_source_changes_revoke_receipt(
+    tmp_path: Path, name: str
+) -> None:
+    repo = make_repo(tmp_path)
+    policy = receipt_policy(repo)
+    path = repo / name
+    path.parent.mkdir(parents=True)
+    path.write_text("first\n")
+    begin_task(repo, skill="arc-code", slug="demo")
+    assert verify_task(repo, policy, run_tests=False)["verdict"] == "PASS"
+    path.write_text("second\n")
+    assert not receipt_matches_tree(repo, current_receipt(repo))
+
+
 def test_dirty_paths_preserve_unicode_newlines_and_untracked_files(
     tmp_path: Path,
 ) -> None:

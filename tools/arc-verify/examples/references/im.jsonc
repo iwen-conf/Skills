@@ -1,0 +1,22 @@
+{
+  // Example catalog (W19 drafts) from IM-mongo, commit f644f637, read-only.
+  // project_code entries describe what that project implements, not what it requires.
+  "catalog": "im",
+  "entries": [
+    {"id": "IM-RECALL-WINDOW", "domain": "im", "invariant": "recall succeeds only within the declared window after server acceptance; later recall is rejected and the message is kept",
+     "slots": [{"name": "recall", "kind": "action", "hints": ["recall", "revoke", "撤回"]}],
+     "trust": "project_document", "source": "IM-mongo docs/00-产品需求/57-管理员系统消息群发.md", "source_ref": "lines 30, 54"},
+    {"id": "IM-EXCLUSIVE-CLAIM", "domain": "im", "invariant": "one queued ticket is claimed by exactly one agent and active <= max_active",
+     "slots": [{"name": "claim", "kind": "action", "hints": ["claim", "领取"]}, {"name": "queued", "kind": "state", "hints": ["queue", "排队"]}],
+     "trust": "project_document", "source": "IM-mongo docs/01-任务/55-客服接入同步与运营演进/tasks/T01-咨询触发与持续接待/backend/T01-BE-02-容量与低负载匹配及排队原子领取.md", "source_ref": "line 20"},
+    {"id": "IM-ONE-THREAD", "domain": "im", "invariant": "one principal has at most one active conversation line",
+     "slots": [{"name": "open", "kind": "action", "hints": ["open_session", "start_session", "会话"]}],
+     "trust": "project_document", "source": "IM-mongo docs/00-产品需求/57-管理员系统消息群发.md", "source_ref": "line 23"},
+    {"id": "IM-OVERFLOW-VISIBLE", "domain": "im", "invariant": "a full queue is a visible business failure and never drops the first message",
+     "slots": [{"name": "enqueue", "kind": "action", "hints": ["enqueue", "排队"]}],
+     "trust": "project_document", "source": "IM-mongo docs/01-任务/55-客服接入同步与运营演进/tasks/T01-咨询触发与持续接待/backend/T01-BE-02-容量与低负载匹配及排队原子领取.md", "source_ref": "line 19"},
+    {"id": "IM-RATING-NEEDS-AGENT", "domain": "im", "invariant": "a resolved cycle is ratable only if a real agent was responsible",
+     "slots": [{"name": "rate", "kind": "action", "hints": ["rate", "rating", "评价"]}],
+     "trust": "project_code", "source": "IM-mongo backend/internal/domain/entities/support_service_cycle.go", "source_ref": "lines 52-54"}
+  ]
+}

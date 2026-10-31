@@ -108,18 +108,98 @@ def looks_like_completion(message: str, markers: list[str]) -> bool:
 
 
 def mentions_completion(message: str, markers: list[str]) -> bool:
-    """Marker match used when TypeSafe cannot judge; a negated marker still counts."""
+    """Fallback checks positive claims outside Markdown examples, per occurrence."""
     text = message.casefold()
+    text = re.sub(r"(?ms)^[ \t]*(`{3,}|~{3,})[^\n]*\n.*?^[ \t]*\1[^\n]*$", "", text)
+    text = re.sub(r"(?m)^[ \t]*>[^\n]*$|(`+).*?\1", "", text)
     for marker in markers:
         word = marker.strip().casefold()
         if not word:
             continue
+        pattern = re.escape(word)
         if word.isascii():
-            if re.search(rf"(?<![\w-]){re.escape(word)}(?![\w-])", text):
-                return True
-        elif word in text:
+            pattern = rf"(?<![\w-]){pattern}(?![\w-])"
+        for match in re.finditer(pattern, text):
+            prefix = re.split(r"[.!?;。！？；，,\n]|\bbut\b", text[: match.start()])[-1]
+            if re.search(
+                r"(?:\b(?:not|never|cannot|can't|isn't|aren't|wasn't|weren't)\s+"
+                r"(?:(?:yet|fully|entirely|actually|already|really|be|been)\s+)*"
+                r"|(?:未|没|没有|不|不能|无法|不是|并非)"
+                r"(?:(?:全部|完全|正式|直接|实际|确认|声称|宣称|表示|说|能|已))*\s*)$",
+                prefix,
+            ):
+                continue
             return True
     return False
+
+
+def read_only_shell(command: str) -> bool:
+    """Known inspection commands cannot own concurrent source changes in their window."""
+    if re.search(r"[<>$`]", command):
+        return False
+    try:
+        if any(Path(token).name in _WRAPPERS for token in shlex.split(command)):
+            return False
+        commands = shell_commands(command, require_known_cwd=True)
+    except ValueError:
+        return False
+    if not commands:
+        return False
+    for argv in commands:
+        if not argv:
+            return False
+        executable, args = Path(argv[0]).name, argv[1:]
+        if executable == "git":
+            options, args = git_command(argv) or ([], [])
+            if (
+                any(option.startswith(("-c", "--config-env")) for option in options)
+                or not args
+                or args[0]
+                not in {
+                    "status",
+                    "diff",
+                    "show",
+                    "log",
+                    "rev-parse",
+                    "ls-files",
+                    "ls-tree",
+                    "version",
+                }
+            ):
+                return False
+            if any(
+                arg.startswith(("--output", "--ext-diff", "--textconv")) for arg in args
+            ):
+                return False
+        elif executable == "arc-policy":
+            if args[:1] == ["--cwd"]:
+                args = args[2:]
+            elif args and args[0].startswith("--cwd="):
+                args = args[1:]
+            if args not in (["version"], ["detect"], ["task", "status"], ["--help"]):
+                return False
+        elif executable == "arc-idx":
+            if not args or args[0] not in {
+                "version",
+                "doctor",
+                "search",
+                "files",
+                "symbol",
+                "ast",
+                "stats",
+            }:
+                return False
+        elif executable == "sed":
+            if (
+                len(args) < 2
+                or args[0] != "-n"
+                or not re.fullmatch(r"\d+(?:,[\d$]+)?p", args[1])
+                or any(arg.startswith("-") for arg in args[2:])
+            ):
+                return False
+        elif executable not in {"cat", "head", "tail", "wc", "nl", "pwd", "ls"}:
+            return False
+    return True
 
 
 _MAX_NESTING = 8

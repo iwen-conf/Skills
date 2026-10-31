@@ -8,7 +8,14 @@ import time
 from pathlib import Path
 from typing import Any
 
-from sqlverify_common import evidence_base, finalize_evidence, json_dump, require_test_database_name
+from sqlverify_common import (
+    evidence_base,
+    finalize_evidence,
+    json_dump,
+    require_test_database_name,
+    scalar_value,
+    SCALAR_OPERATORS,
+)
 from sqlverify_config import load_config
 
 
@@ -16,6 +23,7 @@ def _psycopg():
     try:
         import psycopg  # type: ignore
         from psycopg.rows import dict_row  # type: ignore
+
         return psycopg, dict_row
     except ImportError as e:
         raise RuntimeError("psycopg 3 is required") from e
@@ -54,15 +62,20 @@ def main() -> int:
     ap.add_argument("--config", required=True)
     ap.add_argument("--out", required=True)
     ns = ap.parse_args()
-    cfg = load_config(Path(ns.config)); policy = cfg.get("schema_integrity", {})
-    start = time.monotonic(); ev = evidence_base("schema_integrity", "schema.integrity")
+    cfg = load_config(Path(ns.config))
+    policy = cfg.get("schema_integrity", {})
+    start = time.monotonic()
+    ev = evidence_base("schema_integrity", "schema.integrity")
     if policy and not policy.get("enabled", True):
         ev["warnings"].append("schema integrity audit disabled")
-        json_dump(Path(ns.out), finalize_evidence(ev, start, "NOT_RUN")); return 0
-    dsn_env = cfg["database"]["dsn_env"]; dsn = os.environ.get(dsn_env)
+        json_dump(Path(ns.out), finalize_evidence(ev, start, "NOT_RUN"))
+        return 0
+    dsn_env = cfg["database"]["dsn_env"]
+    dsn = os.environ.get(dsn_env)
     if not dsn:
         ev["violations"].append(f"missing env {dsn_env}")
-        json_dump(Path(ns.out), finalize_evidence(ev, start, "BLOCKED")); return 2
+        json_dump(Path(ns.out), finalize_evidence(ev, start, "BLOCKED"))
+        return 2
     obs: dict[str, Any] = {}
     try:
         psycopg, dict_row = _psycopg()
@@ -70,7 +83,9 @@ def main() -> int:
             with conn.cursor() as cur:
                 cur.execute("select current_database() as db")
                 db = cur.fetchone()["db"]
-                require_test_database_name(db, cfg["database"]["safe_database_pattern"], bool(cfg["database"].get("allow_destructive", False)))
+                require_test_database_name(
+                    db, cfg["database"]["safe_database_pattern"], bool(cfg["database"].get("allow_destructive", False))
+                )
                 obs["database"] = db
                 cur.execute("select count(*)::int as n from pg_index where not indisvalid or not indisready")
                 obs["invalid_indexes"] = cur.fetchone()["n"]
@@ -86,7 +101,9 @@ def main() -> int:
                       )
                     order by 1,2
                 """)
-                no_pk = cur.fetchall(); obs["tables_without_primary_key"] = len(no_pk); obs["tables_without_primary_key_detail"] = no_pk[:200]
+                no_pk = cur.fetchall()
+                obs["tables_without_primary_key"] = len(no_pk)
+                obs["tables_without_primary_key_detail"] = no_pk[:200]
                 # Approximate FK coverage: an index whose leading columns equal FK columns in declared order.
                 cur.execute("""
                     with fk as (
@@ -105,8 +122,11 @@ def main() -> int:
                            ) as missing_covering_index
                     from fk order by 1,2,3
                 """)
-                fks = cur.fetchall(); missing = [r for r in fks if r["missing_covering_index"]]
-                obs["foreign_keys"] = len(fks); obs["unindexed_foreign_keys"] = len(missing); obs["unindexed_foreign_key_detail"] = missing[:200]
+                fks = cur.fetchall()
+                missing = [r for r in fks if r["missing_covering_index"]]
+                obs["foreign_keys"] = len(fks)
+                obs["unindexed_foreign_keys"] = len(missing)
+                obs["unindexed_foreign_key_detail"] = missing[:200]
                 # Sequences not owned by any table column. This is not always wrong, hence policy-controlled.
                 cur.execute("""
                     select n.nspname as schema_name, c.relname as sequence_name
@@ -118,7 +138,9 @@ def main() -> int:
                       )
                     order by 1,2
                 """)
-                seq = cur.fetchall(); obs["orphaned_sequences"] = len(seq); obs["orphaned_sequence_detail"] = seq[:200]
+                seq = cur.fetchall()
+                obs["orphaned_sequences"] = len(seq)
+                obs["orphaned_sequence_detail"] = seq[:200]
                 # Default partitions can silently absorb unexpected keys. Measure approximate live rows.
                 cur.execute("""
                     select pn.nspname as schema_name, pc.relname as parent_name,
@@ -132,29 +154,39 @@ def main() -> int:
                     where pg_get_expr(cc.relpartbound, cc.oid)='DEFAULT'
                     order by estimated_rows desc
                 """)
-                defaults = cur.fetchall(); obs["default_partitions"] = defaults[:200]
+                defaults = cur.fetchall()
+                obs["default_partitions"] = defaults[:200]
                 obs["max_default_partition_rows"] = max([int(r["estimated_rows"] or 0) for r in defaults], default=0)
                 # User-supplied read-only assertions make schema contracts domain-specific.
-                assertions = []
+                assertions = obs.setdefault("assertions", [])
+                ev["violations"].extend(evaluate(obs, policy))
                 for a in policy.get("assertion", []):
                     cur.execute("begin read only")
                     try:
-                        cur.execute("select set_config('statement_timeout', %s, true)", (f"{int(a.get('statement_timeout_ms',10000))}ms",))
-                        cur.execute(a["sql"]); row = cur.fetchone(); actual = list(row.values())[0] if row else None
+                        cur.execute(
+                            "select set_config('statement_timeout', %s, true)",
+                            (f"{int(a.get('statement_timeout_ms', 10000))}ms",),
+                        )
+                        cur.execute(a["sql"])
+                        actual = scalar_value(cur)
                     finally:
                         cur.execute("rollback")
-                    op=a.get("op","=="); expected=a.get("expected")
-                    ok={"==":actual==expected,"!=":actual!=expected,">":actual>expected,">=":actual>=expected,"<":actual<expected,"<=":actual<=expected}[op]
-                    assertions.append({"id":a["id"],"actual":actual,"op":op,"expected":expected,"passed":ok})
-                    if not ok: ev["violations"].append(f"schema assertion {a['id']} failed: {actual!r} {op} {expected!r}")
+                    op = a.get("op", "==")
+                    expected = a["expected"]
+                    ok = SCALAR_OPERATORS[op](actual, expected)
+                    assertions.append({"id": a["id"], "actual": actual, "op": op, "expected": expected, "passed": ok})
+                    if not ok:
+                        ev["violations"].append(f"schema assertion {a['id']} failed: {actual!r} {op} {expected!r}")
                 obs["assertions"] = assertions
-        ev["violations"].extend(evaluate(obs, policy)); status = "PASS" if not ev["violations"] else "FAIL"
+        status = "PASS" if not ev["violations"] else "FAIL"
     except Exception as e:
-        ev["violations"].append(repr(e)); status = "BLOCKED"
-    ev["observed"] = obs; ev["reproduction"] = {"dsn_env": dsn_env, "policy": policy}
+        ev["warnings"].append(repr(e))
+        status = "FAIL" if ev["violations"] else "BLOCKED"
+    ev["observed"] = obs
+    ev["reproduction"] = {"dsn_env": dsn_env, "policy": policy}
     json_dump(Path(ns.out), finalize_evidence(ev, start, status))
     print(json.dumps(ev, ensure_ascii=False, indent=2, default=str))
-    return 0 if status in {"PASS","NOT_RUN"} else 2
+    return 0 if status in {"PASS", "NOT_RUN"} else 2
 
 
 if __name__ == "__main__":

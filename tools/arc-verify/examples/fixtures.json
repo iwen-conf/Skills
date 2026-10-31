@@ -7,7 +7,9 @@
       "secretRef": "env://TEST_STUDENT_PASSWORD",
       "refs": {
         "role": "STUDENT",
-        "username": "test-student"
+        "username": "test-student",
+        "principal": "test-student",
+        "environment": "test60"
       }
     },
     {
@@ -16,7 +18,8 @@
       "state": "OPEN",
       "refs": {
         "external_id": "C-1001",
-        "owner": "test60"
+        "owner": "test60",
+        "environment": "test60"
       }
     }
   ]

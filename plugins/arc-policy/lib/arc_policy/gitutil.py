@@ -46,7 +46,11 @@ def _output(root: Path, *args: str) -> str:
 
 
 def _runtime_path(path: str) -> bool:
-    return path.startswith((".arc/policy/", ".arc/artifacts/"))
+    return path.startswith((".arc/policy/", ".arc/artifacts/")) or path in {
+        ".ai-code-index/tags.json",
+        ".ai-code-index/daemon.pid",
+        ".ai-code-index/daemon.log",
+    }
 
 
 def dirty_paths(root: Path) -> list[str]:

@@ -17,13 +17,15 @@ elements and writing journeys whose oracle is not the page itself.
 
 ```bash
 python3 <skill-dir>/scripts/with_server.py \
-  --server "npm run dev -- --port 5173" --port 5173 \
-  --server "cd api && go run ./cmd/api" --port 8080 --ready-url http://localhost:8080/healthz \
-  --timeout 120 --log-dir .arc/artifacts/<task-slug>/logs -- npx playwright test e2e/checkout.spec.ts
+  --server "vp dev --port 5173" --port 5173 \
+  --server "go -C api run ./cmd/api" --port 8080 --ready-url http://localhost:8080/healthz \
+  --timeout 120 --log-dir .arc/artifacts/<task-slug>/logs -- vpx playwright test e2e/checkout.spec.ts
 ```
 
 - Ready means every port accepts connections and every `--ready-url` answers 2xx/3xx; never a
   fixed sleep. Use the project's real start commands and test-environment config.
+- Use the existing Vite+/bun project workflow and declared Playwright toolchain; the commands
+  above are examples, not permission to install a runner or replace the project's scripts.
 - A port that is already listening is refused (exit 125): a server this run did not start may
   serve another build. `--reuse-running` only when the user names that server.
 - Exit 125 (port taken, server exited, deadline passed) is `BLOCKED` with the server log tail,
@@ -94,7 +96,7 @@ test('VIP checkout creates exactly one order at the discounted total', async ({ 
   `page.waitForTimeout`.
 - Log in once in a setup project and reuse `storageState`; one state per role for permission
   journeys.
-- `npx playwright test --trace retain-on-failure`; keep `trace.zip`, screenshots, console and
+- `vpx playwright test --trace retain-on-failure`; keep `trace.zip`, screenshots, console and
   server logs under `.arc/artifacts/<task-slug>/logs/`.
 - Flake check: `--repeat-each=20 --retries=0`; CI uses `--fail-on-flaky-tests`.
 - `page.route` stubs only third parties outside the claim, never the API whose behavior is claimed.
@@ -107,3 +109,27 @@ test('VIP checkout creates exactly one order at the discounted total', async ({ 
 | Wrong end state, duplicate effect, permission leak, failed UI check | `FAIL` + repair packet with the trace |
 | `with_server.py` exit 125, browser or test account missing | `BLOCKED: <missing item>` |
 | Exploration only, nothing scripted | scripted claim `NOT_RUN`; findings are leads |
+
+## 7. Bind a journey to a business graph card
+
+For configured/requested graph work, read [business-graph](business-graph.md). Consume only the
+selected `next`/handoff card: RULE/task IDs, actor, real entry, action, condition truth values,
+expected state and independent oracle. Bind the approved JSONC environment alias, deployed build
+and account/fixture references; read back live setup before `start`. CLI `--env` checks an alias;
+the existing runner must still prove it contacted that environment as the intended actor.
+
+Execute POSITIVE and NEGATIVE through the real UI. For FORCED, attempt the legitimate API only
+within the authorized test scope, verifying server denial and no forbidden effects. Preserve
+page/request/readback artifacts alongside each step's RAW; credential values never enter RAW.
+The final action includes independently observed precondition booleans. The oracle must check
+the contracted durable/external effect, not merely a success message or HTTP status.
+
+`exit_code` describes whether the observer completed: a successfully observed business rejection
+can have runner exit 0 and `denied: true`. Browser startup, timeout, account or oracle failure is
+BLOCKED, never a fabricated product FAIL. Keep missing evidence visible and recollect it.
+
+At the first valid deviation, save RAW and preserve FAIL. Continue from a verified safe actual
+state only in a new task/run following confirmed recovery actions; independently restore or
+reconstruct fixture state before retry. A successful diagnostic/recovery branch does not bless
+the original run. `finish`, `trace` and `gate` validate the ledger; their success alone does not
+prove that this UI journey, recovery or cross-role/concurrency case was executed.

@@ -13,8 +13,8 @@ Rows combine; take the union for a change that spans several types.
 | Public API, DTO, error codes | server contract test of request/response/error semantics; each client consumer found by code-intel row 5 | old-client compatibility; [api-contract](../../_shared/api-contract.md) doc and clients in sync |
 | Database schema, migration, backfill | migration on representative old data in the project's test database; post-migration invariant queries | db mode |
 | Query, index, plan-sensitive SQL | result-correctness test on named parameters | db mode (plans, statistics, parameter sensitivity) |
-| Auth, permission, tenant | allow and deny per role; zero durable change after deny; tenant boundary | stale/revoked grants, cache vs source equivalence, batch vs single equivalence, independent reference model for optimized evaluators |
-| Money, inventory, quota | conservation invariant; exact amounts | concurrency + idempotency + recovery per [txn-faults.md](txn-faults.md) |
+| Auth, permission, tenant | allow and deny per role; no forbidden durable effect after deny; contracted denial/audit records and tenant boundary | stale/revoked grants, cache vs source equivalence, batch vs single equivalence, independent reference model for optimized evaluators |
+| Money, inventory, quota | confirmed accounting/balance invariant and exact amounts, including defined sources/sinks and consumption | concurrency + idempotency + recovery per [txn-faults.md](txn-faults.md) |
 | Transaction, lock, concurrency | real-database parallel test through a barrier | contention matrix, retry ownership, mixed workload |
 | Async, messaging, webhooks, jobs | duplicate, reorder, delayed and redelivered messages with a final-state oracle | crash-before-ack, poison message, handler restart, reconciliation |
 | Config, flag, runtime setting | enabled and disabled behavior with the effective config | supported combinations; change without a binary release |

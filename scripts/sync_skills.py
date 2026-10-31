@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Build and validate complete skill packages before replacing an installation."""
+
 from __future__ import annotations
 
 import argparse
@@ -49,14 +50,22 @@ def list_skill_dirs(root: Path = ROOT) -> list[Path]:
             for path in (root / family).glob("*/SKILL.md")
             if path.is_file()
         ]
-        + [path.parent for path in (root / LIBRARY_ROOT).glob("*/*/SKILL.md") if path.is_file()]
+        + [
+            path.parent
+            for path in (root / LIBRARY_ROOT).glob("*/*/SKILL.md")
+            if path.is_file()
+        ]
     )
 
 
 def library_entries(metadata: dict) -> list[str]:
     values = metadata.get("metadata", {}).get("library", [])
-    if not isinstance(values, list) or any(not isinstance(name, str) for name in values):
-        raise ValueError(f"{metadata['name']}: metadata.library must be a list of skill names")
+    if not isinstance(values, list) or any(
+        not isinstance(name, str) for name in values
+    ):
+        raise ValueError(
+            f"{metadata['name']}: metadata.library must be a list of skill names"
+        )
     return values
 
 
@@ -67,7 +76,9 @@ def library_owners(root: Path = ROOT) -> dict[str, str]:
         metadata = read_metadata(directory / "SKILL.md")
         for entry in library_entries(metadata):
             if entry in owners:
-                raise ValueError(f"{entry} is bundled by both {owners[entry]} and {metadata['name']}")
+                raise ValueError(
+                    f"{entry} is bundled by both {owners[entry]} and {metadata['name']}"
+                )
             owners[entry] = metadata["name"]
     return owners
 
@@ -88,8 +99,12 @@ def required_skills(metadata: dict) -> list[str]:
     names: list[str] = []
     for field in ("skills", "siblings"):
         values = requires.get(field, [])
-        if not isinstance(values, list) or any(not isinstance(name, str) for name in values):
-            raise ValueError(f"{metadata['name']}: required skills must be a list of names")
+        if not isinstance(values, list) or any(
+            not isinstance(name, str) for name in values
+        ):
+            raise ValueError(
+                f"{metadata['name']}: required skills must be a list of names"
+            )
         names.extend(values)
     return names
 
@@ -116,11 +131,16 @@ def validate_discovery(roots: list[Path]) -> list[str]:
             except (OSError, ValueError, yaml.YAMLError) as exc:
                 errors.append(str(exc))
                 continue
-            canonical = published_name(name, "dash") if name.startswith("arc:") else name
+            canonical = (
+                published_name(name, "dash") if name.startswith("arc:") else name
+            )
             entries.setdefault(canonical, set()).add(path.resolve())
     for name, paths in sorted(entries.items()):
         if len(paths) > 1:
-            errors.append(f"duplicate discovery name {name}: " + ", ".join(map(str, sorted(paths))))
+            errors.append(
+                f"duplicate discovery name {name}: "
+                + ", ".join(map(str, sorted(paths)))
+            )
     return errors
 
 
@@ -135,9 +155,14 @@ def validate_installation(
     metadata_by_path: dict[Path, dict] = {}
     root = root.resolve()
     for nested in sorted(root.glob("*/*/**/SKILL.md")):
-        if only_folders is not None and nested.relative_to(root).parts[0] not in only_folders:
+        if (
+            only_folders is not None
+            and nested.relative_to(root).parts[0] not in only_folders
+        ):
             continue
-        errors.append(f"{nested}: nested SKILL.md would be discovered as a skill; bundle it as {LIBRARY_ENTRY}")
+        errors.append(
+            f"{nested}: nested SKILL.md would be discovered as a skill; bundle it as {LIBRARY_ENTRY}"
+        )
     for path in sorted(root.glob("*/SKILL.md")):
         if only_folders is not None and path.parent.name not in only_folders:
             continue
@@ -157,7 +182,11 @@ def validate_installation(
         if ui_path.is_file():
             ui = yaml.safe_load(ui_path.read_text(encoding="utf-8")) or {}
             prompt = ui.get("interface", {}).get("default_prompt", "")
-            if prompt and re.search(r"\$" + re.escape(name) + r"(?![a-z0-9:-])", prompt) is None:
+            if (
+                prompt
+                and re.search(r"\$" + re.escape(name) + r"(?![a-z0-9:-])", prompt)
+                is None
+            ):
                 errors.append(f"{ui_path}: default_prompt must invoke $" + name)
 
     for path, metadata in metadata_by_path.items():
@@ -174,13 +203,19 @@ def validate_installation(
                 except ValueError:
                     errors.append(f"{document}: unavailable packaged link {target}")
                     continue
-                if allowed_siblings and relative.parts and relative.parts[0] in allowed_siblings:
+                if (
+                    allowed_siblings
+                    and relative.parts
+                    and relative.parts[0] in allowed_siblings
+                ):
                     continue
                 errors.append(f"{document}: unavailable packaged link {target}")
     return errors
 
 
-def build_installation(root: Path, stage: Path, selected: list[str], naming: str = "dash") -> list[str]:
+def build_installation(
+    root: Path, stage: Path, selected: list[str], naming: str = "dash"
+) -> list[str]:
     """复制包及其传递依赖；共享文档在发布时随引用它的包生成。"""
     root = root.resolve()
     catalog: dict[str, Path] = {}
@@ -202,13 +237,26 @@ def build_installation(root: Path, stage: Path, selected: list[str], naming: str
         copied.add(destination)
         if source.is_dir():
             shutil.copytree(
-                source, destination, dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store", ".git", "node_modules"),
+                source,
+                destination,
+                dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns(
+                    "__pycache__",
+                    "*.pyc",
+                    ".pytest_cache",
+                    ".mypy_cache",
+                    ".ruff_cache",
+                    ".DS_Store",
+                    ".git",
+                    "node_modules",
+                ),
             )
             for child in sorted(destination.rglob("*")):
                 if child.is_file():
                     copied.add(child)
-                    pending.append((source / child.relative_to(destination), child, owner))
+                    pending.append(
+                        (source / child.relative_to(destination), child, owner)
+                    )
         else:
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
@@ -220,7 +268,9 @@ def build_installation(root: Path, stage: Path, selected: list[str], naming: str
         if name not in catalog:
             raise ValueError(f"missing source skill {name}")
         if name in bundled_by:
-            raise ValueError(f"{name} is bundled in {bundled_by[name]}; install {bundled_by[name]} instead")
+            raise ValueError(
+                f"{name} is bundled in {bundled_by[name]}; install {bundled_by[name]} instead"
+            )
         included.add(name)
         directory = catalog[name]
         destination = stage / published_name(name, naming)
@@ -241,11 +291,15 @@ def build_installation(root: Path, stage: Path, selected: list[str], naming: str
             scripts = catalog[entry] / "scripts"
             if scripts.is_dir():
                 copy(scripts, home / "scripts", name)
-            for dependency in required_skills(read_metadata(catalog[entry] / "SKILL.md")):
+            for dependency in required_skills(
+                read_metadata(catalog[entry] / "SKILL.md")
+            ):
                 if dependency in entries:
                     continue
                 if dependency in bundled_by:
-                    raise ValueError(f"{entry} requires {dependency}, which is bundled in {bundled_by[dependency]}")
+                    raise ValueError(
+                        f"{entry} requires {dependency}, which is bundled in {bundled_by[dependency]}"
+                    )
                 include(dependency)
         for dependency in required_skills(metadata):
             include(dependency)
@@ -253,8 +307,16 @@ def build_installation(root: Path, stage: Path, selected: list[str], naming: str
     def shared_destination(owner: str, target: Path) -> Path:
         relative_source = target.relative_to(root)
         if naming == "dash":
-            relative_source = Path(*[ARC_NAME_RE.sub(r"arc-\1", part) for part in relative_source.parts])
-        return stage / published_name(owner, naming) / "references" / "_shared" / relative_source
+            relative_source = Path(
+                *[ARC_NAME_RE.sub(r"arc-\1", part) for part in relative_source.parts]
+            )
+        return (
+            stage
+            / published_name(owner, naming)
+            / "references"
+            / "_shared"
+            / relative_source
+        )
 
     def target_path(target: Path, owner: str) -> Path:
         target = target.resolve()
@@ -264,14 +326,18 @@ def build_installation(root: Path, stage: Path, selected: list[str], naming: str
             source_dir = catalog[entry]
             if target.is_relative_to(source_dir):
                 relative = target.relative_to(source_dir)
-                destination = home / (LIBRARY_ENTRY if relative == Path("SKILL.md") else relative)
+                destination = home / (
+                    LIBRARY_ENTRY if relative == Path("SKILL.md") else relative
+                )
                 copy(target, destination, bundled_by[entry])
                 return destination
         for directory, name in owners.items():
             if not target.is_relative_to(directory):
                 continue
             if name in included:
-                destination = stage / published_name(name, naming) / target.relative_to(directory)
+                destination = (
+                    stage / published_name(name, naming) / target.relative_to(directory)
+                )
                 copy(target, destination, name)
                 return destination
             if target == directory / "SKILL.md":
@@ -290,6 +356,27 @@ def build_installation(root: Path, stage: Path, selected: list[str], naming: str
         if source.suffix not in {".md", ".yaml", ".yml"}:
             continue
         text = source.read_text(encoding="utf-8")
+        if source.name == "SKILL.md" and destination.name == "SKILL.md":
+            metadata = read_metadata(source)
+            if "version" in metadata:
+                version = metadata.pop("version")
+                extra = metadata.setdefault("metadata", {})
+                if not isinstance(extra, dict):
+                    raise ValueError(f"{source}: metadata must be a mapping")
+                if extra.get("version", version) != version:
+                    raise ValueError(
+                        f"{source}: conflicting version and metadata.version"
+                    )
+                extra["version"] = version
+                frontmatter = re.match(r"\A---\n.*?\n---", text, re.DOTALL)
+                if frontmatter is None:
+                    raise ValueError(f"{source}: invalid frontmatter delimiters")
+                text = (
+                    "---\n"
+                    + yaml.safe_dump(metadata, sort_keys=False, allow_unicode=True)
+                    + "---"
+                    + text[frontmatter.end() :]
+                )
         if source.suffix == ".md":
             for link in extract_relative_links(text):
                 target = target_path(source.parent / link, owner)
@@ -300,16 +387,18 @@ def build_installation(root: Path, stage: Path, selected: list[str], naming: str
             text = ARC_NAME_RE.sub(r"arc-\1", text)
         destination.write_text(text, encoding="utf-8")
 
-    siblings = {published_name(name, naming) for name in catalog if name not in bundled_by} - {
-        published_name(name, naming) for name in included
-    }
+    siblings = {
+        published_name(name, naming) for name in catalog if name not in bundled_by
+    } - {published_name(name, naming) for name in included}
     errors = validate_installation(stage, siblings)
     if errors:
         raise ValueError("Installation validation failed:\n" + "\n".join(errors))
     return sorted(included)
 
 
-def publish_installation(stage: Path, destination: Path, canonical_names: list[str], naming: str) -> Path:
+def publish_installation(
+    stage: Path, destination: Path, canonical_names: list[str], naming: str
+) -> Path:
     """先保存旧目录/符号链接；替换中途失败时恢复本次变更。"""
     destination.mkdir(parents=True, exist_ok=True)
     backup = Path(tempfile.mkdtemp(prefix="skills-backup-", dir=destination.parent))
@@ -318,7 +407,8 @@ def publish_installation(stage: Path, destination: Path, canonical_names: list[s
     targets = {published_name(name, naming) for name in canonical_names}
     obsolete = {
         published_name(name, "colon" if naming == "dash" else "dash")
-        for name in canonical_names if name.startswith("arc:")
+        for name in canonical_names
+        if name.startswith("arc:")
     } - targets
     try:
         for name in sorted(targets | obsolete):
@@ -348,12 +438,32 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dest", type=Path, default=DEFAULT_DEST)
     parser.add_argument("--naming", choices=("dash", "colon"), default="dash")
-    parser.add_argument("--family", action="append", choices=("Arc", *VERTICAL_SKILL_ROOTS))
-    parser.add_argument("--only", action="append", default=[], help="Canonical skill name; includes required file/skill dependencies")
-    parser.add_argument("--dry-run", action="store_true", help="Build and validate without changing the destination")
-    parser.add_argument("--check", action="store_true", help="Validate the existing destination without installing")
-    parser.add_argument("--also-root", action="append", type=Path, default=[],
-                        help="With --check, detect duplicate discovery across this additional host skill root")
+    parser.add_argument(
+        "--family", action="append", choices=("Arc", *VERTICAL_SKILL_ROOTS)
+    )
+    parser.add_argument(
+        "--only",
+        action="append",
+        default=[],
+        help="Canonical skill name; includes required file/skill dependencies",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Build and validate without changing the destination",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Validate the existing destination without installing",
+    )
+    parser.add_argument(
+        "--also-root",
+        action="append",
+        type=Path,
+        default=[],
+        help="With --check, detect duplicate discovery across this additional host skill root",
+    )
     args = parser.parse_args(argv)
     if args.also_root and not args.check:
         parser.error("--also-root requires --check")
@@ -361,7 +471,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.check:
             if not destination.is_dir():
-                raise ValueError(f"installation directory does not exist: {destination}")
+                raise ValueError(
+                    f"installation directory does not exist: {destination}"
+                )
             owners = library_owners(ROOT)
             managed = {
                 published_name(read_metadata(path / "SKILL.md")["name"], naming)
@@ -371,27 +483,42 @@ def main(argv: list[str] | None = None) -> int:
             errors = validate_installation(destination, only_folders=managed)
             for entry, router in sorted(owners.items()):
                 if (destination / entry / "SKILL.md").is_file():
-                    errors.append(f"{destination / entry}: superseded by {router}'s library; remove the standalone copy")
+                    errors.append(
+                        f"{destination / entry}: superseded by {router}'s library; remove the standalone copy"
+                    )
             selected = args.only or selectable_names(ROOT, args.family or ["Arc"])
             for name in selected:
                 target = destination / published_name(name, args.naming) / "SKILL.md"
                 if not target.is_file():
                     errors.append(f"missing expected installed skill: {target}")
             if args.also_root:
-                errors.extend(validate_discovery([destination, *[p.expanduser().absolute() for p in args.also_root]]))
+                errors.extend(
+                    validate_discovery(
+                        [
+                            destination,
+                            *[p.expanduser().absolute() for p in args.also_root],
+                        ]
+                    )
+                )
             if errors:
                 raise ValueError("\n".join(errors))
             print(f"Installation validation passed: {destination}")
             return 0
-        if destination.resolve().is_relative_to(ROOT) or ROOT.is_relative_to(destination.resolve()):
-            raise ValueError("installation destination must not overlap the source repository")
+        if destination.resolve().is_relative_to(ROOT) or ROOT.is_relative_to(
+            destination.resolve()
+        ):
+            raise ValueError(
+                "installation destination must not overlap the source repository"
+            )
         selected = args.only or selectable_names(ROOT, args.family or ["Arc"])
         if not selected:
             raise ValueError("no skills selected")
         with tempfile.TemporaryDirectory(prefix="skills-stage-") as temporary:
             stage = Path(temporary)
             included = build_installation(ROOT, stage, selected, args.naming)
-            print(f"Verified {len(included)} packages ({args.naming} names): {', '.join(included)}")
+            print(
+                f"Verified {len(included)} packages ({args.naming} names): {', '.join(included)}"
+            )
             if args.dry_run:
                 print(f"Dry run: destination unchanged: {destination}")
                 return 0

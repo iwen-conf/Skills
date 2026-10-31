@@ -221,3 +221,23 @@ def test_repository_flow_catalog_passes() -> None:
     result = _run("check", str(CATALOG))
 
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("key", ["FLOW-001-N01-B01", "FLOW-001-T02"])
+def test_duplicate_rows_cannot_overwrite_failure_or_gap(
+    tmp_path: Path, key: str
+) -> None:
+    catalog = _catalog(tmp_path)
+    path = catalog / "FLOW-001-下单.md"
+    original = next(line for line in FLOW.splitlines() if line.startswith(f"| {key} |"))
+    earlier = (
+        original.replace("| PASS |", "| FAIL |")
+        if "-N" in key
+        else original.replace("| 拒绝 |", "| gap |")
+    )
+    path.write_text(FLOW.replace(original, earlier + "\n" + original), encoding="utf-8")
+
+    result = _run("check", str(catalog), "--json")
+
+    assert result.returncode == 1, "a later row must not erase an existing failure/gap"
+    assert key in result.stdout and "duplicate" in result.stdout

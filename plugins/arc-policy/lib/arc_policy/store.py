@@ -136,7 +136,9 @@ def begin_task(
         raise ValueError("task skill must not be empty")
     with task_lock(root):
         existing = active_task(root)
-        delivered = existing is not None and delivered_receipt(root, existing) is not None
+        delivered = (
+            existing is not None and delivered_receipt(root, existing) is not None
+        )
         if existing and not force and not delivered:
             raise RuntimeError(
                 f"active task already exists ({existing['slug']}, skill={existing['skill']}); pass --force to replace"
@@ -256,18 +258,27 @@ def receipt_matches_tree(root: Path, receipt: dict[str, Any] | None) -> bool:
     # Graph evidence is local/ignored: verify its RAW references again when
     # checking a receipt, not just the database file fingerprint. This also
     # rejects removed runner evidence and policy/binary failures.
-    if any(
-        check.get("id") == "business_graph" and check.get("verdict") == "PASS"
+    graph_checks = [
+        check
         for check in receipt.get("checks", [])
         if isinstance(check, dict)
-    ):
+        and check.get("id") == "business_graph"
+        and check.get("verdict") == "PASS"
+    ]
+    if graph_checks:
         from arc_policy.policy import load_for_repo
         from arc_policy.verify import check_business_graph
+
         try:
             check = check_business_graph(root, load_for_repo(root))
         except (OSError, RuntimeError, ValueError):
             return False
         if check is None or check.get("verdict") != "PASS":
+            return False
+        if len(graph_checks) != 1 or any(
+            graph_checks[0].get(key) != check.get(key) or not check.get(key)
+            for key in ("proof_scope", "context")
+        ):
             return False
     return True
 
@@ -300,7 +311,9 @@ def receipt_covers_commits(root: Path, revisions: list[str]) -> bool:
     it needs no second verification; whoever pushes, the content is the receipt's.
     """
     task = active_task(root)
-    receipt = task.get("receipt") if task else None
+    if task is None:
+        return False
+    receipt = task.get("receipt")
     if (
         not revisions
         or not isinstance(receipt, dict)
@@ -313,8 +326,11 @@ def receipt_covers_commits(root: Path, revisions: list[str]) -> bool:
     for revision in revisions:
         if commit_tree(root, revision) != receipt["tree"]:
             return False
-        if receipt["head"] != "UNBORN" and git(
-            root, "merge-base", "--is-ancestor", receipt["head"], revision
-        ).returncode:
+        if (
+            receipt["head"] != "UNBORN"
+            and git(
+                root, "merge-base", "--is-ancestor", receipt["head"], revision
+            ).returncode
+        ):
             return False
     return True

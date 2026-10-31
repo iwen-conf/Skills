@@ -43,7 +43,7 @@ Then pick the phases each applicable concern needs:
 | Normal | core task, permissions, realistic data distribution, acceptable latency and capacity |
 | Boundary | both sides of every limit, empty/null/missing, exact maximum, overflow, precision, time zone |
 | Fault | slow dependency, timeout/cancel, duplicate/reorder, partial commit, resource exhaustion: safe failure semantics |
-| Recovery | restart, dependency return, replay/compensation, backlog drain, restore: nothing lost or duplicated, every affected task progresses |
+| Recovery | restart, dependency return, replay/compensation, backlog drain, restore: contracted data/effect counts and completion or explicit terminal-failure/manual destination within the project deadline |
 | Change | config/flag, old data, mixed versions, upgrade/rollback, interrupted migration, background jobs, operator tools |
 
 A normal success does not prove the fault phase; a healthy process after recovery does not prove

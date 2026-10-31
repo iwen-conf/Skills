@@ -29,13 +29,16 @@ verification:
   business_graph:
     graph: academic-v1
     db: .arc/verify/data.db
+    risk_review: false   # true adds `--risk-review`: undecided risks then fail the gate
 ```
 
-The graph check is an additional fail-closed receipt condition; existing
+The graph check is an additional fail-closed receipt condition; it accepts a v1
+`planned_rule_tasks` proof or a v2 `complete_business_model_obligations` proof; existing
 unit/integration/E2E `verification.test_commands` continue to run.
 No graph ID, no local DB, unconfirmed business rules, unexecuted tasks,
 or a failing observed state => no graph PASS. Risks discovered by AI
-remain non-gating until the user confirms them as business rules.
+remain non-gating until the user confirms them as business rules, unless
+the project sets `risk_review: true`.
 See `tools/arc-verify/README.md` and
 `Arc/arc:verify/references/business-graph.md`.
 
@@ -218,8 +221,12 @@ Each verification attempt first revokes the old receipt. Tests must finish again
 task instance and content snapshot they started with, including policy loading. Verification,
 task begin and task end share a repository lock; overlapping operations fail immediately with
 a `locked` diagnostic. State and receipts are saved atomically;
-`.arc/policy/` and `.arc/artifacts/` are excluded from the snapshot, while project policy remains
-included even when gitignored. Older receipts without a content digest must be verified again.
+`.arc/policy/`, `.arc/artifacts/` and the generated arc-idx files
+`.ai-code-index/tags.json`, `.ai-code-index/daemon.pid`, `.ai-code-index/daemon.log` are excluded
+from snapshots and session write attribution. Index refreshes therefore do not invalidate a receipt
+or repeat a Stop notice. Other files in `.ai-code-index/`, including `config.json`, and arc-idx
+source remain included. Project policy remains included even when gitignored. Older receipts without
+a content digest, or whose digest predates this exclusion, must be verified again.
 
 ### Stop hooks
 
@@ -230,7 +237,8 @@ Only the final assistant message and completion examples are sent, not session h
 Clear completion claims block the stop and send the agent to `task verify`; negative statements,
 questions and progress notes stay silent, because commits remain gated by the receipt either way.
 When TypeSafe cannot judge (no `jev`, missing credentials, invalid response, timeout, uncertain
-answer), `completion_markers` decide as whole-word matches, so a claim is still gated. Neither path
+answer), `completion_markers` check positive occurrences outside fenced code, inline code and
+blockquotes. A negated occurrence is ignored without hiding a separate positive claim. Neither path
 creates a receipt or authorizes commits.
 
 `stop.mode: block` uses task state directly; `stop.mode: remind` only reports pending verification.
@@ -255,17 +263,19 @@ whether an edit tool, the shell or a script wrote them, and even when `task begi
 repository without a task is reported as changed without one. Cursor's `workspace_roots` are all
 checked. When several repositories report, the strictest `stop.mode` applies.
 
-Once the host reports finished tool calls (`PostToolUse`; Cursor `postToolUse` /
-`afterShellExecution`; the DSH adapter sends one after each call), Stop charges a session only for
-the paths its own calls wrote: the target paths of an allowed edit, and for a shell call the
-dirty files whose mode, size or mtime changed between its `PreToolUse` and `PostToolUse` (paired by
-`tool_use_id`, else by tool input). Concurrent sessions in one repository are then not charged for
-each other's work. A call whose finished event never arrives (a failed call on a host that reports
-failures separately, a denied call has none) stays open until Stop, which charges everything that
-changed in its repositories since it started. Writes during a call's window by another session, or
-by a process the session left running after its call finished, are attributed the same imprecise
-way. Without `PostToolUse` Stop falls back to first-touch state and cannot tell this session's
-writes from another session's in the same repository; the reminder says so.
+Allowed edit tools record their explicit target paths even when `PostToolUse` is missing.
+Known inspection-only shell calls (such as `git status`, `arc-policy task status`, `arc-idx`
+queries and plain file reads) open an empty attribution window: they do not acquire another
+session's concurrent writes. Commands with output redirection, write options, prefix wrappers
+or opaque scripts keep conservative write windows.
+
+For a possible writing shell call, Stop charges dirty files whose mode, size or mtime changed
+between `PreToolUse` and `PostToolUse` (paired by `tool_use_id`, else tool input). A missing
+finished event leaves its window open until Stop. Writes by another session during such a
+window cannot be distinguished, and a background write after it closes may lack attribution.
+Legacy sessions with neither explicit targets nor tracked windows retain first-touch fallback;
+their old attribution cannot be reconstructed by an upgrade. No session logs or task receipts
+are cleared to silence a notice. Verify actual owned changes and report unrelated failures.
 
 Shell guards check every command segment, including command substitutions, unquoted heredoc
 substitutions, `sh -c` / `bash -c` scripts, `eval`, and prefix wrappers (`timeout`, `nohup`,

@@ -5,106 +5,236 @@ import argparse, json, operator, os, threading, time
 from pathlib import Path
 from typing import Any
 
-from sqlverify_common import evidence_base, finalize_evidence, json_dump, require_test_database_name, sha256_file
+from sqlverify_common import (
+    evidence_base,
+    finalize_evidence,
+    json_dump,
+    require_test_database_name,
+    sha256_file,
+    scalar_value,
+)
 from sqlverify_config import load_config
 
-OPS={"==":operator.eq,"!=":operator.ne,">=":operator.ge,">":operator.gt,"<=":operator.le,"<":operator.lt}
+OPS = {"==": operator.eq, "!=": operator.ne, ">=": operator.ge, ">": operator.gt, "<=": operator.le, "<": operator.lt}
+
 
 def _psycopg():
     try:
         import psycopg  # type: ignore
-        return psycopg
-    except ImportError as e: raise RuntimeError('psycopg 3 is required') from e
 
-def run_assertions(conn, assertions:list[dict[str,Any]]) -> list[dict[str,Any]]:
-    out=[]
+        return psycopg
+    except ImportError as e:
+        raise RuntimeError("psycopg 3 is required") from e
+
+
+def run_assertions(conn, assertions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out = []
     with conn.cursor() as cur:
         for a in assertions:
-            cur.execute(a['sql'],a.get('params')); row=cur.fetchone(); actual=row[0] if row else None; op=a.get('op','=='); expected=a.get('expected'); passed=OPS[op](actual,expected)
-            out.append({'id':a['id'],'actual':actual,'op':op,'expected':expected,'passed':passed})
+            cur.execute(a["sql"], a.get("params"))
+            actual = scalar_value(cur)
+            op = a.get("op", "==")
+            expected = a["expected"]
+            passed = OPS[op](actual, expected)
+            out.append({"id": a["id"], "actual": actual, "op": op, "expected": expected, "passed": passed})
+            if not passed:
+                break
     return out
 
-def main()->int:
-    ap=argparse.ArgumentParser(description='Rehearse PostgreSQL schema/data migration including lock probe, assertions and rollback')
-    ap.add_argument('--config',required=True); ap.add_argument('--migration',required=True); ap.add_argument('--root',default='.'); ap.add_argument('--out',required=True)
-    ns=ap.parse_args(); cfg=load_config(Path(ns.config)); root=Path(ns.root).resolve(); m=next((x for x in cfg.get('migration_rehearsal',[]) if x.get('id')==ns.migration),None)
-    if not m: raise SystemExit(f'migration_rehearsal not found: {ns.migration}')
-    started=time.monotonic(); ev=evidence_base('migration_rehearsal',f'migration.{ns.migration}'); dsn_env=cfg['database']['dsn_env']; dsn=os.environ.get(dsn_env)
-    up=(root/m['up_sql_file']).resolve(); down=(root/m['down_sql_file']).resolve() if m.get('down_sql_file') else None
-    ev['reproduction']={'dsn_env':dsn_env,'migration':ns.migration,'up_sql_sha256':sha256_file(up),'down_sql_sha256':sha256_file(down) if down else None,'transactional':m.get('transactional',True)}
-    if not dsn: ev['violations'].append(f'missing env {dsn_env}'); json_dump(Path(ns.out),finalize_evidence(ev,started,'BLOCKED')); return 2
-    try:
-        psycopg=_psycopg()
-        with psycopg.connect(dsn,autocommit=True) as c:
-            with c.cursor() as cur: cur.execute('select current_database()'); db=cur.fetchone()[0]
-        require_test_database_name(db,cfg['database']['safe_database_pattern'],bool(cfg['database'].get('allow_destructive',False)))
-    except Exception as e:
-        ev['violations'].append(repr(e)); json_dump(Path(ns.out),finalize_evidence(ev,started,'BLOCKED')); return 2
 
-    up_sql=up.read_text(encoding='utf-8'); down_sql=down.read_text(encoding='utf-8') if down else None; observed={'database':db}
+def main() -> int:
+    ap = argparse.ArgumentParser(
+        description="Rehearse PostgreSQL schema/data migration including lock probe, assertions and rollback"
+    )
+    ap.add_argument("--config", required=True)
+    ap.add_argument("--migration", required=True)
+    ap.add_argument("--root", default=".")
+    ap.add_argument("--out", required=True)
+    ns = ap.parse_args()
+    cfg = load_config(Path(ns.config))
+    root = Path(ns.root).resolve()
+    m = next((x for x in cfg.get("migration_rehearsal", []) if x.get("id") == ns.migration), None)
+    if not m:
+        raise SystemExit(f"migration_rehearsal not found: {ns.migration}")
+    started = time.monotonic()
+    ev = evidence_base("migration_rehearsal", f"migration.{ns.migration}")
+    dsn_env = cfg["database"]["dsn_env"]
+    dsn = os.environ.get(dsn_env)
+    up = (root / m["up_sql_file"]).resolve()
+    down = (root / m["down_sql_file"]).resolve() if m.get("down_sql_file") else None
+    ev["reproduction"] = {
+        "dsn_env": dsn_env,
+        "migration": ns.migration,
+        "up_sql_sha256": sha256_file(up),
+        "down_sql_sha256": sha256_file(down) if down else None,
+        "transactional": m.get("transactional", True),
+    }
+    if not dsn:
+        ev["violations"].append(f"missing env {dsn_env}")
+        json_dump(Path(ns.out), finalize_evidence(ev, started, "BLOCKED"))
+        return 2
     try:
-        with psycopg.connect(dsn,autocommit=True) as conn:
-            observed['pre_assertions']=run_assertions(conn,m.get('pre_assertion',[]))
-        for a in observed['pre_assertions']:
-            if not a['passed']: ev['violations'].append(f"pre assertion {a['id']} failed")
+        psycopg = _psycopg()
+        with psycopg.connect(dsn, autocommit=True) as c:
+            with c.cursor() as cur:
+                cur.execute("select current_database()")
+                db = cur.fetchone()[0]
+        require_test_database_name(
+            db, cfg["database"]["safe_database_pattern"], bool(cfg["database"].get("allow_destructive", False))
+        )
+    except Exception as e:
+        ev["violations"].append(repr(e))
+        json_dump(Path(ns.out), finalize_evidence(ev, started, "BLOCKED"))
+        return 2
+
+    up_sql = up.read_text(encoding="utf-8")
+    down_sql = down.read_text(encoding="utf-8") if down else None
+    observed = {"database": db}
+    phase = "pre_assertions"
+    try:
+        with psycopg.connect(dsn, autocommit=True) as conn:
+            observed["pre_assertions"] = run_assertions(conn, m.get("pre_assertion", []))
+        for a in observed["pre_assertions"]:
+            if not a["passed"]:
+                ev["violations"].append(f"pre assertion {a['id']} failed")
+        if ev["violations"]:
+            raise RuntimeError("required initial state failed; migration was not applied")
 
         # Lock-risk probe: keep a blocker transaction open, try migration under small lock_timeout, always roll back probe.
-        if m.get('lock_probe_sql'):
-            ready=threading.Event(); release=threading.Event(); blocker_error=[]
+        if m.get("lock_probe_sql"):
+            phase = "lock_probe"
+            ready = threading.Event()
+            release = threading.Event()
+            blocker_error = []
+
             def blocker():
                 try:
-                    with psycopg.connect(dsn,autocommit=False) as bc:
+                    with psycopg.connect(dsn, autocommit=False) as bc:
+                        if release.is_set():
+                            return
                         with bc.cursor() as cur:
-                            cur.execute(m['lock_probe_sql']); ready.set(); release.wait(float(m.get('lock_probe_hold_s',5)))
+                            cur.execute(m["lock_probe_sql"])
+                            ready.set()
+                            release.wait(float(m.get("lock_probe_hold_s", 5)))
                         bc.rollback()
-                except Exception as e: blocker_error.append(repr(e)); ready.set()
-            t=threading.Thread(target=blocker,daemon=True); t.start(); ready.wait(5)
-            lock_state=None; lock_err=None; probe_elapsed=None
-            if blocker_error: ev['violations'].append(f'lock blocker failed: {blocker_error[0]}')
-            else:
-                st=time.monotonic()
+                except Exception as e:
+                    blocker_error.append(repr(e))
+                    ready.set()
+
+            t = threading.Thread(target=blocker, daemon=True)
+            t.start()
+            lock_state = None
+            lock_err = None
+            probe_elapsed = None
+            try:
+                if not ready.wait(5) or blocker_error:
+                    raise RuntimeError(f"lock blocker was not established: {blocker_error}")
+                st = time.monotonic()
                 try:
-                    with psycopg.connect(dsn,autocommit=False) as pc:
+                    with psycopg.connect(dsn, autocommit=False) as pc:
                         with pc.cursor() as cur:
-                            cur.execute("select set_config('lock_timeout', %s, true)",(f"{int(m.get('lock_probe_timeout_ms',250))}ms",))
+                            cur.execute(
+                                "select set_config('lock_timeout', %s, true)",
+                                (f"{int(m.get('lock_probe_timeout_ms', 250))}ms",),
+                            )
                             cur.execute(up_sql)
                         pc.rollback()
                 except Exception as e:
-                    lock_state=getattr(e,'sqlstate',None); lock_err=repr(e)
-                probe_elapsed=round((time.monotonic()-st)*1000,3)
-            release.set(); t.join(2)
-            observed['lock_probe']={'sqlstate':lock_state,'error':lock_err,'elapsed_ms':probe_elapsed}
-            if m.get('require_nonblocking',False) and lock_state=='55P03': ev['violations'].append('migration lock probe hit lock_timeout (55P03); declared require_nonblocking=true')
-            if m.get('expect_lock_timeout',False) and lock_state!='55P03': ev['violations'].append(f"expected lock_timeout 55P03 but got {lock_state}")
+                    lock_state = getattr(e, "sqlstate", None)
+                    lock_err = repr(e)
+                    if lock_state != "55P03":
+                        if lock_state and not lock_state.startswith("08"):
+                            ev["violations"].append(f"migration probe returned SQLSTATE {lock_state}: {e!r}")
+                        raise
+                finally:
+                    probe_elapsed = round((time.monotonic() - st) * 1000, 3)
+            finally:
+                release.set()
+                t.join(2)
+                observed["lock_probe"] = {
+                    "sqlstate": lock_state,
+                    "error": lock_err,
+                    "elapsed_ms": probe_elapsed,
+                    "blocker_error": blocker_error,
+                    "blocker_alive": t.is_alive(),
+                }
+            if t.is_alive() or blocker_error:
+                raise RuntimeError("lock blocker cleanup was not verified; migration was not applied")
+            if m.get("require_nonblocking", False) and lock_state == "55P03":
+                ev["violations"].append(
+                    "migration lock probe hit lock_timeout (55P03); declared require_nonblocking=true"
+                )
+            if m.get("expect_lock_timeout", False) and lock_state != "55P03":
+                ev["violations"].append(f"expected lock_timeout 55P03 but got {lock_state}")
+            if ev["violations"]:
+                raise RuntimeError("lock contract failed; migration was not applied")
 
         # Apply migration.
-        st=time.monotonic(); transactional=bool(m.get('transactional',True))
-        with psycopg.connect(dsn,autocommit=not transactional) as conn:
+        st = time.monotonic()
+        transactional = bool(m.get("transactional", True))
+        phase = "connect_apply"
+        with psycopg.connect(dsn, autocommit=not transactional) as conn:
             with conn.cursor() as cur:
-                cur.execute("select set_config('statement_timeout', %s, false)",(f"{int(m.get('statement_timeout_ms',60000))}ms",))
-                cur.execute("select set_config('lock_timeout', %s, false)",(f"{int(m.get('apply_lock_timeout_ms',5000))}ms",))
+                cur.execute(
+                    "select set_config('statement_timeout', %s, false)",
+                    (f"{int(m.get('statement_timeout_ms', 60000))}ms",),
+                )
+                cur.execute(
+                    "select set_config('lock_timeout', %s, false)", (f"{int(m.get('apply_lock_timeout_ms', 5000))}ms",)
+                )
+                phase = "apply_sql"
                 cur.execute(up_sql)
-            if transactional: conn.commit()
-        observed['apply_elapsed_ms']=round((time.monotonic()-st)*1000,3)
-        if m.get('max_apply_ms') is not None and observed['apply_elapsed_ms']>float(m['max_apply_ms']): ev['violations'].append(f"migration apply {observed['apply_elapsed_ms']}ms > {m['max_apply_ms']}ms")
+            phase = "commit_apply"
+            if transactional:
+                conn.commit()
+        observed["apply_elapsed_ms"] = round((time.monotonic() - st) * 1000, 3)
+        if m.get("max_apply_ms") is not None and observed["apply_elapsed_ms"] > float(m["max_apply_ms"]):
+            ev["violations"].append(f"migration apply {observed['apply_elapsed_ms']}ms > {m['max_apply_ms']}ms")
 
-        with psycopg.connect(dsn,autocommit=True) as conn: observed['post_assertions']=run_assertions(conn,m.get('post_assertion',[]))
-        for a in observed['post_assertions']:
-            if not a['passed']: ev['violations'].append(f"post assertion {a['id']} failed")
+        phase = "post_assertions"
+        with psycopg.connect(dsn, autocommit=True) as conn:
+            observed["post_assertions"] = run_assertions(conn, m.get("post_assertion", []))
+        for a in observed["post_assertions"]:
+            if not a["passed"]:
+                ev["violations"].append(f"post assertion {a['id']} failed")
 
-        if down_sql and m.get('verify_rollback',True):
-            st=time.monotonic()
-            with psycopg.connect(dsn,autocommit=not transactional) as conn:
-                with conn.cursor() as cur: cur.execute(down_sql)
-                if transactional: conn.commit()
-            observed['rollback_elapsed_ms']=round((time.monotonic()-st)*1000,3)
-            with psycopg.connect(dsn,autocommit=True) as conn: observed['rollback_assertions']=run_assertions(conn,m.get('rollback_assertion',[]))
-            for a in observed['rollback_assertions']:
-                if not a['passed']: ev['violations'].append(f"rollback assertion {a['id']} failed")
-        elif m.get('rollback_required',False): ev['violations'].append('rollback_required=true but down_sql_file missing')
-        ev['observed']=observed; status='PASS' if not ev['violations'] else 'FAIL'
+        if down_sql and m.get("verify_rollback", True):
+            st = time.monotonic()
+            phase = "connect_rollback"
+            with psycopg.connect(dsn, autocommit=not transactional) as conn:
+                with conn.cursor() as cur:
+                    phase = "rollback_sql"
+                    cur.execute(down_sql)
+                phase = "commit_rollback"
+                if transactional:
+                    conn.commit()
+            observed["rollback_elapsed_ms"] = round((time.monotonic() - st) * 1000, 3)
+            phase = "rollback_assertions"
+            with psycopg.connect(dsn, autocommit=True) as conn:
+                observed["rollback_assertions"] = run_assertions(conn, m.get("rollback_assertion", []))
+            for a in observed["rollback_assertions"]:
+                if not a["passed"]:
+                    ev["violations"].append(f"rollback assertion {a['id']} failed")
+        elif m.get("rollback_required", False):
+            ev["violations"].append("rollback_required=true but down_sql_file missing")
+        ev["observed"] = observed
+        status = "PASS" if not ev["violations"] else "FAIL"
     except Exception as e:
-        ev['observed']=observed; ev['violations'].append(repr(e)); status='FAIL'
-    json_dump(Path(ns.out),finalize_evidence(ev,started,status)); print(json.dumps(ev,ensure_ascii=False,indent=2,default=str)); return 0 if status=='PASS' else 2
+        state = getattr(e, "sqlstate", None)
+        if (
+            phase in ("apply_sql", "rollback_sql", "commit_apply", "commit_rollback")
+            and state
+            and not state.startswith("08")
+        ):
+            ev["violations"].append(f"migration {phase} returned SQLSTATE {state}: {e!r}")
+        else:
+            ev["warnings"].append(f"{phase}: {e!r}")
+        ev["observed"] = observed
+        status = "FAIL" if ev["violations"] else "BLOCKED"
+    json_dump(Path(ns.out), finalize_evidence(ev, started, status))
+    print(json.dumps(ev, ensure_ascii=False, indent=2, default=str))
+    return 0 if status == "PASS" else 2
 
-if __name__=='__main__': raise SystemExit(main())
+
+if __name__ == "__main__":
+    raise SystemExit(main())

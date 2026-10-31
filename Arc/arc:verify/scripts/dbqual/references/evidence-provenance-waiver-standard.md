@@ -24,6 +24,19 @@ Unit-test parsers, percentile math, SQLSTATE accounting, plan interpretation, gr
 
 Observers that are required by a claim are part of the test. If the lock observer, metrics scraper, history recorder or reconciliation query fails, the claim is BLOCKED even if the workload itself exits zero.
 
+Validate the evidence schema, unique JSON fields and evidence IDs before counting. Empty
+selectors/policies, zero or invalid minima, and selected FAIL/BLOCKED/NOT_RUN/FLAKY records cannot
+qualify a release. Metrics need finite numeric observations; warning severity applies to a
+measured threshold breach, never to missing, boolean or invalid measurements.
+
+The release gate freezes policy and the complete current evidence/RAW file set before evaluation
+and checks them again with the candidate afterward. Its `input_binding` carries policy path/hash
+and evidence hashes. Baseline promotion revalidates those inputs and the candidate, re-evaluates
+the policy, and copies the complete evidence/RAW set. Regression requires a nonempty, complete,
+unchanged baseline manifest. Superseded runs remain history; they cannot satisfy current claims.
+Keep gate output outside the evidence directory. Same-user hashes do not establish independent
+runner authenticity; protected CI must produce its own evidence.
+
 ## Waivers
 
 A waiver must include:

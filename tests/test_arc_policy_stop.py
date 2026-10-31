@@ -143,6 +143,25 @@ def test_session_is_reminded_once_per_tree_state(tmp_path: Path, no_jev: None) -
     assert hook(grok_stop(repo, "once", "Done."))["decision"] == "block"
 
 
+def test_index_daemon_does_not_rearm_an_unchanged_source_notice(
+    tmp_path: Path, no_jev: None
+) -> None:
+    repo = started(tmp_path, "index-refresh")
+    edit(repo, "index-refresh", "mine.txt", "unverified source\n")
+    assert hook(grok_stop(repo, "index-refresh", "Done."))["decision"] == "block"
+
+    def reindex() -> None:
+        folder = repo / ".ai-code-index"
+        folder.mkdir()
+        for name in ("tags.json", "daemon.pid", "daemon.log"):
+            (folder / name).write_text("generated\n")
+
+    shell(repo, "index-refresh", "refresh", "arc-idx index --quiet", reindex)
+    assert hook(grok_stop(repo, "index-refresh", "Done.")) == {}
+    edit(repo, "index-refresh", "mine.txt", "new source change\n")
+    assert hook(grok_stop(repo, "index-refresh", "Done."))["decision"] == "block"
+
+
 def test_session_is_not_charged_for_changes_it_never_saw(
     tmp_path: Path, no_jev: None
 ) -> None:
@@ -160,6 +179,122 @@ def test_reader_is_not_charged_for_concurrent_writes(
     shell(repo, "reader", "t1", "git status --short")
     (repo / "theirs.txt").write_text("another session\n")
     assert hook(grok_stop(repo, "reader", "Done.")) == {}
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git status --short",
+        "git diff --stat",
+        "arc-policy task status",
+        "arc-idx doctor --format json",
+        "cat README.txt",
+        "nl -ba README.txt | sed -n '1,20p'",
+    ],
+)
+def test_reader_is_not_charged_for_writes_during_a_read_only_call(
+    tmp_path: Path, no_jev: None, command: str
+) -> None:
+    repo = started(tmp_path, "reader-window")
+    shell(
+        repo,
+        "reader-window",
+        "read",
+        command,
+        lambda: (repo / "theirs.txt").write_text("concurrent writer\n"),
+    )
+    assert hook(grok_stop(repo, "reader-window", "Done.")) == {}
+
+
+def test_unfinished_read_only_call_does_not_charge_another_repository(
+    tmp_path: Path, no_jev: None
+) -> None:
+    repo = started(tmp_path, "cross-reader")
+    other_dir = tmp_path / "other"
+    other_dir.mkdir()
+    other = make_repo(other_dir)
+    begin_task(other, skill="arc-code", slug="other-writer")
+    assert (
+        hook(
+            {
+                "hook_event_name": "PreToolUse",
+                "session_id": "cross-reader",
+                "cwd": str(repo),
+                "tool_name": "Bash",
+                "tool_use_id": "read-other",
+                "tool_input": {"command": f"git -C {other} status --short"},
+            }
+        )
+        == {}
+    )
+    (other / "theirs.txt").write_text("other session's source\n")
+    assert hook(grok_stop(repo, "cross-reader", "Done.")) == {}
+
+
+def test_explicit_edit_without_post_charges_only_its_target(
+    tmp_path: Path, no_jev: None
+) -> None:
+    repo = started(tmp_path, "known-editor")
+    edit(repo, "known-editor", "mine.txt", "own source\n")
+    (repo / "theirs.txt").write_text("other session's source\n")
+    result = hook(grok_stop(repo, "known-editor", "Done."))
+    assert result["decision"] == "block"
+    assert "mine.txt" in result["reason"]
+    assert "theirs.txt" not in result["reason"]
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git status --short > mine.txt",
+        "git diff --output=mine.txt",
+        "sed -n '1p;w mine.txt' README.txt",
+        "sed -n '1p' -e 'w mine.txt' README.txt",
+        "time -o mine.txt git status --short",
+        "nohup git status --short",
+        "python3 build.py",
+    ],
+)
+def test_commands_that_can_write_keep_their_verification_gate(
+    tmp_path: Path, no_jev: None, command: str
+) -> None:
+    repo = started(tmp_path, "possible-writer")
+    shell(
+        repo,
+        "possible-writer",
+        "write",
+        command,
+        lambda: (repo / "mine.txt").write_text("own source\n"),
+    )
+    result = hook(grok_stop(repo, "possible-writer", "Done."))
+    assert result["decision"] == "block"
+    assert "mine.txt" in result["reason"]
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "The work is not done; tests are not completed.",
+        "本轮尚未交付，不能提交。",
+        "示例状态：\n```text\n已修复，可以提交。\n```\n实际测试尚未运行。",
+        "> 已完成，可以提交。\n这是引用，实际工作仍在进行。",
+    ],
+)
+def test_fallback_does_not_treat_denials_or_examples_as_completion(
+    tmp_path: Path, no_jev: None, message: str
+) -> None:
+    repo = started(tmp_path, "not-finished")
+    edit(repo, "not-finished", "mine.txt", "unfinished source\n")
+    assert hook(grok_stop(repo, "not-finished", message)) == {}
+
+
+def test_fallback_keeps_a_positive_claim_beside_an_unfinished_item(
+    tmp_path: Path, no_jev: None
+) -> None:
+    repo = started(tmp_path, "partial-claim")
+    edit(repo, "partial-claim", "mine.txt", "unverified source\n")
+    result = hook(grok_stop(repo, "partial-claim", "已修复后端；客户端尚未交付。"))
+    assert result["decision"] == "block"
 
 
 def test_shell_write_inside_its_tool_call_is_charged(

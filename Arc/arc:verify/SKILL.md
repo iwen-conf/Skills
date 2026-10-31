@@ -1,6 +1,6 @@
 ---
 name: arc:verify
-version: 3.4.0
+version: 3.6.0
 description: >-
   Proves business code meets business expectations: business-flow inventories and flowcharts
   tracing branches to cases (业务流, 端到端业务流, 分支覆盖), test plans (测试方案, 用例设计,
@@ -15,91 +15,90 @@ description: >-
 
 # arc:verify
 
-Execute claims with independent oracles, one verdict per claim, designed from the business flows a
-change reaches, never from an endpoint list. Green is an observation, never the goal; a failure
-against a contract-derived expectation is a product defect, never a test to bend.
+Verify confirmed business expectations through real entry points and independent oracles;
+retain original verdicts and failures.
 
 ## Non-trigger
 
-- Fixing a defect found here, or the reproducer written inside a fix → `arc:code`.
-- Static review, code health, security scanning, penetration testing → `arc:audit`.
-- Locating code or building the code index only → `arc:explore`.
-- PRD, closure model or task documents for a large test build-out → `arc:plan`.
-- Optimizing a measured hotspot → `arc:code`; Android trace queries → `android`.
-- Deploy, rollback, restart or flag flip → the user's release process.
+- Product defects and fix reproducers → `arc:code`; static/security review → `arc:audit`.
+- Code lookup/index → `arc:explore`; PRD/closure/task documents → `arc:plan`.
+- Measured optimization → `arc:code`; Android traces → `android`; deploy/restart/rollback → authorized release process.
 
 ## Goal
 
-Every claim traces to a flow branch or rule and has a verdict, re-runnable evidence and, when
-required, a sensitivity record.
+Every confirmed claim has a FLOW/RULE ID, independent evidence, verdict and required sensitivity record.
 
 ## Inputs
 
 | Input | Required | Default when absent |
 |---|---|---|
 | Target: feature, diff, PR, service or release candidate | yes | ask once |
-| Claims or acceptance criteria | no | derive from flows, contracts, docs and code; label each `derived` |
+| Claims or acceptance criteria | no | draft from user intent/contracts; unconfirmed semantics stay `RISK` or `SPECIFICATION GAP` |
 | Mode | no | first matching Intent Router row |
-| Environment: test commands, test DSN, service URLs, devices | no | the project's test setup |
+| Environment, runner, fixtures | no | the project's test setup |
 | Tier (T0/T1/T2) | no | classify per contract §2 |
 | Cadence: PR, nightly, pre-release | no | PR |
-| Authorization for shared-target load, fault injection or destructive reset | no | none; those steps stay `BLOCKED` |
+| Shared-target load/fault/reset authorization | no | none; unauthorized operations `BLOCKED` |
 
 ## Intent Router
 
 | Condition | Mode | Read |
 |---|---|---|
-| Business flows: inventory, flowcharts, branch → case ledger, flow coverage; T1/T2 behavior no current flow covers | flow | [flow-model](references/flow-model.md), [flow-matrix](references/flow-matrix.md) |
+| Business inventory, charts, branch → case ledger; T1/T2 behavior no current flow covers | flow | [flow-model](references/flow-model.md), [flow-matrix](references/flow-matrix.md) |
 | Test plan, case list or scope only; nothing to execute | design | [case-design](references/case-design.md), [scope-cadence](references/scope-cadence.md) |
 | Judge the value of existing tests (测试价值) | design | [test-value](references/test-value.md) |
 | Acceptance tests before the code exists (测试先行, TDD) | red | [test-first](../_shared/test-first.md), [case-design](references/case-design.md) |
-| Write or run unit, integration, contract, E2E, UI, load or benchmark tests | write | [stacks](references/stacks.md), [case-design](references/case-design.md), [test-value](references/test-value.md) §1–§2 |
+| Write/run unit, integration, contract, E2E, UI, load or benchmark tests | write | [stacks](references/stacks.md), [case-design](references/case-design.md), [test-value](references/test-value.md) §1–§2 |
 | Browser journey on a running or startable app (网页实测) | write | [web-e2e](references/web-e2e.md) |
 | Untrusted input into parsers, decoders, uploads or protocols (模糊测试) | write | [fuzz-campaign](references/fuzz-campaign.md) |
-| Property or model-based tests; code-to-model conformance | write | [model-conformance](references/model-conformance.md) |
+| Property/model tests; code-to-model conformance | write | [model-conformance](references/model-conformance.md) |
 | SQL parse/lint (SQL 语法检查); transaction design per engine (事务设计) | design | [sql-static](references/sql-static.md); [txn-design](references/txn-design.md) |
 | Invariant, transaction, concurrency, idempotency, retry, async, fault or recovery claim | reliability | [txn-faults](references/txn-faults.md), [case-design](references/case-design.md) |
-| PostgreSQL change heading to release (DDL, migration, plan, locks, replication, backup, upgrade, roles/RLS) | db | [db](references/db.md), then only the gate files the change hits |
+| PostgreSQL release: DDL, migration, plan, locks, replication, backup, upgrade, roles/RLS | db | [db](references/db.md), then applicable gate files |
 | Web page load or interaction speed, Core Web Vitals, Lighthouse (网页性能) | write | [web-perf](references/web-perf.md) |
-| Same code passes and fails; intermittent CI failure | flaky | [release-ops](references/release-ops.md) §2, [stacks](references/stacks.md) |
+| Intermittent test/CI failure | flaky | [release-ops](references/release-ops.md) §2, [stacks](references/stacks.md) |
 | Release candidate go/no-go, canary, rollback readiness, incident follow-up controls | release | [release-ops](references/release-ops.md), [ops-learning](references/ops-learning.md) |
 | Claims come from a closure model or another phase's handoff | any | [workflow.md](../_shared/workflow.md) §2, §4 |
 | One end-to-end claim → case → evidence example | any | [worked-example](references/worked-example.md) |
 
-Read ≤3 references per task (shared files excluded). Modes chain: flow → design → red →
-write/reliability/db → flaky → release.
-HTTP/JSON/upload claims use [API cases](references/api-contract-tests.md) within that budget.
+Load ≤3 topical references for the current bounded phase/card. Shared contract, code-intel,
+workflow and the configured business-graph protocol are the common baseline. Carry the frozen
+claims, scope and evidence in the handoff across flow → design → red → write/reliability/db →
+flaky → release. Split a phase when its required topics exceed the budget; never omit a required
+protocol to fit it. HTTP/JSON/upload claims use [API cases](references/api-contract-tests.md).
 
 ## Workflow
 
-Graph-enabled work: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills); use `arc-verify handoff --to arc-verify --graph <id>` for bounded cards. User RULEs alone define business verdicts; preserve RAW and FLOW IDs.
+For requested/configured business-chain work read [business-graph](references/business-graph.md)
+and [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
+Follow confirmed RULE → graph → bounded card → real execution → independent RAW → verdict;
+`arc-verify handoff --to arc-verify --graph <id>` expands only local context.
 
-1. Read [contract](../_shared/contract.md). Record tier, scope, mode, environment and entry `git diff`/status baseline.
-   Output: task-log header.
-2. Flows first: find the target's flows in the catalog (flow-model §1); missing or `stale` → flow
-   mode traces entry points and writes rows, charts and branch tables. Output: FLOW and branch IDs,
-   or `n/a: <reason>` (T0, pure logic).
-3. Claims table: one row per branch or rule, `EXPECTED` or `FORBIDDEN`, source (`contract`, `doc`,
-   `user`, `derived`), required yes/no; an undefined result is a `SPECIFICATION GAP`. Output: claims table.
+1. Read [contract](../_shared/contract.md); record tier, scope, mode, environment and git baseline.
+2. Business catalog first: list expected functionality from user intent/contracts and obtain
+   user confirmation; discover implementation separately via code-intel and real UI/API evidence.
+   Reuse current flows; missing/stale → flow mode. Output: catalog, FLOW/branch IDs and candidate
+   implementation gaps, or `n/a: <reason>` (T0, pure logic).
+3. Claims table: `EXPECTED`/`FORBIDDEN`, confirmed source, required yes/no, oracle per branch/RULE.
+   AI inference stays `RISK`; undefined semantics are `SPECIFICATION GAP`.
 4. Map impact: [code-intel](../_shared/code-intel.md) §4 rows 2, 5–7 (3–4 for state or
-   serialization) and flow-matrix §7; boundary and cadence per scope-cadence. Output: scope table.
-5. Design cases per case-design and flow-matrix §2–§4; each names its oracle and the realistic
-   defect it must catch. Output: case table.
+   serialization) and flow-matrix §7; design phase records boundary and cadence per scope-cadence.
+   Execution consumes that scope table instead of reloading the design references.
+5. Design cases per case-design and flow-matrix §2–§4: satisfied conditions, each unsatisfied
+   condition, forced operation and known recovery paths; name the independent oracle and defect.
+   Output: case table, with uncovered paths explicit.
 6. Bind the environment: existing runner, fixtures, CI job, test DSN, in that order. Output:
    environment line, or `BLOCKED: <missing item>` per claim.
-7. Flow and design modes stop here: claims `NOT_RUN (plan only)`; `scripts/flow_ledger.py check
-   <catalog>` exits 0. Red mode runs step 8 on the pre-implementation code and hands each targeted
-   assertion failure to `arc:code` (test-first §5).
-8. Write tests in the repository's test directories and naming scheme, each answering test-value
-   §1; run them; save output to `.arc/artifacts/<task-slug>/logs/`. Output: command, exit code, log
-   path per claim.
-9. Prove sensitivity per required claim: the test fails on its targeted assertion against the
-   pre-fix commit, a known-bad input or a mutation in a disposable `git worktree` (removed after);
-   a red record counts. Output: fail-then-pass record.
-10. Assign verdicts per Decision Rules to claims and branch rows; re-run the ledger check. Output:
-    verdicts with evidence paths.
-11. Mode tail: flaky protocol, db gate groups or release gate order. Output: flaky record, gate
-    table or GO/NO-GO.
+7. Flow/design finish with `NOT_RUN (plan only)` and ledger check. Red runs step 8 on pre-implementation
+   code, handing targeted assertion failures to `arc:code` (test-first §5).
+8. Write tests beside their owning package per test-value §1; run them. Save command, exit and
+   per-claim output to `.arc/artifacts/<task-slug>/logs/`.
+9. Prove sensitivity: targeted assertion fails on pre-fix code, known-bad input or a disposable
+   worktree mutation. A red record counts. Output: fail-then-pass record.
+10. Assign verdicts; retain first divergence and original FAIL. Continue from an independently
+    observed safe state in a new run after verified reconstruction, or a linked new task for a
+    changed branch; recovery never rewrites history. Re-run the ledger check.
+11. Run the mode tail: flaky protocol, db gates or release GO/NO-GO.
 12. Hand off: each `FAIL` → repair packet ([execution-truth](../../docs/execution-truth.md) §6) for
     `arc:code`; each `SPECIFICATION GAP` → user; gaps and uncovered branches per flow-matrix §8.
     Report per contract §9. Output: report.
@@ -118,8 +117,7 @@ Graph-enabled work: [workflow §6](../_shared/workflow.md#6-graph-based-business
   - T1/T2 cases generated from an endpoint, function or file list without a flow;
   - expected values computed by the code under test; mocking the unit under test; mock-only proof
     of database, broker or durability semantics;
-  - re-blessing snapshots or golden files, weakening or deleting assertions, raising timeouts or
-    retries to hide a failure, retry-until-green;
+  - re-blessing snapshots/goldens, weakened/deleted assertions, timeouts/retries hiding failures;
   - `sleep` as synchronization; waits without a deadline;
   - load, stress, fault injection or destructive reset on shared or third-party targets without an
     authorization naming target, operations, data scope and stop condition; production chaos;
@@ -140,15 +138,17 @@ Graph-enabled work: [workflow §6](../_shared/workflow.md#6-graph-based-business
 - IF the sensitivity check passes on the defective version THEN the test is invalid; strengthen it
   before any verdict.
 - IF nothing was checked (no test selected, zero comparisons, empty baseline or policy) THEN `BLOCKED`.
+- IF required observations are missing or the runner fails THEN `BLOCKED`; a valid observation
+  violating a confirmed rule is `FAIL`. Never send a harness failure as a confirmed product defect.
 - IF evidence comes from another run, commit, config or environment THEN `NOT_RUN (stale)`; gates
   check run identity, not file presence ([release-ops](references/release-ops.md) §1).
-- IF a performance claim exists THEN judge it apart from correctness
-  ([scope-cadence](references/scope-cadence.md) §4); fast-but-wrong = `FAIL`.
+- IF a performance claim exists THEN prove correctness first, then measure under the same
+  candidate/environment ([scope-cadence](references/scope-cadence.md) §4); fast-but-wrong = `FAIL`.
 - IF the expected result is undecided THEN `SPECIFICATION GAP`: ask only that decision, continue
   with independent claims; never adopt current output as the expectation.
-- IF verification diagnoses a failure THEN follow root-cause repair in
-  [execution-truth](../../docs/execution-truth.md) §6 through root cause and affected siblings;
-  fix confirmed test or fixture defects here; send product defects to `arc:code` as a repair packet.
+- IF diagnosing a failure THEN load the evidence-first root-cause repair gate in
+  [execution-truth.md](../../docs/execution-truth.md) §6 through root cause and siblings;
+  repair confirmed test/fixture defects here and hand product defects to `arc:code`.
 
 ## Verification
 
@@ -159,28 +159,25 @@ Graph-enabled work: [workflow §6](../_shared/workflow.md#6-graph-based-business
 | `FAIL` | failing assertion output plus repair packet |
 | `BLOCKED` / `NOT_RUN` | missing prerequisite or deferral reason |
 | Authority kept | delta since phase entry touches only tests, fixtures, test configs, the flow catalog or artifacts |
-| Mode evidence | the mode reference's evidence and verdict section: flow-model §1, fuzz-campaign §8, model-conformance §7, release-ops §2–§3, db.md |
+| Mode evidence | applicable reference's evidence/verdict requirements |
+| Graph gate | frozen task/RAW revalidated; PASS covers planned positive/negative/forced; recovery, cross-role, concurrency and E2E need separate evidence |
 
 ## Failure Recovery
 
 | Failure class | Action | Retry budget | Stop condition |
 |---|---|---|---|
-| Environment missing (DSN, device, browser, service; `with_server.py` exit 125) | search env samples, CI config and the server log once; else `BLOCKED` naming the missing item | 1 pass | continue unaffected claims |
-| Test does not compile or start | fix the test code, imports or test config | 3 attempts | `BLOCKED` with the last error |
+| Environment missing; `with_server.py` exit 125 | check env samples, CI and server log; else `BLOCKED` with missing item | 1 pass | continue unaffected claims |
+| Test cannot compile/start | fix test/import/config | 3 attempts | `BLOCKED` with last error |
 | Baseline already failing | run the same test on the parent commit | 1 | pre-existing: judge only the delta |
-| Assertion fails | rerun once unchanged | 1 | `FAIL` + repair packet |
-| Result alternates | flaky protocol | 3 reruns to classify; ≤50 iterations to reproduce | `FLAKY` + quarantine proposal |
-| Test hangs | kill at the stack timeout; capture a thread dump | 1 | `BLOCKED` or `FAIL` with the dump |
-| Observer or oracle breaks | repair the observer (test code) | 1 | `BLOCKED` for dependent claims |
+| Assertion fails | retain FAIL/RAW; read back actual state; new-run replay needs existing authorization, same candidate/config and verified isolated reconstruction | ≤1 safe rerun | unknown state BLOCKED; valid divergence FAIL + packet |
+| Result alternates | flaky protocol with comparable candidate/config/verified initial state; side effects need recovery checkpoint | 3 safe classification reruns; ≤50 authorized iterations | FLAKY + quarantine proposal; unsafe replay BLOCKED |
+| Test hangs | stop runner/descendants at task deadline; preserve partial RAW/dump; verify actual state before continuing | 1 | observer failure BLOCKED; independently observed contracted liveness breach FAIL |
+| Observer/oracle breaks | repair test observer | 1 | dependent claims `BLOCKED` |
 
 ## Completion Criteria
 
-- [ ] Contract read; tier, mode and environment recorded.
-- [ ] Flows in scope current; every branch has a case or a reason; ledger check exits 0.
-- [ ] Claims table complete: EXPECTED/FORBIDDEN, source, oracle, verdict, evidence per row.
-- [ ] New tests answer test-value §1 and live in the repository's test directories; logs under
-  `.arc/artifacts/<task-slug>/logs/`.
-- [ ] Required claims have a sensitivity record; every `BLOCKED`/`NOT_RUN` has a reason.
-- [ ] Production source unchanged; every `FAIL` has a repair packet for `arc:code`.
-- [ ] Mode tail done: flaky quarantine proposal, db gate table or release GO/NO-GO (release-ops §2–§3).
-- [ ] Report in the contract §9 format.
+- [ ] Tier/mode/environment recorded; expected catalog confirmed separately from implementation.
+- [ ] Every branch has a case/reason; claims retain source/oracle/verdict/RAW, IDs and historical FAIL; ledger check passes.
+- [ ] Required sensitivity, meaningful owning tests and logs exist; every BLOCKED/NOT_RUN has a reason.
+- [ ] Production source unchanged; product FAIL has an `arc:code` repair packet.
+- [ ] Applicable mode tail and contract §9 report complete.

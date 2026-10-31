@@ -17,7 +17,7 @@ vegeta 12, Maestro CLI 2.x. Record the version actually used in the evidence.
 | `.xcodeproj` / `.xcworkspace` | Xcode test plans; Swift Testing/XCTest for supported logic targets, XCUITest for app UI |
 | `Package.swift` | `swift test` for package logic; app/platform integration still needs the actual app target |
 
-Run the project's own entry (`make test`, `npm test`, the CI job) first when it exists. Never
+Run the project's own entry (`make test`, `vp test`, the CI job) first when it exists. Never
 introduce a bespoke cross-language runner.
 
 ## Go
@@ -46,15 +46,18 @@ go test -artifacts -outputdir=.arc/artifacts/<task-slug>/logs ./pkg   # keeps t.
 ## TypeScript / JavaScript
 
 ```bash
-npx vitest run                     # unit/component
-npx vitest run --coverage          # needs @vitest/coverage-v8 (or -istanbul) at the same major as vitest
-npx jest --coverage                # Jest 30 projects
-npx playwright test                # E2E
+vp test                           # configured Vite+ unit/component tests
+vp test --coverage                # coverage provider must match the installed runner
+vpx jest --coverage               # existing Jest project
+vpx playwright test               # E2E
 ```
 
 - Vitest 5: Node ≥ 22.12 and Vite ≥ 6.4; `clearMocks` defaults to true; an un-awaited async
   assertion fails; `-t` filters join suite and test names with ` > `; reporter output defaults to
   `.vitest/`; coverage `include`/`exclude` match paths relative to the project root.
+- Vite+ owns frontend dev/check/test/build; bun owns dependencies and TS/JS execution. Use
+  `bun install` for project dependencies, `vpx`/`vp dlx` for one-off tools and `vp install -g`
+  for an explicitly authorized global CLI install. Do not use npm/npx/yarn to install packages.
 - Component queries by role or label (`getByRole`, `getByLabelText`), not CSS selectors.
 - Properties and model runs: `fast-check` ([model-conformance](model-conformance.md)). HTTP stubs (MSW or similar) only for dependencies outside the claim,
   never for the API whose contract is under test.
@@ -182,12 +185,16 @@ Capture evidence for a performance verdict; optimizing belongs to `arc:code`.
 
 ## Repeat runs for flaky triage
 
+Use these only for hermetic tests or authorized targets whose initial state is independently
+reconstructed before every iteration. Preserve the first FAIL and every attempt, use a deadline,
+and stop when the actual state is unknown; repeat flags never grant permission to replay effects.
+
 | Stack | Command |
 |---|---|
 | Go | `go test -run '^TestX$' -count=50 -race ./pkg`; vary `-cpu=1,4` and `-shuffle=on` |
-| Vitest / Jest | `for i in $(seq 50); do npx vitest run -t '<suite> > <test>' \|\| echo "FAIL $i"; done` |
-| pytest | `for i in $(seq 50); do python -m pytest -q "tests/x.py::test_y" \|\| echo "FAIL $i"; done` |
-| Playwright | `npx playwright test <file> --repeat-each=50 --retries=0` |
+| Vitest / Jest | the project's bounded repeat runner via `vp test` or `vpx jest`; retain every attempt and aggregate a nonzero exit |
+| pytest | the project's bounded repeat entry invoking `python -m pytest -q "tests/x.py::test_y"`; retain each exit and return nonzero if any iteration fails |
+| Playwright | `vpx playwright test <file> --repeat-each=50 --retries=0` |
 
 ## Environment
 

@@ -9,6 +9,7 @@ jobs:
     runs-on: [self-hosted, linux, db-perf]
     env:
       DATABASE_URL: ${{ secrets.DATABASE_BENCH_URL }}
+      SQLVERIFY_TIMEOUT_S: ${{ vars.SQLVERIFY_TIMEOUT_S }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -17,6 +18,7 @@ jobs:
       - name: Pre-release qualification
         run: |
           python scripts/run_suite.py \
+            --timeout-s "${SQLVERIFY_TIMEOUT_S:?configure the task budget}" \
             --config .sqlverify/sql-verification.toml --root . \
             --evidence-dir .sqlverify/evidence \
             --baseline-dir .sqlverify/baselines/main \

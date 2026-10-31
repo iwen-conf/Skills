@@ -33,3 +33,8 @@ reconciliation mismatch count
 Do not automatically rollback an irreversible schema/data change unless rollback semantics have been proven. In those cases the containment action may be feature disable, traffic stop, dual-read fallback or forward-fix.
 
 `canary_evaluator.py` compares control/canary metric samples and requires minimum bake/sample evidence. It is intentionally an evaluator, not a production deployment controller.
+
+Each metric needs an explicit policy comparator and finite observed samples. Missing bake/fraction
+observations, insufficient samples, undefined relative comparisons or inconclusive threshold
+comparisons are BLOCKED. Valid policy violations remain FAIL with their first comparison RAW even
+if a later observer/configuration fails; metadata defaults are not observed measurements.

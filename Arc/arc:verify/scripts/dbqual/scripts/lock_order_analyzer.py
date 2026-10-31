@@ -92,7 +92,8 @@ def main() -> int:
             (ev["warnings"] if ns.allow_cycles else ev["violations"]).append(msg)
         status = "PASS" if not ev["violations"] else "FAIL"
     except Exception as e:
-        ev["violations"].append(repr(e)); status = "FAIL"
+        ev["warnings"].append(repr(e))
+        status = "BLOCKED"
     json_dump(Path(ns.out), finalize_evidence(ev, started, status))
     print(json.dumps(ev, ensure_ascii=False, indent=2, default=str))
     return 0 if status == "PASS" else 2

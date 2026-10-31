@@ -16,13 +16,15 @@ def _psycopg():
     try:
         import psycopg  # type: ignore
         from psycopg.rows import dict_row  # type: ignore
+
         return psycopg, dict_row
     except ImportError as e:
         raise RuntimeError("psycopg 3 is required") from e
 
 
 def _ratio(a: Any, b: Any) -> float:
-    a = float(a or 0); b = float(b or 0)
+    a = float(a or 0)
+    b = float(b or 0)
     return a / max(1.0, a + b)
 
 
@@ -61,22 +63,49 @@ def main() -> int:
     ap.add_argument("--config", required=True)
     ap.add_argument("--out", required=True)
     ns = ap.parse_args()
-    cfg = load_config(Path(ns.config)); policy = cfg.get("maintenance_audit", {})
-    start = time.monotonic(); ev = evidence_base("maintenance_health", "maintenance.health")
-    dsn_env = cfg["database"]["dsn_env"]; dsn = os.environ.get(dsn_env)
+    cfg = load_config(Path(ns.config))
+    policy = cfg.get("maintenance_audit", {})
+    start = time.monotonic()
+    ev = evidence_base("maintenance_health", "maintenance.health")
+    dsn_env = cfg["database"]["dsn_env"]
+    dsn = os.environ.get(dsn_env)
     if not dsn:
-        ev["violations"].append(f"missing env {dsn_env}"); json_dump(Path(ns.out), finalize_evidence(ev, start, "BLOCKED")); return 2
+        ev["violations"].append(f"missing env {dsn_env}")
+        json_dump(Path(ns.out), finalize_evidence(ev, start, "BLOCKED"))
+        return 2
     if not policy.get("enabled", True):
-        ev["warnings"].append("maintenance audit disabled by config"); json_dump(Path(ns.out), finalize_evidence(ev, start, "NOT_RUN")); return 0
+        ev["warnings"].append("maintenance audit disabled by config")
+        json_dump(Path(ns.out), finalize_evidence(ev, start, "NOT_RUN"))
+        return 0
+    blockers: list[str] = []
+
+    def observe(values):
+        ev["observed"].update(values)
+        ev["violations"].extend(evaluate_health(values, policy))
+
     try:
         psycopg, dict_row = _psycopg()
         with psycopg.connect(dsn, autocommit=True, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
-                cur.execute("select current_database() as db, current_setting('max_connections')::int as max_connections")
-                meta = cur.fetchone(); dbname = meta["db"]
-                require_test_database_name(dbname, cfg["database"]["safe_database_pattern"], bool(cfg["database"].get("allow_destructive", False)))
+                cur.execute(
+                    "select current_database() as db, current_setting('max_connections')::int as max_connections"
+                )
+                meta = cur.fetchone()
+                dbname = meta["db"]
+                require_test_database_name(
+                    dbname,
+                    cfg["database"]["safe_database_pattern"],
+                    bool(cfg["database"].get("allow_destructive", False)),
+                )
+                observe({"database": dbname, "max_connections": meta["max_connections"]})
                 cur.execute("select count(*)::int as n from pg_stat_activity where datname=current_database()")
                 conn_count = cur.fetchone()["n"]
+                observe(
+                    {
+                        "connections": conn_count,
+                        "connections_utilization": conn_count / max(1, int(meta["max_connections"])),
+                    }
+                )
                 cur.execute("""
                     select
                       coalesce(max(extract(epoch from (clock_timestamp()-xact_start))) filter (where xact_start is not null),0)::float8 as oldest_xact_s,
@@ -84,25 +113,37 @@ def main() -> int:
                     from pg_stat_activity where datname=current_database()
                 """)
                 ages = cur.fetchone()
+                observe(
+                    {
+                        "oldest_transaction_s": ages["oldest_xact_s"],
+                        "oldest_idle_in_transaction_s": ages["oldest_idle_s"],
+                    }
+                )
                 cur.execute("select age(datfrozenxid)::bigint as age from pg_database where datname=current_database()")
                 db_xid_age = cur.fetchone()["age"]
+                observe({"database_xid_age": db_xid_age})
                 cur.execute("""
                     select coalesce(max(age(c.relfrozenxid)),0)::bigint as max_age
                     from pg_class c join pg_namespace n on n.oid=c.relnamespace
                     where c.relkind in ('r','m','t') and n.nspname not in ('pg_catalog','information_schema')
                 """)
                 table_xid = cur.fetchone()["max_age"]
+                observe({"max_table_xid_age": table_xid})
                 cur.execute("""
                     select coalesce(max(n_dead_tup::float8 / greatest(1,(n_live_tup+n_dead_tup))::float8),0)::float8 as max_ratio
                     from pg_stat_user_tables
                 """)
                 dead_ratio = cur.fetchone()["max_ratio"]
+                observe({"max_dead_tuple_ratio": dead_ratio})
                 cur.execute("select count(*)::int as n from pg_index where not indisvalid or not indisready")
                 invalid_indexes = cur.fetchone()["n"]
+                observe({"invalid_indexes": invalid_indexes})
                 cur.execute("select count(*)::int as n from pg_constraint where not convalidated")
                 unvalidated = cur.fetchone()["n"]
+                observe({"unvalidated_constraints": unvalidated})
                 cur.execute("select count(*)::int as n from pg_prepared_xacts where database=current_database()")
                 prepared = cur.fetchone()["n"]
+                observe({"prepared_transactions": prepared})
                 cur.execute("""
                     select
                       coalesce(max(n_mod_since_analyze::float8 / greatest(1,n_live_tup)::float8),0)::float8 as max_mod_ratio,
@@ -111,7 +152,14 @@ def main() -> int:
                     from pg_stat_user_tables
                 """)
                 stats = cur.fetchone()
-                max_sequence_util = 0.0
+                observe(
+                    {
+                        "max_mod_since_analyze_ratio": stats["max_mod_ratio"],
+                        "never_analyzed_tables": stats["never_analyzed"],
+                        "oldest_statistics_age_s": stats["oldest_stats_age_s"],
+                    }
+                )
+                max_sequence_util = None
                 try:
                     cur.execute("""
                         select coalesce(max(
@@ -126,10 +174,14 @@ def main() -> int:
                         from pg_sequences where schemaname not in ('pg_catalog','information_schema') and not cycle
                     """)
                     max_sequence_util = float(cur.fetchone()["max_util"] or 0)
-                except Exception:
-                    max_sequence_util = 0.0
+                except Exception as e:
+                    ev["warnings"].append(f"sequence utilization unobserved: {e!r}")
+                    if policy.get("max_sequence_utilization") is not None:
+                        blockers.append("required sequence utilization observation is missing")
                 # Replication slot columns are version-sensitive; guard the query.
-                max_inactive_retained = 0; lost_slots = 0; slot_rows = []
+                max_inactive_retained = None
+                lost_slots = None
+                slot_rows = None
                 try:
                     cur.execute("""
                         select slot_name, slot_type, active, wal_status,
@@ -137,11 +189,22 @@ def main() -> int:
                         from pg_replication_slots
                     """)
                     slot_rows = cur.fetchall()
+                    max_inactive_retained = 0
+                    lost_slots = 0
                     for r in slot_rows:
-                        if not r["active"]: max_inactive_retained = max(max_inactive_retained, int(r["retained_bytes"] or 0))
-                        if r.get("wal_status") == "lost": lost_slots += 1
-                except Exception:
-                    slot_rows = []
+                        if not r["active"]:
+                            max_inactive_retained = max(max_inactive_retained, int(r["retained_bytes"] or 0))
+                        if r.get("wal_status") == "lost":
+                            lost_slots += 1
+                except Exception as e:
+                    max_inactive_retained = None
+                    lost_slots = None
+                    slot_rows = None
+                    ev["warnings"].append(f"replication slots unobserved: {e!r}")
+                    if policy.get("max_inactive_slot_retained_bytes") is not None or policy.get(
+                        "require_no_lost_replication_slots", False
+                    ):
+                        blockers.append("required replication slot observation is missing")
                 obs = {
                     "database": dbname,
                     "connections": conn_count,
@@ -163,11 +226,20 @@ def main() -> int:
                     "lost_replication_slots": lost_slots,
                     "replication_slots": slot_rows,
                 }
-                ev["observed"] = obs
-                ev["violations"].extend(evaluate_health(obs, policy))
-                status = "PASS" if not ev["violations"] else "FAIL"
+                observe(
+                    {
+                        "max_sequence_utilization": max_sequence_util,
+                        "max_inactive_slot_retained_bytes": max_inactive_retained,
+                        "lost_replication_slots": lost_slots,
+                    }
+                )
+                ev["observed"].update(obs)
+                status = "FAIL" if ev["violations"] else "BLOCKED" if blockers else "PASS"
     except Exception as e:
-        ev["violations"].append(repr(e)); status = "BLOCKED"
+        blockers.append(repr(e))
+        status = "FAIL" if ev["violations"] else "BLOCKED"
+    ev["warnings"].extend(blockers)
+    ev["observed"]["blockers"] = blockers
     ev["reproduction"] = {"dsn_env": dsn_env, "policy": policy}
     json_dump(Path(ns.out), finalize_evidence(ev, start, status))
     print(json.dumps(ev, ensure_ascii=False, indent=2, default=str))

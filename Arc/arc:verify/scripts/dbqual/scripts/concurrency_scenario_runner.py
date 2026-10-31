@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import operator
 import os
 import threading
@@ -11,7 +12,15 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from sqlverify_common import evidence_base, finalize_evidence, json_dump, require_test_database_name, redact_dsn, sha256_file
+from sqlverify_common import (
+    evidence_base,
+    finalize_evidence,
+    json_dump,
+    require_test_database_name,
+    redact_dsn,
+    sha256_file,
+    scalar_value,
+)
 from sqlverify_config import load_config
 
 OPS = {"==": operator.eq, "!=": operator.ne, ">=": operator.ge, ">": operator.gt, "<=": operator.le, "<": operator.lt}
@@ -20,6 +29,7 @@ OPS = {"==": operator.eq, "!=": operator.ne, ">=": operator.ge, ">": operator.gt
 def _psycopg():
     try:
         import psycopg  # type: ignore
+
         return psycopg
     except ImportError as e:
         raise RuntimeError("psycopg 3 is required") from e
@@ -61,6 +71,7 @@ def main() -> int:
 
     started = time.monotonic()
     ev = evidence_base("concurrency_scenario", f"concurrency.{ns.scenario}")
+    blockers: list[str] = []
     dsn_env = cfg["database"]["dsn_env"]
     dsn = os.environ.get(dsn_env)
     ev["reproduction"] = {
@@ -76,7 +87,8 @@ def main() -> int:
         ev["reproduction"]["dsn_redacted"] = redact_dsn(dsn)
     if not dsn:
         ev["violations"].append(f"missing env {dsn_env}")
-        json_dump(Path(ns.out), finalize_evidence(ev, started, "BLOCKED")); return 2
+        json_dump(Path(ns.out), finalize_evidence(ev, started, "BLOCKED"))
+        return 2
 
     try:
         psycopg = _psycopg()
@@ -84,21 +96,26 @@ def main() -> int:
             with c.cursor() as cur:
                 cur.execute("select current_database()")
                 dbname = cur.fetchone()[0]
-        require_test_database_name(dbname, cfg["database"]["safe_database_pattern"], bool(cfg["database"].get("allow_destructive", False)))
+        require_test_database_name(
+            dbname, cfg["database"]["safe_database_pattern"], bool(cfg["database"].get("allow_destructive", False))
+        )
     except Exception as e:
         ev["violations"].append(repr(e))
-        json_dump(Path(ns.out), finalize_evidence(ev, started, "BLOCKED")); return 2
+        json_dump(Path(ns.out), finalize_evidence(ev, started, "BLOCKED"))
+        return 2
 
     sessions = sc.get("session", [])
     session_count = len(sessions)
-    if session_count < 2:
-        ev["violations"].append("scenario needs >=2 sessions")
-        json_dump(Path(ns.out), finalize_evidence(ev, started, "FAIL")); return 2
+    if session_count < 2 or not sc.get("assertion"):
+        ev["warnings"].append("at least two sessions and an independent assertion are required")
+        json_dump(Path(ns.out), finalize_evidence(ev, started, "BLOCKED"))
+        return 2
 
     barrier_names = {step["name"] for sess in sessions for step in sess.get("step", []) if step.get("op") == "barrier"}
     barriers = {name: threading.Barrier(session_count) for name in barrier_names}
     results: dict[str, Any] = {}
     results_lock = threading.Lock()
+    connections: dict[str, Any] = {}
     stop = threading.Event()
     samples: list[dict[str, Any]] = []
     observed_edges: set[tuple[int, int]] = set()
@@ -107,29 +124,47 @@ def main() -> int:
     def observer() -> None:
         sample_ms = int(sc.get("observer_sample_ms", 20))
         try:
-            with psycopg.connect(dsn, autocommit=True) as conn:
+            with psycopg.connect(
+                dsn, autocommit=True, connect_timeout=max(1, math.ceil(float(sc.get("timeout_s", 15))))
+            ) as conn:
+                with results_lock:
+                    connections["_observer"] = conn
                 with conn.cursor() as cur:
-                    cur.execute("select set_config('application_name', %s, false)", (f"sqlverify:{ns.scenario}:observer",))
+                    cur.execute(
+                        "select set_config('application_name', %s, false)", (f"sqlverify:{ns.scenario}:observer",)
+                    )
+                    cur.execute(
+                        "select set_config('statement_timeout', %s, false)",
+                        (f"{max(1, int(float(sc.get('timeout_s', 15)) * 1000))}ms",),
+                    )
                 while not stop.is_set():
                     with conn.cursor() as cur:
-                        cur.execute("""
+                        cur.execute(
+                            """
                             select pid, application_name, state, wait_event_type, wait_event,
                                    pg_blocking_pids(pid), now()-xact_start as xact_age,
                                    now()-query_start as query_age, left(query, 500)
                             from pg_stat_activity
                             where application_name like %s and application_name <> %s
                             order by pid
-                        """, (f"sqlverify:{ns.scenario}:%", f"sqlverify:{ns.scenario}:observer"))
+                        """,
+                            (f"sqlverify:{ns.scenario}:%", f"sqlverify:{ns.scenario}:observer"),
+                        )
                         rows = cur.fetchall()
                     ts = time.monotonic()
                     current_edges: set[tuple[int, int]] = set()
                     for r in rows:
                         blockers = list(r[5] or [])
                         rec = {
-                            "t": ts, "pid": r[0], "app": r[1], "state": r[2],
-                            "wait_event_type": r[3], "wait_event": r[4], "blocking_pids": blockers,
-                            "xact_age_ms": None if r[6] is None else round(r[6].total_seconds()*1000, 3),
-                            "query_age_ms": None if r[7] is None else round(r[7].total_seconds()*1000, 3),
+                            "t": ts,
+                            "pid": r[0],
+                            "app": r[1],
+                            "state": r[2],
+                            "wait_event_type": r[3],
+                            "wait_event": r[4],
+                            "blocking_pids": blockers,
+                            "xact_age_ms": None if r[6] is None else round(r[6].total_seconds() * 1000, 3),
+                            "query_age_ms": None if r[7] is None else round(r[7].total_seconds() * 1000, 3),
                             "query": r[8],
                         }
                         samples.append(rec)
@@ -141,28 +176,42 @@ def main() -> int:
                     # time can manufacture a cycle that never existed concurrently.
                     cyc = _graph_cycles(current_edges)
                     if cyc:
-                        observed_cycles.append({"t": ts, "cycles": cyc, "edges": [list(x) for x in sorted(current_edges)]})
+                        observed_cycles.append(
+                            {"t": ts, "cycles": cyc, "edges": [list(x) for x in sorted(current_edges)]}
+                        )
                     stop.wait(sample_ms / 1000.0)
         except Exception as e:
             with results_lock:
                 results["_observer_error"] = repr(e)
+        finally:
+            with results_lock:
+                connections.pop("_observer", None)
 
     def worker(sess: dict[str, Any]) -> None:
         name = sess["name"]
         rec: dict[str, Any] = {"sqlstates": [], "steps": [], "error": None}
         try:
-            with psycopg.connect(dsn, autocommit=True) as conn:
+            with psycopg.connect(
+                dsn, autocommit=True, connect_timeout=max(1, math.ceil(float(sc.get("timeout_s", 15))))
+            ) as conn:
+                with results_lock:
+                    connections[name] = conn
                 with conn.cursor() as cur:
-                    cur.execute("select set_config('application_name', %s, false)", (f"sqlverify:{ns.scenario}:{name}",))
-                    cur.execute("select set_config('statement_timeout', %s, false)", (f"{int(sc.get('statement_timeout_ms', 15000))}ms",))
+                    cur.execute(
+                        "select set_config('application_name', %s, false)", (f"sqlverify:{ns.scenario}:{name}",)
+                    )
+                    cur.execute(
+                        "select set_config('statement_timeout', %s, false)",
+                        (f"{int(sc.get('statement_timeout_ms', 15000))}ms",),
+                    )
                     if int(sc.get("lock_timeout_ms", 0)) > 0:
-                        cur.execute("select set_config('lock_timeout', %s, false)", (f"{int(sc['lock_timeout_ms'])}ms",))
+                        cur.execute(
+                            "select set_config('lock_timeout', %s, false)", (f"{int(sc['lock_timeout_ms'])}ms",)
+                        )
                     if int(sc.get("deadlock_timeout_ms", 0)) > 0:
-                        # Requires suitable privilege; if unavailable, keep server default and record warning via step.
-                        try:
-                            cur.execute("select set_config('deadlock_timeout', %s, false)", (f"{int(sc['deadlock_timeout_ms'])}ms",))
-                        except Exception:
-                            conn.rollback()
+                        cur.execute(
+                            "select set_config('deadlock_timeout', %s, false)", (f"{int(sc['deadlock_timeout_ms'])}ms",)
+                        )
                 for idx, step in enumerate(sess.get("step", [])):
                     op = step["op"]
                     t0 = time.monotonic()
@@ -175,64 +224,120 @@ def main() -> int:
                             with conn.cursor() as cur:
                                 cur.execute(step["sql"], step.get("params"))
                                 row = cur.fetchone() if cur.description else None
-                            rec["steps"].append({"index": idx, "op": op, "row": row, "elapsed_ms": round((time.monotonic()-t0)*1000,3)})
+                            rec["steps"].append(
+                                {
+                                    "index": idx,
+                                    "op": op,
+                                    "row": row,
+                                    "elapsed_ms": round((time.monotonic() - t0) * 1000, 3),
+                                }
+                            )
                             continue
                         else:
                             raise ValueError(f"unknown op {op}")
-                        rec["steps"].append({"index": idx, "op": op, "elapsed_ms": round((time.monotonic()-t0)*1000,3)})
+                        rec["steps"].append(
+                            {"index": idx, "op": op, "elapsed_ms": round((time.monotonic() - t0) * 1000, 3)}
+                        )
                     except Exception as e:
                         state = getattr(e, "sqlstate", None)
                         if state:
                             rec["sqlstates"].append(state)
-                        rec["steps"].append({"index": idx, "op": op, "error": repr(e), "sqlstate": state, "elapsed_ms": round((time.monotonic()-t0)*1000,3)})
+                        else:
+                            rec["error"] = repr(e)
+                        rec["steps"].append(
+                            {
+                                "index": idx,
+                                "op": op,
+                                "error": repr(e),
+                                "sqlstate": state,
+                                "elapsed_ms": round((time.monotonic() - t0) * 1000, 3),
+                            }
+                        )
                         try:
                             conn.rollback()
-                        except Exception:
-                            pass
-                        if not step.get("continue_on_error", False):
+                        except Exception as cleanup_error:
+                            rec["cleanup_error"] = repr(cleanup_error)
+                        if not state or not step.get("continue_on_error", False):
                             break
         except Exception as e:
             rec["error"] = repr(e)
         with results_lock:
+            connections.pop(name, None)
             results[name] = rec
 
-    obs = threading.Thread(target=observer, daemon=True); obs.start()
+    obs = threading.Thread(target=observer, daemon=True)
+    obs.start()
     threads = [threading.Thread(target=worker, args=(s,), daemon=True) for s in sessions]
-    for t in threads: t.start()
+    for t in threads:
+        t.start()
     deadline = time.monotonic() + float(sc.get("timeout_s", 15))
     for t in threads:
-        remaining = max(0.0, deadline-time.monotonic())
+        remaining = max(0.0, deadline - time.monotonic())
         t.join(timeout=remaining)
-    hung = [sessions[i]["name"] for i,t in enumerate(threads) if t.is_alive()]
-    stop.set(); obs.join(timeout=2)
+    hung = [sessions[i]["name"] for i, t in enumerate(threads) if t.is_alive()]
+    stop.set()
+    obs.join(timeout=2)
+    if hung or obs.is_alive():
+        blockers.append(f"execution did not complete before deadline: sessions={hung}, observer={obs.is_alive()}")
+        cleanup_deadline = time.monotonic() + 5
+        with results_lock:
+            pending_connections = list(connections.items())
+        for name, conn in pending_connections:
+            try:
+                remaining = cleanup_deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError("connection cancellation budget exhausted")
+                conn.cancel_safe(timeout=remaining)
+            except Exception as exc:
+                blockers.append(f"cancel {name}: {exc!r}")
+        for t in [*threads, obs]:
+            t.join(timeout=max(0, cleanup_deadline - time.monotonic()))
+        if any(t.is_alive() for t in [*threads, obs]):
+            blockers.append("runner threads remain active; fixture reconstruction is required")
+    for name, rec in results.items():
+        if isinstance(rec, dict) and (rec.get("error") or rec.get("cleanup_error")):
+            blockers.append(f"session {name} harness/cleanup error: {rec}")
 
-    all_states = [st for k,v in results.items() if isinstance(v, dict) for st in v.get("sqlstates", [])]
+    all_states = [st for k, v in results.items() if isinstance(v, dict) for st in v.get("sqlstates", [])]
     counts = {"40P01": 0, "40001": 0}
     for state in all_states:
         counts[state] = counts.get(state, 0) + 1
-    if hung:
-        ev["violations"].append(f"sessions did not finish before timeout: {hung}")
     if results.get("_observer_error") and sc.get("require_observer", True):
-        ev["violations"].append(f"observer failed: {results['_observer_error']}")
+        blockers.append(f"observer failed: {results['_observer_error']}")
+    lock_waits = [x for x in samples if x.get("wait_event_type") == "Lock" or x.get("blocking_pids")]
+    if sc.get("require_observer", True) and not samples:
+        blockers.append("observer captured no target session samples")
+    if sc.get("require_lock_wait", False) and not lock_waits:
+        blockers.append("required lock contention was not observed")
+    if sc.get("require_wait_cycle", False) and not observed_cycles:
+        blockers.append("required wait-for graph cycle was not observed before resolution")
 
     # Global SQLSTATE expectations.
     required = set(sc.get("required_sqlstates", []))
     allowed = set(sc.get("allowed_sqlstates", [])) | required
     missing = required - set(all_states)
     unexpected = set(all_states) - allowed
-    if missing:
+    if not blockers and missing:
         ev["violations"].append(f"required SQLSTATEs not observed: {sorted(missing)}")
-    if unexpected:
+    if not hung and unexpected:
         ev["violations"].append(f"unexpected SQLSTATEs observed: {sorted(unexpected)}")
 
     # Exact/range expectations for concurrency outcomes.
     for sqlstate, field in [("40P01", "expected_deadlock_count"), ("40001", "expected_serialization_failure_count")]:
-        if field in sc and counts.get(sqlstate, 0) != int(sc[field]):
-            ev["violations"].append(f"{field}={sc[field]} but observed {counts.get(sqlstate,0)} ({sqlstate})")
-    if "max_deadlock_count" in sc and counts.get("40P01", 0) > int(sc["max_deadlock_count"]):
-        ev["violations"].append(f"deadlock count {counts.get('40P01',0)} exceeds max_deadlock_count={sc['max_deadlock_count']}")
-    if "max_serialization_failure_count" in sc and counts.get("40001", 0) > int(sc["max_serialization_failure_count"]):
-        ev["violations"].append(f"serialization failure count {counts.get('40001',0)} exceeds max={sc['max_serialization_failure_count']}")
+        if not blockers and field in sc and counts.get(sqlstate, 0) != int(sc[field]):
+            ev["violations"].append(f"{field}={sc[field]} but observed {counts.get(sqlstate, 0)} ({sqlstate})")
+    if not hung and "max_deadlock_count" in sc and counts.get("40P01", 0) > int(sc["max_deadlock_count"]):
+        ev["violations"].append(
+            f"deadlock count {counts.get('40P01', 0)} exceeds max_deadlock_count={sc['max_deadlock_count']}"
+        )
+    if (
+        not hung
+        and "max_serialization_failure_count" in sc
+        and counts.get("40001", 0) > int(sc["max_serialization_failure_count"])
+    ):
+        ev["violations"].append(
+            f"serialization failure count {counts.get('40001', 0)} exceeds max={sc['max_serialization_failure_count']}"
+        )
 
     # Per-session SQLSTATE expectations.
     by_name = {s["name"]: s for s in sessions}
@@ -243,18 +348,10 @@ def main() -> int:
         got = set(rec.get("sqlstates", []))
         req = set(ss.get("required_sqlstates", []))
         allow = set(ss.get("allowed_sqlstates", [])) | req
-        if req - got:
-            ev["violations"].append(f"session {name}: required SQLSTATEs missing: {sorted(req-got)}")
-        if got - allow:
-            ev["violations"].append(f"session {name}: unexpected SQLSTATEs: {sorted(got-allow)}")
-
-    lock_waits = [x for x in samples if x.get("wait_event_type") == "Lock" or x.get("blocking_pids")]
-    if sc.get("require_observer", True) and not samples:
-        ev["violations"].append("observer captured no target session samples")
-    if sc.get("require_lock_wait", False) and not lock_waits:
-        ev["violations"].append("required lock contention was not observed")
-    if sc.get("require_wait_cycle", False) and not observed_cycles:
-        ev["violations"].append("required wait-for graph cycle was not observed before resolution")
+        if not blockers and req - got:
+            ev["violations"].append(f"session {name}: required SQLSTATEs missing: {sorted(req - got)}")
+        if not hung and got - allow:
+            ev["violations"].append(f"session {name}: unexpected SQLSTATEs: {sorted(got - allow)}")
 
     # Approximate continuous wait tails by application name.
     by_app: dict[str, list[float]] = defaultdict(list)
@@ -263,30 +360,40 @@ def main() -> int:
     max_wait_ms = 0.0
     sample_s = int(sc.get("observer_sample_ms", 20)) / 1000.0
     for times in by_app.values():
-        times.sort(); start = prev = times[0]
+        times.sort()
+        start = prev = times[0]
         for ts in times[1:]:
-            if ts-prev > sample_s*2.5:
-                max_wait_ms = max(max_wait_ms, (prev-start+sample_s)*1000); start = ts
+            if ts - prev > sample_s * 2.5:
+                max_wait_ms = max(max_wait_ms, (prev - start + sample_s) * 1000)
+                start = ts
             prev = ts
-        max_wait_ms = max(max_wait_ms, (prev-start+sample_s)*1000)
+        max_wait_ms = max(max_wait_ms, (prev - start + sample_s) * 1000)
     if "max_lock_wait_ms" in sc and max_wait_ms > float(sc["max_lock_wait_ms"]):
         ev["violations"].append(f"max lock wait {max_wait_ms:.3f}ms exceeds {sc['max_lock_wait_ms']}ms")
 
     assertions = []
     try:
+        if hung:
+            raise RuntimeError("assertions cannot prove the terminal state of an unfinished scenario")
         with psycopg.connect(dsn, autocommit=True) as conn:
             with conn.cursor() as cur:
-                cur.execute("select set_config('statement_timeout', %s, false)", (f"{int(sc.get('assertion_timeout_ms',5000))}ms",))
+                cur.execute(
+                    "select set_config('statement_timeout', %s, false)",
+                    (f"{int(sc.get('assertion_timeout_ms', 5000))}ms",),
+                )
                 for a in sc.get("assertion", []):
                     cur.execute(a["sql"], a.get("params"))
-                    row = cur.fetchone(); actual = row[0] if row else None
-                    op = a.get("op", "=="); expected = a.get("expected")
+                    actual = scalar_value(cur)
+                    op = a.get("op", "==")
+                    expected = a["expected"]
                     passed = OPS[op](actual, expected)
-                    assertions.append({"id": a["id"], "actual": actual, "op": op, "expected": expected, "passed": passed})
+                    assertions.append(
+                        {"id": a["id"], "actual": actual, "op": op, "expected": expected, "passed": passed}
+                    )
                     if not passed:
                         ev["violations"].append(f"assertion {a['id']} failed: {actual!r} {op} {expected!r}")
     except Exception as e:
-        ev["violations"].append(f"assertion execution failed: {e!r}")
+        blockers.append(f"assertion execution failed: {e!r}")
 
     ev["observed"] = {
         "database": dbname,
@@ -301,8 +408,10 @@ def main() -> int:
         "wait_for_edges": [list(x) for x in sorted(observed_edges)],
         "wait_for_cycles": observed_cycles[-50:],
         "samples": samples[-5000:],
+        "blockers": blockers,
     }
-    status = "PASS" if not ev["violations"] else "FAIL"
+    ev["warnings"].extend(blockers)
+    status = "FAIL" if ev["violations"] else "BLOCKED" if blockers else "PASS"
     json_dump(Path(ns.out), finalize_evidence(ev, started, status))
     print(json.dumps(ev, ensure_ascii=False, indent=2, default=str))
     return 0 if status == "PASS" else 2

@@ -21,6 +21,11 @@ renumber; retire an ID with a note.
 
 ## 2. Discover from the implementation
 
+This is the implementation inventory. First confirm expected business functionality from user
+intent and requirements; keep its catalog separate ([business-graph](business-graph.md)). A code
+trace explains what exists, never what is correct. Preserve expected-but-unfound features as
+candidate gaps, and unconfirmed semantics as RISK or SPECIFICATION GAP.
+
 Docs, READMEs and comments are leads; the executed code path is the fact. A difference between
 them is a candidate finding, never a silent choice.
 
