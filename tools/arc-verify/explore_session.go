@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 	"syscall"
+	"time"
 )
 
 type exploreDrive struct {
@@ -134,10 +135,21 @@ func exploreStatusFor(report ExploreReport) string {
 }
 
 func crashAt(fault ExploreFault, window string) error {
-	if fault.Window == window {
-		return errExploreCrash(window)
+	if fault.Window != window {
+		return nil
 	}
-	return nil
+	if fault.Notify != "" {
+		if err := os.WriteFile(fault.Notify, []byte(window+"\n"), 0o600); err != nil {
+			return err
+		}
+	}
+	if fault.HangWindow > 0 {
+		time.Sleep(fault.HangWindow)
+	}
+	if fault.Message != "" {
+		return errors.New(fault.Message)
+	}
+	return errExploreCrash(window)
 }
 
 func processPeakRSS() (int64, string) {

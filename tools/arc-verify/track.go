@@ -30,9 +30,19 @@ type StepRAW struct {
 	SafeToContinue bool              `json:"safe_to_continue,omitempty"`
 	Oracle         string            `json:"oracle"`
 	Runner         string            `json:"runner"`
+	RunnerPID      int               `json:"runner_pid,omitempty"`
 	ExitCode       int               `json:"exit_code"`
 	Model          *ModelObservation `json:"model,omitempty"`
 	denialObserved bool
+}
+
+func stampRunnerIdentity(raw *StepRAW) {
+	if raw == nil {
+		return
+	}
+	if raw.RunnerPID <= 0 {
+		raw.RunnerPID = os.Getpid()
+	}
 }
 
 func hasSensitiveKey(v any) bool {

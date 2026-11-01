@@ -300,6 +300,7 @@ export interface StepRaw {
   safe_to_continue?: boolean;
   oracle: string;
   runner: string;
+  runner_pid?: number;
   exit_code: number;
   model?: Record<string, unknown>;
 }

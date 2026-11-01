@@ -72,7 +72,10 @@ type ExploreRuntimeBudget struct {
 }
 
 type ExploreFault struct {
-	Window string `json:"window,omitempty"`
+	Window     string        `json:"window,omitempty"`
+	Notify     string        `json:"notify,omitempty"`
+	HangWindow time.Duration `json:"hang_window,omitempty"`
+	Message    string        `json:"message,omitempty"`
 }
 
 type ExploreRequest struct {
@@ -1130,6 +1133,18 @@ func (d db) exploreOnce(ctx context.Context, binding RunBinding, adapter Explore
 		}
 		return step, live, nil
 	}
+	candidate, authorized := authorizeExploreCandidate(adapter, candidate)
+	step.Candidate = candidate
+	if drive != nil {
+		drive.candidate = candidate
+	}
+	if !authorized {
+		step.Findings = append(step.Findings, ExploreFinding{Kind: "BLOCKED", Reason: "undeclared entry is not authorized: " + candidate.Entry})
+		if err := d.markExploreAction(drive, actionBlocked, before); err != nil {
+			return step, live, err
+		}
+		return step, live, errors.New("undeclared entry is not authorized")
+	}
 	if err := d.markExploreAction(drive, actionDispatching, before); err != nil {
 		return step, live, err
 	}
@@ -1145,6 +1160,10 @@ func (d db) exploreOnce(ctx context.Context, binding RunBinding, adapter Explore
 	}
 	if callErr != nil && !isTimeout(callErr) && !errors.Is(callErr, errOutcomeUnknown) {
 		return step, live, callErr
+	}
+	if err := crashAt(faultOf(drive), "after_command_observed"); err != nil {
+		_ = d.markExploreAction(drive, actionOutcomeUnknown, before)
+		return step, live, err
 	}
 	if isTimeout(callErr) || errors.Is(callErr, errOutcomeUnknown) || faultOf(drive).Window == "after_send_timeout" {
 		live.lastTO = true
@@ -1271,6 +1290,24 @@ func callRecord(candidate CandidateAction, out AdapterOutput, err error) Explore
 		record.Error = err.Error()
 	}
 	return record
+}
+
+func authorizeExploreCandidate(adapter ExploreAdapter, candidate CandidateAction) (CandidateAction, bool) {
+	if candidate.Kind == kindRecover {
+		return candidate, true
+	}
+	for _, entry := range adapter.Entries {
+		if entry.Entry == candidate.Entry && (entry.Action == "" || entry.Action == candidate.Action) {
+			return candidate, true
+		}
+	}
+	for _, entry := range adapter.Entries {
+		if entry.Action == candidate.Action && entry.Entry != "" {
+			candidate.Entry = entry.Entry
+			return candidate, true
+		}
+	}
+	return candidate, false
 }
 
 func exploreCall(adapter ExploreAdapter, candidate CandidateAction) AdapterCall {
@@ -1437,6 +1474,7 @@ func (d db) restoreExplore(ctx context.Context, binding RunBinding, adapter Expl
 }
 
 func writeExploreRAW(d db, run string, index int, value StepRAW) (string, []byte, error) {
+	stampRunnerIdentity(&value)
 	body, err := json.Marshal(value)
 	if err != nil {
 		return "", nil, err

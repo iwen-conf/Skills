@@ -30,6 +30,8 @@ type seatServer struct {
 	loggedOut                bool
 	courseClosed             bool
 	hangClaim                bool
+	hangAfterAccept          time.Duration
+	hiddenCloses             int
 	cutClaim                 bool
 	resetBroken              bool
 	unauthorizedForce        bool
@@ -129,6 +131,15 @@ func (s *seatServer) serve(w http.ResponseWriter, r *http.Request) {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		s.writeFacts(w, s.actor(r))
+	case "/state":
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		_ = json.NewEncoder(w).Encode(map[string]any{"claims": s.claims, "hidden_closes": s.hiddenCloses, "rows": len(s.rows)})
+	case "/hidden-close":
+		s.mu.Lock()
+		s.hiddenCloses++
+		s.mu.Unlock()
+		fmt.Fprint(w, `{}`)
 	default:
 		http.NotFound(w, r)
 	}
@@ -164,6 +175,18 @@ func (s *seatServer) claimFlags() (hang, cut, race bool) {
 }
 
 func (s *seatServer) handleClaim(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	hangAfter := s.hangAfterAccept
+	if hangAfter > 0 {
+		s.claims++
+		s.mu.Unlock()
+		select {
+		case <-r.Context().Done():
+		case <-time.After(hangAfter):
+		}
+		return
+	}
+	s.mu.Unlock()
 	hang, cut, race := s.claimFlags()
 	if hang {
 		select {
@@ -317,8 +340,8 @@ func (s *seatServer) writeFacts(w http.ResponseWriter, actor string) {
 	if state != "enrolled" && pending {
 		state = "pending"
 	}
-	fmt.Fprintf(w, `{"state":%q,"principal":%q,"role":%q,"scope":%q,"login":%t,"course_open":%t,"is_admin":%t,"enrolled":%d,"capacity":%d,"records":%d}`,
-		state, principal, role, seatIsolationScope, !s.loggedOut, !s.courseClosed, admin, enrolled, s.capacity, records)
+	fmt.Fprintf(w, `{"state":%q,"principal":%q,"role":%q,"scope":%q,"login":%t,"course_open":%t,"is_admin":%t,"enrolled":%d,"capacity":%d,"records":%d,"hidden_closes":%d}`,
+		state, principal, role, seatIsolationScope, !s.loggedOut, !s.courseClosed, admin, enrolled, s.capacity, records, s.hiddenCloses)
 }
 
 type seatFixture struct {

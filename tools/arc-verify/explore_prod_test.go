@@ -151,23 +151,7 @@ func TestHTTPPlannerUnavailableWithoutCredentials(t *testing.T) {
 }
 
 func TestIMMongoBusinessChainsStayAuthorized(t *testing.T) {
-	matrix := []struct {
-		chain  string
-		status string
-		reason string
-	}{
-		{"A-consult-claim", "NOT_RUN", "requires live iso28886 and formally approved v2 RULE"},
-		{"B-cross-role", "NOT_RUN", "requires live iso28886 and formally approved v2 RULE"},
-		{"C-concurrency-recovery", "NOT_RUN", "requires live iso28886; unauthorized fault injection stays blocked"},
-	}
-	for _, row := range matrix {
-		if row.status != "NOT_RUN" && row.status != "BLOCKED" {
-			t.Fatalf("unexecuted IM-mongo chain %s must not be marked %s", row.chain, row.status)
-		}
-		if row.reason == "" {
-			t.Fatalf("chain %s needs a blocker reason", row.chain)
-		}
-	}
+	runIMMongoAuthorizedChains(t)
 }
 
 func errorsIsUnknown(err error) bool {

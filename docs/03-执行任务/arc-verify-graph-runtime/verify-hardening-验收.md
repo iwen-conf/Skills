@@ -2,7 +2,24 @@
 
 基线 `50f54a028e5bc953b9ff6b71d05f7a9e51ff4b99`。本轮按 Red → Green 修内核旁路，不把 W36–W47 的 `[x]` 当完成证明。
 
-未覆盖其他会话的 `测试流程对话/`。独立可信 Runner 仍未做。
+未覆盖其他会话的 `测试流程对话/`。
+
+## 2026-11-01 remain-close
+
+基线 `a400155d5661`。本轮把上一轮留下的六项做成可独立复跑的证据，不伪造模型调用，不写共享/生产 IM，不把观察当成 RULE 批准。
+
+| 项 | 最终状态 | 证据 |
+|---|---|---|
+| 真实 SIGKILL 崩溃窗与副作用计数 | PARTIAL | `TestSIGKILLDuringAcceptedClaimCountsOnce`、`TestSIGKILLAfterCommandObservedCountsOnce`：子进程接受 `/claim` 后 SIGKILL，`/state.claims==1` |
+| 真实模型探索 | BLOCKED | `TestRealHTTPPlannerLiveOrBlocked`：无 `ARC_VERIFY_PLANNER_*` / `OPENAI_*`，未伪造调用 |
+| 发现未登记入口 → 授权 → 执行 → Oracle | PARTIAL | `TestEntryDiscoverAuthorizeExecuteOracle`：`/hidden-close` 未授权不执行，授权后 `/state.hidden_closes>=1` |
+| 三模式盲测 | PARTIAL | `TestThreeModeBlindCompareReportsHonestStats`：deterministic/heuristic/scripted-ai，写出 Injected/Reachable/Triggered/Detected/Missed/NotExecuted；AI 行标明 scripted |
+| IM-mongo A/B/C | PARTIAL | `TestIMMongoBusinessChainsStayAuthorized` 在已授权 iso28886 上跑三条链，Oracle 读 live `service-state`；不是 v2 RULE 批准。共享 28885 只做健康检查 |
+| 独立可信 Runner | PARTIAL | `TestIndependentRunnerProcessStampsPID`：子进程 `execute` 写入 `runner_pid`，且不等于父测试 PID。W16 第二台机器 / 独立账号仍 BLOCKED。本仓不启 GitHub Actions |
+
+Red：`.arc/artifacts/verify-remain-close/red/red-001.json`（exit 1, assertion）。
+
+`gate.sh check --require-red`：Go/Python 测试与 red-first PASS。`tsc`/`vitest` 经 npm 因 workbench `devEngines.packageManager=bun` 报 EBADDEVENGINES；已用 `vp test`（19 passed）与 `bunx tsc --noEmit` 代替。
 
 ## 结果矩阵
 
@@ -82,7 +99,7 @@ cd tools/arc-verify/workbench && vp test
 
 ## 未验证边界
 
-- 真实 SIGKILL 杀业务进程后的副作用计数
-- 真实大模型供应商调用
-- iso28886 三条链的正式 RULE 验收
-- 独立可信 Runner / 受保护 CI
+- 真实大模型供应商调用（仍无凭证）
+- iso28886 三条链的正式 RULE 批准（本轮只记 live 观察）
+- W16 独立机器 / 独立 Runner 账号 / 受保护 CI
+- 目标侧重叠执行的去重仍靠幂等，不是第二执行主体

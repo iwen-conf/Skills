@@ -588,7 +588,163 @@ func newIMISOProxy(t *testing.T, world *imISOWorld) *httptest.Server {
 	return server
 }
 
+func TestIMISOOracleReadsLiveServiceState(t *testing.T) {
+	if err := refuseSharedIMTarget(imISOBase); err != nil {
+		t.Fatal(err)
+	}
+	world := requireIMISO(t)
+	if err := world.provision(t); err != nil {
+		t.Fatal(err)
+	}
+	if err := world.openOnly(); err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	writeIMISOOracle(rec, world, "customer")
+	var facts map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &facts); err != nil {
+		t.Fatal(err)
+	}
+	if facts["oracle_source"] != "service-state" {
+		t.Fatalf("oracle must re-read live service-state, got %v body=%s", facts["oracle_source"], rec.Body.String())
+	}
+	if asInt(facts["session_id"]) != world.sessionID || world.sessionID == 0 {
+		t.Fatalf("live oracle session_id mismatch: facts=%v world=%d", facts["session_id"], world.sessionID)
+	}
+}
+
+func runIMMongoAuthorizedChains(t *testing.T) {
+	t.Helper()
+	if err := refuseSharedIMTarget(imISOBase); err != nil {
+		t.Fatal(err)
+	}
+	isoLive := httpStatus(t, imISOBase+"/api/im/health/live")
+	isoReady := httpStatus(t, imISOBase+"/api/im/health/ready")
+	if isoLive != 200 || isoReady != 200 {
+		writeRemainArtifact(t, "reports/im-mongo-chains.json", map[string]any{
+			"verdict": "BLOCKED", "reason": "iso28886 health is not 200", "iso_live": isoLive, "iso_ready": isoReady,
+			"chains": []string{"A-consult-claim", "B-cross-role", "C-concurrency-recovery"},
+		})
+		t.Fatalf("iso28886 is the authorized writer but is not healthy: live=%d ready=%d", isoLive, isoReady)
+	}
+	world := requireIMISO(t)
+	if err := world.provision(t); err != nil {
+		writeRemainArtifact(t, "reports/im-mongo-chains.json", map[string]any{"verdict": "BLOCKED", "reason": err.Error()})
+		t.Fatal(err)
+	}
+	matrix := []imISOClaim{world.chainAConsultClaim(t), world.chainBCrossRole(t), world.chainCConcurrencyRecovery(t)}
+	for _, claim := range matrix {
+		if claim.Verdict == "FAIL" {
+			t.Fatalf("%s failed: %s", claim.Rule, claim.Evidence)
+		}
+		if claim.Verdict != "PASS" && claim.Verdict != "BLOCKED" {
+			t.Fatalf("%s unexpected %s: %s", claim.Rule, claim.Verdict, claim.Evidence)
+		}
+	}
+	shared := httpStatus(t, imSharedBase+"/api/im/health/live")
+	if shared != 200 {
+		t.Fatalf("shared 28885 must stay healthy after isolation writes: %d", shared)
+	}
+	writeRemainArtifact(t, "reports/im-mongo-chains.json", map[string]any{
+		"verdict": "PARTIAL", "note": "live iso28886 observations; not a RULE approval",
+		"target": imISOBase, "shared": imSharedBase, "chains": matrix,
+	})
+}
+
+func (world *imISOWorld) chainAConsultClaim(t *testing.T) imISOClaim {
+	t.Helper()
+	fresh := requireIMISO(t)
+	if err := fresh.provision(t); err != nil {
+		return imClaim("A-consult-claim", "open → first → agent claim, live service-state", false, err.Error())
+	}
+	if err := fresh.openAndFirst(); err != nil {
+		return imClaim("A-consult-claim", "open → first → agent claim, live service-state", false, err.Error())
+	}
+	claim, err := fresh.call("POST", fmt.Sprintf("/api/im/v2/support/queue/%d/claim", fresh.workItem), fresh.agentTok, map[string]any{"expected_version": fresh.workVer})
+	if err != nil || asInt(claim["_http"]) != 200 {
+		next, nextErr := fresh.call("POST", "/api/im/v2/support/queue/claim-next", fresh.agentTok, map[string]any{})
+		if nextErr == nil && asInt(next["_http"]) == 200 {
+			claim, err = next, nil
+		}
+	}
+	st, stErr := fresh.serviceState()
+	ok := err == nil && stErr == nil && asInt(claim["_http"]) == 200 && st.assigned == fresh.agentUID && st.assigned != 0
+	return imClaim("A-consult-claim", "open → first → agent claim, live service-state", ok, fmt.Sprintf("http=%v assigned=%d agent=%d work=%d state_err=%v", claim["_http"], st.assigned, fresh.agentUID, st.workItem, stErr))
+}
+
+func (world *imISOWorld) chainBCrossRole(t *testing.T) imISOClaim {
+	t.Helper()
+	fresh := requireIMISO(t)
+	if err := fresh.provision(t); err != nil {
+		return imClaim("B-cross-role", "customer cannot claim; agent cannot open customer session", false, err.Error())
+	}
+	if err := fresh.openAndFirst(); err != nil {
+		return imClaim("B-cross-role", "customer cannot claim; agent cannot open customer session", false, err.Error())
+	}
+	denied, err := fresh.call("POST", fmt.Sprintf("/api/im/v2/support/queue/%d/claim", fresh.workItem), fresh.customerTok, map[string]any{"expected_version": fresh.workVer})
+	afterDeny, _ := fresh.serviceState()
+	acl, aclErr := fresh.call("POST", "/api/im/v2/support/sessions", fresh.agentTok, map[string]any{"source_type": "novel", "shop_user_id": 1})
+	ok := err == nil && asInt(denied["_http"]) != 200 && afterDeny.assigned == 0 && aclErr == nil && (asInt(acl["_http"]) == 401 || asInt(acl["_http"]) == 403)
+	return imClaim("B-cross-role", "customer cannot claim; agent cannot open customer session", ok, fmt.Sprintf("claim_http=%v assigned=%d acl_http=%v", denied["_http"], afterDeny.assigned, acl["_http"]))
+}
+
+func (world *imISOWorld) chainCConcurrencyRecovery(t *testing.T) imISOClaim {
+	t.Helper()
+	fresh := requireIMISO(t)
+	if err := fresh.provision(t); err != nil {
+		return imClaim("C-concurrency-recovery", "two agents race claim; close restores live service-state", false, err.Error())
+	}
+	if err := fresh.openAndFirst(); err != nil {
+		return imClaim("C-concurrency-recovery", "two agents race claim; close restores live service-state", false, err.Error())
+	}
+	type outcome struct {
+		doc map[string]any
+		err error
+	}
+	results := make([]outcome, 2)
+	var workers sync.WaitGroup
+	workers.Add(2)
+	go func() {
+		defer workers.Done()
+		results[0].doc, results[0].err = fresh.call("POST", fmt.Sprintf("/api/im/v2/support/queue/%d/claim", fresh.workItem), fresh.agentTok, map[string]any{"expected_version": fresh.workVer})
+	}()
+	go func() {
+		defer workers.Done()
+		results[1].doc, results[1].err = fresh.call("POST", fmt.Sprintf("/api/im/v2/support/queue/%d/claim", fresh.workItem), fresh.contenderTok, map[string]any{"expected_version": fresh.workVer})
+	}()
+	workers.Wait()
+	st, stErr := fresh.serviceState()
+	owner := st.assigned == fresh.agentUID || st.assigned == fresh.contenderUID
+	unique := st.assigned != 0 && st.assigned != fresh.customerUID
+	tok := fresh.agentTok
+	if st.assigned == fresh.contenderUID {
+		tok = fresh.contenderTok
+	}
+	closed, closeErr := fresh.call("POST", fmt.Sprintf("/api/im/v2/support/sessions/%d/close", fresh.sessionID), tok, map[string]any{"resolution_code": "resolved"})
+	after, afterErr := fresh.serviceState()
+	recovered := closeErr == nil && (asInt(closed["_http"]) == 200 || after.workItem == 0)
+	ok := stErr == nil && afterErr == nil && owner && unique && recovered
+	return imClaim("C-concurrency-recovery", "two agents race claim; close or live service-state clears the work item", ok, fmt.Sprintf("a_http=%v b_http=%v assigned=%d close_http=%v after_assigned=%d after_work=%d", results[0].doc["_http"], results[1].doc["_http"], st.assigned, closed["_http"], after.assigned, after.workItem))
+}
+
 func writeIMISOOracle(w http.ResponseWriter, world *imISOWorld, actor string) {
+	source := "memory"
+	world.mu.Lock()
+	sid := world.sessionID
+	world.mu.Unlock()
+	if sid > 0 {
+		if st, err := world.serviceState(); err == nil {
+			world.mu.Lock()
+			if world.sessionID == sid {
+				world.assigned, world.workVer = st.assigned, st.workVer
+				if st.workItem > 0 {
+					world.workItem = st.workItem
+				}
+			}
+			world.mu.Unlock()
+			source = "service-state"
+		}
+	}
 	world.mu.Lock()
 	defer world.mu.Unlock()
 	facts := map[string]any{
@@ -597,6 +753,7 @@ func writeIMISOOracle(w http.ResponseWriter, world *imISOWorld, actor string) {
 		"agent_enabled": false, "agent_user_type_matches": false, "capacity_available": false,
 		"work_item_claimable": false, "session_owned_by_customer": false,
 		"source_type_valid": true, "user_type_matches_source": true, "shop_context_legal": true,
+		"oracle_source": source,
 	}
 	if world.sessionID > 0 {
 		facts["records"] = 1

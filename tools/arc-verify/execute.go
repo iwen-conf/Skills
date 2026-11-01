@@ -34,6 +34,7 @@ type ExecuteResult struct {
 }
 
 func writeRunnerRAW(d db, run string, index int, value StepRAW) (string, []byte, error) {
+	stampRunnerIdentity(&value)
 	body, err := json.Marshal(value)
 	if err != nil {
 		return "", nil, err

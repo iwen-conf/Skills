@@ -11,6 +11,11 @@ type ModeContrastRow struct {
 	Actions          int    `json:"actions"`
 	ElapsedMS        int64  `json:"elapsed_ms"`
 	Tokens           int    `json:"tokens,omitempty"`
+	Injected         int    `json:"injected,omitempty"`
+	Reachable        int    `json:"reachable,omitempty"`
+	Triggered        int    `json:"triggered,omitempty"`
+	Detected         int    `json:"detected,omitempty"`
+	NotExecuted      int    `json:"not_executed,omitempty"`
 	Notes            string `json:"notes,omitempty"`
 }
 
@@ -30,6 +35,21 @@ func contrastExploreModes(sealed []SealedMutation, reports map[string]ExploreRep
 		row := ModeContrastRow{Mode: mode, Unspecified: len(report.Unspecified), PlannerCalls: plannerCalls[mode], Actions: report.Actions, ElapsedMS: report.Spent.ElapsedMS}
 		attr := AttributeBlindCampaign(report, sealed, report.Spent.asBudget())
 		for _, item := range attr.Attributions {
+			if item.Injected {
+				row.Injected++
+			}
+			if item.Reachable {
+				row.Reachable++
+			}
+			if item.Triggered {
+				row.Triggered++
+			}
+			if item.Detected {
+				row.Detected++
+			}
+			if item.NotExecuted {
+				row.NotExecuted++
+			}
 			switch item.Verdict {
 			case FaultDetected:
 				row.ConfirmedDefects++
@@ -53,6 +73,9 @@ func contrastExploreModes(sealed []SealedMutation, reports map[string]ExploreRep
 		}
 		if mode == "ai" && plannerCalls[mode] < 1 {
 			row.Notes = "planner_calls=0; AI incremental value is BLOCKED"
+		}
+		if mode == "ai" && plannerCalls[mode] >= 1 {
+			row.Notes = "scripted or local planner; not a vendor model unless a live HTTP model id is recorded"
 		}
 		out = append(out, row)
 	}
