@@ -77,7 +77,9 @@ func discoverSourceEntries(root string, adapter ExploreAdapter) ([]DiscoveredEnt
 			}
 		}
 		for _, item := range found {
-			if len(out) >= 64 { return filepath.SkipAll }
+			if len(out) >= 64 {
+				return filepath.SkipAll
+			}
 			out = append(out, authorizeDiscoveredEntry(item, adapter))
 		}
 		return nil
@@ -151,10 +153,14 @@ func discoverOpenAPIEntries(rel string, src []byte, approved map[string]bool) []
 	}
 	out := []DiscoveredEntry{}
 	paths := make([]string, 0, len(doc.Paths))
-	for path := range doc.Paths { paths = append(paths, path) }
+	for path := range doc.Paths {
+		paths = append(paths, path)
+	}
 	sort.Strings(paths)
 	for _, path := range paths {
-		if !strings.HasPrefix(path, "/") { continue }
+		if !strings.HasPrefix(path, "/") {
+			continue
+		}
 		methods := make([]string, 0, len(doc.Paths[path]))
 		for method := range doc.Paths[path] {
 			name := strings.ToUpper(method)
@@ -196,7 +202,9 @@ func authorizeDiscoveredEntry(item DiscoveredEntry, adapter ExploreAdapter) Disc
 		return item
 	}
 	for _, entry := range adapter.Entries {
-		if entry.Entry != item.Path { continue }
+		if entry.Entry != item.Path {
+			continue
+		}
 		// Never equate GET and POST or infer methods from YAML path strings.
 		if item.Method != "ANY" && item.Method != "" && item.Method != strings.ToUpper(entry.Method) {
 			continue

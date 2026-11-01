@@ -28,3 +28,28 @@ separate sources: none of them becomes a rule by itself, and only approved rules
 Read with [business-graph](business-graph.md), which keeps the confirmation, card and RAW rules these commands rely on.
 
 Switching Grok/Codex/Claude Code requires only [当前状态与需求](../../../docs/03-执行任务/arc-verify-graph-runtime/当前状态与需求.md) and the target repository documents. There is no native Agent handoff, ACP protocol or new CLI command; CLI checkpoint is only for safe **test recovery**.
+
+## Capability-first exploration
+
+ARC Verify constrains the existing Grok, Codex, Claude Code or other coding Agent.
+Do not create an Agent, ACP/native handoff, model service, HTTP model client,
+API key, or extra state store.
+
+1. Read requirements, confirmed RULEs, FLOWs, existing Markdown progress and HEAD.
+   Record business goals before listing endpoints.
+2. List capabilities as system → capability → meaningful boundary. Each has an
+   actor, goal, trigger, success/denial state and source. Reuse capability IDs.
+3. Trace implementation heuristically: UI/API/RPC/consumer → usecase → rule and
+   persisted side effect. Go/OpenAPI scan is a candidate source; a route is not a
+   capability. Link actions only via Graph `implements` or traced evidence.
+4. Focus on justified boundaries (role, precondition, state, repeat/concurrency,
+   timeout/recovery, cross-capability). Do not generate a matrix per HTTP path.
+5. Verify with the existing runner and independent Oracle when authorized. Keep
+   RISK/UNSPECIFIED, RULE FAIL and missing evidence separate. A scan is not proof.
+6. Update the same Markdown: goal, capability, source location, command/exit/RAW/
+   Oracle, unsolved problem, status and the next executable action.
+
+An adapter entry proves a declared test entry only, not that the business action
+was observed or passed. Do not treat HTTP 200 as business identity. Keep crash
+recovery and Oracle; do not delete them to simplify. Legacy `--mode ai --planner FILE`
+is a scripted fixture; normal exploration uses `heuristic` / `deterministic`.

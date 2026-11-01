@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-10-30T12:15:48.732021Z",
+  "generated_at": "2026-11-01T11:26:28.336132Z",
   "skill_count": 6,
   "skills": [
     {
@@ -208,10 +208,10 @@
     },
     {
       "name": "arc:verify",
-      "description": "Proves business code meets business expectations: business-flow inventories and flowcharts tracing branches to cases (业务流, 端到端业务流, 分支覆盖), test plans (测试方案, 用例设计, 测试范围), write tests (写测试), test-first acceptance tests (测试先行, TDD), test-value review (测试价值), regression and browser E2E suites (网页实测), coverage (覆盖率), fuzz campaigns (模糊测试), property and model-based tests (属性测试, 模型一致性), SQL lint gates (SQL 语法检查), transaction design per engine (事务设计), reliability checks (可靠性, 业务不变量) for transactions and concurrency (事务并发), idempotency (幂等), faults and recovery; PostgreSQL release qualification (G0-G31); flaky-test triage; load tests (压测); and release go/no-go gates (发布验收, 发布证据). Verdicts are PASS/FAIL/BLOCKED/NOT_RUN/FLAKY backed by independent oracles. Not for fixing the defects it finds (use arc:code) or static review (use arc:audit).",
-      "version": "3.6.0",
+      "description": "Proves business code meets business expectations: flow inventories (业务流), test plans, write tests, TDD (测试先行), test-value review (测试价值), browser E2E (网页实测), coverage, fuzz, property tests, SQL lint, transaction design, reliability (concurrency, idempotency, faults), PostgreSQL G0-G31, flaky triage, load tests, release go/no-go. Verdicts PASS/FAIL/BLOCKED/NOT_RUN/FLAKY with independent oracles. Triggers: 写测试, 测试方案, 用例设计, 测试范围, 覆盖率, 可靠性, 业务不变量, 事务并发, 幂等, 压测, 发布验收, 发布证据, 模糊测试, SQL 语法检查, 事务设计, 端到端业务流, 分支覆盖, 属性测试, 模型一致性. Not for product repair (arc:code) or static review (arc:audit).",
+      "version": "3.6.2",
       "source_path": "Arc/arc:verify/SKILL.md",
-      "line_count": 183,
+      "line_count": 175,
       "intent_router": [
         {
           "Condition": "Business inventory, charts, branch → case ledger; T1/T2 behavior no current flow covers",

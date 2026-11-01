@@ -421,16 +421,19 @@ func scoreBoundaryContrast(mode string, report ExploreReport) BoundaryContrastRo
 				row.UniqueDiscoveries++
 			}
 		}
-		if row.HTTP200s >= 2 && row.Explanations == 0 {
-			row.HTTPOnlyJudgements = 1
-		}
 		for _, finding := range report.Blocked {
 			if strings.Contains(finding.Reason, "not authorized") || strings.Contains(finding.Reason, "allow-list") {
 				row.BlockedUnauthorized++
 			}
 		}
-	} else if row.HTTP200s >= 2 {
-		row.HTTPOnlyJudgements = 1
+	}
+	for _, step := range report.Steps {
+		for _, finding := range step.Findings {
+			blob := strings.ToLower(finding.Reason + finding.Kind)
+			if strings.Contains(blob, "http 200") && !strings.Contains(blob, "owner") {
+				row.HTTPOnlyJudgements = 1
+			}
+		}
 	}
 	if mode == "ai" && row.PlannerCalls < 1 {
 		row.Notes = "planner_calls=0; no scripted planner used; host Agent reasoning is documented separately"
@@ -458,4 +461,3 @@ type BoundaryContrastRow struct {
 	BlockedUnauthorized   int      `json:"blocked_unauthorized"`
 	Notes                 string   `json:"notes,omitempty"`
 }
-

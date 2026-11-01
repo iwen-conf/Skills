@@ -21,22 +21,30 @@ func TestCapabilityScanMapsOnlyDeclaredBusinessCapability(t *testing.T) {
 		switch {
 		case fact.SourceType == "entry" && fact.Location == "/claim":
 			seenAdapter = true
-			if fact.Capability != "cap.order" { t.Fatalf("adapter capability = %q, want cap.order", fact.Capability) }
+			if fact.Capability != "cap.order" {
+				t.Fatalf("adapter capability = %q, want cap.order", fact.Capability)
+			}
 		case fact.SourceType == "source" && fact.Statement == "CONFIRMED_ENTRY /claim from api.go":
 			seenCode = true
-			if fact.Capability != "cap.order" { t.Fatalf("source capability = %q, want cap.order", fact.Capability) }
+			if fact.Capability != "cap.order" {
+				t.Fatalf("source capability = %q, want cap.order", fact.Capability)
+			}
 		case fact.SourceType == "source" && fact.Statement == "UNDECLARED_ENTRY /metrics from infra.go":
 			seenUnmapped = true
-			if fact.Capability != "" { t.Fatalf("unmapped infrastructure entry became capability %q", fact.Capability) }
+			if fact.Capability != "" {
+				t.Fatalf("unmapped infrastructure entry became capability %q", fact.Capability)
+			}
 		}
 	}
-	if !seenAdapter || !seenCode || !seenUnmapped { t.Fatalf("missing scan facts: adapter=%v source=%v unmapped=%v",seenAdapter,seenCode,seenUnmapped) }
+	if !seenAdapter || !seenCode || !seenUnmapped {
+		t.Fatalf("missing scan facts: adapter=%v source=%v unmapped=%v", seenAdapter, seenCode, seenUnmapped)
+	}
 }
 
 func TestCapabilityScanDoesNotGuessAmbiguousOwnership(t *testing.T) {
-	g := Graph{Nodes: []Node{{ID:"cap.a",Kind:"capability"}, {ID:"cap.b",Kind:"capability"}, {ID:"action",Kind:"action"}},
-		Edges: []Edge{{ID:"ea",Kind:"implements",From:"cap.a",To:"action"}, {ID:"eb",Kind:"implements",From:"cap.b",To:"action"}}}
+	g := Graph{Nodes: []Node{{ID: "cap.a", Kind: "capability"}, {ID: "cap.b", Kind: "capability"}, {ID: "action", Kind: "action"}},
+		Edges: []Edge{{ID: "ea", Kind: "implements", From: "cap.a", To: "action"}, {ID: "eb", Kind: "implements", From: "cap.b", To: "action"}}}
 	if got := confirmedCapabilityForAction(indexModel(g), "action"); got != "" {
-		t.Fatalf("ambiguous action incorrectly assigned to %s",got)
+		t.Fatalf("ambiguous action incorrectly assigned to %s", got)
 	}
 }

@@ -144,9 +144,9 @@ func buildEvidenceContext(g Graph, approvals map[string]bool, _ ExploreAdapter, 
 		}
 		out.Facts = append(out.Facts, EvidenceFact{
 			ID: discoveryFactID("src", item.Path), Class: class,
-			Statement: item.Class + " " + item.Path + " from " + item.File,
+			Statement:  item.Class + " " + item.Path + " from " + item.File,
 			Capability: confirmedCapabilityForAction(businessIndex, item.Action), SourceType: "source",
-			Refs:      []EvidenceReference{{ID: item.File, Source: "source", Scope: item.Path, Trust: "SOURCE_CANDIDATE"}},
+			Refs: []EvidenceReference{{ID: item.File, Source: "source", Scope: item.Path, Trust: "SOURCE_CANDIDATE"}},
 		})
 	}
 	for _, item := range report.Unspecified {

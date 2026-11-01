@@ -153,7 +153,7 @@ func (d db) loadExploreCheckpoint(campaign string) (ExploreCheckpoint, error) {
 	if campaign == "" {
 		return state, errors.New("discover status needs --id campaign")
 	}
-	rows, err := d.query("SELECT body FROM exploration_state WHERE campaign="+quote(campaign), 1)
+	rows, err := d.query("SELECT body, COALESCE(fence,0), COALESCE(checkpoint,''), COALESCE(status,''), COALESCE(claimed_by,''), COALESCE(lease_until,'') FROM exploration_state WHERE campaign="+quote(campaign), 6)
 	if err != nil {
 		return state, err
 	}
@@ -163,6 +163,18 @@ func (d db) loadExploreCheckpoint(campaign string) (ExploreCheckpoint, error) {
 	if err := json.Unmarshal([]byte(rows[0][0]), &state); err != nil {
 		return state, err
 	}
+	fence, err := strconv.ParseInt(rows[0][1], 10, 64)
+	if err != nil {
+		return state, err
+	}
+	state.Fence = fence
+	if rows[0][2] != "" {
+		state.Checkpoint = rows[0][2]
+	}
+	if rows[0][3] != "" {
+		state.Status = rows[0][3]
+	}
+	state.ClaimedBy = rows[0][4]
 	return state, nil
 }
 
@@ -205,7 +217,7 @@ func (d db) abortExploreCampaign(campaign, reason string) (ExploreCheckpoint, er
 			state.Report.RecoveryClass = RecoveryFailedLocked
 			state.Report.Truncated = true
 			state.Report.Blocked = append(state.Report.Blocked, ExploreFinding{
-				Kind:"BLOCKED", Reason:state.ResumeHoldReason, Evidence:item.AttemptID,
+				Kind: "BLOCKED", Reason: state.ResumeHoldReason, Evidence: item.AttemptID,
 			})
 			break
 		}
@@ -306,7 +318,7 @@ func (d db) reconcileUnknownActions(ctx context.Context, binding RunBinding, ada
 				} else if err := rawMatchesCampaign(body, EvidenceGateInput{
 					Report: state.Report, Binding: binding, ExpectedCampaign: state.Campaign,
 					ExpectedFixture: binding.Identity.Fixture,
-					ExpectedActor: firstNonEmpty(binding.Identity.Actor, binding.Identity.Principal),
+					ExpectedActor:   firstNonEmpty(binding.Identity.Actor, binding.Identity.Principal),
 				}); err != nil {
 					sealUnreplayableAction(state, record, "observed RAW campaign mismatch; replay is forbidden: "+err.Error())
 				} else {

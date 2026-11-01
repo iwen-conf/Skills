@@ -2,15 +2,13 @@
 name: arc:verify
 version: 3.6.2
 description: >-
-  Proves business code meets business expectations: business-flow inventories and flowcharts
-  tracing branches to cases (业务流, 端到端业务流, 分支覆盖), test plans (测试方案, 用例设计,
-  测试范围), write tests (写测试), test-first acceptance tests (测试先行, TDD), test-value review
-  (测试价值), regression and browser E2E suites (网页实测), coverage (覆盖率), fuzz campaigns (模糊测试),
-  property and model-based tests (属性测试, 模型一致性), SQL lint gates (SQL 语法检查),
-  transaction design per engine (事务设计), reliability checks (可靠性, 业务不变量) for transactions and
-  concurrency (事务并发), idempotency (幂等), faults and recovery; PostgreSQL release qualification
-  (G0-G31); flaky-test triage; load tests (压测); and release go/no-go gates (发布验收, 发布证据).
-  Verdicts are PASS/FAIL/BLOCKED/NOT_RUN/FLAKY backed by independent oracles. Not for fixing the defects it finds (use arc:code) or static review (use arc:audit).
+  Proves business code meets business expectations: flow inventories (业务流), test plans,
+  write tests, TDD (测试先行), test-value review (测试价值), browser E2E (网页实测), coverage, fuzz,
+  property tests, SQL lint, transaction design, reliability (concurrency, idempotency, faults),
+  PostgreSQL G0-G31, flaky triage, load tests, release go/no-go. Verdicts PASS/FAIL/BLOCKED/NOT_RUN/FLAKY
+  with independent oracles. Triggers: 写测试, 测试方案, 用例设计, 测试范围, 覆盖率, 可靠性, 业务不变量,
+  事务并发, 幂等, 压测, 发布验收, 发布证据, 模糊测试, SQL 语法检查, 事务设计, 端到端业务流, 分支覆盖, 属性测试, 模型一致性.
+  Not for product repair (arc:code) or static review (arc:audit).
 ---
 
 # arc:verify
@@ -61,11 +59,9 @@ Every confirmed claim has a FLOW/RULE ID, independent evidence, verdict and requ
 | Claims come from a closure model or another phase's handoff | any | [workflow.md](../_shared/workflow.md) §2, §4 |
 | One end-to-end claim → case → evidence example | any | [worked-example](references/worked-example.md) |
 
-Load ≤3 topical references for the current bounded phase/card. Shared contract, code-intel,
-workflow and the configured business-graph protocol are the common baseline. Carry the frozen
-claims, scope and evidence in the handoff across flow → design → red → write/reliability/db →
-flaky → release. Split a phase when its required topics exceed the budget; never omit a required
-protocol to fit it. HTTP/JSON/upload claims use [API cases](references/api-contract-tests.md).
+Load ≤3 topical references for the current card. Shared contract, code-intel, workflow
+and the business-graph protocol are baseline. HTTP/JSON/upload claims use
+[API cases](references/api-contract-tests.md).
 
 ## Workflow
 
@@ -81,12 +77,8 @@ Follow confirmed RULE → graph → bounded card → real execution → independ
    implementation gaps, or `n/a: <reason>` (T0, pure logic).
 3. Claims table: `EXPECTED`/`FORBIDDEN`, confirmed source, required yes/no, oracle per branch/RULE.
    AI inference stays `RISK`; undefined semantics are `SPECIFICATION GAP`.
-4. Map impact: [code-intel](../_shared/code-intel.md) §4 rows 2, 5–7 (3–4 for state or
-   serialization) and flow-matrix §7; design phase records boundary and cadence per scope-cadence.
-   Execution consumes that scope table instead of reloading the design references.
-5. Design cases per case-design and flow-matrix §2–§4: satisfied conditions, each unsatisfied
-   condition, forced operation and known recovery paths; name the independent oracle and defect.
-   Output: case table, with uncovered paths explicit.
+4. Map impact: [code-intel](../_shared/code-intel.md) §4 and flow-matrix §7.
+5. Design cases per case-design and flow-matrix §2–§4; name the independent oracle and defect.
 6. Bind the environment: existing runner, fixtures, CI job, test DSN, in that order. Output:
    environment line, or `BLOCKED: <missing item>` per claim.
 7. Flow/design finish with `NOT_RUN (plan only)` and ledger check. Red runs step 8 on pre-implementation
@@ -102,53 +94,6 @@ Follow confirmed RULE → graph → bounded card → real execution → independ
 12. Hand off: each `FAIL` → repair packet ([execution-truth](../../docs/execution-truth.md) §6) for
     `arc:code`; each `SPECIFICATION GAP` → user; gaps and uncovered branches per flow-matrix §8.
     Report per contract §9. Output: report.
-
-## Business capability exploration and written progress
-
-ARC Verify constrains the **existing** Grok, Codex, Claude Code or other
-coding Agent. Do not create an Agent, ACP/native handoff, model service,
-HTTP model client, API key/configuration requirement or new state store.
-
-For business exploration, follow this **capability-first** workflow:
-
-1. **Read the work:** user requirements, confirmed RULEs, FLOWs, existing
-   Markdown progress and latest source revision. Record the real business
-   goals before reading implementation endpoints.
-2. **List business capabilities:** system → capability → meaningful boundary;
-   each has an actor, goal, trigger, success/denial state and requirements
-   source. Reuse current capability IDs; do not guess missing product intent.
-3. **Heuristically trace implementation:** UI action, API/RPC or consumer →
-   usecase/service → business rule and persisted side effect. Reuse `arc:explore`
-   source queries. Go/OpenAPI entry scanning is only a *candidate source*;
-   one route is not a capability. Link actions to capabilities only by a
-   declared Graph `implements` relationship or traced business evidence.
-4. **Focus on relevant boundaries:** actor/role, prerequisite, state change,
-   repetition/concurrency, timeout/failure/recovery and cross-feature effect
-   only when justified by that capability. Do not generate a fixed test matrix
-   for every HTTP endpoint.
-5. **Verify what matters:** use the existing runner/CLI and independent Oracle
-   when authorized. Keep RISK/UNSPECIFIED, known RULE violations, and missing
-   evidence separate. Scanned source is not proof of working business behavior.
-6. **Save progress in existing Markdown:** goal/requirement, capability,
-   source location, completed steps, actual command/exit/RAW/Oracle,
-   unsolved problem, status and the next *specific executable* action.
-
-Next Agent reads the same Markdown and checks freshness; **no Agent-to-Agent
-protocol or native session transfer**. Use the target project's existing
-task card / 进度跟踪表; in this repository the current overview is
-[当前状态与需求](../../docs/03-执行任务/arc-verify-graph-runtime/当前状态与需求.md).
-Existing Turso Campaign/Checkpoint/Frontier remains for safe **test run
-recovery only**. No additional model settings or API keys are necessary.
-Legacy `--mode ai --planner FILE` is only a scripted comparison fixture;
-normal CLI exploration uses `heuristic` / `deterministic`.
-
-**Avoid overdesign:** Do not use synthetic model-generated hypotheses, a generic
-business inference engine or HTTP-response-based ownership guesses as evidence
-of capability availability. Prefer the smallest verified business capability
-inventory and an actionable Markdown work record. A configured adapter entry
-proves only a declared test entry, **not** that a business action was observed
-or passed. Keep existing recovery/Oracle mechanisms; do not delete safety
-logic in the name of simplification.
 
 ## Tool Strategy
 
