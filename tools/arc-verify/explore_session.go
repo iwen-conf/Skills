@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"syscall"
 )
 
 type exploreDrive struct {
@@ -12,23 +13,45 @@ type exploreDrive struct {
 	state     *ExploreCheckpoint
 	fault     ExploreFault
 	candidate CandidateAction
+	attemptID string
 }
 
 func errExploreCrash(window string) error {
 	return fmt.Errorf("explore crash: %s", window)
 }
 
+func legalExploreActionTransition(from, to string) bool {
+	if from == to {
+		return true
+	}
+	allowed := map[string][]string{
+		"":                   {actionPlanned, actionClaimed, actionDispatching, actionBlocked},
+		actionPlanned:        {actionClaimed, actionDispatching, actionBlocked},
+		actionClaimed:        {actionDispatching, actionOutcomeUnknown, actionBlocked},
+		actionDispatching:    {actionOutcomeUnknown, actionObserved, actionBlocked},
+		actionOutcomeUnknown: {actionObserved, actionRecorded, actionBlocked},
+		actionObserved:       {actionRecorded, actionBlocked},
+	}
+	for _, item := range allowed[from] {
+		if item == to {
+			return true
+		}
+	}
+	return false
+}
+
 func upsertExploreAction(actions []ExploreActionRecord, record ExploreActionRecord) []ExploreActionRecord {
-	key := record.Candidate.RequestID
-	if key == "" {
-		key = candidateKey(record.Candidate, record.Before.State)
+	if record.AttemptID == "" {
+		record.AttemptID = newID("AT")
+	}
+	if record.RequestID == "" {
+		record.RequestID = record.Candidate.RequestID
 	}
 	for i := range actions {
-		existing := actions[i].Candidate.RequestID
-		if existing == "" {
-			existing = candidateKey(actions[i].Candidate, actions[i].Before.State)
-		}
-		if existing == key {
+		if actions[i].AttemptID != "" && actions[i].AttemptID == record.AttemptID {
+			if !legalExploreActionTransition(actions[i].Status, record.Status) {
+				return actions
+			}
 			actions[i] = record
 			return actions
 		}
@@ -40,14 +63,29 @@ func (d db) markExploreAction(drive *exploreDrive, status string, before Indepen
 	if drive == nil || drive.state == nil {
 		return nil
 	}
+	if err := d.ensureExploreLease(drive); err != nil {
+		return err
+	}
 	if drive.fault.Window == "db_write_fail" && (status == actionRecorded || status == actionObserved) {
 		return errExploreCrash("db_write_fail")
 	}
+	if drive.attemptID == "" {
+		drive.attemptID = newID("AT")
+	}
 	record := ExploreActionRecord{
-		Candidate:     drive.candidate,
-		Status:        status,
-		SideEffecting: sideEffecting(drive.candidate),
-		Before:        before,
+		Candidate:      drive.candidate,
+		Status:         status,
+		SideEffecting:  sideEffecting(drive.candidate),
+		Before:         before,
+		AttemptID:      drive.attemptID,
+		StepID:         firstNonEmpty(drive.candidate.ID, drive.attemptID),
+		RequestID:      drive.candidate.RequestID,
+		IdempotencyKey: drive.candidate.RequestID,
+		Resource:       firstNonEmpty(drive.candidate.Scope, drive.candidate.Entry),
+		Actor:          drive.candidate.Role,
+		Worker:         drive.lease.Worker,
+		Fence:          drive.lease.Fence,
+		Dispatch:       status,
 	}
 	drive.state.Actions = upsertExploreAction(drive.state.Actions, record)
 	drive.state.ClaimedBy = drive.lease.Worker
@@ -62,6 +100,9 @@ func (d db) markExploreAction(drive *exploreDrive, status string, before Indepen
 func (d db) persistExploreDrive(drive *exploreDrive, report ExploreReport, world exploreWorld, tried map[string]bool, budget ExploreRuntimeBudget, status string) error {
 	if drive == nil || drive.state == nil {
 		return errors.New("exploration drive is missing")
+	}
+	if err := d.ensureExploreLease(drive); err != nil {
+		return err
 	}
 	drive.state.Status = status
 	drive.state.World = persistWorld(world)
@@ -99,16 +140,41 @@ func crashAt(fault ExploreFault, window string) error {
 	return nil
 }
 
-func measureExploreSpent(d db, report ExploreReport, replans, plannerCalls int) ExploreSpent {
+func processPeakRSS() (int64, string) {
+	var usage syscall.Rusage
+	if err := syscall.Getrusage(syscall.RUSAGE_SELF, &usage); err == nil {
+		rss := int64(usage.Maxrss)
+		if runtime.GOOS == "linux" {
+			rss *= 1024
+		}
+		if rss > 0 {
+			return rss, "rusage.maxrss"
+		}
+	}
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
+	return int64(mem.Sys), "runtime.MemStats.Sys (not process RSS)"
+}
+
+func measureExploreSpent(d db, report ExploreReport, replans, plannerCalls int) ExploreSpent {
 	spent := report.Spent
 	spent.Actions = report.Actions
 	spent.States = report.States
 	spent.Replans = replans
 	spent.PlannerCalls = plannerCalls
 	spent.Depth = report.Actions
-	spent.PeakRSSBytes = int64(mem.Sys)
+	spent.PeakRSSBytes, spent.RSSKind = processPeakRSS()
+	var evidence int64
+	for _, step := range report.Steps {
+		if step.RAW == "" {
+			continue
+		}
+		if info, err := os.Stat(step.RAW); err == nil {
+			evidence += info.Size()
+		}
+	}
+	spent.EvidenceBytes = evidence
+	spent.EvidenceKind = "sum of RAW file sizes"
 	if info, err := os.Stat(d.file); err == nil {
 		spent.DBBytes = info.Size()
 	}

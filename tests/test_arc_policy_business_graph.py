@@ -297,3 +297,23 @@ def test_unknown_proof_scope_is_blocked(tmp_path, monkeypatch):
         tmp_path, monkeypatch, {"graph": "academic-v1"}, proof_scope="partial_sample"
     )
     assert result["verdict"] == "BLOCKED"
+
+
+def test_policy_fails_when_official_gate_rejects_explore_evidence(
+    tmp_path, monkeypatch
+):
+    proof = graph_proof(tmp_path)
+    proof["verdict"] = "FAIL"
+    proof["evidence_verdict"] = "FAIL"
+    proof["reason"] = "report has no actual steps"
+
+    def fake_run(root, argv):
+        assert argv[:2] == ["arc-verify", "gate"]
+        return subprocess.CompletedProcess(argv, 1, json.dumps(proof), "")
+
+    monkeypatch.setattr("arc_policy.verify._run", fake_run)
+    result = check_business_graph(
+        tmp_path, {"verification": {"business_graph": {"graph": "academic-v1"}}}
+    )
+    assert result["verdict"] == "FAIL"
+    assert "graph gate FAIL" in result["reason"]

@@ -1,9 +1,14 @@
 package main
 
 import (
+	"encoding/json"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -27,7 +32,6 @@ type DiscoveredEntry struct {
 }
 
 var (
-	routeLiteral  = regexp.MustCompile(`(?i)(?:HandleFunc|Handle|GET|POST|PUT|PATCH|DELETE)\(\s*"(/[A-Za-z0-9_./-]*)"`)
 	openapiPath   = regexp.MustCompile(`(?m)^[[:space:]]{0,2}(/[A-Za-z0-9_{}/.-]+):[[:space:]]*$`)
 	httpMethodLit = regexp.MustCompile(`(?i)"(GET|POST|PUT|PATCH|DELETE)"`)
 )
@@ -61,22 +65,18 @@ func discoverSourceEntries(root string, adapter ExploreAdapter) ([]DiscoveredEnt
 		}
 		rel, _ := filepath.Rel(root, path)
 		text := string(body)
-		matches := routeLiteral.FindAllStringSubmatch(text, 16)
-		if strings.Contains(name, "openapi") || strings.Contains(name, "swagger") {
-			matches = append(matches, openapiPath.FindAllStringSubmatch(text, 16)...)
+		found := []DiscoveredEntry{}
+		if strings.HasSuffix(name, ".go") {
+			found = append(found, discoverGoHTTPEntries(rel, body, approved)...)
 		}
-		for _, match := range matches {
-			pathName := match[1]
-			class := entryUndeclared
-			if approved[pathName] {
-				class = entryConfirmed
+		if strings.Contains(name, "openapi") || strings.Contains(name, "swagger") {
+			found = append(found, discoverOpenAPIEntries(rel, body, approved)...)
+			for _, match := range openapiPath.FindAllStringSubmatch(text, 16) {
+				found = append(found, classifyDiscoveredPath(match[1], "YAML", rel, approved))
 			}
-			if strings.Contains(pathName, "://") || !strings.HasPrefix(pathName, "/") {
-				class = entryForbidden
-			}
-			out = append(out, DiscoveredEntry{
-				Class: class, Path: pathName, Method: firstMethod(text), Source: "source", File: rel, Evidence: rel,
-			})
+		}
+		for _, item := range found {
+			out = append(out, item)
 		}
 		return nil
 	})
@@ -84,6 +84,91 @@ func discoverSourceEntries(root string, adapter ExploreAdapter) ([]DiscoveredEnt
 		return out, err
 	}
 	return out, nil
+}
+
+func discoverGoHTTPEntries(rel string, src []byte, approved map[string]bool) []DiscoveredEntry {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, rel, src, parser.SkipObjectResolution)
+	if err != nil {
+		return nil
+	}
+	out := []DiscoveredEntry{}
+	ast.Inspect(file, func(node ast.Node) bool {
+		call, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		name := callSelector(call)
+		method := ""
+		switch name {
+		case "HandleFunc", "Handle":
+			method = "POST"
+		case "GET", "POST", "PUT", "PATCH", "DELETE":
+			method = name
+		default:
+			return true
+		}
+		if len(call.Args) == 0 {
+			return true
+		}
+		lit, ok := call.Args[0].(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			return true
+		}
+		pathName, err := strconv.Unquote(lit.Value)
+		if err != nil || !strings.HasPrefix(pathName, "/") {
+			return true
+		}
+		item := classifyDiscoveredPath(pathName, method, rel, approved)
+		item.Source = "go-ast"
+		item.Evidence = rel + ":" + name
+		out = append(out, item)
+		return true
+	})
+	return out
+}
+
+func callSelector(call *ast.CallExpr) string {
+	switch expr := call.Fun.(type) {
+	case *ast.Ident:
+		return expr.Name
+	case *ast.SelectorExpr:
+		return expr.Sel.Name
+	default:
+		return ""
+	}
+}
+
+func discoverOpenAPIEntries(rel string, src []byte, approved map[string]bool) []DiscoveredEntry {
+	var doc struct {
+		Paths map[string]map[string]json.RawMessage `json:"paths"`
+	}
+	if json.Unmarshal(src, &doc) != nil || len(doc.Paths) == 0 {
+		return nil
+	}
+	out := []DiscoveredEntry{}
+	for pathName, methods := range doc.Paths {
+		method := "POST"
+		for name := range methods {
+			method = strings.ToUpper(name)
+			break
+		}
+		item := classifyDiscoveredPath(pathName, method, rel, approved)
+		item.Source = "openapi"
+		out = append(out, item)
+	}
+	return out
+}
+
+func classifyDiscoveredPath(pathName, method, rel string, approved map[string]bool) DiscoveredEntry {
+	class := entryUndeclared
+	if approved[pathName] {
+		class = entryConfirmed
+	}
+	if strings.Contains(pathName, "://") || !strings.HasPrefix(pathName, "/") {
+		class = entryForbidden
+	}
+	return DiscoveredEntry{Class: class, Path: pathName, Method: method, Source: "source", File: rel, Evidence: rel}
 }
 
 func firstMethod(text string) string {

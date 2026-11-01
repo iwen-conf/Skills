@@ -686,8 +686,15 @@ function EntityPanel({
             </dd>
             <dt>首次偏离</dt>
             <dd>{snapshot.exploration[id].first_divergence || "无"}</dd>
-            <dt>当前运行是否可信</dt>
-            <dd>{snapshot.exploration[id].trusted ? "可信" : "证据不足，未点绿"}</dd>
+            <dt>业务验证状态</dt>
+            <dd>{snapshot.exploration[id].business_verdict || "NOT_RUN"}</dd>
+            <dt>证据可信状态</dt>
+            <dd>
+              {snapshot.exploration[id].evidence_trust || "UNVERIFIED"}
+              {snapshot.exploration[id].evidence_trust === "VERIFIED"
+                ? "（证据已核验，不等于业务通过）"
+                : "；证据不足，未点绿"}
+            </dd>
           </dl>
         </>
       ) : null}

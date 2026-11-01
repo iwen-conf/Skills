@@ -685,7 +685,7 @@ func (d db) gate(graph string) (map[string]any, error) {
 			break
 		}
 	}
-	return map[string]any{
+	return d.attachExploreEvidence(graph, map[string]any{
 		"verdict": verdict, "catalog_approved": versions[0][0] == "1",
 		"confirmed_rules": len(rules) - unconfirmed, "unconfirmed_rules": unconfirmed,
 		"required_tasks": expectedCount, "actual_tasks": total,
@@ -693,7 +693,7 @@ func (d db) gate(graph string) (map[string]any, error) {
 		"invalid_tasks_or_evidence": broken, "open_risks": openRisks,
 		"proof_scope": "planned_rule_tasks", "execution_contexts": len(cohorts), "inputs_unchanged": inputsUnchanged,
 		"context": context,
-	}, nil
+	})
 }
 
 type StepTrace struct {

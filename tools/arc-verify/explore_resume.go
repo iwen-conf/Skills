@@ -26,6 +26,7 @@ const (
 	actionOutcomeUnknown = "outcome_unknown"
 	actionObserved       = "observed"
 	actionRecorded       = "recorded"
+	actionBlocked        = "blocked"
 	actionExecuting      = actionDispatching
 	actionUnknown        = actionOutcomeUnknown
 	actionCompleted      = actionRecorded
@@ -45,11 +46,25 @@ type ExplorePersistedWorld struct {
 }
 
 type ExploreActionRecord struct {
-	Candidate     CandidateAction  `json:"candidate"`
-	Status        string           `json:"status"`
-	SideEffecting bool             `json:"side_effecting"`
-	Before        IndependentFacts `json:"before"`
-	Step          *ExploreStep     `json:"step,omitempty"`
+	Candidate      CandidateAction  `json:"candidate"`
+	Status         string           `json:"status"`
+	SideEffecting  bool             `json:"side_effecting"`
+	Before         IndependentFacts `json:"before"`
+	After          IndependentFacts `json:"after,omitempty"`
+	Step           *ExploreStep     `json:"step,omitempty"`
+	AttemptID      string           `json:"attempt_id,omitempty"`
+	StepID         string           `json:"step_id,omitempty"`
+	RequestID      string           `json:"request_id,omitempty"`
+	IdempotencyKey string           `json:"idempotency_key,omitempty"`
+	Resource       string           `json:"resource,omitempty"`
+	Actor          string           `json:"actor,omitempty"`
+	Worker         string           `json:"worker,omitempty"`
+	Fence          int64            `json:"fence,omitempty"`
+	Dispatch       string           `json:"dispatch,omitempty"`
+	Response       json.RawMessage  `json:"response,omitempty"`
+	RAW            string           `json:"raw,omitempty"`
+	RAWSHA         string           `json:"raw_sha256,omitempty"`
+	Recorded       string           `json:"recorded,omitempty"`
 }
 
 type ExploreCheckpoint struct {
@@ -96,9 +111,15 @@ func restoreWorld(persisted ExplorePersistedWorld) exploreWorld {
 	}
 }
 
-func (d db) saveExploreCheckpoint(state ExploreCheckpoint) error {
+func (d db) insertExploreCampaign(state ExploreCheckpoint) error {
 	if state.Campaign == "" {
 		return errors.New("exploration checkpoint needs a campaign")
+	}
+	if err := d.migrateExploreLeaseColumns(); err != nil {
+		return err
+	}
+	if state.Status == "" {
+		state.Status = exploreNew
 	}
 	state.Updated = time.Now().UTC().Format(time.RFC3339Nano)
 	if state.Checkpoint == "" {
@@ -109,10 +130,14 @@ func (d db) saveExploreCheckpoint(state ExploreCheckpoint) error {
 		return err
 	}
 	return d.tx([]string{fmt.Sprintf(
-		"INSERT INTO exploration_state(campaign,graph,status,model_sha,source_commit,claimed_by,claimed_at,checkpoint,body,updated) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(campaign) DO UPDATE SET graph=excluded.graph,status=excluded.status,model_sha=excluded.model_sha,source_commit=excluded.source_commit,claimed_by=excluded.claimed_by,claimed_at=excluded.claimed_at,checkpoint=excluded.checkpoint,body=excluded.body,updated=excluded.updated;",
+		"INSERT INTO exploration_state(campaign,graph,status,model_sha,source_commit,claimed_by,claimed_at,fence,lease_until,checkpoint,body,updated) VALUES(%s,%s,%s,%s,%s,%s,%s,%d,%s,%s,%s,%s);",
 		quote(state.Campaign), quote(state.Graph), quote(state.Status), quote(state.ModelSHA), quote(state.SourceCommit),
-		quote(state.ClaimedBy), quote(state.Updated), quote(state.Checkpoint), quote(string(body)), quote(state.Updated),
+		quote(state.ClaimedBy), quote(state.Updated), state.Fence, quote(state.Updated), quote(state.Checkpoint), quote(string(body)), quote(state.Updated),
 	)})
+}
+
+func (d db) saveExploreCheckpoint(state ExploreCheckpoint) error {
+	return d.insertExploreCampaign(state)
 }
 
 func (d db) loadExploreCheckpoint(campaign string) (ExploreCheckpoint, error) {
@@ -157,13 +182,54 @@ func (d db) abortExploreCampaign(campaign, reason string) (ExploreCheckpoint, er
 	if err != nil {
 		return state, err
 	}
+	if state.Status == exploreCompleted || state.Status == exploreAborted {
+		return state, fmt.Errorf("campaign %s is %s", campaign, state.Status)
+	}
 	state.Status = exploreAborted
 	state.Report.StopReason = "aborted"
-	state.ClaimedBy = ""
 	if reason != "" {
 		state.Report.StopReason = "aborted:" + reason
 	}
-	return state, d.saveExploreCheckpoint(state)
+	state.ClaimedBy = ""
+	state.Fence++
+	state.Updated = time.Now().UTC().Format(time.RFC3339Nano)
+	if state.Checkpoint == "" {
+		state.Checkpoint = newID("CK")
+	}
+	body, err := json.Marshal(state)
+	if err != nil {
+		return state, err
+	}
+	if err := d.migrateExploreLeaseColumns(); err != nil {
+		return state, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	tx, err := d.handle.BeginTx(ctx, nil)
+	if err != nil {
+		return state, err
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(ctx, fmt.Sprintf(
+		`UPDATE exploration_state SET status=%s, claimed_by='', lease_until='', fence=fence+1, checkpoint=%s, body=%s, updated=%s
+WHERE campaign=%s AND status NOT IN (%s,%s)`,
+		quote(exploreAborted), quote(state.Checkpoint), quote(string(body)), quote(state.Updated),
+		quote(campaign), quote(exploreCompleted), quote(exploreAborted),
+	))
+	if err != nil {
+		return state, err
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return state, err
+	}
+	if changed != 1 {
+		return state, errors.New("abort lost the race with another owner or terminal status")
+	}
+	if err := tx.Commit(); err != nil {
+		return state, err
+	}
+	return state, nil
 }
 
 func exploreWorkerID() string {
@@ -171,16 +237,38 @@ func exploreWorkerID() string {
 	return fmt.Sprintf("%s-%d-%s", host, os.Getpid(), newID("W"))
 }
 
-func (d db) reconcileUnknownActions(ctx context.Context, binding RunBinding, adapter ExploreAdapter, accounts map[string]Fixture, state *ExploreCheckpoint) error {
+func (d db) reconcileUnknownActions(ctx context.Context, binding RunBinding, adapter ExploreAdapter, accounts map[string]Fixture, state *ExploreCheckpoint, lease ExploreLease) error {
+	if state == nil {
+		return errors.New("reconcile needs a campaign state")
+	}
+	if lease.Worker == "" || lease.Fence < 1 || lease.Campaign != "" && lease.Campaign != state.Campaign {
+		return errors.New("reconcile needs the current worker fencing token")
+	}
 	stepTimeout := time.Duration(adapter.StepTimeoutMS) * time.Millisecond
 	changed := false
 	for i := range state.Actions {
 		record := &state.Actions[i]
-		if record.Status != actionExecuting && record.Status != actionUnknown {
+		switch record.Status {
+		case actionObserved:
+			if record.Step == nil || record.Step.RAW == "" {
+				record.Status = actionBlocked
+				if record.Step == nil {
+					record.Step = &ExploreStep{Candidate: record.Candidate, Before: record.Before}
+				}
+				record.Step.Findings = append(record.Step.Findings, ExploreFinding{Kind: "BLOCKED", Reason: "observed without RAW; replay is forbidden"})
+			} else {
+				record.Status = actionRecorded
+			}
+			changed = true
+			continue
+		case actionRecorded, actionBlocked, actionPlanned:
+			continue
+		case actionDispatching, actionOutcomeUnknown, actionClaimed:
+		default:
 			continue
 		}
 		if record.SideEffecting {
-			record.Status = actionUnknown
+			record.Status = actionOutcomeUnknown
 			oracleAccount := accountFor(accounts, record.Candidate)
 			readCtx, cancel := context.WithTimeout(ctx, stepTimeout)
 			after, _, err := readOracle(readCtx, adapter.Oracle, binding, oracleAccount, adapter.IsolationScope)
@@ -189,7 +277,7 @@ func (d db) reconcileUnknownActions(ctx context.Context, binding RunBinding, ada
 				return fmt.Errorf("cannot judge an in-flight action without an independent oracle: %w", err)
 			}
 			if record.Before.State != "" && after.State == record.Before.State && !measurementGrew(record.Before, after, "records") {
-				record.Status = actionUnknown
+				record.Status = actionBlocked
 				record.Step = &ExploreStep{Candidate: record.Candidate, Before: record.Before, After: after, Findings: []ExploreFinding{{Kind: "BLOCKED", Reason: "action was in-flight; side-effecting replay is forbidden"}}}
 				state.Tried = appendUnique(state.Tried, candidateKey(record.Candidate, record.Before.State))
 				changed = true
@@ -205,18 +293,18 @@ func (d db) reconcileUnknownActions(ctx context.Context, binding RunBinding, ada
 			}
 			step := ExploreStep{Candidate: record.Candidate, Before: record.Before, After: after, Findings: judgeExploration(g, approvals, actorRole(accounts, record.Candidate), record.Candidate.Action, record.Before, after, false)}
 			step.Findings = append(step.Findings, invariantFindings(g, after)...)
-			record.Status = actionCompleted
+			record.Status = actionRecorded
 			record.Step = &step
 			state.Report.Steps = append(state.Report.Steps, step)
 			state.Report.Actions++
 			changed = true
 			continue
 		}
-		record.Status = actionPlanned
+		record.Status = actionBlocked
 		changed = true
 	}
 	if changed {
-		return d.saveExploreCheckpoint(*state)
+		return d.saveExploreCheckpointOwned(*state, lease)
 	}
 	return nil
 }

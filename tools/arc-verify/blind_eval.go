@@ -51,6 +51,12 @@ type MutationAttribution struct {
 	MutationID     string           `json:"mutation_id"`
 	Category       string           `json:"category"`
 	InjectSite     string           `json:"inject_site"`
+	Injected       bool             `json:"injected"`
+	Reachable      bool             `json:"reachable"`
+	Triggered      bool             `json:"triggered"`
+	Detected       bool             `json:"detected"`
+	Missed         bool             `json:"missed"`
+	NotExecuted    bool             `json:"not_executed"`
 	Activated      bool             `json:"activated"`
 	Verdict        FaultVerdict     `json:"verdict"`
 	Sequence       []string         `json:"sequence"`
@@ -68,16 +74,18 @@ type BlindCampaignResult struct {
 }
 
 type ExploreSpent struct {
-	Actions       int   `json:"actions"`
-	States        int   `json:"states"`
-	Replans       int   `json:"replans"`
-	ElapsedMS     int64 `json:"elapsed_ms"`
-	PlannerCalls  int   `json:"planner_calls,omitempty"`
-	Depth         int   `json:"depth,omitempty"`
-	Paths         int   `json:"paths,omitempty"`
-	PeakRSSBytes  int64 `json:"peak_rss_bytes,omitempty"`
-	DBBytes       int64 `json:"db_bytes,omitempty"`
-	EvidenceBytes int64 `json:"evidence_bytes,omitempty"`
+	Actions       int    `json:"actions"`
+	States        int    `json:"states"`
+	Replans       int    `json:"replans"`
+	ElapsedMS     int64  `json:"elapsed_ms"`
+	PlannerCalls  int    `json:"planner_calls,omitempty"`
+	Depth         int    `json:"depth,omitempty"`
+	Paths         int    `json:"paths,omitempty"`
+	PeakRSSBytes  int64  `json:"peak_rss_bytes,omitempty"`
+	DBBytes       int64  `json:"db_bytes,omitempty"`
+	EvidenceBytes int64  `json:"evidence_bytes,omitempty"`
+	RSSKind       string `json:"rss_kind,omitempty"`
+	EvidenceKind  string `json:"evidence_kind,omitempty"`
 }
 
 func (r BlindCampaignResult) ByID(id string) MutationAttribution {
@@ -159,6 +167,11 @@ func AttributeBlindCampaign(report ExploreReport, sealed []SealedMutation, budge
 		if item.Verdict == FaultSurvived {
 			item.Verdict = FaultFalseNegative
 		}
+		item.Reachable = item.Activated || len(item.Sequence) > 0
+		item.Triggered = item.Activated
+		item.Detected = item.Verdict == FaultDetected
+		item.Missed = item.Activated && (item.Verdict == FaultFalseNegative || item.Verdict == FaultInconclusive)
+		item.NotExecuted = item.Injected && len(item.Sequence) == 0
 		result.Counts[item.Verdict]++
 		result.Attributions = append(result.Attributions, item)
 	}
@@ -170,6 +183,7 @@ func inspectMutation(report ExploreReport, mutation SealedMutation) MutationAttr
 		MutationID:     mutation.ID,
 		Category:       mutation.Category,
 		InjectSite:     mutation.InjectSite,
+		Injected:       mutation.ID != "",
 		Sequence:       []string{},
 		OracleEvidence: []string{},
 		Linked:         []ExploreFinding{},

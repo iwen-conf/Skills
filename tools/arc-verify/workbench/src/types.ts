@@ -362,6 +362,8 @@ export interface ExplorationCoverage {
   hypotheses?: string[];
   first_divergence?: string;
   trusted?: boolean;
+  business_verdict?: string;
+  evidence_trust?: string;
   human_confirmed?: string[];
   ai_inferred?: string[];
 }

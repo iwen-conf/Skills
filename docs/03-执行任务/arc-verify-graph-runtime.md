@@ -294,3 +294,21 @@ W06 / W20 的 IM-mongo 项仍为 `[!]`。
 
 独立可信 Runner 与受保护 CI 仍未做（W16）。本地测试不是独立验收。
 
+## 2026-11-01：内核修复（verify-hardening）
+
+基线 `50f54a0`。不得用上一表 `[x]` 代替本轮证据。任务卡与矩阵：[verify-hardening-验收.md](arc-verify-graph-runtime/verify-hardening-验收.md)。
+
+| 编号 | 最终状态 | 说明 |
+| --- | --- | --- |
+| R01 | PARTIAL | fencing 旁路关闭；独立进程 claim 通过；无独立 Runner |
+| R02 | PARTIAL | Attempt ID + OBSERVED 调和；真实杀进程窗口未做 |
+| R03 | PARTIAL | depth/evidence/memory 运行时截止；RSS 标明来源 |
+| R04 | PARTIAL | 正式 `gate`/`modelGate` 调用证据门禁 |
+| R05 | PARTIAL | 业务结果与证据可信分离 |
+| R06 | BLOCKED | 本地协议测试通过；无模型凭证 |
+| R07 | PARTIAL | Go AST/OpenAPI 发现；未授权不执行 |
+| R08 | BLOCKED | 统计字段已分列；无真实三模式实验 |
+| R09 | BLOCKED | 不把代理当产品 Oracle |
+| R10 | BLOCKED | IM-mongo A/B/C 仍 NOT_RUN |
+| R11 | PARTIAL | CLI 拒绝空 Step；独立 Runner 未做 |
+

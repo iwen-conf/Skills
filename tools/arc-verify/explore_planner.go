@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -167,6 +168,9 @@ func shouldAskPlanner(mode string, candidates []CandidateAction, report ExploreR
 	if mode != "ai" {
 		return false
 	}
+	if report.Spent.PlannerCalls == 0 && len(report.Steps) == 0 {
+		return true
+	}
 	if len(report.Unspecified) > 0 || len(report.RuleFails) > 0 || len(report.Blocked) > 0 {
 		return true
 	}
@@ -258,4 +262,50 @@ func marshalPlannerAudit(proposal PlannerProposal, accepted []CandidateAction, r
 		return json.RawMessage(`{}`)
 	}
 	return body
+}
+
+func redactPlannerText(value string) string {
+	lower := strings.ToLower(value)
+	if strings.Contains(lower, "sk-") || strings.Contains(lower, "bearer ") || strings.Contains(lower, "api_key") {
+		return "[redacted]"
+	}
+	if len(value) > 400 {
+		return value[:400] + "…"
+	}
+	return value
+}
+
+func (d db) persistPlannerAudit(campaign string, proposal PlannerProposal, accepted []CandidateAction, rejected []string, callNo int) error {
+	if campaign == "" {
+		return errors.New("planner audit needs a campaign")
+	}
+	if _, err := d.handle.Exec("CREATE TABLE IF NOT EXISTS exploration_planner_audit (id TEXT PRIMARY KEY, campaign TEXT NOT NULL, model TEXT NOT NULL, body TEXT NOT NULL, created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);"); err != nil {
+		return err
+	}
+	id := newID("PC")
+	hypotheses := []string{}
+	for _, item := range proposal.Suggestions {
+		if item.BoundaryHypothesis != "" {
+			hypotheses = append(hypotheses, redactPlannerText(item.BoundaryHypothesis))
+		}
+	}
+	audit := map[string]any{
+		"planner_call_id": id,
+		"campaign":        campaign,
+		"call_no":         callNo,
+		"model":           redactPlannerText(firstNonEmpty(proposal.Model, "unknown")),
+		"accepted":        accepted,
+		"rejected":        rejected,
+		"hypotheses":      hypotheses,
+		"tokens":          proposal.Tokens,
+		"audit":           json.RawMessage(marshalPlannerAudit(proposal, accepted, rejected)),
+	}
+	body, err := json.Marshal(audit)
+	if err != nil {
+		return err
+	}
+	return d.tx([]string{fmt.Sprintf(
+		"INSERT INTO exploration_planner_audit(id,campaign,model,body) VALUES(%s,%s,%s,%s);",
+		quote(id), quote(campaign), quote(firstNonEmpty(proposal.Model, "unknown")), quote(string(body)),
+	)})
 }

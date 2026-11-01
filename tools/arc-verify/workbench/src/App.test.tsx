@@ -129,6 +129,8 @@ describe("static workbench", () => {
         stop_reasons: ["budget_actions"],
         budget_exhausted: true,
         evidence_missing: "oracle timeout",
+        business_verdict: "FAIL",
+        evidence_trust: "INCOMPLETE",
       },
     };
     const html = renderToStaticMarkup(
@@ -155,6 +157,11 @@ describe("static workbench", () => {
       "AI 边界候选",
       "已执行路径",
       "未执行 Frontier",
+      "业务验证状态",
+      "FAIL",
+      "证据可信状态",
+      "INCOMPLETE",
+      "证据不足，未点绿",
     ]) {
       expect(html).toContain(text);
     }

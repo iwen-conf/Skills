@@ -237,6 +237,19 @@ func (b ExploreRuntimeBudget) normalized() ExploreRuntimeBudget {
 	return b
 }
 
+func exploreBudgetExceeded(budget ExploreRuntimeBudget, report ExploreReport) (bool, string) {
+	if budget.MaxDepth > 0 && report.Actions >= budget.MaxDepth {
+		return true, "budget_depth"
+	}
+	if budget.MaxEvidenceBytes > 0 && report.Spent.EvidenceBytes >= budget.MaxEvidenceBytes {
+		return true, "budget_evidence"
+	}
+	if budget.MaxMemoryBytes > 0 && report.Spent.PeakRSSBytes >= budget.MaxMemoryBytes {
+		return true, "budget_memory"
+	}
+	return false, ""
+}
+
 func validateExploreAdapter(adapter ExploreAdapter, graph string) error {
 	if adapter.SchemaVersion != 1 || adapter.Graph == "" || adapter.Graph != graph || adapter.IsolationScope == "" {
 		return errors.New("explore adapter needs schema_version 1, the same graph and an isolation scope")
@@ -311,7 +324,7 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 		ModelSHA: modelSHA, SourceCommit: request.Commit, Status: exploreNew, Account: request.Account, Fixture: request.Fixture,
 		Mode: request.Mode, Report: report, Budget: budget,
 	}
-	if err := d.saveExploreCheckpoint(seed); err != nil {
+	if err := d.insertExploreCampaign(seed); err != nil {
 		return report, err
 	}
 	lease, err := d.claimExploreCampaign(campaign, firstNonEmpty(request.Worker, exploreWorkerID()))
@@ -358,6 +371,11 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 			report.StopReason, report.Truncated = "budget_time", true
 			break
 		}
+		if stop, reason := exploreBudgetExceeded(budget, report); stop {
+			report.StopReason, report.Truncated = reason, true
+			report.Remaining = remainingCandidates(proposeCandidates(g, x, flow, request.Adapter, approvals, world, tried), tried, world.state)
+			break
+		}
 		if report.Actions >= budget.MaxActions {
 			leftover := remainingCandidates(proposeCandidates(g, x, flow, request.Adapter, approvals, world, tried), tried, world.state)
 			if len(leftover) == 0 {
@@ -402,7 +420,9 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 						accepted = append(accepted, item)
 					}
 				}
-				_ = marshalPlannerAudit(proposal, accepted, rejected)
+				if err := d.persistPlannerAudit(campaign, proposal, accepted, rejected, plannerCalls); err != nil {
+					report.Blocked = append(report.Blocked, ExploreFinding{Kind: "BLOCKED", Reason: "planner audit persist failed: " + err.Error()})
+				}
 			}
 		}
 		candidates = rotateCandidates(candidates, budget.Seed)
@@ -418,6 +438,12 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 		}
 		tried[candidateKey(chosen, world.state)] = true
 		tried[chosen.ID] = true
+		drive.candidate = chosen
+		drive.attemptID = ""
+		if err := d.ensureExploreLease(drive); err != nil {
+			report.StopReason, report.Truncated = "lease_lost", true
+			break
+		}
 		needsReplan := chosen.Kind == kindUndeclared || chosen.Kind == kindSkipPre || chosen.Source == sourceInfer && (world.state == "" || !modelState(g, world.state))
 		if needsReplan {
 			replans++
@@ -589,7 +615,7 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 		return report, err
 	}
 	_ = ids
-	if err := d.reconcileUnknownActions(parent, binding, request.Adapter, accounts, &state); err != nil {
+	if err := d.reconcileUnknownActions(parent, binding, request.Adapter, accounts, &state, lease); err != nil {
 		return report, err
 	}
 	drive := &exploreDrive{lease: lease, state: &state, fault: request.Fault}
@@ -618,6 +644,11 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 	for {
 		if ctx.Err() != nil {
 			report.StopReason, report.Truncated = "budget_time", true
+			break
+		}
+		if stop, reason := exploreBudgetExceeded(budget, report); stop {
+			report.StopReason, report.Truncated = reason, true
+			report.Remaining = remainingCandidates(proposeCandidates(g, x, flow, request.Adapter, approvals, world, tried), tried, world.state)
 			break
 		}
 		if report.Actions >= budget.MaxActions {
@@ -649,6 +680,11 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 		tried[candidateKey(chosen, world.state)] = true
 		tried[chosen.ID] = true
 		drive.candidate = chosen
+		drive.attemptID = ""
+		if err := d.ensureExploreLease(drive); err != nil {
+			report.StopReason, report.Truncated = "lease_lost", true
+			break
+		}
 		step, live, execErr := d.exploreOnce(ctx, binding, request.Adapter, accounts, actors, chosen, state.Campaign, report.Actions+1, world, drive)
 		if execErr != nil {
 			if step.RAW != "" || step.ClassifyError != "" || len(step.Calls) > 0 {
@@ -1549,7 +1585,9 @@ func (d db) explorationCoverage(graph string) (map[string]ExplorationCoverage, e
 				}
 				if finding.Kind == "RISK" {
 					cover.Hypotheses = appendUnique(cover.Hypotheses, finding.Reason)
-					cover.AIInferred = appendUnique(cover.AIInferred, finding.Reason)
+					if step.Candidate.Source == sourceInfer || strings.HasPrefix(step.Candidate.RequestID, "ai-") {
+						cover.AIInferred = appendUnique(cover.AIInferred, finding.Reason)
+					}
 				}
 			}
 			if cover.FirstDivergence == "" {
@@ -1560,7 +1598,9 @@ func (d db) explorationCoverage(graph string) (map[string]ExplorationCoverage, e
 					}
 				}
 			}
-			cover.Trusted = cover.Trusted || (step.RAW != "" && step.SHA256 != "" && !hasFinding(step.Findings, "BLOCKED"))
+			cover.BusinessVerdict = classifyBusinessVerdict(report)
+			cover.EvidenceTrust = classifyEvidenceTrust(report, RunBinding{Identity: ExecutionIdentity{Graph: report.Graph}})
+			cover.Trusted = cover.EvidenceTrust == "VERIFIED"
 			out[capability] = cover
 		}
 		if len(path) > 0 {
@@ -1645,6 +1685,8 @@ type ExplorationCoverage struct {
 	Hypotheses      []string `json:"hypotheses,omitempty"`
 	FirstDivergence string   `json:"first_divergence,omitempty"`
 	Trusted         bool     `json:"trusted,omitempty"`
+	BusinessVerdict string   `json:"business_verdict,omitempty"`
+	EvidenceTrust   string   `json:"evidence_trust,omitempty"`
 	HumanConfirmed  []string `json:"human_confirmed,omitempty"`
 	AIInferred      []string `json:"ai_inferred,omitempty"`
 }

@@ -540,12 +540,12 @@ func (d db) modelGate(g Graph) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"verdict": analysis.Verdict, "reason": analysis.Reason, "catalog_approved": analysis.CatalogApproved, "confirmed_rules": len(g.Rules) - analysis.UnconfirmedRules, "unconfirmed_rules": analysis.UnconfirmedRules, "required_tasks": analysis.Coverage.Obligations.Total, "actual_tasks": analysis.ActualTasks, "passed_with_valid_raw": passed, "missing_tasks": missing, "invalid_tasks_or_evidence": invalid, "open_risks": openRisks, "proof_scope": "complete_business_model_obligations", "execution_contexts": func() int {
+	return d.attachExploreEvidence(g.ID, map[string]any{"verdict": analysis.Verdict, "reason": analysis.Reason, "catalog_approved": analysis.CatalogApproved, "confirmed_rules": len(g.Rules) - analysis.UnconfirmedRules, "unconfirmed_rules": analysis.UnconfirmedRules, "required_tasks": analysis.Coverage.Obligations.Total, "actual_tasks": analysis.ActualTasks, "passed_with_valid_raw": passed, "missing_tasks": missing, "invalid_tasks_or_evidence": invalid, "open_risks": openRisks, "proof_scope": "complete_business_model_obligations", "execution_contexts": func() int {
 		if analysis.Round != "" {
 			return 1
 		}
 		return 0
-	}(), "inputs_unchanged": analysis.Round != "" && analysis.Verdict == "PASS", "context": analysis.Context, "coverage": analysis.Coverage, "history_failures": analysis.HistoryFailures}, nil
+	}(), "inputs_unchanged": analysis.Round != "" && analysis.Verdict == "PASS", "context": analysis.Context, "coverage": analysis.Coverage, "history_failures": analysis.HistoryFailures})
 }
 
 func (d db) analysisJSON(graph, environment, round string) ([]byte, error) {
