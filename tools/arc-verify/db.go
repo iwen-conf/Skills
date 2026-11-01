@@ -53,6 +53,10 @@ func openDB(path string, create bool) (db, error) {
 		conn.Close()
 		return db{}, e
 	}
+	if _, e = conn.ExecContext(ctx, "PRAGMA busy_timeout=5000"); e != nil {
+		conn.Close()
+		return db{}, e
+	}
 	return db{file: abs, handle: conn}, nil
 }
 func (d db) close() error {
@@ -215,6 +219,6 @@ var schema = []string{
 	"CREATE INDEX IF NOT EXISTS idx_exploration_frontier ON exploration_frontier(campaign,equivalence_key);",
 	"CREATE TABLE IF NOT EXISTS exploration_actions (seq INTEGER PRIMARY KEY AUTOINCREMENT, campaign TEXT NOT NULL, candidate TEXT NOT NULL, run TEXT NOT NULL, verdict TEXT NOT NULL, body TEXT NOT NULL);",
 	"CREATE INDEX IF NOT EXISTS idx_exploration_actions ON exploration_actions(campaign,seq);",
-	"CREATE TABLE IF NOT EXISTS exploration_state (campaign TEXT PRIMARY KEY, graph TEXT NOT NULL, status TEXT NOT NULL, model_sha TEXT NOT NULL, source_commit TEXT NOT NULL, claimed_by TEXT NOT NULL DEFAULT '', claimed_at TEXT NOT NULL DEFAULT '', checkpoint TEXT NOT NULL, body TEXT NOT NULL, updated TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);",
+	"CREATE TABLE IF NOT EXISTS exploration_state (campaign TEXT PRIMARY KEY, graph TEXT NOT NULL, status TEXT NOT NULL, model_sha TEXT NOT NULL, source_commit TEXT NOT NULL, claimed_by TEXT NOT NULL DEFAULT '', claimed_at TEXT NOT NULL DEFAULT '', fence INTEGER NOT NULL DEFAULT 0, lease_until TEXT NOT NULL DEFAULT '', checkpoint TEXT NOT NULL, body TEXT NOT NULL, updated TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);",
 	"CREATE INDEX IF NOT EXISTS idx_exploration_state ON exploration_state(graph,status,updated);",
 }

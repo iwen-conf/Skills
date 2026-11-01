@@ -358,6 +358,12 @@ export interface ExplorationCoverage {
   recovery_status?: string[];
   unknown_states?: string[];
   mode_contrast?: string[];
+  confirmed_rules?: string[];
+  hypotheses?: string[];
+  first_divergence?: string;
+  trusted?: boolean;
+  human_confirmed?: string[];
+  ai_inferred?: string[];
 }
 export interface Snapshot {
   meta: SnapshotMeta;

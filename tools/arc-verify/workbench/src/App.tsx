@@ -673,6 +673,21 @@ function EntityPanel({
             <dd>{snapshot.exploration[id].unknown_states?.join("、") || "无"}</dd>
             <dt>探索模式对照</dt>
             <dd>{snapshot.exploration[id].mode_contrast?.join("、") || "无"}</dd>
+            <dt>已确认规则</dt>
+            <dd>{snapshot.exploration[id].confirmed_rules?.join("、") || "无"}</dd>
+            <dt>AI 边界假设</dt>
+            <dd className="ai-inferred">
+              {snapshot.exploration[id].hypotheses?.join("、") || "无"}
+            </dd>
+            <dt>人工确认 / AI 推断</dt>
+            <dd>
+              人工 {snapshot.exploration[id].human_confirmed?.join("、") || "无"} · AI{" "}
+              {snapshot.exploration[id].ai_inferred?.join("、") || "无"}
+            </dd>
+            <dt>首次偏离</dt>
+            <dd>{snapshot.exploration[id].first_divergence || "无"}</dd>
+            <dt>当前运行是否可信</dt>
+            <dd>{snapshot.exploration[id].trusted ? "可信" : "证据不足，未点绿"}</dd>
           </dl>
         </>
       ) : null}

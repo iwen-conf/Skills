@@ -19,10 +19,13 @@ func TestPerformExploreKeepsBothConcurrentResults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, calls, callErr := fixture.d.performExplore(t.Context(), binding, adapter, accounts, CandidateAction{
+	_, calls, group, callErr := fixture.d.performExplore(t.Context(), binding, adapter, accounts, CandidateAction{
 		Kind: kindConcurrent, Action: "claim", Entry: "/claim", Role: "STUDENT", Account: "fixture.student",
 		PartnerRole: "CONTENDER", RequestID: "pair-keep",
 	})
+	if group.ID == "" || len(group.Members) != 2 {
+		t.Fatalf("concurrent group must keep both members: %+v", group)
+	}
 	if callErr != nil && !isTimeout(callErr) {
 		t.Fatal(callErr)
 	}

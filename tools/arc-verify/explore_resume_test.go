@@ -116,7 +116,7 @@ func TestExploreClaimRejectsDuplicateWorker(t *testing.T) {
 	if err := fixture.d.tx([]string{"UPDATE exploration_state SET claimed_by='worker-a', status='running' WHERE campaign='X-claim'"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := fixture.d.claimExploreCampaign("X-claim", "worker-b"); err == nil {
+	if _, err := fixture.d.claimExploreCampaign("X-claim", "worker-b"); err == nil {
 		t.Fatal("a second worker must not claim a running campaign")
 	}
 }

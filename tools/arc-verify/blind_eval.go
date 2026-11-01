@@ -68,10 +68,16 @@ type BlindCampaignResult struct {
 }
 
 type ExploreSpent struct {
-	Actions   int   `json:"actions"`
-	States    int   `json:"states"`
-	Replans   int   `json:"replans"`
-	ElapsedMS int64 `json:"elapsed_ms"`
+	Actions       int   `json:"actions"`
+	States        int   `json:"states"`
+	Replans       int   `json:"replans"`
+	ElapsedMS     int64 `json:"elapsed_ms"`
+	PlannerCalls  int   `json:"planner_calls,omitempty"`
+	Depth         int   `json:"depth,omitempty"`
+	Paths         int   `json:"paths,omitempty"`
+	PeakRSSBytes  int64 `json:"peak_rss_bytes,omitempty"`
+	DBBytes       int64 `json:"db_bytes,omitempty"`
+	EvidenceBytes int64 `json:"evidence_bytes,omitempty"`
 }
 
 func (r BlindCampaignResult) ByID(id string) MutationAttribution {

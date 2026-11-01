@@ -41,7 +41,19 @@ func refuseSharedIMTarget(raw string) error {
 	if port != imIsolationPort {
 		return fmt.Errorf("IM write target must be isolation port %s, got %s", imIsolationPort, parsed.Host)
 	}
+	if !imIsolationHostAllowed(host) {
+		return fmt.Errorf("IM isolation host %s is not in the authorized writer set", parsed.Host)
+	}
 	return nil
+}
+
+func imIsolationHostAllowed(host string) bool {
+	switch strings.ToLower(host) {
+	case "192.168.1.50", "127.0.0.1", "localhost", "::1":
+		return true
+	default:
+		return false
+	}
 }
 
 func fixturesBindIsolationOnly(fixtures Fixtures, env string) error {

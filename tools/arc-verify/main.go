@@ -245,9 +245,9 @@ func runContext(ctx context.Context, args []string) error {
 			if err := decodeStrictJSON([]byte(*participantAccounts), &accounts); err != nil {
 				return err
 			}
-			var planner ExplorePlanner
-			if *plannerFile != "" {
-				planner = FileExplorePlanner{Path: *plannerFile}
+			planner, err := plannerFromFlags(*exploreMode, *plannerFile)
+			if err != nil && *exploreMode == "ai" {
+				return err
 			}
 			report, err := d.runExploration(ctx, ExploreRequest{
 				Graph: *graph, Flow: *flow, Environment: *env, Round: *round, Root: *root, Config: *config, Commit: *commit,

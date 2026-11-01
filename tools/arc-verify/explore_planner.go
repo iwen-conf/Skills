@@ -27,17 +27,27 @@ type PlannerContext struct {
 }
 
 type PlannerSuggestion struct {
-	Capability    string          `json:"capability"`
-	Action        string          `json:"action"`
-	Entry         string          `json:"entry"`
-	Role          string          `json:"role"`
-	Reason        string          `json:"reason"`
-	Evidence      []string        `json:"evidence"`
-	Observe       string          `json:"observe"`
-	Risk          string          `json:"risk"`
-	Preconditions map[string]bool `json:"preconditions"`
-	NeedsRecovery bool            `json:"needs_recovery"`
-	NeedObserve   string          `json:"need_observe"`
+	HypothesisID           string          `json:"hypothesis_id,omitempty"`
+	Capability             string          `json:"capability"`
+	BusinessIntent         string          `json:"business_intent,omitempty"`
+	BoundaryHypothesis     string          `json:"boundary_hypothesis,omitempty"`
+	CandidateAction        string          `json:"candidate_action,omitempty"`
+	Action                 string          `json:"action"`
+	Entry                  string          `json:"entry"`
+	Role                   string          `json:"role"`
+	Reason                 string          `json:"reason"`
+	Evidence               []string        `json:"evidence"`
+	SourceEvidence         []string        `json:"source_evidence,omitempty"`
+	Observe                string          `json:"observe"`
+	ExpectedObservation    string          `json:"expected_observation,omitempty"`
+	PossibleCounterexample string          `json:"possible_counterexample,omitempty"`
+	Risk                   string          `json:"risk"`
+	ExecutionCost          int             `json:"execution_cost,omitempty"`
+	Preconditions          map[string]bool `json:"preconditions"`
+	NeedsRecovery          bool            `json:"needs_recovery"`
+	RecoveryRequirement    string          `json:"recovery_requirement,omitempty"`
+	NeedObserve            string          `json:"need_observe"`
+	InformationGap         string          `json:"information_gap,omitempty"`
 }
 
 type PlannerProposal struct {
@@ -157,7 +167,7 @@ func shouldAskPlanner(mode string, candidates []CandidateAction, report ExploreR
 	if mode != "ai" {
 		return false
 	}
-	if len(report.Unspecified) > 0 || len(report.RuleFails) > 0 {
+	if len(report.Unspecified) > 0 || len(report.RuleFails) > 0 || len(report.Blocked) > 0 {
 		return true
 	}
 	if len(candidates) == 0 {
@@ -170,7 +180,19 @@ func shouldAskPlanner(mode string, candidates []CandidateAction, report ExploreR
 			break
 		}
 	}
-	return onlyRepeat || world.state == ""
+	if onlyRepeat || world.state == "" || world.lastDenied || world.lastTO {
+		return true
+	}
+	if len(report.Steps) > 0 {
+		last := report.Steps[len(report.Steps)-1]
+		if last.Group != nil && (last.Group.Partial || last.Group.Unknown) {
+			return true
+		}
+		if last.After.State != last.Before.State {
+			return true
+		}
+	}
+	return false
 }
 
 func plannerContext(request ExploreRequest, flow BehaviorFlow, approvals map[string]bool, world exploreWorld, report ExploreReport, leftover []CandidateAction, budgetLeft int) PlannerContext {

@@ -11,19 +11,24 @@ import (
 )
 
 const (
-	exploreNew         = "new"
-	exploreResume      = "resume"
-	exploreAbort       = "abort"
-	exploreStatus      = "status"
-	exploreRunning     = "running"
-	exploreInterrupted = "interrupted"
-	exploreCompleted   = "completed"
-	exploreAborted     = "aborted"
-	exploreBlocked     = "blocked"
-	actionPlanned      = "planned"
-	actionExecuting    = "executing"
-	actionUnknown      = "executed_unknown"
-	actionCompleted    = "completed"
+	exploreNew           = "new"
+	exploreResume        = "resume"
+	exploreAbort         = "abort"
+	exploreStatus        = "status"
+	exploreRunning       = "running"
+	exploreInterrupted   = "interrupted"
+	exploreCompleted     = "completed"
+	exploreAborted       = "aborted"
+	exploreBlocked       = "blocked"
+	actionPlanned        = "planned"
+	actionClaimed        = "claimed"
+	actionDispatching    = "dispatching"
+	actionOutcomeUnknown = "outcome_unknown"
+	actionObserved       = "observed"
+	actionRecorded       = "recorded"
+	actionExecuting      = actionDispatching
+	actionUnknown        = actionOutcomeUnknown
+	actionCompleted      = actionRecorded
 )
 
 type ExplorePersistedWorld struct {
@@ -69,6 +74,7 @@ type ExploreCheckpoint struct {
 	Fixture       string                `json:"fixture"`
 	Checkpoint    string                `json:"checkpoint"`
 	ClaimedBy     string                `json:"claimed_by,omitempty"`
+	Fence         int64                 `json:"fence,omitempty"`
 	Mode          string                `json:"mode,omitempty"`
 	Report        ExploreReport         `json:"report"`
 	Updated       string                `json:"updated,omitempty"`
@@ -146,21 +152,6 @@ func (d db) listExploreCheckpoints(graph string) ([]ExploreCheckpoint, error) {
 	return out, nil
 }
 
-func (d db) claimExploreCampaign(campaign, worker string) error {
-	rows, err := d.query("SELECT claimed_by,status FROM exploration_state WHERE campaign="+quote(campaign), 2)
-	if err != nil {
-		return err
-	}
-	if len(rows) != 1 {
-		return fmt.Errorf("exploration campaign %s was not found", campaign)
-	}
-	if rows[0][0] != "" && rows[0][0] != worker && rows[0][1] == exploreRunning {
-		return errors.New("campaign is already claimed by another worker")
-	}
-	now := time.Now().UTC().Format(time.RFC3339Nano)
-	return d.tx([]string{fmt.Sprintf("UPDATE exploration_state SET claimed_by=%s, claimed_at=%s, status=%s WHERE campaign=%s", quote(worker), quote(now), quote(exploreRunning), quote(campaign))})
-}
-
 func (d db) abortExploreCampaign(campaign, reason string) (ExploreCheckpoint, error) {
 	state, err := d.loadExploreCheckpoint(campaign)
 	if err != nil {
@@ -234,9 +225,17 @@ func sideEffecting(candidate CandidateAction) bool {
 	return candidate.Kind != kindRecover && candidate.Action != "" && candidate.Action != "fixture.restore"
 }
 
-func (d db) finishExplore(ctx context.Context, report ExploreReport, binding RunBinding, adapter ExploreAdapter, accounts map[string]Fixture, actors map[string]ParticipantBinding, fixture Fixture, campaign string, execErr error) (ExploreReport, error) {
+func (d db) finishExplore(ctx context.Context, report ExploreReport, binding RunBinding, adapter ExploreAdapter, accounts map[string]Fixture, actors map[string]ParticipantBinding, fixture Fixture, campaign string, execErr error, fault ExploreFault) (ExploreReport, error) {
 	started := time.Now()
-	if report.Truncated && (report.StopReason == "budget_actions" || report.StopReason == "budget_states" || report.StopReason == "budget_time" || report.StopReason == "budget_replans") {
+	if fault.Window == "during_recovery" {
+		report.Recovery = RecoveryOutcome{Verdict: "BLOCKED", Reason: "explore crash: during_recovery", Safe: false, Actions: []ActionObservation{}}
+		report.RecoveryClass = RecoveryFailedLocked
+		if persistErr := d.persistExploration(report); persistErr != nil {
+			return report, errors.Join(errExploreCrash("during_recovery"), persistErr)
+		}
+		return report, errExploreCrash("during_recovery")
+	}
+	if report.Truncated && (report.StopReason == "budget_actions" || report.StopReason == "budget_states" || report.StopReason == "budget_time" || report.StopReason == "budget_replans" || report.StopReason == "budget_planner") {
 		report.Recovery = RecoveryOutcome{Verdict: "NOT_RUN", Reason: "truncated campaign keeps the fixture locked for resume", Actions: []ActionObservation{}}
 		report.RecoveryClass = RecoveryNotAttempted
 		report.Spent.Actions = report.Actions

@@ -155,6 +155,7 @@ Details and semantics: `Arc/arc:verify/references/business-graph-v2.md`.
     arc-verify discover record --file exploration.json            # UNSPECIFIED, never PASS/FAIL
     arc-verify discover run --file adapter.json --graph G --flow F --env E --round Q \
       --account A --fixture F --commit SHA [--mode heuristic|deterministic|ai] [--planner file]
+      # --mode ai without --planner uses ARC_VERIFY_PLANNER_URL / MODEL / KEY_ENV; no key in the ledger.
     arc-verify discover status [--id CAMPAIGN] [--graph G]
     arc-verify discover resume --id CAMPAIGN --file adapter.json --graph G --flow F --env E --round Q \
       --account A --fixture F --commit SHA

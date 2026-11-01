@@ -35,6 +35,7 @@ func TestRefuseSharedIMWriteTarget(t *testing.T) {
 		"http://tx.nulltech.cn:28885",
 		"http://192.168.1.50:28895",
 		"http://121.43.161.42:28885",
+		"http://evil.example:28886",
 	} {
 		if err := refuseSharedIMTarget(raw); err == nil {
 			t.Fatalf("shared or production target was accepted: %s", raw)

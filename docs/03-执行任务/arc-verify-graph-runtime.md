@@ -273,3 +273,24 @@ W06 / W20 的 IM-mongo 项仍为 `[!]`。
 
 报告：[verify-blind-resume-验收.md](arc-verify-graph-runtime/verify-blind-resume-验收.md)。
 
+## 2026-11-01：生产级探索闭环（verify-prod-loop）
+
+基线 `a7215ea`。任务卡：[W36–W47](arc-verify-graph-runtime/W36-W47-prod-loop.md)。不覆盖未提交的对话导出目录。
+
+| 批次 | 状态 | 范围与验收 |
+| --- | --- | --- |
+| W36 | [x] | 原子领取 + fencing；两连接竞争只有一个 winner；旧 worker 不能提交 |
+| W37 | [x] | 检查点失败可见；崩溃窗口保持 `OUTCOME_UNKNOWN`，禁止盲目重放 |
+| W38 | [x] | 并发 OperationGroup；部分成功不再用单方结果代表整组 |
+| W39 | [x] | 等价键复用 Graph v2；预算耗尽保留 Frontier，记录 RSS/DB |
+| W40 | [!] | HTTP 规划器已接线；本机无模型凭证，真实 AI 验收 BLOCKED |
+| W41 | [x] | 只读源码入口发现；未授权入口只记录 |
+| W42 | [x] | 规划器可按新观察再次触发；无模型时不能形成真实反馈闭环 |
+| W43 | [?] | 三模式对照函数按缺陷 ID 去重；C 组无 planner_calls，不声称增量 |
+| W44 | [x] | Oracle 字段分级；SYNTHETIC 不能单独 PASS；IM 主机白名单 |
+| W45 | [!] | IM-mongo 链 A/B/C 保持 NOT_RUN/BLOCKED；不扩大授权、不自动 APPROVE |
+| W46 | [x] | 证据门禁拒绝缺 RAW、移植、过期、无规划器的 AI 验收 |
+| W47 | [x] | 静态六视图下钻增加假设/首次偏离/可信标记；前端不写账本 |
+
+独立可信 Runner 与受保护 CI 仍未做（W16）。本地测试不是独立验收。
+
