@@ -380,9 +380,8 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 		for _, entry := range foundEntries {
 			item := authorizeDiscoveredEntry(entry, request.Adapter)
 			discovered = append(discovered, item)
-			if item.Class == entryUndeclared || item.Class == entryForbidden {
-				report.Risks = append(report.Risks, ExploreFinding{Kind: "RISK", Reason: item.Class + " " + item.Path + " from " + item.File + " (candidate entry only; business capability and intent unconfirmed)", Evidence: item.Evidence})
-			}
+			// Source entrances remain mapping candidates. An API route absent
+			// from the adapter is not automatically a missing business capability.
 		}
 	}
 	disc = refreshBoundaryDiscovery(disc, g, approvals, request.Adapter, report, discovered)

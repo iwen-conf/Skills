@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 )
 
 const (
@@ -101,7 +100,7 @@ type AmbiguousObservation struct {
 func buildEvidenceContext(g Graph, approvals map[string]bool, _ ExploreAdapter, report ExploreReport, adapter ExploreAdapter, entries []DiscoveredEntry) DiscoveryContext {
 	out := DiscoveryContext{Facts: []EvidenceFact{}, Questions: []string{}, Authorization: []string{}}
 	businessIndex := indexModel(g)
-	graphRef := EvidenceReference{ID: "graph:" + g.ID, Source: "graph", Version: fmt.Sprintf("v%d", g.SchemaVersion), Scope: g.ID, Trust: "VERIFIED"}
+	graphRef := EvidenceReference{ID: "graph:" + g.ID, Source: "graph", Version: fmt.Sprintf("v%d", g.SchemaVersion), Scope: g.ID, Trust: "MODEL_DECLARED"}
 	for _, rule := range g.Rules {
 		approved := approvals[rule.ID]
 		class := factInferred
@@ -122,8 +121,8 @@ func buildEvidenceContext(g Graph, approvals map[string]bool, _ ExploreAdapter, 
 		out.Facts = append(out.Facts, EvidenceFact{
 			ID: discoveryFactID("flow", flow.ID), Class: factKnown,
 			Statement:  "flow " + flow.ID + " starts at " + flow.Initial + " for " + flow.Capability,
-			Capability: flow.Capability, SourceType: "flow", Location: flow.ID, Scope: g.ID, Trust: "VERIFIED", Confirmed: true,
-			Refs: []EvidenceReference{graphRef, {ID: "flow:" + flow.ID, Source: "flow", Scope: g.ID, Trust: "VERIFIED"}},
+			Capability: flow.Capability, SourceType: "flow", Location: flow.ID, Scope: g.ID, Trust: "MODEL_DECLARED", Confirmed: true,
+			Refs: []EvidenceReference{graphRef, {ID: "flow:" + flow.ID, Source: "flow", Scope: g.ID, Trust: "MODEL_DECLARED"}},
 		})
 	}
 	for _, entry := range adapter.Entries {
@@ -147,7 +146,7 @@ func buildEvidenceContext(g Graph, approvals map[string]bool, _ ExploreAdapter, 
 			ID: discoveryFactID("src", item.Path), Class: class,
 			Statement: item.Class + " " + item.Path + " from " + item.File,
 			Capability: confirmedCapabilityForAction(businessIndex, item.Action), SourceType: "source",
-			Refs:      []EvidenceReference{{ID: item.File, Source: "source", Scope: item.Path, Trust: trustForClass(class)}},
+			Refs:      []EvidenceReference{{ID: item.File, Source: "source", Scope: item.Path, Trust: "SOURCE_CANDIDATE"}},
 		})
 	}
 	for _, item := range report.Unspecified {
@@ -165,11 +164,6 @@ func buildEvidenceContext(g Graph, approvals map[string]bool, _ ExploreAdapter, 
 			Refs:      []EvidenceReference{{ID: firstNonEmpty(finding.Evidence, finding.Rule), Source: "explore", Trust: "UNVERIFIED"}},
 		})
 	}
-	for _, fact := range out.Facts {
-		if fact.Class == factUnknown && !observableFact(fact, adapter) {
-			out.Questions = appendUnique(out.Questions, "UNKNOWN: "+fact.Statement)
-		}
-	}
 	return out
 }
 
@@ -180,15 +174,6 @@ func confirmedCapabilityForAction(x modelIndex, action string) string {
 		return linked[0]
 	}
 	return ""
-}
-
-func observableFact(fact EvidenceFact, adapter ExploreAdapter) bool {
-	for _, entry := range adapter.Entries {
-		if strings.Contains(fact.Statement, entry.Entry) || strings.Contains(fact.Statement, entry.Action) {
-			return true
-		}
-	}
-	return adapter.Oracle.Call.Path != ""
 }
 
 func trustForClass(class string) string {
