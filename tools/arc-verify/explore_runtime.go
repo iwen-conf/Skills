@@ -387,6 +387,15 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 	}
 	disc = refreshBoundaryDiscovery(disc, g, approvals, request.Adapter, report, discovered)
 	report.Boundary = &disc
+	if request.Mode == "agent-native" {
+		report.StopReason, report.Truncated = "awaiting_agent", true
+		report.Checkpoint = newID("CK")
+		seed.World, seed.Seen = persistWorld(world), mapKeys(seen)
+		seed.Report, seed.Status, seed.Checkpoint = report, exploreInterrupted, report.Checkpoint
+		if err := d.saveExploreCheckpointOwned(seed, lease); err != nil { return report, err }
+		if err := d.persistExploration(report); err != nil { return report, err }
+		return report, nil
+	}
 	for {
 		if ctx.Err() != nil {
 			report.StopReason, report.Truncated = "budget_time", true
@@ -733,6 +742,10 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 			break
 		}
 		candidates := proposeCandidates(g, x, flow, request.Adapter, approvals, world, tried)
+		if request.Mode == "agent-native" {
+			if len(state.Frontier) != 1 { return report, errors.New("no single approved agent proposal; use discover propose") }
+			candidates = append([]CandidateAction(nil), state.Frontier...)
+		}
 		if request.Mode == "deterministic" {
 			candidates = filterDeterministic(candidates)
 		}
@@ -775,10 +788,11 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 		}
 		chosen, ok := selectCandidate(candidates, tried, world.state)
 		if !ok {
-			if len(state.Frontier) > 0 {
+			if request.Mode != "agent-native" && len(state.Frontier) > 0 {
 				chosen, ok = selectCandidate(state.Frontier, tried, world.state)
 			}
 			if !ok {
+				if request.Mode == "agent-native" { return report, errors.New("proposal already tried or stale; no replay") }
 				report.StopReason = "complete"
 				report.Remaining = candidates
 				break
@@ -807,6 +821,15 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 				break
 			}
 			report.StopReason = "blocked"
+			if request.Mode == "agent-native" {
+				report.StopReason, report.Truncated, report.UnsafeResume = "blocked", true, true
+				report.Remaining = nil
+				report.Checkpoint = newID("CK")
+				state.UnsafeResume = true
+				if saveErr := d.persistExploreDrive(drive, report, world, tried, budget, exploreBlocked); saveErr != nil { return report, errors.Join(execErr, saveErr) }
+				if saveErr := d.persistExploration(report); saveErr != nil { return report, errors.Join(execErr, saveErr) }
+				return report, execErr
+			}
 			return d.finishExplore(ctx, report, binding, request.Adapter, accounts, actors, fixture, state.Campaign, execErr, request.Fault)
 		}
 		report.Steps = append(report.Steps, step)
@@ -824,6 +847,14 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 		disc = refreshBoundaryDiscovery(disc, g, approvals, request.Adapter, report, discovered)
 		report.Boundary = &disc
 		_ = replans
+		if request.Mode == "agent-native" {
+			report.StopReason, report.Truncated = "awaiting_agent", true
+			report.Remaining = nil
+			report.Checkpoint = newID("CK")
+			if err := d.persistExploreDrive(drive, report, world, tried, budget, exploreInterrupted); err != nil { return report, err }
+			if err := d.persistExploration(report); err != nil { return report, err }
+			return report, nil
+		}
 		if err := d.persistExploreDrive(drive, report, world, tried, budget, exploreRunning); err != nil {
 			return report, err
 		}

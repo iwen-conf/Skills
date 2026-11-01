@@ -262,7 +262,7 @@ func decodePlannerMode(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "", "heuristic":
 		return "heuristic"
-	case "deterministic", "ai":
+	case "deterministic", "ai", "agent-native":
 		return strings.ToLower(value)
 	default:
 		return "heuristic"
