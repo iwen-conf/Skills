@@ -130,8 +130,8 @@ func buildEvidenceContext(g Graph, approvals map[string]bool, _ ExploreAdapter, 
 		out.Facts = append(out.Facts, EvidenceFact{
 			ID: discoveryFactID("entry", entry.Action+"|"+entry.Entry), Class: factKnown,
 			Statement:  "authorized adapter entry " + entry.Action + " " + entry.Entry,
-			Capability: confirmedCapabilityForAction(businessIndex, entry.Action), SourceType: "entry", Location: entry.Entry, Scope: adapter.IsolationScope, Trust: "VERIFIED", Confirmed: true, Observed: true,
-			Refs: []EvidenceReference{{ID: "adapter:" + entry.Entry, Source: "adapter", Scope: adapter.IsolationScope, Trust: "VERIFIED"}},
+			Capability: confirmedCapabilityForAction(businessIndex, entry.Action), SourceType: "entry", Location: entry.Entry, Scope: adapter.IsolationScope, Trust: "DECLARED", Confirmed: true, Observed: false,
+			Refs: []EvidenceReference{{ID: "adapter:" + entry.Entry, Source: "adapter", Scope: adapter.IsolationScope, Trust: "DECLARED"}},
 		})
 		out.Authorization = appendUnique(out.Authorization, "entry:"+entry.Entry)
 	}

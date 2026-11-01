@@ -142,6 +142,14 @@ recovery only**. No additional model settings or API keys are necessary.
 Legacy `--mode ai --planner FILE` is only a scripted comparison fixture;
 normal CLI exploration uses `heuristic` / `deterministic`.
 
+**Avoid overdesign:** Do not use synthetic model-generated hypotheses, a generic
+business inference engine or HTTP-response-based ownership guesses as evidence
+of capability availability. Prefer the smallest verified business capability
+inventory and an actionable Markdown work record. A configured adapter entry
+proves only a declared test entry, **not** that a business action was observed
+or passed. Keep existing recovery/Oracle mechanisms; do not delete safety
+logic in the name of simplification.
+
 ## Tool Strategy
 
 - **Preferred**: the project's own test entry (Makefile target, package script, CI job) → the
