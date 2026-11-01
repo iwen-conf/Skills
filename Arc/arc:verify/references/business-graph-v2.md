@@ -14,7 +14,7 @@ and runtime measurements all match and are observed; an unobserved part never me
 | `run-chain --round --max-steps --deadline` | Run the known path (READY cards with one current runner) through `execute`; stops with exit 10 divergence, 11 unknown state, 12 precondition, 13 new branch, 14 budget, 15 blocked, plus a minimal packet |
 | `derive --run [--budget]` | Derive obligations from a failed run's observed state (see DERIVED) |
 | `discover record/list/triage` | Register exploration observations; behavior outside the model becomes UNSPECIFIED (never PASS/FAIL); the user triages it in a real terminal |
-| `discover run/context/propose/execute/handoff/complete/status/abort` | Agent-Native (default) uses the current coding Agent for planning and one authorized CLI action per turn. No model URL, API key, or separate LLM. Checkpoint/Frontier persist in Turso for cross-Agent handoff; RAW, independent Oracle, fencing and recovery remain mandatory |
+| `discover run/resume/status/abort` | Isolated exploration with atomic campaign claim and fencing; `--mode ai` needs a planner file or `ARC_VERIFY_PLANNER_*` (keys stay in env). Budget exhaustion keeps Frontier; `planner_calls=0` is not real AI evidence |
 | `report --kind acceptance\|risk` | Acceptance excludes every risk; the risk report shows declared, reference, derived and UNSPECIFIED risks, refutations, the three-way comparison and the per-origin triage summary |
 | `accept-risk` / `reject-risk` / `promote-risk` | Interactive user decisions with the user's own words |
 | `risk refute --result --evidence` | Record a bounded refutation attempt bound to evidence by SHA-256; it never closes the risk |
@@ -26,5 +26,3 @@ Implementation evidence (`scan`, exploration), requirements (approved rules) and
 separate sources: none of them becomes a rule by itself, and only approved rules enter acceptance.
 
 Read with [business-graph](business-graph.md), which keeps the confirmation, card and RAW rules these commands rely on.
-
-Agent-native proposal example: `{"campaign":"X-id","checkpoint":"CK-id","suggestion":{"capability":"cap-id","action":"claim","entry":"/claim","role":"AGENT","reason":"test ownership","observe":"owner","risk":"medium"}}`. The CLI never treats Agent-generated hypotheses as approved RULEs. `discover complete` verifies recovery before allowing fixture locks to be released. Legacy `--mode ai --planner FILE` is for deterministic/scripted comparison, not a second model.

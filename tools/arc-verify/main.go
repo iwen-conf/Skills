@@ -52,8 +52,8 @@ func runContext(ctx context.Context, args []string) error {
 		subcommand, args = args[1], append([]string{name}, args[2:]...)
 	}
 	if name == "discover" {
-		if len(args) < 2 || !slices.Contains([]string{"record", "list", "triage", "run", "status", "resume", "abort", "context", "handoff", "propose", "execute", "complete"}, args[1]) {
-			return errors.New("usage: arc-verify discover <record|list|triage|run|status|resume|abort|context|handoff|propose|execute|complete> [options]")
+		if len(args) < 2 || !slices.Contains([]string{"record", "list", "triage", "run", "status", "resume", "abort"}, args[1]) {
+			return errors.New("usage: arc-verify discover <record|list|triage|run|status|resume|abort> [options]")
 		}
 		subcommand, args = args[1], append([]string{name}, args[2:]...)
 	}
@@ -109,9 +109,8 @@ func runContext(ctx context.Context, args []string) error {
 	riskScope := f.String("scope", "", "explicit scope of an accepted risk")
 	reportKind := f.String("kind", "", "report kind: acceptance or risk")
 	riskReview := f.Bool("risk-review", false, "fail the gate while user-undecided risks remain")
-	exploreMode := f.String("mode", "heuristic", "heuristic (CLI default), agent-native (host Agent), deterministic, or scripted ai")
-	plannerFile := f.String("planner", "", "legacy scripted planner JSON; no external model needed")
-	proposalFile := f.String("proposal", "", "agent-native proposal JSON file")
+	exploreMode := f.String("mode", "heuristic", "explore planner: deterministic, heuristic or ai")
+	plannerFile := f.String("planner", "", "optional JSON file of structured explore suggestions")
 	if e := f.Parse(args[1:]); e != nil {
 		return e
 	}
@@ -223,63 +222,12 @@ func runContext(ctx context.Context, args []string) error {
 				emit(items)
 			}
 			return err
-		case "context", "handoff":
-			if *id == "" { return errors.New("discover context/handoff needs --id") }
-			result, err := d.agentNativeContext(*id)
-			if err == nil { emit(result) }
-			return err
-		case "propose":
-			if *id == "" || *proposalFile == "" { return errors.New("discover propose needs --id and --proposal JSON") }
-			if *file == "" {
-				st, err := d.loadExploreCheckpoint(*id)
-				if err != nil { return err }
-				*file = st.AdapterPath
-			}
-			if *file == "" { return errors.New("campaign has no recorded adapter path") }
-			adapterBody, err := os.ReadFile(*file)
-			if err != nil { return err }
-			var adapter ExploreAdapter
-			if err := decodeStrictJSON(adapterBody, &adapter); err != nil { return err }
-			proposalBody, err := os.ReadFile(*proposalFile)
-			if err != nil { return err }
-			var proposal AgentNativeProposal
-			if err := decodeStrictJSON(proposalBody, &proposal); err != nil { return err }
-			result, err := d.agentNativePropose(*id, adapter, proposal)
-			if err == nil { emit(result) }
-			return err
-		case "complete":
-			if *id == "" { return errors.New("discover complete needs --id") }
-			if *file == "" {
-				st, err := d.loadExploreCheckpoint(*id)
-				if err != nil { return err }
-				*file = st.AdapterPath
-			}
-			if *file == "" { return errors.New("campaign has no recorded adapter path") }
-			body, err := os.ReadFile(*file)
-			if err != nil { return err }
-			var adapter ExploreAdapter
-			if err := decodeStrictJSON(body, &adapter); err != nil { return err }
-			report, err := d.agentNativeComplete(ctx, *id, adapter)
-			if err == nil { emit(report) }
-			return err
-		case "run", "resume", "execute":
-			if subcommand == "execute" {
-				if *id == "" { return errors.New("discover execute needs --id") }
-				st, err := d.loadExploreCheckpoint(*id)
-				if err != nil { return err }
-				if st.Mode != "agent-native" { return errors.New("execute requires agent-native campaign") }
-				*file, *graph, *flow, *env, *round = st.AdapterPath, st.Graph, st.Flow, st.Environment, st.Round
-				*account, *fixture, *commit = st.Account, st.Fixture, st.SourceCommit
-				*root, *config = st.Binding.SourceRoot, st.Binding.ConfigPath
-				*maxSteps, *maxStates, *maxPaths, *budget = st.Budget.MaxActions, st.Budget.MaxStates, st.Budget.MaxPaths, st.Budget.MaxReplans
-				*deadline = st.Budget.Deadline
-			}
+		case "run", "resume":
 			if *file == "" || *graph == "" || *flow == "" || *env == "" || *round == "" || *account == "" || *fixture == "" || *commit == "" {
 				return errors.New("discover run needs --file adapter, --graph, --flow, --env, --round, --account, --fixture and --commit")
 			}
-			if subcommand != "run" && *id == "" { return errors.New("discover resume/execute needs --id campaign") }
-			if subcommand == "resume" {
-				if state, e := d.loadExploreCheckpoint(*id); e == nil && state.Mode == "agent-native" { return errors.New("agent-native uses context/propose/execute; resume will not dispatch actions") }
+			if subcommand == "resume" && *id == "" {
+				return errors.New("discover resume needs --id campaign")
 			}
 			body, err := os.ReadFile(*file)
 			if err != nil {
@@ -297,19 +245,13 @@ func runContext(ctx context.Context, args []string) error {
 			if err := decodeStrictJSON([]byte(*participantAccounts), &accounts); err != nil {
 				return err
 			}
-			mode := *exploreMode
-			if mode == "ai" && *plannerFile == "" { mode = "agent-native" }
-			if subcommand == "execute" {
-				state, err := d.loadExploreCheckpoint(*id)
-				if err != nil { return err }
-				if state.Mode != "agent-native" || state.UnsafeResume || state.Report.UnsafeResume { return errors.New("execute requires a safe agent-native campaign") }
-				mode = "agent-native"
+			planner, err := plannerFromFlags(*exploreMode, *plannerFile)
+			if err != nil && *exploreMode == "ai" {
+				return err
 			}
-			var planner ExplorePlanner
-			if *plannerFile != "" && mode != "agent-native" { planner = FileExplorePlanner{Path: *plannerFile} }
 			report, err := d.runExploration(ctx, ExploreRequest{
 				Graph: *graph, Flow: *flow, Environment: *env, Round: *round, Root: *root, Config: *config, Commit: *commit,
-				Account: *account, Fixture: *fixture, Accounts: accounts, Adapter: adapter, Campaign: *id, Mode: mode, Planner: planner, AdapterPath: *file,
+				Account: *account, Fixture: *fixture, Accounts: accounts, Adapter: adapter, Campaign: *id, Mode: *exploreMode, Planner: planner,
 				Budget: ExploreRuntimeBudget{MaxStates: *maxStates, MaxPaths: *maxPaths, MaxActions: *maxSteps, Deadline: deadline, MaxReplans: *budget},
 			})
 			if err == nil {

@@ -99,8 +99,6 @@ type ExploreCheckpoint struct {
 	Report           ExploreReport         `json:"report"`
 	Updated          string                `json:"updated,omitempty"`
 	Binding          RunBinding            `json:"binding,omitempty"`
-	AdapterPath      string                `json:"adapter_path,omitempty"`
-	AdapterSHA256    string                `json:"adapter_sha256,omitempty"`
 	UnsafeResume     bool                  `json:"unsafe_resume,omitempty"`
 	ResumeHoldReason string                `json:"resume_hold_reason,omitempty"`
 }

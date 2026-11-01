@@ -1,6 +1,6 @@
 ---
 name: arc:explore
-version: 2.3.1
+version: 2.3.0
 description: >-
   Read-only code intelligence for a local repository: find where code lives (代码在哪, 搜代码),
   locate definitions, list callers (谁调用), trace a call chain (调用链) or data flow, list
@@ -18,7 +18,7 @@ Answer where code lives, who depends on it and what a change would touch, with r
 
 - Make the change (implement, rename, refactor, fix, comment) → `arc:code`; it runs code-intel itself.
 - Find defects or risks, review a diff, health or security audit → `arc:audit`.
-- Write or run tests, including evidence-backed unknown business boundary exploration and Agent-native cross-session handoff → `arc:verify`. This Skill only supplies code/entry facts; it does not plan or execute business experiments.
+- Write or run tests → `arc:verify`.
 - Write a PRD, brief or task document → `arc:plan`.
 - Design or review business lifecycle completeness → `arc:plan` model mode; exploration supplies source facts.
 - Read one file at a known path → read it directly.

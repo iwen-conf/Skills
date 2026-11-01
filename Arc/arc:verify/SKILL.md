@@ -1,6 +1,6 @@
 ---
 name: arc:verify
-version: 3.7.0
+version: 3.6.0
 description: >-
   Proves business code meets business expectations: business-flow inventories and flowcharts
   tracing branches to cases (业务流, 端到端业务流, 分支覆盖), test plans (测试方案, 用例设计,
@@ -102,61 +102,6 @@ Follow confirmed RULE → graph → bounded card → real execution → independ
 12. Hand off: each `FAIL` → repair packet ([execution-truth](../../docs/execution-truth.md) §6) for
     `arc:code`; each `SPECIFICATION GAP` → user; gaps and uncovered branches per flow-matrix §8.
     Report per contract §9. Output: report.
-
-## Agent-Native exploratory verification (default, no model setup)
-
-ARC Verify is a protocol for **the current host coding Agent**, not a new Agent,
-LLM runtime, HTTP model endpoint, or model gateway. Grok, Codex, Claude Code,
-Cursor, etc. supply their existing reasoning and terminal/file tools. Never ask
-the user for model URLs, model settings, API keys, or a second model to explore.
-Do not call an external model through the CLI.
-
-For unknown business boundary work, run the following bounded protocol:
-
-1. **Start or rejoin.** Query `arc-verify discover status --graph GRAPH` and
-   continue an existing safe `agent-native` Campaign. Otherwise start
-   `arc-verify discover run --mode agent-native` with the existing approved
-   environment, registered account, fixture, round, source commit and adapter.
-   Starting this mode only reads the Oracle and creates a checkpoint; it does
-   **not** automatically dispatch business actions.
-2. **Inspect persistent context.** Use
-   `arc-verify discover context --id CAMPAIGN`. Its checkpoint, facts,
-   hypothesis history, attempted actions, frontier and safe/blocked status
-   are authoritative. Do not treat previous chat memory as the ledger.
-3. **Reason with the host Agent.** Challenge business assumptions, compare
-   explanations, choose a minimal differentiating experiment. Preserve RULE
-   approval boundaries; infer RISK / UNSPECIFIED, not a confirmed FAIL.
-4. **Submit a bounded proposal.** Write a strict JSON
-   `{"campaign":"X-...","checkpoint":"CK-...","hypothesis_id":"BH-...", "experiment_id":"EXP-...", "suggestion":{"capability":"...","action":"...","entry":"...","role":"...","reason":"...","observe":"...","risk":"medium"}}`
-   with the checkpoint from context. Call
-   `arc-verify discover propose --id CAMPAIGN --proposal PROPOSAL.json`.
-   Only the existing CLI validates and queues an authorized action.
-5. **Execute exactly one bounded action.** Call
-   `arc-verify discover execute --id CAMPAIGN` without repeating start flags;
-   the saved Campaign provides pinned source, adapter, actor and environment.
-   The CLI owns
-   fencing, attempts, RAW, independent Oracle, budgets and fixtures.
-6. **Observe and revise.** Re-read `discover context`. The host Agent
-   must use actual Oracle results to change its next hypothesis and proposal.
-   Continue until the exploration goal/budget or a safe stop condition.
-7. **Finish safely.** After a verified safe state and no queued action, run
-   `discover complete --id CAMPAIGN`. Fixture locks
-   are released only if isolation recovery is independently proved.
-   An unknown side effect remains BLOCKED.
-8. **Switch Agents without lost state.** In the next coding Agent session,
-   read this Skill and run `discover handoff --id CAMPAIGN`. This generates
-   the handoff from the persisted Campaign, not the previous Agent's messages.
-   Check source/environment/authorization again before continuing.
-
-A proposal recorded as `agent_native` means the CLI accepted a proposal from
-the host workflow; it is *not* cryptographic proof of a particular model or
-of hidden chain-of-thought. Only execution plus an independent Oracle proves a
-business outcome. Scripted experiments are fixtures, not real Agent thinking.
-
-Legacy deterministic/heuristic runs remain usable. A legacy `--mode ai --planner`
-file may be used as a test fixture; without the file, `--mode ai` uses the
-Agent-Native protocol and requires no HTTP model or API key. This Skill never
-requires a second model.
 
 ## Tool Strategy
 

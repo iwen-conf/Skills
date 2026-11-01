@@ -262,7 +262,7 @@ func decodePlannerMode(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "", "heuristic":
 		return "heuristic"
-	case "deterministic", "ai", "agent-native":
+	case "deterministic", "ai":
 		return strings.ToLower(value)
 	default:
 		return "heuristic"
@@ -307,11 +307,13 @@ func (d db) persistPlannerAudit(campaign string, in PlannerContext, proposal Pla
 			suggestionIDs = appendUnique(suggestionIDs, item.ExperimentID)
 		}
 	}
-	source := "external_http"
-	switch proposal.Model {
-	case "agent-native":
-		source = "agent_native"
-	case "scripted":
+	source := "http"
+	if proposal.Model == "scripted" || proposal.Model == "" && len(proposal.Suggestions) > 0 {
+		if proposal.Model == "scripted" {
+			source = "scripted"
+		}
+	}
+	if proposal.Model == "scripted" {
 		source = "scripted"
 	}
 	audit := map[string]any{
