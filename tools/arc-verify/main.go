@@ -271,6 +271,8 @@ func runContext(ctx context.Context, args []string) error {
 				*file, *graph, *flow, *env, *round = st.AdapterPath, st.Graph, st.Flow, st.Environment, st.Round
 				*account, *fixture, *commit = st.Account, st.Fixture, st.SourceCommit
 				*root, *config = st.Binding.SourceRoot, st.Binding.ConfigPath
+				*maxSteps, *maxStates, *maxPaths, *budget = st.Budget.MaxActions, st.Budget.MaxStates, st.Budget.MaxPaths, st.Budget.MaxReplans
+				*deadline = st.Budget.Deadline
 			}
 			if *file == "" || *graph == "" || *flow == "" || *env == "" || *round == "" || *account == "" || *fixture == "" || *commit == "" {
 				return errors.New("discover run needs --file adapter, --graph, --flow, --env, --round, --account, --fixture and --commit")

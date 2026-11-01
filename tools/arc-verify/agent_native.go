@@ -179,6 +179,7 @@ func (d db) agentNativeComplete(ctx context.Context, campaign string, adapter Ex
     if final.RecoveryClass!=RecoveryRestored {
         final.StopReason,final.Truncated,final.UnsafeResume="blocked",true,true
         state.UnsafeResume=true
+        if saveErr:=d.persistExploration(final);saveErr!=nil {return final,errors.Join(finishErr,saveErr)}
     }
     state.Report=final
     state.Status=exploreStatusFor(final)

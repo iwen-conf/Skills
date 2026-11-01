@@ -1,6 +1,9 @@
 package main
 import (
  "context"
+ "encoding/json"
+ "os"
+ "path/filepath"
  "testing"
  "time"
 )
@@ -14,9 +17,13 @@ func TestAgentNativeProposalPersistsAcrossTurns(t *testing.T) {
  f:=prepareSeatFixture(t,server.URL)
  f.openRound(t)
  adapter:=seatExploreAdapter(t,seatIsolationScope)
+ adapterBytes,err:=json.Marshal(adapter)
+ if err!=nil {t.Fatal(err)}
+ adapterPath:=filepath.Join(t.TempDir(),"adapter.json")
+ if err:=os.WriteFile(adapterPath,adapterBytes,0600);err!=nil{t.Fatal(err)}
  req:=ExploreRequest{Graph:"seat-v2",Flow:"flow.reservation",Environment:"independent",Round:f.round,
  Root:f.root,Config:f.config,Commit:f.commit,Account:f.account,Fixture:f.fixture,
- Adapter:adapter,Mode:"agent-native",Budget:ExploreRuntimeBudget{MaxStates:8,MaxPaths:8,MaxActions:4,Deadline:8*time.Second}}
+ Adapter:adapter,AdapterPath:adapterPath,Mode:"agent-native",Budget:ExploreRuntimeBudget{MaxStates:8,MaxPaths:8,MaxActions:4,Deadline:8*time.Second}}
  report,err:=f.d.runExploration(context.Background(),req)
  if err!=nil {t.Fatal(err)}
  if report.Actions!=0 || report.StopReason!="awaiting_agent" {t.Fatalf("start executed work: %+v",report)}

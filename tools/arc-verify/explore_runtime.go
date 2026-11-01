@@ -342,6 +342,11 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 		Mode: request.Mode, Report: report, Budget: budget, Binding: binding,
 		AdapterPath: request.AdapterPath, AdapterSHA256: digestBytes(mustJSON(request.Adapter)),
 	}
+	if request.Mode == "agent-native" && seed.AdapterPath != "" {
+		absolute, err := filepath.Abs(seed.AdapterPath)
+		if err != nil { return report, err }
+		seed.AdapterPath = absolute
+	}
 	if err := d.insertExploreCampaign(seed); err != nil {
 		return report, err
 	}
@@ -852,6 +857,7 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 		report.Boundary = &disc
 		_ = replans
 		if request.Mode == "agent-native" {
+			report.Spent = measureExploreSpent(d, report, replans, plannerCalls)
 			report.StopReason, report.Truncated = "awaiting_agent", true
 			report.Remaining = nil
 			report.Checkpoint = newID("CK")
