@@ -100,6 +100,7 @@ type AmbiguousObservation struct {
 
 func buildEvidenceContext(g Graph, approvals map[string]bool, _ ExploreAdapter, report ExploreReport, adapter ExploreAdapter, entries []DiscoveredEntry) DiscoveryContext {
 	out := DiscoveryContext{Facts: []EvidenceFact{}, Questions: []string{}, Authorization: []string{}}
+	businessIndex := indexModel(g)
 	graphRef := EvidenceReference{ID: "graph:" + g.ID, Source: "graph", Version: fmt.Sprintf("v%d", g.SchemaVersion), Scope: g.ID, Trust: "VERIFIED"}
 	for _, rule := range g.Rules {
 		approved := approvals[rule.ID]
@@ -112,7 +113,7 @@ func buildEvidenceContext(g Graph, approvals map[string]bool, _ ExploreAdapter, 
 		}
 		out.Facts = append(out.Facts, EvidenceFact{
 			ID: discoveryFactID("rule", rule.ID), Class: class, Statement: statement,
-			Capability: firstNonEmpty(rule.Action, g.ID), SourceType: "rule", Location: rule.ID, SourceCommit: report.Identity.SourceCommit, Scope: g.ID, Trust: trustForClass(class),
+			Capability: confirmedCapabilityForAction(businessIndex, rule.Action), SourceType: "rule", Location: rule.ID, SourceCommit: report.Identity.SourceCommit, Scope: g.ID, Trust: trustForClass(class),
 			Confirmed: approved, Evidence: []string{"rule:" + rule.ID},
 			Refs: []EvidenceReference{graphRef, {ID: "rule:" + rule.ID, Source: "rule", Version: rule.Source, Scope: g.ID, Trust: trustForClass(class)}},
 		})
@@ -129,7 +130,7 @@ func buildEvidenceContext(g Graph, approvals map[string]bool, _ ExploreAdapter, 
 		out.Facts = append(out.Facts, EvidenceFact{
 			ID: discoveryFactID("entry", entry.Action+"|"+entry.Entry), Class: factKnown,
 			Statement:  "authorized adapter entry " + entry.Action + " " + entry.Entry,
-			Capability: entry.Action, SourceType: "entry", Location: entry.Entry, Scope: adapter.IsolationScope, Trust: "VERIFIED", Confirmed: true, Observed: true,
+			Capability: confirmedCapabilityForAction(businessIndex, entry.Action), SourceType: "entry", Location: entry.Entry, Scope: adapter.IsolationScope, Trust: "VERIFIED", Confirmed: true, Observed: true,
 			Refs: []EvidenceReference{{ID: "adapter:" + entry.Entry, Source: "adapter", Scope: adapter.IsolationScope, Trust: "VERIFIED"}},
 		})
 		out.Authorization = appendUnique(out.Authorization, "entry:"+entry.Entry)
@@ -145,6 +146,7 @@ func buildEvidenceContext(g Graph, approvals map[string]bool, _ ExploreAdapter, 
 		out.Facts = append(out.Facts, EvidenceFact{
 			ID: discoveryFactID("src", item.Path), Class: class,
 			Statement: item.Class + " " + item.Path + " from " + item.File,
+			Capability: confirmedCapabilityForAction(businessIndex, item.Action), SourceType: "source",
 			Refs:      []EvidenceReference{{ID: item.File, Source: "source", Scope: item.Path, Trust: trustForClass(class)}},
 		})
 	}
@@ -170,6 +172,15 @@ func buildEvidenceContext(g Graph, approvals map[string]bool, _ ExploreAdapter, 
 		}
 	}
 	return out
+}
+
+// Only a unique declared "capability implements action" mapping is a
+// capability fact. An API path or action name alone is not a business capability.
+func confirmedCapabilityForAction(x modelIndex, action string) string {
+	if linked := x.capsByAction[action]; len(linked) == 1 {
+		return linked[0]
+	}
+	return ""
 }
 
 func markConflictingFacts(ctx *DiscoveryContext) {

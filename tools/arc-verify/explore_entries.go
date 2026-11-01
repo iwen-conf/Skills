@@ -76,6 +76,7 @@ func discoverSourceEntries(root string, adapter ExploreAdapter) ([]DiscoveredEnt
 			}
 		}
 		for _, item := range found {
+			if len(out) >= 64 { return filepath.SkipAll }
 			out = append(out, item)
 		}
 		return nil
@@ -102,7 +103,7 @@ func discoverGoHTTPEntries(rel string, src []byte, approved map[string]bool) []D
 		method := ""
 		switch name {
 		case "HandleFunc", "Handle":
-			method = "POST"
+			method = "ANY" // net/http HandleFunc does not restrict the method
 		case "GET", "POST", "PUT", "PATCH", "DELETE":
 			method = name
 		default:

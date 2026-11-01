@@ -377,11 +377,11 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 	}
 	recordWorld(world)
 	if foundEntries, discErr := discoverSourceEntries(request.Root, request.Adapter); discErr == nil {
-		discovered = foundEntries
-		for _, item := range foundEntries {
-			item = authorizeDiscoveredEntry(item, request.Adapter)
+		for _, entry := range foundEntries {
+			item := authorizeDiscoveredEntry(entry, request.Adapter)
+			discovered = append(discovered, item)
 			if item.Class == entryUndeclared || item.Class == entryForbidden {
-				report.Risks = append(report.Risks, ExploreFinding{Kind: "RISK", Reason: item.Class + " " + item.Path + " from " + item.File, Evidence: item.Evidence})
+				report.Risks = append(report.Risks, ExploreFinding{Kind: "RISK", Reason: item.Class + " " + item.Path + " from " + item.File + " (candidate entry only; business capability and intent unconfirmed)", Evidence: item.Evidence})
 			}
 		}
 	}
@@ -706,7 +706,9 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 	}
 	discovered := []DiscoveredEntry{}
 	if foundEntries, discErr := discoverSourceEntries(request.Root, request.Adapter); discErr == nil {
-		discovered = foundEntries
+		for _, entry := range foundEntries {
+			discovered = append(discovered, authorizeDiscoveredEntry(entry, request.Adapter))
+		}
 	}
 	report = state.Report
 	report.Mode = firstNonEmpty(request.Mode, state.Mode)
