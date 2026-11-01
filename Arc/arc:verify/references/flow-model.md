@@ -19,7 +19,33 @@ fork into several flows by input, state or role. Matrix, ledger and change impac
 IDs are stable: `FLOW-NNN`; decisions `Nxx`; terminals `Txx`; branches `FLOW-NNN-Nxx-Bxx`. Never
 renumber; retire an ID with a note.
 
-## 2. Discover from the implementation
+## 2. Discover business capabilities, then inspect the implementation
+
+Start from business requirements, not HTTP routes. A capability is a business
+goal performed by an actor, not a handler, generic CRUD operation or package.
+
+Write the **smallest useful capability inventory** in the existing flow
+catalog, before creating detailed charts:
+
+| Capability / business goal | Actor & trigger | Expected outcome / source | Source evidence | Boundary and status | Next check |
+| --- | --- | --- | --- | --- | --- |
+| Existing ID/name | Role and action | Confirmed requirement/RULE or explicitly unconfirmed | UI/API/worker → usecase/service → state/write (file:line) | Confirmed / candidate / gap / NOT_RUN | One bounded verification |
+
+Heuristic discovery order: known user journeys → UI actions → API/RPC
+handlers → application/usecase and durable writes → scheduled jobs,
+events/consumers and callbacks. Group by the *business outcome*. One capability
+may span many endpoints; one endpoint may serve multiple capabilities.
+Do not promote metrics, health checks, framework plumbing or unrelated
+technical CRUD to business capabilities merely because they have routes.
+
+Reuse existing Graph v2 `implements` links, or trace actual implementation,
+to associate actions with a capability. Unknown/ambiguous mappings remain
+**UNMAPPED** candidates in Markdown, never guessed capabilities or automatic
+FAIL. An expected-but-unfound capability remains a candidate gap until
+additional search and business confirmation. Go AST/OpenAPI scans are limited
+entry clues; they do not substitute for UI, RPC, async or real execution.
+
+## 2a. Discover from the implementation
 
 This is the implementation inventory. First confirm expected business functionality from user
 intent and requirements; keep its catalog separate ([business-graph](business-graph.md)). A code

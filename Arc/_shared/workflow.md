@@ -34,9 +34,12 @@ Typical paths (skip phases whose current outputs already exist):
 
 ## 2. One handoff record, updated in place
 
-Use the active task card's Handoff section; for untracked work use the phase report in the
-conversation. Persist evidence at the contract's artifact path. Do not create a second tracker
-or task tree just for skill transitions.
+Use the existing task card's Handoff section. For ongoing work without a
+task card, record progress in the **project's existing Markdown status document**;
+if none exists, use one simple Markdown note. Conversation-only summaries are
+not durable across coding Agents. Update the same document in place, link
+real evidence, and do not create an Agent-to-Agent protocol, new tracker,
+handoff service or extra task tree.
 
 ```text
 Goal / active owner / next owner:

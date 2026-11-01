@@ -1,6 +1,6 @@
 ---
 name: arc:verify
-version: 3.6.1
+version: 3.6.2
 description: >-
   Proves business code meets business expectations: business-flow inventories and flowcharts
   tracing branches to cases (业务流, 端到端业务流, 分支覆盖), test plans (测试方案, 用例设计,
@@ -103,46 +103,44 @@ Follow confirmed RULE → graph → bounded card → real execution → independ
     `arc:code`; each `SPECIFICATION GAP` → user; gaps and uncovered branches per flow-matrix §8.
     Report per contract §9. Output: report.
 
-## Existing coding Agents: Markdown work records, not Agent handoff
+## Business capability exploration and written progress
 
-ARC Verify is a set of **constraints and testing practices for the current
-coding Agent**, not an Agent implementation. Grok, Codex, Claude Code, etc.
-already provide their own reasoning and tools. Never add ACP, automatic
-Agent-to-Agent handoff, Agent-native sessions, an Agent runtime, model API
-calls, endpoint configuration, extra models or API keys.
+ARC Verify constrains the **existing** Grok, Codex, Claude Code or other
+coding Agent. Do not create an Agent, ACP/native handoff, model service,
+HTTP model client, API key/configuration requirement or new state store.
 
-If the coding Agent changes, **the only handover is a normal project Markdown
-document**. Read and update [当前状态与需求](../../docs/03-执行任务/arc-verify-graph-runtime/当前状态与需求.md)
-and the target project's existing requirement/task documents. Do not invent
-an Agent session transport, checkpoint format or new CLI command for this.
+For business exploration, follow this **capability-first** workflow:
 
-For substantial unknown-boundary discovery:
+1. **Read the work:** user requirements, confirmed RULEs, FLOWs, existing
+   Markdown progress and latest source revision. Record the real business
+   goals before reading implementation endpoints.
+2. **List business capabilities:** system → capability → meaningful boundary;
+   each has an actor, goal, trigger, success/denial state and requirements
+   source. Reuse current capability IDs; do not guess missing product intent.
+3. **Heuristically trace implementation:** UI action, API/RPC or consumer →
+   usecase/service → business rule and persisted side effect. Reuse `arc:explore`
+   source queries. Go/OpenAPI entry scanning is only a *candidate source*;
+   one route is not a capability. Link actions to capabilities only by a
+   declared Graph `implements` relationship or traced business evidence.
+4. **Focus on relevant boundaries:** actor/role, prerequisite, state change,
+   repetition/concurrency, timeout/failure/recovery and cross-feature effect
+   only when justified by that capability. Do not generate a fixed test matrix
+   for every HTTP endpoint.
+5. **Verify what matters:** use the existing runner/CLI and independent Oracle
+   when authorized. Keep RISK/UNSPECIFIED, known RULE violations, and missing
+   evidence separate. Scanned source is not proof of working business behavior.
+6. **Save progress in existing Markdown:** goal/requirement, capability,
+   source location, completed steps, actual command/exit/RAW/Oracle,
+   unsolved problem, status and the next *specific executable* action.
 
-1. Read confirmed requirements, RULEs, FLOWs, project docs and current code;
-   inspect prior results without treating an implementation as its own contract.
-2. Read the Markdown task status: baseline commit, accepted scope,
-   completed/unfinished work, BLOCKED/NOT_RUN items, first FAIL, actual command
-   results, RAW/Oracle references, unresolved decisions and concrete next steps.
-3. The **current Agent itself** identifies potentially missing capabilities,
-   asks counterfactual questions, compares interpretations and chooses
-   authorized, bounded tests using the project's existing tools and ARC Verify
-   commands. No separate model is involved.
-4. Use `discover run --mode heuristic` or `--mode deterministic` for
-   built-in bounded test exploration. The legacy `--mode ai --planner FILE`
-   is **only a scripted regression fixture**, not AI reasoning. Never claim
-   a scripted test proves a model discovered a new boundary.
-5. Preserve test evidence and independent Oracle checks. Unknown behavior is
-   UNSPECIFIED/RISK until a confirmed rule exists; no AI suggestion can
-   APPROVE a RULE, bypass a business authorization or assert PASS without RAW.
-6. After the task, update **ordinary Markdown** with requirements, what
-   changed, what was actually tested, verified/unverified status, evidence
-   paths, safe stopping conditions and the next task. A new coding Agent reads
-   it, checks for stale versions/environment and continues normally.
-
-Keep existing `arc-verify` Campaign Checkpoint/Frontier/Turso state strictly
-for **test execution, crash recovery and evidence**, not Agent transfer.
-Existing `arc-verify handoff --to` concerns Arc Skill workflows, not ACP
-or transferring an AI session. Do not implement any Agent-specific handoff.
+Next Agent reads the same Markdown and checks freshness; **no Agent-to-Agent
+protocol or native session transfer**. Use the target project's existing
+task card / 进度跟踪表; in this repository the current overview is
+[当前状态与需求](../../docs/03-执行任务/arc-verify-graph-runtime/当前状态与需求.md).
+Existing Turso Campaign/Checkpoint/Frontier remains for safe **test run
+recovery only**. No additional model settings or API keys are necessary.
+Legacy `--mode ai --planner FILE` is only a scripted comparison fixture;
+normal CLI exploration uses `heuristic` / `deterministic`.
 
 ## Tool Strategy
 
