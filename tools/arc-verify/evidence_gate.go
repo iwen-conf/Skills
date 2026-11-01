@@ -154,6 +154,26 @@ func rawMatchesCampaign(body []byte, in EvidenceGateInput) error {
 	if err := json.Unmarshal(body, &raw); err != nil {
 		return errors.New("RAW is not a StepRAW document")
 	}
+	// Versioned exploration evidence must bind the bytes to their originating
+	// campaign, actor, fixture and independent observer. Absent fields are not
+	// wildcards: a recomputed SHA256 cannot legalize stripped identity data.
+	if in.Report.EvidenceContract == exploreIdentityContract {
+		if in.ExpectedCampaign != "" && raw.Run != in.ExpectedCampaign {
+			return errors.New("RAW campaign identity is missing or foreign")
+		}
+		if in.Binding.Identity.Task != "" && raw.Identity.Task != in.Binding.Identity.Task {
+			return errors.New("RAW step identity is missing or foreign")
+		}
+		if in.ExpectedFixture != "" && raw.Identity.Fixture != in.ExpectedFixture {
+			return errors.New("RAW fixture identity is missing or foreign")
+		}
+		if in.ExpectedActor != "" && raw.Identity.Actor != in.ExpectedActor && raw.Identity.Principal != in.ExpectedActor {
+			return errors.New("RAW actor identity is missing or foreign")
+		}
+		if oracle := firstNonEmpty(in.ExpectedOracle, in.Binding.Oracle); oracle != "" && raw.Oracle != oracle {
+			return errors.New("RAW independent oracle identity is missing or foreign")
+		}
+	}
 	if in.ExpectedCampaign != "" && raw.Run != "" && raw.Run != in.ExpectedCampaign {
 		return errors.New("RAW belongs to a foreign campaign")
 	}
