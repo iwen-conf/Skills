@@ -27,6 +27,7 @@ func TestAgentNativeProposalPersistsAcrossTurns(t *testing.T) {
  queued,err:=f.d.agentNativePropose(report.Campaign,adapter,proposal)
  if err!=nil {t.Fatal(err)}
  if len(queued.Frontier)!=1 || queued.Checkpoint==state.Checkpoint {t.Fatal("proposal not checkpointed")}
+ if queued.AdapterPath=="" || queued.Environment!="independent" || len(queued.AllowedEntries)==0 {t.Fatalf("handoff has incomplete portable context: %+v",queued)}
  if _,err:=f.d.agentNativePropose(report.Campaign,adapter,proposal);err==nil {t.Fatal("stale agent overwrote the handoff")}
  req.Campaign=report.Campaign
  result,err:=f.d.runExploration(context.Background(),req)

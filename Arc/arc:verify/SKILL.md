@@ -129,18 +129,18 @@ For unknown business boundary work, run the following bounded protocol:
 4. **Submit a bounded proposal.** Write a strict JSON
    `{"campaign":"X-...","checkpoint":"CK-...","hypothesis_id":"BH-...", "experiment_id":"EXP-...", "suggestion":{"capability":"...","action":"...","entry":"...","role":"...","reason":"...","observe":"...","risk":"medium"}}`
    with the checkpoint from context. Call
-   `arc-verify discover propose --id CAMPAIGN --file ADAPTER.json --proposal PROPOSAL.json`.
+   `arc-verify discover propose --id CAMPAIGN --proposal PROPOSAL.json`.
    Only the existing CLI validates and queues an authorized action.
 5. **Execute exactly one bounded action.** Call
-   `arc-verify discover execute --id CAMPAIGN` with the same `--file`,
-   `--graph`, `--flow`, `--env`, `--round`, `--account`, `--fixture`,
-   `--commit`, `--root`, and `--config` used to start. The CLI owns
+   `arc-verify discover execute --id CAMPAIGN` without repeating start flags;
+   the saved Campaign provides pinned source, adapter, actor and environment.
+   The CLI owns
    fencing, attempts, RAW, independent Oracle, budgets and fixtures.
 6. **Observe and revise.** Re-read `discover context`. The host Agent
    must use actual Oracle results to change its next hypothesis and proposal.
    Continue until the exploration goal/budget or a safe stop condition.
 7. **Finish safely.** After a verified safe state and no queued action, run
-   `discover complete --id CAMPAIGN --file ADAPTER.json`. Fixture locks
+   `discover complete --id CAMPAIGN`. Fixture locks
    are released only if isolation recovery is independently proved.
    An unknown side effect remains BLOCKED.
 8. **Switch Agents without lost state.** In the next coding Agent session,

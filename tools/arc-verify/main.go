@@ -229,7 +229,13 @@ func runContext(ctx context.Context, args []string) error {
 			if err == nil { emit(result) }
 			return err
 		case "propose":
-			if *id == "" || *file == "" || *proposalFile == "" { return errors.New("discover propose needs --id, --file adapter and --proposal JSON") }
+			if *id == "" || *proposalFile == "" { return errors.New("discover propose needs --id and --proposal JSON") }
+			if *file == "" {
+				st, err := d.loadExploreCheckpoint(*id)
+				if err != nil { return err }
+				*file = st.AdapterPath
+			}
+			if *file == "" { return errors.New("campaign has no recorded adapter path") }
 			adapterBody, err := os.ReadFile(*file)
 			if err != nil { return err }
 			var adapter ExploreAdapter
@@ -242,7 +248,13 @@ func runContext(ctx context.Context, args []string) error {
 			if err == nil { emit(result) }
 			return err
 		case "complete":
-			if *id == "" || *file == "" { return errors.New("discover complete needs --id and --file adapter") }
+			if *id == "" { return errors.New("discover complete needs --id") }
+			if *file == "" {
+				st, err := d.loadExploreCheckpoint(*id)
+				if err != nil { return err }
+				*file = st.AdapterPath
+			}
+			if *file == "" { return errors.New("campaign has no recorded adapter path") }
 			body, err := os.ReadFile(*file)
 			if err != nil { return err }
 			var adapter ExploreAdapter
@@ -251,6 +263,15 @@ func runContext(ctx context.Context, args []string) error {
 			if err == nil { emit(report) }
 			return err
 		case "run", "resume", "execute":
+			if subcommand == "execute" {
+				if *id == "" { return errors.New("discover execute needs --id") }
+				st, err := d.loadExploreCheckpoint(*id)
+				if err != nil { return err }
+				if st.Mode != "agent-native" { return errors.New("execute requires agent-native campaign") }
+				*file, *graph, *flow, *env, *round = st.AdapterPath, st.Graph, st.Flow, st.Environment, st.Round
+				*account, *fixture, *commit = st.Account, st.Fixture, st.SourceCommit
+				*root, *config = st.Binding.SourceRoot, st.Binding.ConfigPath
+			}
 			if *file == "" || *graph == "" || *flow == "" || *env == "" || *round == "" || *account == "" || *fixture == "" || *commit == "" {
 				return errors.New("discover run needs --file adapter, --graph, --flow, --env, --round, --account, --fixture and --commit")
 			}
@@ -286,7 +307,7 @@ func runContext(ctx context.Context, args []string) error {
 			if *plannerFile != "" && mode != "agent-native" { planner = FileExplorePlanner{Path: *plannerFile} }
 			report, err := d.runExploration(ctx, ExploreRequest{
 				Graph: *graph, Flow: *flow, Environment: *env, Round: *round, Root: *root, Config: *config, Commit: *commit,
-				Account: *account, Fixture: *fixture, Accounts: accounts, Adapter: adapter, Campaign: *id, Mode: mode, Planner: planner,
+				Account: *account, Fixture: *fixture, Accounts: accounts, Adapter: adapter, Campaign: *id, Mode: mode, Planner: planner, AdapterPath: *file,
 				Budget: ExploreRuntimeBudget{MaxStates: *maxStates, MaxPaths: *maxPaths, MaxActions: *maxSteps, Deadline: deadline, MaxReplans: *budget},
 			})
 			if err == nil {

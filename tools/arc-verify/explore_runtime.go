@@ -87,6 +87,7 @@ type ExploreRequest struct {
 	Campaign                                              string
 	Mode                                                  string
 	Planner                                               ExplorePlanner
+	AdapterPath                                           string
 	Worker                                                string
 	Fault                                                 ExploreFault
 }
@@ -339,6 +340,7 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 		Campaign: campaign, Graph: request.Graph, Flow: request.Flow, Environment: request.Environment, Round: request.Round,
 		ModelSHA: modelSHA, SourceCommit: request.Commit, Status: exploreNew, Account: request.Account, Fixture: request.Fixture,
 		Mode: request.Mode, Report: report, Budget: budget, Binding: binding,
+		AdapterPath: request.AdapterPath, AdapterSHA256: digestBytes(mustJSON(request.Adapter)),
 	}
 	if err := d.insertExploreCampaign(seed); err != nil {
 		return report, err
@@ -621,6 +623,7 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 	if state.RecoveryClass == RecoveryFailedLocked {
 		return report, errors.New("refusing to continue after failed fixture recovery")
 	}
+	if state.Mode == "agent-native" && state.AdapterSHA256 != digestBytes(mustJSON(request.Adapter)) { return report, errors.New("agent-native adapter changed; campaign is STALE") }
 	if state.Status == exploreAborted || state.Status == exploreCompleted {
 		return report, fmt.Errorf("campaign %s is %s", state.Campaign, state.Status)
 	}
@@ -657,6 +660,7 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 	if err != nil {
 		return report, err
 	}
+	if state.Mode == "agent-native" && (binding.Identity != state.Binding.Identity || binding.Oracle != state.Binding.Oracle) { return report, errors.New("agent-native execution identity is STALE") }
 	accounts, actors, ids, err := d.exploreAccounts(request.Adapter, binding, request.Account, request.Fixture)
 	if err != nil {
 		return report, err

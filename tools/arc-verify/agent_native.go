@@ -2,8 +2,10 @@ package main
 
 import (
     "context"
+    "encoding/json"
     "errors"
     "fmt"
+    "os"
     "time"
 )
 
@@ -16,12 +18,27 @@ type AgentNativeProposal struct {
     Suggestion PlannerSuggestion `json:"suggestion"`
 }
 
+type AgentNativeEntry struct {
+    Action string `json:"action"`
+    Entry string `json:"entry"`
+    Method string `json:"method"`
+    Roles []string `json:"roles"`
+}
+
 type AgentNativeContext struct {
     Protocol string `json:"protocol"`
     Campaign string `json:"campaign"`
     Graph string `json:"graph"`
     Flow string `json:"flow"`
     SourceCommit string `json:"source_commit"`
+    Environment string `json:"environment"`
+    Round string `json:"round"`
+    Account string `json:"account"`
+    Fixture string `json:"fixture"`
+    SourceRoot string `json:"source_root"`
+    ConfigPath string `json:"config_path"`
+    AdapterPath string `json:"adapter_path"`
+    AllowedEntries []AgentNativeEntry `json:"allowed_entries"`
     Checkpoint string `json:"checkpoint"`
     Status string `json:"status"`
     StopReason string `json:"stop_reason"`
@@ -40,6 +57,15 @@ func (d db) agentNativeContext(campaign string) (AgentNativeContext, error) {
     state, err := d.loadExploreCheckpoint(campaign)
     if err != nil { return AgentNativeContext{}, err }
     if state.Mode != "agent-native" { return AgentNativeContext{}, errors.New("campaign is not agent-native") }
+    entries:=[]AgentNativeEntry{}
+    if state.AdapterPath!="" {
+        if raw,e:=os.ReadFile(state.AdapterPath);e==nil {
+            var adapter ExploreAdapter
+            if json.Unmarshal(raw,&adapter)==nil && digestBytes(mustJSON(adapter))==state.AdapterSHA256 {
+                for _,entry:=range adapter.Entries {entries=append(entries,AgentNativeEntry{Action:entry.Action,Entry:entry.Entry,Method:entry.Method,Roles:entry.Roles})}
+            }
+        }
+    }
     steps := state.Report.Steps
     if len(steps) > 4 { steps = steps[len(steps)-4:] }
     next := "submit proposal using this checkpoint, then execute one action"
@@ -49,6 +75,9 @@ func (d db) agentNativeContext(campaign string) (AgentNativeContext, error) {
     return AgentNativeContext{
         Protocol:"arc-verify/agent-native/v1", Campaign:state.Campaign, Graph:state.Graph,
         Flow:state.Flow, SourceCommit:state.SourceCommit, Checkpoint:state.Checkpoint,
+        Environment:state.Environment, Round:state.Round, Account:state.Account,
+        Fixture:state.Fixture, SourceRoot:state.Binding.SourceRoot, ConfigPath:state.Binding.ConfigPath,
+        AdapterPath:state.AdapterPath, AllowedEntries:entries,
         Status:state.Status, StopReason:state.Report.StopReason,
         UnsafeResume:state.UnsafeResume || state.Report.UnsafeResume,
         Budget:state.Budget, Spent:state.Spent, World:state.World, Frontier:state.Frontier,
@@ -68,6 +97,7 @@ func (d db) agentNativePropose(campaign string, adapter ExploreAdapter, proposal
     }
     if len(state.Frontier)!=0 { return AgentNativeContext{},errors.New("execute existing proposal first") }
     if err:=validateExploreAdapter(adapter,state.Graph);err!=nil{return AgentNativeContext{},err}
+    if state.AdapterSHA256=="" || state.AdapterSHA256!=digestBytes(mustJSON(adapter)) {return AgentNativeContext{},errors.New("adapter digest mismatch; STALE")}
     if state.Binding.SourceRoot == "" || state.Binding.ConfigPath == "" { return AgentNativeContext{},errors.New("missing source/config binding") }
     current,err:=d.exploreBinding(state.Graph,state.Environment,state.SourceCommit,state.Account,state.Fixture,
         state.Binding.SourceRoot,state.Binding.ConfigPath,adapter.Oracle.ID,"explore/"+campaign)
@@ -119,6 +149,7 @@ func (d db) agentNativeComplete(ctx context.Context, campaign string, adapter Ex
         }
     }
     if err:=validateExploreAdapter(adapter,state.Graph);err!=nil{return state.Report,err}
+    if state.AdapterSHA256=="" || state.AdapterSHA256!=digestBytes(mustJSON(adapter)) {return state.Report,errors.New("adapter digest mismatch; STALE")}
     current,err:=d.exploreBinding(state.Graph,state.Environment,state.SourceCommit,state.Account,state.Fixture,
         state.Binding.SourceRoot,state.Binding.ConfigPath,adapter.Oracle.ID,"explore/"+campaign)
     if err!=nil{return state.Report,err}
