@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -109,7 +110,8 @@ func discoverGoHTTPEntries(rel string, src []byte, approved map[string]bool) []D
 		default:
 			return true
 		}
-		if len(call.Args) == 0 {
+		// HTTP client methods take one argument; route registrations need a handler.
+		if len(call.Args) < 2 {
 			return true
 		}
 		lit, ok := call.Args[0].(*ast.BasicLit)
@@ -148,15 +150,25 @@ func discoverOpenAPIEntries(rel string, src []byte, approved map[string]bool) []
 		return nil
 	}
 	out := []DiscoveredEntry{}
-	for pathName, methods := range doc.Paths {
-		method := "POST"
-		for name := range methods {
-			method = strings.ToUpper(name)
-			break
+	paths := make([]string, 0, len(doc.Paths))
+	for path := range doc.Paths { paths = append(paths, path) }
+	sort.Strings(paths)
+	for _, path := range paths {
+		if !strings.HasPrefix(path, "/") { continue }
+		methods := make([]string, 0, len(doc.Paths[path]))
+		for method := range doc.Paths[path] {
+			name := strings.ToUpper(method)
+			switch name {
+			case "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE":
+				methods = append(methods, name)
+			}
 		}
-		item := classifyDiscoveredPath(pathName, method, rel, approved)
-		item.Source = "openapi"
-		out = append(out, item)
+		sort.Strings(methods)
+		for _, method := range methods {
+			item := classifyDiscoveredPath(path, method, rel, approved)
+			item.Source = "openapi"
+			out = append(out, item)
+		}
 	}
 	return out
 }
@@ -184,14 +196,17 @@ func authorizeDiscoveredEntry(item DiscoveredEntry, adapter ExploreAdapter) Disc
 		return item
 	}
 	for _, entry := range adapter.Entries {
-		if entry.Entry == item.Path {
-			item.Class = entryConfirmed
-			item.Action = entry.Action
-			return item
+		if entry.Entry != item.Path { continue }
+		// Never equate GET and POST or infer methods from YAML path strings.
+		if item.Method != "ANY" && item.Method != "" && item.Method != strings.ToUpper(entry.Method) {
+			continue
 		}
+		item.Class = entryConfirmed
+		item.Action = entry.Action
+		return item
 	}
-	if item.Class == entryInferred {
-		item.Class = entryForbidden
+	if item.Method == "YAML" || item.Method == "" {
+		item.Class = entryInferred // a source clue, not an authorized business action
 		return item
 	}
 	item.Class = entryUndeclared
