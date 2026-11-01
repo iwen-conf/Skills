@@ -449,9 +449,6 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 			}
 		}
 		candidates = rotateCandidates(candidates, budget.Seed)
-		if request.Mode == "ai" {
-			candidates = preferDiscoveryCandidates(candidates, disc, world)
-		}
 		if len(candidates) == 0 {
 			report.StopReason = "no_candidates"
 			break
@@ -772,9 +769,6 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 			}
 		}
 		candidates = rotateCandidates(candidates, budget.Seed)
-		if request.Mode == "ai" {
-			candidates = preferDiscoveryCandidates(candidates, disc, world)
-		}
 		chosen, ok := selectCandidate(candidates, tried, world.state)
 		if !ok {
 			if len(state.Frontier) > 0 {
