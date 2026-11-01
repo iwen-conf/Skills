@@ -4,7 +4,6 @@ import (
     "context"
     "os"
     "path/filepath"
-    "strings"
     "testing"
 )
 
@@ -13,6 +12,7 @@ func TestResumeObservedWithTamperedRAWBlocksSideEffects(t *testing.T) {
         {name:"digest mismatch",body:`{"run":"X-raw-corrupt","identity":{"graph":"seat-v2"}}`,sha:"known-invalid"},
         {name:"identity mismatch",body:`{"run":"X-raw-corrupt","identity":{"graph":"foreign-graph"}}`,graph:"seat-v2"},
         {name:"foreign campaign",body:`{"run":"X-foreign","identity":{"graph":"seat-v2"}}`,graph:"seat-v2"},
+        {name:"missing campaign",body:`{"identity":{"graph":"seat-v2"}}`,graph:"seat-v2"},
     } {
         t.Run(tc.name,func(t *testing.T){
             fixture:=prepareSeatFixture(t,"http://127.0.0.1:9")
@@ -28,6 +28,7 @@ func TestResumeObservedWithTamperedRAWBlocksSideEffects(t *testing.T) {
             item:=CandidateAction{ID:"claim-1",Action:"claim",Role:"STUDENT",RequestID:"side-effect-1"}
             state:=ExploreCheckpoint{
                 Campaign:campaign,Graph:"seat-v2",Status:exploreRunning,
+                Report:ExploreReport{EvidenceContract: exploreIdentityContract},
                 Frontier:[]CandidateAction{item},
                 Actions:[]ExploreActionRecord{{
                     AttemptID:"AT-immutable",RequestID:item.RequestID,Candidate:item,
@@ -63,5 +64,4 @@ func TestSourceEntryMethodMismatchNeverConfirmed(t *testing.T) {
             t.Fatalf("POST must match approved entry: %+v",result)
         }
     }
-    _ = strings.Contains
 }

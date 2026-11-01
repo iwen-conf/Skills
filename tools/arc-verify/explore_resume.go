@@ -287,7 +287,7 @@ func (d db) reconcileUnknownActions(ctx context.Context, binding RunBinding, ada
 				} else if err := rawMatchesBinding(body, binding); err != nil {
 					sealUnreplayableAction(state, record, "observed RAW identity mismatch; replay is forbidden: "+err.Error())
 				} else if err := rawMatchesCampaign(body, EvidenceGateInput{
-					Binding: binding, ExpectedCampaign: state.Campaign,
+					Report: state.Report, Binding: binding, ExpectedCampaign: state.Campaign,
 					ExpectedFixture: binding.Identity.Fixture,
 					ExpectedActor: firstNonEmpty(binding.Identity.Actor, binding.Identity.Principal),
 				}); err != nil {
