@@ -223,4 +223,6 @@ var schema = []string{
 	"CREATE INDEX IF NOT EXISTS idx_exploration_state ON exploration_state(graph,status,updated);",
 	"CREATE TABLE IF NOT EXISTS exploration_planner_audit (id TEXT PRIMARY KEY, campaign TEXT NOT NULL, model TEXT NOT NULL, body TEXT NOT NULL, created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);",
 	"CREATE INDEX IF NOT EXISTS idx_exploration_planner_audit ON exploration_planner_audit(campaign,created);",
+	"CREATE TABLE IF NOT EXISTS exploration_boundary (campaign TEXT PRIMARY KEY, body TEXT NOT NULL, created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);",
+	"CREATE INDEX IF NOT EXISTS idx_exploration_boundary ON exploration_boundary(campaign);",
 }

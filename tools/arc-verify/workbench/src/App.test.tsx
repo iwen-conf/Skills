@@ -131,6 +131,12 @@ describe("static workbench", () => {
         evidence_missing: "oracle timeout",
         business_verdict: "FAIL",
         evidence_trust: "INCOMPLETE",
+        known_facts: ["FACT-rule-R1"],
+        hypothesis_status: ["BH-001:PROPOSED"],
+        explanations: ["EX-last:SUPPORTED:owner+version"],
+        experiments: ["EXP-min-owner"],
+        revisions: ["v2"],
+        needs_decision: ["FACT-unspec-U1"],
       },
     };
     const html = renderToStaticMarkup(
@@ -162,6 +168,17 @@ describe("static workbench", () => {
       "证据可信状态",
       "INCOMPLETE",
       "证据不足，未点绿",
+      "已确认事实",
+      "假设状态",
+      "竞争性解释",
+      "最小实验",
+      "理解修订",
+      "待业务确认",
+      "FACT-rule-R1",
+      "BH-001:PROPOSED",
+      "EX-last:SUPPORTED:owner+version",
+      "EXP-min-owner",
+      "FACT-unspec-U1",
     ]) {
       expect(html).toContain(text);
     }

@@ -14,17 +14,22 @@ type ExplorePlanner interface {
 }
 
 type PlannerContext struct {
-	GraphID        string            `json:"graph_id"`
-	Capability     string            `json:"capability"`
-	Role           string            `json:"role"`
-	State          string            `json:"state"`
-	ConfirmedRules []string          `json:"confirmed_rules"`
-	Entries        []ExploreEntry    `json:"entries"`
-	Recent         []ExploreStep     `json:"recent"`
-	Unspecified    []UnspecifiedItem `json:"unspecified"`
-	RuleFails      []ExploreFinding  `json:"rule_fails"`
-	Frontier       []CandidateAction `json:"frontier"`
-	BudgetLeft     int               `json:"budget_left"`
+	GraphID        string                  `json:"graph_id"`
+	Capability     string                  `json:"capability"`
+	Role           string                  `json:"role"`
+	State          string                  `json:"state"`
+	ConfirmedRules []string                `json:"confirmed_rules"`
+	Entries        []ExploreEntry          `json:"entries"`
+	Recent         []ExploreStep           `json:"recent"`
+	Unspecified    []UnspecifiedItem       `json:"unspecified"`
+	RuleFails      []ExploreFinding        `json:"rule_fails"`
+	Frontier       []CandidateAction       `json:"frontier"`
+	BudgetLeft     int                     `json:"budget_left"`
+	Facts          []EvidenceFact          `json:"facts,omitempty"`
+	Hypotheses     []BoundaryHypothesis    `json:"hypotheses,omitempty"`
+	Explanations   []CompetingExplanation  `json:"explanations,omitempty"`
+	Revisions      []UnderstandingRevision `json:"revisions,omitempty"`
+	Authorization  []string                `json:"authorization,omitempty"`
 }
 
 type PlannerSuggestion struct {
@@ -275,7 +280,7 @@ func redactPlannerText(value string) string {
 	return value
 }
 
-func (d db) persistPlannerAudit(campaign string, proposal PlannerProposal, accepted []CandidateAction, rejected []string, callNo int) error {
+func (d db) persistPlannerAudit(campaign string, in PlannerContext, proposal PlannerProposal, accepted []CandidateAction, rejected []string, callNo int) error {
 	if campaign == "" {
 		return errors.New("planner audit needs a campaign")
 	}
@@ -284,16 +289,25 @@ func (d db) persistPlannerAudit(campaign string, proposal PlannerProposal, accep
 	}
 	id := newID("PC")
 	hypotheses := []string{}
+	for _, item := range in.Hypotheses {
+		hypotheses = append(hypotheses, item.ID+":"+item.Status)
+	}
 	for _, item := range proposal.Suggestions {
 		if item.BoundaryHypothesis != "" {
 			hypotheses = append(hypotheses, redactPlannerText(item.BoundaryHypothesis))
 		}
+	}
+	facts := []string{}
+	for _, fact := range in.Facts {
+		facts = append(facts, fact.ID+":"+fact.Class)
 	}
 	audit := map[string]any{
 		"planner_call_id": id,
 		"campaign":        campaign,
 		"call_no":         callNo,
 		"model":           redactPlannerText(firstNonEmpty(proposal.Model, "unknown")),
+		"input_facts":     facts,
+		"authorization":   in.Authorization,
 		"accepted":        accepted,
 		"rejected":        rejected,
 		"hypotheses":      hypotheses,

@@ -63,7 +63,7 @@ func (p *HTTPExplorePlanner) Suggest(ctx context.Context, in PlannerContext) (Pl
 		"max_tokens":      p.MaxTokens,
 		"response_format": map[string]any{"type": "json_object"},
 		"messages": []map[string]string{
-			{"role": "system", "content": "Return JSON {suggestions:[...]} only. Each suggestion needs hypothesis_id, capability, business_intent, boundary_hypothesis, action, entry, role, reason, observe, risk, preconditions, needs_recovery, source_evidence. Never decide PASS or FAIL or change RULE."},
+			{"role": "system", "content": "Return JSON {suggestions:[...]} only. Use facts, hypotheses, explanations and authorization already in the context; do not re-ask known RULE or adapter entries. Each suggestion needs hypothesis_id, capability, business_intent, boundary_hypothesis, action, entry, role, reason, observe, risk, preconditions, needs_recovery, source_evidence. Prefer a minimal discriminating experiment over a full chain. Never decide PASS or FAIL or change RULE."},
 			{"role": "user", "content": string(mustJSON(in))},
 		},
 	})

@@ -318,3 +318,19 @@ W06 / W20 的 IM-mongo 项仍为 `[!]`。
 
 证据与矩阵：[verify-hardening-验收.md](arc-verify-graph-runtime/verify-hardening-验收.md)「2026-11-01 host-60」。身份文件 `.arc/artifacts/verify-remain-close/reports/host60.json`。
 
+## 2026-11-01：证据驱动未知边界发现（verify-boundary-discovery）
+
+基线 `0fa6477`。不新增第七个 Skill，不重做执行器/Oracle/工作台服务。R01–R11 的 fencing/崩溃/证据门禁缺口继续阻断危险实验，不因 AI 假设而宣称探索完成。
+
+| 编号 | 状态 | 范围与验收 |
+| --- | --- | --- |
+| BD01 | [x] | Evidence-First：先抽 RULE/flow/entry/UNSPECIFIED，KNOWN 不再提问，INFERRED 不升格 RULE |
+| BD02 | [x] | 反事实假设绑定能力、事实和可观察量；禁止只换变量名 |
+| BD03 | [x] | 同 HTTP 200 至少两种解释；最小实验读 owner+version，不能用状态码结案 |
+| BD04 | [x] | 理解修订追加版本；SUPPORTED/REFUTED 不改已确认 RULE |
+| BD05 | [x] | PlannerContext 携带 facts/hypotheses/explanations；建议过白名单；审计落库 |
+| BD06 | [x] | 静态六视图展示已知事实、假设状态、竞争解释、最小实验、修订与待确认 |
+| BD07 | [x] | A/B/C 对 hidden-owner last-writer 夹具实跑；`unique_to_c=1`（脚本规划器）。真实模型 BLOCKED |
+
+报告：[verify-boundary-discovery-验收.md](arc-verify-graph-runtime/verify-boundary-discovery-验收.md)。对照产物 `.arc/artifacts/verify-boundary-discovery/reports/boundary-abc.json`。
+

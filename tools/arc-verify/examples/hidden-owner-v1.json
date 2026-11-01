@@ -1,0 +1,127 @@
+{
+  "schema_version": 2,
+  "id": "hidden-owner-v1",
+  "system": "hidden",
+  "scope": "Isolated last-writer owner fixture; HTTP 200 is not the business oracle; not an IM-mongo contract",
+  "nodes": [
+    {"id": "hidden", "kind": "system", "name": "隐藏归属系统"},
+    {"id": "support", "kind": "domain", "name": "咨询领取"},
+    {"id": "work.claim", "kind": "capability", "name": "领取工单"},
+    {"id": "work.boundary", "kind": "boundary", "name": "工单边界"},
+    {"id": "AGENT", "kind": "role", "name": "客服"},
+    {"id": "CONTENDER", "kind": "role", "name": "竞争客服"},
+    {"id": "claim", "kind": "action", "name": "领取工单"},
+    {"id": "login", "kind": "condition", "name": "已认证"},
+    {"id": "pending", "kind": "state", "name": "待领取"},
+    {"id": "assigned", "kind": "state", "name": "已领取"},
+    {"id": "work.records", "kind": "data", "name": "工单归属"}
+  ],
+  "contracts": [
+    {
+      "subject": "work.claim",
+      "description": "An authenticated agent claims a work item; exclusive ownership is not a confirmed rule",
+      "inputs": ["agent", "work_item"],
+      "outputs": ["owner"],
+      "source": "document",
+      "source_ref": "hidden-owner"
+    }
+  ],
+  "edges": [
+    {"id": "contains-domain", "from": "hidden", "to": "support", "kind": "contains"},
+    {"id": "contains-capability", "from": "support", "to": "work.claim", "kind": "contains"},
+    {"id": "implements-claim", "from": "work.claim", "to": "claim", "kind": "implements"},
+    {"id": "owns-claim", "from": "work.boundary", "to": "work.claim", "kind": "owns"},
+    {"id": "owns-data", "from": "work.boundary", "to": "work.records", "kind": "owns"},
+    {"id": "serves-agent", "from": "AGENT", "to": "support", "kind": "serves"},
+    {"id": "serves-contender", "from": "CONTENDER", "to": "support", "kind": "serves"},
+    {"id": "requires-login", "from": "login", "to": "claim", "kind": "requires"},
+    {"id": "creates-assigned", "from": "claim", "to": "assigned", "kind": "transitions"},
+    {"id": "claim-flow", "from": "pending", "to": "assigned", "kind": "transitions_to"},
+    {"id": "verifies-idempotency", "from": "test.idempotency.repeat-claim", "to": "invariant.single-owner", "kind": "verifies"}
+  ],
+  "rules": [
+    {
+      "id": "R-OWNER",
+      "action": "claim",
+      "actor": "AGENT",
+      "entry": "/claim",
+      "oracle": "owner-store",
+      "conditions": ["login"],
+      "expected": "assigned",
+      "rejected": "UNCHANGED",
+      "source": "document",
+      "description": "Authenticated agent claim assigns the work item; exclusivity is not specified"
+    }
+  ],
+  "transitions": [
+    {"edge": "claim-flow", "action": "claim", "rule": "R-OWNER", "preconditions": {"login": true}, "outcome": "success"}
+  ],
+  "flows": [{"id": "flow.claim", "capability": "work.claim", "initial": "pending"}],
+  "invariants": [
+    {
+      "id": "invariant.single-owner",
+      "name": "工单最终只有一个归属主体",
+      "scope": ["work.claim"],
+      "oracle": "owner-store",
+      "observation_boundary": "after claim and fixture restoration",
+      "checks": [{"left": "owners", "operator": "lte", "right": "one"}],
+      "source": "document",
+      "source_ref": "hidden-owner"
+    }
+  ],
+  "tests": [
+    {
+      "id": "test.idempotency.repeat-claim",
+      "name": "同一客服重复领取不增加归属主体",
+      "rule": "R-OWNER",
+      "kind": "IDEMPOTENCY",
+      "preconditions": {"login": true},
+      "expected": "assigned",
+      "source": "document",
+      "source_ref": "hidden-owner"
+    }
+  ],
+  "applicability": [
+    {
+      "capability": "work.claim",
+      "kind": "CONCURRENCY",
+      "applicable": true,
+      "reason": "Two agents may attempt the same work item; exclusive ownership is unspecified",
+      "source": "document",
+      "source_ref": "hidden-owner"
+    },
+    {
+      "capability": "work.claim",
+      "kind": "IDEMPOTENCY",
+      "applicable": true,
+      "reason": "Repeat claim by the same agent is an isolated observation, not a confirmed exclusive lock",
+      "source": "document",
+      "source_ref": "hidden-owner"
+    },
+    {
+      "capability": "work.claim",
+      "kind": "BOUNDARY",
+      "applicable": false,
+      "reason": "Timeout and transport cuts are not part of this owner-oracle fixture",
+      "source": "document",
+      "source_ref": "hidden-owner"
+    },
+    {
+      "capability": "work.claim",
+      "kind": "RECOVERY",
+      "applicable": false,
+      "reason": "Fixture reset is the execute protocol, not a bound recovery scenario",
+      "source": "document",
+      "source_ref": "hidden-owner"
+    },
+    {
+      "capability": "work.claim",
+      "kind": "FAULT",
+      "applicable": false,
+      "reason": "Fault injection is outside this last-writer contrast",
+      "source": "document",
+      "source_ref": "hidden-owner"
+    }
+  ],
+  "risks": []
+}

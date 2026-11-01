@@ -675,6 +675,18 @@ function EntityPanel({
             <dd>{snapshot.exploration[id].mode_contrast?.join("、") || "无"}</dd>
             <dt>已确认规则</dt>
             <dd>{snapshot.exploration[id].confirmed_rules?.join("、") || "无"}</dd>
+            <dt>已确认事实</dt>
+            <dd>{snapshot.exploration[id].known_facts?.join("、") || "无"}</dd>
+            <dt>假设状态</dt>
+            <dd>{snapshot.exploration[id].hypothesis_status?.join("、") || "无"}</dd>
+            <dt>竞争性解释</dt>
+            <dd>{snapshot.exploration[id].explanations?.join("、") || "无"}</dd>
+            <dt>最小实验</dt>
+            <dd>{snapshot.exploration[id].experiments?.join("、") || "无"}</dd>
+            <dt>理解修订</dt>
+            <dd>{snapshot.exploration[id].revisions?.join("、") || "无"}</dd>
+            <dt>待业务确认</dt>
+            <dd>{snapshot.exploration[id].needs_decision?.join("、") || "无"}</dd>
             <dt>AI 边界假设</dt>
             <dd className="ai-inferred">
               {snapshot.exploration[id].hypotheses?.join("、") || "无"}

@@ -173,6 +173,7 @@ type ExploreReport struct {
 	Spent          ExploreSpent      `json:"spent,omitempty"`
 	Mode           string            `json:"mode,omitempty"`
 	Checkpoint     string            `json:"checkpoint,omitempty"`
+	Boundary       *DiscoveryContext `json:"boundary_discovery,omitempty"`
 }
 
 type exploreWorld struct {
@@ -350,6 +351,8 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 	tried := map[string]bool{}
 	replans := 0
 	plannerCalls := 0
+	discovered := []DiscoveredEntry{}
+	disc := DiscoveryContext{}
 	recordWorld := func(current exploreWorld) {
 		key, ok := exploreEquivalenceKey(g, x, flow, current)
 		if ok {
@@ -362,6 +365,7 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 	}
 	recordWorld(world)
 	if foundEntries, discErr := discoverSourceEntries(request.Root, request.Adapter); discErr == nil {
+		discovered = foundEntries
 		for _, item := range foundEntries {
 			item = authorizeDiscoveredEntry(item, request.Adapter)
 			if item.Class == entryUndeclared || item.Class == entryForbidden {
@@ -369,6 +373,8 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 			}
 		}
 	}
+	disc = refreshBoundaryDiscovery(disc, g, approvals, request.Adapter, report, discovered)
+	report.Boundary = &disc
 	for {
 		if ctx.Err() != nil {
 			report.StopReason, report.Truncated = "budget_time", true
@@ -403,7 +409,8 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 				report.Remaining = remainingCandidates(candidates, tried, world.state)
 				break
 			}
-			proposal, planErr := request.Planner.Suggest(ctx, plannerContext(request, flow, approvals, world, report, candidates, budget.MaxActions-report.Actions))
+			planIn := attachDiscoveryToPlanner(plannerContext(request, flow, approvals, world, report, candidates, budget.MaxActions-report.Actions), disc)
+			proposal, planErr := request.Planner.Suggest(ctx, planIn)
 			plannerCalls++
 			report.Spent.PlannerCalls = plannerCalls
 			if planErr != nil {
@@ -423,12 +430,15 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 						accepted = append(accepted, item)
 					}
 				}
-				if err := d.persistPlannerAudit(campaign, proposal, accepted, rejected, plannerCalls); err != nil {
+				if err := d.persistPlannerAudit(campaign, planIn, proposal, accepted, rejected, plannerCalls); err != nil {
 					report.Blocked = append(report.Blocked, ExploreFinding{Kind: "BLOCKED", Reason: "planner audit persist failed: " + err.Error()})
 				}
 			}
 		}
 		candidates = rotateCandidates(candidates, budget.Seed)
+		if request.Mode == "ai" {
+			candidates = preferDiscoveryCandidates(candidates, disc, world)
+		}
 		if len(candidates) == 0 {
 			report.StopReason = "no_candidates"
 			break
@@ -499,6 +509,8 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 			report.WithinContract += step.Discovery.WithinContract
 			report.Unspecified = append(report.Unspecified, step.Discovery.Unspecified...)
 		}
+		disc = refreshBoundaryDiscovery(disc, g, approvals, request.Adapter, report, discovered)
+		report.Boundary = &disc
 		if chosen.Kind == kindRecover {
 			if !step.Denied && step.After.State == flow.Initial {
 				world = exploreWorld{state: step.After.State, role: step.After.Role, principal: step.After.Principal, account: request.Account, conditions: map[string]bool(step.After.Conditions), history: step.After.Values}
@@ -1538,7 +1550,13 @@ func (d db) persistExploration(report ExploreReport) error {
 		}
 		statements = append(statements, fmt.Sprintf("INSERT OR REPLACE INTO exploration_frontier(id,campaign,equivalence_key,state,role,body) VALUES(%s,%s,%s,%s,%s,%s);", quote(report.Campaign+"/"+shortDigest(key)), quote(report.Campaign), quote(key), quote(worldState), quote(leftover.Role), quote(string(item))))
 	}
-	return d.tx(statements)
+	if err := d.tx(statements); err != nil {
+		return err
+	}
+	if report.Boundary != nil {
+		return d.persistDiscoveryContext(report.Campaign, *report.Boundary)
+	}
+	return nil
 }
 
 func (d db) explorationCoverage(graph string) (map[string]ExplorationCoverage, error) {
@@ -1668,8 +1686,38 @@ func (d db) explorationCoverage(graph string) (map[string]ExplorationCoverage, e
 				out[capability] = cover
 			}
 		}
+		if report.Boundary != nil {
+			for capability, cover := range out {
+				out[capability] = attachBoundaryCoverage(cover, *report.Boundary)
+			}
+		}
 	}
 	return out, nil
+}
+
+func attachBoundaryCoverage(cover ExplorationCoverage, disc DiscoveryContext) ExplorationCoverage {
+	for _, fact := range disc.Facts {
+		if fact.Class == factKnown {
+			cover.KnownFacts = appendUnique(cover.KnownFacts, fact.ID)
+		}
+		if fact.Class == factBusiness || fact.Class == factConflicting {
+			cover.NeedsDecision = appendUnique(cover.NeedsDecision, fact.ID)
+		}
+	}
+	for _, hyp := range disc.Hypotheses {
+		cover.HypothesisStatus = appendUnique(cover.HypothesisStatus, hyp.ID+":"+hyp.Status)
+		cover.Hypotheses = appendUnique(cover.Hypotheses, hyp.Counterfactual)
+	}
+	for _, item := range disc.Explanations {
+		cover.Explanations = appendUnique(cover.Explanations, item.ID+":"+firstNonEmpty(item.Status, "UNTESTED")+":"+item.Oracle)
+	}
+	for _, item := range disc.Experiments {
+		cover.Experiments = appendUnique(cover.Experiments, item.ID)
+	}
+	for _, item := range disc.Revisions {
+		cover.Revisions = appendUnique(cover.Revisions, fmt.Sprintf("v%d", item.Version))
+	}
+	return cover
 }
 
 func capabilityIDs(g Graph) []string {
@@ -1702,29 +1750,35 @@ func appendUnique(values []string, value string) []string {
 }
 
 type ExplorationCoverage struct {
-	Explored        []string `json:"explored_branches"`
-	Unexplored      []string `json:"unexplored_branches"`
-	Unspecified     []string `json:"unspecified"`
-	ConfirmedFails  []string `json:"confirmed_fails"`
-	CurrentPass     []string `json:"current_pass"`
-	Tested          bool     `json:"tested"`
-	PendingRecovery []string `json:"pending_recovery"`
-	StopReasons     []string `json:"stop_reasons"`
-	BudgetExhausted bool     `json:"budget_exhausted"`
-	EvidenceMissing string   `json:"evidence_missing,omitempty"`
-	ExecutedPaths   []string `json:"executed_paths,omitempty"`
-	Frontier        []string `json:"frontier,omitempty"`
-	AICandidates    []string `json:"ai_candidates,omitempty"`
-	FailEvidence    []string `json:"fail_evidence,omitempty"`
-	RecoveryStatus  []string `json:"recovery_status,omitempty"`
-	UnknownStates   []string `json:"unknown_states,omitempty"`
-	ModeContrast    []string `json:"mode_contrast,omitempty"`
-	ConfirmedRules  []string `json:"confirmed_rules,omitempty"`
-	Hypotheses      []string `json:"hypotheses,omitempty"`
-	FirstDivergence string   `json:"first_divergence,omitempty"`
-	Trusted         bool     `json:"trusted,omitempty"`
-	BusinessVerdict string   `json:"business_verdict,omitempty"`
-	EvidenceTrust   string   `json:"evidence_trust,omitempty"`
-	HumanConfirmed  []string `json:"human_confirmed,omitempty"`
-	AIInferred      []string `json:"ai_inferred,omitempty"`
+	Explored         []string `json:"explored_branches"`
+	Unexplored       []string `json:"unexplored_branches"`
+	Unspecified      []string `json:"unspecified"`
+	ConfirmedFails   []string `json:"confirmed_fails"`
+	CurrentPass      []string `json:"current_pass"`
+	Tested           bool     `json:"tested"`
+	PendingRecovery  []string `json:"pending_recovery"`
+	StopReasons      []string `json:"stop_reasons"`
+	BudgetExhausted  bool     `json:"budget_exhausted"`
+	EvidenceMissing  string   `json:"evidence_missing,omitempty"`
+	ExecutedPaths    []string `json:"executed_paths,omitempty"`
+	Frontier         []string `json:"frontier,omitempty"`
+	AICandidates     []string `json:"ai_candidates,omitempty"`
+	FailEvidence     []string `json:"fail_evidence,omitempty"`
+	RecoveryStatus   []string `json:"recovery_status,omitempty"`
+	UnknownStates    []string `json:"unknown_states,omitempty"`
+	ModeContrast     []string `json:"mode_contrast,omitempty"`
+	ConfirmedRules   []string `json:"confirmed_rules,omitempty"`
+	Hypotheses       []string `json:"hypotheses,omitempty"`
+	FirstDivergence  string   `json:"first_divergence,omitempty"`
+	Trusted          bool     `json:"trusted,omitempty"`
+	BusinessVerdict  string   `json:"business_verdict,omitempty"`
+	EvidenceTrust    string   `json:"evidence_trust,omitempty"`
+	HumanConfirmed   []string `json:"human_confirmed,omitempty"`
+	AIInferred       []string `json:"ai_inferred,omitempty"`
+	KnownFacts       []string `json:"known_facts,omitempty"`
+	HypothesisStatus []string `json:"hypothesis_status,omitempty"`
+	Explanations     []string `json:"explanations,omitempty"`
+	Experiments      []string `json:"experiments,omitempty"`
+	Revisions        []string `json:"revisions,omitempty"`
+	NeedsDecision    []string `json:"needs_decision,omitempty"`
 }

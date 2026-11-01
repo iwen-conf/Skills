@@ -367,6 +367,12 @@ export interface ExplorationCoverage {
   evidence_trust?: string;
   human_confirmed?: string[];
   ai_inferred?: string[];
+  known_facts?: string[];
+  hypothesis_status?: string[];
+  explanations?: string[];
+  experiments?: string[];
+  revisions?: string[];
+  needs_decision?: string[];
 }
 export interface Snapshot {
   meta: SnapshotMeta;
