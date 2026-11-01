@@ -94,11 +94,22 @@ func (d db) verifyExploreEvidence(campaign ExploreCheckpoint) VerifiedEvidenceRe
 		OracleTrust:        "UNKNOWN",
 		EvidenceTrust:      trustUnverified,
 	}
+	// A stored checksum cannot validate itself. Compare against the
+	// CURRENT persisted Graph; otherwise stale evidence could appear VERIFIED
+	// after business rules or the model have changed.
+	currentGraphSHA, graphErr := d.graphFingerprint(result.GraphID)
+	if graphErr != nil {
+		result.GateVerdict = string(gateBlocked)
+		result.InvalidReason = "cannot verify current graph fingerprint: " + graphErr.Error()
+		result.EvidenceTrust = trustUnverified
+		result.Integrity, result.BindingResult, result.OracleTrust = splitTrustParts(result.EvidenceTrust, result.InvalidReason)
+		return result
+	}
 	verdict, reason := evaluateEvidenceGate(EvidenceGateInput{
 		Report:           report,
 		Binding:          binding,
 		ExpectedCommit:   result.SourceCommit,
-		ExpectedGraph:    result.GraphSHA,
+		ExpectedGraph:    currentGraphSHA,
 		ExpectedTarget:   result.Target,
 		ExpectedCampaign: result.CampaignID,
 		ExpectedFixture:  result.FixtureID,
@@ -188,6 +199,11 @@ func trustFromGate(report ExploreReport, verdict EvidenceGateVerdict, reason str
 		return trustLegacy
 	}
 	lower := strings.ToLower(reason)
+	// A changed model is stale, not a tampered RAW. Classify STALE before
+	// the generic "digest" heuristic below.
+	if verdict == gateStale {
+		return trustStale
+	}
 	switch {
 	case strings.Contains(reason, "MISSING_IDENTITY"):
 		return trustMissingIdentity
