@@ -439,7 +439,7 @@ func campaignHoldsUnreplayableSideEffects(state ExploreCheckpoint) bool {
 
 func keepsExploreFixture(reason string) bool {
 	switch reason {
-	case "budget_actions", "budget_states", "budget_time", "budget_replans", "budget_planner", "planner_wait":
+	case "budget_actions", "budget_states", "budget_time", "budget_replans", "budget_planner":
 		return true
 	default:
 		return false

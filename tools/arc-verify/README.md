@@ -154,14 +154,11 @@ Details and semantics: `Arc/arc:verify/references/business-graph-v2.md`.
     arc-verify derive --run RUN [--budget 16]                     # obligations from a failed run
     arc-verify discover record --file exploration.json            # UNSPECIFIED, never PASS/FAIL
     arc-verify discover run --file adapter.json --graph G --flow F --env E --round Q \
-      --account A --fixture F --commit SHA [--mode heuristic|deterministic|ai|agent] [--planner path]
-      # --mode ai requires --planner FILE and is only a scripted test fixture.
-      # --mode agent --planner DIR writes DIR/context.json and waits; Agent writes proposal.json then resume.
+      --account A --fixture F --commit SHA [--mode heuristic|deterministic|ai] [--planner FILE]
+      # --mode ai --planner FILE is a scripted comparison fixture only; no Agent handshake or model API.
     arc-verify discover status [--id CAMPAIGN] [--graph G]
-    arc-verify discover context --id CAMPAIGN --planner DIR
-    arc-verify discover propose --id CAMPAIGN --planner DIR --file proposal.json
     arc-verify discover resume --id CAMPAIGN --file adapter.json --graph G --flow F --env E --round Q \
-      --account A --fixture F --commit SHA [--mode agent --planner DIR]
+      --account A --fixture F --commit SHA
     arc-verify discover abort --id CAMPAIGN --reason TEXT
     arc-verify discover triage --graph G --id ITEM --as missing_requirement   # USER terminal
     arc-verify report --graph G --kind acceptance|risk

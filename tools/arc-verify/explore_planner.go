@@ -14,8 +14,6 @@ type ExplorePlanner interface {
 }
 
 type PlannerContext struct {
-	Campaign            string                  `json:"campaign,omitempty"`
-	Call                int                     `json:"call,omitempty"`
 	GraphID             string                  `json:"graph_id"`
 	Capability          string                  `json:"capability"`
 	Role                string                  `json:"role"`
@@ -63,13 +61,10 @@ type PlannerSuggestion struct {
 }
 
 type PlannerProposal struct {
-	Suggestions   []PlannerSuggestion `json:"suggestions"`
-	Tokens        int                 `json:"tokens,omitempty"`
-	Model         string              `json:"model,omitempty"`
-	Source        string              `json:"source,omitempty"`
-	ForCall       int                 `json:"for_call,omitempty"`
-	ContextSHA256 string              `json:"context_sha256,omitempty"`
-	Rejected      []string            `json:"rejected,omitempty"`
+	Suggestions []PlannerSuggestion `json:"suggestions"`
+	Tokens      int                 `json:"tokens,omitempty"`
+	Model       string              `json:"model,omitempty"`
+	Rejected    []string            `json:"rejected,omitempty"`
 }
 
 type ScriptedExplorePlanner struct {
@@ -190,27 +185,13 @@ func (d db) applyExplorePlannerTurn(ctx context.Context, request ExploreRequest,
 	if report == nil || !shouldAskPlanner(request.Mode, candidates, *report, world) || request.Planner == nil {
 		return candidates, plannerCalls, false, nil
 	}
-	if budget.MaxPlannerCalls > 0 && plannerCalls >= budget.MaxPlannerCalls && request.Mode != "agent" {
+	if budget.MaxPlannerCalls > 0 && plannerCalls >= budget.MaxPlannerCalls {
 		report.StopReason, report.Truncated = "budget_planner", true
 		report.Remaining = remainingCandidates(candidates, tried, world.state)
 		return candidates, plannerCalls, true, nil
 	}
 	planIn := attachDiscoveryToPlanner(plannerContext(request, flow, approvals, world, *report, candidates, budget.MaxActions-report.Actions), disc)
 	proposal, planErr := request.Planner.Suggest(ctx, planIn)
-	if errors.Is(planErr, errPlannerWait) {
-		report.StopReason, report.Truncated = "planner_wait", true
-		report.Remaining = remainingCandidates(candidates, tried, world.state)
-		if waiter, ok := request.Planner.(interface{ Pending() AgentPlannerPending }); ok {
-			pending := waiter.Pending()
-			report.PlannerPending = &pending
-		}
-		return candidates, plannerCalls, true, nil
-	}
-	if planErr != nil && request.Mode == "agent" {
-		report.StopReason, report.Truncated = "blocked", true
-		report.Blocked = append(report.Blocked, ExploreFinding{Kind: "BLOCKED", Reason: "planner unavailable: " + planErr.Error()})
-		return candidates, plannerCalls, true, nil
-	}
 	plannerCalls++
 	report.Spent.PlannerCalls = plannerCalls
 	if planErr != nil {
@@ -230,29 +211,15 @@ func (d db) applyExplorePlannerTurn(ctx context.Context, request ExploreRequest,
 			accepted = append(accepted, item)
 		}
 	}
-	if len(accepted) > 1 {
-		accepted = accepted[:1]
-	}
 	if err := d.persistPlannerAudit(campaign, planIn, proposal, accepted, rejected, plannerCalls); err != nil {
 		report.Blocked = append(report.Blocked, ExploreFinding{Kind: "BLOCKED", Reason: "planner audit persist failed: " + err.Error()})
-		if request.Mode == "agent" {
-			report.StopReason, report.Truncated = "blocked", true
-			return candidates, plannerCalls, true, nil
-		}
 		return candidates, plannerCalls, false, nil
-	}
-	if request.Mode == "agent" && len(accepted) == 0 {
-		for _, reason := range rejected {
-			report.Blocked = append(report.Blocked, ExploreFinding{Kind: "BLOCKED", Reason: reason})
-		}
-		report.StopReason, report.Truncated = "planner_wait", true
-		return candidates, plannerCalls, true, nil
 	}
 	return append(candidates, accepted...), plannerCalls, false, nil
 }
 
 func shouldAskPlanner(mode string, candidates []CandidateAction, report ExploreReport, world exploreWorld) bool {
-	if mode != "ai" && mode != "agent" {
+	if mode != "ai" {
 		return false
 	}
 	if report.Spent.PlannerCalls == 0 && len(report.Steps) == 0 {
@@ -299,7 +266,6 @@ func plannerContext(request ExploreRequest, flow BehaviorFlow, approvals map[str
 		recent = recent[len(recent)-4:]
 	}
 	return PlannerContext{
-		Campaign: firstNonEmpty(request.Campaign, report.Campaign), Call: report.Spent.PlannerCalls + 1,
 		GraphID: request.Graph, Capability: flow.Capability, Role: world.role, State: world.state,
 		ConfirmedRules: rules, Entries: request.Adapter.Entries, Recent: recent,
 		Unspecified: report.Unspecified, RuleFails: report.RuleFails, Frontier: leftover, BudgetLeft: budgetLeft,
@@ -337,7 +303,7 @@ func decodePlannerMode(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "", "heuristic":
 		return "heuristic"
-	case "deterministic", "ai", "agent":
+	case "deterministic", "ai":
 		return strings.ToLower(value)
 	default:
 		return "heuristic"
@@ -382,12 +348,9 @@ func (d db) persistPlannerAudit(campaign string, in PlannerContext, proposal Pla
 			suggestionIDs = appendUnique(suggestionIDs, item.ExperimentID)
 		}
 	}
-	source := firstNonEmpty(proposal.Source, "scripted_file")
+	source := "scripted_file"
 	if proposal.Model == "scripted" {
 		source = "scripted"
-	}
-	if proposal.Model == "agent" || proposal.Source == "agent" {
-		source = "agent"
 	}
 	audit := map[string]any{
 		"planner_call_id": id,
@@ -434,17 +397,18 @@ func sensitivePlannerAudit(body string) bool {
 	return false
 }
 
-// Agent reasoning belongs to the active coding Agent and the written task plan.
+// Agent reasoning belongs to the active coding Agent and the written Markdown plan.
 // CLI planner files are optional, reproducible fixtures; no model HTTP connection.
 func plannerFromFlags(mode, path string) (ExplorePlanner, error) {
+	mode = strings.ToLower(strings.TrimSpace(mode))
 	if mode == "agent" {
-		return NewAgentExplorePlanner(path)
+		return nil, errors.New("CLI has no Agent planner or file handshake; use heuristic/deterministic, or --mode ai --planner FILE as a scripted comparison fixture")
 	}
 	if path != "" {
 		return FileExplorePlanner{Path: path}, nil
 	}
 	if mode == "ai" {
-		return nil, errors.New("CLI has no AI model: use --mode agent --planner DIR for the coding Agent handshake, or --planner FILE as a scripted comparison fixture")
+		return nil, errors.New("CLI has no AI model: use --planner FILE as a scripted comparison fixture")
 	}
 	return nil, nil
 }

@@ -116,7 +116,7 @@ func (d db) verifyExploreEvidence(campaign ExploreCheckpoint) VerifiedEvidenceRe
 		ExpectedActor:    result.Actor,
 		ExpectedOracle:   result.OracleIdentity,
 		PlannerCalls:     report.Spent.PlannerCalls,
-		RequirePlanner:   campaign.Mode == "ai" || campaign.Mode == "agent" || report.Mode == "ai" || report.Mode == "agent",
+		RequirePlanner:   campaign.Mode == "ai" || report.Mode == "ai",
 		OracleFields:     report.OracleFields,
 	})
 	result.GateVerdict = string(verdict)

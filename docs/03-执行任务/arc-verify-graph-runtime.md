@@ -346,9 +346,9 @@ W06 / W20 的 IM-mongo 项仍为 `[!]`。
 | BD01–BD05 | [x] | 有界事实、结构化假设身份、竞争解释、最小实验、修订历史；不 APPROVE RULE |
 | BD06 | [x] | Planner 第二轮读取第一轮观察；审计只存允许字段；失败则不执行 AI 动作。六视图增加反事实路径/假设历史 |
 | BD07 | [x]/待验证 | A/B/C 脚本规划器对照仍为历史测试；vendor 模型推理实证 NOT_RUN |
-| AGENT-01 | [x] | Agent 规划器握手：`--mode agent --planner DIR` 写 `context.json` 后 `planner_wait`；Agent 写绑定 SHA 的 `proposal.json` 再 resume。不让 Agent 直连业务。CLI：`discover context` / `discover propose` |
+| AGENT-01 | [x] | **已删除** Agent 文件握手：`explore_agent_planner.go`、`--mode agent`、`discover context`/`propose`、`planner_wait`。业务理解由现有 Agent + Skill + Markdown 完成；CLI 只做安全测试与证据 |
 | LIVE-01 | [!] | 继续锁 `192.168.0.60`；不回退 `.50`；IM-mongo 正式 E2E 仍 BLOCKED |
-| LIVE-02 | 调整 | 不连接额外模型；由现有 Agent 经文件握手规划，执行仍走 CLI。真实业务 Oracle/E2E 仍需独立验收 |
+| LIVE-02 | 调整 | 不连接额外模型；现有 Agent 阅读代码规划，执行仍走 CLI。真实业务 Oracle/E2E 仍需独立验收 |
 
 报告：[verify-round5-trusted-exec-验收.md](arc-verify-graph-runtime/verify-round5-trusted-exec-验收.md)。
 
@@ -356,12 +356,12 @@ W06 / W20 的 IM-mongo 项仍为 `[!]`。
 
 ## 2026-11-01：架构纠偏——仅文档描述需求与状态（现行约束）
 
-**现行决定优先于前文历史验收记录：** 不做 ACP 或原生跨 Agent 交接、不设计 Agent-Native session / 状态机，也不接入任何模型 HTTP、API Key、模型地址或模型设置。允许的 Agent 路径只有文件握手：`--mode agent --planner DIR` 写出 `context.json`，外层 Agent 写绑定 `for_call`/`context_sha256` 的 `proposal.json`，引擎再执行。
+**现行决定优先于前文历史验收记录：** 不做 ACP 或原生跨 Agent 交接、不设计 Agent-Native session / 状态机，也不接入任何模型 HTTP、API Key、模型地址、模型设置或 Agent 文件握手。现有 Grok/Codex/Claude Code 阅读代码并推理；Skill 约束方法；CLI 执行测试与证据门禁；Markdown 保存进度。
 
-- 已删除上一轮误加的 `agent_native.go`、`agent_native_test.go` 和 ACP 风格的 `execute/handoff/complete` 入口；Campaign/Frontier/Checkpoint 仍是执行闭环。`discover context` / `discover propose` 只服务上述文件握手。
-- 已删除 `explore_llm.go` 及模型 HTTP 适配测试。`--mode ai --planner FILE` 仅表示预定义脚本测试，**不能证明 AI 模型实际推理**；内置探索用 `heuristic`/`deterministic`；外层 Agent 规划用 `--mode agent`。
+- 已删除 `agent_native.go`、`agent_native_test.go`、ACP 风格入口，以及 `explore_agent_planner.go`、`discover context` / `discover propose`、`--mode agent`。Campaign/Frontier/Checkpoint 仍是测试崩溃恢复，不是 Agent 交接。
+- 已删除 `explore_llm.go` 及模型 HTTP 适配测试。`--mode ai --planner FILE` 仅表示预定义脚本测试，**不能证明 AI 模型实际推理**；内置探索用 `heuristic`/`deterministic`。
 - 当前 Grok、Codex、Claude Code 等现成编程 Agent 本身完成分析、假设、实验设计、修正与执行调度；ARC Skill 约束工作方式。任务上下文仍用 Markdown 记录需求、进度、证据和阻塞。
 - 当前统一工作记录：[当前状态与需求](arc-verify-graph-runtime/当前状态与需求.md)。原有 Arc Skill 间 `handoff --to` 与测试运行中的 Checkpoint 不等于 ACP；两者不作为 Agent 会话交接能力。
 - 旧 W40/R06/LIVE-02 等关于“没有外部模型凭证所以 BLOCKED”的历史记录已被本节**取代为非现行要求**。真实业务 E2E 的隔离环境授权限制仍有效；现有独立 Oracle、RAW、规则审批和测试安全门禁不能删除。
 
-**代码提交不等于测试通过**：本轮通过 GitHub 连接修改仓库，未在代码运行工作区执行 Go 编译、race、vet 或真实 E2E。后续必须执行相关验证，并在状态文档填写实际退出码和证据。
+**代码提交不等于测试通过**：GitHub 连接那一轮未跑编译。2026-11-01 握手删除轮已在本机实测 Go test/race/vet/build、Skill 校验、pytest、workbench，并写回 [当前状态与需求](arc-verify-graph-runtime/当前状态与需求.md)。IM-mongo 正式 E2E 仍 BLOCKED。

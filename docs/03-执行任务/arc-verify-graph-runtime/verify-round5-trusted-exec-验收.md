@@ -31,24 +31,13 @@
 
 ## Agent 规划器
 
-不接 HTTP 模型时，用外层 Agent 当 `ExplorePlanner`：
-
-```bash
-arc-verify discover run --mode agent --planner .arc/verify/planner ...
-# stop_reason=planner_wait，目录里有 context.json
-arc-verify discover context --id CAMPAIGN --planner .arc/verify/planner
-# Agent 只写建议，不访问被测系统
-arc-verify discover propose --id CAMPAIGN --planner DIR --file proposal.json
-arc-verify discover resume --id CAMPAIGN --mode agent --planner DIR ...
-```
-
-`proposal.json` 必须带 `for_call` 和 `context_sha256`。引擎执行、Oracle、RAW、崩溃恢复仍由 CLI 负责。审计 `source=agent`。
+**已删除。** 不要再用 `--mode agent`、`discover context` / `discover propose` 或 `context.json`/`proposal.json` 文件握手。现有编程 Agent 阅读 Skill 与 Markdown 进度，自行分析业务；CLI 只执行 heuristic/deterministic（以及脚本夹具 `--mode ai --planner FILE`）并负责 Oracle、RAW 与崩溃恢复。
 
 ## LIVE
 
 - 测试主机隔离仍锁 `192.168.0.60`，禁止回退 `.50`。
 - IM-mongo 正式 E2E：BLOCKED（60 上无授权隔离写服务）。
-- 真实模型：BLOCKED（无 `ARC_VERIFY_PLANNER_*` / `OPENAI_*`，不拿 Scripted Planner 冒充）。
+- 真实模型 HTTP：非现行要求。CLI 无模型客户端、无 API Key；不得再当作产品缺口。
 
 ## 实际命令
 
@@ -67,5 +56,5 @@ arc-verify discover resume --id CAMPAIGN --mode agent --planner DIR ...
 ## 未完成
 
 - 独立可信 Runner 与受保护 CI（W16）。
-- 真实 vendor 模型多轮探索。
-- IM-mongo 生产链 A/B/C。
+- IM-mongo 生产链 A/B/C（无 `.60` 隔离写授权，BLOCKED）。
+- 外部模型多轮探索已从产品范围删除，不再列为未完成项。

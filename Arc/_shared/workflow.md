@@ -38,8 +38,8 @@ Use the existing task card's Handoff section. For ongoing work without a
 task card, record progress in the **project's existing Markdown status document**;
 if none exists, use one simple Markdown note. Conversation-only summaries are
 not durable across coding Agents. Update the same document in place, link
-real evidence, and do not create an Agent-to-Agent protocol, new tracker,
-handoff service or extra task tree.
+real evidence, and do not create an Agent-to-Agent protocol, file handshake,
+new tracker, handoff service or extra task tree.
 
 ```text
 Goal / active owner / next owner:
@@ -179,5 +179,8 @@ first deviation before diagnosis; resume from a verified safe actual state in a
 new run. Fixture reconstruction and a later PASS never rewrite earlier FAIL.
 Graph gate PASS currently covers planned positive/negative/forced obligations;
 additional recovery, cross-role, concurrency and E2E claims need their own RAW.
+
+CLI Campaign, Checkpoint, Frontier and fencing recover a crashed test run.
+They are not an Agent session or cross-Agent takeover.
 
 A handoff/model operation does not prove runner authenticity or fixture restoration.

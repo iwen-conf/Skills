@@ -7,7 +7,8 @@ description: >-
   property tests, SQL lint, transaction design, reliability (concurrency, idempotency, faults),
   PostgreSQL G0-G31, flaky triage, load tests, release go/no-go. Verdicts PASS/FAIL/BLOCKED/NOT_RUN/FLAKY
   with independent oracles. Triggers: 写测试, 测试方案, 用例设计, 测试范围, 覆盖率, 可靠性, 业务不变量,
-  事务并发, 幂等, 压测, 发布验收, 发布证据, 模糊测试, SQL 语法检查, 事务设计, 端到端业务流, 分支覆盖, 属性测试, 模型一致性.
+  事务并发, 幂等, 压测, 发布验收, 发布证据, 模糊测试, SQL 语法检查, 事务设计, 端到端业务流, 分支覆盖, 属性测试, 模型一致性,
+  业务能力, 业务边界.
   Not for product repair (arc:code) or static review (arc:audit).
 ---
 
@@ -69,12 +70,15 @@ For requested/configured business-chain work read [business-graph](references/bu
 and [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
 Follow confirmed RULE → graph → bounded card → real execution → independent RAW → verdict;
 `arc-verify handoff --to arc-verify --graph <id>` expands only local context.
+No Agent handshake or model HTTP.
 
-1. Read [contract](../_shared/contract.md); record tier, scope, mode, environment and git baseline.
-2. Business catalog first: list expected functionality from user intent/contracts and obtain
-   user confirmation; discover implementation separately via code-intel and real UI/API evidence.
-   Reuse current flows; missing/stale → flow mode. Output: catalog, FLOW/branch IDs and candidate
-   implementation gaps, or `n/a: <reason>` (T0, pure logic).
+1. Read [contract](../_shared/contract.md) and the existing Markdown progress. Record
+   tier, scope, mode, environment and git baseline.
+2. Confirm this turn's capabilities from user intent/contracts. Heuristic scan
+   (UI → API/RPC → usecase → rules → side effects → jobs/callbacks) finds candidates.
+   Routes, CRUD and HTTP 200 are not capabilities or success. Unconfirmed items stay
+   `CANDIDATE`/`UNSPECIFIED`/`NOT_RUN`. Missing/stale flows → flow mode.
+   Output: catalog, FLOW/branch IDs and candidate gaps, or `n/a: <reason>` (T0, pure logic).
 3. Claims table: `EXPECTED`/`FORBIDDEN`, confirmed source, required yes/no, oracle per branch/RULE.
    AI inference stays `RISK`; undefined semantics are `SPECIFICATION GAP`.
 4. Map impact: [code-intel](../_shared/code-intel.md) §4 and flow-matrix §7.

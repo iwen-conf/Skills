@@ -52,8 +52,8 @@ func runContext(ctx context.Context, args []string) error {
 		subcommand, args = args[1], append([]string{name}, args[2:]...)
 	}
 	if name == "discover" {
-		if len(args) < 2 || !slices.Contains([]string{"record", "list", "triage", "run", "status", "resume", "abort", "context", "propose"}, args[1]) {
-			return errors.New("usage: arc-verify discover <record|list|triage|run|status|resume|abort|context|propose> [options]")
+		if len(args) < 2 || !slices.Contains([]string{"record", "list", "triage", "run", "status", "resume", "abort"}, args[1]) {
+			return errors.New("usage: arc-verify discover <record|list|triage|run|status|resume|abort> [options]")
 		}
 		subcommand, args = args[1], append([]string{name}, args[2:]...)
 	}
@@ -109,8 +109,8 @@ func runContext(ctx context.Context, args []string) error {
 	riskScope := f.String("scope", "", "explicit scope of an accepted risk")
 	reportKind := f.String("kind", "", "report kind: acceptance or risk")
 	riskReview := f.Bool("risk-review", false, "fail the gate while user-undecided risks remain")
-	exploreMode := f.String("mode", "heuristic", "heuristic/deterministic; ai is scripted-only with --planner FILE; agent waits on --planner DIR")
-	plannerFile := f.String("planner", "", "scripted comparison JSON file, or agent handshake directory")
+	exploreMode := f.String("mode", "heuristic", "heuristic/deterministic; ai is scripted-only with --planner FILE, not an external model")
+	plannerFile := f.String("planner", "", "optional scripted comparison JSON file; no model service or API key")
 	if e := f.Parse(args[1:]); e != nil {
 		return e
 	}
@@ -246,7 +246,7 @@ func runContext(ctx context.Context, args []string) error {
 				return err
 			}
 			planner, err := plannerFromFlags(*exploreMode, *plannerFile)
-			if err != nil && (*exploreMode == "ai" || *exploreMode == "agent") {
+			if err != nil {
 				return err
 			}
 			report, err := d.runExploration(ctx, ExploreRequest{
@@ -280,60 +280,6 @@ func runContext(ctx context.Context, args []string) error {
 				emit(state)
 			}
 			return err
-		case "context":
-			if *id == "" {
-				return errors.New("discover context needs --id campaign")
-			}
-			state, err := d.loadExploreCheckpoint(*id)
-			if err != nil {
-				return err
-			}
-			dir := *plannerFile
-			if dir == "" && state.Report.PlannerPending != nil {
-				dir = state.Report.PlannerPending.Dir
-			}
-			if dir == "" {
-				return errors.New("discover context needs --planner directory or a pending handshake")
-			}
-			env, err := loadAgentPlannerEnvelope(dir)
-			if err != nil {
-				return err
-			}
-			emit(env)
-			return nil
-		case "propose":
-			if *id == "" || *file == "" {
-				return errors.New("discover propose needs --id campaign and --file proposal.json")
-			}
-			state, err := d.loadExploreCheckpoint(*id)
-			if err != nil {
-				return err
-			}
-			dir := *plannerFile
-			if dir == "" && state.Report.PlannerPending != nil {
-				dir = state.Report.PlannerPending.Dir
-			}
-			if dir == "" {
-				return errors.New("discover propose needs --planner directory or a pending handshake")
-			}
-			env, err := loadAgentPlannerEnvelope(dir)
-			if err != nil {
-				return err
-			}
-			body, err := os.ReadFile(*file)
-			if err != nil {
-				return err
-			}
-			var proposal PlannerProposal
-			if err := decodeStrictJSON(body, &proposal); err != nil {
-				return err
-			}
-			proposal = bindAgentProposalToEnvelope(proposal, env)
-			if err := writeAgentPlannerProposal(dir, proposal); err != nil {
-				return err
-			}
-			emit(proposal)
-			return nil
 		default:
 			answers, err := interactiveAnswers(fmt.Sprintf("User triage of %s as %s. Type TRIAGE %s %s: ", *id, *triage, *id, *triage), "User's own words for this decision: ")
 			if err != nil {

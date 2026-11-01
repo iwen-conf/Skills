@@ -14,7 +14,7 @@ and runtime measurements all match and are observed; an unobserved part never me
 | `run-chain --round --max-steps --deadline` | Run the known path (READY cards with one current runner) through `execute`; stops with exit 10 divergence, 11 unknown state, 12 precondition, 13 new branch, 14 budget, 15 blocked, plus a minimal packet |
 | `derive --run [--budget]` | Derive obligations from a failed run's observed state (see DERIVED) |
 | `discover record/list/triage` | Register exploration observations; behavior outside the model becomes UNSPECIFIED (never PASS/FAIL); the user triages it in a real terminal |
-| `discover run/resume/status/abort` | Bounded test execution with atomic campaign claim, fencing and independent Oracle; use deterministic/heuristic modes. Legacy `--mode ai --planner FILE` is a **scripted test fixture only**, never a model service or AI discovery proof. No model endpoint, settings or API key |
+| `discover run/resume/status/abort` | Bounded test execution with atomic campaign claim, fencing and independent Oracle; use deterministic/heuristic modes. Legacy `--mode ai --planner FILE` is a **scripted test fixture only**, never a model service or AI discovery proof. No Agent file handshake, `discover context`/`propose`, model endpoint, settings or API key |
 | `report --kind acceptance\|risk` | Acceptance excludes every risk; the risk report shows declared, reference, derived and UNSPECIFIED risks, refutations, the three-way comparison and the per-origin triage summary |
 | `accept-risk` / `reject-risk` / `promote-risk` | Interactive user decisions with the user's own words |
 | `risk refute --result --evidence` | Record a bounded refutation attempt bound to evidence by SHA-256; it never closes the risk |
@@ -27,29 +27,33 @@ separate sources: none of them becomes a rule by itself, and only approved rules
 
 Read with [business-graph](business-graph.md), which keeps the confirmation, card and RAW rules these commands rely on.
 
-Switching Grok/Codex/Claude Code requires only [当前状态与需求](../../../docs/03-执行任务/arc-verify-graph-runtime/当前状态与需求.md) and the target repository documents. There is no native Agent handoff, ACP protocol or new CLI command; CLI checkpoint is only for safe **test recovery**.
+Switching Grok/Codex/Claude Code requires only [当前状态与需求](../../../docs/03-执行任务/arc-verify-graph-runtime/当前状态与需求.md) and the target repository documents. There is no native Agent handoff, ACP protocol, file handshake or new CLI command; CLI Campaign/Checkpoint/Frontier is only for safe **test recovery**.
 
 ## Capability-first exploration
 
 ARC Verify constrains the existing Grok, Codex, Claude Code or other coding Agent.
-Do not create an Agent, ACP/native handoff, model service, HTTP model client,
-API key, or extra state store.
+Do not create an Agent, ACP/native handoff, file handshake, model service, HTTP
+model client, API key, or extra state store.
 
 1. Read requirements, confirmed RULEs, FLOWs, existing Markdown progress and HEAD.
    Record business goals before listing endpoints.
-2. List capabilities as system → capability → meaningful boundary. Each has an
-   actor, goal, trigger, success/denial state and source. Reuse capability IDs.
+2. Confirm the capabilities in scope this turn as system → capability → meaningful
+   boundary. Each has an actor, goal, trigger, success/denial state and source.
+   Reuse capability IDs.
 3. Trace implementation heuristically: UI/API/RPC/consumer → usecase → rule and
    persisted side effect. Go/OpenAPI scan is a candidate source; a route is not a
-   capability. Link actions only via Graph `implements` or traced evidence.
+   capability, a CRUD function is not a capability, and HTTP 200 is not business
+   success. Link actions only via Graph `implements` or traced evidence.
 4. Focus on justified boundaries (role, precondition, state, repeat/concurrency,
    timeout/recovery, cross-capability). Do not generate a matrix per HTTP path.
+   AI inference stays RISK; unconfirmed items stay CANDIDATE/UNSPECIFIED/NOT_RUN.
 5. Verify with the existing runner and independent Oracle when authorized. Keep
    RISK/UNSPECIFIED, RULE FAIL and missing evidence separate. A scan is not proof.
-6. Update the same Markdown: goal, capability, source location, command/exit/RAW/
-   Oracle, unsolved problem, status and the next executable action.
+6. Save real command/exit/RAW/Oracle results. Update the same Markdown: goal,
+   capability, source location, unsolved problem, status and the next executable
+   action.
 
 An adapter entry proves a declared test entry only, not that the business action
-was observed or passed. Do not treat HTTP 200 as business identity. Keep crash
-recovery and Oracle; do not delete them to simplify. Legacy `--mode ai --planner FILE`
-is a scripted fixture; normal exploration uses `heuristic` / `deterministic`.
+was observed or passed. Keep crash recovery, fencing, Attempt IDs and Oracle; do
+not delete them to simplify. Legacy `--mode ai --planner FILE` is a scripted
+fixture; normal exploration uses `heuristic` / `deterministic`.

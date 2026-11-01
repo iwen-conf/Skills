@@ -149,6 +149,9 @@ func TestPlannerUsesOnlyExplicitScriptedFile(t *testing.T) {
 	if _, err := plannerFromFlags("ai", ""); err == nil {
 		t.Fatal("empty ai mode must not masquerade as a real model")
 	}
+	if _, err := plannerFromFlags("agent", t.TempDir()); err == nil {
+		t.Fatal("agent file handshake must not be constructible")
+	}
 }
 
 func TestIMMongoBusinessChainsStayAuthorized(t *testing.T) {
