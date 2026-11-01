@@ -193,6 +193,23 @@ func (d db) abortExploreCampaign(campaign, reason string) (ExploreCheckpoint, er
 	if state.Status == exploreCompleted || state.Status == exploreAborted {
 		return state, fmt.Errorf("campaign %s is %s", campaign, state.Status)
 	}
+	// An aborted external request is not necessarily rolled back. Preserve a
+	// permanent hold for any dispatched action without a recorded outcome.
+	priorFence, priorCheckpoint := state.Fence, state.Checkpoint
+	for _, item := range state.Actions {
+		if item.SideEffecting && item.Status != actionRecorded && item.Status != actionPlanned {
+			state.UnsafeResume = true
+			state.ResumeHoldReason = "aborted with unresolved side-effecting attempt"
+			state.RecoveryClass = RecoveryFailedLocked
+			state.Report.UnsafeResume = true
+			state.Report.RecoveryClass = RecoveryFailedLocked
+			state.Report.Truncated = true
+			state.Report.Blocked = append(state.Report.Blocked, ExploreFinding{
+				Kind:"BLOCKED", Reason:state.ResumeHoldReason, Evidence:item.AttemptID,
+			})
+			break
+		}
+	}
 	state.Status = exploreAborted
 	state.Report.StopReason = "aborted"
 	if reason != "" {
@@ -220,9 +237,9 @@ func (d db) abortExploreCampaign(campaign, reason string) (ExploreCheckpoint, er
 	defer tx.Rollback()
 	result, err := tx.ExecContext(ctx, fmt.Sprintf(
 		`UPDATE exploration_state SET status=%s, claimed_by='', lease_until='', fence=fence+1, checkpoint=%s, body=%s, updated=%s
-WHERE campaign=%s AND status NOT IN (%s,%s)`,
+WHERE campaign=%s AND status NOT IN (%s,%s) AND fence=%d AND checkpoint=%s`,
 		quote(exploreAborted), quote(state.Checkpoint), quote(string(body)), quote(state.Updated),
-		quote(campaign), quote(exploreCompleted), quote(exploreAborted),
+		quote(campaign), quote(exploreCompleted), quote(exploreAborted), priorFence, quote(priorCheckpoint),
 	))
 	if err != nil {
 		return state, err
