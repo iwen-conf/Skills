@@ -283,7 +283,7 @@ W06 / W20 的 IM-mongo 项仍为 `[!]`。
 | W37 | [x] | 检查点失败可见；崩溃窗口保持 `OUTCOME_UNKNOWN`，禁止盲目重放 |
 | W38 | [x] | 并发 OperationGroup；部分成功不再用单方结果代表整组 |
 | W39 | [x] | 等价键复用 Graph v2；预算耗尽保留 Frontier，记录 RSS/DB |
-| W40 | [!] | HTTP 规划器已接线；本机无模型凭证，真实 AI 验收 BLOCKED |
+| W40 | 废弃 | 原 HTTP 模型规划器已删除。当前使用已有编程 Agent 推理；无模型凭证要求。旧实证不足记录保留在历史验收文档 |
 | W41 | [x] | 只读源码入口发现；未授权入口只记录 |
 | W42 | [x] | 规划器可按新观察再次触发；无模型时不能形成真实反馈闭环 |
 | W43 | [?] | 三模式对照函数按缺陷 ID 去重；C 组无 planner_calls，不声称增量 |
@@ -305,7 +305,7 @@ W06 / W20 的 IM-mongo 项仍为 `[!]`。
 | R03 | PARTIAL | depth/evidence/memory 运行时截止；RSS 标明来源 |
 | R04 | PARTIAL | 正式 `gate`/`modelGate` 调用证据门禁 |
 | R05 | PARTIAL | 业务结果与证据可信分离 |
-| R06 | BLOCKED | 本地协议测试通过；无模型凭证 |
+| R06 | 已取消 | 外部 HTTP AI 规划器与凭证验收不属于现行需求；真实 Agent 发现能力应另行独立盲测 |
 | R07 | PARTIAL | Go AST/OpenAPI 发现；未授权不执行 |
 | R08 | BLOCKED | 统计字段已分列；无真实三模式实验 |
 | R09 | BLOCKED | 不把代理当产品 Oracle |
@@ -330,7 +330,7 @@ W06 / W20 的 IM-mongo 项仍为 `[!]`。
 | BD04 | [x] | 理解修订追加版本；SUPPORTED/REFUTED 不改已确认 RULE |
 | BD05 | [x] | PlannerContext 携带 facts/hypotheses/explanations；建议过白名单；审计落库 |
 | BD06 | [x] | 静态六视图展示已知事实、假设状态、竞争解释、最小实验、修订与待确认 |
-| BD07 | [x] | A/B/C 对 hidden-owner last-writer 夹具实跑；`unique_to_c=1`（脚本规划器）。真实模型 BLOCKED |
+| BD07 | [x]/待验证 | A/B/C 对 hidden-owner last-writer 夹具实跑；`unique_to_c=1` 仅是**脚本夹具**对比；现有 Agent 自主推理盲测 NOT_RUN |
 
 报告：[verify-boundary-discovery-验收.md](arc-verify-graph-runtime/verify-boundary-discovery-验收.md)。对照产物 `.arc/artifacts/verify-boundary-discovery/reports/boundary-abc.json`。
 
@@ -345,9 +345,9 @@ W06 / W20 的 IM-mongo 项仍为 `[!]`。
 | FIX-03 | [x] | Graph v2 探索证据强制绑定 Target/Fixture/Actor/Oracle/Campaign/Step；空字段不再跳过。LEGACY_UNVERIFIED 只读兼容 |
 | BD01–BD05 | [x] | 有界事实、结构化假设身份、竞争解释、最小实验、修订历史；不 APPROVE RULE |
 | BD06 | [x] | Planner 第二轮读取第一轮观察；审计只存允许字段；失败则不执行 AI 动作。六视图增加反事实路径/假设历史 |
-| BD07 | [x]/`[!]` | A/B/C 脚本规划器对照仍有效；真实 vendor 模型 BLOCKED（无凭证） |
+| BD07 | [x]/待验证 | A/B/C 脚本规划器对照仍为历史测试；现有 Agent 自主推理实证 NOT_RUN（不需要外部模型） |
 | LIVE-01 | [!] | 继续锁 `192.168.0.60`；不回退 `.50`；IM-mongo 正式 E2E 仍 BLOCKED |
-| LIVE-02 | [!] | 真实模型验证与真实业务验证分开；两者都未完成前不宣称生产级闭环 |
+| LIVE-02 | 调整 | 不连接额外模型；由现有 Agent 执行文档化探索并与启发式对照。真实业务 Oracle/E2E 仍需独立验收 |
 
 报告：[verify-round5-trusted-exec-验收.md](arc-verify-graph-runtime/verify-round5-trusted-exec-验收.md)。
 

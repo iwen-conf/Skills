@@ -191,7 +191,7 @@ func TestThreeModeBlindCompareReportsHonestStats(t *testing.T) {
 	target.skipReview = true
 	planner := &ScriptedExplorePlanner{Suggestions: []PlannerSuggestion{{
 		Capability: "capability.reservation", Action: "claim", Entry: "/claim",
-		Role: "STUDENT", Reason: "scripted contrast, not a vendor model", Observe: "enrolled", Risk: "medium",
+		Role: "STUDENT", Reason: "scripted contrast fixture, not host Agent reasoning", Observe: "enrolled", Risk: "medium",
 	}}}
 	runMode := func(mode string, used ExplorePlanner) ExploreReport {
 		t.Helper()
@@ -238,7 +238,7 @@ func TestThreeModeBlindCompareReportsHonestStats(t *testing.T) {
 		t.Fatalf("honest AI notes must not claim zero planner calls: %+v", ai)
 	}
 	if !strings.Contains(strings.ToLower(ai.Notes+planner.Suggestions[0].Reason), "scripted") {
-		t.Fatalf("AI row must say the planner is scripted, not a vendor model: %+v", ai)
+		t.Fatalf("AI comparison row must identify the scripted fixture rather than host Agent reasoning: %+v", ai)
 	}
 	writeRemainArtifact(t, "reports/three-mode-contrast.json", map[string]any{
 		"rows": rows, "planner": "scripted", "injected": skipReviewMutations(),

@@ -252,7 +252,7 @@ func TestBoundaryBlindContrastRecordsHonestABC(t *testing.T) {
 		note = "C and another mode both observed last-writer-wins; C is not claimed as a unique finder"
 	}
 	if uniqueC == 0 && c.UniqueDiscoveries == 0 {
-		note = "C did not obtain a unique last-writer observation under the shared action budget; vendor model remains BLOCKED"
+		note = "C did not obtain a unique last-writer observation under the shared action budget; scripted comparison cannot establish host Agent reasoning"
 	}
 	writeBoundaryArtifact(t, "reports/boundary-abc.json", map[string]any{
 		"verdict":     verdict,

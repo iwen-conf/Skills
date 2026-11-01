@@ -678,10 +678,10 @@ func scoreBoundaryContrast(mode string, report ExploreReport) BoundaryContrastRo
 		row.HTTPOnlyJudgements = 1
 	}
 	if mode == "ai" && row.PlannerCalls < 1 {
-		row.Notes = "planner_calls=0; vendor-model value remains BLOCKED"
+		row.Notes = "planner_calls=0; no scripted planner used; host Agent reasoning is documented separately"
 	}
 	if mode == "ai" && row.PlannerCalls >= 1 {
-		row.Notes = "scripted planner; not a vendor model"
+		row.Notes = "scripted comparison fixture; not evidence of host Agent reasoning"
 	}
 	return row
 }

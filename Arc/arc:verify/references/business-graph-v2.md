@@ -27,4 +27,4 @@ separate sources: none of them becomes a rule by itself, and only approved rules
 
 Read with [business-graph](business-graph.md), which keeps the confirmation, card and RAW rules these commands rely on.
 
-Switching Grok/Codex/Claude Code requires only [当前状态与需求](../../docs/03-执行任务/arc-verify-graph-runtime/当前状态与需求.md) and the target repository documents. There is no native Agent handoff, ACP protocol or new CLI command; CLI checkpoint is only for safe **test recovery**.
+Switching Grok/Codex/Claude Code requires only [当前状态与需求](../../../docs/03-执行任务/arc-verify-graph-runtime/当前状态与需求.md) and the target repository documents. There is no native Agent handoff, ACP protocol or new CLI command; CLI checkpoint is only for safe **test recovery**.
