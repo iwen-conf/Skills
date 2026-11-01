@@ -133,12 +133,9 @@ func mustJSON(value any) []byte {
 	return body
 }
 
+// plannerFromFlags never initializes an HTTP model. The active coding agent
+// supplies proposals through the native CLI; scripted files are optional fixtures.
 func plannerFromFlags(mode, path string) (ExplorePlanner, error) {
-	if path != "" {
-		return FileExplorePlanner{Path: path}, nil
-	}
-	if mode != "ai" {
-		return nil, nil
-	}
-	return NewHTTPExplorePlannerFromEnv()
+	if path != "" { return FileExplorePlanner{Path: path}, nil }
+	return nil, nil
 }

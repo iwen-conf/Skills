@@ -1,7 +1,10 @@
 package main
 
 import (
+    "context"
     "errors"
+    "fmt"
+    "time"
 )
 
 // AgentNativeProposal comes from the currently active coding agent, not an LLM HTTP API.
@@ -98,4 +101,62 @@ func (d db) agentNativePropose(campaign string, adapter ExploreAdapter, proposal
     if err:=d.saveExploreCheckpointOwned(state,lease);err!=nil{return AgentNativeContext{},err}
     if err:=d.persistExploration(state.Report);err!=nil{return AgentNativeContext{},err}
     return d.agentNativeContext(campaign)
+}
+
+// agentNativeComplete verifies recovery and releases locks only on a proven
+// isolated restoration. Pending proposals and unknown outcomes cannot complete.
+func (d db) agentNativeComplete(ctx context.Context, campaign string, adapter ExploreAdapter) (ExploreReport,error) {
+    state,err:=d.loadExploreCheckpoint(campaign)
+    if err!=nil{return ExploreReport{},err}
+    if state.Mode!="agent-native" || state.Status!=exploreInterrupted ||
+        state.UnsafeResume || state.Report.UnsafeResume || state.RecoveryClass==RecoveryFailedLocked ||
+        len(state.Frontier)!=0 || len(state.Report.Steps)==0 {
+        return state.Report,errors.New("cannot complete a pending, empty or unsafe agent-native campaign")
+    }
+    for _,action:=range state.Actions {
+        if action.Status!=actionRecorded || action.ReplayForbidden || action.EvidenceIncomplete {
+            return state.Report,errors.New("cannot complete with unresolved action attempts")
+        }
+    }
+    if err:=validateExploreAdapter(adapter,state.Graph);err!=nil{return state.Report,err}
+    current,err:=d.exploreBinding(state.Graph,state.Environment,state.SourceCommit,state.Account,state.Fixture,
+        state.Binding.SourceRoot,state.Binding.ConfigPath,adapter.Oracle.ID,"explore/"+campaign)
+    if err!=nil{return state.Report,err}
+    if current.Identity!=state.Binding.Identity || current.Oracle!=state.Binding.Oracle {
+        return state.Report,errors.New("campaign identity changed; completion is STALE")
+    }
+    checkpoint:=state.Checkpoint
+    lease,err:=d.claimExploreCampaign(campaign,exploreWorkerID())
+    if err!=nil{return state.Report,err}
+    state,err=d.loadExploreCheckpoint(campaign)
+    if err!=nil{return ExploreReport{},err}
+    if state.Checkpoint!=checkpoint || len(state.Frontier)!=0 || state.UnsafeResume {
+        return state.Report,errors.New("campaign changed during completion claim")
+    }
+    accounts,actors,_,err:=d.exploreAccounts(adapter,current,state.Account,state.Fixture)
+    if err!=nil{return state.Report,err}
+    fixture,_,err:=d.bindingFixture(state.Fixture)
+    if err!=nil{return state.Report,err}
+    report:=state.Report
+    report.StopReason,report.Truncated="complete",false
+    report.Remaining=nil
+    timeout:=state.Budget.Deadline
+    if timeout<=0 { timeout=30*time.Second }
+    finishCtx,cancel:=context.WithTimeout(ctx,timeout)
+    defer cancel()
+    final,finishErr:=d.finishExplore(finishCtx,report,current,adapter,accounts,actors,fixture,campaign,nil,ExploreFault{})
+    if final.RecoveryClass!=RecoveryRestored {
+        final.StopReason,final.Truncated,final.UnsafeResume="blocked",true,true
+        state.UnsafeResume=true
+    }
+    state.Report=final
+    state.Status=exploreStatusFor(final)
+    if state.UnsafeResume { state.Status=exploreBlocked }
+    state.Checkpoint=newID("CK")
+    state.Report.Checkpoint=state.Checkpoint
+    drive:=&exploreDrive{lease:lease,state:&state}
+    if err:=d.ensureExploreLease(drive);err!=nil {return final,errors.Join(finishErr,err)}
+    if err:=d.saveExploreCheckpointOwned(state,drive.lease);err!=nil {return final,errors.Join(finishErr,fmt.Errorf("final report saved but checkpoint failed: %w",err))}
+    if state.UnsafeResume {return final,errors.Join(finishErr,errors.New("fixture recovery not proved; completion blocked"))}
+    return final,finishErr
 }

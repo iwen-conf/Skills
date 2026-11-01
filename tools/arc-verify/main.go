@@ -52,8 +52,8 @@ func runContext(ctx context.Context, args []string) error {
 		subcommand, args = args[1], append([]string{name}, args[2:]...)
 	}
 	if name == "discover" {
-		if len(args) < 2 || !slices.Contains([]string{"record", "list", "triage", "run", "status", "resume", "abort", "context", "handoff", "propose", "execute"}, args[1]) {
-			return errors.New("usage: arc-verify discover <record|list|triage|run|status|resume|abort|context|handoff|propose|execute> [options]")
+		if len(args) < 2 || !slices.Contains([]string{"record", "list", "triage", "run", "status", "resume", "abort", "context", "handoff", "propose", "execute", "complete"}, args[1]) {
+			return errors.New("usage: arc-verify discover <record|list|triage|run|status|resume|abort|context|handoff|propose|execute|complete> [options]")
 		}
 		subcommand, args = args[1], append([]string{name}, args[2:]...)
 	}
@@ -241,6 +241,15 @@ func runContext(ctx context.Context, args []string) error {
 			result, err := d.agentNativePropose(*id, adapter, proposal)
 			if err == nil { emit(result) }
 			return err
+		case "complete":
+			if *id == "" || *file == "" { return errors.New("discover complete needs --id and --file adapter") }
+			body, err := os.ReadFile(*file)
+			if err != nil { return err }
+			var adapter ExploreAdapter
+			if err := decodeStrictJSON(body, &adapter); err != nil { return err }
+			report, err := d.agentNativeComplete(ctx, *id, adapter)
+			if err == nil { emit(report) }
+			return err
 		case "run", "resume", "execute":
 			if *file == "" || *graph == "" || *flow == "" || *env == "" || *round == "" || *account == "" || *fixture == "" || *commit == "" {
 				return errors.New("discover run needs --file adapter, --graph, --flow, --env, --round, --account, --fixture and --commit")
@@ -267,7 +276,12 @@ func runContext(ctx context.Context, args []string) error {
 			}
 			mode := *exploreMode
 			if mode == "ai" && *plannerFile == "" { mode = "agent-native" }
-			if subcommand == "execute" { mode = "agent-native" }
+			if subcommand == "execute" {
+				state, err := d.loadExploreCheckpoint(*id)
+				if err != nil { return err }
+				if state.Mode != "agent-native" || state.UnsafeResume || state.Report.UnsafeResume { return errors.New("execute requires a safe agent-native campaign") }
+				mode = "agent-native"
+			}
 			var planner ExplorePlanner
 			if *plannerFile != "" && mode != "agent-native" { planner = FileExplorePlanner{Path: *plannerFile} }
 			report, err := d.runExploration(ctx, ExploreRequest{

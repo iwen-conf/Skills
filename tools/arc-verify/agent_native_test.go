@@ -35,3 +35,17 @@ func TestAgentNativeProposalPersistsAcrossTurns(t *testing.T) {
  next,err:=f.d.agentNativeContext(report.Campaign)
  if err!=nil || len(next.Frontier)!=0 || len(next.Recent)!=1 {t.Fatalf("handoff lost: %+v %v",next,err)}
 }
+
+// The safe finish gate must reject an empty or pending campaign without releasing fixtures.
+func TestAgentNativeCompleteRefusesUnexecutedCampaign(t *testing.T) {
+ _,server:=newSeatServer(t)
+ f:=prepareSeatFixture(t,server.URL)
+ f.openRound(t)
+ adapter:=seatExploreAdapter(t,seatIsolationScope)
+ req:=ExploreRequest{Graph:"seat-v2",Flow:"flow.reservation",Environment:"independent",Round:f.round,
+ Root:f.root,Config:f.config,Commit:f.commit,Account:f.account,Fixture:f.fixture,
+ Adapter:adapter,Mode:"agent-native",Budget:ExploreRuntimeBudget{MaxStates:8,MaxPaths:8,MaxActions:4,Deadline:8*time.Second}}
+ report,err:=f.d.runExploration(context.Background(),req)
+ if err!=nil{t.Fatal(err)}
+ if _,err:=f.d.agentNativeComplete(context.Background(),report.Campaign,adapter);err==nil{t.Fatal("empty campaign must not complete")}
+}

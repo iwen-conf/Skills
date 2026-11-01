@@ -307,13 +307,11 @@ func (d db) persistPlannerAudit(campaign string, in PlannerContext, proposal Pla
 			suggestionIDs = appendUnique(suggestionIDs, item.ExperimentID)
 		}
 	}
-	source := "http"
-	if proposal.Model == "scripted" || proposal.Model == "" && len(proposal.Suggestions) > 0 {
-		if proposal.Model == "scripted" {
-			source = "scripted"
-		}
-	}
-	if proposal.Model == "scripted" {
+	source := "external_http"
+	switch proposal.Model {
+	case "agent-native":
+		source = "agent_native"
+	case "scripted":
 		source = "scripted"
 	}
 	audit := map[string]any{
