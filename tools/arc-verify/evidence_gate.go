@@ -49,19 +49,47 @@ func evaluateEvidenceGate(in EvidenceGateInput) (EvidenceGateVerdict, string) {
 		}
 		return gateNotRun, "report has no actual steps"
 	}
-	if in.ExpectedCommit != "" && in.Binding.Identity.SourceCommit != in.ExpectedCommit {
+	required := requiredExploreIdentities(in.Report)
+	if missing := missingExploreIdentities(in, required); len(missing) > 0 {
+		return gateBlocked, "MISSING_IDENTITY: " + strings.Join(missing, ",")
+	}
+	if in.ExpectedCommit != "" && in.Binding.Identity.SourceCommit != "" && in.Binding.Identity.SourceCommit != in.ExpectedCommit {
 		return gateStale, "source commit does not match the current candidate"
 	}
-	if in.ExpectedGraph != "" && in.Binding.Identity.GraphSHA256 != in.ExpectedGraph {
+	if in.ExpectedGraph != "" && in.Binding.Identity.GraphSHA256 != "" && in.Binding.Identity.GraphSHA256 != in.ExpectedGraph {
 		return gateStale, "graph digest does not match the bound evidence"
 	}
-	if in.ExpectedTarget != "" && in.Binding.Identity.Target != in.ExpectedTarget {
-		return gateFail, "evidence was transplanted from another target"
+	if required["target"] || in.ExpectedTarget != "" {
+		if in.Binding.Identity.Target == "" || in.ExpectedTarget == "" && required["target"] {
+			return gateBlocked, "MISSING_IDENTITY: target"
+		}
+		if in.ExpectedTarget != "" && in.Binding.Identity.Target != in.ExpectedTarget {
+			return gateFail, "evidence was transplanted from another target"
+		}
 	}
 	if in.ExpectedCampaign != "" && in.Report.Campaign != "" && in.ExpectedCampaign != in.Report.Campaign {
 		return gateFail, "evidence belongs to another campaign"
 	}
-	if !oracleAllowsBusinessPass(in.OracleFields) && len(in.OracleFields) > 0 {
+	if required["fixture"] && (in.Binding.Identity.Fixture == "" || in.ExpectedFixture != "" && in.Binding.Identity.Fixture != in.ExpectedFixture) {
+		if in.Binding.Identity.Fixture == "" {
+			return gateBlocked, "MISSING_IDENTITY: fixture"
+		}
+		return gateFail, "evidence was transplanted from another fixture"
+	}
+	if required["actor"] && in.Binding.Identity.Actor == "" && in.Binding.Identity.Principal == "" {
+		return gateBlocked, "MISSING_IDENTITY: actor"
+	}
+	if required["oracle"] {
+		if in.Binding.Oracle == "" && in.ExpectedOracle == "" && in.Report.Oracle == "" {
+			return gateBlocked, "MISSING_ORACLE"
+		}
+		if len(in.OracleFields) == 0 {
+			return gateBlocked, "MISSING_ORACLE"
+		}
+		if !oracleAllowsBusinessPass(in.OracleFields) {
+			return gateBlocked, "SYNTHETIC_ONLY: synthetic or unknown oracle fields cannot be the sole PASS evidence"
+		}
+	} else if len(in.OracleFields) > 0 && !oracleAllowsBusinessPass(in.OracleFields) {
 		return gateBlocked, "synthetic or unknown oracle fields cannot be the sole PASS evidence"
 	}
 	if in.Report.RecoveryClass == RecoveryFailedLocked {
@@ -85,6 +113,12 @@ func evaluateEvidenceGate(in EvidenceGateInput) (EvidenceGateVerdict, string) {
 			return gateFail, "RAW digest does not match the ledger"
 		}
 		if err := rawMatchesBinding(body, in.Binding); err != nil {
+			if strings.Contains(err.Error(), "target") {
+				return gateStale, "deployment identity changed"
+			}
+			return gateFail, err.Error()
+		}
+		if err := rawMatchesCampaign(body, in); err != nil {
 			return gateFail, err.Error()
 		}
 	}
@@ -103,13 +137,36 @@ func evaluateEvidenceGate(in EvidenceGateInput) (EvidenceGateVerdict, string) {
 	if unapproved > 0 && in.Report.StopReason == "complete" {
 		return gatePartial, "unapproved rules stay out of the confirmed denominator"
 	}
+	if in.Report.UnsafeResume {
+		return gateBlocked, "unreplayable side effect remains"
+	}
 	if in.Report.Truncated || in.Report.StopReason == "blocked" {
-		return gateBlocked, in.Report.StopReason
+		return gatePartial, firstNonEmpty(in.Report.StopReason, "truncated")
 	}
 	if len(in.Report.Unspecified) > 0 {
 		return gateUnspec, "contract-out observations remain"
 	}
 	return gatePass, "bound RAW, oracle and identity match the current run"
+}
+
+func rawMatchesCampaign(body []byte, in EvidenceGateInput) error {
+	var raw StepRAW
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return errors.New("RAW is not a StepRAW document")
+	}
+	if in.ExpectedCampaign != "" && raw.Run != "" && raw.Run != in.ExpectedCampaign {
+		return errors.New("RAW belongs to a foreign campaign")
+	}
+	if in.Binding.Identity.Task != "" && raw.Identity.Task != "" && raw.Identity.Task != in.Binding.Identity.Task {
+		return errors.New("RAW belongs to a foreign step")
+	}
+	if in.ExpectedFixture != "" && raw.Identity.Fixture != "" && raw.Identity.Fixture != in.ExpectedFixture {
+		return errors.New("RAW fixture does not match the current binding")
+	}
+	if in.ExpectedActor != "" && raw.Identity.Actor != "" && raw.Identity.Actor != in.ExpectedActor && raw.Identity.Principal != in.ExpectedActor {
+		return errors.New("RAW actor does not match the current binding")
+	}
+	return nil
 }
 
 func rawMatchesBinding(body []byte, binding RunBinding) error {
@@ -137,40 +194,23 @@ func rawMatchesBinding(body []byte, binding RunBinding) error {
 
 func classifyEvidenceTrust(report ExploreReport, binding RunBinding) string {
 	if len(report.Steps) == 0 {
-		return "UNVERIFIED"
+		return trustUnverified
 	}
-	if binding.Identity.Graph == "" || binding.Identity.SourceCommit == "" || binding.Identity.Target == "" {
-		return "UNBOUND"
-	}
-	verdict, reason := evaluateEvidenceGate(EvidenceGateInput{Report: report, Binding: binding, ExpectedCommit: binding.Identity.SourceCommit, ExpectedTarget: binding.Identity.Target, ExpectedCampaign: report.Campaign})
-	switch verdict {
-	case gatePass, gatePartial, gateUnspec, gateFail:
-		if strings.Contains(reason, "digest") || strings.Contains(reason, "missing") {
-			if strings.Contains(reason, "digest") {
-				return "TAMPERED"
-			}
-			return "INCOMPLETE"
-		}
-		if verdict == gateFail && (strings.Contains(reason, "transplant") || strings.Contains(reason, "another")) {
-			return "UNBOUND"
-		}
-		synthetic := true
-		for _, step := range report.Steps {
-			if step.After.Principal != "" && !strings.HasPrefix(step.After.Principal, "synthetic-") {
-				synthetic = false
-			}
-		}
-		if synthetic && verdict != gateFail {
-			return "SYNTHETIC_ONLY"
-		}
-		return "VERIFIED"
-	case gateStale:
-		return "STALE"
-	case gateBlocked, gateNotRun:
-		return "INCOMPLETE"
-	default:
-		return "UNVERIFIED"
-	}
+	verdict, reason := evaluateEvidenceGate(EvidenceGateInput{
+		Report:           report,
+		Binding:          binding,
+		ExpectedCommit:   binding.Identity.SourceCommit,
+		ExpectedGraph:    binding.Identity.GraphSHA256,
+		ExpectedTarget:   binding.Identity.Target,
+		ExpectedCampaign: report.Campaign,
+		ExpectedFixture:  binding.Identity.Fixture,
+		ExpectedActor:    firstNonEmpty(binding.Identity.Actor, binding.Identity.Principal),
+		ExpectedOracle:   firstNonEmpty(binding.Oracle, report.Oracle),
+		OracleFields:     report.OracleFields,
+		PlannerCalls:     report.Spent.PlannerCalls,
+		RequirePlanner:   report.Mode == "ai",
+	})
+	return trustFromGate(report, verdict, reason)
 }
 
 func classifyBusinessVerdict(report ExploreReport) string {
@@ -211,25 +251,21 @@ func (d db) attachExploreEvidence(graph string, out map[string]any) (map[string]
 	worst := EvidenceGateVerdict("")
 	worstReason := ""
 	for _, campaign := range campaigns {
-		report := campaign.Report
-		if report.Campaign == "" {
-			report.Campaign = campaign.Campaign
-			report.Graph = campaign.Graph
-			report.StopReason = firstNonEmpty(report.StopReason, campaign.Status)
-		}
-		verdict, reason := evaluateEvidenceGate(EvidenceGateInput{
-			Report:           report,
-			Binding:          RunBinding{Identity: ExecutionIdentity{Graph: firstNonEmpty(campaign.Graph, graph), SourceCommit: campaign.SourceCommit, GraphSHA256: campaign.ModelSHA}},
-			ExpectedCommit:   campaign.SourceCommit,
-			ExpectedGraph:    campaign.ModelSHA,
-			ExpectedCampaign: campaign.Campaign,
-			PlannerCalls:     report.Spent.PlannerCalls,
-			RequirePlanner:   campaign.Mode == "ai" || report.Mode == "ai",
+		result := d.verifyExploreEvidence(campaign)
+		evaluations = append(evaluations, map[string]string{
+			"campaign":         result.CampaignID,
+			"verdict":          result.GateVerdict,
+			"reason":           result.InvalidReason,
+			"evidence_trust":   result.EvidenceTrust,
+			"business_verdict": result.BusinessVerdict,
 		})
-		evaluations = append(evaluations, map[string]string{"campaign": campaign.Campaign, "verdict": string(verdict), "reason": reason})
+		if result.EvidenceTrust == trustLegacy {
+			continue
+		}
+		verdict := EvidenceGateVerdict(result.GateVerdict)
 		if verdict == gateFail || verdict == gateStale || verdict == gateBlocked {
 			if worst != gateFail {
-				worst, worstReason = verdict, reason
+				worst, worstReason = verdict, result.InvalidReason
 			}
 		}
 	}

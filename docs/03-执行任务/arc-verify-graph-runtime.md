@@ -334,3 +334,20 @@ W06 / W20 的 IM-mongo 项仍为 `[!]`。
 
 报告：[verify-boundary-discovery-验收.md](arc-verify-graph-runtime/verify-boundary-discovery-验收.md)。对照产物 `.arc/artifacts/verify-boundary-discovery/reports/boundary-abc.json`。
 
+## 2026-11-01：第五轮可信执行与边界发现闭环（verify-round5-trusted-exec-boundary）
+
+基线 `3fa8a73`（上次审计 `0fa6477`）。不新增 Skill，不平行第二套探索系统。写操作仍只走 CLI；六视图保持静态只读。
+
+| 编号 | 状态 | 范围与验收 |
+| --- | --- | --- |
+| FIX-01 | [x] | OBSERVED 缺 RAW 从 Frontier/Tried 密封，Campaign 禁止自动续跑，fixture 锁保留；SIGKILL 独立进程不重放。测试：`TestObservedWithoutRAWCannotReturnToFrontier` 等 6 项 |
+| FIX-02 | [x] | `VerifiedEvidenceResult` 从 Campaign/RunBinding/RAW 读取完整身份；工作台与 `gate` 共用。业务判定与证据可信分离 |
+| FIX-03 | [x] | Graph v2 探索证据强制绑定 Target/Fixture/Actor/Oracle/Campaign/Step；空字段不再跳过。LEGACY_UNVERIFIED 只读兼容 |
+| BD01–BD05 | [x] | 有界事实、结构化假设身份、竞争解释、最小实验、修订历史；不 APPROVE RULE |
+| BD06 | [x] | Planner 第二轮读取第一轮观察；审计只存允许字段；失败则不执行 AI 动作。六视图增加反事实路径/假设历史 |
+| BD07 | [x]/`[!]` | A/B/C 脚本规划器对照仍有效；真实 vendor 模型 BLOCKED（无凭证） |
+| LIVE-01 | [!] | 继续锁 `192.168.0.60`；不回退 `.50`；IM-mongo 正式 E2E 仍 BLOCKED |
+| LIVE-02 | [!] | 真实模型验证与真实业务验证分开；两者都未完成前不宣称生产级闭环 |
+
+报告：[verify-round5-trusted-exec-验收.md](arc-verify-graph-runtime/verify-round5-trusted-exec-验收.md)。
+

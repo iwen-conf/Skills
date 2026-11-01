@@ -14,26 +14,30 @@ type ExplorePlanner interface {
 }
 
 type PlannerContext struct {
-	GraphID        string                  `json:"graph_id"`
-	Capability     string                  `json:"capability"`
-	Role           string                  `json:"role"`
-	State          string                  `json:"state"`
-	ConfirmedRules []string                `json:"confirmed_rules"`
-	Entries        []ExploreEntry          `json:"entries"`
-	Recent         []ExploreStep           `json:"recent"`
-	Unspecified    []UnspecifiedItem       `json:"unspecified"`
-	RuleFails      []ExploreFinding        `json:"rule_fails"`
-	Frontier       []CandidateAction       `json:"frontier"`
-	BudgetLeft     int                     `json:"budget_left"`
-	Facts          []EvidenceFact          `json:"facts,omitempty"`
-	Hypotheses     []BoundaryHypothesis    `json:"hypotheses,omitempty"`
-	Explanations   []CompetingExplanation  `json:"explanations,omitempty"`
-	Revisions      []UnderstandingRevision `json:"revisions,omitempty"`
-	Authorization  []string                `json:"authorization,omitempty"`
+	GraphID             string                  `json:"graph_id"`
+	Capability          string                  `json:"capability"`
+	Role                string                  `json:"role"`
+	State               string                  `json:"state"`
+	ConfirmedRules      []string                `json:"confirmed_rules"`
+	Entries             []ExploreEntry          `json:"entries"`
+	Recent              []ExploreStep           `json:"recent"`
+	Unspecified         []UnspecifiedItem       `json:"unspecified"`
+	RuleFails           []ExploreFinding        `json:"rule_fails"`
+	Frontier            []CandidateAction       `json:"frontier"`
+	BudgetLeft          int                     `json:"budget_left"`
+	Facts               []EvidenceFact          `json:"facts,omitempty"`
+	Hypotheses          []BoundaryHypothesis    `json:"hypotheses,omitempty"`
+	Explanations        []CompetingExplanation  `json:"explanations,omitempty"`
+	Experiments         []ExperimentCandidate   `json:"experiments,omitempty"`
+	Revisions           []UnderstandingRevision `json:"revisions,omitempty"`
+	Authorization       []string                `json:"authorization,omitempty"`
+	RefutedHypotheses   []string                `json:"refuted_hypotheses,omitempty"`
+	UnresolvedQuestions []string                `json:"unresolved_questions,omitempty"`
 }
 
 type PlannerSuggestion struct {
 	HypothesisID           string          `json:"hypothesis_id,omitempty"`
+	ExperimentID           string          `json:"experiment_id,omitempty"`
 	Capability             string          `json:"capability"`
 	BusinessIntent         string          `json:"business_intent,omitempty"`
 	BoundaryHypothesis     string          `json:"boundary_hypothesis,omitempty"`
@@ -119,6 +123,10 @@ func validatePlannerSuggestion(item PlannerSuggestion, adapter ExploreAdapter, a
 	}
 	if item.Action == "" || item.Entry == "" || item.Reason == "" {
 		return CandidateAction{}, "suggestion needs action, entry and reason"
+	}
+	blob := strings.ToLower(item.Reason + item.BusinessIntent + item.BoundaryHypothesis)
+	if strings.Contains(blob, " pass") || strings.HasSuffix(blob, "pass") || strings.Contains(blob, "fail") && strings.Contains(blob, "verdict") {
+		return CandidateAction{}, "planner must not decide a business PASS or FAIL"
 	}
 	if strings.ContainsAny(item.Action, " \t\n;&|") || strings.Contains(item.Entry, "://") {
 		return CandidateAction{}, "suggestion action or entry is not on the allow-list"
@@ -261,14 +269,6 @@ func decodePlannerMode(value string) string {
 	}
 }
 
-func marshalPlannerAudit(proposal PlannerProposal, accepted []CandidateAction, rejected []string) json.RawMessage {
-	body, err := json.Marshal(map[string]any{"proposal": proposal, "accepted": accepted, "rejected": rejected})
-	if err != nil {
-		return json.RawMessage(`{}`)
-	}
-	return body
-}
-
 func redactPlannerText(value string) string {
 	lower := strings.ToLower(value)
 	if strings.Contains(lower, "sk-") || strings.Contains(lower, "bearer ") || strings.Contains(lower, "api_key") {
@@ -292,34 +292,71 @@ func (d db) persistPlannerAudit(campaign string, in PlannerContext, proposal Pla
 	for _, item := range in.Hypotheses {
 		hypotheses = append(hypotheses, item.ID+":"+item.Status)
 	}
+	acceptedSummary := []map[string]string{}
+	for _, item := range accepted {
+		acceptedSummary = append(acceptedSummary, map[string]string{
+			"action": item.Action, "entry": item.Entry, "role": item.Role, "kind": string(item.Kind),
+		})
+	}
+	suggestionIDs := []string{}
 	for _, item := range proposal.Suggestions {
-		if item.BoundaryHypothesis != "" {
-			hypotheses = append(hypotheses, redactPlannerText(item.BoundaryHypothesis))
+		if item.HypothesisID != "" {
+			suggestionIDs = appendUnique(suggestionIDs, item.HypothesisID)
+		}
+		if item.ExperimentID != "" {
+			suggestionIDs = appendUnique(suggestionIDs, item.ExperimentID)
 		}
 	}
-	facts := []string{}
-	for _, fact := range in.Facts {
-		facts = append(facts, fact.ID+":"+fact.Class)
+	source := "http"
+	if proposal.Model == "scripted" || proposal.Model == "" && len(proposal.Suggestions) > 0 {
+		if proposal.Model == "scripted" {
+			source = "scripted"
+		}
+	}
+	if proposal.Model == "scripted" {
+		source = "scripted"
 	}
 	audit := map[string]any{
 		"planner_call_id": id,
 		"campaign":        campaign,
 		"call_no":         callNo,
 		"model":           redactPlannerText(firstNonEmpty(proposal.Model, "unknown")),
-		"input_facts":     facts,
+		"source":          source,
+		"input_facts":     factAuditIDs(in.Facts),
 		"authorization":   in.Authorization,
-		"accepted":        accepted,
+		"accepted":        acceptedSummary,
 		"rejected":        rejected,
 		"hypotheses":      hypotheses,
+		"suggestion_ids":  suggestionIDs,
 		"tokens":          proposal.Tokens,
-		"audit":           json.RawMessage(marshalPlannerAudit(proposal, accepted, rejected)),
 	}
 	body, err := json.Marshal(audit)
 	if err != nil {
 		return err
 	}
+	if sensitivePlannerAudit(string(body)) {
+		return errors.New("planner audit contains disallowed sensitive content")
+	}
 	return d.tx([]string{fmt.Sprintf(
 		"INSERT INTO exploration_planner_audit(id,campaign,model,body) VALUES(%s,%s,%s,%s);",
 		quote(id), quote(campaign), quote(firstNonEmpty(proposal.Model, "unknown")), quote(string(body)),
 	)})
+}
+
+func factAuditIDs(facts []EvidenceFact) []string {
+	out := []string{}
+	for _, fact := range facts {
+		out = append(out, fact.ID+":"+fact.Class)
+	}
+	return out
+}
+
+func sensitivePlannerAudit(body string) bool {
+	lower := strings.ToLower(body)
+	for _, token := range []string{"sk-", "bearer ", "api_key", "authorization:", "password"} {
+		if strings.Contains(lower, token) {
+			return true
+		}
+	}
+	return false
 }

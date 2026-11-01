@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -46,53 +47,60 @@ type ExplorePersistedWorld struct {
 }
 
 type ExploreActionRecord struct {
-	Candidate      CandidateAction  `json:"candidate"`
-	Status         string           `json:"status"`
-	SideEffecting  bool             `json:"side_effecting"`
-	Before         IndependentFacts `json:"before"`
-	After          IndependentFacts `json:"after,omitempty"`
-	Step           *ExploreStep     `json:"step,omitempty"`
-	AttemptID      string           `json:"attempt_id,omitempty"`
-	StepID         string           `json:"step_id,omitempty"`
-	RequestID      string           `json:"request_id,omitempty"`
-	IdempotencyKey string           `json:"idempotency_key,omitempty"`
-	Resource       string           `json:"resource,omitempty"`
-	Actor          string           `json:"actor,omitempty"`
-	Worker         string           `json:"worker,omitempty"`
-	Fence          int64            `json:"fence,omitempty"`
-	Dispatch       string           `json:"dispatch,omitempty"`
-	Response       json.RawMessage  `json:"response,omitempty"`
-	RAW            string           `json:"raw,omitempty"`
-	RAWSHA         string           `json:"raw_sha256,omitempty"`
-	Recorded       string           `json:"recorded,omitempty"`
+	Candidate          CandidateAction  `json:"candidate"`
+	Status             string           `json:"status"`
+	SideEffecting      bool             `json:"side_effecting"`
+	Before             IndependentFacts `json:"before"`
+	After              IndependentFacts `json:"after,omitempty"`
+	Step               *ExploreStep     `json:"step,omitempty"`
+	AttemptID          string           `json:"attempt_id,omitempty"`
+	StepID             string           `json:"step_id,omitempty"`
+	RequestID          string           `json:"request_id,omitempty"`
+	IdempotencyKey     string           `json:"idempotency_key,omitempty"`
+	Resource           string           `json:"resource,omitempty"`
+	Actor              string           `json:"actor,omitempty"`
+	Worker             string           `json:"worker,omitempty"`
+	Fence              int64            `json:"fence,omitempty"`
+	Dispatch           string           `json:"dispatch,omitempty"`
+	Response           json.RawMessage  `json:"response,omitempty"`
+	RAW                string           `json:"raw,omitempty"`
+	RAWSHA             string           `json:"raw_sha256,omitempty"`
+	Recorded           string           `json:"recorded,omitempty"`
+	ReplayForbidden    bool             `json:"replay_forbidden,omitempty"`
+	EvidenceIncomplete bool             `json:"evidence_incomplete,omitempty"`
+	FirstObservation   string           `json:"first_observation,omitempty"`
+	ErrorReason        string           `json:"error_reason,omitempty"`
 }
 
 type ExploreCheckpoint struct {
-	Campaign      string                `json:"campaign"`
-	Graph         string                `json:"graph"`
-	Flow          string                `json:"flow"`
-	Environment   string                `json:"environment"`
-	Round         string                `json:"round"`
-	ModelSHA      string                `json:"model_sha"`
-	SourceCommit  string                `json:"source_commit"`
-	Status        string                `json:"status"`
-	World         ExplorePersistedWorld `json:"world"`
-	Seen          []string              `json:"seen"`
-	Tried         []string              `json:"tried"`
-	Frontier      []CandidateAction     `json:"frontier"`
-	Actions       []ExploreActionRecord `json:"actions"`
-	Budget        ExploreRuntimeBudget  `json:"budget"`
-	Spent         ExploreSpent          `json:"spent"`
-	Recovery      RecoveryOutcome       `json:"recovery"`
-	RecoveryClass RecoveryClass         `json:"recovery_class"`
-	Account       string                `json:"account"`
-	Fixture       string                `json:"fixture"`
-	Checkpoint    string                `json:"checkpoint"`
-	ClaimedBy     string                `json:"claimed_by,omitempty"`
-	Fence         int64                 `json:"fence,omitempty"`
-	Mode          string                `json:"mode,omitempty"`
-	Report        ExploreReport         `json:"report"`
-	Updated       string                `json:"updated,omitempty"`
+	Campaign         string                `json:"campaign"`
+	Graph            string                `json:"graph"`
+	Flow             string                `json:"flow"`
+	Environment      string                `json:"environment"`
+	Round            string                `json:"round"`
+	ModelSHA         string                `json:"model_sha"`
+	SourceCommit     string                `json:"source_commit"`
+	Status           string                `json:"status"`
+	World            ExplorePersistedWorld `json:"world"`
+	Seen             []string              `json:"seen"`
+	Tried            []string              `json:"tried"`
+	Frontier         []CandidateAction     `json:"frontier"`
+	Actions          []ExploreActionRecord `json:"actions"`
+	Budget           ExploreRuntimeBudget  `json:"budget"`
+	Spent            ExploreSpent          `json:"spent"`
+	Recovery         RecoveryOutcome       `json:"recovery"`
+	RecoveryClass    RecoveryClass         `json:"recovery_class"`
+	Account          string                `json:"account"`
+	Fixture          string                `json:"fixture"`
+	Checkpoint       string                `json:"checkpoint"`
+	ClaimedBy        string                `json:"claimed_by,omitempty"`
+	Fence            int64                 `json:"fence,omitempty"`
+	Mode             string                `json:"mode,omitempty"`
+	Report           ExploreReport         `json:"report"`
+	Updated          string                `json:"updated,omitempty"`
+	Binding          RunBinding            `json:"binding,omitempty"`
+	UnsafeResume     bool                  `json:"unsafe_resume,omitempty"`
+	ResumeHoldReason string                `json:"resume_hold_reason,omitempty"`
 }
 
 func persistWorld(world exploreWorld) ExplorePersistedWorld {
@@ -232,6 +240,10 @@ WHERE campaign=%s AND status NOT IN (%s,%s)`,
 	return state, nil
 }
 
+var errUnreplayableSideEffects = errors.New("campaign holds unreplayed side effects; resume is blocked until evidence is completed")
+
+const exploreIdentityContract = "explore-identity-v1"
+
 func exploreWorkerID() string {
 	host, _ := os.Hostname()
 	return fmt.Sprintf("%s-%d-%s", host, os.Getpid(), newID("W"))
@@ -251,17 +263,31 @@ func (d db) reconcileUnknownActions(ctx context.Context, binding RunBinding, ada
 		switch record.Status {
 		case actionObserved:
 			if record.Step == nil || record.Step.RAW == "" {
-				record.Status = actionBlocked
-				if record.Step == nil {
-					record.Step = &ExploreStep{Candidate: record.Candidate, Before: record.Before}
+				if record.After.State == "" && adapter.Oracle.ID != "" {
+					oracleAccount := accountFor(accounts, record.Candidate)
+					readCtx, cancel := context.WithTimeout(ctx, stepTimeout)
+					after, _, err := readOracle(readCtx, adapter.Oracle, binding, oracleAccount, adapter.IsolationScope)
+					cancel()
+					if err == nil {
+						record.After = after
+						if record.Step != nil {
+							record.Step.After = after
+						}
+					}
 				}
-				record.Step.Findings = append(record.Step.Findings, ExploreFinding{Kind: "BLOCKED", Reason: "observed without RAW; replay is forbidden"})
+				sealUnreplayableAction(state, record, "observed without RAW; replay is forbidden")
 			} else {
 				record.Status = actionRecorded
+				record.RAW = record.Step.RAW
+				record.RAWSHA = record.Step.SHA256
 			}
 			changed = true
 			continue
 		case actionRecorded, actionBlocked, actionPlanned:
+			if record.ReplayForbidden || record.EvidenceIncomplete {
+				sealUnreplayableAction(state, record, firstNonEmpty(record.ErrorReason, "side-effecting action remains unreplayable"))
+				changed = true
+			}
 			continue
 		case actionDispatching, actionOutcomeUnknown, actionClaimed:
 		default:
@@ -276,27 +302,13 @@ func (d db) reconcileUnknownActions(ctx context.Context, binding RunBinding, ada
 			if err != nil {
 				return fmt.Errorf("cannot judge an in-flight action without an independent oracle: %w", err)
 			}
+			record.After = after
 			if record.Before.State != "" && after.State == record.Before.State && !measurementGrew(record.Before, after, "records") {
-				record.Status = actionBlocked
-				record.Step = &ExploreStep{Candidate: record.Candidate, Before: record.Before, After: after, Findings: []ExploreFinding{{Kind: "BLOCKED", Reason: "action was in-flight; side-effecting replay is forbidden"}}}
-				state.Tried = appendUnique(state.Tried, candidateKey(record.Candidate, record.Before.State))
+				sealUnreplayableAction(state, record, "action was in-flight; side-effecting replay is forbidden")
 				changed = true
 				continue
 			}
-			g, err := d.model(binding.Identity.Graph)
-			if err != nil {
-				return err
-			}
-			approvals, err := d.ruleApprovals(binding.Identity.Graph)
-			if err != nil {
-				return err
-			}
-			step := ExploreStep{Candidate: record.Candidate, Before: record.Before, After: after, Findings: judgeExploration(g, approvals, actorRole(accounts, record.Candidate), record.Candidate.Action, record.Before, after, false)}
-			step.Findings = append(step.Findings, invariantFindings(g, after)...)
-			record.Status = actionRecorded
-			record.Step = &step
-			state.Report.Steps = append(state.Report.Steps, step)
-			state.Report.Actions++
+			sealUnreplayableAction(state, record, "oracle observed a completed side effect without RAW; replay is forbidden")
 			changed = true
 			continue
 		}
@@ -309,12 +321,99 @@ func (d db) reconcileUnknownActions(ctx context.Context, binding RunBinding, ada
 	return nil
 }
 
+func sealUnreplayableAction(state *ExploreCheckpoint, record *ExploreActionRecord, reason string) {
+	if state == nil || record == nil {
+		return
+	}
+	if record.AttemptID == "" {
+		record.AttemptID = newID("AT")
+	}
+	if record.FirstObservation == "" {
+		record.FirstObservation = time.Now().UTC().Format(time.RFC3339Nano)
+	}
+	record.Status = actionBlocked
+	record.ReplayForbidden = true
+	record.EvidenceIncomplete = true
+	record.ErrorReason = reason
+	if record.Step == nil {
+		record.Step = &ExploreStep{Candidate: record.Candidate, Before: record.Before, After: record.After}
+	}
+	record.Step.Findings = append(record.Step.Findings, ExploreFinding{Kind: "BLOCKED", Reason: reason, Evidence: record.AttemptID})
+	state.Tried = appendUnique(state.Tried, candidateKey(record.Candidate, record.Before.State))
+	if record.Candidate.ID != "" {
+		state.Tried = appendUnique(state.Tried, record.Candidate.ID)
+	}
+	if record.RequestID != "" {
+		state.Tried = appendUnique(state.Tried, "request:"+record.RequestID)
+	}
+	state.Frontier = excludeFrontierAction(state.Frontier, record.Candidate, record.RequestID)
+	state.Report.Remaining = excludeFrontierAction(state.Report.Remaining, record.Candidate, record.RequestID)
+	state.UnsafeResume = true
+	state.ResumeHoldReason = reason
+	state.Status = exploreBlocked
+	state.Report.UnsafeResume = true
+	state.Report.StopReason = "blocked"
+	state.Report.Truncated = true
+	state.RecoveryClass = RecoveryFailedLocked
+	state.Report.RecoveryClass = RecoveryFailedLocked
+	state.Report.Blocked = append(state.Report.Blocked, ExploreFinding{Kind: "BLOCKED", Reason: reason, Evidence: record.AttemptID})
+}
+
+func excludeFrontierAction(frontier []CandidateAction, item CandidateAction, requestID string) []CandidateAction {
+	out := []CandidateAction{}
+	for _, cand := range frontier {
+		if item.ID != "" && cand.ID == item.ID {
+			continue
+		}
+		if requestID != "" && cand.RequestID == requestID {
+			continue
+		}
+		if cand.Action == item.Action && cand.Role == item.Role && cand.Entry == item.Entry && cand.Kind == item.Kind {
+			continue
+		}
+		out = append(out, cand)
+	}
+	return out
+}
+
+func campaignHoldsUnreplayableSideEffects(state ExploreCheckpoint) bool {
+	if state.UnsafeResume || state.Report.UnsafeResume {
+		return true
+	}
+	for _, record := range state.Actions {
+		if record.ReplayForbidden || record.EvidenceIncomplete {
+			return true
+		}
+		if record.Status == actionObserved && (record.Step == nil || record.Step.RAW == "") {
+			return true
+		}
+	}
+	return false
+}
+
 func sideEffecting(candidate CandidateAction) bool {
 	return candidate.Kind != kindRecover && candidate.Action != "" && candidate.Action != "fixture.restore"
 }
 
 func (d db) finishExplore(ctx context.Context, report ExploreReport, binding RunBinding, adapter ExploreAdapter, accounts map[string]Fixture, actors map[string]ParticipantBinding, fixture Fixture, campaign string, execErr error, fault ExploreFault) (ExploreReport, error) {
 	started := time.Now()
+	if report.UnsafeResume || errors.Is(execErr, errUnreplayableSideEffects) || (execErr != nil && errors.Is(execErr, errExploreCrashSentinel) && strings.Contains(execErr.Error(), "after_observed_before_raw")) {
+		report.UnsafeResume = true
+		report.StopReason = firstNonEmpty(report.StopReason, "blocked")
+		report.Truncated = true
+		report.Recovery = RecoveryOutcome{Verdict: "BLOCKED", Reason: "unreplayable side effect; fixture remains locked", Safe: false, Actions: []ActionObservation{}}
+		report.RecoveryClass = RecoveryFailedLocked
+		if persistErr := d.persistExploration(report); persistErr != nil {
+			if execErr != nil {
+				return report, errors.Join(execErr, persistErr)
+			}
+			return report, persistErr
+		}
+		if execErr != nil {
+			return report, execErr
+		}
+		return report, errUnreplayableSideEffects
+	}
 	if fault.Window == "during_recovery" {
 		report.Recovery = RecoveryOutcome{Verdict: "BLOCKED", Reason: "explore crash: during_recovery", Safe: false, Actions: []ActionObservation{}}
 		report.RecoveryClass = RecoveryFailedLocked

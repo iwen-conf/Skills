@@ -137,6 +137,8 @@ describe("static workbench", () => {
         experiments: ["EXP-min-owner"],
         revisions: ["v2"],
         needs_decision: ["FACT-unspec-U1"],
+        counterfactual_paths: ["claim:if two subjects act at the same time"],
+        hypothesis_history: ["BH-001:v1:PROPOSED"],
       },
     };
     const html = renderToStaticMarkup(
@@ -173,12 +175,16 @@ describe("static workbench", () => {
       "竞争性解释",
       "最小实验",
       "理解修订",
+      "反事实路径",
+      "假设历史",
       "待业务确认",
       "FACT-rule-R1",
       "BH-001:PROPOSED",
       "EX-last:SUPPORTED:owner+version",
       "EXP-min-owner",
       "FACT-unspec-U1",
+      "claim:if two subjects act at the same time",
+      "BH-001:v1:PROPOSED",
     ]) {
       expect(html).toContain(text);
     }

@@ -15,10 +15,15 @@ type exploreDrive struct {
 	fault     ExploreFault
 	candidate CandidateAction
 	attemptID string
+	before    IndependentFacts
+	after     IndependentFacts
+	step      *ExploreStep
 }
 
+var errExploreCrashSentinel = errors.New("explore crash")
+
 func errExploreCrash(window string) error {
-	return fmt.Errorf("explore crash: %s", window)
+	return fmt.Errorf("%w: %s", errExploreCrashSentinel, window)
 }
 
 func legalExploreActionTransition(from, to string) bool {
@@ -50,9 +55,16 @@ func upsertExploreAction(actions []ExploreActionRecord, record ExploreActionReco
 	}
 	for i := range actions {
 		if actions[i].AttemptID != "" && actions[i].AttemptID == record.AttemptID {
+			if actions[i].Status == actionRecorded || actions[i].Status == actionBlocked {
+				return actions
+			}
 			if !legalExploreActionTransition(actions[i].Status, record.Status) {
 				return actions
 			}
+			if actions[i].FirstObservation != "" {
+				record.FirstObservation = actions[i].FirstObservation
+			}
+			record.AttemptID = actions[i].AttemptID
 			actions[i] = record
 			return actions
 		}
@@ -78,6 +90,7 @@ func (d db) markExploreAction(drive *exploreDrive, status string, before Indepen
 		Status:         status,
 		SideEffecting:  sideEffecting(drive.candidate),
 		Before:         before,
+		After:          drive.after,
 		AttemptID:      drive.attemptID,
 		StepID:         firstNonEmpty(drive.candidate.ID, drive.attemptID),
 		RequestID:      drive.candidate.RequestID,
@@ -87,6 +100,17 @@ func (d db) markExploreAction(drive *exploreDrive, status string, before Indepen
 		Worker:         drive.lease.Worker,
 		Fence:          drive.lease.Fence,
 		Dispatch:       status,
+	}
+	if drive.step != nil && (status == actionObserved || status == actionRecorded) {
+		copied := *drive.step
+		record.Step = &copied
+		if copied.RAW != "" {
+			record.RAW = copied.RAW
+			record.RAWSHA = copied.SHA256
+		}
+	}
+	if status == actionObserved && record.FirstObservation == "" {
+		record.FirstObservation = time.Now().UTC().Format(time.RFC3339Nano)
 	}
 	drive.state.Actions = upsertExploreAction(drive.state.Actions, record)
 	drive.state.ClaimedBy = drive.lease.Worker

@@ -29,17 +29,30 @@ type EvidenceReference struct {
 }
 
 type EvidenceFact struct {
-	ID, Class, Statement string
-	Refs                 []EvidenceReference
+	ID, Class, Statement                                         string
+	Capability, SourceType, Location, SourceCommit, Scope, Trust string
+	Evidence                                                     []string
+	Observed, Confirmed                                          bool
+	Refs                                                         []EvidenceReference
+}
+
+type HypothesisIdentity struct {
+	Role, Action, Resource, State, Invariant string
 }
 
 type BoundaryHypothesis struct {
 	ID, Capability                    string
+	Identity                          HypothesisIdentity `json:"identity,omitempty"`
 	KnownFacts                        []string
 	Assumption, Counterfactual        string
 	CandidateActions                  []string
 	RequiredObservation, EvidenceRefs []string
+	Roles, Resources                  []string
+	Preconditions                     []string
+	Observable, Falsifier             []string
+	Risk, Cost                        string
 	Status                            string
+	Version                           int
 }
 
 type CompetingExplanation struct {
@@ -52,7 +65,11 @@ type CompetingExplanation struct {
 
 type ExperimentCandidate struct {
 	ID, Hypothesis, SideEffect, Recovery, Oracle string
+	Goal, Actor, Resource                        string
 	Actions                                      []string
+	Preconditions                                []string
+	Observations                                 []string
+	Stop                                         string
 	Cost, Roles                                  int
 	Discriminating                               bool
 }
@@ -95,21 +112,25 @@ func buildEvidenceContext(g Graph, approvals map[string]bool, _ ExploreAdapter, 
 		}
 		out.Facts = append(out.Facts, EvidenceFact{
 			ID: discoveryFactID("rule", rule.ID), Class: class, Statement: statement,
+			Capability: firstNonEmpty(rule.Action, g.ID), SourceType: "rule", Location: rule.ID, SourceCommit: report.Identity.SourceCommit, Scope: g.ID, Trust: trustForClass(class),
+			Confirmed: approved, Evidence: []string{"rule:" + rule.ID},
 			Refs: []EvidenceReference{graphRef, {ID: "rule:" + rule.ID, Source: "rule", Version: rule.Source, Scope: g.ID, Trust: trustForClass(class)}},
 		})
 	}
 	for _, flow := range g.Flows {
 		out.Facts = append(out.Facts, EvidenceFact{
 			ID: discoveryFactID("flow", flow.ID), Class: factKnown,
-			Statement: "flow " + flow.ID + " starts at " + flow.Initial + " for " + flow.Capability,
-			Refs:      []EvidenceReference{graphRef, {ID: "flow:" + flow.ID, Source: "flow", Scope: g.ID, Trust: "VERIFIED"}},
+			Statement:  "flow " + flow.ID + " starts at " + flow.Initial + " for " + flow.Capability,
+			Capability: flow.Capability, SourceType: "flow", Location: flow.ID, Scope: g.ID, Trust: "VERIFIED", Confirmed: true,
+			Refs: []EvidenceReference{graphRef, {ID: "flow:" + flow.ID, Source: "flow", Scope: g.ID, Trust: "VERIFIED"}},
 		})
 	}
 	for _, entry := range adapter.Entries {
 		out.Facts = append(out.Facts, EvidenceFact{
 			ID: discoveryFactID("entry", entry.Action+"|"+entry.Entry), Class: factKnown,
-			Statement: "authorized adapter entry " + entry.Action + " " + entry.Entry,
-			Refs:      []EvidenceReference{{ID: "adapter:" + entry.Entry, Source: "adapter", Scope: adapter.IsolationScope, Trust: "VERIFIED"}},
+			Statement:  "authorized adapter entry " + entry.Action + " " + entry.Entry,
+			Capability: entry.Action, SourceType: "entry", Location: entry.Entry, Scope: adapter.IsolationScope, Trust: "VERIFIED", Confirmed: true, Observed: true,
+			Refs: []EvidenceReference{{ID: "adapter:" + entry.Entry, Source: "adapter", Scope: adapter.IsolationScope, Trust: "VERIFIED"}},
 		})
 		out.Authorization = appendUnique(out.Authorization, "entry:"+entry.Entry)
 	}
@@ -258,9 +279,11 @@ func proposeCounterfactuals(ctx DiscoveryContext, g Graph, adapter ExploreAdapte
 		seen[key] = true
 		out = append(out, BoundaryHypothesis{
 			ID: fmt.Sprintf("BH-%03d", i+1), Capability: capability,
+			Identity:   HypothesisIdentity{Action: item.action, Invariant: item.assumption, State: "current", Resource: capability},
 			KnownFacts: factIDs, Assumption: item.assumption, Counterfactual: item.counter,
 			CandidateActions: []string{item.action}, RequiredObservation: []string{item.observe},
-			EvidenceRefs: refs, Status: item.status,
+			Observable: []string{item.observe}, Falsifier: []string{item.observe + " unchanged"},
+			EvidenceRefs: refs, Status: item.status, Version: 1, Risk: "medium", Cost: "1",
 		})
 	}
 	return out
@@ -300,8 +323,10 @@ func planMinimalExperiment(explanations []CompetingExplanation, adapter ExploreA
 	}
 	return ExperimentCandidate{
 		ID: "EXP-min-owner", Hypothesis: firstExplanationID(explanations),
+		Goal: "distinguish competing owners after identical HTTP 200", Actor: "oracle", Resource: "work-item",
 		Actions: []string{"GET " + oraclePath}, Cost: 1, Roles: 1,
 		SideEffect: "none", Recovery: "not required", Oracle: "owner+version",
+		Observations: []string{"owner", "version"}, Stop: "owner and version observed once",
 		Discriminating: len(explanations) >= 2,
 	}
 }
@@ -385,8 +410,15 @@ func attachDiscoveryToPlanner(in PlannerContext, disc DiscoveryContext) PlannerC
 	in.Facts = disc.Facts
 	in.Hypotheses = disc.Hypotheses
 	in.Explanations = disc.Explanations
+	in.Experiments = disc.Experiments
 	in.Revisions = disc.Revisions
 	in.Authorization = disc.Authorization
+	in.UnresolvedQuestions = disc.Questions
+	for _, hyp := range disc.Hypotheses {
+		if hyp.Status == hypRefuted {
+			in.RefutedHypotheses = appendUnique(in.RefutedHypotheses, hyp.ID)
+		}
+	}
 	if len(in.Authorization) == 0 {
 		in.Authorization = append(in.Authorization, in.ConfirmedRules...)
 	}
@@ -413,19 +445,35 @@ func refreshBoundaryDiscovery(prev DiscoveryContext, g Graph, approvals map[stri
 func mergeHypotheses(prev, next []BoundaryHypothesis) []BoundaryHypothesis {
 	byKey := map[string]BoundaryHypothesis{}
 	for _, item := range prev {
-		byKey[item.Assumption+"|"+item.Counterfactual] = item
+		byKey[hypothesisKey(item)] = item
 	}
 	out := []BoundaryHypothesis{}
+	seen := map[string]bool{}
 	for _, item := range next {
-		if old, ok := byKey[item.Assumption+"|"+item.Counterfactual]; ok {
+		key := hypothesisKey(item)
+		if old, ok := byKey[key]; ok {
 			item.ID = old.ID
+			item.Version = old.Version
 			if old.Status != "" && old.Status != hypProposed {
 				item.Status = old.Status
 			}
 		}
 		out = append(out, item)
+		seen[key] = true
+	}
+	for key, old := range byKey {
+		if !seen[key] {
+			out = append(out, old)
+		}
 	}
 	return out
+}
+
+func hypothesisKey(item BoundaryHypothesis) string {
+	if item.Identity.Action != "" || item.Identity.Invariant != "" {
+		return strings.Join([]string{item.Identity.Role, item.Identity.Action, item.Identity.Resource, item.Identity.State, item.Identity.Invariant}, "|")
+	}
+	return item.Assumption + "|" + item.Counterfactual
 }
 
 func ambiguousObservation(report ExploreReport) (AmbiguousObservation, bool) {

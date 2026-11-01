@@ -685,6 +685,10 @@ function EntityPanel({
             <dd>{snapshot.exploration[id].experiments?.join("、") || "无"}</dd>
             <dt>理解修订</dt>
             <dd>{snapshot.exploration[id].revisions?.join("、") || "无"}</dd>
+            <dt>反事实路径</dt>
+            <dd>{snapshot.exploration[id].counterfactual_paths?.join("、") || "无"}</dd>
+            <dt>假设历史</dt>
+            <dd>{snapshot.exploration[id].hypothesis_history?.join("、") || "无"}</dd>
             <dt>待业务确认</dt>
             <dd>{snapshot.exploration[id].needs_decision?.join("、") || "无"}</dd>
             <dt>AI 边界假设</dt>

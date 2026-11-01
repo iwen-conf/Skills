@@ -366,7 +366,7 @@ func runRemainExploreHelper() int {
 	defer d.close()
 	adapter := remainSeatAdapter()
 	adapter.Entries = []ExploreEntry{{Action: "claim", Entry: "/claim", Method: "POST", Roles: []string{"STUDENT", "CONTENDER"}}}
-	if os.Getenv("ARC_VERIFY_HELPER") == "explore-kill" {
+	if os.Getenv("ARC_VERIFY_HELPER") == "explore-kill" || os.Getenv("ARC_VERIFY_HELPER") == "explore-observed" {
 		adapter.StepTimeoutMS = 60000
 		adapter.TimeoutMS = 60000
 	}

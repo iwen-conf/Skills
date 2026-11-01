@@ -373,6 +373,8 @@ export interface ExplorationCoverage {
   experiments?: string[];
   revisions?: string[];
   needs_decision?: string[];
+  counterfactual_paths?: string[];
+  hypothesis_history?: string[];
 }
 export interface Snapshot {
   meta: SnapshotMeta;
