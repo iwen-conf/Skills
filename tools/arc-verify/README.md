@@ -155,7 +155,7 @@ Details and semantics: `Arc/arc:verify/references/business-graph-v2.md`.
     arc-verify discover record --file exploration.json            # UNSPECIFIED, never PASS/FAIL
     arc-verify discover run --file adapter.json --graph G --flow F --env E --round Q \
       --account A --fixture F --commit SHA [--mode heuristic|deterministic|ai] [--planner file]
-      # --mode ai without --planner uses ARC_VERIFY_PLANNER_URL / MODEL / KEY_ENV; no key in the ledger.
+      # Existing coding Agent reasons; --mode ai requires --planner FILE and is only a scripted test fixture.
     arc-verify discover status [--id CAMPAIGN] [--graph G]
     arc-verify discover resume --id CAMPAIGN --file adapter.json --graph G --flow F --env E --round Q \
       --account A --fixture F --commit SHA
@@ -252,3 +252,7 @@ embedded driver, schema, index creation, insert and independent SQL readback.
 It does not access a remote system or reuse a test account. When graph
 verification is enabled, `arc-policy doctor` now runs this self-test rather
 than only checking that an `arc-verify` binary exists.
+
+### Changing coding Agents
+
+Read and update the regular Markdown [当前状态与需求](../../docs/03-执行任务/arc-verify-graph-runtime/当前状态与需求.md). This is the only work handover between Grok, Codex, Claude Code or other coding Agents. There is no ACP, native handoff, Agent runtime, HTTP model integration, model configuration or API key. ARC Verify Campaign checkpoint/Frontier only protects test execution and recovery.

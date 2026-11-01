@@ -351,3 +351,16 @@ W06 / W20 的 IM-mongo 项仍为 `[!]`。
 
 报告：[verify-round5-trusted-exec-验收.md](arc-verify-graph-runtime/verify-round5-trusted-exec-验收.md)。
 
+
+
+## 2026-11-01：架构纠偏——仅文档描述需求与状态（现行约束）
+
+**现行决定优先于前文历史验收记录：** 不开发 Agent、不做 ACP 或原生跨 Agent 交接、不设计 Agent-Native session / 专用 CLI / 状态机，也不接入任何模型 HTTP、API Key、模型地址或模型设置。
+
+- 已删除上一轮误加的 `agent_native.go`、`agent_native_test.go` 和 `discover context/propose/execute/handoff/complete` 专用入口，以及对应的临时交接验收文件；恢复原本稳定的 Campaign/Frontier/Checkpoint 执行功能。
+- 已删除 `explore_llm.go` 及模型 HTTP 适配测试。`--mode ai --planner FILE` 仅表示预定义脚本测试，**不能证明 AI 模型实际推理**；内置探索用 `heuristic`/`deterministic`。
+- 当前 Grok、Codex、Claude Code 等现成编程 Agent 本身完成分析、假设、实验设计、修正与执行调度；ARC Skill 约束工作方式。**只用 Markdown 文档**承接任务上下文，明确需求、实现进度、测试证据、阻塞和下一步，后续 Agent 自行阅读并核验。
+- 当前统一工作记录：[当前状态与需求](arc-verify-graph-runtime/当前状态与需求.md)。原有 Arc Skill 间 `handoff --to` 与测试运行中的 Checkpoint 不等于 ACP；两者不作为 Agent 会话交接能力。
+- 旧 W40/R06/LIVE-02 等关于“没有外部模型凭证所以 BLOCKED”的历史记录已被本节**取代为非现行要求**。真实业务 E2E 的隔离环境授权限制仍有效；现有独立 Oracle、RAW、规则审批和测试安全门禁不能删除。
+
+**代码提交不等于测试通过**：本轮通过 GitHub 连接修改仓库，未在代码运行工作区执行 Go 编译、race、vet 或真实 E2E。后续必须执行相关验证，并在状态文档填写实际退出码和证据。

@@ -14,7 +14,7 @@ and runtime measurements all match and are observed; an unobserved part never me
 | `run-chain --round --max-steps --deadline` | Run the known path (READY cards with one current runner) through `execute`; stops with exit 10 divergence, 11 unknown state, 12 precondition, 13 new branch, 14 budget, 15 blocked, plus a minimal packet |
 | `derive --run [--budget]` | Derive obligations from a failed run's observed state (see DERIVED) |
 | `discover record/list/triage` | Register exploration observations; behavior outside the model becomes UNSPECIFIED (never PASS/FAIL); the user triages it in a real terminal |
-| `discover run/resume/status/abort` | Isolated exploration with atomic campaign claim and fencing; `--mode ai` needs a planner file or `ARC_VERIFY_PLANNER_*` (keys stay in env). Budget exhaustion keeps Frontier; `planner_calls=0` is not real AI evidence |
+| `discover run/resume/status/abort` | Bounded test execution with atomic campaign claim, fencing and independent Oracle; use deterministic/heuristic modes. Legacy `--mode ai --planner FILE` is a **scripted test fixture only**, never a model service or AI discovery proof. No model endpoint, settings or API key |
 | `report --kind acceptance\|risk` | Acceptance excludes every risk; the risk report shows declared, reference, derived and UNSPECIFIED risks, refutations, the three-way comparison and the per-origin triage summary |
 | `accept-risk` / `reject-risk` / `promote-risk` | Interactive user decisions with the user's own words |
 | `risk refute --result --evidence` | Record a bounded refutation attempt bound to evidence by SHA-256; it never closes the risk |
@@ -26,3 +26,5 @@ Implementation evidence (`scan`, exploration), requirements (approved rules) and
 separate sources: none of them becomes a rule by itself, and only approved rules enter acceptance.
 
 Read with [business-graph](business-graph.md), which keeps the confirmation, card and RAW rules these commands rely on.
+
+Switching Grok/Codex/Claude Code requires only [当前状态与需求](../../docs/03-执行任务/arc-verify-graph-runtime/当前状态与需求.md) and the target repository documents. There is no native Agent handoff, ACP protocol or new CLI command; CLI checkpoint is only for safe **test recovery**.

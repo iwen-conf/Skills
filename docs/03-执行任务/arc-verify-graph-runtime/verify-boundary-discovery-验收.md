@@ -1,3 +1,5 @@
+> 历史执行记录：本报告中的 vendor-model BLOCKED 及脚本 AI 对照是当时实验状态，不代表现行需求。当前使用已有编程 Agent 推理，不要求 API Key；只用 Markdown 状态与需求记录，不创建 Agent 交接协议。见 [当前状态与需求](当前状态与需求.md)。
+
 # ARC Verify · 证据驱动未知边界发现验收
 
 任务：`verify-boundary-discovery`。基线 `0fa6477`。不新增 Skill，不绕过 R01–R11。
