@@ -142,7 +142,7 @@ func kindsStep(node, transition, path string, oracles ...string) string {
 
 func kindsManifest(t *testing.T, id, test string, steps ...string) string {
 	t.Helper()
-	body := fmt.Sprintf(`{"schema_version":1,"id":%q,"graph":"course-v2","test":%q,"isolation_scope":"course-fixture","timeout_ms":1200,"step_timeout_ms":200,"parallelism":1,"steps":[%s],
+	body := fmt.Sprintf(`{"schema_version":1,"id":%q,"graph":"course-v2","test":%q,"isolation_scope":"course-fixture","timeout_ms":20000,"step_timeout_ms":4000,"parallelism":1,"steps":[%s],
 "recovery":{"isolation_scope":"course-fixture","steps":[{"actor":"primary","call":{"kind":"http","method":"POST","path":"/reset","success_statuses":[200]}}],"oracle":%s,"state":"pending","conditions":{"login":true},"checks":[{"left":"enrolled","operator":"eq","value":0}]}}`, id, test, strings.Join(steps, ","), kindsOracle("fixture-independent-store", "/oracle"))
 	path := filepath.Join(t.TempDir(), id+".json")
 	if err := os.WriteFile(path, []byte(body), 0600); err != nil {

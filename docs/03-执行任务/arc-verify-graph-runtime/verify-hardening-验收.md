@@ -14,10 +14,26 @@
 | 真实模型探索 | BLOCKED | `TestRealHTTPPlannerLiveOrBlocked`：无 `ARC_VERIFY_PLANNER_*` / `OPENAI_*`，未伪造调用 |
 | 发现未登记入口 → 授权 → 执行 → Oracle | PARTIAL | `TestEntryDiscoverAuthorizeExecuteOracle`：`/hidden-close` 未授权不执行，授权后 `/state.hidden_closes>=1` |
 | 三模式盲测 | PARTIAL | `TestThreeModeBlindCompareReportsHonestStats`：deterministic/heuristic/scripted-ai，写出 Injected/Reachable/Triggered/Detected/Missed/NotExecuted；AI 行标明 scripted |
-| IM-mongo A/B/C | PARTIAL | `TestIMMongoBusinessChainsStayAuthorized` 在已授权 iso28886 上跑三条链，Oracle 读 live `service-state`；不是 v2 RULE 批准。共享 28885 只做健康检查 |
+| IM-mongo A/B/C | BLOCKED | 本轮锁在 `192.168.0.60`；60 上无 28886 writer，未回退 `.50`，未起 writer。证据 `reports/im-mongo-chains.json` |
 | 独立可信 Runner | PARTIAL | `TestIndependentRunnerProcessStampsPID`：子进程 `execute` 写入 `runner_pid`，且不等于父测试 PID。W16 第二台机器 / 独立账号仍 BLOCKED。本仓不启 GitHub Actions |
 
 Red：`.arc/artifacts/verify-remain-close/red/red-001.json`（exit 1, assertion）。
+
+## 2026-11-01 host-60
+
+执行面锁到 `luwen@192.168.0.60`（hostname `nulltech`）。Mac 本地不再 Fatal 仅因不在 60；`ARC_VERIFY_REQUIRE_HOST60=1` 时必须在 60。写目标只允许 `127.0.0.1` / `localhost` / `::1` / `192.168.0.60`。不再 SSH/HTTP 到 `192.168.1.50`，不再探 28885。
+
+| 项 | 最终状态 | 60 上证据 |
+|---|---|---|
+| 进程身份 | PASS | `.arc/artifacts/verify-remain-close/reports/host60.json`：`on_60=true` `ip=192.168.0.60` `user=luwen`；remain pid `2078158`，整包 `2119741`，race `2151063` |
+| 拒绝 lan50 | PASS | `TestHost60LockRefusesLan50`、`TestRefuseSharedIMWriteTarget`：`192.168.1.50:28886/28885` 被拒 |
+| SIGKILL / 入口 / 三模式 / Runner | PARTIAL | 同一 `go test` 进程在 60 上 PASS（约 61s）；三模式报告 `reports/three-mode-contrast.json` |
+| 真实模型 | BLOCKED | `reports/real-planner.json`：无 planner URL/model/key，未伪造调用 |
+| IM A/B/C 与 iso 探索 | BLOCKED | `reports/im-mongo-chains.json`、`verify-explore-e2e/reports/im-mongo-iso28886-blocked.json`：`live=0 ready=0`，`base=http://127.0.0.1:28886` |
+
+`go test -count=1 -timeout 12m -run 'TestRemainEvidenceRanOnHost60|TestHost60LockRefusesLan50|…|TestIMMongo|TestIMISO' .` 在 60 上 exit 0。未启动 isolation writer。
+
+整包：`ARC_VERIFY_REQUIRE_HOST60=1 go test -count=1 -timeout 25m ./...` 在 60 上 **680.835s exit 0**。同环境 `go test -race -count=1 -timeout 25m ./...` **820.326s exit 0**。`go vet ./...` exit 0。kinds/chain/execution 合成夹具超时加宽（20s/4s、deadline 5s），只为 60 上 Turso/HTTP 慢启动仍能跑完同一断言，不改 execute 判定公式。
 
 `gate.sh check --require-red`：Go/Python 测试与 red-first PASS。`tsc`/`vitest` 经 npm 因 workbench `devEngines.packageManager=bun` 报 EBADDEVENGINES；已用 `vp test`（19 passed）与 `bunx tsc --noEmit` 代替。
 

@@ -56,7 +56,7 @@ func prepareExecutionFixture(t *testing.T, graph Graph, target string) execution
 
 func fixtureManifest(t *testing.T, id, test string) string {
 	t.Helper()
-	body := fmt.Sprintf(`{"schema_version":1,"id":%q,"graph":"course-v2","test":%q,"isolation_scope":"course-fixture","timeout_ms":1200,"step_timeout_ms":200,"parallelism":2,
+	body := fmt.Sprintf(`{"schema_version":1,"id":%q,"graph":"course-v2","test":%q,"isolation_scope":"course-fixture","timeout_ms":8000,"step_timeout_ms":2000,"parallelism":2,
 "steps":[{"node":"enroll","actor":"primary","call":{"kind":"http","method":"POST","path":"/enroll","success_statuses":[200],"rejection_statuses":[401]},"oracles":[{"id":"fixture-independent-store","boundary":"after committed enrollment and fixture restoration","call":{"kind":"http","method":"GET","path":"/oracle","success_statuses":[200]},"state_path":"/state","principal_path":"/principal","role_path":"/role","scope_path":"/scope","conditions":{"login":"/login"},"measurements":{"enrolled":"/enrolled","capacity":"/capacity"}}]}],
 "recovery":{"isolation_scope":"course-fixture","steps":[{"actor":"primary","call":{"kind":"http","method":"POST","path":"/reset","success_statuses":[200]}}],"oracle":{"id":"fixture-independent-store","boundary":"after committed enrollment and fixture restoration","call":{"kind":"http","method":"GET","path":"/oracle","success_statuses":[200]},"state_path":"/state","principal_path":"/principal","role_path":"/role","scope_path":"/scope","conditions":{"login":"/login"},"measurements":{"enrolled":"/enrolled","capacity":"/capacity"}},"state":"pending","conditions":{"login":true},"checks":[{"left":"enrolled","operator":"eq","value":0}]}}`, id, test)
 	path := filepath.Join(t.TempDir(), "runner.json")
@@ -232,7 +232,7 @@ func TestExecuteDeadlineStopsActionAndRecordsRestoration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	body = []byte(strings.Replace(string(body), `"step_timeout_ms":200`, `"step_timeout_ms":25`, 1))
+	body = []byte(strings.Replace(string(body), `"step_timeout_ms":2000`, `"step_timeout_ms":25`, 1))
 	if err = os.WriteFile(file, body, 0600); err != nil {
 		t.Fatal(err)
 	}

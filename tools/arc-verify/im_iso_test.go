@@ -27,10 +27,14 @@ func TestIMMongoFixturesMustBindIsolationNotSharedLan50(t *testing.T) {
 }
 
 func TestRefuseSharedIMWriteTarget(t *testing.T) {
-	if err := refuseSharedIMTarget("http://192.168.1.50:28886"); err != nil {
-		t.Fatalf("isolation writer must be allowed: %v", err)
+	if err := refuseSharedIMTarget("http://127.0.0.1:28886"); err != nil {
+		t.Fatalf("host-60 loopback isolation writer must be allowed: %v", err)
+	}
+	if err := refuseSharedIMTarget("http://192.168.0.60:28886"); err != nil {
+		t.Fatalf("192.168.0.60 isolation writer must be allowed: %v", err)
 	}
 	for _, raw := range []string{
+		"http://192.168.1.50:28886",
 		"http://192.168.1.50:28885",
 		"http://tx.nulltech.cn:28885",
 		"http://192.168.1.50:28895",

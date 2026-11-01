@@ -312,3 +312,9 @@ W06 / W20 的 IM-mongo 项仍为 `[!]`。
 | R10 | BLOCKED | IM-mongo A/B/C 仍 NOT_RUN |
 | R11 | PARTIAL | CLI 拒绝空 Step；独立 Runner 未做 |
 
+## 2026-11-01：执行面锁到 60（verify-on-60）
+
+用户要求剩余验证都在 `192.168.0.60` 上做。本轮不 SSH/HTTP 到 `.50`，不启动 isolation writer。60 上无 28886 时 IM 保持诚实 BLOCKED。
+
+证据与矩阵：[verify-hardening-验收.md](arc-verify-graph-runtime/verify-hardening-验收.md)「2026-11-01 host-60」。身份文件 `.arc/artifacts/verify-remain-close/reports/host60.json`。
+

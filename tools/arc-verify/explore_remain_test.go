@@ -14,6 +14,33 @@ import (
 	"time"
 )
 
+func TestRemainEvidenceRanOnHost60(t *testing.T) {
+	id := collectHostIdentity()
+	verdict := "BLOCKED"
+	if id.On60 {
+		verdict = "PASS"
+	}
+	writeRemainArtifact(t, "reports/host60.json", map[string]any{"verdict": verdict, "host": id})
+	if host60Required() && !id.On60 {
+		t.Fatalf("ARC_VERIFY_REQUIRE_HOST60=1 but this process is not on 192.168.0.60: %+v", id)
+	}
+}
+
+func TestHost60LockRefusesLan50(t *testing.T) {
+	if err := refuseOffHost60("http://192.168.1.50:28886"); err == nil {
+		t.Fatal("host-lock 60 must refuse lan50 writes")
+	}
+	if err := refuseOffHost60("http://192.168.1.50:28885"); err == nil {
+		t.Fatal("host-lock 60 must refuse shared 28885")
+	}
+	if err := refuseOffHost60("http://127.0.0.1:28886"); err != nil {
+		t.Fatalf("loopback on 60 must stay allowed: %v", err)
+	}
+	if err := refuseOffHost60("http://192.168.0.60:28886"); err != nil {
+		t.Fatalf("192.168.0.60 must stay allowed: %v", err)
+	}
+}
+
 func TestSIGKILLDuringAcceptedClaimCountsOnce(t *testing.T) {
 	if os.Getenv("ARC_VERIFY_HELPER") == "explore-kill" {
 		os.Exit(runRemainExploreHelper())

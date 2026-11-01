@@ -25,8 +25,6 @@ import (
 
 const (
 	imISOScope    = "im-iso28886"
-	imISOBase     = "http://192.168.1.50:28886"
-	imSharedBase  = "http://192.168.1.50:28885"
 	imISOGraphID  = "im-support-v1.1"
 	imISOGraphRel = "docs/07-测试质量/业务流/graphs/im-support-v1.json"
 )
@@ -46,7 +44,13 @@ type imISOClaim struct {
 }
 
 func TestIMMongoIsolatedKnownRuleExploreAndContrast(t *testing.T) {
-	if err := refuseSharedIMTarget(imISOBase); err != nil {
+	if !lockLiveIMToHost60(t) {
+		return
+	}
+	if err := refuseSharedIMTarget(imISOWriteURL()); err != nil {
+		t.Fatal(err)
+	}
+	if err := refuseOffHost60(imISOWriteURL()); err != nil {
 		t.Fatal(err)
 	}
 	world := requireIMISO(t)
@@ -86,23 +90,49 @@ func TestIMMongoIsolatedKnownRuleExploreAndContrast(t *testing.T) {
 	det := runMode("deterministic", nil, 1)
 	heur := runMode("heuristic", nil, 2)
 	assisted := runMode("ai", planner, 3)
-	shared := httpStatus(t, imSharedBase+"/api/im/health/live")
-	if shared != 200 {
-		t.Fatalf("shared 28885 must stay healthy after isolation writes: %d", shared)
-	}
 	report := map[string]any{
-		"env": imIsolationEnv, "target": imISOBase, "shared": imSharedBase,
+		"env": imIsolationEnv, "target": imISOWriteURL(), "host": collectHostIdentity(),
 		"human_live": world.humanLive, "iso_live": world.isoLive, "writer_ok": world.writerOK,
 		"customer_uid": world.customerUID, "session_id": world.sessionID, "assigned": world.assigned,
 		"known_rules":            claims,
 		"deterministic":          map[string]any{"campaign": det.Campaign, "actions": det.Actions, "stop": det.StopReason, "unspecified": len(det.Unspecified)},
 		"heuristic":              map[string]any{"campaign": heur.Campaign, "actions": heur.Actions, "unspecified": len(heur.Unspecified)},
 		"ai":                     map[string]any{"campaign": assisted.Campaign, "actions": assisted.Actions, "planner_calls": planner.Calls},
-		"not":                    []string{"lan50-write", "28885-write", "28895", "production"},
+		"not":                    []string{"lan50-write", "28885-write", "28895", "production", "off-host-60"},
 		"binary_mutation_deploy": "NOT_RUN: living isolation writer was not restarted",
 	}
 	writeExploreArtifact(t, "reports/im-mongo-iso28886.json", report)
 	writeIMISOArtifact(t, "reports/im-mongo-iso28886.json", report)
+}
+
+func lockLiveIMToHost60(t *testing.T) bool {
+	t.Helper()
+	id := collectHostIdentity()
+	if !id.On60 {
+		writeRemainArtifact(t, "reports/im-host60.json", map[string]any{"verdict": "BLOCKED", "reason": "not on 192.168.0.60", "host": id})
+		if host60Required() {
+			t.Fatalf("BLOCKED: live IM must run on 192.168.0.60, host=%+v", id)
+		}
+		return false
+	}
+	base := imISOWriteURL()
+	if err := refuseOffHost60(base); err != nil {
+		t.Fatal(err)
+		return false
+	}
+	live := httpStatus(t, base+"/api/im/health/live")
+	ready := httpStatus(t, base+"/api/im/health/ready")
+	if live != 200 || ready != 200 {
+		writeRemainArtifact(t, "reports/im-mongo-chains.json", map[string]any{
+			"verdict": "BLOCKED", "reason": "no isolation writer on host 60", "base": base, "live": live, "ready": ready, "host": id,
+			"chains": []string{"A-consult-claim", "B-cross-role", "C-concurrency-recovery"},
+		})
+		writeExploreArtifact(t, "reports/im-mongo-iso28886-blocked.json", map[string]any{
+			"verdict": "BLOCKED", "reason": "no isolation writer on host 60", "base": base, "live": live, "ready": ready, "host": id,
+		})
+		return false
+	}
+	return true
 }
 
 func writeIMISOArtifact(t *testing.T, rel string, value any) {
@@ -122,37 +152,29 @@ func writeIMISOArtifact(t *testing.T, rel string, value any) {
 
 func requireIMISO(t *testing.T) *imISOWorld {
 	t.Helper()
-	isoLive := httpStatus(t, imISOBase+"/api/im/health/live")
-	isoReady := httpStatus(t, imISOBase+"/api/im/health/ready")
-	humanLive := httpStatus(t, imSharedBase+"/api/im/health/live")
+	base := imISOWriteURL()
+	if err := refuseOffHost60(base); err != nil {
+		t.Fatal(err)
+	}
+	isoLive := httpStatus(t, base+"/api/im/health/live")
+	isoReady := httpStatus(t, base+"/api/im/health/ready")
 	if isoLive != 200 || isoReady != 200 {
 		writeExploreArtifact(t, "reports/im-mongo-iso28886-blocked.json", map[string]any{
-			"verdict": "BLOCKED", "reason": "iso28886 health is not 200", "iso_live": isoLive, "iso_ready": isoReady,
+			"verdict": "BLOCKED", "reason": "host-60 isolation writer health is not 200", "iso_live": isoLive, "iso_ready": isoReady, "base": base, "host": collectHostIdentity(),
 		})
-		t.Fatalf("iso28886 is the authorized writer but is not healthy: live=%d ready=%d", isoLive, isoReady)
+		t.Fatalf("host-60 isolation writer is not healthy: live=%d ready=%d base=%s", isoLive, isoReady, base)
 	}
-	if humanLive != 200 {
-		t.Fatalf("shared 28885 live probe failed: %d", humanLive)
-	}
-	world := &imISOWorld{isoLive: isoLive, humanLive: humanLive, writerOK: isolationWriterOK(t)}
+	world := &imISOWorld{isoLive: isoLive, writerOK: isolationWriterOK(t)}
 	world.loadSecrets(t)
 	return world
 }
 
 func isolationWriterOK(t *testing.T) bool {
 	t.Helper()
-	cmd := exec.Command("ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", "nulltech@192.168.1.50",
-		"grep -E 'port=28886|28886' /home/nulltech/iluwen/chensi-im-t47-ops01-20260913t092552z/run/im-server.identity | head -5")
-	body, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Logf("isolation identity ssh failed; HTTP health still required")
+	if !runningOnHost60() {
 		return false
 	}
-	text := string(body)
-	if strings.Contains(text, "port=28885") && !strings.Contains(text, "port=28886") {
-		t.Fatal("isolation identity pointed at shared 28885")
-	}
-	return strings.Contains(text, "28886")
+	return httpStatus(t, imISOWriteURL()+"/api/im/health/live") == 200 && httpStatus(t, imISOWriteURL()+"/api/im/health/ready") == 200
 }
 
 func (world *imISOWorld) loadSecrets(t *testing.T) {
@@ -400,57 +422,11 @@ func isolationCustomerUID(t *testing.T) (int, error) {
 }
 
 func unusedIsolationCustomerUID() (int, error) {
-	script := `
-set -e
-ids=$(docker exec im-t47-ops01-20260913t092552z-pg psql -U im_t47_ops01 -d im_t47_ops01_20260913_092552 -tA -c "SELECT id FROM im_users WHERE user_type=1 AND status=1 AND deleted_at IS NULL AND length(mobile)=11 ORDER BY id DESC;")
-active=$(/home/nulltech/iluwen/deps/mongosh/bin/mongosh --quiet "mongodb://127.0.0.1:27018/?directConnection=true&replicaSet=t47ops01rs" --eval 'db=db.getSiblingDB("im_t47_ops01_20260913_092552"); print(db.im_support_sessions.find({status:"active"}).toArray().map(function(s){return String(s.user_id)}).join(" "));')
-for id in $ids; do
-  echo " $active " | grep -q " $id " && continue
-  echo "$id"
-  exit 0
-done
-exit 2
-`
-	cmd := exec.Command("ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=12", "nulltech@192.168.1.50", "bash", "-s")
-	cmd.Stdin = strings.NewReader(script)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return 0, fmt.Errorf("unused isolation customer: %w", err)
-	}
-	id, err := parseFirstPositiveID(string(out))
-	if err != nil {
-		return 0, fmt.Errorf("unused isolation customer missing")
-	}
-	return id, nil
+	return 0, fmt.Errorf("BLOCKED: host-lock 60 does not SSH to .50 for customer UID")
 }
 
 func createIsolationCustomer() (int, error) {
-	var last error
-	for attempt := 0; attempt < 5; attempt++ {
-		mobile := fmt.Sprintf("170%08d", time.Now().UnixNano()%100000000)
-		script := fmt.Sprintf(`
-set -e
-docker exec im-t47-ops01-20260913t092552z-pg psql -U im_t47_ops01 -d im_t47_ops01_20260913_092552 -v ON_ERROR_STOP=1 -tA -c "INSERT INTO im_users (mobile, nickname, avatar, gender, motto, email, birthday, robot, merchant, open_id, is_shop, is_customer_service, user_type, inviter_id, created_at, updated_at, custom_status, account_status, status) VALUES ('%s', 'iso-arc-cust', '', 0, 'iso-arc', '', '', 0, 0, '', false, 0, 1, 0, now(), now(), '', 0, 1) RETURNING id;"
-`, mobile)
-		cmd := exec.Command("ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=12", "nulltech@192.168.1.50", "bash", "-s")
-		cmd.Stdin = strings.NewReader(script)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			last = fmt.Errorf("create isolation customer: %w: %s", err, strings.TrimSpace(string(out)))
-			time.Sleep(20 * time.Millisecond)
-			continue
-		}
-		id, err := parseFirstPositiveID(string(out))
-		if err != nil {
-			last = fmt.Errorf("create isolation customer: missing id: %s", strings.TrimSpace(string(out)))
-			continue
-		}
-		return id, nil
-	}
-	if last == nil {
-		last = fmt.Errorf("create isolation customer: exhausted retries")
-	}
-	return 0, last
+	return 0, fmt.Errorf("BLOCKED: host-lock 60 does not SSH to .50 to create customers")
 }
 
 func isolationSessionIsFresh(state map[string]any) bool {
@@ -499,7 +475,11 @@ func isoJSONKeys(doc map[string]any) []string {
 }
 
 func (world *imISOWorld) call(method, path, token string, body any) (map[string]any, error) {
-	if err := refuseSharedIMTarget(imISOBase); err != nil {
+	base := imISOWriteURL()
+	if err := refuseSharedIMTarget(base); err != nil {
+		return nil, err
+	}
+	if err := refuseOffHost60(base); err != nil {
 		return nil, err
 	}
 	var payload []byte
@@ -510,7 +490,7 @@ func (world *imISOWorld) call(method, path, token string, body any) (map[string]
 			return nil, err
 		}
 	}
-	req, err := http.NewRequest(method, imISOBase+path, bytes.NewReader(payload))
+	req, err := http.NewRequest(method, base+path, bytes.NewReader(payload))
 	if err != nil {
 		return nil, err
 	}
@@ -589,7 +569,10 @@ func newIMISOProxy(t *testing.T, world *imISOWorld) *httptest.Server {
 }
 
 func TestIMISOOracleReadsLiveServiceState(t *testing.T) {
-	if err := refuseSharedIMTarget(imISOBase); err != nil {
+	if !lockLiveIMToHost60(t) {
+		return
+	}
+	if err := refuseSharedIMTarget(imISOWriteURL()); err != nil {
 		t.Fatal(err)
 	}
 	world := requireIMISO(t)
@@ -615,21 +598,15 @@ func TestIMISOOracleReadsLiveServiceState(t *testing.T) {
 
 func runIMMongoAuthorizedChains(t *testing.T) {
 	t.Helper()
-	if err := refuseSharedIMTarget(imISOBase); err != nil {
-		t.Fatal(err)
+	if !lockLiveIMToHost60(t) {
+		return
 	}
-	isoLive := httpStatus(t, imISOBase+"/api/im/health/live")
-	isoReady := httpStatus(t, imISOBase+"/api/im/health/ready")
-	if isoLive != 200 || isoReady != 200 {
-		writeRemainArtifact(t, "reports/im-mongo-chains.json", map[string]any{
-			"verdict": "BLOCKED", "reason": "iso28886 health is not 200", "iso_live": isoLive, "iso_ready": isoReady,
-			"chains": []string{"A-consult-claim", "B-cross-role", "C-concurrency-recovery"},
-		})
-		t.Fatalf("iso28886 is the authorized writer but is not healthy: live=%d ready=%d", isoLive, isoReady)
+	if err := refuseSharedIMTarget(imISOWriteURL()); err != nil {
+		t.Fatal(err)
 	}
 	world := requireIMISO(t)
 	if err := world.provision(t); err != nil {
-		writeRemainArtifact(t, "reports/im-mongo-chains.json", map[string]any{"verdict": "BLOCKED", "reason": err.Error()})
+		writeRemainArtifact(t, "reports/im-mongo-chains.json", map[string]any{"verdict": "BLOCKED", "reason": err.Error(), "host": collectHostIdentity()})
 		t.Fatal(err)
 	}
 	matrix := []imISOClaim{world.chainAConsultClaim(t), world.chainBCrossRole(t), world.chainCConcurrencyRecovery(t)}
@@ -641,13 +618,9 @@ func runIMMongoAuthorizedChains(t *testing.T) {
 			t.Fatalf("%s unexpected %s: %s", claim.Rule, claim.Verdict, claim.Evidence)
 		}
 	}
-	shared := httpStatus(t, imSharedBase+"/api/im/health/live")
-	if shared != 200 {
-		t.Fatalf("shared 28885 must stay healthy after isolation writes: %d", shared)
-	}
 	writeRemainArtifact(t, "reports/im-mongo-chains.json", map[string]any{
-		"verdict": "PARTIAL", "note": "live iso28886 observations; not a RULE approval",
-		"target": imISOBase, "shared": imSharedBase, "chains": matrix,
+		"verdict": "PARTIAL", "note": "live host-60 isolation observations; not a RULE approval",
+		"target": imISOWriteURL(), "host": collectHostIdentity(), "chains": matrix,
 	})
 }
 
@@ -903,7 +876,8 @@ func imISOExploreReq(fixture seatFixture, mode string, planner ExplorePlanner, s
 
 func httpStatus(t *testing.T, raw string) int {
 	t.Helper()
-	resp, err := http.Get(raw)
+	client := &http.Client{Timeout: 3 * time.Second}
+	resp, err := client.Get(raw)
 	if err != nil {
 		return 0
 	}

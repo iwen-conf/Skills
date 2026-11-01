@@ -49,7 +49,7 @@ func refuseSharedIMTarget(raw string) error {
 
 func imIsolationHostAllowed(host string) bool {
 	switch strings.ToLower(host) {
-	case "192.168.1.50", "127.0.0.1", "localhost", "::1":
+	case "192.168.0.60", "127.0.0.1", "localhost", "::1":
 		return true
 	default:
 		return false

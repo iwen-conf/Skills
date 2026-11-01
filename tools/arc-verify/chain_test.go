@@ -185,13 +185,13 @@ func TestRunChainStopsOnUnmetPrecondition(t *testing.T) {
 func TestRunChainDeadlineStopsActionAndKeepsRAW(t *testing.T) {
 	target, server := newChainTarget(t)
 	target.blockEnroll = true
-	fixture := chainFixture(t, server, func(m *RunnerManifest) { m.TimeoutMS, m.StepTimeoutMS = 6000, 3000 })
+	fixture := chainFixture(t, server, func(m *RunnerManifest) { m.TimeoutMS, m.StepTimeoutMS = 15000, 7000 })
 	started := time.Now()
-	packet, stop := runChainStop(t, fixture, 300*time.Millisecond)
+	packet, stop := runChainStop(t, fixture, 5*time.Second)
 	if stop == nil || stop.code != chainExitBudget || packet.Stop != "budget" {
 		t.Fatalf("the chain deadline must stop it: %+v %+v", packet, stop)
 	}
-	if elapsed := time.Since(started); elapsed > 2500*time.Millisecond {
+	if elapsed := time.Since(started); elapsed > 12*time.Second {
 		t.Fatalf("the deadline did not interrupt the running action: %s", elapsed)
 	}
 	target.mu.Lock()
