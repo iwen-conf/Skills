@@ -78,7 +78,7 @@ func discoverSourceEntries(root string, adapter ExploreAdapter) ([]DiscoveredEnt
 		}
 		for _, item := range found {
 			if len(out) >= 64 { return filepath.SkipAll }
-			out = append(out, item)
+			out = append(out, authorizeDiscoveredEntry(item, adapter))
 		}
 		return nil
 	})
@@ -174,10 +174,10 @@ func discoverOpenAPIEntries(rel string, src []byte, approved map[string]bool) []
 }
 
 func classifyDiscoveredPath(pathName, method, rel string, approved map[string]bool) DiscoveredEntry {
+	// Path-only matches cannot confirm an entry: GET and POST are distinct.
+	// authorizeDiscoveredEntry checks both the path and HTTP method.
+	_ = approved
 	class := entryUndeclared
-	if approved[pathName] {
-		class = entryConfirmed
-	}
 	if strings.Contains(pathName, "://") || !strings.HasPrefix(pathName, "/") {
 		class = entryForbidden
 	}

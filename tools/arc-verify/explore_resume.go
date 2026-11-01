@@ -262,6 +262,10 @@ func (d db) reconcileUnknownActions(ctx context.Context, binding RunBinding, ada
 		record := &state.Actions[i]
 		switch record.Status {
 		case actionObserved:
+			// A persisted RAW path alone is not durable evidence. A crash may
+			// have occurred during the file write, or the file may have been
+			// replaced. Never resume side effects until the recorded bytes,
+			// campaign and execution identity are all verified.
 			if record.Step == nil || record.Step.RAW == "" {
 				if record.After.State == "" && adapter.Oracle.ID != "" {
 					oracleAccount := accountFor(accounts, record.Candidate)
@@ -277,9 +281,22 @@ func (d db) reconcileUnknownActions(ctx context.Context, binding RunBinding, ada
 				}
 				sealUnreplayableAction(state, record, "observed without RAW; replay is forbidden")
 			} else {
-				record.Status = actionRecorded
-				record.RAW = record.Step.RAW
-				record.RAWSHA = record.Step.SHA256
+				body, err := os.ReadFile(record.Step.RAW)
+				if err != nil || record.Step.SHA256 == "" || digestBytes(body) != record.Step.SHA256 {
+					sealUnreplayableAction(state, record, "observed RAW is missing, unreadable or fails its SHA256; replay is forbidden")
+				} else if err := rawMatchesBinding(body, binding); err != nil {
+					sealUnreplayableAction(state, record, "observed RAW identity mismatch; replay is forbidden: "+err.Error())
+				} else if err := rawMatchesCampaign(body, EvidenceGateInput{
+					Binding: binding, ExpectedCampaign: state.Campaign,
+					ExpectedFixture: binding.Identity.Fixture,
+					ExpectedActor: firstNonEmpty(binding.Identity.Actor, binding.Identity.Principal),
+				}); err != nil {
+					sealUnreplayableAction(state, record, "observed RAW campaign mismatch; replay is forbidden: "+err.Error())
+				} else {
+					record.Status = actionRecorded
+					record.RAW = record.Step.RAW
+					record.RAWSHA = record.Step.SHA256
+				}
 			}
 			changed = true
 			continue

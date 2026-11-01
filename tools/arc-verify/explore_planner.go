@@ -114,6 +114,10 @@ func (p FileExplorePlanner) Suggest(ctx context.Context, in PlannerContext) (Pla
 	if len(proposal.Suggestions) > 8 {
 		proposal.Suggestions = proposal.Suggestions[:8]
 	}
+	// User-supplied fixture data is not a real model call, regardless of
+	// any model or token values embedded in the JSON.
+	proposal.Model = "scripted"
+	proposal.Tokens = 0
 	return proposal, nil
 }
 
