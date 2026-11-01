@@ -124,29 +124,6 @@ func TestSIGKILLAfterCommandObservedCountsOnce(t *testing.T) {
 	}
 }
 
-func TestRealHTTPPlannerLiveOrBlocked(t *testing.T) {
-	planner, err := NewHTTPExplorePlannerFromEnv()
-	if err != nil {
-		writeRemainArtifact(t, "reports/real-planner.json", map[string]any{
-			"verdict": "BLOCKED", "reason": err.Error(), "planner_calls": 0,
-		})
-		return
-	}
-	proposal, err := planner.Suggest(t.Context(), PlannerContext{GraphID: "seat-v2", Capability: "capability.reservation", BudgetLeft: 2})
-	if err != nil {
-		writeRemainArtifact(t, "reports/real-planner.json", map[string]any{
-			"verdict": "BLOCKED", "reason": err.Error(), "planner_calls": planner.Calls,
-		})
-		t.Fatalf("configured planner failed: %v", err)
-	}
-	if planner.Calls < 1 || proposal.Model == "" || proposal.Model == "scripted" {
-		t.Fatalf("live planner must record a vendor model call: calls=%d model=%q", planner.Calls, proposal.Model)
-	}
-	writeRemainArtifact(t, "reports/real-planner.json", map[string]any{
-		"verdict": "PARTIAL", "model": proposal.Model, "planner_calls": planner.Calls, "tokens": proposal.Tokens,
-	})
-}
-
 func TestEntryDiscoverAuthorizeExecuteOracle(t *testing.T) {
 	target, server := newSeatServer(t)
 	denied := prepareSeatFixture(t, server.URL)

@@ -131,12 +131,10 @@ func TestHypothesisIdentityDedupesParaphrases(t *testing.T) {
 	}
 }
 
-func TestVendorModelAcceptanceStaysBlockedWithoutCredentials(t *testing.T) {
-	planner, err := NewHTTPExplorePlannerFromEnv()
-	if err == nil && planner != nil {
-		t.Skip("real planner credentials are configured; live path is exercised elsewhere")
-	}
-	if err == nil {
-		t.Fatal("missing credentials must not construct a live planner")
+func TestScriptedComparisonIsNotAgentReasoning(t *testing.T) {
+	planner := &ScriptedExplorePlanner{}
+	proposal, err := planner.Suggest(t.Context(), PlannerContext{BudgetLeft: 1})
+	if err != nil || proposal.Model != "scripted" {
+		t.Fatalf("scripted comparison must identify its source: %v %+v", err, proposal)
 	}
 }

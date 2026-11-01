@@ -109,8 +109,8 @@ func runContext(ctx context.Context, args []string) error {
 	riskScope := f.String("scope", "", "explicit scope of an accepted risk")
 	reportKind := f.String("kind", "", "report kind: acceptance or risk")
 	riskReview := f.Bool("risk-review", false, "fail the gate while user-undecided risks remain")
-	exploreMode := f.String("mode", "heuristic", "explore planner: deterministic, heuristic or ai")
-	plannerFile := f.String("planner", "", "optional JSON file of structured explore suggestions")
+	exploreMode := f.String("mode", "heuristic", "heuristic/deterministic; ai is scripted-only with --planner, not an external model")
+	plannerFile := f.String("planner", "", "optional scripted comparison JSON file; no model service or API key")
 	if e := f.Parse(args[1:]); e != nil {
 		return e
 	}

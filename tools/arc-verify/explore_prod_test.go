@@ -141,12 +141,13 @@ func TestOracleSyntheticCannotPass(t *testing.T) {
 	}
 }
 
-func TestHTTPPlannerUnavailableWithoutCredentials(t *testing.T) {
-	t.Setenv("ARC_VERIFY_PLANNER_URL", "")
-	t.Setenv("ARC_VERIFY_PLANNER_MODEL", "")
-	t.Setenv("OPENAI_API_KEY", "")
-	if _, err := NewHTTPExplorePlannerFromEnv(); err == nil {
-		t.Fatal("missing model configuration must be a visible planner failure")
+func TestPlannerUsesOnlyExplicitScriptedFile(t *testing.T) {
+	planner, err := plannerFromFlags("heuristic", "")
+	if err != nil || planner != nil {
+		t.Fatalf("heuristic discovery should never need a model: %v", err)
+	}
+	if _, err := plannerFromFlags("ai", ""); err == nil {
+		t.Fatal("empty ai mode must not masquerade as a real model")
 	}
 }
 

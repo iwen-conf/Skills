@@ -307,7 +307,7 @@ func (d db) persistPlannerAudit(campaign string, in PlannerContext, proposal Pla
 			suggestionIDs = appendUnique(suggestionIDs, item.ExperimentID)
 		}
 	}
-	source := "http"
+	source := "scripted_file"
 	if proposal.Model == "scripted" || proposal.Model == "" && len(proposal.Suggestions) > 0 {
 		if proposal.Model == "scripted" {
 			source = "scripted"
@@ -359,4 +359,16 @@ func sensitivePlannerAudit(body string) bool {
 		}
 	}
 	return false
+}
+
+// Agent reasoning belongs to the active coding Agent and the written task plan.
+// CLI planner files are optional, reproducible fixtures; no model HTTP connection.
+func plannerFromFlags(mode, path string) (ExplorePlanner, error) {
+	if path != "" {
+		return FileExplorePlanner{Path: path}, nil
+	}
+	if mode == "ai" {
+		return nil, errors.New("CLI has no AI model: use the current coding Agent with arc:verify and documented hypotheses; --planner is only a scripted comparison fixture")
+	}
+	return nil, nil
 }
