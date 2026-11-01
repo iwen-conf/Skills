@@ -228,7 +228,7 @@ func classifyEvidenceTrust(report ExploreReport, binding RunBinding) string {
 		ExpectedOracle:   firstNonEmpty(binding.Oracle, report.Oracle),
 		OracleFields:     report.OracleFields,
 		PlannerCalls:     report.Spent.PlannerCalls,
-		RequirePlanner:   report.Mode == "ai",
+		RequirePlanner:   report.Mode == "ai" || report.Mode == "agent",
 	})
 	return trustFromGate(report, verdict, reason)
 }

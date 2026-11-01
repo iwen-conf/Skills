@@ -437,6 +437,15 @@ func campaignHoldsUnreplayableSideEffects(state ExploreCheckpoint) bool {
 	return false
 }
 
+func keepsExploreFixture(reason string) bool {
+	switch reason {
+	case "budget_actions", "budget_states", "budget_time", "budget_replans", "budget_planner", "planner_wait":
+		return true
+	default:
+		return false
+	}
+}
+
 func sideEffecting(candidate CandidateAction) bool {
 	return candidate.Kind != kindRecover && candidate.Action != "" && candidate.Action != "fixture.restore"
 }
@@ -468,7 +477,7 @@ func (d db) finishExplore(ctx context.Context, report ExploreReport, binding Run
 		}
 		return report, errExploreCrash("during_recovery")
 	}
-	if report.Truncated && (report.StopReason == "budget_actions" || report.StopReason == "budget_states" || report.StopReason == "budget_time" || report.StopReason == "budget_replans" || report.StopReason == "budget_planner") {
+	if report.Truncated && keepsExploreFixture(report.StopReason) {
 		report.Recovery = RecoveryOutcome{Verdict: "NOT_RUN", Reason: "truncated campaign keeps the fixture locked for resume", Actions: []ActionObservation{}}
 		report.RecoveryClass = RecoveryNotAttempted
 		report.Spent.Actions = report.Actions

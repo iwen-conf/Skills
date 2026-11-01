@@ -29,6 +29,21 @@
 5. 假设版本追加；不 APPROVE RULE。
 6. 第二次 AI 规划读取第一次观察。审计脱敏，失败则不执行 AI 动作。
 
+## Agent 规划器
+
+不接 HTTP 模型时，用外层 Agent 当 `ExplorePlanner`：
+
+```bash
+arc-verify discover run --mode agent --planner .arc/verify/planner ...
+# stop_reason=planner_wait，目录里有 context.json
+arc-verify discover context --id CAMPAIGN --planner .arc/verify/planner
+# Agent 只写建议，不访问被测系统
+arc-verify discover propose --id CAMPAIGN --planner DIR --file proposal.json
+arc-verify discover resume --id CAMPAIGN --mode agent --planner DIR ...
+```
+
+`proposal.json` 必须带 `for_call` 和 `context_sha256`。引擎执行、Oracle、RAW、崩溃恢复仍由 CLI 负责。审计 `source=agent`。
+
 ## LIVE
 
 - 测试主机隔离仍锁 `192.168.0.60`，禁止回退 `.50`。

@@ -153,33 +153,34 @@ type ExploreStep struct {
 }
 
 type ExploreReport struct {
-	Campaign         string            `json:"campaign"`
-	Graph            string            `json:"graph"`
-	Flow             string            `json:"flow"`
-	Environment      string            `json:"environment,omitempty"`
-	Round            string            `json:"round,omitempty"`
-	StopReason       string            `json:"stop_reason"`
-	Remaining        []CandidateAction `json:"remaining"`
-	Steps            []ExploreStep     `json:"steps"`
-	WithinContract   int               `json:"within_contract"`
-	Unspecified      []UnspecifiedItem `json:"unspecified"`
-	RuleFails        []ExploreFinding  `json:"rule_fails"`
-	Risks            []ExploreFinding  `json:"risks"`
-	Blocked          []ExploreFinding  `json:"blocked,omitempty"`
-	States           int               `json:"states"`
-	Actions          int               `json:"actions"`
-	Truncated        bool              `json:"truncated"`
-	Recovery         RecoveryOutcome   `json:"recovery"`
-	RecoveryClass    RecoveryClass     `json:"recovery_class"`
-	Spent            ExploreSpent      `json:"spent,omitempty"`
-	Mode             string            `json:"mode,omitempty"`
-	Checkpoint       string            `json:"checkpoint,omitempty"`
-	Boundary         *DiscoveryContext `json:"boundary_discovery,omitempty"`
-	Identity         ExecutionIdentity `json:"identity,omitempty"`
-	Oracle           string            `json:"oracle,omitempty"`
-	EvidenceContract string            `json:"evidence_contract,omitempty"`
-	OracleFields     []OracleField     `json:"oracle_fields,omitempty"`
-	UnsafeResume     bool              `json:"unsafe_resume,omitempty"`
+	Campaign         string               `json:"campaign"`
+	Graph            string               `json:"graph"`
+	Flow             string               `json:"flow"`
+	Environment      string               `json:"environment,omitempty"`
+	Round            string               `json:"round,omitempty"`
+	StopReason       string               `json:"stop_reason"`
+	Remaining        []CandidateAction    `json:"remaining"`
+	Steps            []ExploreStep        `json:"steps"`
+	WithinContract   int                  `json:"within_contract"`
+	Unspecified      []UnspecifiedItem    `json:"unspecified"`
+	RuleFails        []ExploreFinding     `json:"rule_fails"`
+	Risks            []ExploreFinding     `json:"risks"`
+	Blocked          []ExploreFinding     `json:"blocked,omitempty"`
+	States           int                  `json:"states"`
+	Actions          int                  `json:"actions"`
+	Truncated        bool                 `json:"truncated"`
+	Recovery         RecoveryOutcome      `json:"recovery"`
+	RecoveryClass    RecoveryClass        `json:"recovery_class"`
+	Spent            ExploreSpent         `json:"spent,omitempty"`
+	Mode             string               `json:"mode,omitempty"`
+	Checkpoint       string               `json:"checkpoint,omitempty"`
+	Boundary         *DiscoveryContext    `json:"boundary_discovery,omitempty"`
+	Identity         ExecutionIdentity    `json:"identity,omitempty"`
+	Oracle           string               `json:"oracle,omitempty"`
+	EvidenceContract string               `json:"evidence_contract,omitempty"`
+	OracleFields     []OracleField        `json:"oracle_fields,omitempty"`
+	UnsafeResume     bool                 `json:"unsafe_resume,omitempty"`
+	PlannerPending   *AgentPlannerPending `json:"planner_pending,omitempty"`
 }
 
 type exploreWorld struct {
@@ -414,38 +415,13 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 		if request.Mode == "deterministic" {
 			candidates = filterDeterministic(candidates)
 		}
-		if shouldAskPlanner(request.Mode, candidates, report, world) && request.Planner != nil {
-			if budget.MaxPlannerCalls > 0 && plannerCalls >= budget.MaxPlannerCalls {
-				report.StopReason, report.Truncated = "budget_planner", true
-				report.Remaining = remainingCandidates(candidates, tried, world.state)
-				break
-			}
-			planIn := attachDiscoveryToPlanner(plannerContext(request, flow, approvals, world, report, candidates, budget.MaxActions-report.Actions), disc)
-			proposal, planErr := request.Planner.Suggest(ctx, planIn)
-			plannerCalls++
-			report.Spent.PlannerCalls = plannerCalls
-			if planErr != nil {
-				report.Blocked = append(report.Blocked, ExploreFinding{Kind: "BLOCKED", Reason: "planner unavailable: " + planErr.Error()})
-			} else {
-				rejected := []string{}
-				accepted := []CandidateAction{}
-				for _, suggestion := range proposal.Suggestions {
-					item, reason := validatePlannerSuggestion(suggestion, request.Adapter, request.Adapter.Accounts, budget.MaxActions-report.Actions)
-					if reason != "" {
-						rejected = append(rejected, reason)
-						continue
-					}
-					item.ID = shortDigest(string(item.Kind) + "|" + item.Action + "|" + item.Role + "|" + item.RequestID + "|" + world.state)
-					if !tried[candidateKey(item, world.state)] {
-						accepted = append(accepted, item)
-					}
-				}
-				if err := d.persistPlannerAudit(campaign, planIn, proposal, accepted, rejected, plannerCalls); err != nil {
-					report.Blocked = append(report.Blocked, ExploreFinding{Kind: "BLOCKED", Reason: "planner audit persist failed: " + err.Error()})
-				} else {
-					candidates = append(candidates, accepted...)
-				}
-			}
+		var stopPlanner bool
+		candidates, plannerCalls, stopPlanner, err = d.applyExplorePlannerTurn(ctx, request, flow, approvals, world, &report, candidates, tried, disc, campaign, plannerCalls, budget)
+		if err != nil {
+			return report, err
+		}
+		if stopPlanner {
+			break
 		}
 		candidates = rotateCandidates(candidates, budget.Seed)
 		if len(candidates) == 0 {
@@ -557,7 +533,7 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 	if len(report.Remaining) > 0 && report.StopReason == "complete" {
 		report.StopReason, report.Truncated = "budget_actions", true
 	}
-	if len(report.Remaining) > 0 && (report.StopReason == "budget_actions" || report.StopReason == "budget_states" || report.StopReason == "budget_time" || report.StopReason == "budget_replans" || report.StopReason == "budget_planner") {
+	if len(report.Remaining) > 0 && keepsExploreFixture(report.StopReason) {
 		report.Truncated = true
 	}
 	report.Spent = measureExploreSpent(d, report, replans, plannerCalls)
@@ -734,38 +710,13 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 		if request.Mode == "deterministic" {
 			candidates = filterDeterministic(candidates)
 		}
-		if shouldAskPlanner(request.Mode, candidates, report, world) && request.Planner != nil {
-			if budget.MaxPlannerCalls > 0 && plannerCalls >= budget.MaxPlannerCalls {
-				report.StopReason, report.Truncated = "budget_planner", true
-				report.Remaining = remainingCandidates(candidates, tried, world.state)
-				break
-			}
-			planIn := attachDiscoveryToPlanner(plannerContext(request, flow, approvals, world, report, candidates, budget.MaxActions-report.Actions), disc)
-			proposal, planErr := request.Planner.Suggest(ctx, planIn)
-			plannerCalls++
-			report.Spent.PlannerCalls = plannerCalls
-			if planErr != nil {
-				report.Blocked = append(report.Blocked, ExploreFinding{Kind: "BLOCKED", Reason: "planner unavailable: " + planErr.Error()})
-			} else {
-				rejected := []string{}
-				accepted := []CandidateAction{}
-				for _, suggestion := range proposal.Suggestions {
-					item, reason := validatePlannerSuggestion(suggestion, request.Adapter, request.Adapter.Accounts, budget.MaxActions-report.Actions)
-					if reason != "" {
-						rejected = append(rejected, reason)
-						continue
-					}
-					item.ID = shortDigest(string(item.Kind) + "|" + item.Action + "|" + item.Role + "|" + item.RequestID + "|" + world.state)
-					if !tried[candidateKey(item, world.state)] {
-						accepted = append(accepted, item)
-					}
-				}
-				if err := d.persistPlannerAudit(state.Campaign, planIn, proposal, accepted, rejected, plannerCalls); err != nil {
-					report.Blocked = append(report.Blocked, ExploreFinding{Kind: "BLOCKED", Reason: "planner audit persist failed: " + err.Error()})
-				} else {
-					candidates = append(candidates, accepted...)
-				}
-			}
+		var stopPlanner bool
+		candidates, plannerCalls, stopPlanner, err = d.applyExplorePlannerTurn(ctx, request, flow, approvals, world, &report, candidates, tried, disc, state.Campaign, plannerCalls, budget)
+		if err != nil {
+			return report, err
+		}
+		if stopPlanner {
+			break
 		}
 		candidates = rotateCandidates(candidates, budget.Seed)
 		chosen, ok := selectCandidate(candidates, tried, world.state)
