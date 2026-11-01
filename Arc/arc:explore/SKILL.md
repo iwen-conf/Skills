@@ -1,6 +1,6 @@
 ---
 name: arc:explore
-version: 2.3.0
+version: 2.3.1
 description: >-
   Read-only code intelligence for a local repository: find where code lives (代码在哪, 搜代码),
   locate definitions, list callers (谁调用), trace a call chain (调用链) or data flow, list

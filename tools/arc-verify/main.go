@@ -109,7 +109,7 @@ func runContext(ctx context.Context, args []string) error {
 	riskScope := f.String("scope", "", "explicit scope of an accepted risk")
 	reportKind := f.String("kind", "", "report kind: acceptance or risk")
 	riskReview := f.Bool("risk-review", false, "fail the gate while user-undecided risks remain")
-	exploreMode := f.String("mode", "agent-native", "agent-native (default), heuristic, deterministic, or legacy ai with --planner")
+	exploreMode := f.String("mode", "heuristic", "heuristic (CLI default), agent-native (host Agent), deterministic, or scripted ai")
 	plannerFile := f.String("planner", "", "legacy scripted planner JSON; no external model needed")
 	proposalFile := f.String("proposal", "", "agent-native proposal JSON file")
 	if e := f.Parse(args[1:]); e != nil {

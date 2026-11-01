@@ -3,6 +3,7 @@ import (
  "context"
  "encoding/json"
  "os"
+ "os/exec"
  "path/filepath"
  "testing"
  "time"
@@ -56,4 +57,38 @@ func TestAgentNativeCompleteRefusesUnexecutedCampaign(t *testing.T) {
  report,err:=f.d.runExploration(context.Background(),req)
  if err!=nil{t.Fatal(err)}
  if _,err:=f.d.agentNativeComplete(context.Background(),report.Campaign,adapter);err==nil{t.Fatal("empty campaign must not complete")}
+}
+
+// Separate OS processes see the same durable Campaign. Model inference belongs
+// to each host Agent, never to an in-process Go model client.
+func TestAgentNativeIndependentProcessReadsCheckpoint(t *testing.T) {
+ if os.Getenv("ARC_VERIFY_AGENT_NATIVE_HELPER")=="1" {
+    file:=os.Getenv("ARC_VERIFY_AGENT_NATIVE_DB")
+    campaign:=os.Getenv("ARC_VERIFY_AGENT_NATIVE_CAMPAIGN")
+    d,err:=openDB(file,false)
+    if err!=nil {t.Fatal(err)}
+    defer d.close()
+    handoff,err:=d.agentNativeContext(campaign)
+    if err!=nil || handoff.Checkpoint=="" || handoff.Protocol!="arc-verify/agent-native/v1" {
+        t.Fatalf("separate process could not recover Campaign: %+v %v",handoff,err)
+    }
+    return
+ }
+ _,server:=newSeatServer(t)
+ f:=prepareSeatFixture(t,server.URL)
+ f.openRound(t)
+ adapter:=seatExploreAdapter(t,seatIsolationScope)
+ report,err:=f.d.runExploration(context.Background(),ExploreRequest{
+    Graph:"seat-v2",Flow:"flow.reservation",Environment:"independent",Round:f.round,
+    Root:f.root,Config:f.config,Commit:f.commit,Account:f.account,Fixture:f.fixture,
+    Adapter:adapter,Mode:"agent-native",Budget:ExploreRuntimeBudget{MaxStates:8,MaxPaths:8,MaxActions:2,Deadline:6*time.Second},
+ })
+ if err!=nil {t.Fatal(err)}
+ child:=exec.Command(os.Args[0],"-test.run=^TestAgentNativeIndependentProcessReadsCheckpoint$","-test.count=1")
+ child.Env=append(os.Environ(),
+    "ARC_VERIFY_AGENT_NATIVE_HELPER=1",
+    "ARC_VERIFY_AGENT_NATIVE_DB="+f.d.file,
+    "ARC_VERIFY_AGENT_NATIVE_CAMPAIGN="+report.Campaign)
+ output,err:=child.CombinedOutput()
+ if err!=nil {t.Fatalf("second process handoff failed: %v\n%s",err,output)}
 }
