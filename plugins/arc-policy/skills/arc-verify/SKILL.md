@@ -10,7 +10,7 @@ description: 'Whole-system testing with project-local DB business graphs (完整
   测试范围, 覆盖率, 可靠性, 业务不变量, 事务并发, 幂等, 压测, 发布验收, 发布证据, 模糊测试, SQL 语法检查, 事务设计, 端到端业务流, 分支覆盖,
   属性测试, 模型一致性, 业务能力, 业务边界. Not for product repair (arc-code) or static review (arc-audit).'
 metadata:
-  version: 3.7.0
+  version: 3.8.0
 ---
 
 # arc-verify
@@ -72,7 +72,7 @@ HTTP/JSON/upload claims use
 ## Workflow
 
 Graph mode follows [business-graph](references/business-graph.md), replacing steps 2–10.
-Graph/flow diagrams: [arch-diagram](references/business-diagram.md).
+Drawing substep: [arch-diagram](references/business-diagram.md); release execution references.
 Without a confirmed model use [first start](references/business-graph-start.md): the Agent drafts,
 imports and exports a candidate for review, then continues authorized verification after confirmation.
 Do not ask users to write graph JSON or finish a full test request at a plan.

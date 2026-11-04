@@ -1,16 +1,15 @@
 # Arc Workflow and Handoff
 
-Read with [contract.md](contract.md) when entering an Arc phase. One phase has one owner;
-the same agent may activate the next skill and continue within the user's existing authorization.
+Read [contract.md](contract.md). One phase has one owner; its modes reuse the current task.
+The same agent activates the next skill within the user's existing authorization.
 Load only that phase's skill and relevant references. Do not recursively load all six skills,
 treat a skill switch as new permission, or stop at a handoff when the next action is already authorized.
 
-When `arc-policy` is active, loading a skill does not switch its stored task identity. Check
-`task status`, preserve the old phase's evidence, then `task end` and
-`task begin --skill <next-skill>`. An unfinished phase uses `task end --incomplete` with its
-reason in the existing progress document; a delivered task is archived automatically by begin.
-Do not replace an unfinished task with `--force`. A business PASS needs the matching phase
-and its required graph check, never a code-phase receipt or an AUTHORIZED delivery waiver.
+With `arc-policy`, loading a skill does not switch task identity. Check `task status`, then
+`task switch --skill <next-skill>` to archive the old evidence atomically. An unfinished phase
+requires `--incomplete --reason '<why>'`; keep its detail in the existing progress document.
+The next phase gets a new task and no inherited receipt. Do not use `--force` for handoffs.
+Business PASS needs the matching phase's graph check; code receipts and AUTHORIZED are not proof.
 
 ## 1. Select the owner by the requested result
 

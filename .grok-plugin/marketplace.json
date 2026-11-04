@@ -7,13 +7,13 @@
   "plugins": [
     {
       "name": "arc-policy",
-      "description": "Arc workflow skills and policy runtime for Claude Code, Codex CLI, and Grok Build. Includes six workflow skills, host hooks, policy files, and the arc-policy CLI; external tools and the Python runtime require separate setup.",
+      "description": "Arc workflow skills and policy runtime for Claude Code, Codex CLI, and Grok Build. Includes six workflow skills, pinned arch-diagram visualization, host hooks and the arc-policy CLI; Python, Node and native verification tools require separate setup.",
       "category": "development",
       "source": {
         "type": "local",
         "path": "./plugins/arc-policy"
       },
-      "version": "0.3.0",
+      "version": "0.4.0",
       "keywords": [
         "arc",
         "policy",

@@ -176,7 +176,12 @@ def read_only_shell(command: str) -> bool:
                 args = args[2:]
             elif args and args[0].startswith("--cwd="):
                 args = args[1:]
-            if args not in (["version"], ["detect"], ["task", "status"], ["--help"]):
+            skills_read = args == ["skills"] or (
+                len(args) == 3 and args[:2] == ["skills", "--name"]
+            ) or (
+                len(args) == 2 and args[0] == "skills" and args[1].startswith("--name=")
+            )
+            if not skills_read and args not in (["version"], ["detect"], ["task", "status"], ["--help"]):
                 return False
         elif executable == "arc-idx":
             if not args or args[0] not in {

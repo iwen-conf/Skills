@@ -29,6 +29,7 @@ from scripts import sync_skills
 
 PLUGIN = Path("plugins/arc-policy")
 BRIDGE_SKILL = "arc-policy"
+PINNED_SKILL = "arch-diagram"
 METADATA_PATHS = (
     PLUGIN / ".claude-plugin/plugin.json",
     PLUGIN / ".codex-plugin/plugin.json",
@@ -160,6 +161,14 @@ def build_generated(root: Path, stage: Path) -> list[str]:
     errors = sync_skills.validate_installation(skills)
     if errors:
         raise ValueError("plugin skill closure is incomplete:\n" + "\n".join(errors))
+    # The reviewed upstream bundle is the canonical source, not generated Arc prose.
+    # Verify it locally; a build or hook never downloads or silently updates it.
+    sys.path.insert(0, str(ROOT / PLUGIN / "lib"))
+    from arc_policy.capabilities import check_pinned_skill
+
+    pinned = root / PLUGIN / "skills" / PINNED_SKILL
+    check_pinned_skill(pinned)
+    shutil.copytree(pinned, skills / PINNED_SKILL)
     for relative, content in generated_metadata(manifest).items():
         destination = stage / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -173,7 +182,7 @@ def _managed_files(root: Path) -> dict[Path, tuple[str, int]]:
     skills = root / PLUGIN / "skills"
     if skills.is_symlink():
         raise ValueError(f"generated skill root must not be a symlink: {skills}")
-    for directory in sorted(skills.glob("arc-*")):
+    for directory in sorted([*skills.glob("arc-*"), skills / PINNED_SKILL]):
         if directory.name == BRIDGE_SKILL:
             continue
         candidates.append(directory)
@@ -225,7 +234,7 @@ def publish_generated(root: Path, stage: Path) -> None:
     for relative in sorted(actual.keys() - expected.keys()):
         (root / relative).unlink()
     skills = root / PLUGIN / "skills"
-    for directory in sorted(skills.glob("arc-*")):
+    for directory in sorted([*skills.glob("arc-*"), skills / PINNED_SKILL]):
         if directory.name == BRIDGE_SKILL:
             continue
         for path in sorted(directory.rglob("*"), reverse=True):
@@ -259,7 +268,8 @@ def main(argv: list[str] | None = None) -> int:
                 publish_generated(ROOT, stage)
         status = "is up to date" if args.check else "generated"
         print(
-            f"Arc plugin {manifest['version']} {status}: {len(included)} bundled workflow skills."
+            f"Arc plugin {manifest['version']} {status}: {len(included)} bundled workflow skills, "
+            "the policy bridge and pinned arch-diagram."
         )
         return 0
     except (OSError, ValueError, sync_skills.yaml.YAMLError) as exc:

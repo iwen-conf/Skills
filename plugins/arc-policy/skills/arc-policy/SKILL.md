@@ -20,14 +20,17 @@ The CLI is mandatory for workflow start, commits, schema migrations, and deliver
 ## Every coding session
 
 1. `arc-policy doctor` if the CLI or policy might be missing.
-2. `arc-policy detect` for stack → recommended skill.
+2. `arc-policy detect` reports stack hints. Choose the owner by the requested result, then
+   `arc-policy skills --name <skill>` resolves its actual installed entry and version.
+   Read that entry and only the references needed now; discovery does not load every skill.
 3. Before the first source edit: `arc-policy task begin --skill <name>`
    (`arc-code`, `arc-explore`, `arc-plan`, `arc-verify`, `arc-audit`, `arc-vet`) in the repository
    that owns the files. From a parent folder that is not a repository, use
    `arc-policy --cwd <repo> task begin …` and `arc-policy --cwd <repo> task verify`.
    A new third-party dependency starts with `arc-vet`; its decision record feeds `arc-code`.
 4. Load that Arc skill and follow it. Do not skip `arc-idx` for repo search.
-5. Before claiming done: run `arc-policy task verify` in its own tool call. For a commit, first
+5. Before claiming verified code/runtime delivery: run `arc-policy task verify` in its own tool call,
+   within the user's authorized execution scope. For a commit, first
    stage exactly its files (`git -C <repo> add …`), then verify. The receipt binds the index;
    staging after verify invalidates it. A delivery request uses a matching receipt or verifies
    the newly staged tree again.
@@ -62,7 +65,9 @@ The CLI is mandatory for workflow start, commits, schema migrations, and deliver
 ```bash
 arc-policy doctor
 arc-policy detect
+arc-policy skills [--name arc-verify]
 arc-policy task begin --skill arc-code [--slug <slug>]
+arc-policy task switch --skill arc-verify
 arc-policy task status
 arc-policy task verify
 arc-policy task authorize --quote '<the user's words>'
@@ -104,17 +109,58 @@ an authorized root-cause repair under its usual code/test gates. A new E2E
 `arc-verify` run must independently verify the repair before declaring the
 business claim PASS. Other skills may be explicitly opted into this gate.
 
-Loading another Skill does not change the policy task's stored `skill`. At a phase handoff:
+Loading another Skill does not switch the task. Inspect `task status`, then run
+`arc-policy task switch --skill <next-skill>`. This archives the old task/receipt and starts a
+new phase under one lock, without inheriting PASS. A stale or absent receipt blocks the switch.
+For an intentionally unfinished phase, preserve its evidence in the existing progress document
+and use `task switch --skill <next-skill> --incomplete --reason '<remaining work>'`.
+Do not use `--force` for handoffs. `arc:verify` and `arc-verify` identify the same phase, including
+legacy tasks and explicit `require_for_skills`; unknown external skill names are not rewritten.
+Modes within the same skill keep the current task; they do not call `task switch`.
 
-1. Inspect `arc-policy task status`; finish the old phase's checks and preserve its evidence.
-2. Run `arc-policy task end` for a verified phase. If blocked or intentionally incomplete,
-   record the reason in the existing progress document and use `task end --incomplete`.
-3. Run `arc-policy task begin --skill <next-skill>` before the next phase; do not use `--force`
-   to discard the old task. Already committed/delivered tasks are archived by begin automatically.
+Scope comes from the user, not the stack hint or the receipt command. Read-only/plan-only/graph-only
+work must not run a project's test commands merely to close a policy task. Preserve its artifact
+and use an explicit incomplete handoff when runtime verification is outside the authorized scope.
+Candidate-model completion is not a graph-verification receipt. Incomplete handoff does not satisfy
+or disable Stop/Git gates; report the artifact produced and runtime NOT_RUN without claiming verified
+code delivery. Existing end/begin commands remain
+available; never erase history or turn a blocked business claim into PASS during bookkeeping.
 
 Before declaring graph completion, check the active task and receipt both name `arc-verify`
 (or the explicitly opted-in skill), and the receipt contains a PASS graph check. `AUTHORIZED`
 permits the quoted delivery decision; it never proves the business claim.
+
+## Cooperation with other skills
+
+Keep one Arc owner; activate a specialist only for its bounded output, then return that output
+to the owner. Carry the user's restrictions, existing IDs, source revision and unresolved evidence.
+For a missing skill, resolve the host's available inventory and report the affected step; do not
+invent an installation path or recursively activate unrelated skills.
+
+| Need | Specialist / returned artifact |
+|---|---|
+| Business graph review | Bundled `arch-diagram`: spec + read-only HTML + layout result; Arc verify owns the ledger and verdict |
+| Visual direction | Available `ui-design`: existing `DESIGN.md` / design decisions feed Arc code |
+| Platform implementation | Available `android` / `harmonyos`: platform conventions within the current code scope |
+| Commit, push or PR | Available `check`: delivery uses the current matching receipt and existing user authorization |
+| Project workspace synchronization | Available `lark`: existing project configuration and authorized destination; no implicit external publication |
+
+For a v2 business snapshot:
+
+```bash
+arc-policy skills --name arch-diagram
+arc-policy --cwd <repo> diagram --snapshot <snapshot.json> \
+  --presentation <presentation.json> --view flows --out <new-artifact-directory>
+```
+
+Follow the installed Arc verify `business-diagram.md` and upstream spec. The renderer ships at
+a reviewed commit with its MIT license; builds verify the recorded files and never download code.
+Node builds the standalone HTML; Chrome/Chromium/Edge (`CHROME`) is required for the layout check
+and screenshot. Missing browser keeps HTML/spec available with visualization BLOCKED. `--no-check`
+explicitly records NOT_RUN. Inspect the screenshot before claiming visual review.
+Use Chinese business names with evidenced actual package names, otherwise `业务包待核实`.
+The bridge preserves canonical IDs, candidate/RISK, recorded status, RAW errors and historical FAIL;
+it never opens the DB, approves a rule, executes a target or refreshes a business PASS.
 
 ## Hook enforcement
 
@@ -139,8 +185,10 @@ permits the quoted delivery decision; it never proves the business claim.
   judge, `completion_markers` check positive occurrences outside Markdown examples, ignoring negated
   occurrences while retaining separate positive claims. A claim blocks the stop with the verify command; other turns stay
   silent, and each pending tree state is reported once per session. Commits stay gated either way.
-- When Stop blocks, run the named `task verify`. If it fails on changes outside your task, report
-  that instead of claiming delivery; if the work is unfinished, say so. Never delete session logs,
+- When Stop blocks code/runtime delivery, run the named `task verify` only within authorized scope.
+  For read-only/plan-only/graph-only requests that exclude execution, retain the unverified task;
+  report the artifact and runtime NOT_RUN instead of running tests to silence the notice. If verify
+  fails on changes outside your task, report that. Never delete session logs,
   clear task state or manufacture a receipt to remove a notice.
 - When the Python entrypoint runs but the engine cannot load or crashes, it emits an explicit
   refusal for edits and controlled operations in the host's supported output format. Disabled,

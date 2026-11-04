@@ -1,7 +1,7 @@
 # Arc Policy Runtime
 
 Arc workflows and their policy runtime, packaged for Claude Code, Grok Build, and Codex CLI.
-Version 0.3.0 keeps one policy engine and one canonical `Arc/` skill source, with generated
+Version 0.4.0 keeps one policy engine and one canonical `Arc/` skill source, with generated
 host manifests, a complete bundled skill tree, and a strict Codex wire adapter.
 
 | Piece | Job |
@@ -48,14 +48,68 @@ the project sets `risk_review: true`.
 See `tools/arc-verify/README.md` and
 `Arc/arc:verify/references/business-graph.md`.
 
-Switching Skills also requires switching the active policy task: record the old phase's
-evidence, `task end` (or `task end --incomplete` with its reason in the existing progress
-document), then `task begin --skill <next-skill>`. Loading a Skill alone does not update
-the stored task identity or its verification scope.
+Switching Skills also requires switching the active policy task with `task switch --skill <next-skill>`.
+An unfinished phase needs `--incomplete --reason '<why>'`; the old task and evidence remain in
+history. Loading a Skill alone does not update the stored task identity or verification scope.
 
 This is workflow enforcement, not an adversarial security boundary:
 a same-user agent can alter local files or disable hooks. Use protected CI
 and separately trusted execution for high-assurance evidence.
+
+## Read-only business diagrams with arch-diagram
+
+The plugin bundles the official [arch-diagram skill](https://github.com/bassnova42/arch-diagram-skill)
+at commit `879ca7fa503a64ab46b5bc77d2062ded32fadc84` (1.2.3), with its MIT license and original
+renderer files. `skills/arch-diagram/source.json` records the source path, SHA-256 and Git blob SHA
+for every payload file. The distribution builder and drawing command verify the reviewed manifest
+and complete file set locally. Updating upstream requires reviewing a new commit and updating the
+manifest integrity anchor; neither build nor hooks downloads a replacement renderer.
+
+```bash
+arc-policy skills --name arch-diagram
+arc-policy --cwd /path/to/target diagram \
+  --snapshot .arc/verify/snapshots/GRAPH/EXPORT/snapshot.json \
+  --presentation .arc/verify/diagrams/presentation.json \
+  --view flows --out .arc/verify/diagrams/GRAPH/new-review
+```
+
+`--view capabilities` shows the business tree. Inputs and relative output paths resolve against
+`--cwd`. The output includes `<view>.spec.json`, `<view>.html` and, when the official check succeeds,
+`<view>.check.png`. Existing outputs are never overwritten. The command never opens the database,
+changes approvals or runs a business target. Keep the canonical DB, CLI snapshot and flow ledger.
+
+Presentation is a small source-bound attachment; it cannot supply verdicts or rewrite business
+rules. Its graph/hash must match the snapshot, and package names need an actual repository-relative
+source file and one-based line. Example shape (use the snapshot's real IDs and hash):
+
+```json
+{
+  "graph": "graph-version",
+  "graph_sha256": "<exact snapshot meta.graph_sha256>",
+  "title_zh": "报名业务流程",
+  "nodes": {
+    "action-id": {
+      "name_zh": "提交报名",
+      "packages": [{"name": "actual.package", "file": "path/to/manifest", "line": 1}]
+    }
+  }
+}
+```
+
+Absent or unverified package evidence displays `业务包待核实`; a business node ID, table or route
+is never used as a fabricated package name. More than 16 nodes or 32 edges requires a narrower
+`node_ids` selection; omitted source IDs and truncated coverage stay explicit. Diagram anchors
+use safe aliases because canonical business IDs may contain dots; source IDs remain unchanged.
+The view preserves candidate status, RULE confirmation, RISK, recorded verdicts, historical FAIL
+and RAW errors. Animated execution traces are disabled. A snapshot's evidence-integrity PASS is
+never treated as a business PASS, and offline rendering cannot refresh old evidence.
+
+Node builds the self-contained HTML without external resources. Chrome/Chromium/Edge is required
+for layout checks and screenshots; set `CHROME` to an existing browser when necessary. Missing
+browser or failed checks return a nonzero exit while preserving HTML/spec for review. `--no-check`
+builds a draft and explicitly records layout NOT_RUN. Even after the layout checker passes,
+inspect the screenshot before claiming visual review. Node/browser availability does not block
+independent Arc phases, and no long-lived service or browser is installed by the plugin.
 
 ## Install
 
@@ -194,6 +248,13 @@ Add `"dsh-arc-policy": "link:../../plugins/dsh-arc-policy"` (a link; a `file:` c
 
 ## Workflow
 
+Select the phase by its output, not the detected language: explore for facts, vet for a dependency
+decision, plan for requirements/tasks, code for implementation, verify for execution evidence and
+audit for read-only findings. `arc-policy skills` lists the actual bundled entry paths and versions;
+`arc-policy skills --name arc:verify` resolves the same entry as `arc-verify`. Discovery reads entry
+metadata; activate only the chosen skill and its relevant references. Optional specialists such as
+`ui-design`, `check`, platform skills and `lark` come from the host's own available inventory.
+
 ```bash
 arc-policy task begin --skill arc-code
 # agent writes code, follows the Arc skill
@@ -202,6 +263,24 @@ arc-policy task verify
 # receipt matches task + HEAD + index and file contents → Stop unblocks delivery claims
 # git -C <repo> commit is allowed; pushing that exact commit needs no second verify
 ```
+
+Move between existing Arc phases with an atomic handoff:
+
+```bash
+arc-policy task status
+arc-policy task switch --skill arc-verify
+# If verification was intentionally not completed in the old phase:
+arc-policy task switch --skill arc-code --incomplete --reason 'Repair the recorded failing claim'
+```
+
+The old task and receipt stay in history, with the next task's ID and handoff status; the new task
+gets no inherited receipt. An incomplete switch requires a reason. A normal switch needs a fresh
+or delivered receipt, and the same canonical skill cannot silently restart itself. `task begin`
+never replaces unfinished work by default; legacy explicit `--force` archives the replaced task.
+Colon and dash forms of the six Arc names also match historical receipts and business graph gates.
+Read-only, plan-only or graph-only work retains its user scope: do not execute project tests just
+to satisfy bookkeeping. Preserve its artifact and use a reasoned incomplete handoff when runtime
+verification is outside the authorized scope; this does not claim business PASS.
 
 When verification cannot pass and the user explicitly confirms committing anyway, the agent
 stages the commit and runs `arc-policy task authorize --quote '<the user's words>'`. The
@@ -375,6 +454,7 @@ plugins/arc-policy/
   .codex-plugin/plugin.json
   skills/arc-policy/SKILL.md
   skills/arc-{explore,plan,code,verify,audit,vet}/  generated from Arc/
+  skills/arch-diagram/         pinned official renderer, LICENSE and source.json
   hooks/hooks.json            shared Claude / Grok contract
   hooks/codex.json            explicit strict Codex contract
   hooks/hook.py

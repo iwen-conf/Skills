@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from arc_policy import __version__
+from arc_policy.capabilities import check_pinned_skill, resolve_skill, skill_catalog
 from arc_policy.detect import detect_languages, recommended_skill, resolve_skill_name
 from arc_policy.githook import (
     HOOK_EVENTS,
@@ -26,6 +27,7 @@ from arc_policy.store import (
     current_receipt,
     end_task,
     receipt_matches_tree,
+    switch_task,
 )
 from arc_policy.verify import authorize_task, verify_task
 
@@ -50,9 +52,42 @@ def cmd_detect(args: argparse.Namespace) -> int:
             "repo_root": str(root),
             "languages": languages,
             "recommended_skill": recommended_skill(languages, policy),
+            "selection_basis": "stack_hint_only; choose the phase by the requested result",
             "plugin_root": str(plugin_root()),
         }
     )
+
+
+def cmd_skills(args: argparse.Namespace) -> int:
+    if args.name:
+        entry = resolve_skill(args.name)
+        if entry["name"] == "arch-diagram":
+            check_pinned_skill(Path(entry["directory"]))
+            entry["source_check"] = "PASS"
+        return _print_json(entry)
+    return _print_json({"plugin_root": str(plugin_root()), "skills": skill_catalog()})
+
+
+def cmd_diagram(args: argparse.Namespace) -> int:
+    from arc_policy.diagram import build_diagram
+
+    root = repo_root(Path(args.cwd) if args.cwd else None)
+
+    def path(value: str) -> Path:
+        result = Path(value).expanduser()
+        return result if result.is_absolute() else root / result
+
+    result = build_diagram(
+        snapshot=path(args.snapshot),
+        out=path(args.out),
+        presentation=path(args.presentation) if args.presentation else None,
+        view=args.view,
+        root=root,
+        check=not args.no_check,
+    )
+    _print_json(result)
+    built_draft = args.no_check and result["readiness"]["build"] == "READY"
+    return 0 if result["status"] == "READY" or built_draft else 1
 
 
 def cmd_policy_show(args: argparse.Namespace) -> int:
@@ -70,6 +105,22 @@ def cmd_task_begin(args: argparse.Namespace) -> int:
     # A failed installation must not leave an apparently active, unprotected task.
     install_git_hooks(root)
     task = begin_task(root, skill=skill, slug=slug, force=args.force)
+    return _print_json(task)
+
+
+def cmd_task_switch(args: argparse.Namespace) -> int:
+    root = repo_root(Path(args.cwd) if args.cwd else None)
+    policy = load_for_repo(root, languages=detect_languages(root))
+    skill = resolve_skill_name(args.skill, policy)
+    # Preserve the active phase if the Git delivery gate cannot be installed.
+    install_git_hooks(root)
+    task = switch_task(
+        root,
+        skill=skill,
+        slug=args.slug or skill,
+        incomplete=args.incomplete,
+        reason=args.reason,
+    )
     return _print_json(task)
 
 
@@ -216,6 +267,11 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         "policy_ok": policy_ok,
         "policy_error": error,
         "active_task": active_task(root),
+        "diagram": {
+            "skill_bundled": (plugin_root() / "skills/arch-diagram/SKILL.md").is_file(),
+            "node_on_path": shutil.which("node") is not None,
+            "layout_check": "NOT_RUN: run diagram against a selected snapshot; Chrome/Chromium/Edge required",
+        },
     }
     required_skills = (
         "arc-explore",
@@ -270,6 +326,16 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("version").set_defaults(func=cmd_version)
     sub.add_parser("doctor").set_defaults(func=cmd_doctor)
     sub.add_parser("detect").set_defaults(func=cmd_detect)
+    skills = sub.add_parser("skills", help="resolve this installation's bundled skill entries")
+    skills.add_argument("--name", help="one skill, including canonical arc:* aliases")
+    skills.set_defaults(func=cmd_skills)
+    diagram = sub.add_parser("diagram", help="render a read-only business snapshot with pinned arch-diagram")
+    diagram.add_argument("--snapshot", required=True, help="existing v2 snapshot.json; no DB access")
+    diagram.add_argument("--out", required=True, help="new artifact directory or HTML path")
+    diagram.add_argument("--presentation", help="graph-bound Chinese labels and package source evidence")
+    diagram.add_argument("--view", choices=("flows", "capabilities"), default="flows")
+    diagram.add_argument("--no-check", action="store_true", help="draft only; explicitly record layout NOT_RUN")
+    diagram.set_defaults(func=cmd_diagram)
     install = sub.add_parser(
         "install", help="install an offline persistent runtime and PATH launcher"
     )
@@ -287,6 +353,14 @@ def build_parser() -> argparse.ArgumentParser:
     begin.add_argument("--slug")
     begin.add_argument("--force", action="store_true")
     begin.set_defaults(func=cmd_task_begin)
+    switch = task_sub.add_parser(
+        "switch", help="archive the active phase and start the next"
+    )
+    switch.add_argument("--skill", required=True)
+    switch.add_argument("--slug")
+    switch.add_argument("--incomplete", action="store_true")
+    switch.add_argument("--reason", help="why the previous phase is incomplete")
+    switch.set_defaults(func=cmd_task_switch)
     task_sub.add_parser("status").set_defaults(func=cmd_task_status)
     verify = task_sub.add_parser("verify")
     verify.add_argument("--no-tests", action="store_true")

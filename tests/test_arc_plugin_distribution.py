@@ -40,6 +40,7 @@ def source(tmp_path: Path) -> Path:
     plugin = root / "plugins/arc-policy"
     plugin.mkdir(parents=True)
     shutil.copyfile(PLUGIN / "plugin.json", plugin / "plugin.json")
+    shutil.copytree(PLUGIN / "skills/arch-diagram", plugin / "skills/arch-diagram")
     bridge = plugin / "skills/arc-policy/SKILL.md"
     bridge.parent.mkdir(parents=True)
     bridge.write_text("hand-maintained bridge\n", encoding="utf-8")
@@ -65,6 +66,15 @@ def source(tmp_path: Path) -> Path:
 def test_checked_in_distribution_matches_canonical_sources(capsys) -> None:
     assert _builder().main(["--check"]) == 0
     assert "6 bundled workflow skills" in capsys.readouterr().out
+
+
+def test_upstream_renderer_tamper_blocks_distribution(source: Path, monkeypatch) -> None:
+    builder = _builder()
+    monkeypatch.setattr(builder, "ROOT", source)
+    renderer = source / builder.PLUGIN / "skills/arch-diagram/assets/engine.js"
+    renderer.write_text("// changed without an upstream pin update\n")
+    assert builder.main([]) == 1
+    assert not (source / builder.PLUGIN / "skills/arc-code").exists()
 
 
 def test_build_uses_one_version_and_native_marketplace_locations(
@@ -124,7 +134,8 @@ def test_check_detects_source_and_version_drift_without_rewriting(
     (source / "docs/rules.md").write_text("# Updated canonical rule\n")
     portable_path = source / builder.PLUGIN / "plugin.json"
     portable = json.loads(portable_path.read_text())
-    portable["version"] = "0.4.0"
+    major, minor, patch = portable["version"].split(".")
+    portable["version"] = f"{major}.{minor}.{int(patch) + 1}"
     portable_path.write_text(json.dumps(portable))
 
     assert builder.main(["--check"]) == 1
@@ -209,7 +220,7 @@ def test_detached_cache_copy_has_closed_skills_and_runs_with_provisioned_python(
 ) -> None:
     # Only the plugin is copied. There is no adjacent Arc/, docs/, scripts/,
     # repository pyproject.toml, or source .venv to satisfy missing references.
-    cached = tmp_path / "host plugin cache" / "arc-policy 0.3.0"
+    cached = tmp_path / "host plugin cache" / "arc-policy release"
     shutil.copytree(
         PLUGIN,
         cached,
@@ -219,7 +230,7 @@ def test_detached_cache_copy_has_closed_skills_and_runs_with_provisioned_python(
     project.mkdir()
     assert not cached.resolve().is_relative_to(ROOT)
     assert {path.parent.name for path in cached.glob("skills/*/SKILL.md")} == (
-        WORKFLOW_SKILLS | {"arc-policy"}
+        WORKFLOW_SKILLS | {"arc-policy", "arch-diagram"}
     )
     assert not any(path.is_symlink() for path in cached.rglob("*"))
     assert sync_skills.validate_installation(cached / "skills") == []

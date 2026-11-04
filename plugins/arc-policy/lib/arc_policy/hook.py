@@ -137,7 +137,9 @@ def handle_session_start(cwd: Path, policy: dict[str, Any]) -> dict[str, Any]:
         [
             "Arc Policy Runtime is active.",
             f"Detected stack: {', '.join(languages) or 'unknown'}",
-            f"Recommended skill: {skill}",
+            f"Stack hint: {skill}; choose the active owner by the user's requested result, not the language.",
+            "Use `arc-policy skills` for this installation's entry paths. Load only the active skill; "
+            "switch phases with `arc-policy task switch --skill <next-skill>` and preserve existing scope.",
             cli,
             task_line,
             "If an edit needs a new task, run the suggested task begin yourself and retry the edit without asking the user.",
@@ -383,8 +385,8 @@ def _task_reminder(
             return None
         return (
             f"Arc task {task['slug']} was delivered at {delivered['head'][:12]} and does not cover these changes in {root}. "
-            f"Run `{_cli(root, BEGIN_COMMAND)}`, then `{_cli(root, 'task verify')}` "
-            f"before claiming delivery or committing. Changed paths: {', '.join(new_changes[:8])}."
+            f"For a code/runtime verification claim or commit, run `{_cli(root, BEGIN_COMMAND)}`, "
+            f"then `{_cli(root, 'task verify')}`. Changed paths: {', '.join(new_changes[:8])}."
         )
     fingerprint = tree_fingerprint(root)
     if (
@@ -397,8 +399,9 @@ def _task_reminder(
     if not new_changes and not changed:
         return None
     return (
-        f"Arc task {task['slug']} is unverified in {root}. Run `{_cli(root, 'task verify')}` before claiming delivery "
-        f"or committing. Changed paths: {', '.join(new_changes[:8]) or 'worktree dirty'}."
+        f"Arc task {task['slug']} is unverified in {root}. For a code/runtime verification claim "
+        f"or commit, run `{_cli(root, 'task verify')}`. "
+        f"Changed paths: {', '.join(new_changes[:8]) or 'worktree dirty'}."
     )
 
 
@@ -442,20 +445,21 @@ def _stop_reminder(
         )
         return (
             f"Arc task {task['slug']} is unverified in {root}: files changed {source}. "
-            f"Run `{_cli(root, 'task verify')}` before claiming delivery or "
-            f"committing. Changed paths: {paths}."
+            f"For a code/runtime verification claim or commit, run `{_cli(root, 'task verify')}`. "
+            f"Changed paths: {paths}."
         )
     # Without authorship the log cannot tell this session's writes from another session's.
     source = (
         "since this session first touched it, without an Arc task covering them. "
-        "If they are this session's work, run"
+        "If they are this session's work, a code/runtime verification claim or commit requires"
         if authored is None
-        else "made by this session, without an Arc task covering them. Run"
+        else "made by this session, without an Arc task covering them. "
+        "A code/runtime verification claim or commit requires"
     )
     return (
         f"{root} has uncommitted changes {source} "
-        f"`{_cli(root, BEGIN_COMMAND)}`, then `{_cli(root, 'task verify')}`, "
-        f"before claiming delivery or committing. Changed paths: {paths}."
+        f"`{_cli(root, BEGIN_COMMAND)}`, then `{_cli(root, 'task verify')}`. "
+        f"Changed paths: {paths}."
     )
 
 
@@ -526,6 +530,11 @@ def handle_stop(
 def _stop_decision(
     mode: str, markers: list[str], payload: dict[str, Any], reminder: str
 ) -> dict[str, Any] | None:
+    reminder += (
+        " Honor the user's scope: for read-only, plan-only or graph-only work, do not run "
+        "project tests merely to silence Stop. Keep the existing task unverified; report "
+        "the produced artifact and runtime NOT_RUN. A commit still needs a matching receipt."
+    )
     if (
         payload.get("stop_hook_active")
         or payload.get("stopHookActive")
@@ -543,7 +552,7 @@ def _stop_decision(
     if not claim:
         return None
     return _stop_block(
-        f"{reminder} If the work is not finished, say so instead of claiming completion."
+        f"{reminder} If code/runtime verification is unfinished, report that without claiming verification."
     )
 
 

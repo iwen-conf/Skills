@@ -1,0 +1,12 @@
+{
+  "graph": "course-v2",
+  "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+  "title_zh": "报名业务 · 工具回归历史快照示例",
+  "nodes": {
+    "R1": {
+      "name_zh": "已认证学员报名规则",
+      "description_zh": "来自既有参考夹具；不构成实际产品合同。",
+      "packages": []
+    }
+  }
+}

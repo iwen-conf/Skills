@@ -2,7 +2,7 @@
 
 核对日期：2026-11-04。本文记录官方接口与本仓适配范围；不把“文件存在”“单元测试通过”或“宿主宣称兼容另一产品”当作真实会话验收。
 
-宿主加载状态以实际安装版本的诊断输出为准。0.3.0 的 `plugins/arc-policy/` 同时分发 policy runtime、`arc-policy` 入口与六个工作流技能。六技能的唯一源码仍在 `Arc/`，由 `scripts/build_arc_plugin.py` 复用既有打包器生成完整资源闭包。Python、`arc-idx` 和按项目启用的 `arc-verify` 是单独诊断的外部前提。
+宿主加载状态以实际安装版本的诊断输出为准。0.4.0 的 `plugins/arc-policy/` 分发 policy runtime、`arc-policy` 入口、六个工作流技能，以及固定版本的官方 `arch-diagram`。六技能的唯一源码仍在 `Arc/`，由 `scripts/build_arc_plugin.py` 复用既有打包器生成完整资源闭包。Python、`arc-idx` 和按项目启用的 `arc-verify` 是单独诊断的外部前提；绘图按需使用 Node 与本地浏览器。
 
 ## 证据层次
 
@@ -193,6 +193,34 @@ Git hook 能力通过临时仓库实际执行探测，不把“未知配置可�
 | Go CLI race / vet | NOT_RUN | 环境无 Go；本轮未修改 `tools/arc-verify` 源码 |
 
 这些失败和跳过未通过删除测试、放宽断言或伪造回执消除。宿主验收仍应在独立临时 Git 仓库记录：安装版本与实际加载路径、禁止编辑是否真的未落盘、task begin 后编辑、未验证 Stop 反馈、验证后的 commit，以及升级后运行路径。子 Agent 与交互式终端输入另列覆盖范围。
+
+## 0.4.0 技能协作与绘图集成
+
+本轮在 0.3.0 的宿主协议与持久安装基础上接入最新 Arc 技能。`arc:verify` 源码版本为 3.8.0；
+其他五个 Arc 入口保持现有职责。插件提供八个可发现入口：六个 Arc 技能、policy bridge、固定上游 arch-diagram。
+
+- `arc-policy skills [--name <skill>]` 返回当前安装内的真实入口和版本；技术栈探测只给提示，不代替用户意图选择。
+- 六组 `arc:*` / `arc-*` 名称在任务、历史回执及图门禁中统一识别；未知外部技能名保持原样。
+- `task switch` 在同一仓库锁内归档旧任务、回执和原因，再创建无回执的新阶段；同技能 mode 复用当前任务。
+- `task begin` 默认不替换未完成任务；显式遗留 `--force` 仍会归档旧证据，不再静默丢失。
+- 绘图以现有 v2 `snapshot.json` 为输入；仅中文名称、真实包名的来源证据与局部范围由展示映射补充。
+  不打开 DB、不批准规则、不执行业务目标。官方 renderer 的 pin、清单摘要、各文件摘要和完整 MIT 许可随包保留。
+- Diagram build、layout check、人工看图与业务 verdict 分别记录。旧 FAIL、RISK、候选、RAW 错误、AND/OR/否定条件及省略 ID 保留。
+- 只读／只计划／只建图不因 Stop 提示扩大成项目测试。当前未增加 artifact-only PASS 回执；任务可保持未验证，
+  只报告已产出图和 runtime NOT_RUN。`--incomplete` 不解除 Stop 或 Git 门禁，不能冒充业务验证。
+
+本轮全仓回归为 **659 passed、1 failed、4 skipped**；唯一失败仍是 checkout 缺少被忽略管理的
+`Library/cloudflare/cloudflare-platform` 外部源。完整 skill validator 的失败也仅来自既有 Design / Cloudflare /
+ThreeJS 外部源缺失；没有删除测试、放宽断言或生成假源包。
+新增阶段切换用例 49 项，后续绘图转换与快照并发读取用例 23 项均通过。
+最后的 Stop/Codex/hosts/regressions 定向回归为 **224 passed**；
+只读范围提示没有改变一次提醒规则、任务状态或提交门禁。
+DBqual 独立回归为 **160 passed / 1 skipped / 139 subtests passed**，跳过项仍是未配置的真实 SQLFluff 命令。
+
+[两份官方 renderer 生成的业务图](examples/arc-business-diagram/README.md) 已随仓库提交。
+实际 HTML build 成功；浏览器缺失使布局检查 BLOCKED、截图／目视检查 NOT_RUN。
+Claude Code、Codex CLI、Grok Build 本机原生会话以及 Go race/vet 仍未在当前环境运行，
+不把 Python fixture、静态 schema 或 HTML build 记作宿主／业务 E2E PASS。
 
 ## 本仓宿主链接治理
 

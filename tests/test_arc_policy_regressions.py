@@ -158,6 +158,7 @@ def test_verify_rejects_changes_during_tests(
     [
         ["task", "verify"],
         ["task", "begin", "--skill", "arc-code", "--slug", "demo", "--force"],
+        ["task", "switch", "--skill", "arc-verify", "--incomplete", "--reason", "pending"],
         ["task", "end", "--incomplete"],
     ],
 )

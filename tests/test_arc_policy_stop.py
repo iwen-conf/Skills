@@ -6,13 +6,12 @@ import subprocess
 import time
 from pathlib import Path
 
-import pytest
-
 import arc_policy.classify as classifier
+import pytest
 from arc_policy.hook import run_hook
 from arc_policy.session import RETENTION_SECONDS, prune
-from arc_policy.store import begin_task
-from test_arc_policy import make_repo
+from arc_policy.store import active_task, begin_task, current_receipt
+from test_arc_policy import make_repo, write_overlay
 
 
 @pytest.fixture(autouse=True)
@@ -143,6 +142,59 @@ def test_session_is_reminded_once_per_tree_state(tmp_path: Path, no_jev: None) -
     assert hook(grok_stop(repo, "once", "Done."))["decision"] == "block"
 
 
+@pytest.mark.parametrize(
+    ("mode", "recursive"),
+    [
+        ("block_on_claim", False),
+        ("block", False),
+        ("remind", False),
+        ("block_on_claim", True),
+    ],
+)
+def test_stop_preserves_graph_only_scope_without_waiving_receipts(
+    tmp_path: Path, no_jev: None, mode: str, recursive: bool
+) -> None:
+    repo = make_repo(tmp_path)
+    write_overlay(repo, {"stop": {"mode": mode}})
+    task = begin_task(repo, skill="arc-verify", slug="candidate-graph")
+    session = "graph-only"
+    hook({"hook_event_name": "SessionStart", "session_id": session, "cwd": str(repo)})
+    (repo / ".arc/verify").mkdir()
+    edit(repo, session, ".arc/verify/candidate.json", "{}\n")
+    payload = grok_stop(
+        repo,
+        session,
+        "Candidate diagram completed. Runtime NOT_RUN.",
+        active=recursive,
+    )
+    result = hook(payload)
+    if recursive or mode == "remind":
+        assert "decision" not in result
+        message = result["systemMessage"]
+    else:
+        assert result["decision"] == "block"
+        message = result["reason"]
+    assert "For a code/runtime verification claim or commit" in message
+    assert "read-only, plan-only or graph-only" in message
+    assert "do not run project tests merely to silence Stop" in message
+    assert "Keep the existing task unverified" in message
+    assert "produced artifact and runtime NOT_RUN" in message
+    assert active_task(repo) == task
+    assert current_receipt(repo) is None
+    if mode != "block":
+        assert hook(payload) == {}
+    denied = hook(
+        {
+            "hook_event_name": "PreToolUse",
+            "session_id": session,
+            "cwd": str(repo),
+            "tool_name": "Bash",
+            "tool_input": {"command": "git commit -m candidate"},
+        }
+    )
+    assert denied["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
 def test_index_daemon_does_not_rearm_an_unchanged_source_notice(
     tmp_path: Path, no_jev: None
 ) -> None:
@@ -187,6 +239,9 @@ def test_reader_is_not_charged_for_concurrent_writes(
         "git status --short",
         "git diff --stat",
         "arc-policy task status",
+        "arc-policy skills",
+        "arc-policy skills --name arch-diagram",
+        "arc-policy skills --name=arc:verify",
         "arc-idx doctor --format json",
         "cat README.txt",
         "nl -ba README.txt | sed -n '1,20p'",

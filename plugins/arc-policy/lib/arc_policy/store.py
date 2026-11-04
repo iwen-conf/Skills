@@ -4,6 +4,7 @@ import errno
 import json
 import os
 import re
+import shlex
 import sys
 import tempfile
 import uuid
@@ -13,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from arc_policy.detect import normalize_skill_name
 from arc_policy.gitutil import commit_tree, dirty_paths, git, head, tree_fingerprint
 from arc_policy.paths import policy_state_dir
 
@@ -123,44 +125,172 @@ def child_tasks(workspace: Path) -> dict[Path, dict[str, Any]]:
     return tasks
 
 
+def _new_task(
+    root: Path,
+    *,
+    skill: str,
+    slug: str,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    fingerprint = tree_fingerprint(root)
+    return {
+        **(extra or {}),
+        "id": uuid.uuid4().hex,
+        "slug": slug,
+        "skill": skill,
+        "started_at": _now(),
+        "begin_head": fingerprint["head"],
+        "begin_dirty": fingerprint["dirty"],
+        "begin_digest": fingerprint["digest"],
+        "receipt": None,
+    }
+
+
+def _append_history(state: dict[str, Any], task: dict[str, Any]) -> None:
+    history = state.setdefault("history", [])
+    if not isinstance(history, list):
+        raise RuntimeError(  # noqa: TRY004 - corrupt persisted state, not a caller type error
+            "invalid Arc task history; inspect .arc/policy/state.json"
+        )
+    history.append(task)
+
+
+def _handoff(
+    state: dict[str, Any],
+    previous: dict[str, Any],
+    task: dict[str, Any],
+    *,
+    status: str,
+    reason: str | None = None,
+) -> None:
+    archived = {**previous, "ended_at": _now()}
+    # Older state may lack an instance ID. Give the archived record an identity
+    # for this link without treating that bookkeeping as verification evidence.
+    if not archived.get("id"):
+        archived["id"] = uuid.uuid4().hex
+    archived["handoff"] = {
+        "to_task_id": task["id"],
+        "to_skill": task["skill"],
+        "status": status,
+    }
+    if reason is not None:
+        archived["handoff"]["reason"] = reason
+    _append_history(state, archived)
+    task["previous_task_id"] = archived["id"]
+    state["active"] = task
+
+
 def begin_task(
     root: Path,
     *,
     skill: str,
     slug: str,
     extra: dict[str, Any] | None = None,
-    force: bool = True,
+    force: bool = False,
 ) -> dict[str, Any]:
     validate_slug(slug)
-    if not skill:
+    if not isinstance(skill, str) or not skill.strip():
         raise ValueError("task skill must not be empty")
+    skill = normalize_skill_name(skill)
     with task_lock(root):
         existing = active_task(root)
         delivered = (
             existing is not None and delivered_receipt(root, existing) is not None
         )
         if existing and not force and not delivered:
-            raise RuntimeError(
-                f"active task already exists ({existing['slug']}, skill={existing['skill']}); pass --force to replace"
+            recovery = (
+                "continue it, or use `arc-policy task end` before beginning new work; "
+                "unfinished work uses `task end --incomplete` after recording its reason"
+                if normalize_skill_name(existing["skill"]) == skill
+                else f"use `arc-policy task switch --skill {shlex.quote(skill)}`; "
+                "unfinished work requires `--incomplete --reason '<why>'`"
             )
-        fingerprint = tree_fingerprint(root)
-        task = {
-            **(extra or {}),
-            "id": uuid.uuid4().hex,
-            "slug": slug,
-            "skill": skill,
-            "started_at": _now(),
-            "begin_head": fingerprint["head"],
-            "begin_dirty": fingerprint["dirty"],
-            "begin_digest": fingerprint["digest"],
-            "receipt": None,
-        }
+            raise RuntimeError(
+                f"active task already exists ({existing['slug']}, skill={existing['skill']}); "
+                f"inspect `arc-policy task status`, then {recovery}"
+            )
+        task = _new_task(root, skill=skill, slug=slug, extra=extra)
         state = load_state(root)
-        if delivered:
-            history = state.setdefault("history", [])
-            if isinstance(history, list):
-                history.append(state["active"])
-        state["active"] = task
+        if existing:
+            _handoff(
+                state,
+                existing,
+                task,
+                status="delivered" if delivered else "replaced",
+                reason=None if delivered else "replaced by explicit task begin --force",
+            )
+        else:
+            state["active"] = task
+        save_state(root, state)
+        return task
+
+
+def switch_task(
+    root: Path,
+    *,
+    skill: str,
+    slug: str,
+    incomplete: bool = False,
+    reason: str | None = None,
+) -> dict[str, Any]:
+    """Archive the old phase and start the next in one locked state update."""
+    validate_slug(slug)
+    if not isinstance(skill, str) or not skill.strip():
+        raise ValueError("task skill must not be empty")
+    skill = normalize_skill_name(skill)
+    if incomplete:
+        if not isinstance(reason, str) or not reason.strip():
+            raise ValueError("an incomplete phase switch requires a nonempty --reason")
+        reason = reason.strip()
+    elif reason is not None:
+        raise ValueError("--reason requires --incomplete")
+    with task_lock(root):
+        previous = active_task(root)
+        if previous is None:
+            raise RuntimeError(
+                "no active task to switch; run "
+                f"`arc-policy task begin --skill {shlex.quote(skill)}` first"
+            )
+        if normalize_skill_name(previous["skill"]) == skill:
+            raise RuntimeError(
+                f"active task {previous['slug']} already uses {skill}; continue it. "
+                "For new work in the same skill, end this task first or begin after delivery"
+            )
+        delivered = delivered_receipt(root, previous)
+        receipt = previous.get("receipt")
+        fresh = (
+            not incomplete
+            and isinstance(receipt, dict)
+            and receipt_matches_tree(root, receipt)
+        )
+        if not incomplete and not fresh and delivered is None:
+            raise RuntimeError(
+                "the current phase has no fresh verification or delivery receipt; run "
+                "`arc-policy task verify`, or switch with `--incomplete --reason '<why>'`"
+            )
+        task = _new_task(root, skill=skill, slug=slug)
+        if (
+            fresh
+            and delivered is None
+            and any(
+                task[f"begin_{key}"] != receipt[key]
+                for key in ("head", "dirty", "digest")
+            )
+        ):
+            raise RuntimeError(
+                "tree changed during phase switch; verify the current phase again"
+            )
+        status = "incomplete"
+        if not incomplete:
+            status = (
+                "delivered"
+                if delivered is not None
+                else "authorized"
+                if receipt["verdict"] == "AUTHORIZED"
+                else "verified"
+            )
+        state = load_state(root)
+        _handoff(state, previous, task, status=status, reason=reason)
         save_state(root, state)
         return task
 
@@ -180,9 +310,7 @@ def end_task(root: Path, *, require_verified: bool = False) -> dict[str, Any] | 
         state = load_state(root)
         ended = state.pop("active", None)
         if ended is not None:
-            history = state.setdefault("history", [])
-            if isinstance(history, list):
-                history.append(ended)
+            _append_history(state, ended)
             save_state(root, state)
         return ended if isinstance(ended, dict) else None
 
@@ -240,7 +368,8 @@ def _receipt_graph_valid(
     if (
         receipt.get("task_id") != task.get("id")
         or receipt.get("slug") != task.get("slug")
-        or receipt.get("skill") != task.get("skill")
+        or not isinstance(receipt.get("skill"), str)
+        or normalize_skill_name(receipt["skill"]) != normalize_skill_name(task["skill"])
     ):
         return False
     if receipt.get("verdict") == "AUTHORIZED":

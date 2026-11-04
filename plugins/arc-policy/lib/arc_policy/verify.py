@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from arc_policy.detect import detect_languages, recommended_skill
+from arc_policy.detect import detect_languages, normalize_skill_name, recommended_skill
 from arc_policy.gitutil import dirty_paths, index_tree, tree_fingerprint
 from arc_policy.policy import load_for_repo
 from arc_policy.store import active_task, invalidate_receipt, save_receipt, task_lock
@@ -44,6 +44,8 @@ def check_architecture(
     languages = detect_languages(root, policy)
     expected = recommended_skill(languages, policy)
     actual = task.get("skill")
+    if isinstance(actual, str):
+        actual = normalize_skill_name(actual)
     if (
         languages
         and actual
@@ -409,8 +411,8 @@ def requires_business_graph(skill: str, policy: dict[str, Any]) -> bool:
             raise ValueError(
                 "verification.business_graph.require_for_skills must be a list of skill names"
             )
-        graph_skills.update(additional_skills)
-    return skill in graph_skills
+        graph_skills.update(normalize_skill_name(name) for name in additional_skills)
+    return normalize_skill_name(skill) in graph_skills
 
 
 def verify_task(

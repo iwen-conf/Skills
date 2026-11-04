@@ -1,0 +1,91 @@
+{
+  "repository": "https://github.com/bassnova42/arch-diagram-skill",
+  "commit": "879ca7fa503a64ab46b5bc77d2062ded32fadc84",
+  "version": "1.2.3",
+  "files": [
+    {
+      "path": "LICENSE",
+      "upstream_path": "LICENSE",
+      "sha256": "ff50551956d2e48033a79f325dd690ecde81e6b979ce39aa82e74474ba70d398",
+      "git_blob_sha": "16aae1658a095e9e417a5fe1b08058bab331560a"
+    },
+    {
+      "path": "SKILL.md",
+      "upstream_path": "skills/arch-diagram/SKILL.md",
+      "sha256": "e2e9186b0763f1eeeebd6bec70f5b6fd86092ee70e5fe056e21d421d39a86892",
+      "git_blob_sha": "1114dbcc462b9e35cf7fae697c5e6ec1f3e4713c"
+    },
+    {
+      "path": "assets/engine.js",
+      "upstream_path": "skills/arch-diagram/assets/engine.js",
+      "sha256": "d097bc0f14584f67ce0f178952728cb7ca1c7d220f2b32fc56bae666f5ef9882",
+      "git_blob_sha": "6b721bb1bda40a3e4216a1abee604320628e969c"
+    },
+    {
+      "path": "assets/style.css",
+      "upstream_path": "skills/arch-diagram/assets/style.css",
+      "sha256": "91763337e1d0fe6b45f654b1d59daf957a0a94f5409e30b964769d312b7cd13f",
+      "git_blob_sha": "318b4e23fda405c7fb8ba8bbe3532153d0e0cf65"
+    },
+    {
+      "path": "assets/template.html",
+      "upstream_path": "skills/arch-diagram/assets/template.html",
+      "sha256": "1b0d2dd4e2eede15a97e30b864b181d9151074b286189d67400ea138f35ec714",
+      "git_blob_sha": "3e531f63efab67294f5d23cb93356b837d6e9c48"
+    },
+    {
+      "path": "examples/elephant-goldfish.json",
+      "upstream_path": "skills/arch-diagram/examples/elephant-goldfish.json",
+      "sha256": "3b982595fd8fa453ccc91d593a3223abc9a9d761cf9a38d1e1ff1949d19e4f01",
+      "git_blob_sha": "a2682fc96170b017753b27891dbc62497ed82f5e"
+    },
+    {
+      "path": "examples/plausible.json",
+      "upstream_path": "skills/arch-diagram/examples/plausible.json",
+      "sha256": "8e2e9c1a94aa253cf11487f5856800bfad0186176b89142f3e215103f7c36885",
+      "git_blob_sha": "d901f4d99b0cd5eab3e60cfbb00a57dcce8506a0"
+    },
+    {
+      "path": "examples/rea.json",
+      "upstream_path": "skills/arch-diagram/examples/rea.json",
+      "sha256": "1690f9a36fbd4d92bb4aa966943d197f048083651a006dd73a97e42d53164fa4",
+      "git_blob_sha": "b6c9a8cf6d27c6d03e9544cd6334cb53a9909566"
+    },
+    {
+      "path": "references/spec.md",
+      "upstream_path": "skills/arch-diagram/references/spec.md",
+      "sha256": "55381a495d6882d4374d032cf644c75404cf60c346878635fe9787099cb8300e",
+      "git_blob_sha": "3e83c698c42c0281910ca937c21a760ea52be425"
+    },
+    {
+      "path": "references/style.md",
+      "upstream_path": "skills/arch-diagram/references/style.md",
+      "sha256": "33c40a95ad5076d9d661ababf5e9b119b498bd6adb5cce755bea12fa7d2a218a",
+      "git_blob_sha": "cea0d958fcb8ae5bd3a8bdf55417c659ad0d5355"
+    },
+    {
+      "path": "scripts/build.mjs",
+      "upstream_path": "skills/arch-diagram/scripts/build.mjs",
+      "sha256": "f2a922c9a699a991fd276dcdc1d94ecc3b3cc09a016bbdaf46c90127c450f325",
+      "git_blob_sha": "80357d768ea2662a7ce0f90ca6b7da30b4a86373"
+    },
+    {
+      "path": "scripts/check.mjs",
+      "upstream_path": "skills/arch-diagram/scripts/check.mjs",
+      "sha256": "59574c0ffc9ecddf902c52ac720e10a17bd77d22ab8cea690f5f2df65979e988",
+      "git_blob_sha": "4c0880ff8437f3da220bf5b921b94e63a34b9e14"
+    },
+    {
+      "path": "scripts/export.mjs",
+      "upstream_path": "skills/arch-diagram/scripts/export.mjs",
+      "sha256": "d23299148c3309ad4f0e13e87560b6a2afcb0708c3491f9864aab222eb555947",
+      "git_blob_sha": "beb6a20256897dea3de47d813d2c1e09868895fb"
+    },
+    {
+      "path": "scripts/lib.mjs",
+      "upstream_path": "skills/arch-diagram/scripts/lib.mjs",
+      "sha256": "19ada79081f878b15033989cecbc7e5b8ef74ce2035500a5be781da347e502cb",
+      "git_blob_sha": "3f985c0f360527c3830c9213393a07a223db716e"
+    }
+  ]
+}

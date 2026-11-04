@@ -1,0 +1,160 @@
+{
+  "flows": {
+    "exit_code": 1,
+    "status": "BLOCKED",
+    "read_only": true,
+    "artifacts": {
+      "spec": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.spec.json",
+      "html": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.html"
+    },
+    "readiness": {
+      "spec": "READY",
+      "build": "READY",
+      "layout_check": "BLOCKED",
+      "screenshot": "NOT_RUN",
+      "visual_review": "NOT_RUN"
+    },
+    "business_verdict": {
+      "recorded": "BLOCKED",
+      "as_of": "2026-10-31T08:17:41Z",
+      "source": "/workspace/scratch/58193171aba4/Skills/tools/arc-verify/workbench/dev/sample-snapshot.json",
+      "reverified": false
+    },
+    "source": {
+      "generated": "2026-10-31T08:17:41Z",
+      "version": "(devel)",
+      "argv": [
+        "snapshot",
+        "--db",
+        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/002/data.db",
+        "--graph",
+        "course-v2",
+        "--env",
+        "independent",
+        "--round",
+        "Q-03acd05d00c5f8607fac49fc43ebe664",
+        "--run",
+        "R-6063197d81edc5dd6d53089e1c95fe3e,R-111435dd484130451e87b612b09a54e1",
+        "--config",
+        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/004/config.jsonc",
+        "--assets",
+        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/007",
+        "--out",
+        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/006/sample"
+      ],
+      "graph": "course-v2",
+      "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+      "environment": "independent",
+      "round": "Q-03acd05d00c5f8607fac49fc43ebe664"
+    },
+    "warnings": [],
+    "renderer": {
+      "directory": "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram",
+      "repository": "https://github.com/bassnova42/arch-diagram-skill",
+      "version": "1.2.3",
+      "commit": "879ca7fa503a64ab46b5bc77d2062ded32fadc84"
+    },
+    "build": {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/build.mjs",
+        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.spec.json",
+        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.html"
+      ],
+      "exit_code": 0,
+      "stdout": "✓ built /workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.html (59.3 KB, 6 nodes, 4 edges)\n",
+      "stderr": ""
+    },
+    "check": {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/check.mjs",
+        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.html",
+        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.check.png"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "no Chrome/Chromium found — set CHROME=/path/to/chrome\n"
+    },
+    "reason": "upstream layout check could not complete cleanly; retain spec/HTML and inspect check output"
+  },
+  "capabilities": {
+    "exit_code": 1,
+    "status": "BLOCKED",
+    "read_only": true,
+    "artifacts": {
+      "spec": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.spec.json",
+      "html": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.html"
+    },
+    "readiness": {
+      "spec": "READY",
+      "build": "READY",
+      "layout_check": "BLOCKED",
+      "screenshot": "NOT_RUN",
+      "visual_review": "NOT_RUN"
+    },
+    "business_verdict": {
+      "recorded": "BLOCKED",
+      "as_of": "2026-10-31T08:17:41Z",
+      "source": "/workspace/scratch/58193171aba4/Skills/tools/arc-verify/workbench/dev/sample-snapshot.json",
+      "reverified": false
+    },
+    "source": {
+      "generated": "2026-10-31T08:17:41Z",
+      "version": "(devel)",
+      "argv": [
+        "snapshot",
+        "--db",
+        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/002/data.db",
+        "--graph",
+        "course-v2",
+        "--env",
+        "independent",
+        "--round",
+        "Q-03acd05d00c5f8607fac49fc43ebe664",
+        "--run",
+        "R-6063197d81edc5dd6d53089e1c95fe3e,R-111435dd484130451e87b612b09a54e1",
+        "--config",
+        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/004/config.jsonc",
+        "--assets",
+        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/007",
+        "--out",
+        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/006/sample"
+      ],
+      "graph": "course-v2",
+      "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+      "environment": "independent",
+      "round": "Q-03acd05d00c5f8607fac49fc43ebe664"
+    },
+    "warnings": [],
+    "renderer": {
+      "directory": "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram",
+      "repository": "https://github.com/bassnova42/arch-diagram-skill",
+      "version": "1.2.3",
+      "commit": "879ca7fa503a64ab46b5bc77d2062ded32fadc84"
+    },
+    "build": {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/build.mjs",
+        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.spec.json",
+        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.html"
+      ],
+      "exit_code": 0,
+      "stdout": "✓ built /workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.html (56.7 KB, 4 nodes, 3 edges)\n",
+      "stderr": ""
+    },
+    "check": {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/check.mjs",
+        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.html",
+        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.check.png"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "no Chrome/Chromium found — set CHROME=/path/to/chrome\n"
+    },
+    "reason": "upstream layout check could not complete cleanly; retain spec/HTML and inspect check output"
+  }
+}

@@ -1,0 +1,911 @@
+{
+  "lang": "zh-CN",
+  "width": 1240,
+  "title": "报名业务 · 工具回归历史快照示例",
+  "pageTitle": "业务流程图 · course-v2",
+  "subtitle": "course-v2 · 业务目录已确认\n快照结论：阻塞 · BLOCKED（导出时）｜历史 FAIL：1\n工具示例／合成夹具；不代表真实产品验证\n只读关系图；图形检查不提供业务执行证明。",
+  "layers": [
+    {
+      "id": "capability",
+      "label": "业务能力",
+      "color": "purple"
+    },
+    {
+      "id": "action",
+      "label": "业务操作",
+      "color": "blue"
+    },
+    {
+      "id": "condition",
+      "label": "前置条件",
+      "color": "amber"
+    },
+    {
+      "id": "state",
+      "label": "业务状态",
+      "color": "green"
+    },
+    {
+      "id": "rule",
+      "label": "业务规则",
+      "color": "purple"
+    }
+  ],
+  "flows": [
+    {
+      "id": "implements",
+      "label": "实现业务",
+      "color": "blue"
+    },
+    {
+      "id": "requires",
+      "label": "前置条件",
+      "color": "amber"
+    },
+    {
+      "id": "transitions",
+      "label": "产生状态",
+      "color": "green"
+    },
+    {
+      "id": "transitions_to",
+      "label": "状态迁移",
+      "color": "cyan"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "n001",
+      "layer": "rule",
+      "w": 420,
+      "title": "已认证学员报名规则【业务包待核实】",
+      "sub": "业务规则",
+      "lines": [
+        "历史 FAIL：1　通过义务：0/6",
+        "来自既有参考夹具；不构成实际产品合同。",
+        "RULE：R1 · 已确认",
+        "允许后：报名成功；拒绝后：保持原状"
+      ],
+      "footer": "源 ID：R1",
+      "status": "warn",
+      "statusText": "结果波动 · FLAKY",
+      "sourceId": "R1",
+      "x": 36,
+      "y": 268,
+      "h": 206
+    },
+    {
+      "id": "n002",
+      "layer": "action",
+      "w": 420,
+      "title": "创建报名记录【业务包待核实】",
+      "sub": "业务操作",
+      "lines": [
+        "历史 FAIL：1　通过义务：0/6",
+        "关联 RULE：R1"
+      ],
+      "footer": "源 ID：enroll",
+      "status": "warn",
+      "statusText": "结果波动 · FLAKY",
+      "sourceId": "enroll",
+      "x": 36,
+      "y": 878,
+      "h": 162
+    },
+    {
+      "id": "n003",
+      "layer": "capability",
+      "w": 420,
+      "title": "提交报名【业务包待核实】",
+      "sub": "业务能力",
+      "lines": [
+        "历史 FAIL：1　通过义务：0/10"
+      ],
+      "footer": "源 ID：enrollment.submit",
+      "status": "warn",
+      "statusText": "结果波动 · FLAKY",
+      "sourceId": "enrollment.submit",
+      "x": 512,
+      "y": 268,
+      "h": 206
+    },
+    {
+      "id": "n004",
+      "layer": "condition",
+      "w": 420,
+      "title": "已认证【业务包待核实】",
+      "sub": "前置条件",
+      "lines": [
+        "历史 FAIL：1　通过义务：0/6"
+      ],
+      "footer": "源 ID：login",
+      "status": "warn",
+      "statusText": "结果波动 · FLAKY",
+      "sourceId": "login",
+      "x": 36,
+      "y": 606,
+      "h": 140
+    },
+    {
+      "id": "n005",
+      "layer": "state",
+      "w": 420,
+      "title": "未报名【业务包待核实】",
+      "sub": "业务状态 · 初始状态",
+      "lines": [
+        "历史 FAIL：0　通过义务：0/1"
+      ],
+      "footer": "源 ID：pending",
+      "status": "none",
+      "statusText": "未验证 · NOT_RUN",
+      "sourceId": "pending",
+      "x": 36,
+      "y": 1172,
+      "h": 140
+    },
+    {
+      "id": "n006",
+      "layer": "state",
+      "w": 420,
+      "title": "报名成功【业务包待核实】",
+      "sub": "业务状态",
+      "lines": [
+        "历史 FAIL：1　通过义务：0/4"
+      ],
+      "footer": "源 ID：ready",
+      "status": "warn",
+      "statusText": "结果波动 · FLAKY",
+      "sourceId": "ready",
+      "x": 512,
+      "y": 1172,
+      "h": 140
+    }
+  ],
+  "edges": [
+    {
+      "id": "e001",
+      "sourceId": "creates-ready",
+      "from": "n002.b",
+      "to": "n006.t",
+      "flow": "transitions",
+      "packet": false,
+      "via": [
+        [
+          246,
+          1068
+        ],
+        [
+          722,
+          1068
+        ]
+      ],
+      "label": "1 产生状态",
+      "labelPos": [
+        484.0,
+        1063
+      ]
+    },
+    {
+      "id": "e002",
+      "sourceId": "implements-enroll",
+      "from": "n003.b",
+      "to": "n002.t",
+      "flow": "implements",
+      "packet": false,
+      "via": [
+        [
+          722,
+          502
+        ],
+        [
+          1103,
+          502
+        ],
+        [
+          1103,
+          854
+        ],
+        [
+          246,
+          854
+        ]
+      ],
+      "label": "2 实现业务",
+      "labelPos": [
+        1035,
+        497
+      ]
+    },
+    {
+      "id": "e003",
+      "sourceId": "requires-login",
+      "from": "n004.b",
+      "to": "n002.t",
+      "flow": "requires",
+      "packet": false,
+      "via": [
+        [
+          246,
+          774
+        ],
+        [
+          246,
+          774
+        ]
+      ],
+      "label": "3 前置条件",
+      "labelPos": [
+        316.0,
+        769
+      ]
+    },
+    {
+      "id": "e004",
+      "sourceId": "submit-flow",
+      "from": "n005.b",
+      "to": "n006.b",
+      "flow": "transitions_to",
+      "packet": false,
+      "via": [
+        [
+          246,
+          1340
+        ],
+        [
+          722,
+          1340
+        ]
+      ],
+      "label": "4 状态迁移",
+      "labelPos": [
+        484.0,
+        1335
+      ]
+    }
+  ],
+  "notes": [
+    {
+      "x": 36,
+      "y": 1444,
+      "w": 1140,
+      "text": "业务关系与分支\n1. 创建报名记录 → 报名成功：产生状态\n   源边：creates-ready\n2. 提交报名 → 创建报名记录：实现业务\n   源边：implements-enroll\n3. 已认证 → 创建报名记录：前置条件\n   源边：requires-login\n4. 未报名 → 报名成功：状态迁移；成功；RULE R1；已认证=满足\n   源边：submit-flow",
+      "align": "left"
+    },
+    {
+      "x": 36,
+      "y": 1652,
+      "w": 1140,
+      "text": "规则与条件逻辑\n规则 R1 的允许条件：已认证=满足",
+      "align": "left"
+    },
+    {
+      "x": 36,
+      "y": 1720,
+      "w": 1140,
+      "text": "快照来源与验证边界\n图版本：course-v2；导出时间：2026-10-31T08:17:41Z\n原始业务范围：Reference course fixture for tool acceptance; not a product contract\n图指纹：45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb\n环境：independent；轮次：Q-03acd05d00c5f8607fac49fc43ebe664\n显示节点 6/6，关系 4/4；模型 RISK 0 项；候选节点 0 个。\n已收录 RAW 的运行 2 个；RAW 校验错误 0 项。证据完整性 PASS 不等于业务 PASS。\n运行 R-6063197d81edc5dd6d53089e1c95fe3e：FAIL；首次偏离：1\n运行 R-111435dd484130451e87b612b09a54e1：PASS；首次偏离：未记录\n轮次证据图指纹：45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+      "align": "left"
+    }
+  ],
+  "wireLegend": false,
+  "statusLabels": {
+    "done": "快照记录通过",
+    "warn": "失败／阻塞／过期／波动",
+    "none": "尚未验证",
+    "dev": "部分完成",
+    "off": "已排除"
+  },
+  "footer": {
+    "note": "静态只读；不执行、批准或重试。业务结论仅转述快照导出时的记录；包名定位不构成测试证明。"
+  },
+  "arc": {
+    "read_only": true,
+    "view": "flows",
+    "meta": {
+      "generated": "2026-10-31T08:17:41Z",
+      "version": "(devel)",
+      "argv": [
+        "snapshot",
+        "--db",
+        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/002/data.db",
+        "--graph",
+        "course-v2",
+        "--env",
+        "independent",
+        "--round",
+        "Q-03acd05d00c5f8607fac49fc43ebe664",
+        "--run",
+        "R-6063197d81edc5dd6d53089e1c95fe3e,R-111435dd484130451e87b612b09a54e1",
+        "--config",
+        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/004/config.jsonc",
+        "--assets",
+        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/007",
+        "--out",
+        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/006/sample"
+      ],
+      "graph": "course-v2",
+      "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+      "environment": "independent",
+      "round": "Q-03acd05d00c5f8607fac49fc43ebe664"
+    },
+    "scope": "Reference course fixture for tool acceptance; not a product contract",
+    "fixture": true,
+    "previous": "",
+    "model_approved": true,
+    "rule_approvals": {
+      "R1": true
+    },
+    "candidate_nodes": [],
+    "business_verdict": "BLOCKED",
+    "business_reason": "both failure and success occurred in this qualification round",
+    "context": {
+      "graph": "course-v2",
+      "environment": "independent",
+      "target": "http://127.0.0.1:58628",
+      "source_commit": "6c5828f40106122ad68ac678b521110a2cce34bb",
+      "source_sha256": "b2412a98d77985670a274cb422d2383e5d24866308cd13bd2e68cb5fee689299",
+      "config_sha256": "d7e3766058ffd3b2cf676fa5695184a8f2faf592d736abe20d2fba5811929d1a",
+      "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+      "source_root": "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/003/candidate",
+      "config_path": "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/004/config.jsonc"
+    },
+    "history_failures": 1,
+    "coverage": {
+      "obligations": {
+        "total": 10,
+        "passed": 0,
+        "excluded": 0,
+        "percent": 0
+      },
+      "capabilities": {
+        "total": 1,
+        "passed": 0,
+        "excluded": 0,
+        "percent": 0
+      },
+      "behaviors": {
+        "total": 4,
+        "passed": 0,
+        "excluded": 0,
+        "percent": 0
+      },
+      "branches": {
+        "total": 4,
+        "passed": 0,
+        "excluded": 0,
+        "percent": 0
+      },
+      "invariants": {
+        "total": 1,
+        "passed": 0,
+        "excluded": 0,
+        "percent": 0
+      }
+    },
+    "diagnostics": [],
+    "node_ids": {
+      "n001": "R1",
+      "n002": "enroll",
+      "n003": "enrollment.submit",
+      "n004": "login",
+      "n005": "pending",
+      "n006": "ready"
+    },
+    "edge_ids": {
+      "e001": "creates-ready",
+      "e002": "implements-enroll",
+      "e003": "requires-login",
+      "e004": "submit-flow"
+    },
+    "source_nodes": [
+      {
+        "id": "R1",
+        "kind": "rule",
+        "name": "Authenticated reference fixture enrollment"
+      },
+      {
+        "id": "enroll",
+        "kind": "action",
+        "name": "创建报名记录"
+      },
+      {
+        "id": "enrollment.submit",
+        "kind": "capability",
+        "name": "提交报名"
+      },
+      {
+        "id": "login",
+        "kind": "condition",
+        "name": "已认证"
+      },
+      {
+        "id": "pending",
+        "kind": "state",
+        "name": "未报名"
+      },
+      {
+        "id": "ready",
+        "kind": "state",
+        "name": "报名成功"
+      }
+    ],
+    "node_status": {
+      "R1": {
+        "id": "R1",
+        "kind": "rule",
+        "name": "Authenticated reference fixture enrollment",
+        "status": "FLAKY",
+        "reason": "both failure and success occurred in this qualification round",
+        "required": 6,
+        "passed": 0,
+        "excluded": 0,
+        "history_failures": 1,
+        "readiness": {
+          "described": true,
+          "implemented": false,
+          "verified": false,
+          "live": false,
+          "implementation_status": "UNOBSERVED",
+          "deployment_status": "UNOBSERVED"
+        }
+      },
+      "enroll": {
+        "id": "enroll",
+        "kind": "action",
+        "name": "创建报名记录",
+        "status": "FLAKY",
+        "reason": "both failure and success occurred in this qualification round",
+        "required": 6,
+        "passed": 0,
+        "excluded": 0,
+        "history_failures": 1,
+        "readiness": {
+          "described": true,
+          "implemented": false,
+          "verified": false,
+          "live": false,
+          "implementation_status": "UNOBSERVED",
+          "deployment_status": "UNOBSERVED"
+        }
+      },
+      "enrollment.submit": {
+        "id": "enrollment.submit",
+        "kind": "capability",
+        "name": "提交报名",
+        "status": "FLAKY",
+        "reason": "both failure and success occurred in this qualification round",
+        "required": 10,
+        "passed": 0,
+        "excluded": 0,
+        "history_failures": 1,
+        "readiness": {
+          "described": true,
+          "implemented": false,
+          "verified": false,
+          "live": false,
+          "implementation_status": "UNOBSERVED",
+          "deployment_status": "UNOBSERVED"
+        },
+        "parent": "enrollment",
+        "domain": "enrollment",
+        "description": "Reference enrollment operation"
+      },
+      "login": {
+        "id": "login",
+        "kind": "condition",
+        "name": "已认证",
+        "status": "FLAKY",
+        "reason": "both failure and success occurred in this qualification round",
+        "required": 6,
+        "passed": 0,
+        "excluded": 0,
+        "history_failures": 1,
+        "readiness": {
+          "described": true,
+          "implemented": false,
+          "verified": false,
+          "live": false,
+          "implementation_status": "UNOBSERVED",
+          "deployment_status": "UNOBSERVED"
+        }
+      },
+      "pending": {
+        "id": "pending",
+        "kind": "state",
+        "name": "未报名",
+        "status": "NOT_RUN",
+        "reason": "no complete applicable business proof has been executed",
+        "required": 1,
+        "passed": 0,
+        "excluded": 0,
+        "history_failures": 0,
+        "readiness": {
+          "described": true,
+          "implemented": false,
+          "verified": false,
+          "live": false,
+          "implementation_status": "UNOBSERVED",
+          "deployment_status": "UNOBSERVED"
+        }
+      },
+      "ready": {
+        "id": "ready",
+        "kind": "state",
+        "name": "报名成功",
+        "status": "FLAKY",
+        "reason": "both failure and success occurred in this qualification round",
+        "required": 4,
+        "passed": 0,
+        "excluded": 0,
+        "history_failures": 1,
+        "readiness": {
+          "described": true,
+          "implemented": false,
+          "verified": false,
+          "live": false,
+          "implementation_status": "UNOBSERVED",
+          "deployment_status": "UNOBSERVED"
+        }
+      }
+    },
+    "source_edges": [
+      {
+        "id": "creates-ready",
+        "from": "enroll",
+        "to": "ready",
+        "kind": "transitions"
+      },
+      {
+        "id": "implements-enroll",
+        "from": "enrollment.submit",
+        "to": "enroll",
+        "kind": "implements"
+      },
+      {
+        "id": "requires-login",
+        "from": "login",
+        "to": "enroll",
+        "kind": "requires"
+      },
+      {
+        "id": "submit-flow",
+        "from": "pending",
+        "to": "ready",
+        "kind": "transitions_to"
+      }
+    ],
+    "rules": [
+      {
+        "id": "R1",
+        "action": "enroll",
+        "actor": "STUDENT",
+        "entry": "/enroll",
+        "oracle": "fixture-independent-store",
+        "conditions": [
+          "login"
+        ],
+        "expected": "ready",
+        "rejected": "UNCHANGED",
+        "source": "document",
+        "description": "Authenticated reference fixture enrollment"
+      }
+    ],
+    "transitions": [
+      {
+        "edge": "submit-flow",
+        "action": "enroll",
+        "rule": "R1",
+        "preconditions": {
+          "login": true
+        },
+        "outcome": "success"
+      }
+    ],
+    "flows": [
+      {
+        "id": "flow.enrollment",
+        "capability": "enrollment.submit",
+        "initial": "pending"
+      }
+    ],
+    "business_logic": {
+      "invariants": [
+        {
+          "id": "invariant.capacity",
+          "name": "报名不得超过容量",
+          "scope": [
+            "enrollment.submit"
+          ],
+          "oracle": "fixture-independent-store",
+          "observation_boundary": "after committed enrollment and fixture restoration",
+          "checks": [
+            {
+              "left": "enrolled",
+              "operator": "lte",
+              "right": "capacity"
+            }
+          ],
+          "source": "document",
+          "source_ref": "reference-fixture"
+        }
+      ],
+      "tests": [
+        {
+          "id": "test.idempotency",
+          "name": "重复报名保持不变量",
+          "rule": "R1",
+          "kind": "IDEMPOTENCY",
+          "preconditions": {
+            "login": true
+          },
+          "expected": "ready",
+          "source": "document",
+          "source_ref": "reference-fixture"
+        }
+      ],
+      "contracts": [
+        {
+          "subject": "enrollment.submit",
+          "description": "Reference enrollment operation",
+          "inputs": [
+            "student",
+            "course"
+          ],
+          "outputs": [
+            "enrollment_id"
+          ],
+          "source": "document",
+          "source_ref": "reference-fixture"
+        }
+      ]
+    },
+    "risks": [],
+    "runs": [
+      {
+        "run": "R-6063197d81edc5dd6d53089e1c95fe3e",
+        "task": "course-v2/R1/POSITIVE",
+        "status": "FAIL",
+        "round": "Q-03acd05d00c5f8607fac49fc43ebe664",
+        "first_divergence": "1",
+        "latest_observed": "ready",
+        "continue_decision": "HALT",
+        "evidence_status": "PASS",
+        "recovery": {
+          "verdict": "PASS",
+          "reason": "isolated fixture restored and independently read back",
+          "state": "pending",
+          "safe": true,
+          "raw": "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/002/raw/R-6063197d81edc5dd6d53089e1c95fe3e/000-capture-5652d17bad3b9fb959eb533066ae7e19.json",
+          "sha256": "fd1cdd58d1b17b6b0bf649ee712268ef0ba3c84d71b90d64caa5b89e92d33a1e",
+          "actions": [
+            {
+              "node": "fixture.restore",
+              "actor": "primary",
+              "principal": "synthetic-STUDENT",
+              "request_sha256": "76c821b9c3932106556e95d030a130170d39e9e31af102c90b094097d4f58823",
+              "response_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+              "status_code": 200,
+              "exit_code": 0,
+              "denied": false,
+              "started": "2026-10-31T08:17:39.678971Z",
+              "completed": "2026-10-31T08:17:39.679384Z"
+            }
+          ]
+        },
+        "steps": [
+          {
+            "step": "1",
+            "node": "enroll",
+            "verdict": "FAIL",
+            "expected": "ready",
+            "observed": "ready",
+            "decision": "HALT",
+            "raw": "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/002/raw/R-6063197d81edc5dd6d53089e1c95fe3e/001-capture-159f9712a6d1359d048f5f85e922ced4.json",
+            "sha256": "9e72f677f91af5abe100ae0a13a26115b046f07c8bbd6886ff7e045a50172210",
+            "evidence_status": "PASS"
+          }
+        ],
+        "evidence": [
+          {
+            "run": "R-6063197d81edc5dd6d53089e1c95fe3e",
+            "phase": "setup",
+            "step": 0,
+            "sha256": "19918f91012d7db2871829bf45598c78441efbd07e063e99255cc8fbb474962c",
+            "identity": {
+              "graph": "course-v2",
+              "task": "course-v2/R1/POSITIVE",
+              "environment": "independent",
+              "target": "http://127.0.0.1:58628",
+              "source_commit": "6c5828f40106122ad68ac678b521110a2cce34bb",
+              "source_sha256": "b2412a98d77985670a274cb422d2383e5d24866308cd13bd2e68cb5fee689299",
+              "config_sha256": "d7e3766058ffd3b2cf676fa5695184a8f2faf592d736abe20d2fba5811929d1a",
+              "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+              "actor": "STUDENT",
+              "account": "fixture.student",
+              "principal": "synthetic-STUDENT",
+              "account_sha256": "a2d515b4a220fc2e25e82b25aea65fafa0fce56f10bed070e18eb2994afa729a",
+              "fixture": "fixture.course",
+              "fixture_sha256": "35387fbe85391414dbcbc842c284650542527e19ae6f9ef2c9e2f052df0f74f5"
+            }
+          },
+          {
+            "run": "R-6063197d81edc5dd6d53089e1c95fe3e",
+            "phase": "action",
+            "step": 1,
+            "sha256": "9e72f677f91af5abe100ae0a13a26115b046f07c8bbd6886ff7e045a50172210",
+            "identity": {
+              "graph": "course-v2",
+              "task": "course-v2/R1/POSITIVE",
+              "environment": "independent",
+              "target": "http://127.0.0.1:58628",
+              "source_commit": "6c5828f40106122ad68ac678b521110a2cce34bb",
+              "source_sha256": "b2412a98d77985670a274cb422d2383e5d24866308cd13bd2e68cb5fee689299",
+              "config_sha256": "d7e3766058ffd3b2cf676fa5695184a8f2faf592d736abe20d2fba5811929d1a",
+              "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+              "actor": "STUDENT",
+              "account": "fixture.student",
+              "principal": "synthetic-STUDENT",
+              "account_sha256": "a2d515b4a220fc2e25e82b25aea65fafa0fce56f10bed070e18eb2994afa729a",
+              "fixture": "fixture.course",
+              "fixture_sha256": "35387fbe85391414dbcbc842c284650542527e19ae6f9ef2c9e2f052df0f74f5"
+            }
+          },
+          {
+            "run": "R-6063197d81edc5dd6d53089e1c95fe3e",
+            "phase": "fixture",
+            "step": 0,
+            "sha256": "fd1cdd58d1b17b6b0bf649ee712268ef0ba3c84d71b90d64caa5b89e92d33a1e",
+            "identity": {
+              "graph": "course-v2",
+              "task": "course-v2/R1/POSITIVE",
+              "environment": "independent",
+              "target": "http://127.0.0.1:58628",
+              "source_commit": "6c5828f40106122ad68ac678b521110a2cce34bb",
+              "source_sha256": "b2412a98d77985670a274cb422d2383e5d24866308cd13bd2e68cb5fee689299",
+              "config_sha256": "d7e3766058ffd3b2cf676fa5695184a8f2faf592d736abe20d2fba5811929d1a",
+              "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+              "actor": "STUDENT",
+              "account": "fixture.student",
+              "principal": "synthetic-STUDENT",
+              "account_sha256": "a2d515b4a220fc2e25e82b25aea65fafa0fce56f10bed070e18eb2994afa729a",
+              "fixture": "fixture.course",
+              "fixture_sha256": "35387fbe85391414dbcbc842c284650542527e19ae6f9ef2c9e2f052df0f74f5"
+            }
+          }
+        ]
+      },
+      {
+        "run": "R-111435dd484130451e87b612b09a54e1",
+        "task": "course-v2/R1/POSITIVE",
+        "status": "PASS",
+        "round": "Q-03acd05d00c5f8607fac49fc43ebe664",
+        "latest_observed": "ready",
+        "continue_decision": "NONE",
+        "evidence_status": "PASS",
+        "recovery": {
+          "verdict": "PASS",
+          "reason": "isolated fixture restored and independently read back",
+          "state": "pending",
+          "safe": true,
+          "raw": "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/002/raw/R-111435dd484130451e87b612b09a54e1/000-capture-8d81f89653e7f3593d1a71d4de2878f5.json",
+          "sha256": "a80104dd8240b180d43a43c8db103df37f56ee4a4640bda15bed3cf6b499c7d3",
+          "actions": [
+            {
+              "node": "fixture.restore",
+              "actor": "primary",
+              "principal": "synthetic-STUDENT",
+              "request_sha256": "76c821b9c3932106556e95d030a130170d39e9e31af102c90b094097d4f58823",
+              "response_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+              "status_code": 200,
+              "exit_code": 0,
+              "denied": false,
+              "started": "2026-10-31T08:17:40.140029Z",
+              "completed": "2026-10-31T08:17:40.140227Z"
+            }
+          ]
+        },
+        "steps": [
+          {
+            "step": "1",
+            "node": "enroll",
+            "verdict": "PASS",
+            "expected": "ready",
+            "observed": "ready",
+            "decision": "CONTINUE",
+            "raw": "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/002/raw/R-111435dd484130451e87b612b09a54e1/001-capture-ea7499ecc5ed907924d736744d1c3ced.json",
+            "sha256": "b189393ec361278f05162ee084686222296417ece7a63093e6b648d1b46e9246",
+            "evidence_status": "PASS"
+          }
+        ],
+        "evidence": [
+          {
+            "run": "R-111435dd484130451e87b612b09a54e1",
+            "phase": "setup",
+            "step": 0,
+            "sha256": "52a19bec5405014b4ddacec9862221b13c7dd35a685ce0b4d4e568ef37a45661",
+            "identity": {
+              "graph": "course-v2",
+              "task": "course-v2/R1/POSITIVE",
+              "environment": "independent",
+              "target": "http://127.0.0.1:58628",
+              "source_commit": "6c5828f40106122ad68ac678b521110a2cce34bb",
+              "source_sha256": "b2412a98d77985670a274cb422d2383e5d24866308cd13bd2e68cb5fee689299",
+              "config_sha256": "d7e3766058ffd3b2cf676fa5695184a8f2faf592d736abe20d2fba5811929d1a",
+              "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+              "actor": "STUDENT",
+              "account": "fixture.student",
+              "principal": "synthetic-STUDENT",
+              "account_sha256": "a2d515b4a220fc2e25e82b25aea65fafa0fce56f10bed070e18eb2994afa729a",
+              "fixture": "fixture.course",
+              "fixture_sha256": "35387fbe85391414dbcbc842c284650542527e19ae6f9ef2c9e2f052df0f74f5"
+            }
+          },
+          {
+            "run": "R-111435dd484130451e87b612b09a54e1",
+            "phase": "action",
+            "step": 1,
+            "sha256": "b189393ec361278f05162ee084686222296417ece7a63093e6b648d1b46e9246",
+            "identity": {
+              "graph": "course-v2",
+              "task": "course-v2/R1/POSITIVE",
+              "environment": "independent",
+              "target": "http://127.0.0.1:58628",
+              "source_commit": "6c5828f40106122ad68ac678b521110a2cce34bb",
+              "source_sha256": "b2412a98d77985670a274cb422d2383e5d24866308cd13bd2e68cb5fee689299",
+              "config_sha256": "d7e3766058ffd3b2cf676fa5695184a8f2faf592d736abe20d2fba5811929d1a",
+              "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+              "actor": "STUDENT",
+              "account": "fixture.student",
+              "principal": "synthetic-STUDENT",
+              "account_sha256": "a2d515b4a220fc2e25e82b25aea65fafa0fce56f10bed070e18eb2994afa729a",
+              "fixture": "fixture.course",
+              "fixture_sha256": "35387fbe85391414dbcbc842c284650542527e19ae6f9ef2c9e2f052df0f74f5"
+            }
+          },
+          {
+            "run": "R-111435dd484130451e87b612b09a54e1",
+            "phase": "fixture",
+            "step": 0,
+            "sha256": "a80104dd8240b180d43a43c8db103df37f56ee4a4640bda15bed3cf6b499c7d3",
+            "identity": {
+              "graph": "course-v2",
+              "task": "course-v2/R1/POSITIVE",
+              "environment": "independent",
+              "target": "http://127.0.0.1:58628",
+              "source_commit": "6c5828f40106122ad68ac678b521110a2cce34bb",
+              "source_sha256": "b2412a98d77985670a274cb422d2383e5d24866308cd13bd2e68cb5fee689299",
+              "config_sha256": "d7e3766058ffd3b2cf676fa5695184a8f2faf592d736abe20d2fba5811929d1a",
+              "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+              "actor": "STUDENT",
+              "account": "fixture.student",
+              "principal": "synthetic-STUDENT",
+              "account_sha256": "a2d515b4a220fc2e25e82b25aea65fafa0fce56f10bed070e18eb2994afa729a",
+              "fixture": "fixture.course",
+              "fixture_sha256": "35387fbe85391414dbcbc842c284650542527e19ae6f9ef2c9e2f052df0f74f5"
+            }
+          }
+        ]
+      }
+    ],
+    "exploration": {},
+    "package_evidence": {},
+    "omitted": {
+      "nodes": [],
+      "edges": [],
+      "logic": [],
+      "projection_truncated": false,
+      "projection_total": 6
+    },
+    "warnings": [],
+    "snapshot": {
+      "path": "/workspace/scratch/58193171aba4/Skills/tools/arc-verify/workbench/dev/sample-snapshot.json",
+      "sha256": "c9f6975533f05a9ab4b8c233b7ad4ba8bcbb6985c93a036b4e27bf422797b487"
+    },
+    "renderer": {
+      "repository": "https://github.com/bassnova42/arch-diagram-skill",
+      "version": "1.2.3",
+      "commit": "879ca7fa503a64ab46b5bc77d2062ded32fadc84",
+      "license": "MIT",
+      "license_text": "MIT License\n\nCopyright (c) 2026 bassnova42\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"
+    }
+  }
+}
