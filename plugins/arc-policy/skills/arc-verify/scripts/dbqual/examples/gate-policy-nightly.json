@@ -1,0 +1,19 @@
+{
+  "required_evidence": [
+    {"id":"toolchain.doctor","allowed_status":["PASS"]},
+    {"id":"dataset.audit","allowed_status":["PASS"]},
+    {"id":"lock-order.analysis","allowed_status":["PASS"]},
+    {"id":"concurrency.deadlock-detector-selftest","allowed_status":["PASS"]},
+    {"id":"concurrency.account-lock-order-production-contract","allowed_status":["PASS"]},
+    {"id":"fuzz.account-contention-schedule","allowed_status":["PASS"]},
+    {"id":"bench.order-mix.c16","allowed_status":["PASS"]},
+    {"id":"bench.order-mix.c64","allowed_status":["PASS"]},
+    {"id":"overload.order-mix-ramp-and-recovery","allowed_status":["PASS"]}
+  ],
+  "metric_rule": [
+    {"evidence_id":"bench.order-mix.c16","path":"observed.latency_ms.p95","op":"<=","threshold":100},
+    {"evidence_id":"bench.order-mix.c16","path":"observed.latency_ms.p99","op":"<=","threshold":200},
+    {"evidence_id":"bench.order-mix.c64","path":"observed.failure_rate","op":"<=","threshold":0.001},
+    {"evidence_id":"fuzz.account-contention-schedule","path":"observed.sqlstate_counts.40P01","op":"<=","threshold":0}
+  ]
+}

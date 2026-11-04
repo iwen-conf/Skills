@@ -1,0 +1,15 @@
+[[retry_idempotency]]
+id = "charge-command-idempotency"
+idempotency_key_env = "SQLVERIFY_IDEMPOTENCY_KEY"
+attempts = 3
+retry_delay_ms = 50
+operation_command = ["./bin/integration-driver", "charge", "--key-env", "SQLVERIFY_IDEMPOTENCY_KEY"]
+# Optional fault between first and second attempt; requires --ack-isolated-destructive.
+# fault_command = ["./scripts/drop-client-connection-after-commit.sh"]
+allowed_returncodes = [0]
+
+[[retry_idempotency.assertion]]
+id = "one-logical-charge"
+sql = "SELECT count(*)::bigint FROM payment_attempts WHERE idempotency_key = current_setting('app.test_key', true)"
+op = "=="
+expected = 1

@@ -116,7 +116,9 @@ def test_apply_moves_drift_into_backup_and_links_the_declared_entries(
     _drift(layout)
     host, source = layout["host"], layout["source"]
 
-    assert mod.main(["--apply", "--profiles", str(layout["profiles"])]) == 0
+    assert mod.main(
+        ["--apply", "--prune-unmanaged", "--profiles", str(layout["profiles"])]
+    ) == 0
 
     [backup] = (layout["home"] / ".skills-backup").glob("*-link-hosts")
     moved = _tree(backup / "h")
@@ -130,8 +132,141 @@ def test_apply_moves_drift_into_backup_and_links_the_declared_entries(
     }
     assert f"Moved entries saved in {backup}" in capsys.readouterr().out
 
-    assert mod.main(["--apply", "--profiles", str(layout["profiles"])]) == 0
+    assert mod.main(
+        ["--apply", "--prune-unmanaged", "--profiles", str(layout["profiles"])]
+    ) == 0
     assert len(list((layout["home"] / ".skills-backup").glob("*-link-hosts"))) == 1
+
+
+def test_default_apply_preserves_unrelated_skills_and_dangling_links(layout, capsys) -> None:
+    mod = _load_link_module()
+    _drift(layout)
+    host, source = layout["host"], layout["source"]
+    unrelated = {
+        name: value
+        for name, value in _tree(host).items()
+        if name == "ghost" or name == "stray" or name.startswith("stray/")
+    }
+
+    assert mod.main(["--apply", "--profiles", str(layout["profiles"])]) == 0
+
+    [backup] = (layout["home"] / ".skills-backup").glob("*-link-hosts")
+    assert _tree(backup / "h") == {
+        "alpha": ("dir", ""),
+        "alpha/copy": ("file", "stale copy"),
+        "beta": ("link", str(source / "alpha")),
+    }
+    assert _tree(host) == {
+        **unrelated,
+        "alpha": ("link", str(source / "alpha")),
+        "beta": ("link", str(source / "beta")),
+    }
+    out = capsys.readouterr().out
+    assert "preserved unrelated entries: dangling:ghost, unmanaged:stray" in out
+
+
+@pytest.mark.parametrize("mode", ["--check", "--apply"])
+def test_unrelated_entries_are_diagnostics_not_default_failures(layout, capsys, mode) -> None:
+    mod = _load_link_module()
+    host, source = layout["host"], layout["source"]
+    for name in ("alpha", "beta"):
+        (host / name).symlink_to(source / name, target_is_directory=True)
+    (host / "personal-skill").mkdir()
+    (host / "personal-skill" / "SKILL.md").write_text("personal instructions\n")
+    (host / "unrelated-broken").symlink_to(layout["base"] / "absent")
+    before = _tree(layout["base"])
+
+    assert mod.main([mode, "--profiles", str(layout["profiles"])]) == 0
+
+    out = capsys.readouterr().out
+    assert "— OK; preserved unrelated entries:" in out
+    assert "unmanaged:personal-skill" in out
+    assert "dangling:unrelated-broken" in out
+    assert _tree(layout["base"]) == before
+
+
+def test_prune_check_reports_unrelated_drift_without_moving_it(layout, capsys) -> None:
+    mod = _load_link_module()
+    host, source = layout["host"], layout["source"]
+    for name in ("alpha", "beta"):
+        (host / name).symlink_to(source / name, target_is_directory=True)
+    (host / "personal-skill").mkdir()
+    (host / "personal-skill" / "SKILL.md").write_text("personal instructions\n")
+    before = _tree(layout["base"])
+
+    assert mod.main(
+        ["--check", "--prune-unmanaged", "--profiles", str(layout["profiles"])]
+    ) == 1
+
+    out = capsys.readouterr().out
+    assert "unmanaged:personal-skill" in out
+    assert "preserved unrelated" not in out
+    assert _tree(layout["base"]) == before
+
+
+def test_default_apply_removes_known_retired_arc_but_preserves_unknown_arc_names(
+    layout, capsys
+) -> None:
+    mod = _load_link_module()
+    host = layout["host"]
+    for name in ("arc-test", "arc-personal-tool"):
+        (host / name).mkdir()
+        (host / name / "SKILL.md").write_text(f"instructions for {name}\n")
+    personal = _tree(host / "arc-personal-tool")
+
+    assert mod.main(["--check", "--profiles", str(layout["profiles"])]) == 1
+    assert "unmanaged:arc-test" in capsys.readouterr().out
+    assert mod.main(["--apply", "--profiles", str(layout["profiles"])]) == 0
+
+    [backup] = (layout["home"] / ".skills-backup").glob("*-link-hosts")
+    assert _tree(backup / "h") == {
+        "arc-test": ("dir", ""),
+        "arc-test/SKILL.md": ("file", "instructions for arc-test\n"),
+    }
+    assert not (host / "arc-test").exists()
+    assert _tree(host / "arc-personal-tool") == personal
+    assert "preserved unrelated entries: unmanaged:arc-personal-tool" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("prune", [False, True])
+def test_hidden_and_ignored_entries_are_never_pruned(layout, prune) -> None:
+    mod = _load_link_module()
+    host = layout["host"]
+    config = yaml.safe_load(layout["profiles"].read_text(encoding="utf-8"))
+    config["hosts"]["h"]["ignore"] = ["synced"]
+    layout["profiles"].write_text(yaml.safe_dump(config), encoding="utf-8")
+    for name in (".system", "synced"):
+        (host / name).mkdir()
+        (host / name / "SKILL.md").write_text(f"instructions for {name}\n")
+    before = {name: _tree(host / name) for name in (".system", "synced")}
+    args = ["--apply", "--profiles", str(layout["profiles"])]
+    if prune:
+        args.append("--prune-unmanaged")
+
+    assert mod.main(args) == 0
+
+    assert {name: _tree(host / name) for name in before} == before
+    assert not (layout["home"] / ".skills-backup").exists()
+
+
+@pytest.mark.parametrize("mode", ["--check", "--apply"])
+@pytest.mark.parametrize("hosts", [["missing"], ["h", "missing"]])
+def test_unknown_host_is_rejected_before_any_changes(layout, capsys, mode, hosts) -> None:
+    mod = _load_link_module()
+    _drift(layout)
+    before = _tree(layout["base"])
+    args = [mode, "--profiles", str(layout["profiles"])]
+    for host in hosts:
+        args.extend(["--host", host])
+
+    with pytest.raises(SystemExit) as error:
+        mod.main(args)
+
+    assert error.value.code == 2
+    err = capsys.readouterr().err
+    assert "unknown host(s): missing" in err
+    assert "available hosts: h" in err
+    assert _tree(layout["base"]) == before
 
 
 def test_missing_source_is_reported_and_never_linked(layout, capsys) -> None:

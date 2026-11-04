@@ -1,0 +1,11 @@
+{
+  "min_bake_seconds": 900,
+  "min_canary_fraction": 0.01,
+  "min_samples_per_metric": 5,
+  "bootstrap_samples": 4000,
+  "metric": [
+    {"name": "db_p99_ms", "direction": "lower_is_better", "max_relative_regression": 0.20, "absolute_max": 100},
+    {"name": "error_rate", "direction": "lower_is_better", "max_relative_regression": 0.50, "absolute_max": 0.01},
+    {"name": "deadlocks_per_min", "direction": "lower_is_better", "absolute_max": 0}
+  ]
+}

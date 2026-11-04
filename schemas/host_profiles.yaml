@@ -1,6 +1,7 @@
-# Which entrypoints each host discovers. scripts/link_hosts.py makes every host root match this file:
-# each listed name is a symlink to its source (default: ~/.agents/skills/<name>); anything else in the root
-# is reported by --check and moved to a backup by --apply. Dot entries (for example Codex .system) are ignored.
+# Links managed by scripts/link_hosts.py; hosts may discover additional skill roots.
+# Each listed name links to its source (default: ~/.agents/skills/<name>). Known Arc entrypoints
+# are managed too. Other entries are preserved unless --prune-unmanaged is explicit.
+# Dot entries (for example Codex .system) and per-host ignore entries are always preserved.
 source_root: ~/.agents/skills
 external_targets:
   lanhu-design: ~/Documents/Code/Go/lanhu-cli/skills/lanhu-design

@@ -1,11 +1,9 @@
 ---
 name: arc-policy
 description: >
-  Coding Agent Policy Runtime for Arc. Use when a session must follow Arc skills
-  (arc-explore, arc-plan, arc-code, arc-verify, arc-audit, arc-vet) and the arc-policy CLI
-  for task begin, controlled operations, and delivery verification. Triggers:
-  工程规范插件, policy runtime, 强制使用 CLI, task begin, task verify, PreToolUse
-  hook, Stop hook. Use when the user runs /arc-policy.
+  Start, verify, and finish Arc tasks with the arc-policy CLI. Use for task begin,
+  task verify, receipt or hook failures, plugin setup, and Arc workflow enforcement
+  (工程规范、验证回执、插件安装). Domain work uses the matching bundled Arc skill.
 ---
 
 # Arc Policy Runtime
@@ -120,10 +118,15 @@ permits the quoted delivery decision; it never proves the business claim.
 
 ## Hook enforcement
 
-- `SessionStart` injects stack, skill, and CLI instructions.
+- `SessionStart` initializes session state. Claude/Codex can receive its workflow context;
+  Grok displays a user notification and does not inject that context into the model. Load the
+  appropriate bundled Arc skill rather than treating a successful hook as loaded instructions.
 - `PreToolUse` denies source edits with no active task or only a delivered task in the repository that owns the edited path, `git commit`/`push` without a matching receipt, `--no-verify`, and schema-migration CLIs. Paths outside every Git work tree are not gated.
 - A denied edit names the repository and an executable `task begin --skill arc-code` command without placeholders. Run it yourself, then retry the original edit; never route the edit through the shell or a script to get past the denial.
-- `task begin` registers Git `pre-commit` / `pre-push` config hooks: an agent's commit or push,
+- `task begin` probes Git's hook execution support before creating a task and installs
+  `pre-commit` / `pre-push` gates through config hooks or a compatible default-directory
+  file hook. Existing hooks are preserved; unsupported custom `core.hooksPath` fails explicitly.
+  An agent's commit or push,
   by any route, needs a receipt matching the tree; a push also passes when every pushed commit is
   exactly the receipt's tree. A command the user types into the host (Claude Code `!`) carries the
   agent marker too, so it passes the same way; pushing other commits needs a separate terminal.
@@ -139,10 +142,15 @@ permits the quoted delivery decision; it never proves the business claim.
 - When Stop blocks, run the named `task verify`. If it fails on changes outside your task, report
   that instead of claiming delivery; if the work is unfinished, say so. Never delete session logs,
   clear task state or manufacture a receipt to remove a notice.
-- The engine fails closed: when it cannot load or crashes, edits and controlled operations are denied.
-- CLI and hooks prefer the plugin's `.venv`, then the linked source repository's `.venv`, before
-  loading engine dependencies. They never install packages during a hook; missing PyYAML reports
-  the runtime and exact setup commands from the plugin README.
+- When the Python entrypoint runs but the engine cannot load or crashes, it emits an explicit
+  refusal for edits and controlled operations in the host's supported output format. Disabled,
+  untrusted, unlaunchable or timed-out hooks do not prove enforcement.
+- Run `arc-policy install` from the updated plugin to keep the CLI and its provisioned
+  dependencies outside disposable host caches. CLI and hooks use that dependency copy or an
+  existing plugin/source `.venv`; they never install packages during a hook. `doctor` separates
+  local prerequisites from native host loading/trust, which needs an actual host check.
+- Current `Stop` registration covers the main agent. `SubagentStop` requires separate
+  subagent identity and ownership handling and is not enabled by this plugin.
 - Recursive Stop callbacks produce a passive reminder instead of another continuation. Cursor
   requests verification once from task state.
 

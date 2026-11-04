@@ -1,0 +1,14 @@
+{
+  "required_evidence": [
+    {"id":"toolchain.doctor","allowed_status":["PASS"]},
+    {"id":"dataset.audit","allowed_status":["PASS"]},
+    {"id":"lock-order.analysis","allowed_status":["PASS"]},
+    {"id":"explain.orders.list-by-customer.small-customer-recent","allowed_status":["PASS"]},
+    {"id":"property.orders-filter-count-consistency","allowed_status":["PASS"]},
+    {"id":"concurrency.account-lock-order-production-contract","allowed_status":["PASS"]}
+  ],
+  "metric_rule": [
+    {"evidence_id":"concurrency.account-lock-order-production-contract","path":"observed.sqlstate_counts.40P01","op":"<=","threshold":0},
+    {"evidence_id":"concurrency.account-lock-order-production-contract","path":"observed.assertions_passed","op":">=","threshold":1}
+  ]
+}

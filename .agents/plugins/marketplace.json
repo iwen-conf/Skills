@@ -5,7 +5,7 @@
       "name": "arc-policy",
       "source": {
         "source": "local",
-        "path": "./arc-policy"
+        "path": "./plugins/arc-policy"
       },
       "policy": {
         "installation": "AVAILABLE",

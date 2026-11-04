@@ -1,15 +1,15 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "arc-policy",
-  "version": "0.2.0",
-  "description": "Coding Agent Policy Runtime for Arc skills across Claude, Codex, Grok, Cursor Agent, and DeepSeek Harness: plugin distributes, skills guide, hooks intercept, CLI verifies.",
+  "version": "0.3.0",
+  "description": "Arc workflow skills and policy runtime for Claude Code, Codex CLI, and Grok Build. Includes six workflow skills, host hooks, policy files, and the arc-policy CLI; external tools and the Python runtime require separate setup.",
   "author": {
     "name": "Arc"
   },
   "keywords": ["arc", "policy", "hooks", "skills", "cli"],
   "extensions": {
     "com.openai": {
-      "hooks": "./hooks/hooks.json"
+      "hooks": "./hooks/codex.json"
     }
   }
 }

@@ -1,0 +1,10 @@
+#!/bin/sh
+# 可选：复制为 .git/hooks/pre-commit 并 chmod +x。spec 未通过闭环检查则拒绝提交。
+SPEC=docs/01-系统设计/业务闭环/03-closure-spec.yaml
+[ -f "$SPEC" ] || exit 0
+T=$(mktemp -d)
+if ! python3 docs/01-系统设计/业务闭环/tools/check_closure.py check "$SPEC" --report "$T/r.md" --status "$T/s.json" >"$T/out.txt" 2>&1; then
+  cat "$T/out.txt"
+  echo "⛔ 业务闭环检查未通过，拒绝提交。请先修正 $SPEC。"
+  exit 1
+fi

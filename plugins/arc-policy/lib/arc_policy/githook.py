@@ -1,18 +1,24 @@
 """Git-level backstop: agents cannot commit or push without a receipt, however Git is invoked.
 
-`task begin` registers config-based hooks (Git 2.54+ `hook.<name>.command`), which run beside
-any hook files or core.hooksPath the repository already uses. Humans are not gated: the
+`task begin` probes config-based hooks, which run beside existing hook files. Older Git
+uses chained file hooks in the default directory; a custom core.hooksPath is preserved
+and requires a Git version with config hooks. Humans are not gated: the
 check applies only when a host's agent marker is in the environment. A command the user
 types into the host (Claude Code `!`) inherits that marker and is checked like the agent's.
 """
 
 from __future__ import annotations
 
+import os
 import shlex
+import subprocess
+import tempfile
 from collections.abc import Mapping
+from functools import lru_cache
 from pathlib import Path
 
 from arc_policy.gitutil import git
+from arc_policy.install import ensure_persistent_cli
 from arc_policy.store import (
     active_task,
     current_receipt,
@@ -32,7 +38,8 @@ AGENT_MARKERS = (
     "PI_CODING_AGENT",
 )
 HOOK_EVENTS = ("pre-commit", "pre-push")
-CLI = Path(__file__).resolve().parents[2] / "bin" / "arc-policy"
+PLUGIN = Path(__file__).resolve().parents[2]
+FILE_HOOK_MARKER = "# arc-policy managed file hook v1"
 
 
 def is_agent(env: Mapping[str, str]) -> bool:
@@ -42,20 +49,138 @@ def is_agent(env: Mapping[str, str]) -> bool:
     )
 
 
-def hook_command(event: str, cli: Path = CLI) -> str:
+def hook_command(event: str, cli: Path, *, replace_process: bool = True) -> str:
     # Git appends the hook's own arguments to the command, so the CLI call stays last.
     quoted = shlex.quote(str(cli))
+    markers = " ".join('"${' + name + '-}"' for name in AGENT_MARKERS)
     return (
+        f"arc_policy_agent=0; for arc_policy_marker in {markers}; do "
+        "case \"$arc_policy_marker\" in ''|0|[Ff][Aa][Ll][Ss][Ee]) ;; "
+        "*) arc_policy_agent=1 ;; esac; done; "
+        '[ "$arc_policy_agent" = 1 ] || exit 0; '
         f"[ -x {quoted} ] || {{ echo 'arc-policy: CLI missing at '{quoted}"
-        f"'; reinstall it or remove hook.arc-policy-{event}' >&2; exit 1; }}; "
-        f"exec {quoted} git-hook {event}"
+        f"'; run arc-policy install to repair it' >&2; exit 1; }}; "
+        f"{'exec ' if replace_process else ''}{quoted} git-hook {event}"
     )
 
 
-def install_git_hooks(root: Path, cli: Path = CLI) -> None:
+@lru_cache(maxsize=1)
+def config_hooks_supported() -> bool:
+    """Unknown Git config keys are accepted, so verify actual execution in an empty repo."""
+    with tempfile.TemporaryDirectory(prefix="arc-hook-probe-") as temporary:
+        root = Path(temporary)
+        marker = root / "executed"
+        env = {
+            key: value
+            for key, value in os.environ.items()
+            if not key.startswith("GIT_")
+        }
+        env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull)
+        init = subprocess.run(
+            ["git", "init", "-q", str(root)],
+            env=env,
+            capture_output=True,
+            timeout=15,
+            check=False,
+        )
+        if init.returncode:
+            raise RuntimeError("unable to initialize Git hook capability probe")
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(root),
+                "-c",
+                "hook.arc-probe.event=pre-commit",
+                "-c",
+                "hook.arc-probe.command="
+                + "printf ready > "
+                + shlex.quote(str(marker)),
+                "hook",
+                "run",
+                "pre-commit",
+            ],
+            env=env,
+            capture_output=True,
+            timeout=15,
+            check=False,
+        )
+        return marker.is_file()
+
+
+def _file_hook(root: Path, event: str) -> Path:
+    result = git(root, "rev-parse", "--git-path", f"hooks/{event}")
+    if result.returncode:
+        raise RuntimeError(result.stderr.strip())
+    path = Path(result.stdout.strip())
+    return path if path.is_absolute() else root / path
+
+
+def _file_hook_script(event: str, cli: Path, original: Path) -> str:
+    previous = shlex.quote(str(original))
+    start = f"#!/bin/sh\n{FILE_HOOK_MARKER}\n"
+    if event == "pre-push":
+        # Both hooks receive the complete update list. A shell function confines the
+        # human early-exit and avoids exec skipping the temporary-file cleanup trap.
+        return start + (
+            "arc_policy_check() {\n"
+            + hook_command(event, cli, replace_process=False)
+            + ' "$@"\n}\n'
+            "arc_policy_input=$(mktemp) || exit 1\n"
+            "trap 'rm -f \"$arc_policy_input\"' EXIT HUP INT TERM\n"
+            'cat > "$arc_policy_input" || exit 1\n'
+            f'if [ -x {previous} ]; then {previous} "$@" < "$arc_policy_input" || exit $?; fi\n'
+            'arc_policy_check "$@" < "$arc_policy_input"\n'
+        )
+    return start + (
+        f'if [ -x {previous} ]; then {previous} "$@" || exit $?; fi\n'
+        + hook_command(event, cli)
+        + ' "$@"\n'
+    )
+
+
+def install_git_hooks(root: Path, cli: Path | None = None) -> str:
+    supported = config_hooks_supported()
+    if not supported:
+        configured = git(root, "config", "--get", "core.hooksPath")
+        if configured.returncode == 0:
+            raise RuntimeError(
+                "this Git does not execute config hooks and core.hooksPath is already set; "
+                "upgrade to Git with config-hook support (2.54+) before task begin. "
+                "Existing hooks and task state were left unchanged."
+            )
+        # Check every destination before writing either hook.
+        for event in HOOK_EVENTS:
+            path = _file_hook(root, event)
+            if (
+                path.exists()
+                and FILE_HOOK_MARKER not in path.read_text(errors="replace")
+                and path.with_name(path.name + ".arc-policy-original").exists()
+            ):
+                raise RuntimeError(
+                    f"refusing to overwrite existing hook backup: {path}"
+                )
+    cli = cli or ensure_persistent_cli(PLUGIN)
+    if not supported:
+        for event in HOOK_EVENTS:
+            path = _file_hook(root, event)
+            original = path.with_name(path.name + ".arc-policy-original")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if (
+                path.exists() or path.is_symlink()
+            ) and FILE_HOOK_MARKER not in path.read_text(errors="replace"):
+                path.rename(original)
+            path.write_text(_file_hook_script(event, cli, original), encoding="utf-8")
+            path.chmod(0o755)
     for event in HOOK_EVENTS:
         name = f"hook.arc-policy-{event}"
-        for key, value in (("command", hook_command(event, cli)), ("event", event)):
+        # Record the command for diagnostics, but register only one active mechanism.
+        values = [("command", hook_command(event, cli))]
+        if supported:
+            values.append(("event", event))
+        else:
+            git(root, "config", "--local", "--unset-all", f"{name}.event")
+        for key, value in values:
             result = git(
                 root, "config", "--local", "--replace-all", f"{name}.{key}", value
             )
@@ -63,6 +188,18 @@ def install_git_hooks(root: Path, cli: Path = CLI) -> None:
                 raise RuntimeError(
                     f"git config {name}.{key} failed: {result.stderr.strip()}"
                 )
+    if supported:
+        # Leave the old working mechanism in place until BOTH replacements exist.
+        # A config-write failure must not silently remove the previous gate.
+        for event in HOOK_EVENTS:
+            path = _file_hook(root, event)
+            if path.is_file() and FILE_HOOK_MARKER in path.read_text(errors="replace"):
+                original = path.with_name(path.name + ".arc-policy-original")
+                if original.exists() or original.is_symlink():
+                    os.replace(original, path)
+                else:
+                    path.unlink()
+    return "config" if supported else "file"
 
 
 ZERO_SHA = frozenset("0")

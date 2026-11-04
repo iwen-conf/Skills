@@ -1,0 +1,14 @@
+{
+  "id": "db-network-ambiguity",
+  "isolated_environment_required": true,
+  "command_timeout_s": 30,
+  "prepare": [["toxiproxy-cli", "reset"]],
+  "target": ["./bin/integration-test", "--case", "idempotent-write-under-connection-reset"],
+  "fault_after_s": 1,
+  "inject": [["toxiproxy-cli", "toxic", "add", "postgres", "-t", "reset_peer", "-a", "timeout=1000"]],
+  "fault_hold_s": 2,
+  "recover": [["toxiproxy-cli", "reset"]],
+  "allowed_target_returncodes": [0],
+  "oracle": [["./bin/integration-test", "--case", "verify-no-duplicate-side-effect"]],
+  "cleanup": [["toxiproxy-cli", "reset"]]
+}

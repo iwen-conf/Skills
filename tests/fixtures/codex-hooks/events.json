@@ -1,0 +1,51 @@
+{
+  "SessionStart": {
+    "session_id": "codex-contract-session",
+    "transcript_path": null,
+    "cwd": "__REPO__",
+    "model": "fixture-model",
+    "permission_mode": "default",
+    "hook_event_name": "SessionStart",
+    "source": "startup"
+  },
+  "PreToolUse": {
+    "session_id": "codex-contract-session",
+    "transcript_path": null,
+    "cwd": "__REPO__",
+    "model": "fixture-model",
+    "permission_mode": "default",
+    "hook_event_name": "PreToolUse",
+    "turn_id": "turn-1",
+    "tool_name": "apply_patch",
+    "tool_use_id": "call-patch-1",
+    "tool_input": {
+      "command": "*** Begin Patch\n*** Add File: feature.py\n+print('fixture')\n*** End Patch"
+    }
+  },
+  "PostToolUse": {
+    "session_id": "codex-contract-session",
+    "transcript_path": null,
+    "cwd": "__REPO__",
+    "model": "fixture-model",
+    "permission_mode": "default",
+    "hook_event_name": "PostToolUse",
+    "turn_id": "turn-1",
+    "tool_name": "apply_patch",
+    "tool_use_id": "call-patch-1",
+    "tool_input": {
+      "command": "*** Begin Patch\n*** Add File: feature.py\n+print('fixture')\n*** End Patch"
+    },
+    "tool_response": "Success. Updated the following files:\nA feature.py\n"
+  },
+  "Stop": {
+    "session_id": "codex-contract-session",
+    "transcript_path": null,
+    "cwd": "__REPO__",
+    "model": "fixture-model",
+    "permission_mode": "default",
+    "hook_event_name": "Stop",
+    "turn_id": "turn-1",
+    "stop_hook_active": false,
+    "last_assistant_message": "Implemented and verified the change."
+  }
+}

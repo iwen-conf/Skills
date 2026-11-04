@@ -1,0 +1,13 @@
+{
+  "seed": 20260920,
+  "random_runs": 40,
+  "fixed_cases": [
+    {"name": "hot-all-history", "source": "boundary", "params": [1, "2025-09-01T00:00:00Z"]},
+    {"name": "cold-recent", "source": "boundary", "params": [9999, "2026-09-01T00:00:00Z"]},
+    {"name": "no-match", "source": "boundary", "params": [20000, "2026-09-01T00:00:00Z"]}
+  ],
+  "parameters": [
+    {"name": "customer_id", "values": [1, 2, 10, 100, 101, 2000, 9999, 20000], "weights": [20, 10, 8, 5, 3, 2, 1, 1]},
+    {"name": "from", "values": ["2025-09-01T00:00:00Z", "2026-08-01T00:00:00Z", "2026-09-01T00:00:00Z"]}
+  ]
+}

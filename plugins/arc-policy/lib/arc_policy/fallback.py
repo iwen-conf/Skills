@@ -1,4 +1,4 @@
-"""Decisions when the policy engine cannot run. Imports nothing beyond the classifier."""
+"""Fallback decisions without the policy engine or third-party dependencies."""
 
 from __future__ import annotations
 
@@ -29,8 +29,11 @@ def deny(reason: str) -> dict[str, Any]:
     }
 
 
-def fallback_output(payload: dict[str, Any], message: str) -> str:
-    """Deny edits and controlled operations; other tool calls and events get the message."""
+def fallback_output(
+    payload: dict[str, Any], message: str, *, host: str = "portable"
+) -> str:
+    """Deny edits and controlled operations; otherwise report the runtime error."""
+    response = {"systemMessage": message}
     if event_name(payload) == "PreToolUse":
         try:
             decision = classify(
@@ -41,7 +44,12 @@ def fallback_output(payload: dict[str, Any], message: str) -> str:
                 receipt_ok=False,
             )
         except ValueError:
-            return json.dumps(deny(message))
-        if decision["action"] == "deny":
-            return json.dumps(deny(message))
-    return json.dumps({"systemMessage": message})
+            response = deny(message)
+        else:
+            if decision["action"] == "deny":
+                response = deny(message)
+    if host == "portable":
+        return json.dumps(response)
+    from arc_policy.protocol import encode_response
+
+    return encode_response(payload, response, host=host)

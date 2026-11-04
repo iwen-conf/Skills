@@ -6,6 +6,7 @@ from pathlib import Path
 
 def plugin_root() -> Path:
     for key in (
+        "ARC_POLICY_ROOT",
         "GROK_PLUGIN_ROOT",
         "CLAUDE_PLUGIN_ROOT",
         "PLUGIN_ROOT",

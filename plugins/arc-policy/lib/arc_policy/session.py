@@ -9,6 +9,7 @@ append-only JSON-lines log per session plus its open windows.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -38,7 +39,10 @@ def _sessions_dir() -> Path:
 
 
 def _file(session: str, suffix: str) -> Path:
-    return _sessions_dir() / (re.sub(r"[^A-Za-z0-9_.-]", "_", session)[:128] + suffix)
+    # The readable prefix is not an identity: replacement and truncation can collide.
+    prefix = re.sub(r"[^A-Za-z0-9_.-]", "_", session)[:48]
+    digest = hashlib.sha256(session.encode("utf-8")).hexdigest()
+    return _sessions_dir() / (f"v2-{prefix}-{digest}" + suffix)
 
 
 def _log(session: str) -> Path:

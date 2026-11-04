@@ -11,6 +11,14 @@ from pathlib import Path
 
 def ensure_runtime() -> None:
     plugin = Path(__file__).resolve().parents[2]
+    # An explicit install keeps dependencies outside disposable host plugin caches.
+    # Keep this bootstrap stdlib-only and do not download anything in a hook.
+    from arc_policy.install import runtime_home
+
+    for vendor in (plugin / "vendor", runtime_home() / "current" / "vendor"):
+        if (vendor / "yaml" / "__init__.py").is_file():
+            sys.path.insert(0, str(vendor))
+            return
     owners = [plugin]
     source = plugin.parents[1]
     if plugin.parent.name == "plugins" and (source / "pyproject.toml").is_file():

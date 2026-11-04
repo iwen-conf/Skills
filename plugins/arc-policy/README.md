@@ -1,6 +1,8 @@
 # Arc Policy Runtime
 
-A Coding Agent Policy Runtime, not a skill pack.
+Arc workflows and their policy runtime, packaged for Claude Code, Grok Build, and Codex CLI.
+Version 0.3.0 keeps one policy engine and one canonical `Arc/` skill source, with generated
+host manifests, a complete bundled skill tree, and a strict Codex wire adapter.
 
 | Piece | Job |
 |---|---|
@@ -57,33 +59,49 @@ and separately trusted execution for high-assurance evidence.
 
 ## Install
 
-CLI (once per machine):
+### Persistent CLI and dependencies
+
+From this checkout, prepare the Python 3.12 environment and install the persistent CLI:
 
 ```bash
-ln -sf "$(pwd)/plugins/arc-policy/bin/arc-policy" ~/.local/bin/arc-policy
-arc-policy doctor
+uv sync --frozen
+.venv/bin/python plugins/arc-policy/bin/arc-policy install
 ```
 
-The binary must stay `arc-policy`. Do not replace the existing `arc` → `arc-idx` symlink.
-
-CLI and hook entrypoints use the plugin's `.venv/bin/python` first, then the linked source
-repository's `.venv/bin/python`, otherwise the invoking Python. They never use the target
-project's virtual environment or install dependencies during a hook. In this source checkout,
-`uv sync --frozen` provisions the declared dependencies. For an independently installed plugin
-copy, provision its runtime once (replace `<plugin-dir>` with its actual path):
+For a standalone plugin folder, the equivalent bootstrap is:
 
 ```bash
-uv venv --python 3.12 <plugin-dir>/.venv
-uv pip install --python <plugin-dir>/.venv/bin/python 'PyYAML>=6.0.2'
+uv run --no-project --python 3.12 --with 'PyYAML>=6.0.2' <plugin-dir>/bin/arc-policy install
 ```
 
-Missing dependencies produce repair instructions; hook edits remain denied until repaired.
+`install` copies the plugin and the already provisioned pure-Python PyYAML dependency,
+including its license, into `~/.local/share/arc-policy/versions/` (or
+`$XDG_DATA_HOME/arc-policy`; `ARC_POLICY_HOME` explicitly overrides it). It checks the new
+snapshot before switching `current`, then writes a launcher at `~/.local/bin/arc-policy`.
+`--bin-dir <directory>` selects another PATH directory. Ensure that directory is on PATH.
+Installation itself is offline; only the explicit environment bootstrap may download packages.
+
+This stable runtime survives host plugin cache replacement. Re-run `install` from the updated
+plugin after an upgrade. Old runtime snapshots remain available to running processes.
+The binary stays `arc-policy`; the existing `arc` → `arc-idx` entry is separate.
+
+Hook startup first uses an installed dependency copy, then the plugin/source `.venv`, then
+the invoking Python. It never provisions packages inside a tool hook. A Python entrypoint
+that can run but cannot load the engine emits an explicit refusal; a missing Python binary,
+host timeout, disabled handler or untrusted hook cannot be treated as enforced policy.
+
+`arc-policy doctor` reports engine, bundled skills, persistent CLI, external `arc-idx`,
+optional graph runtime and Git capability separately. Its `workflow_ready` requires those
+local prerequisites. `host_hooks_ready: null` means native host loading/trust and an actual
+denied tool call still need verification. Python, `arc-idx` and optional `arc-verify` are
+external dependencies; the plugin does not silently install them.
 
 ### Grok
 
 ```bash
-grok plugin marketplace add /Users/iluwen/Documents/Code/Skills
+grok plugin marketplace add iwen-conf/Skills
 grok plugin install arc-policy --trust
+grok plugin enable arc-policy
 ```
 
 Or install the folder directly:
@@ -99,23 +117,33 @@ Enable it in `~/.grok/config.toml`:
 enabled = ["arc-policy"]
 ```
 
-`~/.grok/plugins/` copies are auto-trusted.
+Check `grok plugin details arc-policy` and `grok inspect --json`, then `/hooks` in a trusted
+project. Grok Build 1.0.64+ also applies folder trust to plugin hooks. `SessionStart` initializes
+state and shows a user notification; it does not inject this workflow into the model. The
+bundled skills carry the workflow. Current Stop coverage is the main agent; `SubagentStop`
+is a separate contract. See the [host compatibility record](https://github.com/iwen-conf/Skills/blob/main/docs/plugin-host-compatibility.md).
 
 ### Claude Code
 
 ```bash
-claude plugin marketplace add /Users/iluwen/Documents/Code/Skills
-claude plugin install arc-policy
+claude plugin marketplace add iwen-conf/Skills
+claude plugin install arc-policy@skills
 ```
 
-Or `--plugin-dir ./plugins/arc-policy`.
+For development use `claude --plugin-dir ./plugins/arc-policy`; validate with
+`claude plugin validate ./plugins/arc-policy`. Plugin skills use the plugin namespace:
+the source `arc:code` is packaged as `arc-code` and invoked as `/arc-policy:arc-code`.
+Keep all resources inside the plugin directory; an installed cache cannot follow `../../Arc/`.
 
 ### Codex
 
-Hooks bundled in a plugin need a **local** install and `/hooks` trust. They are not for the public plugin directory.
+Use the local marketplace and review bundled hooks. The repository's native catalog is
+`.agents/plugins/marketplace.json`; its `source.path` is relative to the repository root.
 
 ```bash
-codex plugin marketplace add /Users/iluwen/Documents/Code/Skills
+codex plugin marketplace add /absolute/path/to/Skills
+codex plugin add arc-policy@skills
+codex plugin list --json
 ```
 
 Repo enable:
@@ -126,7 +154,19 @@ Repo enable:
 enabled = true
 ```
 
-Then `/hooks` and trust the Arc Policy handlers.
+Then open `/hooks` and review/trust the Arc Policy handlers. Installation does not grant hook
+trust; changed handlers require review again. Project config is read only for a trusted project.
+
+Codex uses `hooks/codex.json` and invokes the shared entry with `--host codex`. Only supported
+output fields reach Codex; the other adapters keep their compatible envelope. The pinned
+contracts cover `SessionStart`, `PreToolUse`, `PostToolUse`, and `Stop` at `rust-v0.155.1` and
+`rust-v0.166.0`. Tool matching covers `Bash` (including host-normalized `exec_command`) and
+`apply_patch`. `write_stdin` does not run PreToolUse again; arbitrary MCP tools and hosted
+tools are outside this matcher. Stop requests another verification turn, not a permission denial.
+
+References: [OpenAI packaging](https://developers.openai.com/plugins/build/plugins),
+[developer commands](https://learn.chatgpt.com/docs/developer-commands), and
+[hook contracts](https://learn.chatgpt.com/docs/hooks).
 
 ### Cursor Agent
 
@@ -191,9 +231,18 @@ parent folder that is not a repository (several repositories side by side) runs 
 `arc-policy --cwd <repo> task begin|verify`; `SessionStart` lists the active tasks of its direct
 child repositories and `Stop` checks them. An edit tool whose input names no path is denied there.
 
-`task begin` also registers the Git-level gate in that repository (`arc-policy install-git-hooks`
-does the same by hand): config-based `pre-commit` and `pre-push` hooks (Git 2.54+), which run
-beside any hook files or `core.hooksPath`. When an agent commits or pushes, however Git is invoked
+`task begin` also installs the Git-level gate in that repository (`arc-policy install-git-hooks`
+does the same by hand). It probes whether Git really executes config hooks; merely accepting
+`hook.*` config is insufficient. Supporting Git versions use config-based `pre-commit` and
+`pre-push` hooks alongside existing hooks. Older Git uses the default hook directory and
+chains existing hook files, preserving their arguments and pre-push stdin. A custom
+`core.hooksPath` on older Git is preserved and causes an explicit installation error requiring
+config-hook support (Git 2.54+); no active task is created on that error.
+
+Persistent Git commands point to the stable runtime, never the host's version cache.
+If no persistent runtime exists, `task begin` can create its offline snapshot from the already
+running installation. Human-marker detection runs before checking the runtime path.
+When an agent commits or pushes, however Git is invoked
 (`bash -c`, a script, a subprocess), the hook requires a receipt matching the tree. A push also
 passes when every commit it sends (read from the pre-push ref list; `HEAD` when Git sends none)
 is exactly the receipt's tree and descends from the receipt's `HEAD`, so a verified or authorized
@@ -325,7 +374,9 @@ plugins/arc-policy/
   .claude-plugin/plugin.json
   .codex-plugin/plugin.json
   skills/arc-policy/SKILL.md
-  hooks/hooks.json
+  skills/arc-{explore,plan,code,verify,audit,vet}/  generated from Arc/
+  hooks/hooks.json            shared Claude / Grok contract
+  hooks/codex.json            explicit strict Codex contract
   hooks/hook.py
   hosts/cursor/hooks.json     Cursor Agent user hooks
   hosts/dsh/                  DeepSeek Harness Cordis plugin
@@ -334,7 +385,29 @@ plugins/arc-policy/
   bin/arc-policy
 ```
 
-The six Arc skills (including `arc-vet`) stay in `Arc/` and continue to install through `scripts/sync_skills.py`. This plugin adds the enforcement plane; it does not fork those skills.
+The six Arc skills (including `arc-vet`) are authored only in `Arc/`. Their generated copies
+and reachable references/scripts ship inside this plugin. Do not hand-edit the generated
+copies. `scripts/sync_skills.py` remains the standalone skill publisher; plugin users should
+avoid simultaneously enabling independent copies of the same six skills in other discovery roots.
+
+```bash
+.venv/bin/python scripts/build_arc_plugin.py
+.venv/bin/python scripts/build_arc_plugin.py --check
+```
+
+The root `plugin.json` is the version source. The builder synchronizes host descriptors,
+marketplaces and runtime version, validates resource closure, and rejects source drift,
+missing files, extra generated files, escaping symlinks and executable-mode changes.
+The generated artifacts are checked in so installing directly from Git is complete.
+
+After upgrading to 0.3.0, finish or restart existing CLI sessions: session-log filenames now
+hash the full session ID instead of collapsing different IDs by replacement/truncation.
+Old session logs are not reused; repository task/receipt data keeps its existing format.
+
+Release checks distinguish package/contract tests from native host tests. This change was
+verified with isolated copies, pinned Codex schemas, Python entrypoint subprocesses and actual
+Git commits. No Claude/Grok/Codex executable was available in the build environment, so native
+installation, trust UI and end-to-end model turns remain `NOT_RUN` rather than a claimed PASS.
 
 ### Phase-aware graph gate
 

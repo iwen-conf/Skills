@@ -1,0 +1,8 @@
+[[history_check]]
+id = "account-transfer-serializability"
+history_file = ".sqlverify/histories/account-transfer.edn"
+model = "serializable"
+checker_version = "pinned-by-project"
+checker_command = ["./tests/consistency/check-history.sh", "{history}"]
+expected_returncode = 0
+timeout_s = 900

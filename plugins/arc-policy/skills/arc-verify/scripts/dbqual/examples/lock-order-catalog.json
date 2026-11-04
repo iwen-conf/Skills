@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "operations": [
+    {
+      "id": "transfer.normalized",
+      "description": "Always lock lower account id before higher account id",
+      "lock_order": ["account:min(id1,id2)", "account:max(id1,id2)"]
+    },
+    {
+      "id": "order.cancel",
+      "lock_order": ["order", "inventory"]
+    },
+    {
+      "id": "order.fulfill",
+      "lock_order": ["order", "inventory", "ledger"]
+    }
+  ]
+}

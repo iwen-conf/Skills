@@ -1,0 +1,314 @@
+{
+  "schema_version": 2,
+  "risk_class": "DB-R4",
+  "profile": "expert-prerelease-example",
+  "strict_complete": true,
+  "claims": [
+    {
+      "gate": "G0",
+      "title": "scope/risk/toolchain identity",
+      "applicable": true,
+      "require": [
+        {
+          "id": "toolchain.doctor"
+        },
+        {
+          "id": "postgres.snapshot.pre"
+        },
+        {
+          "id": "postgres.snapshot.post"
+        }
+      ]
+    },
+    {
+      "gate": "G1",
+      "title": "isolated environment and harness trust",
+      "applicable": true,
+      "require": [
+        {
+          "id": "toolchain.doctor"
+        }
+      ]
+    },
+    {
+      "gate": "G2",
+      "title": "representative dataset",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "dataset_audit"
+        }
+      ]
+    },
+    {
+      "gate": "G3",
+      "title": "schema integrity",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "schema_integrity"
+        }
+      ]
+    },
+    {
+      "gate": "G4",
+      "title": "query correctness and business invariants",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "query_property",
+          "min_pass": 1
+        },
+        {
+          "kind": "invariant_audit"
+        }
+      ]
+    },
+    {
+      "gate": "G5",
+      "title": "EXPLAIN/resource diagnostics",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "explain",
+          "min_pass": 2
+        }
+      ]
+    },
+    {
+      "gate": "G6",
+      "title": "prepared/generic-custom plan sensitivity",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "plan_sensitivity"
+        }
+      ]
+    },
+    {
+      "gate": "G7",
+      "title": "isolation litmus",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "isolation_litmus"
+        }
+      ]
+    },
+    {
+      "gate": "G8",
+      "title": "static lock ordering",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "lock_order_analysis"
+        }
+      ]
+    },
+    {
+      "gate": "G9",
+      "title": "deterministic concurrency/deadlock",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "concurrency_scenario",
+          "min_pass": 2
+        },
+        {
+          "kind": "transaction_scenario",
+          "min_pass": 1
+        }
+      ]
+    },
+    {
+      "gate": "G10",
+      "title": "contention schedule exploration",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "contention_fuzz"
+        }
+      ]
+    },
+    {
+      "gate": "G11",
+      "title": "retry/idempotency/ambiguous result",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "retry_idempotency"
+        }
+      ]
+    },
+    {
+      "gate": "G12",
+      "title": "business workload benchmark",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "pgbench",
+          "min_pass": 3
+        }
+      ]
+    },
+    {
+      "gate": "G13",
+      "title": "overload and recovery",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "overload_recovery"
+        }
+      ]
+    },
+    {
+      "gate": "G14",
+      "title": "production-shape replay",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "workload_replay"
+        }
+      ]
+    },
+    {
+      "gate": "G15",
+      "title": "long-run resource stability",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "longrun_monitor"
+        }
+      ]
+    },
+    {
+      "gate": "G16",
+      "title": "MVCC/maintenance health",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "maintenance_health"
+        }
+      ]
+    },
+    {
+      "gate": "G17",
+      "title": "WAL/checkpoint/IO health",
+      "applicable": true,
+      "require": [
+        {
+          "id": "postgres.snapshot.pre"
+        },
+        {
+          "id": "postgres.snapshot.post"
+        }
+      ]
+    },
+    {
+      "gate": "G18",
+      "title": "migration/backfill/rollback",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "migration_rehearsal"
+        }
+      ]
+    },
+    {
+      "gate": "G19",
+      "title": "logical replication/CDC",
+      "applicable": false,
+      "rationale": "sample topology does not configure logical replication; production DB-R4/DB-R5 systems using CDC must enable this gate"
+    },
+    {
+      "gate": "G20",
+      "title": "read replica consistency",
+      "applicable": false,
+      "rationale": "sample topology has no read-replica routing; enable whenever reads may be served from replicas"
+    },
+    {
+      "gate": "G21",
+      "title": "physical integrity",
+      "applicable": false,
+      "rationale": "compact sample leaves periodic amcheck disabled; production cadence or relevant upgrade/storage incidents should make this applicable"
+    },
+    {
+      "gate": "G22",
+      "title": "backup artifact verification",
+      "applicable": false,
+      "rationale": "backup system is environment-specific and intentionally not configured in the compact repository sample"
+    },
+    {
+      "gate": "G23",
+      "title": "restore/PITR rehearsal",
+      "applicable": false,
+      "rationale": "restore/PITR requires project infrastructure; DB-R4+ release programs should provide periodic independent DR evidence"
+    },
+    {
+      "gate": "G24",
+      "title": "failover/failback",
+      "applicable": false,
+      "rationale": "sample has no HA promotion topology; make applicable for HA/DB-R5/DB-R6 systems"
+    },
+    {
+      "gate": "G25",
+      "title": "upgrade/extension/collation compatibility",
+      "applicable": false,
+      "rationale": "sample does not change PostgreSQL major, extensions or collation; enable for upgrades/runtime-image changes"
+    },
+    {
+      "gate": "G26",
+      "title": "database security boundary",
+      "applicable": false,
+      "rationale": "sample SQL change does not alter roles/RLS/SECURITY DEFINER; enable for authz/security-relevant changes and periodic audits"
+    },
+    {
+      "gate": "G27",
+      "title": "history/model checking",
+      "applicable": true,
+      "require": [
+        {
+          "kind": "history_check"
+        }
+      ]
+    },
+    {
+      "gate": "G28",
+      "title": "trusted statistical baseline",
+      "applicable": true,
+      "require": [
+        {
+          "id": "regression.baseline"
+        }
+      ]
+    },
+    {
+      "gate": "G29",
+      "title": "canary/control",
+      "applicable": false,
+      "rationale": "canary evidence is produced by deployment infrastructure after pre-release qualification, not by this isolated lab run"
+    },
+    {
+      "gate": "G30",
+      "title": "production reconciliation",
+      "applicable": false,
+      "rationale": "continuous production reconciliation belongs to the post-deploy control plane; the project must bind this for critical business invariants"
+    },
+    {
+      "gate": "G31",
+      "title": "evidence completeness",
+      "applicable": true,
+      "require": [
+        {
+          "id": "toolchain.doctor"
+        },
+        {
+          "id": "postgres.snapshot.pre"
+        },
+        {
+          "id": "postgres.snapshot.post"
+        }
+      ]
+    }
+  ]
+}

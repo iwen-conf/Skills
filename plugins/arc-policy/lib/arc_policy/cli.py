@@ -3,15 +3,21 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 from arc_policy import __version__
 from arc_policy.detect import detect_languages, recommended_skill, resolve_skill_name
-from arc_policy.githook import HOOK_EVENTS, install_git_hooks, refusal
+from arc_policy.githook import (
+    HOOK_EVENTS,
+    config_hooks_supported,
+    install_git_hooks,
+    refusal,
+)
 from arc_policy.gitutil import tree_fingerprint
 from arc_policy.hook import run_hook
+from arc_policy.install import install_runtime, persistent_cli
 from arc_policy.paths import plugin_root, repo_root
 from arc_policy.policy import load_for_repo
 from arc_policy.store import (
@@ -61,8 +67,9 @@ def cmd_task_begin(args: argparse.Namespace) -> int:
     policy = load_for_repo(root, languages=detect_languages(root))
     skill = resolve_skill_name(args.skill, policy)
     slug = args.slug or skill
-    task = begin_task(root, skill=skill, slug=slug, force=args.force)
+    # A failed installation must not leave an apparently active, unprotected task.
     install_git_hooks(root)
+    task = begin_task(root, skill=skill, slug=slug, force=args.force)
     return _print_json(task)
 
 
@@ -139,16 +146,13 @@ def cmd_hook(args: argparse.Namespace) -> int:
 
 
 def cmd_install(args: argparse.Namespace) -> int:
-    dest = Path.home() / ".local" / "bin" / "arc-policy"
-    src = plugin_root() / "bin" / "arc-policy"
-    if not src.is_file():
-        print(f"arc-policy: missing CLI at {src}", file=sys.stderr)
-        return 2
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    if dest.exists() or dest.is_symlink():
-        dest.unlink()
-    dest.symlink_to(src)
-    dest.chmod(0o755)
+    bin_dir = (
+        Path(args.bin_dir).expanduser()
+        if args.bin_dir
+        else Path.home() / ".local" / "bin"
+    )
+    install_runtime(plugin_root(), bin_dir=bin_dir)
+    dest = bin_dir / "arc-policy"
     print(str(dest))
     return 0
 
@@ -161,13 +165,21 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     error = None
     try:
         load_for_repo(root, languages=detect_languages(root))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 -- doctor reports malformed policy loaders.
         policy_ok = False
         error = str(exc)
     graph_declared = (
         (root / ".arc/verify/config.jsonc").is_file()
-        or bool(((load_for_repo(root, languages=detect_languages(root)).get("verification") or {}).get("business_graph")))
-        if policy_ok else (root / ".arc/verify/config.jsonc").is_file()
+        or bool(
+            (
+                load_for_repo(root, languages=detect_languages(root)).get(
+                    "verification"
+                )
+                or {}
+            ).get("business_graph")
+        )
+        if policy_ok
+        else (root / ".arc/verify/config.jsonc").is_file()
     )
     verify_binary = shutil.which("arc-verify")
     turso_binary = shutil.which("tursodb")  # optional manual inspection only
@@ -176,8 +188,11 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     if graph_declared and verify_binary:
         try:
             selftest = subprocess.run(
-                [verify_binary, "selftest"], capture_output=True, text=True,
-                timeout=30, check=False,
+                [verify_binary, "selftest"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
             )
             native_db_ok = selftest.returncode == 0
             if not native_db_ok:
@@ -188,7 +203,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         "graph_configured": graph_declared,
         "arc_verify_on_path": bool(verify_binary),
         "tursodb_on_path": bool(turso_binary),
-        "graph_runtime_ready": not graph_declared or bool(verify_binary and native_db_ok),
+        "graph_runtime_ready": not graph_declared
+        or bool(verify_binary and native_db_ok),
         "native_turso_selftest": native_db_ok if graph_declared else None,
         "native_turso_error": native_db_error,
         "version": __version__,
@@ -201,8 +217,47 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         "policy_error": error,
         "active_task": active_task(root),
     }
+    required_skills = (
+        "arc-explore",
+        "arc-plan",
+        "arc-code",
+        "arc-verify",
+        "arc-audit",
+        "arc-vet",
+    )
+    missing = [
+        name
+        for name in required_skills
+        if not (plugin_root() / "skills" / name / "SKILL.md").is_file()
+    ]
+    supports_config = config_hooks_supported()
+    from arc_policy.gitutil import git
+
+    custom_hooks = git(root, "config", "--get", "core.hooksPath").returncode == 0
+    report.update(
+        engine_ready=policy_ok,
+        skills_ready=not missing,
+        missing_skills=missing,
+        persistent_cli=str(persistent_cli()),
+        cli_ready=persistent_cli().is_file() and report["cli_on_path"],
+        git_config_hooks_supported=supports_config,
+        git_gate_installable=supports_config or not custom_hooks,
+        host_hooks_ready=None,
+        host_hooks_status="NOT_RUN: verify enabled/trusted hooks and an actual denied call in each CLI",
+    )
+    report["workflow_ready"] = all(
+        report[key]
+        for key in (
+            "engine_ready",
+            "skills_ready",
+            "cli_ready",
+            "arc_idx_on_path",
+            "graph_runtime_ready",
+            "git_gate_installable",
+        )
+    )
     _print_json(report)
-    return 0 if policy_ok and report["graph_runtime_ready"] else 1
+    return 0 if report["workflow_ready"] else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -215,9 +270,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("version").set_defaults(func=cmd_version)
     sub.add_parser("doctor").set_defaults(func=cmd_doctor)
     sub.add_parser("detect").set_defaults(func=cmd_detect)
-    sub.add_parser(
-        "install", help="symlink CLI to ~/.local/bin/arc-policy"
-    ).set_defaults(func=cmd_install)
+    install = sub.add_parser(
+        "install", help="install an offline persistent runtime and PATH launcher"
+    )
+    install.add_argument("--bin-dir", help="launcher directory (default: ~/.local/bin)")
+    install.set_defaults(func=cmd_install)
 
     policy_p = sub.add_parser("policy")
     policy_sub = policy_p.add_subparsers(dest="policy_cmd", required=True)

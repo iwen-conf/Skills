@@ -1,0 +1,6 @@
+{"id":"s1.begin","session":"s1","offset_ms":0,"op":"begin","tag":"tx.begin"}
+{"id":"s2.begin","session":"s2","offset_ms":5,"op":"begin","tag":"tx.begin"}
+{"id":"s1.orders-count","session":"s1","offset_ms":10,"op":"sql","sql":"SELECT count(*) FROM sqlverify_demo.orders","fetch":"one","expected_scalar":100000,"tag":"orders.count"}
+{"id":"s2.health","session":"s2","offset_ms":12,"op":"sql","after":"s1.orders-count","sql":"SELECT 1","fetch":"one","expected_scalar":1,"tag":"health.after-orders-count"}
+{"id":"s1.commit","session":"s1","offset_ms":20,"op":"commit","tag":"tx.commit"}
+{"id":"s2.commit","session":"s2","offset_ms":22,"op":"commit","after":"s2.health","tag":"tx.commit"}

@@ -1,0 +1,177 @@
+{
+  "required_evidence": [
+    {
+      "id": "qualification.coverage",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "toolchain.doctor",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "postgres.snapshot.pre",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "postgres.snapshot.post",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "dataset.audit",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "schema.integrity",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "invariant.audit",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "lock-order.analysis",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "isolation.write-skew-serializable",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "concurrency.deadlock-detector-selftest",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "concurrency.account-lock-order-production-contract",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "fuzz.account-contention-schedule",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "kind": "retry_idempotency",
+      "allowed_status": [
+        "PASS"
+      ],
+      "min_count": 1
+    },
+    {
+      "id": "replay.sanitized-prod-shape",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "bench.order-mix.c16",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "bench.order-mix.c64",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "overload.order-mix-ramp-and-recovery",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "kind": "longrun_monitor",
+      "allowed_status": [
+        "PASS"
+      ],
+      "min_count": 1
+    },
+    {
+      "id": "maintenance.health",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "id": "migration.orders-note-column",
+      "allowed_status": [
+        "PASS"
+      ]
+    },
+    {
+      "kind": "history_check",
+      "allowed_status": [
+        "PASS"
+      ],
+      "min_count": 1
+    },
+    {
+      "id": "regression.baseline",
+      "allowed_status": [
+        "PASS"
+      ]
+    }
+  ],
+  "metric_rule": [
+    {
+      "evidence_id": "bench.order-mix.c16",
+      "path": "observed.latency_ms.p95",
+      "op": "<=",
+      "threshold": 100
+    },
+    {
+      "evidence_id": "bench.order-mix.c16",
+      "path": "observed.latency_ms.p99",
+      "op": "<=",
+      "threshold": 200
+    },
+    {
+      "evidence_id": "bench.order-mix.c64",
+      "path": "observed.failure_rate",
+      "op": "<=",
+      "threshold": 0.001
+    },
+    {
+      "evidence_id": "concurrency.account-lock-order-production-contract",
+      "path": "observed.sqlstate_counts.40P01",
+      "op": "<=",
+      "threshold": 0
+    },
+    {
+      "evidence_id": "fuzz.account-contention-schedule",
+      "path": "observed.sqlstate_counts.40P01",
+      "op": "<=",
+      "threshold": 0
+    },
+    {
+      "evidence_id": "maintenance.health",
+      "path": "observed.connections_utilization",
+      "op": "<=",
+      "threshold": 0.8
+    }
+  ]
+}

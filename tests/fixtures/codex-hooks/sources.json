@@ -1,0 +1,42 @@
+{
+  "upstream_repository": "https://github.com/openai/codex",
+  "source_ref": "rust-v0.155.1",
+  "compared_ref": "rust-v0.166.0",
+  "source_directory": "codex-rs/hooks/schema/generated",
+  "verified_on": "2026-11-04",
+  "scope": "Unmodified upstream schemas for the four registered Arc hooks. These eight files have identical Git blob hashes at both refs; this does not certify a native Codex installation or other hooks.",
+  "behavior_reference": "https://learn.chatgpt.com/docs/hooks",
+  "freeform_input_reference": "https://github.com/openai/codex/blob/rust-v0.155.1/codex-rs/core/src/tools/handlers/apply_patch.rs",
+  "fixture_note": "events.json is synthetic contract data based on the official schemas, not a recorded native Codex session.",
+  "files": {
+    "session-start.command.input.schema.json": {
+      "git_blob_sha": "70eb76ec923c321b95d225812e16d4e7f52a9cc2"
+    },
+    "session-start.command.output.schema.json": {
+      "git_blob_sha": "1dd51e001030cb6b260114da3461cbe9d77ba944"
+    },
+    "pre-tool-use.command.input.schema.json": {
+      "git_blob_sha": "48dd4c571010a664e40cb174123c3bc746f12e34"
+    },
+    "pre-tool-use.command.output.schema.json": {
+      "git_blob_sha": "6730b27fd4fc80f8075d64346a554a1cfc94470a"
+    },
+    "post-tool-use.command.input.schema.json": {
+      "git_blob_sha": "f92af1dd3249ddf3511ef707c4310329e5b85c80"
+    },
+    "post-tool-use.command.output.schema.json": {
+      "git_blob_sha": "011f887265f21b549d029e96932b75b23dde8107"
+    },
+    "stop.command.input.schema.json": {
+      "git_blob_sha": "dbd4a3f648071bee1af24758e9596e11ab78c782"
+    },
+    "stop.command.output.schema.json": {
+      "git_blob_sha": "a2bac59cd12a7a02de5ce5b259e68263cba74b2f"
+    }
+  },
+  "license": {
+    "name": "Apache-2.0",
+    "file": "UPSTREAM-LICENSE",
+    "source": "https://github.com/openai/codex/blob/rust-v0.155.1/LICENSE"
+  }
+}
