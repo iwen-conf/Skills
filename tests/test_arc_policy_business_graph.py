@@ -171,7 +171,11 @@ def test_code_phase_does_not_need_green_business_graph(tmp_path, monkeypatch):
     assert receipt["verdict"] == "PASS"
 
 
-def test_verify_phase_fails_closed_when_graph_missing(tmp_path, monkeypatch):
+@pytest.mark.parametrize("fail_closed", [True, False])
+@pytest.mark.parametrize("skill", ["arc-verify", "arc-code"])
+def test_verify_phase_fails_closed_when_graph_missing(
+    tmp_path, monkeypatch, fail_closed, skill
+):
     from arc_policy.store import begin_task
     from arc_policy.verify import verify_task
     import subprocess
@@ -197,10 +201,16 @@ def test_verify_phase_fails_closed_when_graph_missing(tmp_path, monkeypatch):
     )
     (repo / ".arc/verify").mkdir(parents=True)
     (repo / ".arc/verify/config.jsonc").write_text("{}")
-    begin_task(repo, skill="arc-verify", slug="verify")
+    begin_task(repo, skill=skill, slug="verify")
     receipt = verify_task(
         repo,
-        policy={"verification": {"required": ["cli_receipt"], "fail_closed": True}},
+        policy={
+            "verification": {
+                "required": ["cli_receipt"],
+                "fail_closed": fail_closed,
+                "business_graph": {"require_for_skills": ["arc-code"]},
+            }
+        },
         run_tests=False,
     )
     assert receipt["verdict"] == "FAIL"
@@ -208,6 +218,130 @@ def test_verify_phase_fails_closed_when_graph_missing(tmp_path, monkeypatch):
         x["id"] == "business_graph" and x["verdict"] == "BLOCKED"
         for x in receipt["checks"]
     )
+
+
+@pytest.mark.parametrize(
+    "damage",
+    ["missing", "BLOCKED", "NOT_RUN", "duplicate", "wrong_skill", "missing_skill"],
+)
+@pytest.mark.parametrize("boundary", ["current_tree", "push", "delivered"])
+def test_historical_pass_requires_its_mandatory_graph_proof(tmp_path, damage, boundary):
+    from arc_policy.gitutil import index_tree, tree_fingerprint
+    from arc_policy.store import (
+        active_task,
+        begin_task,
+        delivered_receipt,
+        receipt_covers_commits,
+        receipt_matches_tree,
+        save_receipt,
+    )
+    from test_arc_policy import git, make_repo, write_overlay
+
+    repo = make_repo(tmp_path)
+    write_overlay(repo, {"verification": {"business_graph": {"graph": "academic-v1"}}})
+    task = begin_task(repo, skill="arc-verify", slug="historical")
+    (repo / "feature.txt").write_text("candidate\n")
+    git(repo, "add", "feature.txt")
+    check = {"id": "business_graph", **graph_proof(repo)}
+    checks = [check]
+    if damage in {"missing", "wrong_skill", "missing_skill"}:
+        checks = []
+    elif damage == "duplicate":
+        checks.append(dict(check))
+    else:
+        check["verdict"] = damage
+    receipt = {
+        **tree_fingerprint(repo),
+        "tree": index_tree(repo),
+        "task_id": task["id"],
+        "slug": task["slug"],
+        "skill": task["skill"],
+        "verdict": "PASS",
+        "checks": checks,
+    }
+    if damage == "wrong_skill":
+        receipt["skill"] = "arc-code"
+    elif damage == "missing_skill":
+        receipt.pop("skill")
+    save_receipt(repo, receipt)
+    if boundary == "current_tree":
+        assert not receipt_matches_tree(repo, receipt)
+    else:
+        git(repo, "commit", "-qm", "candidate")
+        if boundary == "push":
+            assert not receipt_covers_commits(repo, ["HEAD"])
+        else:
+            assert delivered_receipt(repo, active_task(repo)) is None
+
+
+@pytest.mark.parametrize("authorized", [False, True])
+def test_valid_graph_delivery_needs_no_second_candidate_run(
+    tmp_path, monkeypatch, authorized
+):
+    from arc_policy.githook import refusal
+    from arc_policy.store import begin_task, current_receipt, receipt_matches_tree
+    from arc_policy.verify import authorize_task, verify_task
+    from test_arc_policy import git, make_repo, policy_for, write_overlay
+
+    repo = make_repo(tmp_path)
+    write_overlay(
+        repo,
+        {
+            "verification": {
+                "required": ["cli_receipt"],
+                "business_graph": {"graph": "academic-v1"},
+            }
+        },
+    )
+    begin_task(repo, skill="arc-verify", slug="verified-graph")
+    (repo / "feature.txt").write_text("candidate\n")
+    git(repo, "add", "feature.txt")
+    monkeypatch.setattr(
+        "arc_policy.verify._run",
+        lambda root, argv: subprocess.CompletedProcess(
+            argv, 0, json.dumps(graph_proof(root)), ""
+        ),
+    )
+    if authorized:
+        authorize_task(repo, "直接提交")
+    else:
+        assert verify_task(repo, policy_for(repo), run_tests=False)["verdict"] == "PASS"
+    assert receipt_matches_tree(repo, current_receipt(repo))
+    git(repo, "commit", "-qm", "candidate")
+
+    def must_not_replay(*args):
+        raise AssertionError("an exact-tree push must use the original candidate proof")
+
+    monkeypatch.setattr("arc_policy.verify.check_business_graph", must_not_replay)
+    assert refusal(repo, "pre-push", {"ARC_POLICY_AGENT": "1"}) is None
+
+
+def test_phase_handoff_archives_code_before_verifying_graph(tmp_path: Path):
+    from arc_policy.store import active_task, begin_task, end_task, load_state
+    from arc_policy.verify import verify_task
+    from test_arc_policy import make_repo, policy_for, write_overlay
+
+    repo = make_repo(tmp_path)
+    write_overlay(
+        repo,
+        {
+            "verification": {
+                "required": ["cli_receipt"],
+                "business_graph": {"graph": "academic-v1"},
+            }
+        },
+    )
+    begin_task(repo, skill="arc-code", slug="repair")
+    assert verify_task(repo, policy_for(repo), run_tests=False)["verdict"] == "PASS"
+    end_task(repo, require_verified=True)
+    begin_task(repo, skill="arc-verify", slug="proof", force=False)
+    task = active_task(repo)
+    assert task is not None
+    assert task["skill"] == "arc-verify"
+    assert load_state(repo)["history"][-1]["skill"] == "arc-code"
+    receipt = verify_task(repo, policy_for(repo), run_tests=False)
+    assert receipt["verdict"] == "FAIL"
+    assert any(check["id"] == "business_graph" for check in receipt["checks"])
 
 
 def test_doctor_reports_local_graph_runtime_requirements(tmp_path, monkeypatch, capsys):

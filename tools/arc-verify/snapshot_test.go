@@ -76,6 +76,73 @@ func TestSnapshotExportsSixViewsAndContext(t *testing.T) {
 	}
 }
 
+func TestSnapshotCandidateTreeBeforeApprovalOrEnvironment(t *testing.T) {
+	dir := t.TempDir()
+	graph := Graph{
+		SchemaVersion: 2, ID: "candidate-v2", System: "candidate.system",
+		Scope: "Synthetic first-model fixture; not a confirmed product contract",
+		Nodes: []Node{
+			{ID: "candidate.system", Kind: "system", Name: "Candidate system"},
+			{ID: "candidate.domain", Kind: "domain", Name: "Candidate domain"},
+			{ID: "candidate.capability", Kind: "capability", Name: "Capability to confirm"},
+		},
+		Edges: []Edge{
+			{ID: "contains.domain", From: "candidate.system", To: "candidate.domain", Kind: "contains"},
+			{ID: "contains.capability", From: "candidate.domain", To: "candidate.capability", Kind: "contains"},
+		},
+	}
+	body, err := json.Marshal(graph)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, dbfile := filepath.Join(dir, "candidate.json"), filepath.Join(dir, "data.db")
+	if err := os.WriteFile(file, body, 0600); err != nil {
+		t.Fatal(err)
+	}
+	cliJSON(t, "init", "--db", dbfile)
+	cliJSON(t, "validate", "--file", file)
+	cliJSON(t, "import", "--db", dbfile, "--file", file)
+	cliJSON(t, "model", "--db", dbfile, "--graph", graph.ID)
+	out := filepath.Join(dir, "site")
+	cliJSON(t, "snapshot", "--db", dbfile, "--graph", graph.ID,
+		"--config", filepath.Join(dir, "missing-config.jsonc"),
+		"--assets", snapshotAssets(t), "--out", out)
+	snapshot := readSnapshot(t, out)
+	if snapshot.Model.Approved || len(snapshot.Model.Rules) != 0 || len(snapshot.Model.Data.Rules) != 0 || len(snapshot.Runs) != 0 {
+		t.Fatalf("candidate export manufactured approval, rules or execution: %+v", snapshot)
+	}
+	if snapshot.Meta.Environment != "" || snapshot.Meta.Round != "" || len(snapshot.Views) != 6 {
+		t.Fatalf("candidate display requires or invents test context: %+v", snapshot.Meta)
+	}
+	if snapshot.Catalog.EnvironmentError == "" {
+		t.Fatal("missing execution configuration must remain visible")
+	}
+	for name, view := range snapshot.Views {
+		if view.Verdict == "PASS" || view.Coverage.Obligations.Passed != 0 {
+			t.Fatalf("candidate view %s became verified: %+v", name, view)
+		}
+	}
+	d, err := openDB(dbfile, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.close()
+	rows, err := d.query("SELECT kind,status FROM tasks WHERE graph="+quote(graph.ID), 2)
+	if err != nil || !reflect.DeepEqual(rows, [][]string{{"MODEL_SCHEMA_GUARD", "BLOCKED"}}) {
+		t.Fatalf("candidate must retain only its blocking schema guard: %v %v", rows, err)
+	}
+	for _, table := range []string{"runs", "verification_rounds", "registered_runners", "fixtures"} {
+		rows, err := d.query("SELECT COUNT(*) FROM "+table, 1)
+		if err != nil || len(rows) != 1 || rows[0][0] != "0" {
+			t.Fatalf("candidate review wrote %s: %v %v", table, rows, err)
+		}
+	}
+	gate, err := d.gate(graph.ID)
+	if err != nil || gate["verdict"] != "BLOCKED" {
+		t.Fatalf("unconfirmed candidate must not satisfy acceptance: %v %v", gate, err)
+	}
+}
+
 func latestRun(t *testing.T, fixture executionFixture) string {
 	t.Helper()
 	rows, err := fixture.d.query("SELECT id FROM runs ORDER BY rowid DESC LIMIT 1", 1)

@@ -21,7 +21,7 @@
 
 - `read` 的 wrapper 原有第二位置网络代理参数未到达 Python 本地抓取层；现在显式传递。默认保持直连，`--use-proxy` 仍专指用户许可的第三方提取。
 - `write` 保留默认 Gollum `[[label|target]]`；通过 `--wikilink-style obsidian` 选择 `[[target|label]]`。两种方言都保护链接目标，只检查/修复显示文字。
-- `learn` 声明 read/write 为包依赖；语义筛选按本机 TypeSafe 规则执行，确定性标点检查留在本地。
+- `learn` 声明 read/write 为包依赖；确定性标点检查留在本地。
 - check/health 不携带上游扫描或执行脚本。外部动作须有本任务授权；已有授权跨阶段有效。
 
 ## 分发

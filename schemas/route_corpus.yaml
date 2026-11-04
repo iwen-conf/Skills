@@ -1,7 +1,7 @@
 # Cross-family routing regression for scripts/route_probe.py (TypeSafe Jev, description-only selection).
 # Each case names the skill a host should load first. Two-phase requests expect the first phase.
 # Every adjacent pair of entrypoints has at least three near-negative cases across this file.
-external: [typesafe-ai, agent-browser, easyeda-api, lanhu-design, swiftui-pro]
+external: [agent-browser, easyeda-api, lanhu-design, swiftui-pro]
 cases:
   # arc-code vs ui-design / check / cnb / verticals
   # Design-led first phase is valid: ui-design writes DESIGN.md and hands off to arc-code, which owns the stack.
@@ -37,6 +37,12 @@ cases:
   - {utterance: 画一下这个服务的模块架构图, expect: arc-explore}
   - {utterance: arc-idx 索引过期了，帮我重建, expect: arc-explore}
   # arc-verify vs android / arc-code / agent-browser
+  - {utterance: 完整测试这个系统的所有业务，先发现业务再按图生成任务, expect: arc-verify}
+  - {utterance: 测试整个教务系统的所有交互, expect: arc-verify}
+  - {utterance: 建立数据库里的业务树图，先给我核对再测试, expect: arc-verify}
+  - {utterance: 给本项目做完整业务测试，目前没有业务图, expect: arc-verify}
+  - {utterance: 只跑这个包现有的单元测试，不建立业务图, expect: arc-verify}
+  - {utterance: 只执行 SQL lint，不操作业务系统, expect: arc-verify}
   - {utterance: 给支付回调补一组回归测试并跑一遍, expect: arc-verify}
   - {utterance: 验证扣库存在并发下不会超卖, expect: arc-verify}
   - {utterance: 这个迁移能不能上线，给个发布门禁结论, expect: arc-verify}
@@ -77,7 +83,7 @@ cases:
   # design sources
   - {utterance: 读一下这个蓝湖设计稿，把切图和标注拿下来, expect: lanhu-design}
   - {utterance: 给新品牌做一套 logo 和品牌视觉板, expect: ui-design}
-  # cloud, 3D, EDA, lazycat, typesafe
+  # cloud, 3D, EDA, lazycat
   - {utterance: 用 Durable Objects 实现一个聊天室, expect: cloudflare}
   - {utterance: wrangler deploy 报错了, expect: cloudflare}
   - {utterance: 配置 Cloudflare Zero Trust 访问策略, expect: cloudflare}
@@ -86,4 +92,4 @@ cases:
   - {utterance: 在嘉立创EDA里给原理图加一个电阻并布线, expect: easyeda-api}
   - {utterance: 把这个 GitHub 开源项目迁移到懒猫微服上架, expect: lazycat}
   - {utterance: 更新一下微服里已安装应用的版本, expect: lazycat}
-  - {utterance: 在我们的工单系统里加一个按意图自动分派的分类器, expect: [typesafe-ai, arc-code]}
+  - {utterance: 在我们的工单系统里加一个按意图自动分派的分类器, expect: arc-code}

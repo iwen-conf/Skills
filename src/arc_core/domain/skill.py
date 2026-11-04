@@ -24,59 +24,151 @@ ARC_SHARED_DIR = "_shared"
 # estimate_tokens. Per-file budgets alone let shared documents grow until a task loads as much
 # as the pre-2.0 skill mesh; these ceilings make that regression fail validation.
 ARC_LOAD_SCENARIOS: dict[str, tuple[int, tuple[str, ...]]] = {
-    "go-repair": (15500, (
-        "Arc/arc:code/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
-        "Arc/_shared/coding-discipline.md", "docs/execution-truth.md", "Arc/arc:code/references/repair.md",
-        "Arc/_shared/conventions/go-backend.md", "Arc/_shared/conventions/go-type-safety.md",
-    )),
-    "go-feature": (12000, (
-        "Arc/arc:code/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
-        "Arc/_shared/coding-discipline.md", "Arc/_shared/conventions/go-backend.md",
-        "Arc/_shared/conventions/go-type-safety.md",
-    )),
-    "fullstack-api": (18000, (
-        "Arc/arc:code/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
-        "Arc/_shared/coding-discipline.md", "Arc/_shared/conventions/go-backend.md",
-        "Arc/_shared/conventions/go-type-safety.md", "Arc/_shared/conventions/frontend.md",
-        "Arc/_shared/api-contract.md", "Arc/_shared/http-api-design.md",
-    )),
-    "pr-review": (9500, (
-        "Arc/arc:audit/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
-        "Arc/arc:audit/references/diff-review.md",
-    )),
-    "pr-re-review": (10500, (
-        "Arc/arc:audit/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
-        "Arc/arc:audit/references/diff-review.md", "Arc/arc:audit/references/review-loop.md",
-    )),
-    "appsec-campaign": (19000, (
-        "Arc/arc:audit/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
-        "Arc/arc:audit/references/appsec.md", "Arc/arc:audit/references/attack-classes.md",
-        "Arc/arc:audit/references/scanners.md", "Arc/_shared/finding-campaign.md",
-    )),
-    "pg-reliability": (15500, (
-        "Arc/arc:verify/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
-        "Arc/arc:verify/references/txn-faults.md", "Arc/arc:verify/references/case-design.md",
-        "Arc/arc:verify/references/db.md",
-    )),
-    "verify-flow": (14000, (
-        "Arc/arc:verify/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
-        "Arc/arc:verify/references/flow-model.md", "Arc/arc:verify/references/flow-matrix.md",
-        "Arc/arc:verify/references/case-design.md",
-    )),
-    "plan-model": (13000, (
-        "Arc/arc:plan/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
-        "docs/execution-truth.md", "Arc/arc:plan/references/closure-design.md",
-        "Arc/arc:plan/references/closure-spec-format.md",
-    )),
-    "plan-tasks": (15500, (
-        "Arc/arc:plan/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
-        "docs/execution-truth.md", "Arc/arc:plan/references/task-docs.md",
-        "Arc/arc:plan/references/task-templates.md",
-    )),
-    "vet-select": (9000, (
-        "Arc/arc:vet/SKILL.md", "Arc/_shared/contract.md", "Arc/_shared/code-intel.md",
-        "Arc/arc:vet/references/search-playbook.md", "Arc/arc:vet/references/decision-template.md",
-    )),
+    "go-repair": (
+        15500,
+        (
+            "Arc/arc:code/SKILL.md",
+            "Arc/_shared/contract.md",
+            "Arc/_shared/code-intel.md",
+            "Arc/_shared/coding-discipline.md",
+            "docs/execution-truth.md",
+            "Arc/arc:code/references/repair.md",
+            "Arc/_shared/conventions/go-backend.md",
+            "Arc/_shared/conventions/go-type-safety.md",
+        ),
+    ),
+    "go-feature": (
+        12000,
+        (
+            "Arc/arc:code/SKILL.md",
+            "Arc/_shared/contract.md",
+            "Arc/_shared/code-intel.md",
+            "Arc/_shared/coding-discipline.md",
+            "Arc/_shared/conventions/go-backend.md",
+            "Arc/_shared/conventions/go-type-safety.md",
+        ),
+    ),
+    "fullstack-api": (
+        18000,
+        (
+            "Arc/arc:code/SKILL.md",
+            "Arc/_shared/contract.md",
+            "Arc/_shared/code-intel.md",
+            "Arc/_shared/coding-discipline.md",
+            "Arc/_shared/conventions/go-backend.md",
+            "Arc/_shared/conventions/go-type-safety.md",
+            "Arc/_shared/conventions/frontend.md",
+            "Arc/_shared/api-contract.md",
+            "Arc/_shared/http-api-design.md",
+        ),
+    ),
+    "pr-review": (
+        9500,
+        (
+            "Arc/arc:audit/SKILL.md",
+            "Arc/_shared/contract.md",
+            "Arc/_shared/code-intel.md",
+            "Arc/arc:audit/references/diff-review.md",
+        ),
+    ),
+    "pr-re-review": (
+        10500,
+        (
+            "Arc/arc:audit/SKILL.md",
+            "Arc/_shared/contract.md",
+            "Arc/_shared/code-intel.md",
+            "Arc/arc:audit/references/diff-review.md",
+            "Arc/arc:audit/references/review-loop.md",
+        ),
+    ),
+    "appsec-campaign": (
+        19000,
+        (
+            "Arc/arc:audit/SKILL.md",
+            "Arc/_shared/contract.md",
+            "Arc/_shared/code-intel.md",
+            "Arc/arc:audit/references/appsec.md",
+            "Arc/arc:audit/references/attack-classes.md",
+            "Arc/arc:audit/references/scanners.md",
+            "Arc/_shared/finding-campaign.md",
+        ),
+    ),
+    "pg-reliability": (
+        15500,
+        (
+            "Arc/arc:verify/SKILL.md",
+            "Arc/_shared/contract.md",
+            "Arc/_shared/code-intel.md",
+            "Arc/arc:verify/references/txn-faults.md",
+            "Arc/arc:verify/references/case-design.md",
+            "Arc/arc:verify/references/db.md",
+        ),
+    ),
+    "verify-flow": (
+        14000,
+        (
+            "Arc/arc:verify/SKILL.md",
+            "Arc/_shared/contract.md",
+            "Arc/_shared/code-intel.md",
+            "Arc/arc:verify/references/flow-model.md",
+            "Arc/arc:verify/references/flow-matrix.md",
+            "Arc/arc:verify/references/case-design.md",
+        ),
+    ),
+    "verify-graph": (
+        14000,
+        (
+            "Arc/arc:verify/SKILL.md",
+            "Arc/_shared/contract.md",
+            "Arc/_shared/code-intel.md",
+            "Arc/_shared/workflow.md",
+            "Arc/arc:verify/references/business-graph.md",
+            "Arc/arc:verify/references/business-graph-v2.md",
+        ),
+    ),
+    "verify-graph-start": (
+        14000,
+        (
+            "Arc/arc:verify/SKILL.md",
+            "Arc/_shared/contract.md",
+            "Arc/_shared/code-intel.md",
+            "Arc/_shared/workflow.md",
+            "Arc/arc:verify/references/business-graph.md",
+            "Arc/arc:verify/references/business-graph-start.md",
+        ),
+    ),
+    "plan-model": (
+        13000,
+        (
+            "Arc/arc:plan/SKILL.md",
+            "Arc/_shared/contract.md",
+            "Arc/_shared/code-intel.md",
+            "docs/execution-truth.md",
+            "Arc/arc:plan/references/closure-design.md",
+            "Arc/arc:plan/references/closure-spec-format.md",
+        ),
+    ),
+    "plan-tasks": (
+        15500,
+        (
+            "Arc/arc:plan/SKILL.md",
+            "Arc/_shared/contract.md",
+            "Arc/_shared/code-intel.md",
+            "docs/execution-truth.md",
+            "Arc/arc:plan/references/task-docs.md",
+            "Arc/arc:plan/references/task-templates.md",
+        ),
+    ),
+    "vet-select": (
+        9000,
+        (
+            "Arc/arc:vet/SKILL.md",
+            "Arc/_shared/contract.md",
+            "Arc/_shared/code-intel.md",
+            "Arc/arc:vet/references/search-playbook.md",
+            "Arc/arc:vet/references/decision-template.md",
+        ),
+    ),
 }
 
 # These entrypoints explicitly advertise diagnosis, repair, or failure-driven
@@ -134,7 +226,9 @@ RETIRED_ARC_SKILLS = (
     "arc:trace",
 )
 RETIRED_ARC_SKILL_RE = re.compile(
-    r"(?<![\w-])(?:" + "|".join(re.escape(name) for name in RETIRED_ARC_SKILLS) + r")(?![\w-])"
+    r"(?<![\w-])(?:"
+    + "|".join(re.escape(name) for name in RETIRED_ARC_SKILLS)
+    + r")(?![\w-])"
 )
 
 VAGUE_PHRASES = (
@@ -163,7 +257,17 @@ SUPPORTED_SKILL_PREFIXES = ("arc:", "lark-", "wxskills:")
 SKILL_NAMESPACE_DIRS = {
     "arc": "Arc",
 }
-VERTICAL_SKILL_ROOTS = ("Android", "HarmonyOS", "CNB", "Lark", "Waza", "Lazycat", "Design", "Cloudflare", "ThreeJS")
+VERTICAL_SKILL_ROOTS = (
+    "Android",
+    "HarmonyOS",
+    "CNB",
+    "Lark",
+    "Waza",
+    "Lazycat",
+    "Design",
+    "Cloudflare",
+    "ThreeJS",
+)
 # Validated source distributions; deliberately excluded from default installation.
 SOURCE_SKILL_PATHS: tuple[str, ...] = ()
 

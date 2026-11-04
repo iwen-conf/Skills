@@ -35,12 +35,21 @@ verification:
 The graph check is an additional fail-closed receipt condition; it accepts a v1
 `planned_rule_tasks` proof or a v2 `complete_business_model_obligations` proof; existing
 unit/integration/E2E `verification.test_commands` continue to run.
+For a required graph, `verification.fail_closed: false` cannot turn BLOCKED/NOT_RUN into PASS.
+Historical PASS receipts with missing, duplicate or non-PASS mandatory graph checks are refused
+by current-tree, exact-tree push and delivered-task checks. `AUTHORIZED` remains a distinct
+user waiver, never business verification evidence.
 No graph ID, no local DB, unconfirmed business rules, unexecuted tasks,
 or a failing observed state => no graph PASS. Risks discovered by AI
 remain non-gating until the user confirms them as business rules, unless
 the project sets `risk_review: true`.
 See `tools/arc-verify/README.md` and
 `Arc/arc:verify/references/business-graph.md`.
+
+Switching Skills also requires switching the active policy task: record the old phase's
+evidence, `task end` (or `task end --incomplete` with its reason in the existing progress
+document), then `task begin --skill <next-skill>`. Loading a Skill alone does not update
+the stored task identity or its verification scope.
 
 This is workflow enforcement, not an adversarial security boundary:
 a same-user agent can alter local files or disable hooks. Use protected CI

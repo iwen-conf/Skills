@@ -1,181 +1,127 @@
 # Business graph → task cards → real execution
 
-Use with flow-model/flow-matrix when business-chain work is configured. Keep expected functionality
-independent of implementation observations. The route is confirmed RULE → graph → bounded card →
-real execution → independent RAW → verdict, retaining every original FAIL.
+For requested/configured graph work, follow this lifecycle instead of building a second branch
+ledger. Reuse confirmed FLOW/RULE IDs and existing project progress. Ordinary tests do not need a
+graph. v2 execution/commands: [business-graph-v2](business-graph-v2.md).
 
-Nodes are feature/action/condition/state; edges are contains/requires/transitions/recovers/forbids.
-RULE prerequisites are AND; alternative recovery actions represent OR paths. The short-lived Go
-CLI uses official in-process `tursogo` and the target project's local `.arc/verify/data.db`.
-Remote servers are test targets; the ledger needs no cloud, PostgreSQL or object store.
-Physical fixture reconstruction and external-effect reversal require authorized real runners.
+Whole-system/all-business/all-interaction tests select this route without requiring an existing
+DB or user-supplied model. For first modeling or missing capabilities, use
+[graph-start](business-graph-start.md); the existing Agent discovers semantics and writes the model.
 
-## Confirm the catalog before planning
+The Go CLI opens target-local `.arc/verify/data.db` with in-process `tursogo`, then exits.
+Remote servers are authorized test targets; no cloud ledger or persistent service. Nodes are
+feature/action/condition/state; edges contains/requires/transitions/recovers/forbids.
+Prerequisites are AND, recovery alternatives OR. Keep only the current bounded card in context.
 
-Reuse the existing project requirement, flow and task documents. Present a business catalog with
-feature/action IDs, actor, entry, prerequisites, success, rejection and ways to make each failed
-condition true again. Mark the source and unresolved question; ask the user only for decisions
-not already explicitly confirmed. Separately record implementation entrances and evidence.
-The difference reveals both possibly missing functionality and behavior contradicting a RULE.
+## 1. Confirm expected functionality separately
 
-`source: user|document` is provenance, not approval. Import creates a candidate; catalog approval
-and each RULE approval are required before mandatory planning. AI proposals and industry practice
-stay RISK even if the user accepts that risk. Only an explicit normative decision creates a RULE.
-An unclear oracle or outcome is a SPECIFICATION GAP; implementation absence requires broader
-indexed discovery and real entry evidence before confirmation. Never turn `NOT_FOUND` into FAIL
-or silently remove a missing expected feature from the catalog.
+Confirm the discovered/reused catalog's IDs, actors, entries, prerequisites, outcomes and recovery paths;
+ask only unresolved decisions, citing sources. Keep implementation evidence separate. Preserve
+expected-but-unfound features as candidate gaps until broader indexed discovery and real entry
+evidence confirm absence. `NOT_FOUND` never means FAIL.
 
-## Obligations and bounded exploration
+Import creates a candidate; `source: user|document` is not approval. Approve catalog and each RULE
+before planning. Accepted AI/industry risks stay RISK; only normative decisions create RULEs.
+Undefined outcome/oracle is a SPECIFICATION GAP. Approval needs a human terminal; agents must not
+answer through pipes/PTYs. A prompt alone does not authenticate the person.
 
-| Obligation | Conditions and observation |
+RULEs declare actor, UI/API entry, operation, AND conditions, outcomes and independent oracle;
+missing fields block. Conditions must match `requires` both ways. Task-ID collisions/conflicting
+obligations fail; identical planning is idempotent. Changed RULEs need a new graph version.
+
+## 2. Bind fixtures and plan bounded cards
+
+JSONC stores project environment/account aliases and credential references; no secrets in graph,
+RAW, logs or git. Distinguish independent/synchronized environments. Accounts need exact role,
+principal and environment; business fixtures belong to that environment. Conflicting IDs fail
+atomically; identical imports add zero. `fixtures --file` / `fixture --id` manage recipes, not live data.
+
+`scan --file` records implementation evidence (commit required for EXISTENCE); `gaps --graph`
+compares it with expectations. Scan/configured adapters never prove execution.
+
+`plan --limit` materializes bounded obligations; `next` returns ≤8 cards: IDs, actor/entry/action,
+condition truths, outcome, oracle and setup/log references. Never expand the whole graph/YAML.
+Cycles/truncation/unapproved actions/unreachable states stay gaps. `recover --graph --condition`
+inspects bounded recovery prerequisites; it neither executes nor adds a full recovery suite.
+
+| Obligation | Required observation |
 |---|---|
-| POSITIVE | All AND prerequisites independently true; normal client operation reaches the confirmed state |
-| NEGATIVE | Exactly the selected prerequisite false, others true; normal client refusal and independent readback of the contract's forbidden-effect scope |
-| FORCED | The same unmet prerequisite; authorized legitimate API attempt proves server denial and no forbidden write |
-| Recovery | Each known path that can satisfy the condition; verify every action's own prerequisites and read back the actual state |
-| Cross-role/concurrency | Only when required by the confirmed flow; explicit actors, ordering/interleaving and independent business invariants |
-| EXISTENCE (v2) | A rule's entry must exist on the current candidate: satisfied only by a `scan` PRESENT observation bound to the round's commit with unchanged evidence; `NOT_FOUND` stays a candidate gap (BLOCKED), never FAIL |
-| SEQUENCE (v2) | Declared `flow` and ordered `steps` (contiguous transitions from the flow's initial state); one runner batch per step, each judged by its own transition rule; the first divergent step stops the run |
-| CONSISTENCY (v2) | Two to four `layers` (`ui`/`api`/`database`/`async`), each with its own oracle on the final step; a missing layer blocks, a disagreeing layer fails |
-| DERIVED (runtime) | `derive --run` after a FAIL: each approved transition leaving the observed state must hold again from an equivalent start state; it joins the denominator. An undeclared observed state is only an exploration risk |
+| POSITIVE | All AND prerequisites independently true; client operation reaches confirmed state |
+| NEGATIVE | Selected prerequisite false, all others true; client refusal and forbidden-effect readback |
+| FORCED | Same unmet prerequisite; authorized legitimate API attempt proves server denial |
+| Recovery | Each known path satisfying the condition, including its own prerequisites and actual state |
+| Cross-role/concurrency | Only when contracted; actors, ordering/interleaving and independent invariants |
+| EXISTENCE (v2) | PRESENT scan on round commit with unchanged evidence; NOT_FOUND remains BLOCKED/candidate |
+| SEQUENCE (v2) | Declared ordered contiguous transitions from initial state; batch per step, own rule; stop at first divergence |
+| CONSISTENCY (v2) | Two–four declared ui/api/database/async layers with separate final oracles; missing blocks, disagreement fails |
+| DERIVED | After FAIL, `derive --run` adds approved outgoing transitions from equivalent observed state to denominator; undeclared states stay exploration risks |
 
-`plan --limit` materializes bounded basic obligations; `next` returns at most eight cards.
-Use `recover` to inspect a condition's local neighborhood, then expand only the selected path.
-Unapproved actions, cycles, truncation and unreachable states remain reported gaps. `recover`
-does not execute, restore a fixture or add a complete recovery suite to the gate. Keep each card
-to IDs, actor/entry/action, condition truth values, expected outcome and oracle; use references
-for logs and setup. Do not feed the AI the whole graph or an expanded YAML for every possible path.
+## 3. Execute and retain independent RAW
 
-Example command sequence:
+Use the [v2 execution sequence](business-graph-v2.md#minimal-v2-execution), or the
+[v1 manual ledger example](../../../tools/arc-verify/README.md#manual-v1-ledger-example).
+Recording RAW is not execution.
 
-    go -C tools/arc-verify build -o ~/.local/bin/arc-verify .
-    arc-verify init
-    arc-verify validate --file /path/to/Skills/tools/arc-verify/examples/academic-v1.json
-    arc-verify import --file /path/to/Skills/tools/arc-verify/examples/academic-v1.json
-    arc-verify approve --graph academic-v1
-    arc-verify approve --graph academic-v1 --rule R-ENROLL
-    arc-verify plan --graph academic-v1
-    arc-verify next --graph academic-v1
-    arc-verify fixtures --file /path/to/Skills/tools/arc-verify/examples/fixtures.json
-    arc-verify start --task academic-v1/R-ENROLL/POSITIVE --env test60 --commit <sha> --account student-01 --fixture course-open
-    arc-verify step --run <run> --expected ENROLLED --observed ENROLLED --evidence .arc/verify/raw/<run>-01.json
-    arc-verify finish --run <run>
-    arc-verify trace --run <run>
-    arc-verify gate --graph academic-v1
+The runner independently verifies served candidate, effective target, principal and live fixture
+state. Context/start output is expected binding, never observation. Start locks account/fixture;
+PASS releases them, FAIL/BLOCKED retain them. Same-user files/CLI are not a cryptographic boundary;
+high assurance needs independently trusted execution.
 
-Approval requires an interactive human terminal; agents must not supply the user's confirmation
-through a pipe or PTY. The prompt alone cannot prove who typed it.
-Evidence must bind the complete identity returned by start, run ID, actual state, runner identity,
-oracle and exit code. That start identity is expected context: a real runner must independently
-verify the served candidate, effective target, principal and fixture state before recording it.
-A user-owned CLI process and same-user file writes are not a cryptographic trust boundary;
-high assurance requires an isolated runner or protected CI check.
+RAW records complete start identity (graph/task/environment/target, commit/worktree/config/graph
+hashes, actor/account/principal/account hash, fixture/hash), run, sequential step, independent
+expected, observed, runner, oracle and integer exit_code. Final action observes every condition as
+boolean. Duplicate/case-fold fields and null/omitted/blank observations fail. `finish`/`gate`
+recheck frozen meaning and RAW identity/content/hash; empty/altered/deleted evidence cannot pass.
 
-Project `.arc/policy.yaml` may enable the graph gate:
+### Rejection scope
 
-    verification:
-      business_graph:
-        graph: academic-v1
-        db: .arc/verify/data.db
+Negative/forced rejection needs explicit server denial and nonempty before/after readbacks equal
+within the contract's forbidden durable/external-effect scope. Explicitly permitted denial/audit
+effects are observed separately. `UNCHANGED` alone, HTTP 200 or a client message proves nothing.
+This matches the [flow readback contract](flow-matrix.md#4-prepost-state-diff).
 
-Once `.arc/verify/config.jsonc` exists, the policy gate blocks unconfigured graph identity.
-Preserve `verification.test_commands` and do not replace code tests with graph tests.
+Missing/malformed RAW or runner failure is BLOCKED/HALT; wrong setup BLOCKED/RESET. Correct setup
+and successful observation of wrong state, non-denial or forbidden mutation is FAIL. Observer errors
+are not product defects. `trace` retains first divergence/latest state; later PASS never erases FAIL.
 
-## v2 model and runtime commands
+## 4. Recover without replaying uncertain effects
 
-v2 fields, state equivalence and the `run-chain`, `derive`, `discover`, risk, reference, mutation and
-`snapshot` commands: [business-graph-v2](business-graph-v2.md).
+After FAIL, read state independently; `trace` locates safe approved next/recovery paths. Continue
+in a linked new task/run; unknown state HALTs/BLOCKs. Abort retains history/locks; retry requires a
+fresh independent checkpoint and atomically registers it, sets READY, releases old locks.
+Neither restores data nor reverses effects.
 
-## Implementation inventory and reusable test data
+Use `context --run <old-run> --phase fixture --commit <current-sha>` with current root/config.
+Its EXPECTED_CONTEXT_NOT_EVIDENCE supplies binding/recipe/conditions. An independent observer writes
+checkpoint RAW with current identity, old run, phase fixture, step 0, actual state/conditions,
+safe_to_continue true, frozen oracle and exit 0. Retry preserves its hash; start rechecks checkpoint
+and candidate before locking again. Unknown state, altered checkpoint or wrong principal/conditions
+blocks continuation. Physical reconstruction/reversal requires an authorized real runner.
 
-The Go CLI also accepts `scan --file` (actual discovered action plus evidence; add `"commit"` so
-EXISTENCE can bind the observation to a candidate) and `gaps --graph` (contract action compared with
-most recent observation).
-`NOT_FOUND` means a **possible absence** to investigate, not a confirmed product defect.
-`fixtures --file` imports a fixture recipe and `fixture --id` retrieves it;
-no real server data is mutated by these commands. User-approved test-data setup
-and replay operations require explicit runner adapters and a state readback.
+`prepare --graph --env --commit` reopens stale PASS cards for a changed candidate/config/environment,
+preserving history. RUNNING blocks prepare; FAIL/BLOCKED still need checkpoint recovery. Preparation
+is NOT_RUN. Recipe changes require a new fixture ID and live identity/state readback before reuse.
 
-Each execution step has its own RAW and independent expected graph state.
-The first diverging step is preserved as FAIL; a known safe observed state can
-be a REPLAN candidate, never a silent correction. `finish` and `gate`
-independently validate evidence content, file identity/hash and frozen task meaning; changed or deleted
-evidence invalidates completion. Each `UNCHANGED` rejection requires
-before/after equality in the contract's forbidden-effect readback and rejected-operation evidence,
-not merely a string. Contracted failure/audit records outside that scope may legitimately change.
+## 5. Gate, hand off and strengthen
 
-## Execution card semantics (frozen contract)
+Project `.arc/policy.yaml` enables graph verification:
 
-- Every RULE declares actor, UI/API entry, operation, AND conditions, positive and rejected outcomes and a separately sourced oracle. A missing declaration blocks model validation.
-- `requires` edges and RULE conditions must match both ways. Distinct obligations cannot share a task ID; idempotent planning preserves an identical stored obligation and rejects a conflicting one.
-- `next` expands only up to eight ready cards at a time, providing their actor, entry, expected condition truth values, action and oracle. The model is never copied wholesale into the AI context.
-- `recover --graph <id> --condition <id>` searches known recovery actions, their prerequisites and cycles up to a bounded depth. Actions not backed by approved rules are marked unresolved, not executed.
-- `step --run --expected --observed --evidence` records a sequential step. A final action step must include every observed precondition in RAW; a wrong prerequisite is BLOCKED/RESET, not PASS.
-- A verified negative/forced rejection requires server-side denial and equal before/after readbacks of the forbidden business effects; retain separately permitted failure/audit effects. A real client success message by itself does not prove the business postcondition.
-- `trace` identifies the first divergent step and the latest observed state; `finish` cannot pass an empty run or a run with altered evidence.
-- `abort --run --reason` retains the stopped run and fixture locks. `retry --task --reason --commit --evidence` requires a fresh independent fixture checkpoint; checkpoint registration, READY and lock release commit atomically. These commands **do not restore data**.
-- `prepare --graph --env --commit` reopens stale PASS tasks for a new candidate/config/environment, preserving old run verdicts. It refuses RUNNING graphs and leaves FAIL/BLOCKED tasks awaiting checkpoint recovery. Preparation is `NOT_RUN`, not execution proof.
-- `arc-policy` receipts must be revalidated against the local graph and RAW before delivery, not just against the Git tree.
+```yaml
+verification:
+  business_graph:
+    graph: <confirmed-graph-version>
+    db: .arc/verify/data.db
+```
 
-## RAW, verdict and resume boundary
+Existing `.arc/verify/config.jsonc` requires graph identity for policy verification. Preserve
+verification.test_commands. Required graphs only accept PASS, regardless of fail_closed;
+current-tree receipts recheck graph/RAW, committed receipts retain original checks. AUTHORIZED is no proof.
 
-The runner records `identity` (graph/task/environment/target, source commit/worktree/config/graph
-hashes, actor/account/principal/account hash, fixture/hash), `run`, sequential `step`,
-independently specified `expected`, actual `observed`,
-`runner`, `oracle` and an explicit integer `exit_code`. Final action RAW includes every required
-condition as an observed boolean. Rejections include explicit `denied` and nonempty before/after
-readbacks. Duplicate JSON fields, including case-fold aliases in Go inputs, are invalid; null,
-omitted or blank observations cannot acquire meaning from language zero values.
+For phase ownership/task identity use [shared workflow §6](../../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
+`handoff --to <arc-skill>` returns bounded context, not approval/proof. Keep one progress Markdown;
+verify owns graph/RAW, code fixes confirmed defects without waiting for the old red graph to pass.
 
-Missing/malformed evidence is rejected; the claim remains BLOCKED until recollected. A nonzero
-runner exit is BLOCKED/HALT, even when a status string looks correct. Wrong setup conditions are
-BLOCKED/RESET. With a successful observer and correct setup, wrong state, explicit non-denial or
-forbidden mutation is FAIL. Preserve RAW and the first divergence before diagnosis. An observer's
-failure cannot be handed to `arc:code` as a confirmed product defect.
-
-After FAIL, use `trace` and independent readback to decide whether the actual state is safe and
-has a confirmed next/recovery path. Continue in a new task/run; otherwise HALT/BLOCK. `abort`
-and `retry` retain history but do not undo external effects. Revalidate fixture state and the
-candidate/environment before resuming. Changed RULEs get a new graph version; changed code,
-config or environment makes affected old runs stale without deleting their historical FAIL.
-
-Store environment/account aliases and credential references in the project's JSONC config;
-keep secrets out of graph, RAW, logs and git. Distinguish independent and synchronized test
-environments using the project's actual aliases. Existing fixture recipes may be reused only
-after live state and actor identity are verified. CLI fixture import/query records references;
-account import requires the exact actor role, principal and environment; business fixtures belong
-to that environment. Conflicting recipes under one ID are rejected atomically; identical imports
-report zero additions. Start locks the account and fixture; PASS releases them, FAIL/BLOCKED retain
-them. Physical reconstruction and live identity/state observations remain runner obligations.
-
-For recovery, inspect `context --run <old-run> --phase fixture --commit <current-sha>` with the
-current `--root`/`--config`. Its `EXPECTED_CONTEXT_NOT_EVIDENCE` output supplies expected binding,
-recipe state and required conditions. An independent observer then writes RAW with that current
-identity, the old run ID, `phase: fixture`, `step: 0`, actual state/conditions, `safe_to_continue:
-true`, frozen oracle and exit 0. `retry` checks it, preserves its hash and associates it with the
-old run; `start` rechecks that checkpoint and current candidate before acquiring fresh locks.
-Unknown state, changed checkpoint or wrong principal/conditions blocks continuation.
-
-## Continuous strengthening
-
-For every confirmed failure, keep its RULE/FLOW/condition/task/run/step IDs, smallest reproducer,
-fixture recipe, candidate/environment, RAW and expected-vs-actual difference. After root-cause
-repair, re-run the failed and affected sibling obligations in a new run. New AI hypotheses remain
-RISK until confirmed; do not expand business scope to make a diagnosis fit.
-
-Prove the gate is sensitive to missing, stale, duplicate and altered evidence. Then benchmark
-real local Turso under the same candidate and workload, recording command, versions, sample size,
-latency, allocations and coverage limits. A parser/gate selftest proves that tool boundary;
-it cannot stand in for real business E2E, complete path enumeration or protected runner provenance.
-
-## Six-skill phase handoff
-
-The canonical phase mapping and authority limits are
-[Arc shared workflow §6](../../_shared/workflow.md).
-The current `arc-verify handoff` command builds a bounded read-only packet:
-`arc:explore` verifies implementation facts; `arc:plan` owns accepted
-requirements; `arc:verify` maintains test graph/RAW; `arc:code` repairs
-confirmed failures; `arc:audit` evaluates findings; `arc:vet` evaluates
-new runner dependencies. One existing task handoff record remains the
-single progress tracker. Graph FAIL must not deadlock code repairs;
-the graph gate is compulsory on `arc:verify` completion claims.
+Retain failure IDs, reproducer, recipe, candidate/environment, RAW and expected-vs-actual; rerun failed
+and sibling obligations in new runs. New hypotheses stay RISK. Check missing/stale/duplicate/altered
+evidence sensitivity. Core/planned-rule PASS does not prove real E2E, full recovery, cross-role,
+concurrency or trusted provenance; each needs separate execution evidence.

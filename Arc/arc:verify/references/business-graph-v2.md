@@ -27,33 +27,49 @@ separate sources: none of them becomes a rule by itself, and only approved rules
 
 Read with [business-graph](business-graph.md), which keeps the confirmation, card and RAW rules these commands rely on.
 
-Switching Grok/Codex/Claude Code requires only [当前状态与需求](../../../docs/03-执行任务/arc-verify-graph-runtime/当前状态与需求.md) and the target repository documents. There is no native Agent handoff, ACP protocol, file handshake or new CLI command; CLI Campaign/Checkpoint/Frontier is only for safe **test recovery**.
+## Minimal v2 execution
 
-## Capability-first exploration
+For a new project/model, first use [graph-start](business-graph-start.md) to draft, import and display
+an unapproved candidate; no environment or runner is needed for that stage. This section starts
+only after rule confirmation. Run from the target project root with its approved JSONC environment, imported v2 graph and
+environment-bound fixture/account recipes. The user approves the catalog and each RULE in a real
+terminal before planning. Use an existing authorized runner manifest with an independent oracle;
+`examples/runner-raw.json` is RAW, not a runner manifest. Missing setup/runner is BLOCKED.
 
-ARC Verify constrains the existing Grok, Codex, Claude Code or other coding Agent.
-Do not create an Agent, ACP/native handoff, file handshake, model service, HTTP
-model client, API key, or extra state store.
+Set `VERIFY_ROOT`, `VERIFY_CONFIG`, `VERIFY_GRAPH`, `VERIFY_ENV`, `VERIFY_COMMIT`,
+`VERIFY_RUNNER_FILE`, `VERIFY_TASK`, `VERIFY_ACCOUNT` and `VERIFY_FIXTURE` from that project.
+Register **all** fixtures/runners before round: it freezes their hashes. Register and execute with
+the same CLI binary. Then use these commands, copying IDs from each JSON response:
 
-1. Read requirements, confirmed RULEs, FLOWs, existing Markdown progress and HEAD.
-   Record business goals before listing endpoints.
-2. Confirm the capabilities in scope this turn as system → capability → meaningful
-   boundary. Each has an actor, goal, trigger, success/denial state and source.
-   Reuse capability IDs.
-3. Trace implementation heuristically: UI/API/RPC/consumer → usecase → rule and
-   persisted side effect. Go/OpenAPI scan is a candidate source; a route is not a
-   capability, a CRUD function is not a capability, and HTTP 200 is not business
-   success. Link actions only via Graph `implements` or traced evidence.
-4. Focus on justified boundaries (role, precondition, state, repeat/concurrency,
-   timeout/recovery, cross-capability). Do not generate a matrix per HTTP path.
-   AI inference stays RISK; unconfirmed items stay CANDIDATE/UNSPECIFIED/NOT_RUN.
-5. Verify with the existing runner and independent Oracle when authorized. Keep
-   RISK/UNSPECIFIED, RULE FAIL and missing evidence separate. A scan is not proof.
-6. Save real command/exit/RAW/Oracle results. Update the same Markdown: goal,
-   capability, source location, unsolved problem, status and the next executable
-   action.
+```bash
+arc-verify runner --file "$VERIFY_RUNNER_FILE"
+# Set VERIFY_RUNNER to response manifest.id; repeat registration for other required runners.
+arc-verify round --graph "$VERIFY_GRAPH" --env "$VERIFY_ENV" --root "$VERIFY_ROOT" \
+  --config "$VERIFY_CONFIG" --commit "$VERIFY_COMMIT"
+# Set VERIFY_ROUND to response id.
+arc-verify plan --graph "$VERIFY_GRAPH"
+arc-verify next --graph "$VERIFY_GRAPH"
+# Select VERIFY_TASK from a ready card; bounded plan may need further batches.
+arc-verify execute --task "$VERIFY_TASK" --runner "$VERIFY_RUNNER" --round "$VERIFY_ROUND" \
+  --env "$VERIFY_ENV" --root "$VERIFY_ROOT" --config "$VERIFY_CONFIG" \
+  --commit "$VERIFY_COMMIT" --account "$VERIFY_ACCOUNT" --fixture "$VERIFY_FIXTURE"
+# Set VERIFY_RUN to response run; inspect verdict and recovery.verdict, even with exit 0.
+arc-verify trace --run "$VERIFY_RUN"
+arc-verify gate --graph "$VERIFY_GRAPH"
+```
 
-An adapter entry proves a declared test entry only, not that the business action
-was observed or passed. Keep crash recovery, fencing, Attempt IDs and Oracle; do
-not delete them to simplify. Legacy `--mode ai --planner FILE` is a scripted
-fixture; normal exploration uses `heuristic` / `deterministic`.
+Multi-actor cards also need `--accounts` with the card's registered account aliases. A single card
+PASS is not whole-graph PASS: gate remains non-PASS/exit 1 until every required obligation has
+current evidence. Changing fixtures/runners requires a new round; never combine evidence across
+rounds. For a static workbench, export `snapshot --graph "$VERIFY_GRAPH" --round "$VERIFY_ROUND"`
+with built workbench `--assets` after inspecting the verdict.
+
+The existing isolated CLI check is `go -C tools/arc-verify test -count=1 -run
+'^TestExecuteUsesIndependentOracleAndRestoresFixture$' .`; it creates synthetic requirements,
+fixtures and a local HTTP target, then exercises runner/round/plan/execute and independent recovery.
+It does not approve real product RULEs or prove the target project's E2E.
+
+Switching Agents uses the existing project Markdown progress, not ACP/file handshakes or a model
+service. Business discovery follows graph-start. Keep Campaign/Checkpoint/Frontier, fencing,
+Attempt IDs and independent Oracle for safe test recovery. Adapter declarations never prove an
+observed action. Use heuristic/deterministic; `--mode ai --planner FILE` remains scripted-only.

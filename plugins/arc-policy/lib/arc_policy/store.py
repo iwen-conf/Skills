@@ -234,6 +234,41 @@ def current_receipt(root: Path) -> dict[str, Any] | None:
     return receipt if isinstance(receipt, dict) else None
 
 
+def _receipt_graph_valid(
+    root: Path, receipt: dict[str, Any], task: dict[str, Any]
+) -> bool:
+    if (
+        receipt.get("task_id") != task.get("id")
+        or receipt.get("slug") != task.get("slug")
+        or receipt.get("skill") != task.get("skill")
+    ):
+        return False
+    if receipt.get("verdict") == "AUTHORIZED":
+        return True
+    checks = receipt.get("checks", [])
+    if not isinstance(checks, list):
+        return False
+    graph_checks = [
+        check
+        for check in checks
+        if isinstance(check, dict) and check.get("id") == "business_graph"
+    ]
+    if graph_checks:
+        return len(graph_checks) == 1 and graph_checks[0].get("verdict") == "PASS"
+
+    from arc_policy.policy import load_for_repo
+    from arc_policy.verify import requires_business_graph
+
+    try:
+        policy = load_for_repo(root)
+        configured = (root / ".arc/verify/config.jsonc").is_file() or (
+            policy.get("verification") or {}
+        ).get("business_graph") is not None
+        return not (configured and requires_business_graph(task["skill"], policy))
+    except (OSError, RuntimeError, ValueError):
+        return False
+
+
 def receipt_matches_tree(root: Path, receipt: dict[str, Any] | None) -> bool:
     if (
         not receipt
@@ -242,13 +277,7 @@ def receipt_matches_tree(root: Path, receipt: dict[str, Any] | None) -> bool:
     ):
         return False
     task = active_task(root)
-    if (
-        not task
-        or not task.get("id")
-        or receipt.get("task_id") != task["id"]
-        or receipt.get("slug") != task["slug"]
-        or receipt.get("skill") != task["skill"]
-    ):
+    if not task or not task.get("id") or not _receipt_graph_valid(root, receipt, task):
         return False
     fingerprint = tree_fingerprint(root)
     if not all(
@@ -261,9 +290,7 @@ def receipt_matches_tree(root: Path, receipt: dict[str, Any] | None) -> bool:
     graph_checks = [
         check
         for check in receipt.get("checks", [])
-        if isinstance(check, dict)
-        and check.get("id") == "business_graph"
-        and check.get("verdict") == "PASS"
+        if isinstance(check, dict) and check.get("id") == "business_graph"
     ]
     if graph_checks:
         from arc_policy.policy import load_for_repo
@@ -289,7 +316,11 @@ def delivered_receipt(root: Path, task: dict[str, Any]) -> dict[str, Any] | None
     A delivered task no longer covers new edits; they need their own `task begin`.
     """
     receipt = task.get("receipt")
-    if not isinstance(receipt, dict) or receipt.get("verdict") not in RECEIPT_VERDICTS:
+    if (
+        not isinstance(receipt, dict)
+        or receipt.get("verdict") not in RECEIPT_VERDICTS
+        or not _receipt_graph_valid(root, receipt, task)
+    ):
         return None
     verified_head = receipt.get("head")
     if not isinstance(verified_head, str) or verified_head == head(root):
@@ -318,7 +349,7 @@ def receipt_covers_commits(root: Path, revisions: list[str]) -> bool:
         not revisions
         or not isinstance(receipt, dict)
         or receipt.get("verdict") not in RECEIPT_VERDICTS
-        or receipt.get("task_id") != task.get("id")
+        or not _receipt_graph_valid(root, receipt, task)
         or not isinstance(receipt.get("tree"), str)
         or not isinstance(receipt.get("head"), str)
     ):

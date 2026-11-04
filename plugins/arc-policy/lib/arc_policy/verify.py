@@ -387,6 +387,8 @@ def summarize(checks: list[dict[str, Any]], policy: dict[str, Any]) -> str:
         if item is None:
             return "FAIL"
         verdict = item["verdict"]
+        if name == "business_graph" and verdict != "PASS":
+            return "FAIL"
         if verdict == "FAIL":
             return "FAIL"
         if fail_closed and verdict in {"NOT_RUN", "BLOCKED"}:
@@ -394,6 +396,21 @@ def summarize(checks: list[dict[str, Any]], policy: dict[str, Any]) -> str:
     if any(item["verdict"] == "FAIL" for item in checks):
         return "FAIL"
     return "PASS"
+
+
+def requires_business_graph(skill: str, policy: dict[str, Any]) -> bool:
+    graph_skills = {"arc-verify"}
+    graph_config = (policy.get("verification") or {}).get("business_graph")
+    if isinstance(graph_config, dict):
+        additional_skills = graph_config.get("require_for_skills", [])
+        if not isinstance(additional_skills, list) or any(
+            not isinstance(name, str) or not name.strip() for name in additional_skills
+        ):
+            raise ValueError(
+                "verification.business_graph.require_for_skills must be a list of skill names"
+            )
+        graph_skills.update(additional_skills)
+    return skill in graph_skills
 
 
 def verify_task(
@@ -415,20 +432,9 @@ def _verify_task(
     # A graph FAIL must never prevent arc:code from fixing the defect.
     # Only arc:verify (and explicitly opted-in other skills) must close
     # the business graph before receiving a delivery receipt.
-    graph_skills = {"arc-verify"}
-    graph_config = (policy.get("verification") or {}).get("business_graph")
-    if isinstance(graph_config, dict):
-        additional_skills = graph_config.get("require_for_skills", [])
-        if not isinstance(additional_skills, list) or any(
-            not isinstance(name, str) or not name.strip() for name in additional_skills
-        ):
-            raise ValueError(
-                "verification.business_graph.require_for_skills must be a list of skill names"
-            )
-        graph_skills.update(additional_skills)
     business_check = (
         check_business_graph(root, policy)
-        if task.get("skill") in graph_skills
+        if requires_business_graph(task["skill"], policy)
         else None
     )
     if business_check is not None:

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-11-01T12:35:01.991333Z",
+  "generated_at": "2026-11-04T11:01:49.491280Z",
   "skill_count": 6,
   "skills": [
     {
@@ -47,10 +47,10 @@
     },
     {
       "name": "arc:code",
-      "description": "Every task that changes source code: write code to implement (写代码, 实现, 开发功能, 落地改动) a feature, endpoint or page (前端, 落地页, 要好看, shadcn, 小程序) on the project's stack; fix (修复) a bug, error (报错), incident or failing test by evidence-first root-cause repair (根因); refactor (重构) or migrate; change an API or schema; apply Go backend layering (DIP, usecase, 分层); write comments (注释); add timing probes to a Gin SSR path (计时, 探针, 埋点); or build TypeSafe classifiers and routers (分类器, 意图识别). Implements an existing DESIGN.md. Ends with the gate.sh completion check. Not for read-only review (use arc:audit), tests as the deliverable or release evidence (use arc:verify), PRDs, task docs or closure models (use arc:plan), visual direction without code (use ui-design), or commit, push and PR delivery (use check).",
+      "description": "Every task that changes source code: write code to implement (写代码, 实现, 开发功能, 落地改动) a feature, endpoint or page (前端, 落地页, 要好看, shadcn, 小程序) on the project's stack; fix (修复) a bug, error (报错), incident or failing test by evidence-first root-cause repair (根因); refactor (重构) or migrate; change an API or schema; apply Go backend layering (DIP, usecase, 分层); write comments (注释); add timing probes to a Gin SSR path (计时, 探针, 埋点); or build classifiers and routers (分类器, 意图识别). Implements an existing DESIGN.md. Ends with the gate.sh completion check. Not for read-only review (use arc:audit), tests as the deliverable or release evidence (use arc:verify), PRDs, task docs or closure models (use arc:plan), visual direction without code (use ui-design), or commit, push and PR delivery (use check).",
       "version": "2.7.0",
       "source_path": "Arc/arc:code/SKILL.md",
-      "line_count": 157,
+      "line_count": 156,
       "intent_router": [
         {
           "Condition": "New feature, endpoint, job or behavior from a known requirement",
@@ -106,11 +106,6 @@
           "Condition": "Change touches behavior modeled in a closure spec",
           "Mode": "adds to mode",
           "Read": "[workflow.md](../_shared/workflow.md) §4: run the plan model gate first"
-        },
-        {
-          "Condition": "Feature needs semantic judgment: classify, route, score, extract, verify (分类器, 意图识别)",
-          "Mode": "adds to mode",
-          "Read": "`typesafe-ai` skill and its live docs before any integration code"
         }
       ],
       "quick_contract": null,
@@ -208,13 +203,18 @@
     },
     {
       "name": "arc:verify",
-      "description": "Proves business code meets business expectations: flow inventories (业务流), test plans, write tests, TDD (测试先行), test-value review (测试价值), browser E2E (网页实测), coverage, fuzz, property tests, SQL lint, transaction design, reliability (concurrency, idempotency, faults), PostgreSQL G0-G31, flaky triage, load tests, release go/no-go. Verdicts PASS/FAIL/BLOCKED/NOT_RUN/FLAKY with independent oracles. Triggers: 写测试, 测试方案, 用例设计, 测试范围, 覆盖率, 可靠性, 业务不变量, 事务并发, 幂等, 压测, 发布验收, 发布证据, 模糊测试, SQL 语法检查, 事务设计, 端到端业务流, 分支覆盖, 属性测试, 模型一致性, 业务能力, 业务边界. Not for product repair (arc:code) or static review (arc:audit).",
-      "version": "3.6.2",
+      "description": "Whole-system testing with project-local DB business graphs (完整测试, 测试整个系统, 所有交互, 完整业务测试, 业务树图, 业务图), including AI-led candidate modeling from scratch. Proves business code meets business expectations: flow inventories (业务流), test plans, write tests, TDD (测试先行), test-value review (测试价值), browser E2E (网页实测), coverage, fuzz, property tests, SQL lint, transaction design, reliability (concurrency, idempotency, faults), PostgreSQL G0-G31, flaky triage, load tests, release go/no-go. Verdicts PASS/FAIL/BLOCKED/NOT_RUN/FLAKY with independent oracles. Triggers: 写测试, 测试方案, 用例设计, 测试范围, 覆盖率, 可靠性, 业务不变量, 事务并发, 幂等, 压测, 发布验收, 发布证据, 模糊测试, SQL 语法检查, 事务设计, 端到端业务流, 分支覆盖, 属性测试, 模型一致性, 业务能力, 业务边界. Not for product repair (arc:code) or static review (arc:audit).",
+      "version": "3.7.0",
       "source_path": "Arc/arc:verify/SKILL.md",
-      "line_count": 179,
+      "line_count": 183,
       "intent_router": [
         {
-          "Condition": "Business inventory, charts, branch → case ledger; T1/T2 behavior no current flow covers",
+          "Condition": "Complete system/business-chain/interaction testing, or a DB business tree/graph, including no existing DB/model",
+          "Mode": "graph",
+          "Read": "[business-graph](references/business-graph.md); first model/update: [graph-start](references/business-graph-start.md)"
+        },
+        {
+          "Condition": "Local flow inventory/charts/branch cases; no DB graph requested",
           "Mode": "flow",
           "Read": "[flow-model](references/flow-model.md), [flow-matrix](references/flow-matrix.md)"
         },
@@ -234,9 +234,39 @@
           "Read": "[test-first](../_shared/test-first.md), [case-design](references/case-design.md)"
         },
         {
-          "Condition": "Write/run unit, integration, contract, E2E, UI, load or benchmark tests",
+          "Condition": "Intermittent test/CI failure",
+          "Mode": "flaky",
+          "Read": "[release-ops](references/release-ops.md) §2, [stacks](references/stacks.md)"
+        },
+        {
+          "Condition": "PostgreSQL release: DDL, migration, plan, locks, replication, backup, upgrade, roles/RLS",
+          "Mode": "db",
+          "Read": "[db](references/db.md), then applicable gate files"
+        },
+        {
+          "Condition": "Release go/no-go, canary, rollback readiness, incident follow-up controls",
+          "Mode": "release",
+          "Read": "[release-ops](references/release-ops.md), [ops-learning](references/ops-learning.md)"
+        },
+        {
+          "Condition": "Invariant, transaction, concurrency, idempotency, retry, async, fault or recovery claim",
+          "Mode": "reliability",
+          "Read": "[txn-faults](references/txn-faults.md), [case-design](references/case-design.md)"
+        },
+        {
+          "Condition": "Execute SQL parse/lint (SQL 语法检查)",
           "Mode": "write",
-          "Read": "[stacks](references/stacks.md), [case-design](references/case-design.md), [test-value](references/test-value.md) §1–§2"
+          "Read": "[sql-static](references/sql-static.md)"
+        },
+        {
+          "Condition": "Transaction design per engine (事务设计), no execution",
+          "Mode": "design",
+          "Read": "[txn-design](references/txn-design.md)"
+        },
+        {
+          "Condition": "Web load/interaction speed, Core Web Vitals, Lighthouse (网页性能)",
+          "Mode": "write",
+          "Read": "[web-perf](references/web-perf.md)"
         },
         {
           "Condition": "Browser journey on a running or startable app (网页实测)",
@@ -254,34 +284,9 @@
           "Read": "[model-conformance](references/model-conformance.md)"
         },
         {
-          "Condition": "SQL parse/lint (SQL 语法检查); transaction design per engine (事务设计)",
-          "Mode": "design",
-          "Read": "[sql-static](references/sql-static.md); [txn-design](references/txn-design.md)"
-        },
-        {
-          "Condition": "Invariant, transaction, concurrency, idempotency, retry, async, fault or recovery claim",
-          "Mode": "reliability",
-          "Read": "[txn-faults](references/txn-faults.md), [case-design](references/case-design.md)"
-        },
-        {
-          "Condition": "PostgreSQL release: DDL, migration, plan, locks, replication, backup, upgrade, roles/RLS",
-          "Mode": "db",
-          "Read": "[db](references/db.md), then applicable gate files"
-        },
-        {
-          "Condition": "Web page load or interaction speed, Core Web Vitals, Lighthouse (网页性能)",
+          "Condition": "Other unit, integration, contract, E2E, UI, load or benchmark tests",
           "Mode": "write",
-          "Read": "[web-perf](references/web-perf.md)"
-        },
-        {
-          "Condition": "Intermittent test/CI failure",
-          "Mode": "flaky",
-          "Read": "[release-ops](references/release-ops.md) §2, [stacks](references/stacks.md)"
-        },
-        {
-          "Condition": "Release candidate go/no-go, canary, rollback readiness, incident follow-up controls",
-          "Mode": "release",
-          "Read": "[release-ops](references/release-ops.md), [ops-learning](references/ops-learning.md)"
+          "Read": "[stacks](references/stacks.md), [case-design](references/case-design.md), [test-value](references/test-value.md) §1–§2"
         },
         {
           "Condition": "Claims come from a closure model or another phase's handoff",

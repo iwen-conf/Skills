@@ -21,39 +21,24 @@ renumber; retire an ID with a note.
 
 ## 2. Discover business capabilities, then inspect the implementation
 
-Start from business requirements, not HTTP routes. A capability is a business
-goal performed by an actor, not a handler, generic CRUD operation or package.
-
-Write the **smallest useful capability inventory** in the existing flow
-catalog, before creating detailed charts:
+Start with confirmed requirements. A capability is an actor's business goal, not a route,
+generic CRUD operation or package. Keep expected business independent of implementation (§2a).
+Record a small inventory in the existing catalog before charting:
 
 | Capability / business goal | Actor & trigger | Expected outcome / source | Source evidence | Boundary and status | Next check |
 | --- | --- | --- | --- | --- | --- |
 | Existing ID/name | Role and action | Confirmed requirement/RULE or explicitly unconfirmed | UI/API/worker → usecase/service → state/write (file:line) | Confirmed / candidate / gap / NOT_RUN | One bounded verification |
 
-Heuristic discovery order: known user journeys → UI actions → API/RPC
-handlers → application/usecase and durable writes → scheduled jobs,
-events/consumers and callbacks. Group by the *business outcome*. One capability
-may span many endpoints; one endpoint may serve multiple capabilities.
-Do not promote metrics, health checks, framework plumbing or unrelated
-technical CRUD to business capabilities merely because they have routes.
-
-Reuse existing Graph v2 `implements` links, or trace actual implementation,
-to associate actions with a capability. Unknown/ambiguous mappings remain
-**UNMAPPED** candidates in Markdown, never guessed capabilities or automatic
-FAIL. An expected-but-unfound capability remains a candidate gap until
-additional search and business confirmation. Go AST/OpenAPI scans are limited
-entry clues; they do not substitute for UI, RPC, async or real execution.
+Follow journeys/UI → API/RPC → usecase/writes → jobs/events/callbacks, grouping by business outcome.
+Capabilities and endpoints are many-to-many; infrastructure routes alone imply no business capability.
+Reuse Graph v2 `implements` or traced facts. Ambiguous mappings stay **UNMAPPED**; expected-but-unfound
+capabilities stay candidate gaps pending broader search and confirmation. Go/OpenAPI scans only
+identify clues; they do not prove UI/RPC/async or business execution.
 
 ## 2a. Discover from the implementation
 
-This is the implementation inventory. First confirm expected business functionality from user
-intent and requirements; keep its catalog separate ([business-graph](business-graph.md)). A code
-trace explains what exists, never what is correct. Preserve expected-but-unfound features as
-candidate gaps, and unconfirmed semantics as RISK or SPECIFICATION GAP.
-
-Docs, READMEs and comments are leads; the executed code path is the fact. A difference between
-them is a candidate finding, never a silent choice.
+This independent inventory explains existence, never correctness. Unconfirmed semantics stay RISK
+or SPECIFICATION GAP. Docs/comments are leads; verify code paths and record differences as candidates.
 
 1. **Entry points.** Query with code-intel: routes and handlers, RPC, CLI commands, consumers and
    subscribers, schedulers and timers, webhooks and callbacks, operator tools, migrations and
@@ -80,6 +65,8 @@ Never invent a component the code lacks (queue, saga, retry, tenant). A search t
 written `not found (queries …)`.
 
 ## 3. Chart rules
+
+Review: [arch-diagram](business-diagram.md); retain Mermaid, IDs and branches for ledger checks.
 
 One or more `flowchart TD` blocks per flow file; node IDs are unique per file. The checker accepts
 this subset:
@@ -112,7 +99,7 @@ observable, explainable state. Terminal and branch `闭环` values:
 | Kind | The chart shows | Tests assert |
 |---|---|---|
 | `正常` normal | legal trigger → rules pass → writes commit → downstream done or a named pending state | final state and data are queryable; exactly the contracted effects; nothing duplicated or missing |
-| `拒绝` reject | parameter, permission or rule refusal | the contracted response; zero durable change and zero external effect (pre/post diff); a traceable reason |
+| `拒绝` reject | parameter, permission or rule refusal | contracted response; no forbidden durable/external effect; permitted denial/audit effects observed separately ([scope](flow-matrix.md#4-prepost-state-diff)) |
 | `失败` failure | an error mid-flow, then the implemented rollback, state mark or retry | no undefined state; the failure is observable and queryable; the retry or re-submit rule holds |
 | `恢复` recovery | retry, compensation, undo, replay, manual repair | no duplicate effect; original failure and recovery both traceable; the contracted final state |
 | `异步` async | an event or job handoff | trigger source; duplicate, reordered and late delivery; retry, dead-letter or manual path as implemented; completion condition |

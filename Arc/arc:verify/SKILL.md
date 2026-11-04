@@ -1,7 +1,9 @@
 ---
 name: arc:verify
-version: 3.6.2
+version: 3.7.0
 description: >-
+  Whole-system testing with project-local DB business graphs (完整测试, 测试整个系统, 所有交互,
+  完整业务测试, 业务树图, 业务图), including AI-led candidate modeling from scratch.
   Proves business code meets business expectations: flow inventories (业务流), test plans,
   write tests, TDD (测试先行), test-value review (测试价值), browser E2E (网页实测), coverage, fuzz,
   property tests, SQL lint, transaction design, reliability (concurrency, idempotency, faults),
@@ -14,8 +16,7 @@ description: >-
 
 # arc:verify
 
-Verify confirmed business expectations through real entry points and independent oracles;
-retain original verdicts and failures.
+Verify confirmed expectations through real entries and independent oracles; retain original FAILs.
 
 ## Non-trigger
 
@@ -25,13 +26,13 @@ retain original verdicts and failures.
 
 ## Goal
 
-Every confirmed claim has a FLOW/RULE ID, independent evidence, verdict and required sensitivity record.
+Confirmed claims have IDs, source, oracle, verdict and sensitivity record; candidate graphs stay unverified.
 
 ## Inputs
 
 | Input | Required | Default when absent |
 |---|---|---|
-| Target: feature, diff, PR, service or release candidate | yes | ask once |
+| Target: feature, diff, PR, service or release candidate | yes | current project; ask only if ambiguous |
 | Claims or acceptance criteria | no | draft from user intent/contracts; unconfirmed semantics stay `RISK` or `SPECIFICATION GAP` |
 | Mode | no | first matching Intent Router row |
 | Environment, runner, fixtures | no | the project's test setup |
@@ -43,57 +44,63 @@ Every confirmed claim has a FLOW/RULE ID, independent evidence, verdict and requ
 
 | Condition | Mode | Read |
 |---|---|---|
-| Business inventory, charts, branch → case ledger; T1/T2 behavior no current flow covers | flow | [flow-model](references/flow-model.md), [flow-matrix](references/flow-matrix.md) |
+| Complete system/business-chain/interaction testing, or a DB business tree/graph, including no existing DB/model | graph | [business-graph](references/business-graph.md); first model/update: [graph-start](references/business-graph-start.md) |
+| Local flow inventory/charts/branch cases; no DB graph requested | flow | [flow-model](references/flow-model.md), [flow-matrix](references/flow-matrix.md) |
 | Test plan, case list or scope only; nothing to execute | design | [case-design](references/case-design.md), [scope-cadence](references/scope-cadence.md) |
 | Judge the value of existing tests (测试价值) | design | [test-value](references/test-value.md) |
 | Acceptance tests before the code exists (测试先行, TDD) | red | [test-first](../_shared/test-first.md), [case-design](references/case-design.md) |
-| Write/run unit, integration, contract, E2E, UI, load or benchmark tests | write | [stacks](references/stacks.md), [case-design](references/case-design.md), [test-value](references/test-value.md) §1–§2 |
+| Intermittent test/CI failure | flaky | [release-ops](references/release-ops.md) §2, [stacks](references/stacks.md) |
+| PostgreSQL release: DDL, migration, plan, locks, replication, backup, upgrade, roles/RLS | db | [db](references/db.md), then applicable gate files |
+| Release go/no-go, canary, rollback readiness, incident follow-up controls | release | [release-ops](references/release-ops.md), [ops-learning](references/ops-learning.md) |
+| Invariant, transaction, concurrency, idempotency, retry, async, fault or recovery claim | reliability | [txn-faults](references/txn-faults.md), [case-design](references/case-design.md) |
+| Execute SQL parse/lint (SQL 语法检查) | write | [sql-static](references/sql-static.md) |
+| Transaction design per engine (事务设计), no execution | design | [txn-design](references/txn-design.md) |
+| Web load/interaction speed, Core Web Vitals, Lighthouse (网页性能) | write | [web-perf](references/web-perf.md) |
 | Browser journey on a running or startable app (网页实测) | write | [web-e2e](references/web-e2e.md) |
 | Untrusted input into parsers, decoders, uploads or protocols (模糊测试) | write | [fuzz-campaign](references/fuzz-campaign.md) |
 | Property/model tests; code-to-model conformance | write | [model-conformance](references/model-conformance.md) |
-| SQL parse/lint (SQL 语法检查); transaction design per engine (事务设计) | design | [sql-static](references/sql-static.md); [txn-design](references/txn-design.md) |
-| Invariant, transaction, concurrency, idempotency, retry, async, fault or recovery claim | reliability | [txn-faults](references/txn-faults.md), [case-design](references/case-design.md) |
-| PostgreSQL release: DDL, migration, plan, locks, replication, backup, upgrade, roles/RLS | db | [db](references/db.md), then applicable gate files |
-| Web page load or interaction speed, Core Web Vitals, Lighthouse (网页性能) | write | [web-perf](references/web-perf.md) |
-| Intermittent test/CI failure | flaky | [release-ops](references/release-ops.md) §2, [stacks](references/stacks.md) |
-| Release candidate go/no-go, canary, rollback readiness, incident follow-up controls | release | [release-ops](references/release-ops.md), [ops-learning](references/ops-learning.md) |
+| Other unit, integration, contract, E2E, UI, load or benchmark tests | write | [stacks](references/stacks.md), [case-design](references/case-design.md), [test-value](references/test-value.md) §1–§2 |
 | Claims come from a closure model or another phase's handoff | any | [workflow.md](../_shared/workflow.md) §2, §4 |
 | One end-to-end claim → case → evidence example | any | [worked-example](references/worked-example.md) |
 
-Load ≤3 topical references for the current card. Shared contract, code-intel, workflow
-and the business-graph protocol are baseline. HTTP/JSON/upload claims use
+Load contract and code-intel, then ≤3 topical references for the current card.
+Scope overrides mode: plan-only creates no DB unless requested; read-only never mutates the ledger.
+DB graph-only requests stop after modeling/snapshot. Load workflow for handoff/closure work.
+Existing-tests-only uses selected commands; skip flow creation, test writes and sensitivity mutations.
+HTTP/JSON/upload claims use
 [API cases](references/api-contract-tests.md).
 
 ## Workflow
 
-For requested/configured business-chain work read [business-graph](references/business-graph.md)
-and [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
-Follow confirmed RULE → graph → bounded card → real execution → independent RAW → verdict;
-`arc-verify handoff --to arc-verify --graph <id>` expands only local context.
-No Agent handshake or model HTTP.
+Graph mode follows [business-graph](references/business-graph.md), replacing steps 2–10.
+Graph/flow diagrams: [arch-diagram](references/business-diagram.md).
+Without a confirmed model use [first start](references/business-graph-start.md): the Agent drafts,
+imports and exports a candidate for review, then continues authorized verification after confirmation.
+Do not ask users to write graph JSON or finish a full test request at a plan.
+Execution uses [v2 commands](references/business-graph-v2.md); handoffs use
+[workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
+`arc-verify handoff --to arc-verify --graph <id>` expands bounded local context.
+New tests still require sensitivity proof. No Agent handshake or model HTTP.
 
-1. Read [contract](../_shared/contract.md) and the existing Markdown progress. Record
-   tier, scope, mode, environment and git baseline.
-2. Confirm this turn's capabilities from user intent/contracts. Heuristic scan
-   (UI → API/RPC → usecase → rules → side effects → jobs/callbacks) finds candidates.
-   Routes, CRUD and HTTP 200 are not capabilities or success. Unconfirmed items stay
-   `CANDIDATE`/`UNSPECIFIED`/`NOT_RUN`. Missing/stale flows → flow mode.
-   Output: catalog, FLOW/branch IDs and candidate gaps, or `n/a: <reason>` (T0, pure logic).
+1. Read [contract](../_shared/contract.md) and existing progress; record tier, scope, mode,
+   environment and git baseline.
+2. Confirm capabilities from contracts; trace UI/API/RPC → usecase → writes/async for candidates.
+   Routes/CRUD/HTTP 200 prove no capability. Unconfirmed items stay `CANDIDATE`/`UNSPECIFIED`/`NOT_RUN`;
+   missing/stale flows → flow mode. Output: catalog, IDs, gaps; T0/pure logic may give `n/a: <reason>`.
 3. Claims table: `EXPECTED`/`FORBIDDEN`, confirmed source, required yes/no, oracle per branch/RULE.
    AI inference stays `RISK`; undefined semantics are `SPECIFICATION GAP`.
 4. Map impact: [code-intel](../_shared/code-intel.md) §4 and flow-matrix §7.
 5. Design cases per case-design and flow-matrix §2–§4; name the independent oracle and defect.
-6. Bind the environment: existing runner, fixtures, CI job, test DSN, in that order. Output:
-   environment line, or `BLOCKED: <missing item>` per claim.
-7. Flow/design finish with `NOT_RUN (plan only)` and ledger check. Red runs step 8 on pre-implementation
-   code, handing targeted assertion failures to `arc:code` (test-first §5).
-8. Write tests beside their owning package per test-value §1; run them. Save command, exit and
-   per-claim output to `.arc/artifacts/<task-slug>/logs/`.
-9. Prove sensitivity: targeted assertion fails on pre-fix code, known-bad input or a disposable
-   worktree mutation. A red record counts. Output: fail-then-pass record.
-10. Assign verdicts; retain first divergence and original FAIL. Continue from an independently
-    observed safe state in a new run after verified reconstruction, or a linked new task for a
-    changed branch; recovery never rewrites history. Re-run the ledger check.
+6. Bind existing runner, fixtures, CI job and test DSN, in order; record environment or
+   `BLOCKED: <missing item>` per claim.
+7. Flow/design finish `NOT_RUN (plan only)` with ledger check. Red runs step 8 before implementation;
+   hand assertion failures to `arc:code` (test-first §5).
+8. Run SQL checks per sql-static without rewriting SQL; otherwise write/run owning-package tests
+   per test-value §1. Save command, exit and per-claim output to `.arc/artifacts/<task-slug>/logs/`.
+9. Save sensitivity: targeted assertion fails on pre-fix code, known-bad input or a disposable
+   worktree mutation, then passes. A red record counts.
+10. Retain first divergence/original FAIL. Resume only from independently observed safe state
+    after reconstruction in a new run, or linked new task for a changed branch. Recheck the ledger.
 11. Run the mode tail: flaky protocol, db gates or release GO/NO-GO.
 12. Hand off: each `FAIL` → repair packet ([execution-truth](../../docs/execution-truth.md) §6) for
     `arc:code`; each `SPECIFICATION GAP` → user; gaps and uncovered branches per flow-matrix §8.
@@ -101,11 +108,9 @@ No Agent handshake or model HTTP.
 
 ## Tool Strategy
 
-- **Preferred**: the project's own test entry (Makefile target, package script, CI job) → the
-  native runner in stacks → the smallest new tool a named failure model needs (with permission;
-  record name and version). Start web apps under test with `scripts/with_server.py`.
-- **Queries** for entry points, tests and fixtures: code-intel §3 ladder, then §5; place tests
-  beside the closest owning package. A run that fails to compile or start is a harness failure.
+- **Preferred**: project test entry → stacks' native runner → a necessary new tool (permission,
+  name/version recorded). Start web apps with `scripts/with_server.py`.
+- **Queries**: code-intel §3, then §5; tests stay beside their owner. Compile/start errors are harness failures.
 - **Fallback**: no E2E infrastructure → API-level contract test, E2E `NOT_RUN`; no real database
   or broker → keep the runnable test plus preconditions, `BLOCKED`.
 - **Forbidden**:
@@ -123,8 +128,8 @@ No Agent handshake or model HTTP.
 ## Decision Rules
 
 - IF T0 and existing tests exercise the changed behavior THEN run them and add no test.
-- IF T1/T2 behavior reaches an entry point, state or side effect no current flow covers THEN flow
-  mode first.
+- IF a local T1/T2 test lacks a covering flow THEN flow first; complete-system/DB-graph requests
+  stay graph mode and reuse existing mappings.
 - IF read-only THEN assess existing flows, claims, bindings and evidence only (no test writes,
   installs, fault injection or data-writing runs); unexecuted claims are `NOT_RUN (read-only)`.
 - IF a claim concerns concurrency, idempotency, a transaction or money/inventory/quota THEN run the
@@ -134,17 +139,17 @@ No Agent handshake or model HTTP.
 - IF the sensitivity check passes on the defective version THEN the test is invalid; strengthen it
   before any verdict.
 - IF nothing was checked (no test selected, zero comparisons, empty baseline or policy) THEN `BLOCKED`.
-- IF required observations are missing or the runner fails THEN `BLOCKED`; a valid observation
-  violating a confirmed rule is `FAIL`. Never send a harness failure as a confirmed product defect.
+- IF observations are missing or runner fails THEN `BLOCKED`; observed RULE violation is `FAIL`.
+  Harness failure never proves a product defect.
 - IF evidence comes from another run, commit, config or environment THEN `NOT_RUN (stale)`; gates
   check run identity, not file presence ([release-ops](references/release-ops.md) §1).
 - IF a performance claim exists THEN prove correctness first, then measure under the same
   candidate/environment ([scope-cadence](references/scope-cadence.md) §4); fast-but-wrong = `FAIL`.
 - IF the expected result is undecided THEN `SPECIFICATION GAP`: ask only that decision, continue
   with independent claims; never adopt current output as the expectation.
-- IF diagnosing a failure THEN load the evidence-first root-cause repair gate in
-  [execution-truth.md](../../docs/execution-truth.md) §6 through root cause and siblings;
-  repair confirmed test/fixture defects here and hand product defects to `arc:code`.
+- IF diagnosing a failure THEN follow the evidence-first root-cause repair gate in
+  [execution-truth.md](../../docs/execution-truth.md) §6; fix test/fixture causes here,
+  hand product causes and affected siblings to `arc:code`.
 
 ## Verification
 
@@ -154,26 +159,25 @@ No Agent handshake or model HTTP.
 | Sensitivity, red record | targeted assertion fails on the bad or pre-implementation version, passes on the candidate |
 | `FAIL` | failing assertion output plus repair packet |
 | `BLOCKED` / `NOT_RUN` | missing prerequisite or deferral reason |
-| Authority kept | delta since phase entry touches only tests, fixtures, test configs, the flow catalog or artifacts |
-| Mode evidence | applicable reference's evidence/verdict requirements |
+| Authority kept | scoped changes only: tests, fixtures, test configs, graph ledger, flow catalog or artifacts |
 | Graph gate | frozen task/RAW revalidated; PASS covers planned positive/negative/forced; recovery, cross-role, concurrency and E2E need separate evidence |
 
 ## Failure Recovery
 
 | Failure class | Action | Retry budget | Stop condition |
 |---|---|---|---|
-| Environment missing; `with_server.py` exit 125 | check env samples, CI and server log; else `BLOCKED` with missing item | 1 pass | continue unaffected claims |
-| Test cannot compile/start | fix test/import/config | 3 attempts | `BLOCKED` with last error |
-| Baseline already failing | run the same test on the parent commit | 1 | pre-existing: judge only the delta |
-| Assertion fails | retain FAIL/RAW; read back actual state; new-run replay needs existing authorization, same candidate/config and verified isolated reconstruction | ≤1 safe rerun | unknown state BLOCKED; valid divergence FAIL + packet |
-| Result alternates | flaky protocol with comparable candidate/config/verified initial state; side effects need recovery checkpoint | 3 safe classification reruns; ≤50 authorized iterations | FLAKY + quarantine proposal; unsafe replay BLOCKED |
-| Test hangs | stop runner/descendants at task deadline; preserve partial RAW/dump; verify actual state before continuing | 1 | observer failure BLOCKED; independently observed contracted liveness breach FAIL |
-| Observer/oracle breaks | repair test observer | 1 | dependent claims `BLOCKED` |
+| Environment missing / server exit 125 | inspect env samples, CI, server log; name missing item | 1 pass | BLOCKED; continue independent claims |
+| Compile/start failure | fix test/import/config | 3 | BLOCKED with last error |
+| Baseline fails | same test on parent commit | 1 | judge only delta |
+| Assertion fails | retain FAIL/RAW, read actual state; replay needs authorization, same candidate/config, verified isolated reconstruction | ≤1 safe rerun | unknown state BLOCKED; divergence FAIL + packet |
+| Alternating result | flaky protocol; comparable candidate/config/verified initial state, side effects checkpointed | 3 safe classification reruns; ≤50 authorized iterations | FLAKY + quarantine proposal; unsafe replay BLOCKED |
+| Hang | stop runner/descendants at deadline; keep partial RAW/dump, read actual state | 1 | observer error BLOCKED; independently observed contracted liveness breach FAIL |
+| Broken oracle | repair observer | 1 | dependent claims BLOCKED |
 
 ## Completion Criteria
 
-- [ ] Tier/mode/environment recorded; expected catalog confirmed separately from implementation.
-- [ ] Every branch has a case/reason; claims retain source/oracle/verdict/RAW, IDs and historical FAIL; ledger check passes.
+- [ ] Scope/mode/context recorded; catalog separate from implementation, unresolved confirmation explicit.
+- [ ] Scoped branches/cards retain cases, source/oracle/verdict/RAW and historical FAIL; runtime completion needs ledger/graph PASS.
 - [ ] Required sensitivity, meaningful owning tests and logs exist; every BLOCKED/NOT_RUN has a reason.
 - [ ] Production source unchanged; product FAIL has an `arc:code` repair packet.
 - [ ] Applicable mode tail and contract §9 report complete.

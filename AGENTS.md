@@ -21,6 +21,17 @@
 - 首个真实试点是 IM-mongo（源码 `~/Documents/Code/chensi/IM-mongo`；BG16 三条链，再扩到 39 族）；`academic-v1` 只作工具自测示例。
 - 本仓不启用 GitHub Actions（`tasks/lessons.md`）；不拿受保护 CI 当可信边界，独立可信 Runner 仍未做。
 
+## 2026-11-04：verify 首次入口裁决
+
+- 完整系统、全部业务、所有交互测试和 DB 业务树请求直接走 verify graph；无现有图时由当前 Agent 独立发现应有业务与实现入口，生成候选 JSON、导入本地 DB 并导出静态快照供核对，不要求用户先写图。
+- 候选能力树可先于 RULE、环境、账号和 Runner 建立，始终保持未验证。复用已有确认；补齐未决规则后继续已授权测试，不止于计划。新模型版本保留旧图、RAW 与首次 FAIL。
+- 普通局部单测、SQL lint 不强制建图；只计划、只读、只建图的范围优先。缺少真实环境、授权、独立 Oracle 或 Runner 时，如实 BLOCKED/NOT_RUN，候选图和工具回归不能代替真实业务 E2E。
+
+## 2026-11-04：verify 业务图绘制裁决
+
+- verify 的业务图、业务树和流程图统一用 [arch-diagram 插件](https://github.com/bassnova42/arch-diagram-skill) 绘制，业务用中文表述，节点命名为 `中文业务名【实际英文业务包名】`。包名以被测项目目录、包声明和配置为依据，不自行翻译或编造；未定位实现时标明业务包待核实。
+- 插件只负责只读可视化；本地 DB、CLI 快照、流程台账和真实 RAW 继续保留。具体绘图约定见 [business-diagram](Arc/arc:verify/references/business-diagram.md)。
+
 ## 本仓验收命令
 
 ```bash

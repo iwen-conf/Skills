@@ -43,8 +43,8 @@ mode starts; do not preload the others.
    them, and never pass authenticated, internal or sensitive URLs or queries to third-party services
    (fetch `--use-proxy`, AnySearch) without the user's explicit opt-in.
 2. Every factual claim cites its source URL or file; contradictions between sources stay visible.
-3. Semantic selection, scoring or routing of material uses the `typesafe-ai` skill and a current-turn
-   `jev ask`; report the returned numbers or the failure, never invented probabilities.
+3. Semantic selection, scoring or routing of material stays with cited sources; never invent
+   probabilities or confidence scores.
 4. Output stays in the requested form; files are saved only when asked or when research mode needs them.
    Publishing, posting or sending is never implied.
 5. Scope and authorization carry across modes; a wording review of instructions never authorizes executing

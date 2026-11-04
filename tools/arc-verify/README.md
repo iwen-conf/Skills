@@ -14,7 +14,10 @@ go -C tools/arc-verify build -o ~/.local/bin/arc-verify .
 The same binary runs from the **target project** root. Keep the target project's `.arc/verify/` private and gitignored.
 The official `tursodb` shell is optional and intended only for manually inspecting the local database.
 
-Project lifecycle:
+## Manual v1 ledger example
+
+This demonstrates recording externally executed evidence. For v2 runner registration, round
+creation and real execution, use the [minimal v2 lifecycle](../../Arc/arc:verify/references/business-graph-v2.md#minimal-v2-execution).
 
     arc-verify init
     arc-verify validate --file /path/to/Skills/tools/arc-verify/examples/academic-v1.json
@@ -148,6 +151,8 @@ page opens from `file://` without network requests and has no write actions. Rul
 ## v2 runtime commands
 
 Details and semantics: `Arc/arc:verify/references/business-graph-v2.md`.
+Start with its [runner → round → execute example](../../Arc/arc:verify/references/business-graph-v2.md#minimal-v2-execution);
+register every fixture/runner before opening the round. A single card does not complete the graph.
 
     arc-verify run-chain --graph G --env E --round Q --root . --config C --commit SHA \
       --account A --fixture F --max-steps 16 --deadline 10m      # exit 0 done, 10-15 = stop reason

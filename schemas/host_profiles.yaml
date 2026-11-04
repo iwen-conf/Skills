@@ -5,7 +5,7 @@ source_root: ~/.agents/skills
 external_targets:
   lanhu-design: ~/Documents/Code/Go/lanhu-cli/skills/lanhu-design
 profiles:
-  core: [arc-explore, arc-plan, arc-code, arc-verify, arc-audit, arc-vet, check, health, research-write, typesafe-ai]
+  core: [arc-explore, arc-plan, arc-code, arc-verify, arc-audit, arc-vet, check, health, research-write]
   work: [lark, cnb, ui-design, agent-browser]
   mobile: [android, harmonyos, swiftui-pro]
   makers: [lazycat, easyeda-api]
@@ -21,4 +21,4 @@ hosts:
     extra: [cloudflare, lanhu-design, humanizer-zh]
   grok:
     root: ~/.grok/skills
-    extra: [arc-explore, arc-plan, arc-code, arc-verify, arc-audit, arc-vet, typesafe-ai, easyeda-api, threejs, humanizer-zh]
+    extra: [arc-explore, arc-plan, arc-code, arc-verify, arc-audit, arc-vet, easyeda-api, threejs, humanizer-zh]

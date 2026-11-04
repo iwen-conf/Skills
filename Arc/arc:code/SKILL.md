@@ -6,7 +6,7 @@ description: >-
   a feature, endpoint or page (前端, 落地页, 要好看, shadcn, 小程序) on the project's stack; fix (修复) a bug,
   error (报错), incident or failing test by evidence-first root-cause repair (根因); refactor (重构)
   or migrate; change an API or schema; apply Go backend layering (DIP, usecase, 分层); write comments
-  (注释); add timing probes to a Gin SSR path (计时, 探针, 埋点); or build TypeSafe classifiers and routers (分类器, 意图识别).
+  (注释); add timing probes to a Gin SSR path (计时, 探针, 埋点); or build classifiers and routers (分类器, 意图识别).
   Implements an existing DESIGN.md.
   Ends with the gate.sh completion check. Not for read-only review (use arc:audit), tests as the
   deliverable or release evidence (use arc:verify), PRDs, task docs or closure models (use arc:plan),
@@ -55,7 +55,6 @@ Implement behavior through the real HTTP/CLI/UI/job entry, update affected sibli
 | Add/change an API | adds to mode | [api-contract.md](../_shared/api-contract.md) with its HTTP/JSON/upload rules |
 | Any mode writing SQL, transactions, migrations or state transitions | adds to mode | [code-rot.md](../_shared/code-rot.md) families D and E; record how each applicable item is met before writing |
 | Change touches behavior modeled in a closure spec | adds to mode | [workflow.md](../_shared/workflow.md) §4: run the plan model gate first |
-| Feature needs semantic judgment: classify, route, score, extract, verify (分类器, 意图识别) | adds to mode | `typesafe-ai` skill and its live docs before any integration code |
 
 ## Workflow
 

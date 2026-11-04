@@ -1,6 +1,54 @@
 # Runtime intent scenarios. These are not scored by the static keyword winner.
 # A keyword hit here is a vocabulary observation, not Agent routing evidence.
 scenarios:
+  - id: verify-whole-system-first-graph
+    category: multi-intent
+    utterance: 完整测试这个系统的所有业务，目前没有业务图
+    expected_runtime: arc:verify graph mode inspects the current project, independently drafts expected and implementation inventories, generates a candidate v2 model itself, initializes and imports it into the target-local DB and exports a review snapshot without requiring environment or runner setup; it obtains unresolved business decisions and then continues the already authorized test request through bounded tasks, real execution and independent evidence
+    static_keyword_winner: arc:verify
+    static_keyword_is_authoritative: false
+    notes: 用户不手填JSON；先展示候选，不自动批准RULE，不把建图或计划当完整验收。
+
+  - id: verify-graph-only-no-target-execution
+    category: scope
+    utterance: 只建立DB业务树图给我核对，先别运行测试
+    expected_runtime: arc:verify creates or reuses a candidate local graph and exports an unapproved snapshot, preserves unknown semantics as candidates or risks and stops before target execution, approval, task runs or fixtures; graph presence is not PASS
+    static_keyword_winner: arc:verify
+    static_keyword_is_authoritative: false
+    notes: 本地候选建模不依赖业务环境、账号或runner；只建图不等于只出Mermaid。
+
+  - id: verify-local-tests-do-not-create-graph
+    category: scope
+    utterance: 只跑这个包现有的单元写测试回归，不建立业务图
+    expected_runtime: arc:verify uses the existing local test runner without init, import, approve, graph planning or target operations; negated graph wording does not select graph mode
+    static_keyword_winner: arc:verify
+    static_keyword_is_authoritative: false
+    notes: 词表只选择技能，实际模式和范围必须理解否定，普通单测和SQL lint保持轻量。
+
+  - id: verify-read-only-graph-keeps-ledger
+    category: scope
+    utterance: 只读查看现有业务树图，不修改DB或环境
+    expected_runtime: arc:verify reads the existing graph and evidence, may export a snapshot only within the allowed artifact scope and never initializes, imports, approves, plans or mutates the canonical ledger or target
+    static_keyword_winner: null
+    static_keyword_is_authoritative: false
+    notes: 只读与业务树词静态打平，不能替代真实意图判断；没有图就报告缺口，更严格的不写文件限制仍优先。
+
+  - id: verify-plan-only-without-persistent-graph
+    category: scope
+    utterance: 只写完整业务测试方案，先不要建DB和执行
+    expected_runtime: arc:verify produces the requested plan without initializing or importing a graph and reports runtime claims NOT_RUN; whole-system vocabulary cannot override the explicit plan-only scope
+    static_keyword_winner: arc:verify
+    static_keyword_is_authoritative: false
+    notes: 完整测试语义与本轮动作权限分别判断，不因命中graph词强制写库。
+
+  - id: verify-candidate-before-authorized-execution
+    category: authorization
+    utterance: 测试整个系统，业务规则和测试环境还没有确认
+    expected_runtime: arc:verify can inspect source and persist a candidate graph for review, asks only unresolved normative and authorization decisions and blocks dependent execution; it never invents rules, accounts, target addresses or approval and continues independent modeling work
+    static_keyword_winner: arc:verify
+    static_keyword_is_authoritative: false
+    notes: 缺少执行授权不妨碍候选图核对；接受RISK不等于确认RULE。
+
   - id: native-clients-new-project
     category: scope
     utterance: 先写PRD，Android和iOS新客户端都做原生，后端接口共用

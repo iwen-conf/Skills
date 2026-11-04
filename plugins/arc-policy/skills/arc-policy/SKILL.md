@@ -29,10 +29,10 @@ The CLI is mandatory for workflow start, commits, schema migrations, and deliver
    `arc-policy --cwd <repo> task begin …` and `arc-policy --cwd <repo> task verify`.
    A new third-party dependency starts with `arc-vet`; its decision record feeds `arc-code`.
 4. Load that Arc skill and follow it. Do not skip `arc-idx` for repo search.
-5. Before claiming done or committing: stage exactly the files to commit (`git -C <repo> add …`),
-   then `arc-policy task verify` in its own tool call. The receipt binds the index, so staging after
-   verify invalidates it. Run verify when the work is finished, so a later "提交并推送" is a commit,
-   not a test run.
+5. Before claiming done: run `arc-policy task verify` in its own tool call. For a commit, first
+   stage exactly its files (`git -C <repo> add …`), then verify. The receipt binds the index;
+   staging after verify invalidates it. A delivery request uses a matching receipt or verifies
+   the newly staged tree again.
 6. `git -C <repo> commit` / `git -C <repo> push` only after a receipt that matches the current tree.
    Never `cd <repo> && git commit`; the hook refuses directory changes before a controlled command.
    A push needs no second verify when the pushed commit is exactly the receipt's tree.
@@ -90,18 +90,33 @@ user's last 5 typed messages; host-injected text and pasted material do not coun
 
 ## Business graph and cross-Skill phase gates
 
-For scoped business-chain verification, follow the installed `arc-verify`
-Skill's shared Arc workflow §6. `arc-verify handoff --to <arc-skill> --graph
+For whole-system/all-business/all-interaction tests or DB business graphs, follow the installed
+`arc-verify` Skill's graph-start and shared workflow §6, including first use without a ledger.
+Ordinary local tests do not require a graph; plan-only/read-only scope still applies.
+`arc-verify handoff --to <arc-skill> --graph
 <graph-version>` gives a bounded read-only transfer; a confirmed failed
 `--run` can be handed to `arc-code`. Do not treat the packet as a
 user-approved rule or a verified test. `arc-plan` writes canonical requirement
 documents; only `arc-verify` changes the local graph ledger.
 
 The `business_graph` verification gate is **mandatory for `arc-verify`**
-when enabled, but a red pre-fix graph must not block `arc-code` from committing
+when enabled, even with `verification.fail_closed: false`. Missing, duplicate or non-PASS
+mandatory graph checks invalidate a PASS receipt, including after commit. A red pre-fix graph must not block `arc-code` from committing
 an authorized root-cause repair under its usual code/test gates. A new E2E
 `arc-verify` run must independently verify the repair before declaring the
 business claim PASS. Other skills may be explicitly opted into this gate.
+
+Loading another Skill does not change the policy task's stored `skill`. At a phase handoff:
+
+1. Inspect `arc-policy task status`; finish the old phase's checks and preserve its evidence.
+2. Run `arc-policy task end` for a verified phase. If blocked or intentionally incomplete,
+   record the reason in the existing progress document and use `task end --incomplete`.
+3. Run `arc-policy task begin --skill <next-skill>` before the next phase; do not use `--force`
+   to discard the old task. Already committed/delivered tasks are archived by begin automatically.
+
+Before declaring graph completion, check the active task and receipt both name `arc-verify`
+(or the explicitly opted-in skill), and the receipt contains a PASS graph check. `AUTHORIZED`
+permits the quoted delivery decision; it never proves the business claim.
 
 ## Hook enforcement
 

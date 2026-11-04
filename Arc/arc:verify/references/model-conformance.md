@@ -42,7 +42,8 @@ properties.
 ## 3. Generators, shrinking, replay
 
 - Valid-input generators build values from project enums, columns and documented bounds; invalid
-  inputs get their own generator and the rejection property (documented error, zero durable change).
+  inputs get their own generator and the [rejection property](flow-matrix.md#4-prepost-state-diff):
+  contracted error, no forbidden effect, permitted denial/audit effects observed separately.
 - Bias toward boundaries, empty and maximum sizes, duplicate and equal keys, hot keys, time-zone and
   precision edges. Report the distribution through the library's statistics and review which
   business states were reached ([case-design](case-design.md) §7), not the iteration count.
@@ -74,7 +75,7 @@ Closure spec (`docs/01-系统设计/业务闭环/03-closure-spec.yaml`, legacy `
 |---|---|
 | `states`, `initial`, `terminal` | model state; after each command the observed state (API or durable store) equals it |
 | transition (`from`, `event`, `guard` → `to`, `emits`, `acquires`, `releases`) | command enabled when the model is in `from` and the guard holds; asserts `to`, emitted events, resource delta |
-| event with no transition and no `ignores` in a state | illegal command: contracted rejection, zero durable change, zero external effect |
+| event with no transition and no `ignores` in a state | illegal command: contracted rejection under the [rejection scope](flow-matrix.md#4-prepost-state-diff) |
 | `ignores` | late or duplicate async event in a listed state leaves state and resources unchanged |
 | `race_policy` | parallel pair (§5); winner and loser outcome as the policy states |
 | `resources` | never acquired twice, never released unheld, none held at a terminal state |

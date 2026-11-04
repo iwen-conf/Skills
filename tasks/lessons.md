@@ -24,3 +24,7 @@
 - If a diagram type repeatedly fails because the model is hand-authoring geometry, move that geometry into a deterministic script. Validation alone catches bad output, but generation scripts prevent it.
 - When users still want a `.drawio` deliverable for sequence diagrams, do not fall back to raw XML arrows. Wrap rendered Mermaid output into draw.io and keep the Mermaid source embedded so validation can still inspect the real sequence semantics.
 - When a user asks for repeated checking, do not merely rerun the same validator. Add a review loop that compares source files, regenerated artifacts, and workspace outputs, otherwise drift can survive despite green single-file validation.
+
+## 2026-11-04
+
+- 本仓 ARC Verify 语境中的“业务树图 / db 那种树图”指持久化到目标项目 `.arc/verify/data.db` 的 Graph v2 业务图及其静态工作台。解释唤醒方式时，应明确建模入库、复用既有图和 `snapshot` 导出；不要改答成独立 Mermaid 图，也不要加入“不初始化验证账本”来禁止用户要的流程。候选规则仍不得自动批准，图的存在不代表业务验证通过。

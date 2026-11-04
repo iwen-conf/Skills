@@ -5,6 +5,13 @@ the same agent may activate the next skill and continue within the user's existi
 Load only that phase's skill and relevant references. Do not recursively load all six skills,
 treat a skill switch as new permission, or stop at a handoff when the next action is already authorized.
 
+When `arc-policy` is active, loading a skill does not switch its stored task identity. Check
+`task status`, preserve the old phase's evidence, then `task end` and
+`task begin --skill <next-skill>`. An unfinished phase uses `task end --incomplete` with its
+reason in the existing progress document; a delivered task is archived automatically by begin.
+Do not replace an unfinished task with `--force`. A business PASS needs the matching phase
+and its required graph check, never a code-phase receipt or an AUTHORIZED delivery waiver.
+
 ## 1. Select the owner by the requested result
 
 | Result or missing input | Owner | Receives → returns |
@@ -116,13 +123,15 @@ activate the next available skill and continue; ask only for an actual unresolve
 action outside the existing authorization. If a required skill is unavailable, name it and the
 blocked output; do not claim the handoff ran or silently use a retired alias.
 
-## 6. Graph-based business-chain verification across Arc skills (opt-in)
+## 6. Graph-based business-chain verification across Arc skills
 
-This extends sections 1–5; it does not replace the canonical closure spec,
-business-flow catalog, phase authorities or existing handoff task card.
-Trigger only for an explicitly requested business-chain verification effort or
-a project with a configured `verification.business_graph` / confirmed graph
-version. Ordinary code changes do **not** require starting a new graph.
+This extends sections 1–5, preserving the closure spec, flow catalog, phase authorities and handoff.
+Complete-system, all-business, all-interaction testing and explicit DB business-tree/graph requests
+select this route, including first use without a DB/model. The current Agent drafts and imports the
+candidate through [graph-start](../arc:verify/references/business-graph-start.md).
+A configured `verification.business_graph` also reuses this route. Ordinary local tests/code edits
+do **not** require a graph. Plan-only/read-only scope remains binding; a graph-only request does not
+authorize business execution. After confirmed rules, continue already authorized testing.
 
 The local `arc-verify` Go CLI is an ephemeral process. Its persistent ledger is
 the current *target repository*'s `.arc/verify/data.db` (local Turso file).
@@ -135,7 +144,7 @@ environment constraints may be accessed as a workaround.
 |---|---|---|
 | `arc:explore` | feature/action IDs and missing implementation facts | Read-only indexed entry / route / API / caller facts with `file:line`. Never write graph DB or assert a missing feature from one failed search. |
 | `arc:plan` | user intent, PRD, closure-spec, unresolved RULE / RISK | Own canonical requirement and business rule wording in project docs. Get explicit user approval for each normative rule; risk is not a mandatory business contract. Docs-only authority means no DB updates in plan phase. |
-| `arc:verify` | confirmed rule IDs, current implementation/flow facts and environment scope | Import approved graph, lazy task generation, real E2E/independent Oracle, per-step trace + RAW and gate. Owns the local graph ledger and test-flow catalog, never production repairs. |
+| `arc:verify` | intent/rule IDs, implementation facts and environment scope | Candidate import/snapshot, then approved rules → bounded cards → execution/independent Oracle → trace/RAW/gate. Owns graph ledger and flow catalog, never product repairs. |
 | `arc:code` | confirmed failing run/step, rule, independent RAW, impacted route and tested commit | Root-cause repair on existing code; keep frozen rule, old FAIL and RAW unchanged. Hand to verify for new runtime proof. Fix-phase code/test receipt must not require a pre-fix red graph to go green. |
 | `arc:audit` | rule/risk and implementation gap candidates | Read-only critical review; distinguish confirmed contract violation from `NOT_FOUND` candidate, absent evidence and industry hypotheses. |
 | `arc:vet` | a concrete missing runner or tool dependency with cost/environment constraints | Date-stamped choice and version/rollback record; never install persistent infra or substitute mock proof. |

@@ -62,7 +62,7 @@ For key claims, ask before including in the outline:
 - Can this framework predict what the source would say about a new problem?
 - Is this specific to this source, or would any expert in the field say the same thing?
 
-Use these questions to record evidence for relevance, not as a mechanical score. When selecting, classifying, scoring, validating, or routing material by semantic judgment, load the installed `typesafe-ai` skill and run `jev ask` in the current turn. Report each `noul`, or `probabilities` with `confidence`; no invented probabilities. Keep source excerpts beside the judgment, and do not treat distribution confidence as publication or deletion authority. If the call fails or credentials are absent, report that failure, retain uncertain material, and continue independent source work without claiming the judgment passed.
+Use these questions to record evidence for relevance, not as a mechanical score. Keep source excerpts beside the judgment. Do not invent probabilities. Retain uncertain material and continue independent source work.
 
 ### Conversation Or Review Distillation
 

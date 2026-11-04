@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Install — drop leftover typesafe-ai extra
+
+- Removed missing-source `typesafe-ai` from `schemas/host_profiles.yaml`, the install catalog, and `route_corpus.yaml` externals. Classifier work routes to `arc-code`. `jev` and the TypeSafe skill package are not installed on this machine.
+
 ### Arc skills — graph-handoff integration with existing workflow
 
 - Connected `arc:explore`, `arc:plan`, `arc:code`, `arc:verify`,

@@ -27,7 +27,7 @@ the dimension touches.
 | D transaction, consistency | failure mid-transaction, commit failure or conflict, partial write, missing related row, out-of-transaction side effect failing, query before async sync | the real boundary decides rollback versus compensation |
 | E idempotency, concurrency | duplicate submit, concurrent same operation, same key reused, different key same intent, concurrent update, mutually exclusive operations, retry after timeout, response lost after commit | txn-faults §0–§3 |
 | F timeout, retry, external | dependency ok, business error, system error, timeout, disconnect, succeeded but unconfirmed, retry fails again, retries exhausted, later recovery | txn-faults §6 |
-| G permission | unauthenticated, unauthorized, authorized, cross-user or tenant, forged IDs, role change mid-flow, unauthorized cancel, approve or delete | zero durable change on deny |
+| G permission | unauthenticated, unauthorized, authorized, cross-user or tenant, forged IDs, role change mid-flow, unauthorized cancel, approve or delete | no forbidden effect on deny; permitted audit effects observed separately (§4) |
 | H compensation, recovery | compensation succeeds, fails, repeats, races the normal flow, runs after recovery or manual handling | only where implemented; missing → `gap` |
 
 Cut combinations by risk (case-design §4). Never add a case per field without a business consequence.
@@ -52,8 +52,9 @@ Every branch row gets ≥1 case ID or a recorded reason. A case card is case-des
 1. Before the trigger, snapshot the stores the flow touches: rows by business key, files, queue
    contents, records in the external service's test API.
 2. Run the trigger through the real entry point.
-3. Snapshot again; assert the expected delta exactly and an empty delta everywhere else. Reject and
-   failure branches expect an empty delta or only the contracted failure record.
+3. Snapshot again; assert the expected delta exactly and an empty delta everywhere else. On rejection,
+   forbidden durable/external effects stay unchanged; explicitly contracted denial/audit effects are
+   observed separately. Failure branches allow only their contracted deltas.
 4. Async ends poll the completion condition up to the project deadline, then diff.
 
 An observer that cannot read a store makes the case `BLOCKED`.
