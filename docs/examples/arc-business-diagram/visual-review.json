@@ -1,0 +1,394 @@
+{
+  "result": "PASS",
+  "input_directory": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram",
+  "output_directory": "/workspace/scratch/58193171aba4/diagram-visual-revision/review-qa-final",
+  "browser": "Chromium 153.0.8010.0 / Playwright 1.62.1 private pipe / task-local Noto Sans SC",
+  "scenarios": [
+    {
+      "name": "async-overview",
+      "size": "desktop",
+      "result": "PASS",
+      "files": {
+        "review": {
+          "path": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/async-overview.review.html",
+          "sha256": "6e94c0778887d2589bc89a3e9d88b3ed886bee29b17bc99f8ec91a015c96fba8"
+        },
+        "html": {
+          "path": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/async-overview.html",
+          "sha256": "48a9ad2cccb987a54b3e236644419a5bb94ec0aea34931c6c5aced82c9ae88b5"
+        },
+        "spec": {
+          "path": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/async-overview.spec.json",
+          "sha256": "c340613699566f2931fd20f0b7c4dce51b6faa45f1203f1abed35a4c6f2b5207"
+        }
+      },
+      "binding": {
+        "iframe_srcdoc_sha256": "48a9ad2cccb987a54b3e236644419a5bb94ec0aea34931c6c5aced82c9ae88b5",
+        "iframe_equals_final_html": true,
+        "embedded_spec_equals_final_spec": true
+      },
+      "inputs_unchanged": true,
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "all_parent_states_fit": true,
+      "page_errors": 0,
+      "console_issues": 0,
+      "external_requests": 0,
+      "renderer": {
+        "diag": {
+          "width": 1180,
+          "height": 755,
+          "issues": [],
+          "warnings": []
+        },
+        "nodes": 5,
+        "groups": 1,
+        "viewport_width": 1212,
+        "viewport_height": 803,
+        "document_width": 1212,
+        "body_width": 1212,
+        "body_height": 803,
+        "stage_zoom": "1",
+        "card_font": "13px",
+        "status_labels": [
+          "阻塞 · BLOCKED",
+          "阻塞 · BLOCKED",
+          "阻塞 · BLOCKED",
+          "阻塞 · BLOCKED",
+          "阻塞 · BLOCKED"
+        ],
+        "status_legend": [
+          "阻塞"
+        ],
+        "wire_labels": [],
+        "tooltips": 0
+      },
+      "readiness": "规格：READY\n构建：READY\n布局检查：PASS\n截图：READY\n目视核对：PASS\n\n此处记录图形的生成与检查状态；业务结论见上方快照记录。",
+      "business_verdict": "BLOCKED",
+      "source_preserved": {
+        "graph_sha256": true,
+        "business_verdict": true,
+        "full_scope": true,
+        "source_rows": 16
+      },
+      "runs_preserved": [],
+      "screenshots": [
+        "/workspace/scratch/58193171aba4/diagram-visual-revision/review-qa-final/async-overview.desktop.overview.png",
+        "/workspace/scratch/58193171aba4/diagram-visual-revision/review-qa-final/async-overview.desktop.readiness.png"
+      ]
+    },
+    {
+      "name": "async-overview",
+      "size": "mobile",
+      "result": "PASS",
+      "files": {
+        "review": {
+          "path": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/async-overview.review.html",
+          "sha256": "6e94c0778887d2589bc89a3e9d88b3ed886bee29b17bc99f8ec91a015c96fba8"
+        },
+        "html": {
+          "path": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/async-overview.html",
+          "sha256": "48a9ad2cccb987a54b3e236644419a5bb94ec0aea34931c6c5aced82c9ae88b5"
+        },
+        "spec": {
+          "path": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/async-overview.spec.json",
+          "sha256": "c340613699566f2931fd20f0b7c4dce51b6faa45f1203f1abed35a4c6f2b5207"
+        }
+      },
+      "binding": {
+        "iframe_srcdoc_sha256": "48a9ad2cccb987a54b3e236644419a5bb94ec0aea34931c6c5aced82c9ae88b5",
+        "iframe_equals_final_html": true,
+        "embedded_spec_equals_final_spec": true
+      },
+      "inputs_unchanged": true,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "all_parent_states_fit": true,
+      "page_errors": 0,
+      "console_issues": 0,
+      "external_requests": 0,
+      "renderer": {
+        "diag": {
+          "width": 1180,
+          "height": 755,
+          "issues": [],
+          "warnings": []
+        },
+        "nodes": 5,
+        "groups": 1,
+        "viewport_width": 1212,
+        "viewport_height": 803,
+        "document_width": 1212,
+        "body_width": 1212,
+        "body_height": 803,
+        "stage_zoom": "1",
+        "card_font": "13px",
+        "status_labels": [
+          "阻塞 · BLOCKED",
+          "阻塞 · BLOCKED",
+          "阻塞 · BLOCKED",
+          "阻塞 · BLOCKED",
+          "阻塞 · BLOCKED"
+        ],
+        "status_legend": [
+          "阻塞"
+        ],
+        "wire_labels": [],
+        "tooltips": 0
+      },
+      "readiness": "规格：READY\n构建：READY\n布局检查：PASS\n截图：READY\n目视核对：PASS\n\n此处记录图形的生成与检查状态；业务结论见上方快照记录。",
+      "business_verdict": "BLOCKED",
+      "source_preserved": {
+        "graph_sha256": true,
+        "business_verdict": true,
+        "full_scope": true,
+        "source_rows": 16
+      },
+      "runs_preserved": [],
+      "screenshots": [
+        "/workspace/scratch/58193171aba4/diagram-visual-revision/review-qa-final/async-overview.mobile.overview.png",
+        "/workspace/scratch/58193171aba4/diagram-visual-revision/review-qa-final/async-overview.mobile.readiness.png"
+      ]
+    },
+    {
+      "name": "flows",
+      "size": "desktop",
+      "result": "PASS",
+      "files": {
+        "review": {
+          "path": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.review.html",
+          "sha256": "05ec1245e89495a7bbebb5453e2715275a0356129a384991191a27de64caaa3e"
+        },
+        "html": {
+          "path": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.html",
+          "sha256": "1450479c101b3688c9c083ef49999b6928ffa43b1f9270d83012deb1c73069d0"
+        },
+        "spec": {
+          "path": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.spec.json",
+          "sha256": "3a2a0b85e8f04d95ed81a251b19e4da3b512685006f00dfd3541c92c12ff7479"
+        }
+      },
+      "binding": {
+        "iframe_srcdoc_sha256": "1450479c101b3688c9c083ef49999b6928ffa43b1f9270d83012deb1c73069d0",
+        "iframe_equals_final_html": true,
+        "embedded_spec_equals_final_spec": true
+      },
+      "inputs_unchanged": true,
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "all_parent_states_fit": true,
+      "page_errors": 0,
+      "console_issues": 0,
+      "external_requests": 0,
+      "renderer": {
+        "diag": {
+          "width": 1180,
+          "height": 1246,
+          "issues": [],
+          "warnings": []
+        },
+        "nodes": 6,
+        "groups": 0,
+        "viewport_width": 1212,
+        "viewport_height": 1294,
+        "document_width": 1212,
+        "body_width": 1212,
+        "body_height": 1294,
+        "stage_zoom": "1",
+        "card_font": "13px",
+        "status_labels": [
+          "结果波动 · FLAKY",
+          "结果波动 · FLAKY",
+          "结果波动 · FLAKY",
+          "结果波动 · FLAKY",
+          "未验证 · NOT_RUN",
+          "结果波动 · FLAKY"
+        ],
+        "status_legend": [
+          "结果波动",
+          "尚未验证"
+        ],
+        "wire_labels": [
+          {
+            "text": "产生状态",
+            "x": null,
+            "y": null
+          },
+          {
+            "text": "实现业务",
+            "x": null,
+            "y": null
+          },
+          {
+            "text": "前置条件",
+            "x": null,
+            "y": null
+          },
+          {
+            "text": "状态迁移",
+            "x": null,
+            "y": null
+          }
+        ],
+        "tooltips": 0
+      },
+      "readiness": "规格：READY\n构建：READY\n布局检查：PASS\n截图：READY\n目视核对：PASS\n\n此处记录图形的生成与检查状态；业务结论见上方快照记录。",
+      "business_verdict": "BLOCKED",
+      "source_preserved": {
+        "graph_sha256": true,
+        "business_verdict": true,
+        "full_scope": true,
+        "source_rows": 16
+      },
+      "runs_preserved": [
+        {
+          "run": "R-6063197d81edc5dd6d53089e1c95fe3e",
+          "status": "FAIL",
+          "first_divergence": "1",
+          "run_and_status_visible": true,
+          "raw_paths_preserved": true,
+          "raw_hashes_preserved": true,
+          "raw_evidence_records": 3
+        },
+        {
+          "run": "R-111435dd484130451e87b612b09a54e1",
+          "status": "PASS",
+          "first_divergence": null,
+          "run_and_status_visible": true,
+          "raw_paths_preserved": true,
+          "raw_hashes_preserved": true,
+          "raw_evidence_records": 3
+        }
+      ],
+      "screenshots": [
+        "/workspace/scratch/58193171aba4/diagram-visual-revision/review-qa-final/flows.desktop.overview.png",
+        "/workspace/scratch/58193171aba4/diagram-visual-revision/review-qa-final/flows.desktop.history.png",
+        "/workspace/scratch/58193171aba4/diagram-visual-revision/review-qa-final/flows.desktop.readiness.png"
+      ]
+    },
+    {
+      "name": "flows",
+      "size": "mobile",
+      "result": "PASS",
+      "files": {
+        "review": {
+          "path": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.review.html",
+          "sha256": "05ec1245e89495a7bbebb5453e2715275a0356129a384991191a27de64caaa3e"
+        },
+        "html": {
+          "path": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.html",
+          "sha256": "1450479c101b3688c9c083ef49999b6928ffa43b1f9270d83012deb1c73069d0"
+        },
+        "spec": {
+          "path": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.spec.json",
+          "sha256": "3a2a0b85e8f04d95ed81a251b19e4da3b512685006f00dfd3541c92c12ff7479"
+        }
+      },
+      "binding": {
+        "iframe_srcdoc_sha256": "1450479c101b3688c9c083ef49999b6928ffa43b1f9270d83012deb1c73069d0",
+        "iframe_equals_final_html": true,
+        "embedded_spec_equals_final_spec": true
+      },
+      "inputs_unchanged": true,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "all_parent_states_fit": true,
+      "page_errors": 0,
+      "console_issues": 0,
+      "external_requests": 0,
+      "renderer": {
+        "diag": {
+          "width": 1180,
+          "height": 1246,
+          "issues": [],
+          "warnings": []
+        },
+        "nodes": 6,
+        "groups": 0,
+        "viewport_width": 1212,
+        "viewport_height": 1294,
+        "document_width": 1212,
+        "body_width": 1212,
+        "body_height": 1294,
+        "stage_zoom": "1",
+        "card_font": "13px",
+        "status_labels": [
+          "结果波动 · FLAKY",
+          "结果波动 · FLAKY",
+          "结果波动 · FLAKY",
+          "结果波动 · FLAKY",
+          "未验证 · NOT_RUN",
+          "结果波动 · FLAKY"
+        ],
+        "status_legend": [
+          "结果波动",
+          "尚未验证"
+        ],
+        "wire_labels": [
+          {
+            "text": "产生状态",
+            "x": null,
+            "y": null
+          },
+          {
+            "text": "实现业务",
+            "x": null,
+            "y": null
+          },
+          {
+            "text": "前置条件",
+            "x": null,
+            "y": null
+          },
+          {
+            "text": "状态迁移",
+            "x": null,
+            "y": null
+          }
+        ],
+        "tooltips": 0
+      },
+      "readiness": "规格：READY\n构建：READY\n布局检查：PASS\n截图：READY\n目视核对：PASS\n\n此处记录图形的生成与检查状态；业务结论见上方快照记录。",
+      "business_verdict": "BLOCKED",
+      "source_preserved": {
+        "graph_sha256": true,
+        "business_verdict": true,
+        "full_scope": true,
+        "source_rows": 16
+      },
+      "runs_preserved": [
+        {
+          "run": "R-6063197d81edc5dd6d53089e1c95fe3e",
+          "status": "FAIL",
+          "first_divergence": "1",
+          "run_and_status_visible": true,
+          "raw_paths_preserved": true,
+          "raw_hashes_preserved": true,
+          "raw_evidence_records": 3
+        },
+        {
+          "run": "R-111435dd484130451e87b612b09a54e1",
+          "status": "PASS",
+          "first_divergence": null,
+          "run_and_status_visible": true,
+          "raw_paths_preserved": true,
+          "raw_hashes_preserved": true,
+          "raw_evidence_records": 3
+        }
+      ],
+      "screenshots": [
+        "/workspace/scratch/58193171aba4/diagram-visual-revision/review-qa-final/flows.mobile.overview.png",
+        "/workspace/scratch/58193171aba4/diagram-visual-revision/review-qa-final/flows.mobile.history.png",
+        "/workspace/scratch/58193171aba4/diagram-visual-revision/review-qa-final/flows.mobile.readiness.png"
+      ]
+    }
+  ]
+}

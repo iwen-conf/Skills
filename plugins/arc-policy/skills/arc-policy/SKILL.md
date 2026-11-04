@@ -153,6 +153,9 @@ arc-policy --cwd <repo> diagram --snapshot <snapshot.json> \
   --presentation <presentation.json> --view flows --out <new-artifact-directory>
 ```
 
+Use the generated `.review.html` for the business overview and expandable evidence. Capability
+containment uses source-mapped groups; actual interactions retain wires. Inspect the screenshot
+after geometry checks; do not call an unchecked or visually unreviewed diagram complete.
 Follow the installed Arc verify `business-diagram.md` and upstream spec. The renderer ships at
 a reviewed commit with its MIT license; builds verify the recorded files and never download code.
 Node builds the standalone HTML; Chrome/Chromium/Edge (`CHROME`) is required for the layout check

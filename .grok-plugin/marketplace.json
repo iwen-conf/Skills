@@ -13,7 +13,7 @@
         "type": "local",
         "path": "./plugins/arc-policy"
       },
-      "version": "0.4.0",
+      "version": "0.4.1",
       "keywords": [
         "arc",
         "policy",

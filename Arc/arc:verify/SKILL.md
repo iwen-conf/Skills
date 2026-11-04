@@ -1,6 +1,6 @@
 ---
 name: arc:verify
-version: 3.8.0
+version: 3.8.1
 description: >-
   Whole-system testing with project-local DB business graphs (完整测试, 测试整个系统, 所有交互,
   完整业务测试, 业务树图, 业务图), including AI-led candidate modeling from scratch.
@@ -73,7 +73,7 @@ HTTP/JSON/upload claims use
 ## Workflow
 
 Graph mode follows [business-graph](references/business-graph.md), replacing steps 2–10.
-Drawing substep: [arch-diagram](references/business-diagram.md); release execution references.
+Draw via [arch-diagram](references/business-diagram.md); inspect screenshots; release execution refs.
 Without a confirmed model use [first start](references/business-graph-start.md): the Agent drafts,
 imports and exports a candidate for review, then continues authorized verification after confirmation.
 Do not ask users to write graph JSON or finish a full test request at a plan.

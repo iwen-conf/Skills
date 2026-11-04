@@ -136,10 +136,10 @@ html:lang(th) body, html:lang(th) .lbl { font-family: "JetBrains Mono", "SF Mono
 <script id="spec" type="application/json">
 {
  "lang": "zh-CN",
- "width": 1240,
+ "width": 1180,
  "title": "报名业务 · 工具回归历史快照示例",
  "pageTitle": "业务能力树 · course-v2",
- "subtitle": "course-v2 · 业务目录已确认\n快照结论：阻塞 · BLOCKED（导出时）｜历史 FAIL：1\n工具示例／合成夹具；不代表真实产品验证\n只读关系图；图形检查不提供业务执行证明。",
+ "subtitle": "业务目录已确认｜快照结论：阻塞 · BLOCKED（导出时）｜历史 FAIL：1\n导出：2026-10-31T08:17:41Z｜工具示例／合成夹具；不代表真实产品验证",
  "layers": [
   {
    "id": "system",
@@ -164,11 +164,6 @@ html:lang(th) body, html:lang(th) .lbl { font-family: "JetBrains Mono", "SF Mono
  ],
  "flows": [
   {
-   "id": "contains",
-   "label": "包含",
-   "color": "cyan"
-  },
-  {
    "id": "serves",
    "label": "参与",
    "color": "orange"
@@ -178,169 +173,104 @@ html:lang(th) body, html:lang(th) .lbl { font-family: "JetBrains Mono", "SF Mono
   {
    "id": "n001",
    "layer": "role",
-   "w": 420,
-   "title": "学员【业务包待核实】",
-   "sub": "参与角色",
-   "lines": [
-    "历史 FAIL：0　通过义务：0/0"
-   ],
-   "footer": "源 ID：STUDENT",
+   "w": 328,
+   "title": "学员\n【业务包待核实】",
+   "sub": "",
+   "lines": [],
    "status": "none",
    "statusText": "未验证 · NOT_RUN",
    "sourceId": "STUDENT",
-   "x": 36,
-   "y": 268,
-   "h": 140
-  },
-  {
-   "id": "n002",
-   "layer": "system",
-   "w": 420,
-   "title": "课程系统【业务包待核实】",
-   "sub": "系统",
-   "lines": [
-    "历史 FAIL：1　通过义务：0/10"
-   ],
-   "footer": "源 ID：course",
-   "status": "warn",
-   "statusText": "结果波动 · FLAKY",
-   "sourceId": "course",
-   "x": 512,
-   "y": 268,
-   "h": 140
-  },
-  {
-   "id": "n003",
-   "layer": "domain",
-   "w": 420,
-   "title": "报名业务【业务包待核实】",
-   "sub": "业务域",
-   "lines": [
-    "历史 FAIL：1　通过义务：0/10"
-   ],
-   "footer": "源 ID：enrollment",
-   "status": "warn",
-   "statusText": "结果波动 · FLAKY",
-   "sourceId": "enrollment",
-   "x": 36,
-   "y": 540,
-   "h": 140
+   "historyFailures": 0,
+   "x": 200,
+   "y": 170,
+   "h": 94
   },
   {
    "id": "n004",
    "layer": "capability",
-   "w": 420,
-   "title": "提交报名【业务包待核实】",
-   "sub": "业务能力",
+   "w": 328,
+   "title": "提交报名\n【业务包待核实】",
+   "sub": "",
    "lines": [
-    "历史 FAIL：1　通过义务：0/10"
+    "历史 FAIL：1 次，仍保留记录",
+    "验证覆盖 0/10 项"
    ],
-   "footer": "源 ID：enrollment.submit",
    "status": "warn",
    "statusText": "结果波动 · FLAKY",
    "sourceId": "enrollment.submit",
-   "x": 36,
-   "y": 812,
-   "h": 140
+   "historyFailures": 1,
+   "x": 604,
+   "y": 324,
+   "h": 114
+  }
+ ],
+ "groups": [
+  {
+   "id": "n002",
+   "sourceId": "course",
+   "label": "课程系统【业务包待核实】\n结果波动 · FLAKY · 历史 FAIL 1",
+   "x": 556,
+   "y": 170,
+   "w": 424,
+   "h": 316,
+   "color": "blue"
+  },
+  {
+   "id": "n003",
+   "sourceId": "enrollment",
+   "label": "报名业务【业务包待核实】\n结果波动 · FLAKY · 历史 FAIL 1",
+   "x": 580,
+   "y": 247,
+   "w": 376,
+   "h": 215,
+   "color": "cyan"
   }
  ],
  "edges": [
   {
-   "id": "e001",
-   "sourceId": "contains-capability",
-   "from": "n003.b",
-   "to": "n004.t",
-   "flow": "contains",
-   "packet": false,
-   "via": [
-    [
-     246,
-     708
-    ],
-    [
-     246,
-     708
-    ]
-   ],
-   "label": "1 包含",
-   "labelPos": [
-    316,
-    703
-   ]
-  },
-  {
-   "id": "e002",
-   "sourceId": "contains-domain",
-   "from": "n002.b",
-   "to": "n003.t",
-   "flow": "contains",
-   "packet": false,
-   "via": [
-    [
-     722,
-     436
-    ],
-    [
-     246,
-     436
-    ]
-   ],
-   "label": "2 包含",
-   "labelPos": [
-    484,
-    431
-   ]
-  },
-  {
    "id": "e003",
    "sourceId": "serves-student",
-   "from": "n001.b",
-   "to": "n003.t",
    "flow": "serves",
    "packet": false,
+   "label": "参与",
+   "from": "n001.r",
+   "to": "n003.l",
    "via": [
     [
-     246,
-     458
+     554,
+     217
     ],
     [
-     246,
-     458
+     554,
+     354.5
     ]
    ],
-   "label": "3 参与",
    "labelPos": [
-    316,
-    453
-   ]
+    524.6,
+    289.75
+   ],
+   "labelSide": "above"
   }
  ],
  "notes": [
   {
-   "x": 36,
-   "y": 1084,
-   "w": 1140,
-   "text": "业务关系与分支\n1. 报名业务 → 提交报名：包含\n   源边：contains-capability\n2. 课程系统 → 报名业务：包含\n   源边：contains-domain\n3. 学员 → 报名业务：参与\n   源边：serves-student",
-   "align": "left"
-  },
-  {
-   "x": 36,
-   "y": 1252,
-   "w": 1140,
-   "text": "快照来源与验证边界\n图版本：course-v2；导出时间：2026-10-31T08:17:41Z\n原始业务范围：Reference course fixture for tool acceptance; not a product contract\n图指纹：45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb\n环境：independent；轮次：Q-03acd05d00c5f8607fac49fc43ebe664\n显示节点 4/4，关系 3/3；模型 RISK 0 项；候选节点 0 个。\n已收录 RAW 的运行 2 个；RAW 校验错误 0 项。证据完整性 PASS 不等于业务 PASS。\n运行 R-6063197d81edc5dd6d53089e1c95fe3e：FAIL；首次偏离：1\n运行 R-111435dd484130451e87b612b09a54e1：PASS；首次偏离：未记录\n轮次证据图指纹：45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+   "x": 38,
+   "y": 530,
+   "w": 1104,
+   "text": "读图与例外\n外框表示业务归属；同一框内的卡片是同级能力，位置不表示执行顺序。\n范围：4/4 个节点，3/3 条关系；FLAKY 3 个、NOT_RUN 1 个\n历史运行 R-6063197d81edc5dd6d53089e1c95fe3e：FAIL；首次偏离：1\n图：course-v2｜环境：independent｜轮次：Q-03acd05d00c5f8607fac49fc43ebe664\n示例范围：Reference course fixture for tool acceptance; not a product contract",
    "align": "left"
   }
  ],
  "wireLegend": false,
  "statusLabels": {
   "done": "快照记录通过",
-  "warn": "失败／阻塞／过期／波动",
+  "warn": "结果波动",
   "none": "尚未验证",
   "dev": "部分完成",
   "off": "已排除"
  },
  "footer": {
-  "note": "静态只读；不执行、批准或重试。业务结论仅转述快照导出时的记录；包名定位不构成测试证明。"
+  "note": "只读快照；证据完整性 PASS 不等于业务 PASS。完整路径、源 ID、规则与历史记录见配套审阅页。"
  },
  "arc": {
   "read_only": true,
@@ -437,6 +367,57 @@ html:lang(th) body, html:lang(th) .lbl { font-family: "JetBrains Mono", "SF Mono
    "e001": "contains-capability",
    "e002": "contains-domain",
    "e003": "serves-student"
+  },
+  "group_ids": {
+   "n002": "course",
+   "n003": "enrollment"
+  },
+  "edge_rendering": {
+   "e001": {
+    "source_id": "contains-capability",
+    "representation": "containment",
+    "from": "n003",
+    "to": "n004"
+   },
+   "e002": {
+    "source_id": "contains-domain",
+    "representation": "containment",
+    "from": "n002",
+    "to": "n003"
+   },
+   "e003": {
+    "source_id": "serves-student",
+    "representation": "wire",
+    "from": "n001",
+    "to": "n003"
+   }
+  },
+  "presentation": {
+   "layout": "containment",
+   "names": {
+    "STUDENT": "学员",
+    "course": "课程系统",
+    "enrollment": "报名业务",
+    "enrollment.submit": "提交报名"
+   },
+   "relationships": [
+    "报名业务 → 提交报名：包含\n源边：contains-capability",
+    "课程系统 → 报名业务：包含\n源边：contains-domain",
+    "学员 → 报名业务：参与\n源边：serves-student"
+   ],
+   "logic": [],
+   "provenance": [
+    "图版本：course-v2；导出时间：2026-10-31T08:17:41Z",
+    "原始业务范围：Reference course fixture for tool acceptance; not a product contract",
+    "图指纹：45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+    "环境：independent；轮次：Q-03acd05d00c5f8607fac49fc43ebe664",
+    "显示节点 4/4，关系 3/3；模型 RISK 0 项；候选节点 0 个。",
+    "已收录 RAW 的运行 2 个；RAW 校验错误 0 项。证据完整性 PASS 不等于业务 PASS。",
+    "运行 R-6063197d81edc5dd6d53089e1c95fe3e：FAIL；首次偏离：1",
+    "运行 R-111435dd484130451e87b612b09a54e1：PASS；首次偏离：未记录",
+    "轮次证据图指纹：45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb"
+   ],
+   "diagram_height": 758
   },
   "source_nodes": [
    {

@@ -1,160 +1,316 @@
 {
-  "flows": {
-    "exit_code": 1,
-    "status": "BLOCKED",
-    "read_only": true,
-    "artifacts": {
-      "spec": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.spec.json",
-      "html": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.html"
-    },
-    "readiness": {
-      "spec": "READY",
-      "build": "READY",
-      "layout_check": "BLOCKED",
-      "screenshot": "NOT_RUN",
-      "visual_review": "NOT_RUN"
-    },
-    "business_verdict": {
-      "recorded": "BLOCKED",
-      "as_of": "2026-10-31T08:17:41Z",
-      "source": "/workspace/scratch/58193171aba4/Skills/tools/arc-verify/workbench/dev/sample-snapshot.json",
-      "reverified": false
-    },
-    "source": {
-      "generated": "2026-10-31T08:17:41Z",
-      "version": "(devel)",
-      "argv": [
-        "snapshot",
-        "--db",
-        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/002/data.db",
-        "--graph",
-        "course-v2",
-        "--env",
-        "independent",
-        "--round",
-        "Q-03acd05d00c5f8607fac49fc43ebe664",
-        "--run",
-        "R-6063197d81edc5dd6d53089e1c95fe3e,R-111435dd484130451e87b612b09a54e1",
-        "--config",
-        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/004/config.jsonc",
-        "--assets",
-        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/007",
-        "--out",
-        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/006/sample"
-      ],
-      "graph": "course-v2",
-      "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
-      "environment": "independent",
-      "round": "Q-03acd05d00c5f8607fac49fc43ebe664"
-    },
-    "warnings": [],
-    "renderer": {
-      "directory": "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram",
-      "repository": "https://github.com/bassnova42/arch-diagram-skill",
-      "version": "1.2.3",
-      "commit": "879ca7fa503a64ab46b5bc77d2062ded32fadc84"
-    },
-    "build": {
-      "argv": [
-        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
-        "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/build.mjs",
-        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.spec.json",
-        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.html"
-      ],
-      "exit_code": 0,
-      "stdout": "✓ built /workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.html (59.3 KB, 6 nodes, 4 edges)\n",
-      "stderr": ""
-    },
-    "check": {
-      "argv": [
-        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
-        "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/check.mjs",
-        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.html",
-        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/flows.check.png"
-      ],
-      "exit_code": 2,
-      "stdout": "",
-      "stderr": "no Chrome/Chromium found — set CHROME=/path/to/chrome\n"
-    },
-    "reason": "upstream layout check could not complete cleanly; retain spec/HTML and inspect check output"
+  "plugin_version": "0.4.1",
+  "verify_skill_version": "3.8.1",
+  "browser": {
+    "name": "Chromium",
+    "version": "153.0.8010.0",
+    "control": "Playwright 1.62.1 private pipe through task-local Chrome CLI compatibility entry point; upstream check.mjs/export.mjs unchanged",
+    "native_chrome_cli": false,
+    "production_target_accessed": false,
+    "runtime_adapter_distributed": false
   },
-  "capabilities": {
-    "exit_code": 1,
-    "status": "BLOCKED",
-    "read_only": true,
-    "artifacts": {
-      "spec": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.spec.json",
-      "html": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.html"
+  "examples": {
+    "async-overview": {
+      "status": "READY",
+      "read_only": true,
+      "artifacts": {
+        "spec": "/workspace/scratch/58193171aba4/diagram-visual-revision/final/async-overview.spec.json",
+        "html": "/workspace/scratch/58193171aba4/diagram-visual-revision/final/async-overview.html",
+        "screenshot": "/workspace/scratch/58193171aba4/diagram-visual-revision/final/async-overview.check.png",
+        "review": "/workspace/scratch/58193171aba4/diagram-visual-revision/final/async-overview.review.html"
+      },
+      "readiness": {
+        "spec": "READY",
+        "build": "READY",
+        "layout_check": "PASS",
+        "screenshot": "READY",
+        "visual_review": "NOT_RUN"
+      },
+      "business_verdict": {
+        "recorded": "BLOCKED",
+        "as_of": "2026-11-04T12:54:34Z",
+        "source": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/async-overview.snapshot.json",
+        "reverified": false
+      },
+      "source": {
+        "graph": "screenshot-layout-fixture",
+        "graph_sha256": "6b4771a7a5c4035f3188e22dcbacd63497646901764211518c602fafe7183c2c",
+        "generated": "2026-11-04T12:54:34Z",
+        "version": "screenshot-layout-fixture",
+        "argv": [],
+        "source": "User-provided screenshot image(20261104-124030).png; reconstructed for layout regression only"
+      },
+      "warnings": [],
+      "renderer": {
+        "directory": "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram",
+        "repository": "https://github.com/bassnova42/arch-diagram-skill",
+        "version": "1.2.3",
+        "commit": "879ca7fa503a64ab46b5bc77d2062ded32fadc84"
+      },
+      "build": {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/build.mjs",
+          "/workspace/scratch/58193171aba4/diagram-visual-revision/final/async-overview.spec.json",
+          "/workspace/scratch/58193171aba4/diagram-visual-revision/final/async-overview.html"
+        ],
+        "exit_code": 0,
+        "stdout": "✓ built /workspace/scratch/58193171aba4/diagram-visual-revision/final/async-overview.html (44.3 KB, 5 nodes, 0 edges)\n",
+        "stderr": ""
+      },
+      "check": {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/check.mjs",
+          "/workspace/scratch/58193171aba4/diagram-visual-revision/final/async-overview.html",
+          "/workspace/scratch/58193171aba4/diagram-visual-revision/final/async-overview.check.png"
+        ],
+        "exit_code": 0,
+        "stdout": "canvas 1180×755\n✓ no layout issues\nscreenshot: /workspace/scratch/58193171aba4/diagram-visual-revision/final/async-overview.check.png\n",
+        "stderr": ""
+      },
+      "reason": "upstream layout check passed; screenshot still needs visual inspection",
+      "manual_visual_review": {
+        "status": "PASS",
+        "reviewed_at": "2026-11-04T13:16:09Z",
+        "diagram_sha256": "48a9ad2cccb987a54b3e236644419a5bb94ec0aea34931c6c5aced82c9ae88b5",
+        "screenshot_sha256": "6a388879c91fc198f078023b18eff0dc777786b2c791fe302153a1d2c159180a",
+        "scope": "Inspected actual final browser screenshot for hierarchy, CJK/status wrapping, labels, whitespace and failure visibility; not a business-verification verdict."
+      },
+      "published_artifacts": {
+        "review.html": "async-overview.review.html",
+        "html": "async-overview.html",
+        "spec.json": "async-overview.spec.json"
+      },
+      "published_sha256": {
+        "async-overview.review.html": "6e94c0778887d2589bc89a3e9d88b3ed886bee29b17bc99f8ec91a015c96fba8",
+        "async-overview.html": "48a9ad2cccb987a54b3e236644419a5bb94ec0aea34931c6c5aced82c9ae88b5",
+        "async-overview.spec.json": "c340613699566f2931fd20f0b7c4dce51b6faa45f1203f1abed35a4c6f2b5207"
+      }
     },
-    "readiness": {
-      "spec": "READY",
-      "build": "READY",
-      "layout_check": "BLOCKED",
-      "screenshot": "NOT_RUN",
-      "visual_review": "NOT_RUN"
+    "capabilities": {
+      "status": "READY",
+      "read_only": true,
+      "artifacts": {
+        "spec": "/workspace/scratch/58193171aba4/diagram-visual-revision/final/capabilities.spec.json",
+        "html": "/workspace/scratch/58193171aba4/diagram-visual-revision/final/capabilities.html",
+        "screenshot": "/workspace/scratch/58193171aba4/diagram-visual-revision/final/capabilities.check.png",
+        "review": "/workspace/scratch/58193171aba4/diagram-visual-revision/final/capabilities.review.html"
+      },
+      "readiness": {
+        "spec": "READY",
+        "build": "READY",
+        "layout_check": "PASS",
+        "screenshot": "READY",
+        "visual_review": "NOT_RUN"
+      },
+      "business_verdict": {
+        "recorded": "BLOCKED",
+        "as_of": "2026-10-31T08:17:41Z",
+        "source": "/workspace/scratch/58193171aba4/Skills/tools/arc-verify/workbench/dev/sample-snapshot.json",
+        "reverified": false
+      },
+      "source": {
+        "generated": "2026-10-31T08:17:41Z",
+        "version": "(devel)",
+        "argv": [
+          "snapshot",
+          "--db",
+          "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/002/data.db",
+          "--graph",
+          "course-v2",
+          "--env",
+          "independent",
+          "--round",
+          "Q-03acd05d00c5f8607fac49fc43ebe664",
+          "--run",
+          "R-6063197d81edc5dd6d53089e1c95fe3e,R-111435dd484130451e87b612b09a54e1",
+          "--config",
+          "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/004/config.jsonc",
+          "--assets",
+          "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/007",
+          "--out",
+          "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/006/sample"
+        ],
+        "graph": "course-v2",
+        "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+        "environment": "independent",
+        "round": "Q-03acd05d00c5f8607fac49fc43ebe664"
+      },
+      "warnings": [],
+      "renderer": {
+        "directory": "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram",
+        "repository": "https://github.com/bassnova42/arch-diagram-skill",
+        "version": "1.2.3",
+        "commit": "879ca7fa503a64ab46b5bc77d2062ded32fadc84"
+      },
+      "build": {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/build.mjs",
+          "/workspace/scratch/58193171aba4/diagram-visual-revision/final/capabilities.spec.json",
+          "/workspace/scratch/58193171aba4/diagram-visual-revision/final/capabilities.html"
+        ],
+        "exit_code": 0,
+        "stdout": "✓ built /workspace/scratch/58193171aba4/diagram-visual-revision/final/capabilities.html (56.8 KB, 2 nodes, 1 edges)\n",
+        "stderr": ""
+      },
+      "check": {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/check.mjs",
+          "/workspace/scratch/58193171aba4/diagram-visual-revision/final/capabilities.html",
+          "/workspace/scratch/58193171aba4/diagram-visual-revision/final/capabilities.check.png"
+        ],
+        "exit_code": 0,
+        "stdout": "canvas 1180×714\n✓ no layout issues\nscreenshot: /workspace/scratch/58193171aba4/diagram-visual-revision/final/capabilities.check.png\n",
+        "stderr": ""
+      },
+      "reason": "upstream layout check passed; screenshot still needs visual inspection",
+      "manual_visual_review": {
+        "status": "PASS",
+        "reviewed_at": "2026-11-04T13:16:09Z",
+        "diagram_sha256": "a9fa2343db09887c93d4bd0f8be44d749acf1b74ec3a67685f7095b7565b71b5",
+        "screenshot_sha256": "e59c08ae761895664fad9e1a64fd5980422714dc815f8861a8a58385f4421978",
+        "scope": "Inspected actual final browser screenshot for hierarchy, CJK/status wrapping, labels, whitespace and failure visibility; not a business-verification verdict."
+      },
+      "published_artifacts": {
+        "review.html": "capabilities.review.html",
+        "html": "capabilities.html",
+        "spec.json": "capabilities.spec.json"
+      },
+      "published_sha256": {
+        "capabilities.review.html": "c1c1084cd6d2b2f9aa1eefedd66b7a816343270185f579d273232066f8513665",
+        "capabilities.html": "a9fa2343db09887c93d4bd0f8be44d749acf1b74ec3a67685f7095b7565b71b5",
+        "capabilities.spec.json": "c8525efc4b4a3cb7fbddb96c22fb54432c53fb7575ccb2d0594fe5f5975a8278"
+      }
     },
-    "business_verdict": {
-      "recorded": "BLOCKED",
-      "as_of": "2026-10-31T08:17:41Z",
-      "source": "/workspace/scratch/58193171aba4/Skills/tools/arc-verify/workbench/dev/sample-snapshot.json",
-      "reverified": false
+    "flows": {
+      "status": "READY",
+      "read_only": true,
+      "artifacts": {
+        "spec": "/workspace/scratch/58193171aba4/diagram-visual-revision/final/flows.spec.json",
+        "html": "/workspace/scratch/58193171aba4/diagram-visual-revision/final/flows.html",
+        "screenshot": "/workspace/scratch/58193171aba4/diagram-visual-revision/final/flows.check.png",
+        "review": "/workspace/scratch/58193171aba4/diagram-visual-revision/final/flows.review.html"
+      },
+      "readiness": {
+        "spec": "READY",
+        "build": "READY",
+        "layout_check": "PASS",
+        "screenshot": "READY",
+        "visual_review": "NOT_RUN"
+      },
+      "business_verdict": {
+        "recorded": "BLOCKED",
+        "as_of": "2026-10-31T08:17:41Z",
+        "source": "/workspace/scratch/58193171aba4/Skills/tools/arc-verify/workbench/dev/sample-snapshot.json",
+        "reverified": false
+      },
+      "source": {
+        "generated": "2026-10-31T08:17:41Z",
+        "version": "(devel)",
+        "argv": [
+          "snapshot",
+          "--db",
+          "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/002/data.db",
+          "--graph",
+          "course-v2",
+          "--env",
+          "independent",
+          "--round",
+          "Q-03acd05d00c5f8607fac49fc43ebe664",
+          "--run",
+          "R-6063197d81edc5dd6d53089e1c95fe3e,R-111435dd484130451e87b612b09a54e1",
+          "--config",
+          "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/004/config.jsonc",
+          "--assets",
+          "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/007",
+          "--out",
+          "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/006/sample"
+        ],
+        "graph": "course-v2",
+        "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+        "environment": "independent",
+        "round": "Q-03acd05d00c5f8607fac49fc43ebe664"
+      },
+      "warnings": [],
+      "renderer": {
+        "directory": "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram",
+        "repository": "https://github.com/bassnova42/arch-diagram-skill",
+        "version": "1.2.3",
+        "commit": "879ca7fa503a64ab46b5bc77d2062ded32fadc84"
+      },
+      "build": {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/build.mjs",
+          "/workspace/scratch/58193171aba4/diagram-visual-revision/final/flows.spec.json",
+          "/workspace/scratch/58193171aba4/diagram-visual-revision/final/flows.html"
+        ],
+        "exit_code": 0,
+        "stdout": "✓ built /workspace/scratch/58193171aba4/diagram-visual-revision/final/flows.html (60.4 KB, 6 nodes, 4 edges)\n",
+        "stderr": ""
+      },
+      "check": {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+          "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/check.mjs",
+          "/workspace/scratch/58193171aba4/diagram-visual-revision/final/flows.html",
+          "/workspace/scratch/58193171aba4/diagram-visual-revision/final/flows.check.png"
+        ],
+        "exit_code": 0,
+        "stdout": "canvas 1180×1246\n✓ no layout issues\nscreenshot: /workspace/scratch/58193171aba4/diagram-visual-revision/final/flows.check.png\n",
+        "stderr": ""
+      },
+      "reason": "upstream layout check passed; screenshot still needs visual inspection",
+      "manual_visual_review": {
+        "status": "PASS",
+        "reviewed_at": "2026-11-04T13:16:09Z",
+        "diagram_sha256": "1450479c101b3688c9c083ef49999b6928ffa43b1f9270d83012deb1c73069d0",
+        "screenshot_sha256": "65cb67354544a90eb1122cacb7200789c1c9ceaa490713d75f286538f57d599c",
+        "scope": "Inspected actual final browser screenshot for hierarchy, CJK/status wrapping, labels, whitespace and failure visibility; not a business-verification verdict."
+      },
+      "published_artifacts": {
+        "review.html": "flows.review.html",
+        "html": "flows.html",
+        "spec.json": "flows.spec.json"
+      },
+      "published_sha256": {
+        "flows.review.html": "05ec1245e89495a7bbebb5453e2715275a0356129a384991191a27de64caaa3e",
+        "flows.html": "1450479c101b3688c9c083ef49999b6928ffa43b1f9270d83012deb1c73069d0",
+        "flows.spec.json": "3a2a0b85e8f04d95ed81a251b19e4da3b512685006f00dfd3541c92c12ff7479"
+      }
+    }
+  },
+  "tests": {
+    "root_pytest": {
+      "passed": 686,
+      "failed": 1,
+      "skipped": 4,
+      "failure": "Existing missing cloudflare-platform external source in all-family packaging test"
     },
-    "source": {
-      "generated": "2026-10-31T08:17:41Z",
-      "version": "(devel)",
-      "argv": [
-        "snapshot",
-        "--db",
-        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/002/data.db",
-        "--graph",
-        "course-v2",
-        "--env",
-        "independent",
-        "--round",
-        "Q-03acd05d00c5f8607fac49fc43ebe664",
-        "--run",
-        "R-6063197d81edc5dd6d53089e1c95fe3e,R-111435dd484130451e87b612b09a54e1",
-        "--config",
-        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/004/config.jsonc",
-        "--assets",
-        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/007",
-        "--out",
-        "/var/folders/qb/vw4k2j4964qfwy25g7p1sg440000gn/T/TestSnapshotSampleForWorkbench620666231/006/sample"
+    "diagram_focused": {
+      "passed": 47
+    },
+    "context_budget": "PASS; existing ceilings retained",
+    "native_cli_sessions": "NOT_RUN",
+    "real_product_e2e": "NOT_RUN"
+  },
+  "companion_review": {
+    "result": "PASS",
+    "record": "visual-review.json",
+    "final_artifacts_bound": true,
+    "scenarios": 4,
+    "viewports": [
+      [
+        1280,
+        900
       ],
-      "graph": "course-v2",
-      "graph_sha256": "45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
-      "environment": "independent",
-      "round": "Q-03acd05d00c5f8607fac49fc43ebe664"
-    },
-    "warnings": [],
-    "renderer": {
-      "directory": "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram",
-      "repository": "https://github.com/bassnova42/arch-diagram-skill",
-      "version": "1.2.3",
-      "commit": "879ca7fa503a64ab46b5bc77d2062ded32fadc84"
-    },
-    "build": {
-      "argv": [
-        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
-        "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/build.mjs",
-        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.spec.json",
-        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.html"
-      ],
-      "exit_code": 0,
-      "stdout": "✓ built /workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.html (56.7 KB, 4 nodes, 3 edges)\n",
-      "stderr": ""
-    },
-    "check": {
-      "argv": [
-        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
-        "/workspace/scratch/58193171aba4/Skills/plugins/arc-policy/skills/arch-diagram/scripts/check.mjs",
-        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.html",
-        "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/capabilities.check.png"
-      ],
-      "exit_code": 2,
-      "stdout": "",
-      "stderr": "no Chrome/Chromium found — set CHROME=/path/to/chrome\n"
-    },
-    "reason": "upstream layout check could not complete cleanly; retain spec/HTML and inspect check output"
+      [
+        390,
+        844
+      ]
+    ]
   }
 }

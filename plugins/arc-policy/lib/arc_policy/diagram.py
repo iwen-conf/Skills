@@ -13,16 +13,20 @@ import shutil
 import subprocess
 import tomllib
 import unicodedata
+from collections import Counter
 from copy import deepcopy
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
 from arc_policy.capabilities import check_pinned_skill
+from arc_policy.diagram_review import render_review
 from arc_policy.paths import plugin_root
 
 MAX_NODES = 16
 MAX_EDGES = 32
 MAX_BYTES = 64 << 20
+CANVAS_WIDTH = 1180
 VIEWS = {
     "capabilities": (
         {"system", "domain", "capability", "role"},
@@ -133,14 +137,29 @@ def _display(text: Any) -> str:
 
 def _wrap(text: Any, width: int = 48) -> str:
     lines, line, size = [], "", 0
-    for char in _display(text):
-        cells = 2 if unicodedata.east_asian_width(char) in "WF" else 1
-        if char == "\n" or size + cells > width:
+    # Keep ordinary code tokens and canonical verdicts intact. Long hashes can
+    # still wrap, but never split short identifiers such as FLAKY into FLAK/Y.
+    for token in re.findall(r"[A-Za-z0-9_]+|[^A-Za-z0-9_]", _display(text)):
+        cells = sum(
+            2 if unicodedata.east_asian_width(char) in "WF" else 1 for char in token
+        )
+        if token == "\n":
             lines.append(line)
             line, size = "", 0
-        if char != "\n":
-            line += char
+            continue
+        if cells <= width:
+            if size + cells > width:
+                lines.append(line)
+                line, size = "", 0
+            line += token
             size += cells
+        else:
+            for char in token:
+                if size == width:
+                    lines.append(line)
+                    line, size = "", 0
+                line += char
+                size += 1
     lines.append(line)
     return "\n".join(lines)
 
@@ -405,6 +424,365 @@ def _rows(
     return rows
 
 
+def _node_height(node: dict[str, Any]) -> int:
+    """Leave room for measured CJK text, not empty audit-table rows."""
+    lines = sum(
+        1 + str(node[key]).count("\n")
+        for key in ("title", "sub", "text")
+        if node.get(key)
+    ) + sum(1 + line.count("\n") for line in node.get("lines", []))
+    return max(94, 30 + lines * 21)
+
+
+def _pack_rows(
+    identities: list[str], sizes: dict[str, tuple[int, int]], width: int
+) -> list[list[str]]:
+    """Balance siblings without implying any business execution order."""
+    if not identities:
+        return []
+    gap = 28
+    if len({sizes[identity][0] for identity in identities}) == 1:
+        item_width = sizes[identities[0]][0]
+        columns = max(1, min(3, (width + gap) // (item_width + gap)))
+        row_count = (len(identities) + columns - 1) // columns
+        small, extra = divmod(len(identities), row_count)
+        rows, start = [], 0
+        for index in range(row_count):
+            count = small + (index < extra)
+            rows.append(identities[start : start + count])
+            start += count
+        return rows
+    rows, row, used = [], [], 0
+    for identity in identities:
+        item_width = sizes[identity][0]
+        if row and (len(row) == 3 or used + gap + item_width > width):
+            rows.append(row)
+            row, used = [], 0
+        used += item_width + (gap if row else 0)
+        row.append(identity)
+    if row:
+        rows.append(row)
+    return rows
+
+
+def _containment_layout(
+    nodes: dict[str, dict[str, Any]],
+    edges: list[dict[str, Any]],
+    start_y: int,
+) -> tuple[list[dict[str, Any]], list[str], int] | None:
+    """Express a real containment forest as nested upstream groups.
+
+    Shared ownership and cycles are not trees. Leave their original arrows
+    explicit instead of inventing a single owner or silently discarding edges.
+    """
+    contains = [edge for edge in edges if edge["kind"] == "contains"]
+    if not contains:
+        return None
+    children: dict[str, list[str]] = {identity: [] for identity in nodes}
+    parents: dict[str, str] = {}
+    for edge in contains:
+        parent, child = edge["from"], edge["to"]
+        if parent == child or child in parents and parents[child] != parent:
+            return None
+        parents[child] = parent
+        if child not in children[parent]:
+            children[parent].append(child)
+    roots = [identity for identity in nodes if identity not in parents]
+    visited: set[str] = set()
+
+    def visit(identity: str) -> None:
+        if identity in visited:
+            return
+        visited.add(identity)
+        for child in children[identity]:
+            visit(child)
+
+    for identity in roots:
+        visit(identity)
+    if len(visited) != len(nodes):
+        return None
+    sizes: dict[str, tuple[int, int]] = {}
+    rows: dict[str, list[list[str]]] = {}
+    padding, gap, header = 24, 28, 58
+
+    def measure(identity: str, available: int) -> None:
+        node = nodes[identity]
+        if not children[identity]:
+            node["w"] = min(328, available)
+            cells = max(24, int((node["w"] - 31) / 7.8))
+            node["title"] = "\n".join(
+                _wrap(line, cells) for line in node["title"].split("\n")
+            )
+            node["lines"] = [_wrap(line, cells) for line in node.get("lines", [])]
+            sizes[identity] = (node["w"], _node_height(node))
+            return
+        if available < 288:
+            raise DiagramError(
+                "containment is too deep for a legible overview; select a bounded subtree with node_ids"
+            )
+        for child in children[identity]:
+            measure(child, available - padding * 2)
+        rows[identity] = _pack_rows(children[identity], sizes, available - padding * 2)
+        width = (
+            max(
+                sum(sizes[child][0] for child in row) + gap * (len(row) - 1)
+                for row in rows[identity]
+            )
+            + padding * 2
+        )
+        # The group label is a real source node, with its package and any
+        # exceptional status retained; never reduce a parent to an anonymous box.
+        label = node["title"].replace("\n", "")
+        status_parts = []
+        if node.get("sub"):
+            status_parts.append(node["sub"])
+        if node.get("statusText") and node.get("status"):
+            status_parts.append(node["statusText"])
+        failures = node.get("historyFailures", 0)
+        if failures:
+            status_parts.append(f"历史 FAIL {failures}")
+        if status_parts:
+            label += "\n" + " · ".join(status_parts)
+        max_cells = max(28, int((width - 48) / 7.8))
+        node["groupLabel"] = _wrap(label, max_cells)
+        label_height = node["groupLabel"].count("\n") * 19
+        rows_height = sum(
+            max(sizes[child][1] for child in row) for row in rows[identity]
+        )
+        sizes[identity] = (
+            width,
+            header
+            + label_height
+            + rows_height
+            + gap * (len(rows[identity]) - 1)
+            + padding,
+        )
+
+    for identity in roots:
+        measure(identity, CANVAS_WIDTH - 76)
+    root_rows = _pack_rows(roots, sizes, CANVAS_WIDTH - 76)
+    groups = []
+
+    def place(identity: str, x: int, y: int) -> None:
+        node = nodes[identity]
+        width, height = sizes[identity]
+        node.update(x=x, y=y, w=width, h=height)
+        if not children[identity]:
+            return
+        groups.append(
+            {
+                "id": node["id"],
+                "sourceId": identity,
+                "label": node["groupLabel"],
+                "x": x,
+                "y": y,
+                "w": width,
+                "h": height,
+                "color": KINDS[node["layer"]][1],
+            }
+        )
+        row_y = y + header + node["groupLabel"].count("\n") * 19
+        for row in rows[identity]:
+            row_width = sum(sizes[child][0] for child in row) + gap * (len(row) - 1)
+            row_x = x + (width - row_width) // 2
+            row_height = max(sizes[child][1] for child in row)
+            for child in row:
+                place(child, row_x, row_y)
+                row_x += sizes[child][0] + gap
+            row_y += row_height + gap
+
+    y = start_y
+    for row in root_rows:
+        width = sum(sizes[identity][0] for identity in row) + gap * (len(row) - 1)
+        x = (CANVAS_WIDTH - width) // 2
+        for identity in row:
+            place(identity, x, y)
+            x += sizes[identity][0] + gap
+        y += max(sizes[identity][1] for identity in row) + 44
+    # The upstream checker treats group borders as decoration. Assert actual
+    # containment here so a geometrically tidy but false grouping cannot ship.
+    for parent, child_ids in children.items():
+        outer = nodes[parent]
+        for child in child_ids:
+            inner = nodes[child]
+            if not (
+                outer["x"] < inner["x"]
+                and outer["y"] < inner["y"]
+                and inner["x"] + inner["w"] < outer["x"] + outer["w"]
+                and inner["y"] + inner["h"] < outer["y"] + outer["h"]
+            ):
+                raise DiagramError(f"child {child} escaped its source group {parent}")
+        for index, first_id in enumerate(child_ids):
+            first = nodes[first_id]
+            for second_id in child_ids[index + 1 :]:
+                second = nodes[second_id]
+                if min(first["x"] + first["w"], second["x"] + second["w"]) > max(
+                    first["x"], second["x"]
+                ) and min(first["y"] + first["h"], second["y"] + second["h"]) > max(
+                    first["y"], second["y"]
+                ):
+                    raise DiagramError(f"siblings {first_id} and {second_id} overlap")
+    return groups, [edge["id"] for edge in contains], y
+
+
+def _hierarchy_route(
+    start: dict[str, Any],
+    end: dict[str, Any],
+    label: str,
+    nodes: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Choose a short official orthogonal route with a clear label gutter.
+
+    These are presentation waypoints, not a new graph engine. If none of the
+    bounded routes is readable, request a smaller view instead of hiding a wire.
+    """
+
+    def anchor(node: dict[str, Any], side: str) -> list[float]:
+        x, y, width, height = (node[key] for key in ("x", "y", "w", "h"))
+        return {
+            "t": [x + width / 2, y],
+            "b": [x + width / 2, y + height],
+            "l": [x, y + height / 2],
+            "r": [x + width, y + height / 2],
+        }[side]
+
+    def rect(
+        node: dict[str, Any], margin: int = 0
+    ) -> tuple[float, float, float, float]:
+        return (
+            node["x"] - margin,
+            node["y"] - margin,
+            node["x"] + node["w"] + margin,
+            node["y"] + node["h"] + margin,
+        )
+
+    def intersects(first: tuple, second: tuple) -> bool:
+        return min(first[2], second[2]) > max(first[0], second[0]) and min(
+            first[3], second[3]
+        ) > max(first[1], second[1])
+
+    cards = [node for node in nodes.values() if "groupLabel" not in node]
+    obstacles = [
+        rect(node, 4) for node in cards if node["id"] not in {start["id"], end["id"]}
+    ]
+    label_obstacles = [rect(node, 4) for node in cards]
+    for node in nodes.values():
+        if "groupLabel" in node:
+            left, top, right, bottom = rect(node)
+            # Group borders are semantic boundaries. Keep labels wholly on one
+            # side even though the upstream checker only tests their legends.
+            label_obstacles.extend(
+                [
+                    (left - 2, top, left + 2, bottom),
+                    (right - 2, top, right + 2, bottom),
+                    (left, top - 2, right, top + 2),
+                    (left, bottom - 2, right, bottom + 2),
+                ]
+            )
+            label_obstacles.append(
+                (
+                    node["x"] + 12,
+                    node["y"] - 12,
+                    node["x"] + node["w"] - 12,
+                    node["y"] + 10 + 19 * node["groupLabel"].count("\n"),
+                )
+            )
+    candidates = []
+
+    def add(from_side: str, to_side: str, via: list[list[float]]) -> None:
+        points = [anchor(start, from_side), *via, anchor(end, to_side)]
+        points = [
+            point
+            for index, point in enumerate(points)
+            if not index or point != points[index - 1]
+        ]
+        if len(points) < 2:
+            return
+        for first, second in pairwise(points):
+            if first[0] != second[0] and first[1] != second[1]:
+                return
+            segment = (
+                min(first[0], second[0]) - 1,
+                min(first[1], second[1]) - 1,
+                max(first[0], second[0]) + 1,
+                max(first[1], second[1]) + 1,
+            )
+            if any(intersects(segment, obstacle) for obstacle in obstacles):
+                return
+        length = sum(abs(a[0] - b[0]) + abs(a[1] - b[1]) for a, b in pairwise(points))
+        candidates.append((length, from_side, to_side, points))
+
+    if start["x"] + start["w"] <= end["x"] or end["x"] + end["w"] <= start["x"]:
+        forward = start["x"] < end["x"]
+        from_side, to_side = ("r", "l") if forward else ("l", "r")
+        a, b = anchor(start, from_side), anchor(end, to_side)
+        mid = (a[0] + b[0]) / 2
+        add(from_side, to_side, [[mid, a[1]], [mid, b[1]]])
+    below = start["y"] >= end["y"] + end["h"]
+    from_side, to_side = ("t", "b") if below else ("b", "t")
+    a, b = anchor(start, from_side), anchor(end, to_side)
+    departure = a[1] + (-20 if below else 20)
+    arrival = b[1] + (20 if below else -20)
+    add(from_side, to_side, [[a[0], departure], [b[0], departure]])
+    for lane in (18, CANVAS_WIDTH - 18):
+        add(
+            from_side,
+            to_side,
+            [[a[0], departure], [lane, departure], [lane, arrival], [b[0], arrival]],
+        )
+    lines = label.split("\n")
+    width = (
+        max(
+            sum(2 if unicodedata.east_asian_width(char) in "WF" else 1 for char in line)
+            for line in lines
+        )
+        * 6.7
+        + 8
+    )
+    height = len(lines) * 15 + 4
+    for _, from_side, to_side, points in sorted(candidates, key=lambda item: item[0]):
+        for first, second in pairwise(points):
+            locations = []
+            if first[1] == second[1]:
+                center = (first[0] + second[0]) / 2
+                locations = [
+                    (center, first[1] - 10 - height / 2),
+                    (center, first[1] + 10 + height / 2),
+                ]
+            else:
+                for cy in (
+                    (first[1] + second[1]) / 2,
+                    max(first[1], second[1]) - 5,
+                    min(first[1], second[1]) + 5,
+                ):
+                    locations.extend(
+                        (first[0] + offset * (12 + width / 2), cy) for offset in (1, -1)
+                    )
+            for cx, cy in locations:
+                bounds = (
+                    cx - width / 2,
+                    cy - height / 2,
+                    cx + width / 2,
+                    cy + height / 2,
+                )
+                if (
+                    bounds[0] < 12
+                    or bounds[2] > CANVAS_WIDTH - 12
+                    or any(intersects(bounds, obstacle) for obstacle in label_obstacles)
+                ):
+                    continue
+                return {
+                    "from": start["id"] + "." + from_side,
+                    "to": end["id"] + "." + to_side,
+                    "via": points[1:-1],
+                    "labelPos": [cx, cy - (len(lines) - 1) * 7.5 + 4],
+                    "labelSide": "above",
+                }
+    raise DiagramError(
+        "a real relationship has no clear route/label gutter; select a smaller bounded view"
+    )
+
+
 def _run_summaries(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     result = []
     for run in runs:
@@ -644,28 +1022,13 @@ def snapshot_to_spec(
             candidate_nodes.append(identity)
         badge, status_zh = STATUSES[status]
         description = label.get("description_zh", "")
-        lines = [
-            f"历史 FAIL：{state.get('history_failures', 0)}　通过义务：{state.get('passed', 0)}/{state.get('required', 0)}"
-        ]
+        lines = []
         if description:
             lines.append(description)
-        if identity in rules:
-            lines.append(
-                f"RULE：{identity} · {'已确认' if approvals.get(identity) else '待确认'}"
-            )
-        elif node["kind"] == "action":
-            own_rules = [
-                rule_id
-                for rule_id, rule in rules.items()
-                if rule.get("action") == identity
-            ]
-            if own_rules:
-                lines.append("关联 RULE：" + "、".join(own_rules))
-        if packages:
-            lines.append(
-                "包名来源："
-                + "；".join(f"{item['file']}:{item['line']}" for item in packages)
-            )
+        if state.get("history_failures", 0):
+            lines.append(f"历史 FAIL：{state['history_failures']} 次，仍保留记录")
+        if state.get("required", 0):
+            lines.append(f"验证覆盖 {state.get('passed', 0)}/{state['required']} 项")
         if identity not in projected:
             lines.append("快照未导出此节点的执行状态")
         renderer_id = f"n{index + 1:03d}"
@@ -673,14 +1036,18 @@ def snapshot_to_spec(
         render_nodes[identity] = {
             "id": renderer_id,
             "layer": node["kind"],
-            "w": 420,
-            "title": _wrap(f"{name}【{package_label}】"),
-            "sub": KINDS[node["kind"]][0] + (" · 候选／待确认" if unconfirmed else ""),
-            "lines": [_wrap(line) for line in lines],
-            "footer": _wrap(f"源 ID：{identity}"),
+            "w": 328 if view == "capabilities" else 420,
+            "title": _wrap(name, 37 if view == "capabilities" else 48)
+            + "\n"
+            + _wrap(f"【{package_label}】", 37 if view == "capabilities" else 48),
+            "sub": "候选／待确认" if unconfirmed else "",
+            "lines": [
+                _wrap(line, 37 if view == "capabilities" else 48) for line in lines
+            ],
             "status": badge,
             "statusText": f"{status_zh} · {status}",
             "sourceId": identity,
+            "historyFailures": state.get("history_failures", 0),
         }
     for identity, rule in rules.items():
         if identity in render_nodes:
@@ -696,8 +1063,9 @@ def snapshot_to_spec(
     for flow in _optional_items(graph.get("flows"), "flows"):
         if flow.get("initial") in render_nodes:
             render_nodes[flow["initial"]]["sub"] += " · 初始状态"
-    rows = _rows([eligible[identity] for identity in selected], edges, view)
-    header = f"快照结论：{STATUSES[verdict][1]} · {verdict}（导出时）｜历史 FAIL：{projection.get('history_failures', 0)}"
+    header = f"快照结论：{STATUSES[verdict][1]} · {verdict}（导出时）"
+    if projection.get("history_failures", 0):
+        header += f"｜历史 FAIL：{projection['history_failures']}"
     scope = str(graph.get("scope", ""))
     fixture = bool(
         re.search(
@@ -712,25 +1080,41 @@ def snapshot_to_spec(
         else "快照记录；未重新执行业务验证"
     )
     subtitle = _wrap(
-        f"{graph_id} · {'候选业务模型，尚未确认' if not model['approved'] else '业务目录已确认'}\n{header}\n{provenance_label}\n只读关系图；图形检查不提供业务执行证明。",
+        f"{'候选业务模型，尚未确认' if not model['approved'] else '业务目录已确认'}｜{header}\n"
+        f"导出：{meta['generated']}｜{provenance_label}",
         132,
     )
-    y = 205 + 21 * subtitle.count("\n")
+    # Match the actual header content instead of reserving an arbitrary empty
+    # band. The official browser checker still measures real fonts and labels.
+    y = 128 + 21 * (subtitle.count("\n") + 1)
+    hierarchy = (
+        _containment_layout(render_nodes, edges, y) if view == "capabilities" else None
+    )
+    groups, contained_edge_ids = [], []
+    if hierarchy is not None:
+        groups, contained_edge_ids, y = hierarchy
+    elif view == "capabilities" and any(edge["kind"] == "contains" for edge in edges):
+        warnings.append(
+            "包含关系存在共享归属或环，已保留显式关系；未把它改画成单一归属树"
+        )
+    rows = (
+        []
+        if hierarchy
+        else _rows([eligible[identity] for identity in selected], edges, view)
+    )
     row_bounds, positions = [], {}
     for row_index, row in enumerate(rows):
         heights = []
         for column, identity in enumerate(row):
             node = render_nodes[identity]
-            node["x"], node["y"] = 36 + column * 476, y
-            text_lines = (
-                1
-                + node["title"].count("\n")
-                + 1
-                + sum(1 + line.count("\n") for line in node["lines"])
-                + 1
-                + node["footer"].count("\n")
+            row_width = sum(render_nodes[item]["w"] for item in row) + 64 * (
+                len(row) - 1
             )
-            node["h"] = 52 + text_lines * 22
+            node["x"] = (CANVAS_WIDTH - 160 - row_width) // 2 + sum(
+                render_nodes[item]["w"] + 64 for item in row[:column]
+            )
+            node["y"] = y
+            node["h"] = _node_height(node)
             heights.append(node["h"])
             positions[identity] = row_index
         height = max(heights)
@@ -739,22 +1123,12 @@ def snapshot_to_spec(
             render_nodes[identity]["h"] = height
         row_bounds.append((y, y + height))
         outgoing = sum(edge["from"] in row for edge in edges)
-        y += height + max(132, 52 + outgoing * 22)
+        y += height + max(80, 44 + outgoing * 22)
     render_edges, relation_notes, edge_ids = [], [], {}
     row_slots: dict[int, int] = {}
+    long_lane = 0
     for index, edge in enumerate(edges):
         start, end = render_nodes[edge["from"]], render_nodes[edge["to"]]
-        start_row, end_row = positions[edge["from"]], positions[edge["to"]]
-        lane = 1100 + index * 3
-        slot = row_slots.get(start_row, 0)
-        row_slots[start_row] = slot + 1
-        offset = 28 + slot * 22
-        source_y = row_bounds[start_row][1] + offset
-        same_row = start_row == end_row
-        target_y = (
-            row_bounds[end_row][1] + offset if same_row else row_bounds[end_row][0] - 24
-        )
-        source_x, target_x = start["x"] + 210, end["x"] + 210
         transition = transitions.get(edge["id"], {})
         label = (
             labels.get("edges", {})
@@ -777,13 +1151,47 @@ def snapshot_to_spec(
             )
         renderer_id = f"e{index + 1:03d}"
         edge_ids[renderer_id] = edge["id"]
+        relation_notes.append(
+            f"{names[edge['from']]} → {names[edge['to']]}：{label}"
+            + ("；" + "；".join(details) if details else "")
+            + f"\n源边：{edge['id']}"
+        )
+        if edge["id"] in contained_edge_ids:
+            continue
+        if hierarchy:
+            display_label = _wrap(label, 18)
+            route = _hierarchy_route(start, end, display_label, render_nodes)
+            render_edges.append(
+                {
+                    "id": renderer_id,
+                    "sourceId": edge["id"],
+                    "flow": edge["kind"],
+                    "packet": False,
+                    "label": display_label,
+                    **route,
+                }
+            )
+            continue
+        start_row, end_row = positions[edge["from"]], positions[edge["to"]]
+        slot = row_slots.get(start_row, 0)
+        row_slots[start_row] = slot + 1
+        offset = 28 + slot * 22
+        source_y = row_bounds[start_row][1] + offset
+        same_row = start_row == end_row
+        target_y = (
+            row_bounds[end_row][1] + offset if same_row else row_bounds[end_row][0] - 24
+        )
+        source_x, target_x = start["x"] + start["w"] / 2, end["x"] + end["w"] / 2
         from_anchor, to_anchor = (
             start["id"] + ".b",
             end["id"] + (".b" if same_row else ".t"),
         )
         if edge["from"] == edge["to"]:
             from_anchor, to_anchor = start["id"] + ".b@0.25", end["id"] + ".b@0.75"
-            source_x, target_x = start["x"] + 105, end["x"] + 315
+            source_x, target_x = (
+                start["x"] + start["w"] / 4,
+                end["x"] + end["w"] * 3 / 4,
+            )
         if same_row or end_row == start_row + 1:
             via = [[source_x, source_y], [target_x, source_y]]
             label_position = [
@@ -791,13 +1199,19 @@ def snapshot_to_spec(
                 source_y - 5,
             ]
         else:
+            lane = CANVAS_WIDTH - 180 + long_lane * 16
+            long_lane += 1
+            if lane > CANVAS_WIDTH - 20:
+                raise DiagramError(
+                    "too many long or backward relationships for readable routing; narrow presentation.node_ids"
+                )
             via = [
                 [source_x, source_y],
                 [lane, source_y],
                 [lane, target_y],
                 [target_x, target_y],
             ]
-            label_position = [1035, source_y - 5]
+            label_position = [(source_x + lane) / 2, source_y - 5]
         render_edges.append(
             {
                 "id": renderer_id,
@@ -807,14 +1221,9 @@ def snapshot_to_spec(
                 "flow": edge["kind"],
                 "packet": False,
                 "via": via,
-                "label": f"{index + 1} {RELATIONS[edge['kind']][0]}",
+                "label": _wrap(label, 18),
                 "labelPos": label_position,
             }
-        )
-        relation_notes.append(
-            f"{index + 1}. {names[edge['from']]} → {names[edge['to']]}：{label}"
-            + ("；" + "；".join(details) if details else "")
-            + f"\n   源边：{edge['id']}"
         )
     runs = _run_summaries(_items(snapshot.get("runs", []), "runs"))
     risks = deepcopy(_optional_items(graph.get("risks"), "risks"))
@@ -854,20 +1263,51 @@ def snapshot_to_spec(
     logic_notes, omitted_logic = _logic_notes(graph, names, selected_set)
     summary.extend(_exploration_notes(snapshot.get("exploration")))
     summary.extend(warnings)
+    status_counts = Counter(
+        projected.get(identity, {}).get("status", "NOT_RUN") for identity in selected
+    )
+    overview = [
+        (
+            "外框表示业务归属；同一框内的卡片是同级能力，位置不表示执行顺序。"
+            if groups
+            else "箭头表示源模型声明的业务关系，位置不等于实际执行顺序。"
+        ),
+        f"范围：{len(selected)}/{len(eligible)} 个节点，{len(edges)}/{len(eligible_edges)} 条关系；"
+        + "、".join(
+            f"{status} {count} 个" for status, count in sorted(status_counts.items())
+        ),
+    ]
+    if risks:
+        overview.append(f"模型 RISK：{len(risks)} 项，完整内容见审阅详情。")
+    if evidence_errors:
+        overview.append(
+            f"RAW 校验错误 {len(evidence_errors)} 项；不能据此声明业务通过。"
+        )
+    for run in runs:
+        if run.get("status") != "PASS" or run.get("first_divergence"):
+            overview.append(
+                f"历史运行 {run.get('run', '未知')}：{run.get('status', '未知')}；首次偏离：{run.get('first_divergence') or '未记录'}"
+            )
+    overview.extend(_exploration_notes(snapshot.get("exploration")))
+    overview.extend(warnings)
+    overview.append(
+        f"图：{graph_id}｜环境：{meta.get('environment') or '未设置'}｜轮次：{meta.get('round') or '未设置'}"
+    )
+    if fixture:
+        overview.append("示例范围：" + scope)
     notes = []
-    for title, lines in (
-        ("业务关系与分支", relation_notes),
-        ("规则与条件逻辑", logic_notes),
-        ("快照来源与验证边界", summary),
-    ):
+    for title, lines in (("读图与例外", overview), ("规则与条件逻辑", logic_notes)):
         if not lines:
             continue
-        content = _wrap(title + "\n" + "\n".join(lines), 142)
-        notes.append({"x": 36, "y": y, "w": 1140, "text": content, "align": "left"})
+        content = _wrap(title + "\n" + "\n".join(lines), 132)
+        notes.append(
+            {"x": 38, "y": y, "w": CANVAS_WIDTH - 76, "text": content, "align": "left"}
+        )
         y += (content.count("\n") + 1) * 20 + 28
+    group_ids = {group["id"]: group["sourceId"] for group in groups}
     return {
         "lang": "zh-CN",
-        "width": 1240,
+        "width": CANVAS_WIDTH,
         "title": _wrap(labels.get("title_zh", heading), 132),
         "pageTitle": heading + " · " + graph_id,
         "subtitle": subtitle,
@@ -879,21 +1319,28 @@ def snapshot_to_spec(
         "flows": [
             {"id": kind, "label": RELATIONS[kind][0], "color": RELATIONS[kind][1]}
             for kind in RELATIONS
-            if any(edge["kind"] == kind for edge in edges)
+            if any(edge["flow"] == kind for edge in render_edges)
         ],
-        "nodes": list(render_nodes.values()),
+        "nodes": [
+            node for node in render_nodes.values() if node["id"] not in group_ids
+        ],
+        "groups": groups,
         "edges": render_edges,
         "notes": notes,
         "wireLegend": False,
         "statusLabels": {
             "done": "快照记录通过",
-            "warn": "失败／阻塞／过期／波动",
+            "warn": "／".join(
+                STATUSES[status][1]
+                for status in status_counts
+                if STATUSES[status][0] == "warn"
+            ),
             "none": "尚未验证",
             "dev": "部分完成",
             "off": "已排除",
         },
         "footer": {
-            "note": "静态只读；不执行、批准或重试。业务结论仅转述快照导出时的记录；包名定位不构成测试证明。"
+            "note": "只读快照；证据完整性 PASS 不等于业务 PASS。完整路径、源 ID、规则与历史记录见配套审阅页。"
         },
         "arc": {
             "read_only": True,
@@ -915,6 +1362,26 @@ def snapshot_to_spec(
                 renderer: identity for identity, renderer in render_ids.items()
             },
             "edge_ids": edge_ids,
+            "group_ids": group_ids,
+            "edge_rendering": {
+                renderer: {
+                    "source_id": identity,
+                    "representation": "containment"
+                    if identity in contained_edge_ids
+                    else "wire",
+                    "from": render_ids[source_edges[identity]["from"]],
+                    "to": render_ids[source_edges[identity]["to"]],
+                }
+                for renderer, identity in edge_ids.items()
+            },
+            "presentation": {
+                "layout": "containment" if groups else "relationships",
+                "names": names,
+                "relationships": relation_notes,
+                "logic": logic_notes,
+                "provenance": summary,
+                "diagram_height": y + 80,
+            },
             "source_nodes": [deepcopy(source_nodes[identity]) for identity in selected],
             "node_status": {
                 identity: deepcopy(projected.get(identity, {})) for identity in selected
@@ -1045,7 +1512,8 @@ def build_diagram(
         html = out if out.suffix.lower() in {".html", ".htm"} else out / f"{view}.html"
         spec_path = html.with_suffix(".spec.json")
         screenshot = html.with_suffix(".check.png")
-        if any(path.exists() for path in (html, spec_path, screenshot)):
+        review_path = html.with_suffix(".review.html")
+        if any(path.exists() for path in (html, spec_path, screenshot, review_path)):
             raise DiagramError(
                 "diagram outputs already exist; choose a new output path"
             )
@@ -1083,11 +1551,35 @@ def build_diagram(
             raise DiagramError("upstream arch-diagram build failed; see build output")
         result["artifacts"]["html"] = str(html)
         result["readiness"]["build"] = "READY"
+
+        def write_review() -> None:
+            # Keep the official renderer output unchanged. The companion adds
+            # disclosure using the exact spec already used for that diagram.
+            measured = re.search(
+                r"canvas \d+×(\d+)", result.get("check", {}).get("stdout", "")
+            )
+            height = (
+                int(measured[1]) + 48
+                if measured
+                else spec["arc"]["presentation"]["diagram_height"] + 48
+            )
+            review_path.write_text(
+                render_review(
+                    spec,
+                    html.read_text(encoding="utf-8"),
+                    height,
+                    readiness=result["readiness"],
+                ),
+                encoding="utf-8",
+            )
+            result["artifacts"]["review"] = str(review_path)
+
         if not check:
             result["status"] = "NOT_RUN"
             result["reason"] = (
                 "HTML built; layout and screenshot checks were explicitly not run"
             )
+            write_review()
             return result
         checked = _run(
             [runtime, str(directory / "scripts/check.mjs"), str(html), str(screenshot)]
@@ -1112,6 +1604,7 @@ def build_diagram(
             result["reason"] = (
                 "upstream layout check could not complete cleanly; retain spec/HTML and inspect check output"
             )
+        write_review()
         return result
     except (OSError, UnicodeError, ValueError, TypeError, KeyError) as error:
         result["reason"] = str(error)

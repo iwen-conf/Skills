@@ -1,11 +1,45 @@
 # Verify business diagrams with arch-diagram
 
+Sections: [Structure](#choose-a-readable-business-structure) · [Naming](#language-and-business-package-names) ·
+[Evidence](#source-and-evidence-boundaries) · [Build and review](#build-and-deliver).
+
 Use the [arch-diagram plugin](https://github.com/bassnova42/arch-diagram-skill) for graph/flow review
 visuals. The Arc plugin bundles a pinned, licensed upstream copy. Resolve its actual location with
 `arc-policy skills --name arch-diagram`; read that `SKILL.md` and `references/spec.md` only for
 this drawing substep. Carry the selected snapshot, stable IDs, package evidence and scope; release
 unrelated execution references. Other installations use the host inventory, never a guessed cache path.
 Repository discovery still follows [code-intel](../../_shared/code-intel.md), using `arc-idx`.
+
+## Choose a readable business structure
+
+Choose the diagram's meaning before placing boxes. A capability overview answers what belongs to
+which business domain; a flow answers what happens under which conditions. Do not force both into
+a fixed two-column grid or use process arrows for every relationship.
+
+- **Capability tree:** represent a genuine single-parent, acyclic `contains` hierarchy with the
+  official renderer's nested `groups`. Place sibling capabilities together inside the parent;
+  balance the last row (five compact siblings can use 3 + 2). Keep real `serves` or other business
+  relations as arrows. Shared ownership or cycles retain explicit relations; never pick a parent
+  just to make the picture tidy. Preserve every containment edge ID, including parallel edges.
+- **Business flow:** use a direction that follows the actual actions, conditions, states and
+  recovery paths. Put a short meaningful Chinese label on the wire itself. Generic numbered
+  labels and long nearly overlapping outer rails are not adequate branch explanations. Split a
+  dense flow into explicit bounded views instead of compressing its labels or inventing sequence.
+- **Cards:** lead with the Chinese business name, then its complete `【实际业务包名】` on the next
+  line when needed. Show a short business fact and meaningful status. Move source IDs, file/line
+  evidence, full hashes, zero-failure counters and routine explanations into the review details.
+  The overview must still show candidates, missing packages, exact FAIL/BLOCKED/STALE/FLAKY states,
+  nonzero historical FAIL, RAW errors, stale context and omitted scope. A parent becoming a group
+  retains its identity and status in the group label; membership is not evidence of execution.
+- **Spacing:** size cards from the visible text; use compact sibling gaps when no wire needs that
+  space. Center incomplete rows and align connected elements. Do not reserve a large blank routing
+  gutter for a pure containment tree. Keep verdict words and package tokens intact when wrapping.
+
+The main visual and the evidence details use the same snapshot. Compacting the picture never
+removes canonical IDs, RULE logic, packages, evidence or history from the spec/review page.
+The official renderer supports groups but no expandable evidence panel; the Arc companion review
+page embeds its unchanged output and provides native read-only disclosure sections. Do not edit
+the pinned upstream engine or hand-edit generated HTML to add controls.
 
 ## Language and business package names
 
@@ -71,6 +105,13 @@ Its build/check outcomes are separate from business verdicts recorded at snapsho
 offline rendering cannot revalidate today's DB, source or environment. Keep failed-check output
 for diagnosis. `--no-check` is for drafting and records layout `NOT_RUN`; never call it visual QA.
 
+Deliver `<slug>.review.html` as the primary review page: the business diagram appears first and
+source/evidence details expand below it. Keep the unchanged official `<slug>.html` and the complete
+`<slug>.spec.json` beside it. The companion is also self-contained and offline; on narrow screens it
+preserves readable diagram text with horizontal scrolling instead of shrinking a wide graph to tiny
+type. Groups and wires together count toward displayed relationships. The source-ID mapping records
+which relationships are represented by containment.
+
 Keep `<slug>.spec.json` beside `<slug>.html` in the project's existing graph/flow artifact location
 (default `.arc/verify/diagrams/<graph-id>/` for DB graphs). Use the resolved installed directory:
 
@@ -79,8 +120,15 @@ node "$ARCH_DIAGRAM_SKILL/scripts/build.mjs" "$VERIFY_DIAGRAM_SPEC" "$VERIFY_DIA
 node "$ARCH_DIAGRAM_SKILL/scripts/check.mjs" "$VERIFY_DIAGRAM_HTML" "$VERIFY_DIAGRAM_SCREENSHOT"
 ```
 
-Inspect the screenshot after the check passes; fix clipped Chinese/package names, overlaps and
-crossing labels. Return spec/HTML links and the canonical model/ledger paths. PNG/video/GIF exports
+Inspect the screenshot after the check passes. A zero exit code only checks geometry; it cannot
+judge hierarchy, balance or readability. Reject large unexplained empty areas, equal-level nodes
+that look like a sequence, long redundant rails, tiny or clipped Chinese/package names, broken
+verdict words, evidence-dominated cards and crossing labels. Check the companion page at a desktop
+and a narrow viewport, including its expanded evidence. Rebuild and inspect again after a visible
+layout change. Until that inspection happens, retain `visual_review: NOT_RUN` and describe the
+artifact as awaiting visual review rather than a finished visual design.
+
+Return review/spec/diagram links and the canonical model/ledger paths. PNG/video/GIF exports
 are optional when requested. Missing plugin/browser or a failed render/check makes visualization
 `BLOCKED` with its exact cause; continue independent model/test work without claiming a substitute
 picture is the requested diagram or a successful DB export. Node builds HTML without a browser;

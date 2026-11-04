@@ -2,7 +2,7 @@
 
 核对日期：2026-11-04。本文记录官方接口与本仓适配范围；不把“文件存在”“单元测试通过”或“宿主宣称兼容另一产品”当作真实会话验收。
 
-宿主加载状态以实际安装版本的诊断输出为准。0.4.0 的 `plugins/arc-policy/` 分发 policy runtime、`arc-policy` 入口、六个工作流技能，以及固定版本的官方 `arch-diagram`。六技能的唯一源码仍在 `Arc/`，由 `scripts/build_arc_plugin.py` 复用既有打包器生成完整资源闭包。Python、`arc-idx` 和按项目启用的 `arc-verify` 是单独诊断的外部前提；绘图按需使用 Node 与本地浏览器。
+宿主加载状态以实际安装版本的诊断输出为准。0.4.1 的 `plugins/arc-policy/` 分发 policy runtime、`arc-policy` 入口、六个工作流技能，以及固定版本的官方 `arch-diagram`。六技能的唯一源码仍在 `Arc/`，由 `scripts/build_arc_plugin.py` 复用既有打包器生成完整资源闭包。Python、`arc-idx` 和按项目启用的 `arc-verify` 是单独诊断的外部前提；绘图按需使用 Node 与本地浏览器。
 
 ## 证据层次
 
@@ -221,6 +221,24 @@ DBqual 独立回归为 **160 passed / 1 skipped / 139 subtests passed**，跳过
 实际 HTML build 成功；浏览器缺失使布局检查 BLOCKED、截图／目视检查 NOT_RUN。
 Claude Code、Codex CLI、Grok Build 本机原生会话以及 Go race/vet 仍未在当前环境运行，
 不把 Python fixture、静态 schema 或 HTML build 记作宿主／业务 E2E PASS。
+
+## 0.4.1 业务图可读性修复
+
+`arc:verify` 更新为 3.8.1。有效包含树使用官方 groups，子能力按同级布局；源边与容器映射完整保留。
+共享归属和环继续显示显式关系；真实交互的短标签靠近连线并避开卡片及分组边界。
+节点不再平铺文件路径、内部 ID 和零失败计数；新的自包含 `.review.html` 原样嵌入官方 HTML，
+通过只读展开区展示完整来源、RULE/条件逻辑、RAW、历史 FAIL 和首次偏离。
+
+新回归复现了外部角色指向域内能力时的标签遮挡：官方 checker 先报两处重叠，修复后通过。
+绘图定向回归 **47 passed**；全仓 pytest **686 passed / 1 failed / 4 skipped**，
+唯一失败仍为既有 `cloudflare-platform` 外部源缺失。上下文预算和分发检查通过，未放宽预算。
+
+本轮已取得实际 Chromium 153.0.8010.0，使用任务本地 Playwright 1.62.1 私有管道入口
+兼容官方 check/PNG 命令；上游脚本及 pin 不变，这个测试入口不分发给用户。
+三份最终图均完成官方几何检查和截图目视核对；审阅页在 1280×900 与 390×844 下核对
+iframe 执行、横向滚动、详情展开、原始 FAIL 和 RAW 保留，结果见
+[示例与实际记录](examples/arc-business-diagram/README.md)。
+此项证明静态可视化工作流，不是原生 CLI 宿主会话或真实业务 E2E 验收。
 
 ## 本仓宿主链接治理
 

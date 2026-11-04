@@ -1,0 +1,396 @@
+{
+  "lang": "zh-CN",
+  "width": 1180,
+  "title": "回调与异步闭环 · 能力总览",
+  "pageTitle": "业务能力树 · screenshot-layout-fixture",
+  "subtitle": "候选业务模型，尚未确认｜快照结论：阻塞 · BLOCKED（导出时）\n导出：2026-11-04T12:54:34Z｜工具示例／合成夹具；不代表真实产品验证",
+  "layers": [
+    {
+      "id": "domain",
+      "label": "业务域",
+      "color": "cyan"
+    },
+    {
+      "id": "capability",
+      "label": "业务能力",
+      "color": "purple"
+    }
+  ],
+  "flows": [],
+  "nodes": [
+    {
+      "id": "n001",
+      "layer": "capability",
+      "w": 328,
+      "title": "五类告警与认领结算\n【业务包待核实】",
+      "sub": "候选／待确认",
+      "lines": [
+        "验证覆盖 0/11 项"
+      ],
+      "status": "warn",
+      "statusText": "阻塞 · BLOCKED",
+      "sourceId": "CAP-ALERT",
+      "historyFailures": 0,
+      "x": 70,
+      "y": 247,
+      "h": 114
+    },
+    {
+      "id": "n002",
+      "layer": "capability",
+      "w": 328,
+      "title": "金额核对与异常证明\n【业务包待核实】",
+      "sub": "候选／待确认",
+      "lines": [
+        "验证覆盖 0/29 项"
+      ],
+      "status": "warn",
+      "statusText": "阻塞 · BLOCKED",
+      "sourceId": "CAP-AMOUNT",
+      "historyFailures": 0,
+      "x": 426,
+      "y": 247,
+      "h": 114
+    },
+    {
+      "id": "n003",
+      "layer": "capability",
+      "w": 328,
+      "title": "四家三资源原生回调\n【业务包待核实】",
+      "sub": "候选／待确认",
+      "lines": [
+        "验证覆盖 0/31 项"
+      ],
+      "status": "warn",
+      "statusText": "阻塞 · BLOCKED",
+      "sourceId": "CAP-CALLBACK",
+      "historyFailures": 0,
+      "x": 782,
+      "y": 247,
+      "h": 114
+    },
+    {
+      "id": "n004",
+      "layer": "capability",
+      "w": 328,
+      "title": "签名推送、重试与手动重推\n【业务包待核实】",
+      "sub": "候选／待确认",
+      "lines": [
+        "验证覆盖 0/13 项"
+      ],
+      "status": "warn",
+      "statusText": "阻塞 · BLOCKED",
+      "sourceId": "CAP-DELIVERY",
+      "historyFailures": 0,
+      "x": 248,
+      "y": 389,
+      "h": 114
+    },
+    {
+      "id": "n005",
+      "layer": "capability",
+      "w": 328,
+      "title": "监测窗、尾查与成功更正\n【业务包待核实】",
+      "sub": "候选／待确认",
+      "lines": [
+        "验证覆盖 0/11 项"
+      ],
+      "status": "warn",
+      "statusText": "阻塞 · BLOCKED",
+      "sourceId": "CAP-FOLLOWUP",
+      "historyFailures": 0,
+      "x": 604,
+      "y": 389,
+      "h": 114
+    }
+  ],
+  "groups": [
+    {
+      "id": "n006",
+      "sourceId": "D-ASYNC",
+      "label": "回调与异步闭环【业务包待核实】\n候选／待确认 · 阻塞 · BLOCKED",
+      "x": 46,
+      "y": 170,
+      "w": 1088,
+      "h": 357,
+      "color": "cyan"
+    }
+  ],
+  "edges": [],
+  "notes": [
+    {
+      "x": 38,
+      "y": 571,
+      "w": 1104,
+      "text": "读图与例外\n外框表示业务归属；同一框内的卡片是同级能力，位置不表示执行顺序。\n范围：6/6 个节点，5/5 条关系；BLOCKED 6 个\n图：screenshot-layout-fixture｜环境：未设置｜轮次：未设置\n示例范围：Synthetic screenshot fixture; not a product contract. 根据用户截图复现六节点结构，用于布局回归；不是原始 DB 导出，截图中的\n包名尚未通过目标源码核实。",
+      "align": "left"
+    }
+  ],
+  "wireLegend": false,
+  "statusLabels": {
+    "done": "快照记录通过",
+    "warn": "阻塞",
+    "none": "尚未验证",
+    "dev": "部分完成",
+    "off": "已排除"
+  },
+  "footer": {
+    "note": "只读快照；证据完整性 PASS 不等于业务 PASS。完整路径、源 ID、规则与历史记录见配套审阅页。"
+  },
+  "arc": {
+    "read_only": true,
+    "view": "capabilities",
+    "meta": {
+      "graph": "screenshot-layout-fixture",
+      "graph_sha256": "6b4771a7a5c4035f3188e22dcbacd63497646901764211518c602fafe7183c2c",
+      "generated": "2026-11-04T12:54:34Z",
+      "version": "screenshot-layout-fixture",
+      "argv": [],
+      "source": "User-provided screenshot image(20261104-124030).png; reconstructed for layout regression only"
+    },
+    "scope": "Synthetic screenshot fixture; not a product contract. 根据用户截图复现六节点结构，用于布局回归；不是原始 DB 导出，截图中的包名尚未通过目标源码核实。",
+    "fixture": true,
+    "previous": "",
+    "model_approved": false,
+    "rule_approvals": {},
+    "candidate_nodes": [
+      "CAP-ALERT",
+      "CAP-AMOUNT",
+      "CAP-CALLBACK",
+      "CAP-DELIVERY",
+      "CAP-FOLLOWUP",
+      "D-ASYNC"
+    ],
+    "business_verdict": "BLOCKED",
+    "business_reason": "截图结构复现，尚无原始快照及业务执行证据；不是业务验收结果。",
+    "context": {},
+    "history_failures": 0,
+    "coverage": {},
+    "diagnostics": [],
+    "node_ids": {
+      "n001": "CAP-ALERT",
+      "n002": "CAP-AMOUNT",
+      "n003": "CAP-CALLBACK",
+      "n004": "CAP-DELIVERY",
+      "n005": "CAP-FOLLOWUP",
+      "n006": "D-ASYNC"
+    },
+    "edge_ids": {
+      "e001": "contains-cap-alert",
+      "e002": "contains-cap-amount",
+      "e003": "contains-cap-callback",
+      "e004": "contains-cap-delivery",
+      "e005": "contains-cap-followup"
+    },
+    "group_ids": {
+      "n006": "D-ASYNC"
+    },
+    "edge_rendering": {
+      "e001": {
+        "source_id": "contains-cap-alert",
+        "representation": "containment",
+        "from": "n006",
+        "to": "n001"
+      },
+      "e002": {
+        "source_id": "contains-cap-amount",
+        "representation": "containment",
+        "from": "n006",
+        "to": "n002"
+      },
+      "e003": {
+        "source_id": "contains-cap-callback",
+        "representation": "containment",
+        "from": "n006",
+        "to": "n003"
+      },
+      "e004": {
+        "source_id": "contains-cap-delivery",
+        "representation": "containment",
+        "from": "n006",
+        "to": "n004"
+      },
+      "e005": {
+        "source_id": "contains-cap-followup",
+        "representation": "containment",
+        "from": "n006",
+        "to": "n005"
+      }
+    },
+    "presentation": {
+      "layout": "containment",
+      "names": {
+        "CAP-ALERT": "五类告警与认领结算",
+        "CAP-AMOUNT": "金额核对与异常证明",
+        "CAP-CALLBACK": "四家三资源原生回调",
+        "CAP-DELIVERY": "签名推送、重试与手动重推",
+        "CAP-FOLLOWUP": "监测窗、尾查与成功更正",
+        "D-ASYNC": "回调与异步闭环"
+      },
+      "relationships": [
+        "回调与异步闭环 → 五类告警与认领结算：包含\n源边：contains-cap-alert",
+        "回调与异步闭环 → 金额核对与异常证明：包含\n源边：contains-cap-amount",
+        "回调与异步闭环 → 四家三资源原生回调：包含\n源边：contains-cap-callback",
+        "回调与异步闭环 → 签名推送、重试与手动重推：包含\n源边：contains-cap-delivery",
+        "回调与异步闭环 → 监测窗、尾查与成功更正：包含\n源边：contains-cap-followup"
+      ],
+      "logic": [],
+      "provenance": [
+        "图版本：screenshot-layout-fixture；导出时间：2026-11-04T12:54:34Z",
+        "原始业务范围：Synthetic screenshot fixture; not a product contract. 根据用户截图复现六节点结构，用于布局回归；不是原始 DB 导出，截图中的包名尚未通过目标源码核实。",
+        "图指纹：6b4771a7a5c4035f3188e22dcbacd63497646901764211518c602fafe7183c2c",
+        "环境：未设置；轮次：未设置",
+        "显示节点 6/6，关系 5/5；模型 RISK 0 项；候选节点 6 个。",
+        "已收录 RAW 的运行 0 个；RAW 校验错误 0 项。证据完整性 PASS 不等于业务 PASS。"
+      ],
+      "diagram_height": 799
+    },
+    "source_nodes": [
+      {
+        "id": "CAP-ALERT",
+        "kind": "capability",
+        "name": "五类告警与认领结算【alerts】"
+      },
+      {
+        "id": "CAP-AMOUNT",
+        "kind": "capability",
+        "name": "金额核对与异常证明【forwarding】"
+      },
+      {
+        "id": "CAP-CALLBACK",
+        "kind": "capability",
+        "name": "四家三资源原生回调【callbacks】"
+      },
+      {
+        "id": "CAP-DELIVERY",
+        "kind": "capability",
+        "name": "签名推送、重试与手动重推【delivery】"
+      },
+      {
+        "id": "CAP-FOLLOWUP",
+        "kind": "capability",
+        "name": "监测窗、尾查与成功更正【forwarding】"
+      },
+      {
+        "id": "D-ASYNC",
+        "kind": "domain",
+        "name": "回调与异步闭环"
+      }
+    ],
+    "node_status": {
+      "CAP-ALERT": {
+        "id": "CAP-ALERT",
+        "kind": "capability",
+        "name": "五类告警与认领结算【alerts】",
+        "status": "BLOCKED",
+        "history_failures": 0,
+        "passed": 0,
+        "required": 11
+      },
+      "CAP-AMOUNT": {
+        "id": "CAP-AMOUNT",
+        "kind": "capability",
+        "name": "金额核对与异常证明【forwarding】",
+        "status": "BLOCKED",
+        "history_failures": 0,
+        "passed": 0,
+        "required": 29
+      },
+      "CAP-CALLBACK": {
+        "id": "CAP-CALLBACK",
+        "kind": "capability",
+        "name": "四家三资源原生回调【callbacks】",
+        "status": "BLOCKED",
+        "history_failures": 0,
+        "passed": 0,
+        "required": 31
+      },
+      "CAP-DELIVERY": {
+        "id": "CAP-DELIVERY",
+        "kind": "capability",
+        "name": "签名推送、重试与手动重推【delivery】",
+        "status": "BLOCKED",
+        "history_failures": 0,
+        "passed": 0,
+        "required": 13
+      },
+      "CAP-FOLLOWUP": {
+        "id": "CAP-FOLLOWUP",
+        "kind": "capability",
+        "name": "监测窗、尾查与成功更正【forwarding】",
+        "status": "BLOCKED",
+        "history_failures": 0,
+        "passed": 0,
+        "required": 11
+      },
+      "D-ASYNC": {
+        "id": "D-ASYNC",
+        "kind": "domain",
+        "name": "回调与异步闭环",
+        "status": "BLOCKED",
+        "history_failures": 0,
+        "passed": 0,
+        "required": 95
+      }
+    },
+    "source_edges": [
+      {
+        "id": "contains-cap-alert",
+        "from": "D-ASYNC",
+        "to": "CAP-ALERT",
+        "kind": "contains"
+      },
+      {
+        "id": "contains-cap-amount",
+        "from": "D-ASYNC",
+        "to": "CAP-AMOUNT",
+        "kind": "contains"
+      },
+      {
+        "id": "contains-cap-callback",
+        "from": "D-ASYNC",
+        "to": "CAP-CALLBACK",
+        "kind": "contains"
+      },
+      {
+        "id": "contains-cap-delivery",
+        "from": "D-ASYNC",
+        "to": "CAP-DELIVERY",
+        "kind": "contains"
+      },
+      {
+        "id": "contains-cap-followup",
+        "from": "D-ASYNC",
+        "to": "CAP-FOLLOWUP",
+        "kind": "contains"
+      }
+    ],
+    "rules": [],
+    "transitions": [],
+    "flows": [],
+    "business_logic": {},
+    "risks": [],
+    "runs": [],
+    "exploration": {},
+    "package_evidence": {},
+    "omitted": {
+      "nodes": [],
+      "edges": [],
+      "logic": [],
+      "projection_truncated": false,
+      "projection_total": 6
+    },
+    "warnings": [],
+    "snapshot": {
+      "path": "/workspace/scratch/58193171aba4/Skills/docs/examples/arc-business-diagram/async-overview.snapshot.json",
+      "sha256": "01cfbc5fa3bda7a061ef1764b9f4ffd537900e9f9b9a73b566de13fd2c16bc57"
+    },
+    "renderer": {
+      "repository": "https://github.com/bassnova42/arch-diagram-skill",
+      "version": "1.2.3",
+      "commit": "879ca7fa503a64ab46b5bc77d2062ded32fadc84",
+      "license": "MIT",
+      "license_text": "MIT License\n\nCopyright (c) 2026 bassnova42\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"
+    }
+  }
+}

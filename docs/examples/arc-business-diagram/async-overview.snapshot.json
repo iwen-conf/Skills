@@ -1,0 +1,187 @@
+{
+  "meta": {
+    "graph": "screenshot-layout-fixture",
+    "graph_sha256": "6b4771a7a5c4035f3188e22dcbacd63497646901764211518c602fafe7183c2c",
+    "generated": "2026-11-04T12:54:34Z",
+    "version": "screenshot-layout-fixture",
+    "argv": [],
+    "source": "User-provided screenshot image(20261104-124030).png; reconstructed for layout regression only"
+  },
+  "model": {
+    "data": {
+      "id": "screenshot-layout-fixture",
+      "schema_version": 2,
+      "scope": "Synthetic screenshot fixture; not a product contract. 根据用户截图复现六节点结构，用于布局回归；不是原始 DB 导出，截图中的包名尚未通过目标源码核实。",
+      "nodes": [
+        {
+          "id": "D-ASYNC",
+          "kind": "domain",
+          "name": "回调与异步闭环"
+        },
+        {
+          "id": "CAP-ALERT",
+          "kind": "capability",
+          "name": "五类告警与认领结算【alerts】"
+        },
+        {
+          "id": "CAP-AMOUNT",
+          "kind": "capability",
+          "name": "金额核对与异常证明【forwarding】"
+        },
+        {
+          "id": "CAP-CALLBACK",
+          "kind": "capability",
+          "name": "四家三资源原生回调【callbacks】"
+        },
+        {
+          "id": "CAP-DELIVERY",
+          "kind": "capability",
+          "name": "签名推送、重试与手动重推【delivery】"
+        },
+        {
+          "id": "CAP-FOLLOWUP",
+          "kind": "capability",
+          "name": "监测窗、尾查与成功更正【forwarding】"
+        }
+      ],
+      "edges": [
+        {
+          "id": "contains-cap-alert",
+          "from": "D-ASYNC",
+          "to": "CAP-ALERT",
+          "kind": "contains"
+        },
+        {
+          "id": "contains-cap-amount",
+          "from": "D-ASYNC",
+          "to": "CAP-AMOUNT",
+          "kind": "contains"
+        },
+        {
+          "id": "contains-cap-callback",
+          "from": "D-ASYNC",
+          "to": "CAP-CALLBACK",
+          "kind": "contains"
+        },
+        {
+          "id": "contains-cap-delivery",
+          "from": "D-ASYNC",
+          "to": "CAP-DELIVERY",
+          "kind": "contains"
+        },
+        {
+          "id": "contains-cap-followup",
+          "from": "D-ASYNC",
+          "to": "CAP-FOLLOWUP",
+          "kind": "contains"
+        }
+      ],
+      "rules": null,
+      "risks": null
+    },
+    "approved": false,
+    "rules": {},
+    "sha256": "6b4771a7a5c4035f3188e22dcbacd63497646901764211518c602fafe7183c2c"
+  },
+  "views": {
+    "capabilities": {
+      "graph": "screenshot-layout-fixture",
+      "view": "capabilities",
+      "nodes": [
+        {
+          "id": "D-ASYNC",
+          "kind": "domain",
+          "name": "回调与异步闭环",
+          "status": "BLOCKED",
+          "history_failures": 0,
+          "passed": 0,
+          "required": 95
+        },
+        {
+          "id": "CAP-ALERT",
+          "kind": "capability",
+          "name": "五类告警与认领结算【alerts】",
+          "status": "BLOCKED",
+          "history_failures": 0,
+          "passed": 0,
+          "required": 11
+        },
+        {
+          "id": "CAP-AMOUNT",
+          "kind": "capability",
+          "name": "金额核对与异常证明【forwarding】",
+          "status": "BLOCKED",
+          "history_failures": 0,
+          "passed": 0,
+          "required": 29
+        },
+        {
+          "id": "CAP-CALLBACK",
+          "kind": "capability",
+          "name": "四家三资源原生回调【callbacks】",
+          "status": "BLOCKED",
+          "history_failures": 0,
+          "passed": 0,
+          "required": 31
+        },
+        {
+          "id": "CAP-DELIVERY",
+          "kind": "capability",
+          "name": "签名推送、重试与手动重推【delivery】",
+          "status": "BLOCKED",
+          "history_failures": 0,
+          "passed": 0,
+          "required": 13
+        },
+        {
+          "id": "CAP-FOLLOWUP",
+          "kind": "capability",
+          "name": "监测窗、尾查与成功更正【forwarding】",
+          "status": "BLOCKED",
+          "history_failures": 0,
+          "passed": 0,
+          "required": 11
+        }
+      ],
+      "edges": [
+        {
+          "id": "contains-cap-alert",
+          "from": "D-ASYNC",
+          "to": "CAP-ALERT",
+          "kind": "contains"
+        },
+        {
+          "id": "contains-cap-amount",
+          "from": "D-ASYNC",
+          "to": "CAP-AMOUNT",
+          "kind": "contains"
+        },
+        {
+          "id": "contains-cap-callback",
+          "from": "D-ASYNC",
+          "to": "CAP-CALLBACK",
+          "kind": "contains"
+        },
+        {
+          "id": "contains-cap-delivery",
+          "from": "D-ASYNC",
+          "to": "CAP-DELIVERY",
+          "kind": "contains"
+        },
+        {
+          "id": "contains-cap-followup",
+          "from": "D-ASYNC",
+          "to": "CAP-FOLLOWUP",
+          "kind": "contains"
+        }
+      ],
+      "verdict": "BLOCKED",
+      "reason": "截图结构复现，尚无原始快照及业务执行证据；不是业务验收结果。",
+      "context": {},
+      "history_failures": 0,
+      "total": 6,
+      "truncated": false
+    }
+  },
+  "runs": []
+}

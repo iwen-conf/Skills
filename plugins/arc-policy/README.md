@@ -1,7 +1,7 @@
 # Arc Policy Runtime
 
 Arc workflows and their policy runtime, packaged for Claude Code, Grok Build, and Codex CLI.
-Version 0.4.0 keeps one policy engine and one canonical `Arc/` skill source, with generated
+Version 0.4.1 keeps one policy engine and one canonical `Arc/` skill source, with generated
 host manifests, a complete bundled skill tree, and a strict Codex wire adapter.
 
 | Piece | Job |
@@ -74,9 +74,19 @@ arc-policy --cwd /path/to/target diagram \
 ```
 
 `--view capabilities` shows the business tree. Inputs and relative output paths resolve against
-`--cwd`. The output includes `<view>.spec.json`, `<view>.html` and, when the official check succeeds,
-`<view>.check.png`. Existing outputs are never overwritten. The command never opens the database,
+`--cwd`. Open `<view>.review.html` for the business overview and expandable evidence. The output
+also keeps `<view>.spec.json`, the unchanged official `<view>.html` and, when the official check
+succeeds, `<view>.check.png`. Existing outputs are never overwritten. The command never opens the database,
 changes approvals or runs a business target. Keep the canonical DB, CLI snapshot and flow ledger.
+
+Version 0.4.1 represents valid capability containment with nested official groups, using balanced
+sibling cards instead of repeated long `contains` arrows. Shared ownership and cycles keep explicit
+relationships. Real participation/flow wires retain meaningful labels. Group and wire mappings
+preserve all original node/edge IDs, including parallel relationships; parent failures stay visible.
+Card faces prioritize the Chinese business name, full package name and relevant status. Full source
+paths, IDs, hashes and verification records remain in the companion's read-only details. The
+companion embeds the exact official HTML in an offline sandboxed frame; it does not replace or
+modify the pinned renderer. Narrow screens scroll the diagram at readable size.
 
 Presentation is a small source-bound attachment; it cannot supply verdicts or rewrite business
 rules. Its graph/hash must match the snapshot, and package names need an actual repository-relative
@@ -110,6 +120,10 @@ browser or failed checks return a nonzero exit while preserving HTML/spec for re
 builds a draft and explicitly records layout NOT_RUN. Even after the layout checker passes,
 inspect the screenshot before claiming visual review. Node/browser availability does not block
 independent Arc phases, and no long-lived service or browser is installed by the plugin.
+The adapter asserts actual group containment and non-overlapping siblings because the upstream
+checker treats group borders as decoration. A geometry PASS still needs a human/agent visual pass
+for business hierarchy, balanced spacing and readable labels. An unavailable browser leaves that
+work explicitly pending; HTML generation alone is not a finished visual review.
 
 ## Install
 

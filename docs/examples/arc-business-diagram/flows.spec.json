@@ -1,9 +1,9 @@
 {
   "lang": "zh-CN",
-  "width": 1240,
+  "width": 1180,
   "title": "报名业务 · 工具回归历史快照示例",
   "pageTitle": "业务流程图 · course-v2",
-  "subtitle": "course-v2 · 业务目录已确认\n快照结论：阻塞 · BLOCKED（导出时）｜历史 FAIL：1\n工具示例／合成夹具；不代表真实产品验证\n只读关系图；图形检查不提供业务执行证明。",
+  "subtitle": "业务目录已确认｜快照结论：阻塞 · BLOCKED（导出时）｜历史 FAIL：1\n导出：2026-10-31T08:17:41Z｜工具示例／合成夹具；不代表真实产品验证",
   "layers": [
     {
       "id": "capability",
@@ -58,109 +58,113 @@
       "id": "n001",
       "layer": "rule",
       "w": 420,
-      "title": "已认证学员报名规则【业务包待核实】",
-      "sub": "业务规则",
+      "title": "已认证学员报名规则\n【业务包待核实】",
+      "sub": "",
       "lines": [
-        "历史 FAIL：1　通过义务：0/6",
         "来自既有参考夹具；不构成实际产品合同。",
-        "RULE：R1 · 已确认",
+        "历史 FAIL：1 次，仍保留记录",
+        "验证覆盖 0/6 项",
         "允许后：报名成功；拒绝后：保持原状"
       ],
-      "footer": "源 ID：R1",
       "status": "warn",
       "statusText": "结果波动 · FLAKY",
       "sourceId": "R1",
-      "x": 36,
-      "y": 268,
-      "h": 206
+      "historyFailures": 1,
+      "x": 58,
+      "y": 170,
+      "h": 156
     },
     {
       "id": "n002",
       "layer": "action",
       "w": 420,
-      "title": "创建报名记录【业务包待核实】",
-      "sub": "业务操作",
+      "title": "创建报名记录\n【业务包待核实】",
+      "sub": "",
       "lines": [
-        "历史 FAIL：1　通过义务：0/6",
-        "关联 RULE：R1"
+        "历史 FAIL：1 次，仍保留记录",
+        "验证覆盖 0/6 项"
       ],
-      "footer": "源 ID：enroll",
       "status": "warn",
       "statusText": "结果波动 · FLAKY",
       "sourceId": "enroll",
-      "x": 36,
-      "y": 878,
-      "h": 162
+      "historyFailures": 1,
+      "x": 300,
+      "y": 600,
+      "h": 114
     },
     {
       "id": "n003",
       "layer": "capability",
       "w": 420,
-      "title": "提交报名【业务包待核实】",
-      "sub": "业务能力",
+      "title": "提交报名\n【业务包待核实】",
+      "sub": "",
       "lines": [
-        "历史 FAIL：1　通过义务：0/10"
+        "历史 FAIL：1 次，仍保留记录",
+        "验证覆盖 0/10 项"
       ],
-      "footer": "源 ID：enrollment.submit",
       "status": "warn",
       "statusText": "结果波动 · FLAKY",
       "sourceId": "enrollment.submit",
-      "x": 512,
-      "y": 268,
-      "h": 206
+      "historyFailures": 1,
+      "x": 542,
+      "y": 170,
+      "h": 156
     },
     {
       "id": "n004",
       "layer": "condition",
       "w": 420,
-      "title": "已认证【业务包待核实】",
-      "sub": "前置条件",
+      "title": "已认证\n【业务包待核实】",
+      "sub": "",
       "lines": [
-        "历史 FAIL：1　通过义务：0/6"
+        "历史 FAIL：1 次，仍保留记录",
+        "验证覆盖 0/6 项"
       ],
-      "footer": "源 ID：login",
       "status": "warn",
       "statusText": "结果波动 · FLAKY",
       "sourceId": "login",
-      "x": 36,
-      "y": 606,
-      "h": 140
+      "historyFailures": 1,
+      "x": 300,
+      "y": 406,
+      "h": 114
     },
     {
       "id": "n005",
       "layer": "state",
       "w": 420,
-      "title": "未报名【业务包待核实】",
-      "sub": "业务状态 · 初始状态",
+      "title": "未报名\n【业务包待核实】",
+      "sub": " · 初始状态",
       "lines": [
-        "历史 FAIL：0　通过义务：0/1"
+        "验证覆盖 0/1 项"
       ],
-      "footer": "源 ID：pending",
       "status": "none",
       "statusText": "未验证 · NOT_RUN",
       "sourceId": "pending",
-      "x": 36,
-      "y": 1172,
-      "h": 140
+      "historyFailures": 0,
+      "x": 58,
+      "y": 794,
+      "h": 114
     },
     {
       "id": "n006",
       "layer": "state",
       "w": 420,
-      "title": "报名成功【业务包待核实】",
-      "sub": "业务状态",
+      "title": "报名成功\n【业务包待核实】",
+      "sub": "",
       "lines": [
-        "历史 FAIL：1　通过义务：0/4"
+        "历史 FAIL：1 次，仍保留记录",
+        "验证覆盖 0/4 项"
       ],
-      "footer": "源 ID：ready",
       "status": "warn",
       "statusText": "结果波动 · FLAKY",
       "sourceId": "ready",
-      "x": 512,
-      "y": 1172,
-      "h": 140
+      "historyFailures": 1,
+      "x": 542,
+      "y": 794,
+      "h": 114
     }
   ],
+  "groups": [],
   "edges": [
     {
       "id": "e001",
@@ -171,18 +175,18 @@
       "packet": false,
       "via": [
         [
-          246,
-          1068
+          510.0,
+          742
         ],
         [
-          722,
-          1068
+          752.0,
+          742
         ]
       ],
-      "label": "1 产生状态",
+      "label": "产生状态",
       "labelPos": [
-        484.0,
-        1063
+        631.0,
+        737
       ]
     },
     {
@@ -194,26 +198,26 @@
       "packet": false,
       "via": [
         [
-          722,
-          502
+          752.0,
+          354
         ],
         [
-          1103,
-          502
+          1000,
+          354
         ],
         [
-          1103,
-          854
+          1000,
+          576
         ],
         [
-          246,
-          854
+          510.0,
+          576
         ]
       ],
-      "label": "2 实现业务",
+      "label": "实现业务",
       "labelPos": [
-        1035,
-        497
+        876.0,
+        349
       ]
     },
     {
@@ -225,18 +229,18 @@
       "packet": false,
       "via": [
         [
-          246,
-          774
+          510.0,
+          548
         ],
         [
-          246,
-          774
+          510.0,
+          548
         ]
       ],
-      "label": "3 前置条件",
+      "label": "前置条件",
       "labelPos": [
-        316.0,
-        769
+        580.0,
+        543
       ]
     },
     {
@@ -248,54 +252,47 @@
       "packet": false,
       "via": [
         [
-          246,
-          1340
+          268.0,
+          936
         ],
         [
-          722,
-          1340
+          752.0,
+          936
         ]
       ],
-      "label": "4 状态迁移",
+      "label": "状态迁移",
       "labelPos": [
-        484.0,
-        1335
+        510.0,
+        931
       ]
     }
   ],
   "notes": [
     {
-      "x": 36,
-      "y": 1444,
-      "w": 1140,
-      "text": "业务关系与分支\n1. 创建报名记录 → 报名成功：产生状态\n   源边：creates-ready\n2. 提交报名 → 创建报名记录：实现业务\n   源边：implements-enroll\n3. 已认证 → 创建报名记录：前置条件\n   源边：requires-login\n4. 未报名 → 报名成功：状态迁移；成功；RULE R1；已认证=满足\n   源边：submit-flow",
+      "x": 38,
+      "y": 988,
+      "w": 1104,
+      "text": "读图与例外\n箭头表示源模型声明的业务关系，位置不等于实际执行顺序。\n范围：6/6 个节点，4/4 条关系；FLAKY 5 个、NOT_RUN 1 个\n历史运行 R-6063197d81edc5dd6d53089e1c95fe3e：FAIL；首次偏离：1\n图：course-v2｜环境：independent｜轮次：Q-03acd05d00c5f8607fac49fc43ebe664\n示例范围：Reference course fixture for tool acceptance; not a product contract",
       "align": "left"
     },
     {
-      "x": 36,
-      "y": 1652,
-      "w": 1140,
+      "x": 38,
+      "y": 1136,
+      "w": 1104,
       "text": "规则与条件逻辑\n规则 R1 的允许条件：已认证=满足",
-      "align": "left"
-    },
-    {
-      "x": 36,
-      "y": 1720,
-      "w": 1140,
-      "text": "快照来源与验证边界\n图版本：course-v2；导出时间：2026-10-31T08:17:41Z\n原始业务范围：Reference course fixture for tool acceptance; not a product contract\n图指纹：45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb\n环境：independent；轮次：Q-03acd05d00c5f8607fac49fc43ebe664\n显示节点 6/6，关系 4/4；模型 RISK 0 项；候选节点 0 个。\n已收录 RAW 的运行 2 个；RAW 校验错误 0 项。证据完整性 PASS 不等于业务 PASS。\n运行 R-6063197d81edc5dd6d53089e1c95fe3e：FAIL；首次偏离：1\n运行 R-111435dd484130451e87b612b09a54e1：PASS；首次偏离：未记录\n轮次证据图指纹：45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
       "align": "left"
     }
   ],
   "wireLegend": false,
   "statusLabels": {
     "done": "快照记录通过",
-    "warn": "失败／阻塞／过期／波动",
+    "warn": "结果波动",
     "none": "尚未验证",
     "dev": "部分完成",
     "off": "已排除"
   },
   "footer": {
-    "note": "静态只读；不执行、批准或重试。业务结论仅转述快照导出时的记录；包名定位不构成测试证明。"
+    "note": "只读快照；证据完整性 PASS 不等于业务 PASS。完整路径、源 ID、规则与历史记录见配套审阅页。"
   },
   "arc": {
     "read_only": true,
@@ -395,6 +392,65 @@
       "e002": "implements-enroll",
       "e003": "requires-login",
       "e004": "submit-flow"
+    },
+    "group_ids": {},
+    "edge_rendering": {
+      "e001": {
+        "source_id": "creates-ready",
+        "representation": "wire",
+        "from": "n002",
+        "to": "n006"
+      },
+      "e002": {
+        "source_id": "implements-enroll",
+        "representation": "wire",
+        "from": "n003",
+        "to": "n002"
+      },
+      "e003": {
+        "source_id": "requires-login",
+        "representation": "wire",
+        "from": "n004",
+        "to": "n002"
+      },
+      "e004": {
+        "source_id": "submit-flow",
+        "representation": "wire",
+        "from": "n005",
+        "to": "n006"
+      }
+    },
+    "presentation": {
+      "layout": "relationships",
+      "names": {
+        "R1": "已认证学员报名规则",
+        "enroll": "创建报名记录",
+        "enrollment.submit": "提交报名",
+        "login": "已认证",
+        "pending": "未报名",
+        "ready": "报名成功"
+      },
+      "relationships": [
+        "创建报名记录 → 报名成功：产生状态\n源边：creates-ready",
+        "提交报名 → 创建报名记录：实现业务\n源边：implements-enroll",
+        "已认证 → 创建报名记录：前置条件\n源边：requires-login",
+        "未报名 → 报名成功：状态迁移；成功；RULE R1；已认证=满足\n源边：submit-flow"
+      ],
+      "logic": [
+        "规则 R1 的允许条件：已认证=满足"
+      ],
+      "provenance": [
+        "图版本：course-v2；导出时间：2026-10-31T08:17:41Z",
+        "原始业务范围：Reference course fixture for tool acceptance; not a product contract",
+        "图指纹：45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb",
+        "环境：independent；轮次：Q-03acd05d00c5f8607fac49fc43ebe664",
+        "显示节点 6/6，关系 4/4；模型 RISK 0 项；候选节点 0 个。",
+        "已收录 RAW 的运行 2 个；RAW 校验错误 0 项。证据完整性 PASS 不等于业务 PASS。",
+        "运行 R-6063197d81edc5dd6d53089e1c95fe3e：FAIL；首次偏离：1",
+        "运行 R-111435dd484130451e87b612b09a54e1：PASS；首次偏离：未记录",
+        "轮次证据图指纹：45abde3ca7c55187d906d278cd54be36982701004bfb47864acb06062d2e0fdb"
+      ],
+      "diagram_height": 1284
     },
     "source_nodes": [
       {

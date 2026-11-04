@@ -93,7 +93,7 @@ def presentation_for(snapshot):
 def visible_text(spec):
     displayed = {
         key: spec[key]
-        for key in ("title", "subtitle", "nodes", "edges", "notes", "footer")
+        for key in ("title", "subtitle", "nodes", "groups", "edges", "notes", "footer")
     }
     return json.dumps(displayed, ensure_ascii=False)
 
@@ -185,7 +185,8 @@ def test_frozen_old_graph_context_is_visible_but_cannot_carry_pass(sample):
     sample["views"]["flows"]["context"]["graph_sha256"] = "f" * 64
     spec = diagram.snapshot_to_spec(sample)
     assert "上下文已过期" in visible_text(spec)
-    assert "f" * 64 in visible_text(spec)
+    assert spec["arc"]["context"]["graph_sha256"] == "f" * 64
+    assert "f" * 64 in "\n".join(spec["arc"]["presentation"]["provenance"])
     sample["views"]["flows"]["nodes"][0]["status"] = "PASS"
     with pytest.raises(diagram.DiagramError, match="different graph fingerprint"):
         diagram.snapshot_to_spec(sample)
@@ -304,7 +305,7 @@ def test_package_evidence_verifies_packages_not_arbitrary_api_tokens(tmp_path, s
     rendered = next(
         node for node in spec["nodes"] if node["sourceId"] == "enrollment.submit"
     )
-    assert "提交报名【enrollment】" in rendered["title"]
+    assert "提交报名【enrollment】" in rendered["title"].replace("\n", "")
     assert "line_text" not in json.dumps(spec)
     assert "cancelEnrollment" not in json.dumps(spec)
 
@@ -369,11 +370,15 @@ def test_actual_upstream_build_embeds_the_source_map_without_claiming_check(tmp_
     assert renderer["version"] == "1.2.3"
     assert renderer["commit"] == "879ca7fa503a64ab46b5bc77d2062ded32fadc84"
     assert renderer["license"] == "MIT"
-    assert renderer["license_text"] == (RENDERER / "LICENSE").read_text(encoding="utf-8")
+    assert renderer["license_text"] == (RENDERER / "LICENSE").read_text(
+        encoding="utf-8"
+    )
     assert "Copyright (c) 2026 bassnova42" in html
     assert "Permission is hereby granted, free of charge" in html
     assert renderer["commit"] in html
-    source_spec = json.loads(Path(result["artifacts"]["spec"]).read_text(encoding="utf-8"))
+    source_spec = json.loads(
+        Path(result["artifacts"]["spec"]).read_text(encoding="utf-8")
+    )
     assert source_spec["arc"]["renderer"] == renderer
     assert not list(tmp_path.rglob("*.db"))
     assert hashlib.sha256(SAMPLE.read_bytes()).hexdigest() == before
