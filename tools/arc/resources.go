@@ -125,7 +125,12 @@ func executeTask(db *sql.DB, action, id, title, to string, expected int) error {
 		var name, status, updated string
 		var v int
 		if err := db.QueryRowContext(ctx, "SELECT title,status,version,updated FROM arc_tasks WHERE id=?", id).Scan(&name,&status,&v,&updated); err != nil { return err }
-		return emitJSON(map[string]any{"id":id,"title":name,"status":status,"version":v,"updated":updated})
+		rows,err:=db.QueryContext(ctx,"SELECT path FROM arc_task_files WHERE task_id=? ORDER BY path",id)
+		if err!=nil{return err}
+		files:=[]string{}
+		for rows.Next(){var path string;if e:=rows.Scan(&path);e!=nil{rows.Close();return e};files=append(files,path)}
+		err=rows.Err();rows.Close();if err!=nil{return err}
+		return emitJSON(map[string]any{"id":id,"title":name,"status":status,"version":v,"updated":updated,"files":files})
 	case "transition":
 		if id == "" || expected < 1 { return errors.New("task transition requires --id and --expected-version >=1") }
 		tx, err := db.BeginTx(ctx, nil)
@@ -207,6 +212,10 @@ func executeFile(db *sql.DB,root,path,task string) error {
 		if err:=tx.QueryRowContext(ctx,"SELECT 1 FROM arc_tasks WHERE id=?",task).Scan(&present);err!=nil{return fmt.Errorf("owning task: %w",err)}
 	}
 	sha,err:=storeFile(ctx,tx,root,path);if err!=nil{return err}
+	if task!="" {
+		_,err=tx.ExecContext(ctx,"INSERT OR REPLACE INTO arc_task_files(task_id,path,updated) VALUES(?,?,?)",task,filepath.ToSlash(filepath.Clean(path)),nowUTC())
+		if err!=nil{return err}
+	}
 	if err:=tx.Commit();err!=nil{return err}
 	return emitJSON(map[string]any{"path":filepath.ToSlash(filepath.Clean(path)),"sha256":sha,"task":task,"index":"pending"})
 }
@@ -273,6 +282,10 @@ func collectChanges(db *sql.DB,root,task,worktree string) error {
 	id,err:=newID("CH-");if err!=nil{return err}
 	for _,f:=range observed {
 		if _,err:=storeFile(ctx,tx,root,f.Path);err!=nil{return err}
+		if task!="" {
+			_,err=tx.ExecContext(ctx,"INSERT OR REPLACE INTO arc_task_files(task_id,path,updated) VALUES(?,?,?)",task,filepath.ToSlash(f.Path),nowUTC())
+			if err!=nil{return err}
+		}
 	}
 	if _,err:=tx.ExecContext(ctx,"INSERT INTO arc_changes(id,task,fingerprint,status,worktree,revision,created) VALUES(?,?,?,'collected',?,?,?)",id,task,fingerprint,root,revision,nowUTC());err!=nil{return err}
 	for _,f:=range observed {
