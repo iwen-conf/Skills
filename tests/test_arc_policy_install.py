@@ -9,7 +9,7 @@ import pytest
 from arc_policy import __version__
 from arc_policy.cli import main
 from arc_policy.githook import hook_command, install_git_hooks
-from arc_policy.install import install_runtime, persistent_cli, runtime_home
+from arc_policy.install import install_runtime, runtime_home
 from arc_policy.session import last_stop_notice, record_stop_notice
 from arc_policy.store import active_task
 from test_arc_policy import ENV, PLUGIN, git, make_repo
