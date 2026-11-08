@@ -70,6 +70,7 @@ arc file update --path internal/payment/service.go
 arc change collect --task TASK-ID
 arc change show --id CHANGE-ID
 arc update --changed-only
+arc sync reconcile                         # recover missed committed edits
 arc verify gate --graph GRAPH-ID
 ```
 
@@ -84,12 +85,13 @@ project**. The code-index and verifier binaries remain separate dependencies.
 `arc-policy task verify` remains the completion authorization gate.
 
 **Not yet executable:** `arc task verify`, `arc task ... --to done`,
-`arc change verify/impact`, `arc sync reconcile`, `arc event list`,
+`arc change verify/impact`, `arc event list`,
 `arc file show`, and `arc design/contract/schema`. They must not be described
 as shipped or used to claim evidence.
 
-`arc update` only collects an idempotent worktree ChangeSet, updates file
-hashes and queues events in the outbox. It does **not** promise that Zoekt,
+`arc update` collects an idempotent worktree ChangeSet. `arc sync reconcile`
+also replays commits missed by hooks, maintaining an atomic `arc_meta.sync_head`
+cursor. Both update file hashes and queue events in the outbox. It does **not** promise that Zoekt,
 AST, symbols, docs or tests are already fresh. The index daemon retains its
 own watcher; task completion and verification remain separate.
 
