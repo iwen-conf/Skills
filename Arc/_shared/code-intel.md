@@ -5,22 +5,24 @@ Owned by `arc:explore`; read by every Arc skill before reading or editing unfami
 ## 1. Preflight (once per repository per session)
 
 ```bash
-command -v arc-idx
-arc-idx version
-arc-idx doctor --format json
-arc-idx daemon status
+command -v arc
+arc version
+arc capabilities --json
+arc doctor --format json
+arc daemon status
 ```
 
 - Repair when doctor shows `healthy: false`, `index_stale: true` or `tags_present: false`: run
-  `arc-idx index --quiet` once, then re-run `doctor`. `index` does not fix a tool reported as
+  `arc index --quiet` once, then re-run `doctor`. `index` does not fix a tool reported as
   `MISSING` under `tools` (`ctags`, `ast-grep`); installing needs permission, and until then
   `symbol` and `ast` are unavailable.
-- Daemon: `daemon_alive: false` → `arc-idx daemon start` (exit 1 with `already running with pid N`
-  is normal). `daemon_pid` present but not alive → `arc-idx daemon restart`.
-- Identity: `command -v arc-idx` must resolve to `~/.local/bin/arc-idx`, and version must print
-  `arc-idx 1.0.0 — local AI context engine (zoekt + ctags + ast-grep)`. If PATH lacks it, try that
-  exact path and report the fallback. A missing binary or identity mismatch stops repository
-  discovery; report actual path/output and do not substitute another engine.
+- Daemon: `daemon_alive: false` → `arc daemon start` (exit 1 with `already running with pid N`
+  is normal). `daemon_pid` present but not alive → `arc daemon restart`.
+- Identity: prefer `~/.local/bin/arc`; `arc version` identifies the public CLI and
+  `arc capabilities --json` shows the available `arc-idx`/verification backends.
+  Current `arc` 0.1.0 is a delegation bridge, not a merged database. Without `arc`,
+  use an existing `arc-idx` temporarily as `legacy-cli` and report it; do not
+  claim `arc.db` support. If neither works, stop discovery and report the error.
 - Repository root: the nearest ancestor of the working directory (or of `--repo <dir>`) that holds
   an `.ai-code-index/` directory or a `.git` directory; config is `<root>/.ai-code-index/config.json`,
   else built-in defaults. Check `repo_root` in the doctor output. Use `--repo <dir>` for a child
@@ -29,26 +31,25 @@ arc-idx daemon status
 - A `search` result with `"engine": "rg-fallback"` means no index shards were found: repair as
   above before relying on it; otherwise only §6 allows it.
 
-### Planned arc.db resource state (feature gated)
+### Unified CLI and planned state engine
 
-[arc.db resource and state protocol](arc-db.md) defines the proposed local
-`.arc/arc.db` file, typed resources, transitions and event-driven hook updates.
-This is **not** an existing `arc-idx` 1.0.0 capability. Do not invoke proposed
-`file/task/change/update/sync` commands, create the DB, or claim successful
-reconciliation without a shipped capability handshake and tested migration.
-For now Git is the source for code, existing task documents and `arc-policy`
-receipts remain authoritative, and `arc-verify` keeps its separate graph DB.
+[arc.db resource and state protocol](arc-db.md) defines one eventual local
+`.arc/arc.db` store for resources **and** business verification graphs.
+Current `arc` forwards index queries and `arc verify` to the existing
+engines. `arc capabilities --json` must advertise `arc_db_resources=true`
+and `unified_database=true` before resource writes or DB migration can run.
+Until then, keep Git, task docs, policy receipts and the old graph ledger intact.
 
 ## 2. Commands
 
 | Need | Command |
 |---|---|
-| File names | `arc-idx files <pattern> --format json` (case-insensitive path substring or glob, not regex) |
-| Text / regex | `arc-idx search '<zoekt query>' --format json` (`f:`, `lang:`, `sym:`, `case:yes`, `-<term>`, `-f:<path regex>`) |
-| Definition | `arc-idx symbol <Name> --exact --format json` (optional `--kind`, `--lang`) |
-| Structure | `arc-idx ast --lang <language> '<pattern>' [path ...] --format json` |
-| Inventory | `arc-idx stats --format json` (counts by file extension) |
-| Health | `arc-idx doctor --format json` |
+| File names | `arc files <pattern> --format json` (case-insensitive path substring or glob, not regex) |
+| Text / regex | `arc search '<zoekt query>' --format json` (`f:`, `lang:`, `sym:`, `case:yes`, `-<term>`, `-f:<path regex>`) |
+| Definition | `arc symbol <Name> --exact --format json` (optional `--kind`, `--lang`) |
+| Structure | `arc ast --lang <language> '<pattern>' [path ...] --format json` |
+| Inventory | `arc stats --format json` (counts by file extension) |
+| Health | `arc doctor --format json` |
 
 Syntax facts (verified against the engine):
 
@@ -109,7 +110,7 @@ the language's AST patterns; there `ast '$R.<Name>($$$)'` matches method calls.
 
 Cross-check: for rows 2–4 use one structural and one text query. When they disagree, re-read the
 files and trust the AST result. Exception: Go selector calls (`x.Name(…)`, `pkg.Name(…)`) never
-match through `arc-idx ast` (the pattern parses as a type conversion), so an AST zero for them is
+match through `arc ast` (the pattern parses as a type conversion), so an AST zero for them is
 not evidence; decide each text hit from the source.
 
 ## 5. When a query fails
