@@ -1,9 +1,9 @@
 version: 1
 
 # Default: the agent writes source with host tools. CLI is the gate for
-# workflow start, controlled operations, and delivery. Same-user hooks are
+# workflow start, high-risk operations, and explicit task delivery. Same-user hooks are
 # not a security boundary (see README).
-mode: free_write_forced_verify
+mode: free_write_explicit_verify
 
 languages:
   go:
@@ -40,9 +40,7 @@ workflow:
 execution:
   controlled_operations:
     - schema_migration
-    - commit
   deny_direct:
-    - unverified_commit
     - skip_hooks
     - schema_migration
   allow_direct:
