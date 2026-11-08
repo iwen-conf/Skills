@@ -13,8 +13,9 @@ Status values: [contract](../../_shared/contract.md) §4. Completion, scope and 
   `docs/03-执行任务`. Link the requirement; restate only actionable scope, constraints and acceptance.
 - Task entries, constraints, task trees, cards, trackers and API contracts currently remain Markdown
   (headings, links, tables, checklists). Tool configs and machine output are outside this rule.
-  The proposed [arc.db state protocol](../../_shared/arc-db.md) does not create a second task
-  authority until an explicit tested migration; never report its commands as working.
+  New [arc.db resource commands](../../_shared/arc-db.md) exist, but legacy task
+  Markdown remains authoritative until an explicit project task cutover. Avoid
+  duplicating a task in both stores; never equate a DB row with verification.
 
 ## 2. Authoring gate
 
