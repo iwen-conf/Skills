@@ -1,6 +1,6 @@
 ---
 name: arc:verify
-version: 3.8.1
+version: 3.8.2
 description: >-
   Whole-system testing with project-local DB business graphs (完整测试, 测试整个系统, 所有交互,
   完整业务测试, 业务树图, 业务图), including AI-led candidate modeling from scratch.
@@ -72,6 +72,9 @@ HTTP/JSON/upload claims use
 
 ## Workflow
 
+The unified CLI routes `arc verify` to the existing graph/evidence engine.
+The shared `arc.db` ledger is a [future migration](../_shared/arc-db.md), not a passed gate.
+
 Graph mode follows [business-graph](references/business-graph.md), replacing steps 2–10.
 Draw via [arch-diagram](references/business-diagram.md); inspect screenshots; release execution refs.
 Without a confirmed model use [first start](references/business-graph-start.md): the Agent drafts,
@@ -79,7 +82,7 @@ imports and exports a candidate for review, then continues authorized verificati
 Do not ask users to write graph JSON or finish a full test request at a plan.
 Execution uses [v2 commands](references/business-graph-v2.md); handoffs use
 [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
-`arc-verify handoff --to arc-verify --graph <id>` expands bounded local context.
+`arc verify handoff --to arc-verify --graph <id>` expands bounded local context.
 New tests still require sensitivity proof. No Agent handshake or model HTTP.
 
 1. Read [contract](../_shared/contract.md) and existing progress; record tier, scope, mode,
