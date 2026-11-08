@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Unified arc CLI 0.1.0 — executable compatibility stage
+
+- Added the public `arc` Go CLI: code-index commands delegate to `arc-idx` and
+  `arc verify ...` delegates to `arc-verify`. Added `arc capabilities --json`,
+  exact argument/exit-code forwarding tests and sibling-binary resolution.
+- Added `scripts/install_arc.sh` for building the three current executables
+  under one installation directory; Skill workflows use the `arc` public CLI.
+- Updated `arc-policy` to prefer `arc verify gate` and keep a fail-closed legacy
+  fallback when `arc` is absent, with tests for both routes.
+- Physical database consolidation into `.arc/arc.db` remains unimplemented;
+  existing Turso graphs, evidence, task receipts and policy gates are preserved.
+
+
 ### arc 0.1.0 — unified public CLI (compatibility bridge)
 
 - Added `tools/arc/` with a public `arc` binary routing existing search/index commands
