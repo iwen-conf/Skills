@@ -33,7 +33,7 @@ implementation and release claims still require their own runtime evidence.
 
 The supported public forms are `arc search`, `arc index`, `arc doctor`
 and `arc verify gate|trace|handoff`; see [tools/arc](../tools/arc/README.md).
-Build with `go -C tools/arc build -o ~/.local/bin/arc .` and check
+Install all backends together with `bash scripts/install_arc.sh`, then run
 `arc capabilities --json`. Version 0.1.0 delegates to the existing
 `arc-idx` and `arc-verify` executables. Their databases and the
 `arc-policy` completion gate have **not** been merged yet. The eventual
@@ -61,7 +61,7 @@ discovered; the packager copies each linked file into the skills that reference 
 |---|---|
 | [contract.md](_shared/contract.md) | authority, task tiers, scope lock, vocabulary, artifacts, environment, report format |
 | [workflow.md](_shared/workflow.md) | bidirectional handoffs, artifact ownership, model-to-runtime traceability, freshness and authorization |
-| [code-intel.md](_shared/code-intel.md) | arc-idx preflight, query ladder, 8-surface impact checklist, fallback rules |
+| [code-intel.md](_shared/code-intel.md) | unified `arc` preflight, query ladder, 8-surface impact checklist, fallback rules |
 | [arc-db.md](_shared/arc-db.md) | Unified `.arc/arc.db` resource, event and business verification ledger (planned DB migration); `arc` bridge already routes supported commands |
 | [coding-discipline.md](_shared/coding-discipline.md) | think before coding, simplicity ladder, surgical edits, paper-overs |
 | [code-rot.md](_shared/code-rot.md) | 41 code-rot smells in families A–G (G: over-engineering) |
