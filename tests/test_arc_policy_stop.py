@@ -174,7 +174,7 @@ def test_stop_preserves_graph_only_scope_without_waiving_receipts(
     else:
         assert result["decision"] == "block"
         message = result["reason"]
-    assert "For a code/runtime verification claim or commit" in message
+    assert "Before claiming successful task verification" in message
     assert "read-only, plan-only or graph-only" in message
     assert "do not run project tests merely to silence Stop" in message
     assert "Keep the existing task unverified" in message
