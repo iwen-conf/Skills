@@ -99,6 +99,28 @@ def test_hook_records_current_policy_task_in_change_set(tmp_path: Path, monkeypa
     ]
 
 
+
+def test_post_tool_read_only_does_not_reconcile_or_create_task(tmp_path: Path, monkeypatch):
+    repo = enabled_repo(tmp_path)
+    begin_task(repo, skill="arc-code", slug="inspection")
+    monkeypatch.setattr(
+        "arc_policy.hook.subprocess.run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("read-only shell should never spawn an arc sync")
+        ),
+    )
+    handle_post_tool_use(
+        {
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Bash",
+            "tool_input": {"command": "git status --short"},
+            "cwd": str(repo),
+            "session_id": "arc-db-inspection",
+            "tool_use_id": "shell-status",
+        }
+    )
+
+
 def test_hook_without_active_arc_db_does_not_call_arc(tmp_path: Path, monkeypatch):
     repo = make_repo(tmp_path)
 
