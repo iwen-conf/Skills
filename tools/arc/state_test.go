@@ -186,3 +186,34 @@ func TestMigrationGateProofMustBeStructured(t *testing.T) {
 		})
 	}
 }
+
+
+func TestSyncReconcileReplaysCommittedChanges(t *testing.T) {
+	root,db:=testArcState(t)
+	git:=func(args ...string){
+		t.Helper()
+		cmd:=exec.Command("git",append([]string{"-C",root},args...)...)
+		if output,err:=cmd.CombinedOutput();err!=nil{t.Fatalf("git %v: %v: %s",args,err,output)}
+	}
+	git("init","-q")
+	git("config","user.name","Arc Test")
+	git("config","user.email","arc@example.invalid")
+	file:=filepath.Join(root,"sample.go")
+	if err:=os.WriteFile(file,[]byte("package a\n"),0600);err!=nil{t.Fatal(err)}
+	git("add","sample.go");git("commit","-qm","baseline")
+	if err:=reconcileGit(db,root,"");err!=nil{t.Fatal(err)}
+	if err:=os.WriteFile(file,[]byte("package b\n"),0600);err!=nil{t.Fatal(err)}
+	git("add","sample.go");git("commit","-qm","changed without PostToolUse")
+	if err:=reconcileGit(db,root,"");err!=nil{t.Fatal(err)}
+	if err:=reconcileGit(db,root,"");err!=nil{t.Fatal(err)}
+	var count int
+	if err:=db.QueryRow("SELECT count(*) FROM arc_changes").Scan(&count);err!=nil{t.Fatal(err)}
+	if count!=1{t.Fatalf("wanted one recovered change, got %d",count)}
+	var cursor string
+	if err:=db.QueryRow("SELECT value FROM arc_meta WHERE key='sync_head'").Scan(&cursor);err!=nil{t.Fatal(err)}
+	head,err:=gitHead(root);if err!=nil{t.Fatal(err)}
+	if cursor!=head{t.Fatalf("cursor=%s, head=%s",cursor,head)}
+	var version int
+	if err:=db.QueryRow("SELECT version FROM arc_files WHERE path='sample.go'").Scan(&version);err!=nil{t.Fatal(err)}
+	if version!=1{t.Fatalf("file version=%d after replay",version)}
+}
