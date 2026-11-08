@@ -119,10 +119,10 @@ func TestMigrationCopiesGraphAndRequiresParity(t *testing.T) {
 	if err:=noLiveSidecars(source);err!=nil{t.Skipf("database still has WAL sidecars: %v",err)}
 	bin:=t.TempDir()
 	sh:=filepath.Join(bin,"arc-verify")
-	if err:=os.WriteFile(sh,[]byte("#!/bin/sh
-printf '{"verdict":"BLOCKED"}\n'
+	if err:=os.WriteFile(sh,[]byte(`#!/bin/sh
+printf '%s\\n' '{"verdict":"BLOCKED"}'
 exit 1
-"),0700);err!=nil{t.Fatal(err)}
+`),0700);err!=nil{t.Fatal(err)}
 	t.Setenv("PATH",bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	if err:=dbCommand([]string{"migrate","--repo",root,"--confirm-offline"});err!=nil{t.Fatal(err)}
 	m,err:=readManifest(root);if err!=nil{t.Fatal(err)}
@@ -160,5 +160,29 @@ func TestGitRenameAndNestedUntrackedFiles(t *testing.T) {
 		"fresh/inside.go":"untracked",
 	} {
 		if got[path]!=want{t.Fatalf("path %q: got %q, want %q; full changes=%v",path,got[path],want,got)}
+	}
+}
+
+
+func TestMigrationGateProofMustBeStructured(t *testing.T) {
+	testCases:=[]struct{
+		name string
+		output string
+		exitCode int
+		allowed bool
+	}{
+		{"empty","",0,false},
+		{"garbage","not json",1,false},
+		{"false PASS",`{"verdict":"PASS"}`,0,false},
+		{"contradiction",`{"verdict":"BLOCKED"}`,0,false},
+		{"blocked",`{"verdict":"BLOCKED"}`,1,true},
+		{"valid PASS",`{"verdict":"PASS","proof_scope":"planned_rule_tasks","inputs_unchanged":true,"context":{"graph":"graph-v1"}}`,0,true},
+		{"wrong graph",`{"verdict":"PASS","proof_scope":"planned_rule_tasks","inputs_unchanged":true,"context":{"graph":"other"}}`,0,false},
+	}
+	for _,tc:=range testCases{
+		t.Run(tc.name,func(t *testing.T){
+			err:=validateGateProof([]byte(tc.output),tc.exitCode,"graph-v1")
+			if (err==nil)!=tc.allowed {t.Fatalf("valid=%v, want=%v (err=%v)",err==nil,tc.allowed,err)}
+		})
 	}
 }
