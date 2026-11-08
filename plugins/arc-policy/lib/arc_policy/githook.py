@@ -16,7 +16,6 @@ from functools import lru_cache
 from pathlib import Path
 
 from arc_policy.gitutil import git
-from arc_policy.install import ensure_persistent_cli
 # Variables each host exports to the shells its agent runs (observed in host sessions or source).
 AGENT_MARKERS = (
     "ARC_POLICY_AGENT",
