@@ -289,7 +289,10 @@ def check_business_graph(root: Path, policy: dict[str, Any]) -> dict[str, Any] |
             "verdict": "BLOCKED",
             "reason": "business_graph.risk_review must be true or false",
         }
-    argv = ["arc-verify", "gate", "--db", db, "--graph", config["graph"]]
+    # Prefer the unified CLI without weakening the existing fail-closed graph gate.
+    # Old installations can continue using the legacy binary during migration.
+    gate_command = ["arc", "verify"] if shutil.which("arc") else ["arc-verify"]
+    argv = [*gate_command, "gate", "--db", db, "--graph", config["graph"]]
     if risk_review:
         argv.append("--risk-review")
     try:
@@ -306,7 +309,7 @@ def check_business_graph(root: Path, policy: dict[str, Any]) -> dict[str, Any] |
         return {
             "id": "business_graph",
             "verdict": "BLOCKED",
-            "reason": "graph runner emitted no valid structured proof; upgrade/rerun arc-verify",
+            "reason": "graph runner emitted no valid structured proof; upgrade/rerun arc verify",
         }
     if (
         not isinstance(proof, dict)
