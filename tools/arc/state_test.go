@@ -46,8 +46,14 @@ func TestTaskStateAndEventAtomicity(t *testing.T) {
 func TestFileHashReconciliationAndSymlinkBoundary(t *testing.T) {
 	root,db:=testArcState(t)
 	if err:=os.WriteFile(filepath.Join(root,"code.go"),[]byte("package test\n"),0600);err!=nil{t.Fatal(err)}
-	if err:=executeFile(db,root,"code.go","");err!=nil{t.Fatal(err)}
-	if err:=executeFile(db,root,"code.go","");err!=nil{t.Fatal(err)}
+	if err:=executeTask(db,"create","","Owns a file","",0);err!=nil{t.Fatal(err)}
+	var taskID string
+	if err:=db.QueryRow("SELECT id FROM arc_tasks LIMIT 1").Scan(&taskID);err!=nil{t.Fatal(err)}
+	if err:=executeFile(db,root,"code.go",taskID);err!=nil{t.Fatal(err)}
+	if err:=executeFile(db,root,"code.go",taskID);err!=nil{t.Fatal(err)}
+	var relCount int
+	if err:=db.QueryRow("SELECT count(*) FROM arc_task_files WHERE task_id=? AND path='code.go'",taskID).Scan(&relCount);err!=nil{t.Fatal(err)}
+	if relCount!=1{t.Fatalf("expected one task-file link, got %d",relCount)}
 	var version int
 	if err:=db.QueryRow("SELECT version FROM arc_files WHERE path='code.go'").Scan(&version);err!=nil{t.Fatal(err)}
 	if version!=1{t.Fatalf("unchanged file has version %d",version)}
