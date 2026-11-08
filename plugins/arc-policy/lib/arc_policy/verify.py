@@ -315,7 +315,14 @@ def check_business_graph(root: Path, policy: dict[str, Any]) -> dict[str, Any] |
         }
     # Prefer the unified CLI without weakening the existing fail-closed graph gate.
     # Old installations can continue using the legacy binary during migration.
-    gate_command = ["arc", "verify"] if shutil.which("arc") else ["arc-verify"]
+    arc_available = bool(shutil.which("arc"))
+    if db == ".arc/arc.db" and not arc_available:
+        return {
+            "id": "business_graph",
+            "verdict": "BLOCKED",
+            "reason": "active arc.db requires the unified arc CLI for serialized gate access",
+        }
+    gate_command = ["arc", "verify"] if arc_available else ["arc-verify"]
     argv = [*gate_command, "gate", "--db", db, "--graph", config["graph"]]
     if risk_review:
         argv.append("--risk-review")
