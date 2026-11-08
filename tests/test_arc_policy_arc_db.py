@@ -55,7 +55,7 @@ def test_hook_reconciles_active_arc_db_after_edit(tmp_path: Path, monkeypatch):
     )
     assert commands
     assert commands[0][0] == [
-        "/tmp/arc", "update", "--changed-only", "--repo", str(repo)
+        "/tmp/arc", "sync", "reconcile", "--repo", str(repo)
     ]
 
 
@@ -148,3 +148,32 @@ def test_explicit_graph_database_is_never_silently_overridden(tmp_path: Path, mo
     )
     assert result["verdict"] == "PASS"
     assert calls[0][3] == ".arc/verify/data.db"
+
+def test_hook_falls_back_only_for_unsupported_legacy_sync(tmp_path: Path, monkeypatch):
+    repo = enabled_repo(tmp_path)
+    commands = []
+    monkeypatch.setattr("arc_policy.hook.shutil.which", lambda _: "/tmp/arc")
+
+    def fake_run(argv, **kwargs):
+        commands.append(argv)
+        if argv[1:3] == ["sync", "reconcile"]:
+            return subprocess.CompletedProcess(argv, 2, "", "unknown arc command sync")
+        return subprocess.CompletedProcess(argv, 0, '{"index":"pending"}', "")
+
+    monkeypatch.setattr("arc_policy.hook.subprocess.run", fake_run)
+    handle_post_tool_use(
+        {
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Write",
+            "tool_input": {"file_path": str(repo / "updated.go")},
+            "cwd": str(repo),
+            "session_id": "arc-db-legacy-sync",
+            "tool_use_id": "write-legacy",
+        }
+    )
+    assert commands == [
+        ["/tmp/arc", "sync", "reconcile", "--repo", str(repo)],
+        ["/tmp/arc", "update", "--changed-only", "--repo", str(repo)],
+    ]
+
+
