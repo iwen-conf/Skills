@@ -373,6 +373,12 @@ func dbCommand(args []string) error {
 				if !*confirm { return errors.New("migration requires --confirm-offline after stopping all legacy verification writers") }
 				source := filepath.Join(root, legacyVerifyDB)
 				if err := checkRegular(source); err != nil { return fmt.Errorf("legacy verification DB: %w", err) }
+				resolved,err:=filepath.EvalSymlinks(source)
+				if err!=nil{return err}
+				rel,err:=filepath.Rel(root,resolved)
+				if err!=nil || rel==".." || strings.HasPrefix(rel,".."+string(filepath.Separator)) {
+					return errors.New("legacy database resolves outside repository")
+				}
 				if err := noLiveSidecars(source); err != nil { return err }
 				original, err := shaFile(source); if err != nil { return err }
 				baseline,err=snapshotGateProofs(root,source)
