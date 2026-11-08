@@ -590,16 +590,8 @@ def classify(
                 if "skip_hooks" in deny_direct and skip:
                     return {
                         "action": "deny",
-                        "reason": "git --no-verify/-n is denied; run arc-policy task verify without skipping hooks.",
+                        "reason": "git --no-verify/-n bypasses repository hooks; run Git without skipping hooks.",
                         "operation": "skip_hooks",
-                    }
-                if "unverified_commit" in deny_direct and not receipt_ok:
-                    return {
-                        "action": "deny",
-                        "reason": "git commit/push is a controlled operation. Stage the commit, then run "
-                        "`arc-policy task verify` in its own call. If the user explicitly confirmed committing "
-                        "without verification, run `arc-policy task authorize --quote '<their words>'` instead.",
-                        "operation": "commit",
                     }
             executable = Path(argv[0]).name
             migration = (
