@@ -85,6 +85,11 @@ func reconcileGit(db *sql.DB,root,task string)error{
 					// Capture the current file in the same worktree, but do
 					// not treat a successful hash as verification evidence.
 					if _,err:=storeFile(ctx,tx,root,f.Path);err!=nil{return err}
+					if task!="" {
+						if _,err:=tx.ExecContext(ctx,
+							"INSERT OR REPLACE INTO arc_task_files(task_id,path,updated) VALUES(?,?,?)",
+							task,filepath.ToSlash(f.Path),nowUTC());err!=nil{return err}
+					}
 				}
 				if _,err:=tx.ExecContext(ctx,
 					"INSERT INTO arc_changes(id,task,fingerprint,status,worktree,revision,created) VALUES(?,?,?,'collected',?,?,?)",
