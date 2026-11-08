@@ -358,10 +358,20 @@ def _reconcile_active_arc_db(payload: dict[str, Any]) -> None:
         cli = shutil.which("arc")
         if not cli:
             raise RuntimeError("active arc.db requires arc CLI for PostToolUse reconciliation")
+        # Catch up both worktree edits and commits missed while hooks were
+        # offline. A legacy CLI can still handle dirty files until upgraded.
         result = subprocess.run(
-            [cli, "update", "--changed-only", "--repo", str(root)],
+            [cli, "sync", "reconcile", "--repo", str(root)],
             cwd=root, capture_output=True, text=True, timeout=20, check=False,
         )
+        if result.returncode and (
+            "unknown arc command" in result.stderr
+            or "proposed arc.db resource interface" in result.stderr
+        ):
+            result = subprocess.run(
+                [cli, "update", "--changed-only", "--repo", str(root)],
+                cwd=root, capture_output=True, text=True, timeout=20, check=False,
+            )
         if result.returncode:
             raise RuntimeError(
                 f"arc.db post-edit sync failed (exit {result.returncode}): "
