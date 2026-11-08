@@ -2,7 +2,7 @@
 
 这个仓库按三层组织 Skill（见 [全量技能架构评审](docs/01-系统设计/02-全量技能架构评审.md)）：
 
-- 常驻核心：`Arc/` 的 5 个工程技能（explore、plan、code、verify、audit），以及 `Waza/` 的 check、health、research-write。
+- 常驻核心：`Arc/` 的 6 个工程技能（explore、plan、code、verify、audit、vet），以及 `Waza/` 的 check、health、research-write。
 - 领域入口：每个家族只暴露 1 个入口——`lark`、`android`、`cnb`、`harmonyos`、`lazycat`、`ui-design`、`cloudflare`、`threejs`。上游内容放在路由的库里，打包时改名为 `ENTRY.md`，宿主发现不了。
 - 第三方库源：`Library/`（本机，git-ignored，来源见 [Library/README.md](Library/README.md)）。
 
@@ -126,4 +126,4 @@ Arc 技能的 SSOT 是本仓 `Arc/arc:*`；垂直入口的 SSOT 是本仓各家�
 3. 缺失引用或声明依赖时安装失败，目标目录保持原样；成功替换时打印备份路径，失败则回滚本次变更。
 4. 发布器只替换本次安装的名称；改名或删除技能后，用 `link_hosts.py --apply` 清理宿主链接，并把 `~/.agents/skills` 里的旧目录移入备份；`sync_skills.py --check` 会报出被路由取代的独立副本。
 5. Arc `SKILL.md` 带 `version`（semver）；破坏性约定变更时升 minor/major 并更新 `CHANGELOG.md`。
-6. 若改动了 `tools/arc-idx`，另执行 `go build -o ~/.local/bin/arc-idx ./tools/arc-idx`。
+6. 更新 Arc CLI 后可运行 `bash scripts/install_arc.sh` 构建 `arc-idx`、`arc-verify` 与公共入口 `arc`；先执行各模块的测试。
