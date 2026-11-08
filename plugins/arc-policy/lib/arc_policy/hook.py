@@ -334,7 +334,13 @@ def _reconcile_active_arc_db(payload: dict[str, Any]) -> None:
     This is bookkeeping, never task completion or authorization. An error remains
     visible to the caller instead of silently claiming synchronization succeeded.
     """
-    if tool_kind(tool_name(payload)) not in {"shell", "mutate"}:
+    kind = tool_kind(tool_name(payload))
+    if kind not in {"shell", "mutate"}:
+        return
+    # Read-only searches and status commands do not change Git or source
+    # state; avoid opening the DB and spawning a new arc process for them.
+    # Unknown/opaque shell commands still reconcile conservatively.
+    if kind == "shell" and read_only_shell(command_text(tool_input(payload))):
         return
     directory = (payload_cwd(payload) or Path.cwd()).resolve()
     roots = _edit_roots(payload, directory)
