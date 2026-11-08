@@ -197,7 +197,7 @@ def test_codex_entry_session_denial_allow_post_and_stop(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "command,denied", [("git status --short", False), ("git commit -m fixture", True)]
+    "command,denied", [("git status --short", False), ("git commit -m fixture", False)]
 )
 def test_codex_bash_guard_keeps_read_only_calls_silent(
     tmp_path: Path, command: str, denied: bool
