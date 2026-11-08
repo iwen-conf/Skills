@@ -56,8 +56,7 @@ def test_installed_cli_survives_deleted_host_cache_and_provisioning_venv(
         text=True,
         check=False,
     )
-    assert blocked.returncode != 0
-    assert "no Arc task" in blocked.stderr
+    assert blocked.returncode == 0, blocked.stderr
 
 
 def test_reinstall_switches_same_launcher_without_deleting_old_snapshot(tmp_path):
@@ -113,110 +112,92 @@ def test_missing_persistent_runtime_does_not_block_human_git(tmp_path):
         text=True,
         check=False,
     )
-    assert agent.returncode == 1
-    assert "CLI missing" in agent.stderr
+    assert agent.returncode == 0, agent.stderr
 
 
-def test_old_git_chains_existing_hooks_with_arguments_and_stdin(tmp_path, monkeypatch):
-    monkeypatch.setattr("arc_policy.githook.config_hooks_supported", lambda: False)
+def test_legacy_arc_git_hooks_are_removed_without_touching_user_hooks(tmp_path):
+    from arc_policy.githook import FILE_HOOK_MARKER
+
     repo = make_repo(tmp_path)
     hooks = repo / ".git/hooks"
-    previous = hooks / "pre-push"
-    previous.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > old-args\ncat > old-input\n')
+    owned = hooks / "pre-commit"
+    previous = hooks / "pre-commit.arc-policy-original"
+    previous_body = "#!/bin/sh\nprintf 'user hook\\n' > hook-ran\n"
+    previous.write_text(previous_body)
     previous.chmod(0o755)
-    cli = tmp_path / "fake arc-policy"
-    cli.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > new-args\ncat > new-input\n')
-    cli.chmod(0o755)
-    assert install_git_hooks(repo, cli) == "file"
-    assert install_git_hooks(repo, cli) == "file"
-    updates = "refs/heads/main aaaa refs/heads/main bbbb\n"
+    owned.write_text(f"#!/bin/sh\n{FILE_HOOK_MARKER}\nexit 1\n")
+    owned.chmod(0o755)
+    other = hooks / "pre-push"
+    other_body = "#!/bin/sh\nexit 0\n"
+    other.write_text(other_body)
+    other.chmod(0o755)
+    for event in ("pre-commit", "pre-push"):
+        git(repo, "config", "--local", f"hook.arc-policy-{event}.event", event)
+        git(repo, "config", "--local", f"hook.arc-policy-{event}.command", "exit 1")
+
+    assert install_git_hooks(repo) == "disabled"
+    assert install_git_hooks(repo) == "disabled"
+    assert owned.read_text() == previous_body
+    assert not previous.exists()
+    assert other.read_text() == other_body
+    for event in ("pre-commit", "pre-push"):
+        for key in ("event", "command"):
+            result = subprocess.run(
+                ["git", "config", "--local", "--get-all", f"hook.arc-policy-{event}.{key}"],
+                cwd=repo, capture_output=True, check=False,
+            )
+            assert result.returncode != 0
+
+    (repo / "example.txt").write_text("ready\n")
+    git(repo, "add", "example.txt")
     result = subprocess.run(
-        [str(previous), "origin", "remote with spaces"],
-        cwd=repo,
-        input=updates,
-        env={**ENV, "GROK_AGENT": "1"},
-        capture_output=True,
-        text=True,
-        check=False,
+        ["git", "commit", "-q", "-m", "without Arc verify"],
+        cwd=repo, env={**ENV, "GROK_AGENT": "1"},
+        capture_output=True, text=True, check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert (repo / "old-args").read_text().splitlines() == [
-        "origin",
-        "remote with spaces",
-    ]
-    assert (repo / "new-args").read_text().splitlines() == [
-        "git-hook",
-        "pre-push",
-        "origin",
-        "remote with spaces",
-    ]
-    assert (repo / "old-input").read_text() == updates
-    assert (repo / "new-input").read_text() == updates
-    assert (hooks / "pre-push.arc-policy-original").is_file()
+    assert (repo / "hook-ran").read_text() == "user hook\n"
 
 
-def test_old_git_custom_hooks_path_fails_before_task_or_runtime_creation(
-    tmp_path, monkeypatch
-):
-    monkeypatch.setattr("arc_policy.githook.config_hooks_supported", lambda: False)
+def test_custom_git_hooks_path_does_not_block_task_begin(tmp_path):
     repo = make_repo(tmp_path)
     git(repo, "config", "core.hooksPath", ".husky")
-    assert main(["--cwd", str(repo), "task", "begin", "--skill", "arc-code"]) == 2
-    assert active_task(repo) is None
-    assert not persistent_cli().exists()
+    assert main(["--cwd", str(repo), "task", "begin", "--skill", "arc-code"]) == 0
+    assert active_task(repo) is not None
     assert not (repo / ".husky").exists()
 
 
-def test_git_upgrade_restores_original_file_and_uses_one_gate(tmp_path, monkeypatch):
-    repo = make_repo(tmp_path)
-    original = repo / ".git/hooks/pre-commit"
-    original.write_text("#!/bin/sh\nexit 0\n")
-    original.chmod(0o755)
-    cli = tmp_path / "cli"
-    cli.write_text("#!/bin/sh\nexit 0\n")
-    cli.chmod(0o755)
-    monkeypatch.setattr("arc_policy.githook.config_hooks_supported", lambda: False)
-    install_git_hooks(repo, cli)
-    monkeypatch.setattr("arc_policy.githook.config_hooks_supported", lambda: True)
-    assert install_git_hooks(repo, cli) == "config"
-    assert original.read_text() == "#!/bin/sh\nexit 0\n"
-    assert not original.with_name("pre-commit.arc-policy-original").exists()
-    assert not (repo / ".git/hooks/pre-push").exists()
+def test_retired_hook_command_does_not_require_a_cli(tmp_path):
+    missing = tmp_path / "missing executable"
+    for marker in ({}, {"GROK_AGENT": "1"}):
+        result = subprocess.run(
+            ["sh", "-c", hook_command("pre-commit", missing)],
+            env={**ENV, **marker}, capture_output=True, text=True, check=False,
+        )
+        assert result.returncode == 0, result.stderr
 
 
-def test_failed_git_upgrade_keeps_existing_gate(tmp_path, monkeypatch):
+def test_failed_hook_cleanup_aborts_task_begin_without_damaging_configuration(
+    tmp_path, monkeypatch
+):
     from arc_policy import githook
 
     repo = make_repo(tmp_path)
-    cli = tmp_path / "cli"
-    cli.write_text("#!/bin/sh\nexit 1\n")
-    cli.chmod(0o755)
-    monkeypatch.setattr(githook, "config_hooks_supported", lambda: False)
-    install_git_hooks(repo, cli)
-    real_git = githook.git
+    git(repo, "config", "--local", "hook.arc-policy-pre-commit.event", "pre-commit")
+    original_git = githook.git
 
-    def fail_write(root, *args):
-        if args[:3] == ("config", "--local", "--replace-all"):
+    def fail_cleanup(root, *args):
+        if args[:3] == ("config", "--local", "--unset-all"):
             return subprocess.CompletedProcess(args, 1, "", "configuration locked")
-        return real_git(root, *args)
+        return original_git(root, *args)
 
-    monkeypatch.setattr(githook, "git", fail_write)
-    monkeypatch.setattr(githook, "config_hooks_supported", lambda: True)
-    with pytest.raises(RuntimeError, match="configuration locked"):
-        install_git_hooks(repo, cli)
-    for event in ("pre-commit", "pre-push"):
-        path = repo / ".git/hooks" / event
-        assert path.is_file()
-        check = subprocess.run(
-            [str(path)],
-            cwd=repo,
-            input="",
-            env={**ENV, "GROK_AGENT": "1"},
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        assert check.returncode == 1
+    monkeypatch.setattr(githook, "git", fail_cleanup)
+    assert main(["--cwd", str(repo), "task", "begin", "--skill", "arc-code"]) == 2
+    assert active_task(repo) is None
+    assert (
+        original_git(repo, "config", "--local", "--get", "hook.arc-policy-pre-commit.event").stdout.strip()
+        == "pre-commit"
+    )
 
 
 @pytest.mark.parametrize(
