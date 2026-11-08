@@ -101,7 +101,10 @@ def test_hook_reports_failed_reconciliation(tmp_path: Path, monkeypatch):
 def test_graph_gate_selects_new_db_only_after_cutover(tmp_path: Path, monkeypatch):
     repo = enabled_repo(tmp_path)
     commands = []
-    monkeypatch.setattr("arc_policy.verify.shutil.which", lambda _: None)
+    monkeypatch.setattr(
+        "arc_policy.verify.shutil.which",
+        lambda name: "/usr/bin/arc" if name == "arc" else None,
+    )
 
     def fake_run(root, argv):
         commands.append(argv)
@@ -113,9 +116,19 @@ def test_graph_gate_selects_new_db_only_after_cutover(tmp_path: Path, monkeypatc
     )
     assert proof["verdict"] == "PASS"
     assert commands[0] == [
-        "arc-verify", "gate", "--db", ".arc/arc.db",
+        "arc", "verify", "gate", "--db", ".arc/arc.db",
         "--graph", "academic-v1",
     ]
+
+
+def test_shared_graph_gate_without_arc_fails_closed(tmp_path: Path, monkeypatch):
+    repo = enabled_repo(tmp_path)
+    monkeypatch.setattr("arc_policy.verify.shutil.which", lambda _: None)
+    result = check_business_graph(
+        repo, {"verification": {"business_graph": {"graph": "academic-v1"}}}
+    )
+    assert result["verdict"] == "BLOCKED"
+    assert "requires the unified arc CLI" in result["reason"]
 
 
 def test_explicit_graph_database_is_never_silently_overridden(tmp_path: Path, monkeypatch):
