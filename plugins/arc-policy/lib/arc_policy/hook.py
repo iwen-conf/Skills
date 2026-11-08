@@ -143,9 +143,8 @@ def handle_session_start(cwd: Path, policy: dict[str, Any]) -> dict[str, Any]:
             cli,
             task_line,
             "If an edit needs a new task, run the suggested task begin yourself and retry the edit without asking the user.",
-            "Write/Edit are allowed after begin. git commit/push and schema migrations need `arc-policy task verify`.",
-            "Only when the user explicitly confirms committing without verification: stage the commit, "
-            "run `arc-policy task authorize --quote '<their words>'`, then commit and push yourself.",
+            "Git commit/push do not require a verification receipt. Keep ordinary Git hooks enabled.",
+            "Task completion claims and controlled schema migrations still require verification.",
             "Delivery: arc-policy task verify",
         ]
     )
@@ -427,7 +426,7 @@ def _task_reminder(
             return None
         return (
             f"Arc task {task['slug']} was delivered at {delivered['head'][:12]} and does not cover these changes in {root}. "
-            f"For a code/runtime verification claim or commit, run `{_cli(root, BEGIN_COMMAND)}`, "
+            f"For a verified-runtime claim, begin a new task via `{_cli(root, BEGIN_COMMAND)}`, "
             f"then `{_cli(root, 'task verify')}`. Changed paths: {', '.join(new_changes[:8])}."
         )
     fingerprint = tree_fingerprint(root)
@@ -441,8 +440,8 @@ def _task_reminder(
     if not new_changes and not changed:
         return None
     return (
-        f"Arc task {task['slug']} is unverified in {root}. For a code/runtime verification claim "
-        f"or commit, run `{_cli(root, 'task verify')}`. "
+        f"Arc task {task['slug']} is unverified in {root}. "
+        f"Before claiming successful task verification, run `{_cli(root, 'task verify')}`. "
         f"Changed paths: {', '.join(new_changes[:8]) or 'worktree dirty'}."
     )
 
@@ -466,7 +465,7 @@ def _stop_reminder(
     delivered = delivered_receipt(root, task) if task else None
     if baseline is None:
         return _task_reminder(root, task, delivered) if task else None
-    # Changes made through the shell, or before a late `task begin`, still need a receipt.
+    # Track changes for task completion claims, not for every Git commit.
     changed = changed_since(root, baseline)
     if authored is not None:
         # Writes outside this session's tool calls belong to another session.
@@ -487,16 +486,16 @@ def _stop_reminder(
         )
         return (
             f"Arc task {task['slug']} is unverified in {root}: files changed {source}. "
-            f"For a code/runtime verification claim or commit, run `{_cli(root, 'task verify')}`. "
+            f"Before claiming successful task verification, run `{_cli(root, 'task verify')}`. "
             f"Changed paths: {paths}."
         )
     # Without authorship the log cannot tell this session's writes from another session's.
     source = (
         "since this session first touched it, without an Arc task covering them. "
-        "If they are this session's work, a code/runtime verification claim or commit requires"
+        "If they are this session's work, a task completion claim requires"
         if authored is None
         else "made by this session, without an Arc task covering them. "
-        "A code/runtime verification claim or commit requires"
+        "A task completion claim requires"
     )
     return (
         f"{root} has uncommitted changes {source} "
@@ -575,7 +574,7 @@ def _stop_decision(
     reminder += (
         " Honor the user's scope: for read-only, plan-only or graph-only work, do not run "
         "project tests merely to silence Stop. Keep the existing task unverified; report "
-        "the produced artifact and runtime NOT_RUN. A commit still needs a matching receipt."
+        "the produced artifact and runtime NOT_RUN. Commits do not require a receipt."
     )
     if (
         payload.get("stop_hook_active")
