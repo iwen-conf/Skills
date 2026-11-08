@@ -4,6 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"os"
+	"path/filepath"
+	"runtime"
 	"runtime"
 	"strings"
 	"testing"
@@ -73,3 +76,24 @@ func TestLegacyBackendArgumentAndExitForwarding(t *testing.T) {
 		})
 	}
 }
+
+func TestDelegationPreservesBackendExitCode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell stub uses /bin/sh")
+	}
+	dir := t.TempDir()
+	for _, name := range []string{"arc-idx", "arc-verify"} {
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte("#!/bin/sh\nexit 19\n"), 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	if got := run([]string{"search", "some-text"}); got != 19 {
+		t.Fatalf("index exit code: got %d, want 19", got)
+	}
+	if got := run([]string{"verify", "gate", "--graph", "example"}); got != 19 {
+		t.Fatalf("verify exit code: got %d, want 19", got)
+	}
+}
+
