@@ -12,12 +12,11 @@ from arc_policy.classify import classify
 from arc_policy.cli import main
 from arc_policy.hook import run_hook
 from arc_policy.store import begin_task
-from arc_policy.verify import verify_task
 from test_arc_policy import ENV, PLUGIN, git, make_repo, policy_for, write_overlay
 
 NO_RECEIPT = {
     "execution": {
-        "deny_direct": ["unverified_commit", "skip_hooks", "schema_migration"]
+        "deny_direct": ["skip_hooks", "schema_migration"]
     }
 }
 
@@ -85,8 +84,8 @@ def test_nested_and_wrapped_controlled_commands_are_found(
     command: str, operation: str
 ) -> None:
     decision = shell(command)
-    assert decision["action"] == "deny"
-    assert decision["operation"] == operation
+    assert decision["action"] == ("deny" if operation == "schema_migration" else "allow")
+    assert decision["operation"] == ("schema_migration" if operation == "schema_migration" else "shell")
 
 
 def test_truncated_shell_input_is_denied(tmp_path: Path) -> None:
@@ -133,40 +132,26 @@ def git_run(repo: Path, *args: str, **extra: str) -> subprocess.CompletedProcess
     )
 
 
-def test_task_begin_installs_agent_only_git_hooks(tmp_path: Path) -> None:
+def test_task_begin_removes_old_arc_commit_hooks_and_allows_unverified_git(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
     write_overlay(repo, {"verification": {"required": ["cli_receipt"]}})
-    assert main(["--cwd", str(repo), "task", "begin", "--skill", "arc-code"]) == 0
-    assert (
-        main(["--cwd", str(repo), "task", "begin", "--skill", "arc-code", "--force"])
-        == 0
-    )
     for event in ("pre-commit", "pre-push"):
-        commands = git_run(
-            repo, "config", "--get-all", f"hook.arc-policy-{event}.command"
-        )
-        assert len(commands.stdout.splitlines()) == 1
-        assert f"git-hook {event}" in commands.stdout
+        git(repo, "config", "--local", f"hook.arc-policy-{event}.event", event)
+        git(repo, "config", "--local", f"hook.arc-policy-{event}.command", "exit 1")
+
+    assert main(["--cwd", str(repo), "task", "begin", "--skill", "arc-code"]) == 0
+    assert main(["--cwd", str(repo), "task", "begin", "--skill", "arc-code", "--force"]) == 0
+
+    for event in ("pre-commit", "pre-push"):
+        for key in ("event", "command"):
+            missing = git_run(repo, "config", "--get-all", f"hook.arc-policy-{event}.{key}")
+            assert missing.returncode != 0
 
     (repo / "a.txt").write_text("agent\n")
     git(repo, "add", "a.txt")
-    blocked = git_run(repo, "commit", "-q", "-m", "agent", GROK_AGENT="1")
-    assert blocked.returncode != 0
-    assert "arc-policy task verify" in blocked.stderr
-    assert git_run(repo, "commit", "-q", "-m", "human").returncode == 0
-
-    (repo / "b.txt").write_text("verified\n")
-    git(repo, "add", "b.txt")
-    assert verify_task(repo, policy_for(repo), run_tests=False)["verdict"] == "PASS"
-    assert git_run(repo, "commit", "-q", "-am", "agent", CLAUDECODE="1").returncode == 0
-    push = ("hook", "run", "pre-push", "--", "origin", "https://example.invalid/x")
-    # HEAD commits exactly the verified tree: pushing it needs no second verification.
-    assert git_run(repo, *push, CODEX_THREAD_ID="t").returncode == 0
-    (repo / "c.txt").write_text("unverified\n")
-    git(repo, "add", "c.txt")
-    git(repo, "commit", "-q", "-m", "human")
-    assert git_run(repo, *push, CODEX_THREAD_ID="t").returncode != 0
-    assert git_run(repo, *push).returncode == 0
+    commit = git_run(repo, "commit", "-q", "-m", "agent", GROK_AGENT="1")
+    assert commit.returncode == 0, commit.stderr
+    assert git_run(repo, "hook", "run", "pre-push", "--", "origin", "https://example.invalid/x", CODEX_THREAD_ID="t").returncode == 0
 
 
 def test_stop_checks_repositories_the_session_edited(tmp_path: Path) -> None:
