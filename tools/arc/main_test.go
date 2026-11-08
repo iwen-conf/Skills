@@ -4,9 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"os"
-	"path/filepath"
-	"runtime"
 	"runtime"
 	"strings"
 	"testing"
@@ -23,7 +20,7 @@ func TestCommandRouting(t *testing.T) {
 		{[]string{"verify", "gate", "--graph", "g1"}, "arc-verify", []string{"gate", "--graph", "g1"}, false},
 		{[]string{"verify", "discover", "list", "--graph", "g1"}, "arc-verify", []string{"discover", "list", "--graph", "g1"}, false},
 		{[]string{"verify"}, "", nil, true},
-		{[]string{"task", "create"}, "", nil, true},
+		{[]string{"task", "create"}, "", nil, true}, // handled by local resource router, not delegation
 		{[]string{"update"}, "", nil, true},
 		{[]string{"huh"}, "", nil, true},
 	}
@@ -37,10 +34,14 @@ func TestCommandRouting(t *testing.T) {
 	}
 }
 
-func TestCapabilitiesDoNotAdvertiseUnimplementedResources(t *testing.T) {
+func TestCapabilitiesAdvertiseImplementedResourcesNotUnmigratedDB(t *testing.T) {
 	got := capabilities()
-	if got["unified_database"] != false || got["arc_db_resources"] != false {
-		t.Fatal("must not claim implemented state engine")
+	if got["arc_db_resources"] != true { t.Fatal("resource engine should be reported implemented") }
+	if got["arc_db_schema_version"] != arcSchemaVersion { t.Fatal("schema version not reported") }
+	// Unified state is advertised only when the current repository has a
+	// validated migration marker, not when a second database merely exists.
+	if got["arc_db_active"] == false && got["unified_database"] != false {
+		t.Fatal("must not advertise inactive DB as unified")
 	}
 }
 
@@ -48,7 +49,9 @@ func TestHelpAndVersion(t *testing.T) {
 	if run([]string{"--help"}) != 0 || run([]string{"version"}) != 0 {
 		t.Fatal("help/version failed")
 	}
-	if !strings.Contains(usage, "arc verify") { t.Fatal("missing verification route") }
+	if !strings.Contains(usage, "arc verify") || !strings.Contains(usage,"arc task") {
+		t.Fatal("missing commands from help")
+	}
 }
 
 func TestLegacyBackendArgumentAndExitForwarding(t *testing.T) {
@@ -78,15 +81,11 @@ func TestLegacyBackendArgumentAndExitForwarding(t *testing.T) {
 }
 
 func TestDelegationPreservesBackendExitCode(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("shell stub uses /bin/sh")
-	}
+	if runtime.GOOS == "windows" { t.Skip("shell stub uses /bin/sh") }
 	dir := t.TempDir()
 	for _, name := range []string{"arc-idx", "arc-verify"} {
 		path := filepath.Join(dir, name)
-		if err := os.WriteFile(path, []byte("#!/bin/sh\nexit 19\n"), 0755); err != nil {
-			t.Fatal(err)
-		}
+		if err := os.WriteFile(path, []byte("#!/bin/sh\nexit 19\n"), 0755); err != nil { t.Fatal(err) }
 	}
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	if got := run([]string{"search", "some-text"}); got != 19 {
@@ -96,4 +95,3 @@ func TestDelegationPreservesBackendExitCode(t *testing.T) {
 		t.Fatalf("verify exit code: got %d, want 19", got)
 	}
 }
-
