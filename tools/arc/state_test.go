@@ -43,6 +43,22 @@ func TestTaskStateAndEventAtomicity(t *testing.T) {
 	if n!=4 || pending!=4 {t.Fatalf("events=%d outbox=%d; should match committed transitions",n,pending)}
 }
 
+func TestPolicyTaskEnsureBindsWithoutPromoting(t *testing.T) {
+	_, db := testArcState(t)
+	const taskID = "f42a18d5b4c979efc844b4425cb3ee41"
+	const taskTitle = "payment-repair (arc-code)"
+	if err := executeTask(db,"ensure",taskID,taskTitle,"",0);err!=nil{t.Fatal(err)}
+	if err := executeTask(db,"ensure",taskID,taskTitle,"",0);err!=nil{t.Fatal(err)}
+	var count, events int
+	var status string
+	if err:=db.QueryRow("SELECT count(*),MAX(status) FROM arc_tasks WHERE id=?",taskID).Scan(&count,&status);err!=nil{t.Fatal(err)}
+	if count!=1||status!="draft"{t.Fatalf("task binding unexpectedly mutated status: count=%d status=%s",count,status)}
+	if err:=db.QueryRow("SELECT count(*) FROM arc_events WHERE aggregate='task' AND aggregate_id=?",taskID).Scan(&events);err!=nil{t.Fatal(err)}
+	if events!=1{t.Fatalf("task import must be idempotent, events=%d",events)}
+	if err:=executeTask(db,"ensure",taskID,"different-title","",0);err==nil{t.Fatal("conflicting task identity was silently overwritten")}
+	if err:=executeTask(db,"ensure","../../../escape",taskTitle,"",0);err==nil{t.Fatal("unsafe policy task ID was accepted")}
+}
+
 func TestFileHashReconciliationAndSymlinkBoundary(t *testing.T) {
 	root,db:=testArcState(t)
 	if err:=os.WriteFile(filepath.Join(root,"code.go"),[]byte("package test\n"),0600);err!=nil{t.Fatal(err)}
