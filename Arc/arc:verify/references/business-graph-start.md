@@ -41,11 +41,11 @@ Import retains a BLOCKED schema guard; missing rules/observations stay unverifie
 Resolve these paths/IDs from the target project and tool installation, then run existing commands:
 
 ```bash
-arc-verify init --db "$VERIFY_DB"
-arc-verify validate --file "$VERIFY_GRAPH_FILE"
-arc-verify import --db "$VERIFY_DB" --file "$VERIFY_GRAPH_FILE"
-arc-verify model --db "$VERIFY_DB" --graph "$VERIFY_GRAPH"
-arc-verify snapshot --db "$VERIFY_DB" --graph "$VERIFY_GRAPH" \
+arc verify init --db "$VERIFY_DB"
+arc verify validate --file "$VERIFY_GRAPH_FILE"
+arc verify import --db "$VERIFY_DB" --file "$VERIFY_GRAPH_FILE"
+arc verify model --db "$VERIFY_DB" --graph "$VERIFY_GRAPH"
+arc verify snapshot --db "$VERIFY_DB" --graph "$VERIFY_GRAPH" \
   --assets "$VERIFY_ASSETS" --out "$VERIFY_SNAPSHOT_DIR"
 ```
 
