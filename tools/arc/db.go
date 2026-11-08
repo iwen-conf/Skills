@@ -154,6 +154,38 @@ func noLiveSidecars(src string) error {
 	return nil
 }
 
+// Keep generated databases and backups out of Git without modifying tracked
+// project files. This is local Git metadata, not a team-wide .gitignore policy.
+func ensureLocalArcExclude(root string) error {
+	if _, err := os.Lstat(filepath.Join(root, ".git")); errors.Is(err, os.ErrNotExist) { return nil } else if err != nil { return err }
+	cmd:=exec.Command("git","-C",root,"rev-parse","--path-format=absolute","--git-path","info/exclude")
+	raw,err:=cmd.Output()
+	if err!=nil { return fmt.Errorf("resolve Git info/exclude: %w",err) }
+	target:=strings.TrimSpace(string(raw))
+	if target=="" || !filepath.IsAbs(target){return errors.New("Git exclude path is not absolute")}
+	if err:=os.MkdirAll(filepath.Dir(target),0700);err!=nil{return err}
+	old,err:=os.ReadFile(target)
+	if err!=nil && !errors.Is(err,os.ErrNotExist){return err}
+	marker:="# arc.db generated local state (managed by arc)\n"
+	if strings.Contains(string(old),marker){return nil}
+	ignore:=marker+
+		"/.arc/arc.db\n"+
+		"/.arc/arc.db-*\n"+
+		"/.arc/arc.db.*\n"+
+		"/.arc/arc.json\n"+
+		"/.arc/arc.json.tmp\n"+
+		"/.arc/arc.lock\n"+
+		"/.arc/arc.lock.exclusive\n"+
+		"/.arc/backups/\n"+
+		"# end arc.db generated local state\n"
+	f,err:=os.OpenFile(target,os.O_WRONLY|os.O_CREATE|os.O_APPEND,0600)
+	if err!=nil{return err}
+	defer f.Close()
+	if len(old)>0 && old[len(old)-1]!='\n'{if _,err:=f.Write([]byte("\n"));err!=nil{return err}}
+	if _,err:=f.Write([]byte(ignore));err!=nil{return err}
+	return f.Sync()
+}
+
 func writeManifest(root string, m arcManifest) error {
 	body, err := json.MarshalIndent(m, "", "  ")
 	if err != nil { return err }
@@ -304,6 +336,7 @@ func dbCommand(args []string) error {
 			if _, err := os.Lstat(statePath(root)); err == nil { return errors.New("unactivated arc.db already exists; inspect/recover explicitly, refusing overwrite") } else if !errors.Is(err, os.ErrNotExist) { return err }
 			if _, err := os.Lstat(manifestPath(root)); err == nil { return errors.New("arc manifest already exists; refusing overwrite") } else if !errors.Is(err, os.ErrNotExist) { return err }
 			if err := os.MkdirAll(filepath.Join(root, ".arc"), 0700); err != nil { return err }
+			if err:=ensureLocalArcExclude(root);err!=nil{return err}
 			m := arcManifest{Version: arcSchemaVersion, Active: true, DB: arcDBName}
 			var baseline map[string]gateProof
 			if action == "migrate" {
