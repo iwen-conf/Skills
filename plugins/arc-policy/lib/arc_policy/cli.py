@@ -102,7 +102,7 @@ def cmd_task_begin(args: argparse.Namespace) -> int:
     policy = load_for_repo(root, languages=detect_languages(root))
     skill = resolve_skill_name(args.skill, policy)
     slug = args.slug or skill
-    # A failed installation must not leave an apparently active, unprotected task.
+    # Remove retired per-commit receipt hooks, preserving unrelated hooks.
     install_git_hooks(root)
     task = begin_task(root, skill=skill, slug=slug, force=args.force)
     return _print_json(task)
@@ -112,7 +112,7 @@ def cmd_task_switch(args: argparse.Namespace) -> int:
     root = repo_root(Path(args.cwd) if args.cwd else None)
     policy = load_for_repo(root, languages=detect_languages(root))
     skill = resolve_skill_name(args.skill, policy)
-    # Preserve the active phase if the Git delivery gate cannot be installed.
+    # Cleanup is idempotent; no Git verify gate is installed on phase switch.
     install_git_hooks(root)
     task = switch_task(
         root,
@@ -367,7 +367,7 @@ def build_parser() -> argparse.ArgumentParser:
     verify.set_defaults(func=cmd_task_verify)
     authorize = task_sub.add_parser(
         "authorize",
-        help="the user explicitly confirmed committing and pushing this tree without verify",
+        help="record explicit user approval to close/deliver a task without verifying",
     )
     authorize.add_argument(
         "--quote", required=True, help="the user's own words from this conversation"
@@ -383,10 +383,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser(
         "install-git-hooks",
-        help="register the agent commit/push gate in this repository",
+        help="remove retired Arc-managed Git commit/push verification hooks",
     ).set_defaults(func=cmd_install_git_hooks)
     git_hook = sub.add_parser(
-        "git-hook", help="run by Git before an agent commit or push"
+        "git-hook", help="legacy hook entrypoint (commit/push are no longer gated)"
     )
     git_hook.add_argument("event", choices=HOOK_EVENTS)
     git_hook.add_argument("hook_args", nargs="*")
