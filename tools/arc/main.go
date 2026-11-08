@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -68,11 +70,26 @@ func selectCommand(args []string) (route, error) {
 	return route{}, fmt.Errorf("unknown arc command %q", name)
 }
 
+// resolveBackend prefers the sibling built by scripts/install_arc.sh, then PATH.
+// It makes a standalone bin directory usable even when not yet on PATH.
+func resolveBackend(name string) (string, error) {
+	self, err := os.Executable()
+	if err == nil {
+		candidate := filepath.Join(filepath.Dir(self), name)
+		if runtime.GOOS == "windows" { candidate += ".exe" }
+		if st, statErr := os.Stat(candidate); statErr == nil && st.Mode().IsRegular() &&
+			(runtime.GOOS == "windows" || st.Mode().Perm() & 0111 != 0) {
+			return candidate, nil
+		}
+	}
+	return exec.LookPath(name)
+}
+
 func capabilities() map[string]any {
 	engines := make(map[string]any, 2)
 	supported := make(map[string]bool, 2)
 	for _, tool := range []string{"arc-idx", "arc-verify"} {
-		p, err := exec.LookPath(tool)
+		p, err := resolveBackend(tool)
 		supported[tool] = err == nil
 		engines[tool] = map[string]any{"available": err == nil, "path": p}
 	}
@@ -106,9 +123,9 @@ func run(args []string) int {
 		fmt.Fprintln(os.Stderr, "arc:", err)
 		return 2
 	}
-	binary, err := exec.LookPath(selected.executable)
+	binary, err := resolveBackend(selected.executable)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "arc: backend %s not found on PATH; install the matching legacy engine first\n", selected.executable)
+		fmt.Fprintf(os.Stderr, "arc: backend %s not found alongside arc or on PATH; use scripts/install_arc.sh\n", selected.executable)
 		return 127
 	}
 	cmd := exec.Command(binary, selected.argv...)
