@@ -1,6 +1,6 @@
 ---
 name: arc:verify
-version: 3.8.2
+version: 3.8.3
 description: >-
   Whole-system testing with project-local DB business graphs (完整测试, 测试整个系统, 所有交互,
   完整业务测试, 业务树图, 业务图), including AI-led candidate modeling from scratch.
@@ -72,8 +72,9 @@ HTTP/JSON/upload claims use
 
 ## Workflow
 
-The unified CLI routes `arc verify` to the existing graph/evidence engine.
-The shared `arc.db` ledger is a [future migration](../_shared/arc-db.md), not a passed gate.
+The unified `arc verify` command keeps the existing graph/evidence engine.
+An [opt-in arc.db migration](../_shared/arc-db.md) now exists; require a
+matching gate proof, never treat migration or task-state events as PASS.
 
 Graph mode follows [business-graph](references/business-graph.md), replacing steps 2–10.
 Draw via [arch-diagram](references/business-diagram.md); inspect screenshots; release execution refs.
