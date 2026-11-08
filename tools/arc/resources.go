@@ -54,6 +54,8 @@ var taskTransitions = map[string]map[string]bool{
 func resourceCommand(kind string, args []string) error {
 	if len(args) == 0 { return fmt.Errorf("usage: arc %s <action> [--repo DIR] [flags]", kind) }
 	action := args[0]
+	parseArgs := args[1:]
+	if kind == "update" { action = "collect"; parseArgs = args }
 	fs := flag.NewFlagSet("arc "+kind+" "+action, flag.ContinueOnError)
 	repoArg := fs.String("repo", ".", "repository root")
 	idFlag := fs.String("id", "", "resource id")
@@ -64,7 +66,7 @@ func resourceCommand(kind string, args []string) error {
 	task := fs.String("task", "", "optional owning task id")
 	worktree := fs.String("worktree", ".", "Git worktree path")
 	changedOnly := fs.Bool("changed-only", false, "collect only Git working tree changes")
-	if err := fs.Parse(args[1:]); err != nil { return err }
+	if err := fs.Parse(parseArgs); err != nil { return err }
 	// IDs/paths can be positional, but flags must precede any positional args.
 	if len(fs.Args()) > 1 { return fmt.Errorf("too many positional arguments: %v", fs.Args()) }
 	if len(fs.Args()) == 1 {
@@ -93,9 +95,7 @@ func resourceCommand(kind string, args []string) error {
 			default: return fmt.Errorf("unsupported arc change action %q", action)
 			}
 		case "update":
-			if action != "" && action != "--changed-only" {
-				return fmt.Errorf("unsupported arc update action %q", action)
-			}
+			if action != "collect" { return fmt.Errorf("unsupported arc update action %q", action) }
 			if !*changedOnly { return errors.New("arc update requires --changed-only in v1; broad full reindexing is forbidden") }
 			return collectChanges(db, root, *task, *worktree)
 		default:
@@ -161,6 +161,11 @@ func observedFile(root, relative string) (string, int64, string, error) {
 		return "",0,"",errors.New("unsafe or internal file path")
 	}
 	full := filepath.Join(root,clean)
+	// A symlink in any ancestor must never allow reading outside the worktree.
+	if parent, e := filepath.EvalSymlinks(filepath.Dir(full)); e == nil {
+		rel,e := filepath.Rel(root,parent)
+		if e != nil || rel==".." || strings.HasPrefix(rel,".."+string(filepath.Separator)){return "",0,"",errors.New("file path escapes repository through symlink")}
+	} else { return "",0,"",e }
 	st,err:=os.Lstat(full)
 	if errors.Is(err,os.ErrNotExist){return "",0,"deleted",nil}
 	if err!=nil{return "",0,"",err}
