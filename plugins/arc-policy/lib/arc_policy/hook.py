@@ -366,9 +366,51 @@ def _record_edit(
             record_authored(session, root, [path.relative_to(root).as_posix()])
 
 
+def _reconcile_active_arc_db(payload: dict[str, Any]) -> None:
+    """Record real post-edit Git changes only after an explicit arc.db cutover.
+
+    This is bookkeeping, never task completion or authorization. An error remains
+    visible to the caller instead of silently claiming synchronization succeeded.
+    """
+    if tool_kind(tool_name(payload)) not in {"shell", "mutate"}:
+        return
+    directory = (payload_cwd(payload) or Path.cwd()).resolve()
+    roots = _edit_roots(payload, directory)
+    if not roots:
+        root = git_root(directory)
+        if root:
+            roots = [root]
+    for root in roots:
+        marker = root / ".arc" / "arc.json"
+        if not marker.is_file():
+            continue
+        if marker.is_symlink():
+            raise RuntimeError("arc.db cutover manifest must not be a symlink")
+        manifest = json.loads(marker.read_text(encoding="utf-8"))
+        if (
+            manifest.get("active") is not True
+            or manifest.get("schema_version") != 1
+            or manifest.get("db") != ".arc/arc.db"
+        ):
+            raise RuntimeError("arc.db manifest is invalid; refusing automatic sync")
+        cli = shutil.which("arc")
+        if not cli:
+            raise RuntimeError("active arc.db requires arc CLI for PostToolUse reconciliation")
+        result = subprocess.run(
+            [cli, "update", "--changed-only", "--repo", str(root)],
+            cwd=root, capture_output=True, text=True, timeout=20, check=False,
+        )
+        if result.returncode:
+            raise RuntimeError(
+                f"arc.db post-edit sync failed (exit {result.returncode}): "
+                + result.stderr[-1200:]
+            )
+
+
 def handle_post_tool_use(payload: dict[str, Any]) -> None:
     if tool_kind(tool_name(payload)) in {"shell", "mutate"}:
         close_window(session_id(payload), call_key(payload))
+        _reconcile_active_arc_db(payload)
 
 
 _STOP_STRICTNESS = {"remind": 0, "block_on_claim": 1, "block": 2}
