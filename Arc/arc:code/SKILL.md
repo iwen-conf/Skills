@@ -1,6 +1,6 @@
 ---
 name: arc:code
-version: 2.7.1
+version: 2.7.2
 description: >-
   Every task that changes source code: write code to implement (写代码, 实现, 开发功能, 落地改动)
   a feature, endpoint or page (前端, 落地页, 要好看, shadcn, 小程序) on the project's stack; fix (修复) a bug,
@@ -75,7 +75,7 @@ Graph repairs: [workflow §6](../_shared/workflow.md); `arc verify handoff --to 
 7. Expectations come from the requirement, never from the new code's output.
 8. Run `bash <skill-dir>/scripts/gate.sh check --task <slug> --max-files <N>` (N = impact-list files plus their tests); add `--require-red` in implement and repair modes, `--strict` for T2 and `--scope <file>` under a scope lock. Cite the report path it prints. T0 without `start` diffs against HEAD: pre-existing dirty files count as changed.
 9. Exercise the real entry point: HTTP call, CLI run, UI action, job trigger, or a test through the handler. A helper-only test does not prove reachability.
-10. Let installed PostToolUse hooks record real edits; follow the [arc.db protocol](../_shared/arc-db.md) only after its capability ships, never call proposed commands. Update the current task document/receipts and Lark hook; report per contract §9 (repair adds execution-truth §6).
+10. After explicit arc.db activation, PostToolUse records file/ChangeSet events via `arc update`; see the [arc.db protocol](../_shared/arc-db.md). Outbox pending is not verified/complete. Update the current task document/receipts and Lark hook; report per contract §9 (repair adds execution-truth §6).
 
 ## Tool Strategy
 
