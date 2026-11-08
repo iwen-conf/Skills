@@ -130,3 +130,35 @@ exit 1
 	if _,err:=os.Stat(filepath.Join(root,".arc","backups","verify-"+m.LegacySHA256[:16]+".db"));err!=nil{t.Fatal(err)}
 	if err:=dbCommand([]string{"migrate","--repo",root,"--confirm-offline"});err==nil{t.Fatal("second migration was accepted")}
 }
+
+
+func TestGitRenameAndNestedUntrackedFiles(t *testing.T) {
+	root:=t.TempDir()
+	git:=func(args ...string) {
+		t.Helper()
+		cmd:=exec.Command("git",append([]string{"-C",root},args...)...)
+		if out,err:=cmd.CombinedOutput();err!=nil{t.Fatalf("git %v: %v %s",args,err,out)}
+	}
+	git("init","-q")
+	git("config","user.email","arc-test@example.invalid")
+	git("config","user.name","Arc Test")
+	if err:=os.MkdirAll(filepath.Join(root,"nested"),0700);err!=nil{t.Fatal(err)}
+	oldPath:=filepath.Join(root,"nested","old.go")
+	if err:=os.WriteFile(oldPath,[]byte("package old\n"),0600);err!=nil{t.Fatal(err)}
+	git("add",".")
+	git("commit","-qm","baseline")
+	if err:=os.Rename(oldPath,filepath.Join(root,"nested","new.go"));err!=nil{t.Fatal(err)}
+	git("add","-A")
+	if err:=os.MkdirAll(filepath.Join(root,"fresh"),0700);err!=nil{t.Fatal(err)}
+	if err:=os.WriteFile(filepath.Join(root,"fresh","inside.go"),[]byte("package fresh\n"),0600);err!=nil{t.Fatal(err)}
+	changes,err:=changedGitPaths(root);if err!=nil{t.Fatal(err)}
+	got:=map[string]string{}
+	for _,change:=range changes {got[change.Path]=change.Operation}
+	for path,want:=range map[string]string{
+		"nested/old.go":"deleted",
+		"nested/new.go":"renamed",
+		"fresh/inside.go":"untracked",
+	} {
+		if got[path]!=want{t.Fatalf("path %q: got %q, want %q; full changes=%v",path,got[path],want,got)}
+	}
+}
