@@ -57,11 +57,9 @@ stop:
     - done
     - fixed
     - completed
-    - ready to commit
     - ready to merge
     - 已完成
     - 已修复
-    - 可以提交
     - 交付
 
 verification:
