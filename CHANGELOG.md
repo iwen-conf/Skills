@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### arc-policy 0.4.2 — remove verification per Git commit/push
+
+- Removed the default unverified-commit/push receipt gate from PreToolUse policy,
+  Git pre-commit/pre-push hooks, session guidance, and commit/push skill instructions.
+- Normal `git commit` and `git push` no longer trigger or require
+  `arc-policy task verify`. Starting or switching a task cleans up retired
+  Arc-owned Git hooks and restores any preserved user hook scripts.
+- Retained explicit `arc-policy task verify` for task completion/delivery,
+  business graph gates for required verify phases, and schema-migration
+  checks; `--no-verify` remains blocked to protect unrelated Git hooks.
+- Updated policy and Git-hook integration tests to cover default commit
+  permission, old hook cleanup, custom hook preservation, and explicit gates.
+
+
 ### Unified arc CLI 0.1.0 — executable compatibility stage
 
 - Added the public `arc` Go CLI: code-index commands delegate to `arc-idx` and
