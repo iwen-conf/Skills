@@ -151,7 +151,7 @@ def test_task_begin_removes_old_arc_commit_hooks_and_allows_unverified_git(tmp_p
     git(repo, "add", "a.txt")
     commit = git_run(repo, "commit", "-q", "-m", "agent", GROK_AGENT="1")
     assert commit.returncode == 0, commit.stderr
-    assert git_run(repo, "hook", "run", "pre-push", "--", "origin", "https://example.invalid/x", CODEX_THREAD_ID="t").returncode == 0
+    assert git_run(repo, "hook", "run", "--ignore-missing", "pre-push", "--", "origin", "https://example.invalid/x", CODEX_THREAD_ID="t").returncode == 0
 
 
 def test_stop_checks_repositories_the_session_edited(tmp_path: Path) -> None:
