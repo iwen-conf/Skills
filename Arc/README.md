@@ -29,6 +29,17 @@ Typical sequences: `explore → code → verify` for a change (verify starts fro
 Skip phases with current usable outputs. A closure model gate proves model checks only;
 implementation and release claims still require their own runtime evidence.
 
+## Unified `arc` CLI (compatibility stage)
+
+The supported public forms are `arc search`, `arc index`, `arc doctor`
+and `arc verify gate|trace|handoff`; see [tools/arc](../tools/arc/README.md).
+Build with `go -C tools/arc build -o ~/.local/bin/arc .` and check
+`arc capabilities --json`. Version 0.1.0 delegates to the existing
+`arc-idx` and `arc-verify` executables. Their databases and the
+`arc-policy` completion gate have **not** been merged yet. The eventual
+single ledger `.arc/arc.db` and resource commands are specified in
+[arc-db.md](_shared/arc-db.md) and are explicitly feature gated.
+
 ## Business-chain graph verification bridge
 
 For an explicit business-chain test request, the existing six Arc skills
@@ -38,7 +49,7 @@ exchange one bounded local ledger view rather than creating a seventh skill.
 failures, `arc:audit` evaluates evidence, and `arc:vet` selects missing
 runner tools. See [workflow §6](_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills)
 and [arc:verify graph reference](arc:verify/references/business-graph.md).
-The short-lived `arc-verify handoff` command returns only the target phase's
+The short-lived `arc verify handoff` command returns only the target phase's
 facts and identifiers; it does not approve business rules or grant permission.
 
 ## Shared layer
@@ -51,7 +62,7 @@ discovered; the packager copies each linked file into the skills that reference 
 | [contract.md](_shared/contract.md) | authority, task tiers, scope lock, vocabulary, artifacts, environment, report format |
 | [workflow.md](_shared/workflow.md) | bidirectional handoffs, artifact ownership, model-to-runtime traceability, freshness and authorization |
 | [code-intel.md](_shared/code-intel.md) | arc-idx preflight, query ladder, 8-surface impact checklist, fallback rules |
-| [arc-db.md](_shared/arc-db.md) | Planned `.arc/arc.db` resource/state/event protocol and plugin reconciliation; design only, not an existing CLI feature |
+| [arc-db.md](_shared/arc-db.md) | Unified `.arc/arc.db` resource, event and business verification ledger (planned DB migration); `arc` bridge already routes supported commands |
 | [coding-discipline.md](_shared/coding-discipline.md) | think before coding, simplicity ladder, surgical edits, paper-overs |
 | [code-rot.md](_shared/code-rot.md) | 41 code-rot smells in families A–G (G: over-engineering) |
 | [api-contract.md](_shared/api-contract.md) | Markdown API contract rules |
