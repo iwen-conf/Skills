@@ -145,6 +145,16 @@ def test_classify_commit_without_receipt_is_allowed() -> None:
     assert decision["operation"] == "shell"
 
 
+def test_incremental_commit_readiness_is_not_a_completion_claim() -> None:
+    from arc_policy.classify import mentions_completion
+
+    policy = load_named("default", plugin=PLUGIN)
+    markers = policy["stop"]["completion_markers"]
+    assert not mentions_completion("Ready to commit the incremental changes.", markers)
+    assert not mentions_completion("可以提交", markers)
+    assert mentions_completion("Done.", markers)
+
+
 def test_classify_commit_no_verify_is_denied_even_with_receipt() -> None:
     policy = load_named("default", plugin=PLUGIN)
     decision = classify(
