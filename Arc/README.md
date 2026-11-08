@@ -51,6 +51,7 @@ discovered; the packager copies each linked file into the skills that reference 
 | [contract.md](_shared/contract.md) | authority, task tiers, scope lock, vocabulary, artifacts, environment, report format |
 | [workflow.md](_shared/workflow.md) | bidirectional handoffs, artifact ownership, model-to-runtime traceability, freshness and authorization |
 | [code-intel.md](_shared/code-intel.md) | arc-idx preflight, query ladder, 8-surface impact checklist, fallback rules |
+| [arc-db.md](_shared/arc-db.md) | Planned `.arc/arc.db` resource/state/event protocol and plugin reconciliation; design only, not an existing CLI feature |
 | [coding-discipline.md](_shared/coding-discipline.md) | think before coding, simplicity ladder, surgical edits, paper-overs |
 | [code-rot.md](_shared/code-rot.md) | 41 code-rot smells in families A–G (G: over-engineering) |
 | [api-contract.md](_shared/api-contract.md) | Markdown API contract rules |
