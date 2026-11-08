@@ -32,6 +32,7 @@ const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"  arc change <collect|show>       Collect changed source files\n" +
 	"  arc update --changed-only       Collect Git changes idempotently\n" +
 	"  arc sync reconcile              Replay missed Git commits from cursor\n" +
+	"  arc event list [flags]          Inspect durable state event history\n" +
 	"  arc capabilities --json        Detect supported backends and capabilities\n" +
 	"  arc version                    Print the unified entrypoint version\n\n" +
 	"Resource writes require an explicitly initialized/migrated .arc/arc.db.\n" +
@@ -48,7 +49,7 @@ var proposedCommands = map[string]bool{
 	"design": true, "contract": true, "schema": true, "decision": true,
 	"invariant": true, "plan": true, "run": true, "artifact": true,
 	"test": true, "check": true, "evidence": true, "risk": true,
-	"agent": true, "session": true, "context": true, "event": true,
+	"agent": true, "session": true, "context": true,
 	"policy": true, "snapshot": true,
 }
 
@@ -108,7 +109,7 @@ func capabilities() map[string]any {
 		"code_index": supported["arc-idx"], "business_verify": supported["arc-verify"],
 		"arc_db_resources": true, "unified_database": active,
 		"arc_db_active": active, "arc_db_schema_version": arcSchemaVersion,
-		"resource_commands": []string{"db", "file update", "task create", "task show", "task transition", "change collect", "change show", "update", "sync reconcile"},
+		"resource_commands": []string{"db", "file update", "task create", "task show", "task transition", "change collect", "change show", "update", "sync reconcile", "event list"},
 		"engines": engines,
 	}
 }
@@ -131,11 +132,12 @@ func run(args []string) int {
 		return 0
 	}
 	switch args[0] {
-	case "db", "task", "file", "change", "update", "sync":
+	case "db", "task", "file", "change", "update", "sync", "event":
 		var err error
 		switch args[0] {
 		case "db": err = dbCommand(args[1:])
 		case "sync": err = syncCommand(args[1:])
+		case "event": err = eventCommand(args[1:])
 		default: err = resourceCommand(args[0],args[1:])
 		}
 		if err != nil { fmt.Fprintf(os.Stderr, "arc %s: %v\n", args[0], err); return 2 }
