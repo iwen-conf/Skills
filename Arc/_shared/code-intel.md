@@ -29,6 +29,16 @@ arc-idx daemon status
 - A `search` result with `"engine": "rg-fallback"` means no index shards were found: repair as
   above before relying on it; otherwise only §6 allows it.
 
+### Planned arc.db resource state (feature gated)
+
+[arc.db resource and state protocol](arc-db.md) defines the proposed local
+`.arc/arc.db` file, typed resources, transitions and event-driven hook updates.
+This is **not** an existing `arc-idx` 1.0.0 capability. Do not invoke proposed
+`file/task/change/update/sync` commands, create the DB, or claim successful
+reconciliation without a shipped capability handshake and tested migration.
+For now Git is the source for code, existing task documents and `arc-policy`
+receipts remain authoritative, and `arc-verify` keeps its separate graph DB.
+
 ## 2. Commands
 
 | Need | Command |
