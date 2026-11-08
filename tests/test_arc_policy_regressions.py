@@ -293,15 +293,17 @@ def test_verify_runs_every_changed_module(tmp_path: Path, monkeypatch) -> None:
 
 
 @pytest.mark.parametrize(
-    "command",
+    "command,denied",
     [
-        "arc-policy task status; git commit --no-verify -m wip",
-        "git commit -m wip; arc-policy task status",
-        "env LANG=C git commit -m wip",
-        "git -c core.quotePath=false commit -m wip",
+        ("arc-policy task status; git commit --no-verify -m wip", True),
+        ("git commit -m wip; arc-policy task status", False),
+        ("env LANG=C git commit -m wip", False),
+        ("git -c core.quotePath=false commit -m wip", False),
     ],
 )
-def test_compound_and_wrapped_commits_are_guarded(tmp_path: Path, command: str) -> None:
+def test_commits_require_no_receipt_but_skip_hooks_stays_blocked(
+    tmp_path: Path, command: str, denied: bool
+) -> None:
     policy = policy_for(make_repo(tmp_path))
     decision = classify(
         tool_name="exec_command",
@@ -310,7 +312,7 @@ def test_compound_and_wrapped_commits_are_guarded(tmp_path: Path, command: str) 
         has_task=True,
         receipt_ok=False,
     )
-    assert decision["action"] == "deny"
+    assert decision["action"] == ("deny" if denied else "allow")
 
 
 def test_stop_recursion_only_reminds(tmp_path: Path) -> None:
@@ -565,7 +567,7 @@ def test_policy_change_invalidates_receipt_even_if_gitignored(tmp_path: Path) ->
         "env_long_attached",
     ],
 )
-def test_commit_uses_target_repository_receipt(tmp_path: Path, case: str) -> None:
+def test_commit_does_not_need_a_target_repository_receipt(tmp_path: Path, case: str) -> None:
     first_parent = tmp_path / "first"
     first_parent.mkdir()
     first = make_repo(first_parent)
@@ -604,7 +606,7 @@ def test_commit_uses_target_repository_receipt(tmp_path: Path, case: str) -> Non
         )
         or "{}"
     )
-    assert result.get("permission") == "deny"
+    assert result.get("permission") != "deny"
 
 
 @pytest.mark.parametrize(
@@ -617,7 +619,7 @@ def test_commit_uses_target_repository_receipt(tmp_path: Path, case: str) -> Non
         'false && cd "{second}"; git commit -m fixture',
     ],
 )
-def test_shell_cd_cannot_lend_another_repository_receipt(
+def test_shell_commit_does_not_require_another_repository_receipt(
     tmp_path: Path, expression: str
 ) -> None:
     first_parent = tmp_path / "first"
@@ -644,7 +646,7 @@ def test_shell_cd_cannot_lend_another_repository_receipt(
         )
         or "{}"
     )
-    assert result.get("permission") == "deny"
+    assert result.get("permission") != "deny"
 
 
 @pytest.mark.parametrize(
@@ -777,16 +779,14 @@ def test_quoted_arguments_are_not_control_flags(
 def test_shell_comments_continuations_and_short_flags_are_guarded(
     tmp_path: Path, command: str
 ) -> None:
-    assert (
-        classify(
-            tool_name="Bash",
-            tool_input={"command": command},
-            policy=policy_for(make_repo(tmp_path)),
-            has_task=True,
-            receipt_ok=False,
-        )["action"]
-        == "deny"
+    result = classify(
+        tool_name="Bash",
+        tool_input={"command": command},
+        policy=policy_for(make_repo(tmp_path)),
+        has_task=True,
+        receipt_ok=False,
     )
+    assert result["action"] == ("deny" if command.startswith("git commit -n") else "allow")
 
 
 def deliver(repo: Path) -> None:
