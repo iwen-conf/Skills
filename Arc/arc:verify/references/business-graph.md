@@ -10,8 +10,9 @@ DB or user-supplied model. For first modeling or missing capabilities, use
 
 `arc verify` forwards to the existing Go verifier, which opens target-local `.arc/verify/data.db` using in-process `tursogo`, then exits.
 Remote servers are authorized test targets; no cloud ledger or persistent service.
-The proposed [arc.db protocol](../../_shared/arc-db.md) is a separate future project
-state store; it does **not** rename, replace, or satisfy this graph's gate. Nodes are
+The [arc.db design](../../_shared/arc-db.md) ultimately merges code resources,
+business graphs, rounds and evidence into one database. That migration has **not**
+occurred; today the existing `.arc/verify/data.db` and gate are authoritative. Nodes are
 feature/action/condition/state; edges contains/requires/transitions/recovers/forbids.
 Prerequisites are AND, recovery alternatives OR. Keep only the current bounded card in context.
 
