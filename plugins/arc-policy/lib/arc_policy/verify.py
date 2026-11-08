@@ -268,7 +268,31 @@ def check_business_graph(root: Path, policy: dict[str, Any]) -> dict[str, Any] |
             "verdict": "BLOCKED",
             "reason": "local verification configured but verification.business_graph.graph is missing",
         }
+    # The physical graph store only changes after an explicit, parity-checked
+    # local migration. An explicit project DB path always wins.
     db = config.get("db", ".arc/verify/data.db")
+    marker = root / ".arc" / "arc.json"
+    if "db" not in config and marker.exists():
+        try:
+            if marker.is_symlink():
+                raise ValueError("manifest is a symlink")
+            active = json.loads(marker.read_text(encoding="utf-8"))
+            if (
+                not isinstance(active, dict)
+                or active.get("active") is not True
+                or active.get("schema_version") != 1
+                or active.get("db") != ".arc/arc.db"
+            ):
+                raise ValueError("unsupported migration manifest")
+            if not (root / ".arc/arc.db").is_file():
+                raise ValueError("migrated arc.db file missing")
+            db = ".arc/arc.db"
+        except (OSError, ValueError) as exc:
+            return {
+                "id": "business_graph",
+                "verdict": "BLOCKED",
+                "reason": f"arc.db cutover manifest invalid: {exc}",
+            }
     if not isinstance(db, str) or not db or Path(db).is_absolute():
         return {
             "id": "business_graph",
