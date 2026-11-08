@@ -213,7 +213,7 @@ func executeFile(db *sql.DB,root,path,task string) error {
 
 type gitChange struct{ Path, Operation string }
 func changedGitPaths(root string) ([]gitChange,error) {
-	cmd:=exec.Command("git","-C",root,"status","--porcelain=v1","-z","--untracked-files=normal")
+	cmd:=exec.Command("git","-C",root,"status","--porcelain=v1","-z","--untracked-files=all")
 	out,err:=cmd.Output();if err!=nil{return nil,fmt.Errorf("git status: %w",err)}
 	parts:=strings.Split(string(out),"\x00")
 	ops:=map[string]string{}
