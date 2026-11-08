@@ -42,6 +42,9 @@ jobs:
           go -C tools/arc-verify build -o "$RUNNER_TEMP/arc-bin/arc-verify" .
           go -C tools/arc build -o "$RUNNER_TEMP/arc-bin/arc" .
           "$RUNNER_TEMP/arc-bin/arc" capabilities --json
+      - name: Real-backend init and legacy-graph migration smoke
+        run: |
+          bash tools/arc/smoke.sh "$RUNNER_TEMP/arc-bin" "$GITHUB_WORKSPACE"
       - name: Run verifier's regression tests
         run: go -C tools/arc-verify test -count=1 ./...
   arc-policy:
