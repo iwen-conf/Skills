@@ -78,12 +78,12 @@ def pre_tool_use(repo: Path, command: str, path: Path | None) -> dict:
     return json.loads(raw) if raw else {}
 
 
-def test_unverifiable_tree_fails_verify_but_user_authorization_allows_commit(
+def test_unverifiable_tree_fails_verify_but_authorization_records_delivery(
     tmp_path: Path,
 ) -> None:
     repo = staged_task(tmp_path)
     assert verify_task(repo, policy_for(repo))["verdict"] == "FAIL"
-    assert refusal(repo, "pre-commit", AGENT)
+    assert refusal(repo, "pre-commit", AGENT) is None
     receipt = authorize_task(repo, "  直接提交并推送 ")
     assert receipt["verdict"] == "AUTHORIZED"
     assert receipt["authorization"] == {"by": "user", "quote": "直接提交并推送"}
@@ -97,7 +97,8 @@ def test_authorization_binds_the_staged_tree(tmp_path: Path) -> None:
     authorize_task(repo, "直接提交")
     (repo / "later.txt").write_text("after the user's go-ahead\n")
     git(repo, "add", "later.txt")
-    assert refusal(repo, "pre-commit", AGENT)
+    assert not receipt_matches_tree(repo, current_receipt(repo))
+    assert refusal(repo, "pre-commit", AGENT) is None
 
 
 def test_authorize_needs_quote_and_task(tmp_path: Path) -> None:
@@ -111,7 +112,7 @@ def test_authorize_needs_quote_and_task(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("approve", ["verify", "authorize"])
-def test_push_of_the_receipt_tree_needs_no_second_verification(
+def test_push_never_requires_per_commit_verification(
     tmp_path: Path, approve: str
 ) -> None:
     repo = staged_task(tmp_path)
@@ -128,17 +129,17 @@ def test_push_of_the_receipt_tree_needs_no_second_verification(
     (repo / "extra.txt").write_text("not covered\n")
     git(repo, "add", "extra.txt")
     git(repo, "commit", "-q", "-m", "extra")
-    assert refusal(repo, "pre-push", AGENT, updates(repo))
+    assert refusal(repo, "pre-push", AGENT, updates(repo)) is None
     assert refusal(repo, "pre-push", AGENT, updates(repo, "HEAD~1")) is None
-    assert pre_tool_use(repo, "git push origin main", None)["permission"] == "deny"
+    assert pre_tool_use(repo, "git push origin main", None) == {}
 
 
-def test_ref_deletion_is_not_covered_by_a_commit_receipt(tmp_path: Path) -> None:
+def test_ref_deletion_does_not_trigger_an_arc_verify_receipt_gate(tmp_path: Path) -> None:
     repo = staged_task(tmp_path)
     authorize_task(repo, "直接提交")
     git(repo, "commit", "-q", "-m", "feature")
     deletion = f"(delete) {'0' * 40} refs/heads/old {'1' * 40}\n"
-    assert refusal(repo, "pre-push", AGENT, deletion)
+    assert refusal(repo, "pre-push", AGENT, deletion) is None
     assert refusal(repo, "pre-push", {}, deletion) is None
 
 
