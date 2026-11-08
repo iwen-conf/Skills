@@ -33,13 +33,13 @@ one Arc skill per phase (arc-explore, arc-plan, arc-code, arc-verify, arc-audit,
 2. Write source with host tools after begin. Repository search still goes through
    arc-idx (dsh-force-arc-idx).
 
-3. Before git commit / git push, schema migrations, or claiming delivery:
+3. Git commit/push are allowed without verification. Before protected schema migrations or claiming verified task completion:
 
    arc-policy task verify
 
 The harness denies source edits with no active task in the edited file's
-repository, git commit/push without a matching receipt, git --no-verify, and
-common schema-migration CLIs. Never route a denied edit through the shell.
+repository, unsafe git --no-verify, and
+common schema-migration CLIs. Ordinary Git commits and pushes need no Arc receipt. Never route a denied edit through the shell.
 
 Passing a hook is not proof of skill execution. Only CLI receipts count.
 `.trim()
