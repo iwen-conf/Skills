@@ -223,3 +223,23 @@ func TestSyncReconcileReplaysCommittedChanges(t *testing.T) {
 	if err:=db.QueryRow("SELECT version FROM arc_files WHERE path='sample.go'").Scan(&version);err!=nil{t.Fatal(err)}
 	if version!=1{t.Fatalf("file version=%d after replay",version)}
 }
+
+
+func TestArcPrivateFilesAreIgnoredAndSymlinksRejected(t *testing.T) {
+	root:=t.TempDir()
+	if err:=ensureArcPrivateFiles(root);err!=nil{t.Fatal(err)}
+	path:=filepath.Join(root,".arc",".gitignore")
+	first,err:=os.ReadFile(path);if err!=nil{t.Fatal(err)}
+	for _,item:=range []string{"arc.db","arc.db-*","arc.json","arc.lock","backups/","verify/*.db"}{
+		if !strings.Contains(string(first),item){t.Fatalf("missing ignore pattern: %s",item)}
+	}
+	if err:=ensureArcPrivateFiles(root);err!=nil{t.Fatal(err)}
+	second,err:=os.ReadFile(path);if err!=nil{t.Fatal(err)}
+	if string(first)!=string(second){t.Fatal("ignore initialization was not idempotent")}
+	if runtime.GOOS!="windows"{
+		outside:=t.TempDir()
+		symlinkRoot:=t.TempDir()
+		if err:=os.Symlink(outside,filepath.Join(symlinkRoot,".arc"));err!=nil{t.Fatal(err)}
+		if err:=ensureArcPrivateFiles(symlinkRoot);err==nil{t.Fatal("symlinked .arc directory was accepted")}
+	}
+}
