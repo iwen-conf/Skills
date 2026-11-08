@@ -300,6 +300,34 @@ func verifyParity(root, oldDB, newDB string, baseline map[string]gateProof) (int
 	return len(ids),nil
 }
 
+// Keep mutable ledgers, migration backups and sidecar journals out of Git.
+// Never silently replace an existing user-owned ignore file or follow a
+// symlink that could redirect these private files outside the repository.
+func ensureArcPrivateFiles(root string) error {
+	dir:=filepath.Join(root,".arc")
+	if st,err:=os.Lstat(dir);err==nil {
+		if !st.IsDir(){return fmt.Errorf("unsafe .arc directory: %s",dir)}
+	}else if !errors.Is(err,os.ErrNotExist){return err}
+	if err:=os.MkdirAll(dir,0700);err!=nil{return err}
+	ignore:=filepath.Join(dir,".gitignore")
+	raw,err:=os.ReadFile(ignore)
+	if err!=nil&&!errors.Is(err,os.ErrNotExist){return err}
+	if st,e:=os.Lstat(ignore);e==nil && !st.Mode().IsRegular(){return errors.New("unsafe .arc/.gitignore")}
+	if strings.Contains(string(raw),"# arc local state (generated)") {return nil}
+	block:="# arc local state (generated)\narc.db\narc.db-*\narc.json\narc.lock\nbackups/\nverify/*.db\nverify/*.db-*\n"
+	text:=string(raw)
+	if text!=""&&!strings.HasSuffix(text,"\n"){text+="\n"}
+	text+=block
+	tmp:=ignore+".tmp"
+	file,err:=os.OpenFile(tmp,os.O_WRONLY|os.O_CREATE|os.O_EXCL,0600);if err!=nil{return err}
+	_,writeErr:=file.WriteString(text)
+	if writeErr==nil{writeErr=file.Sync()}
+	if closeErr:=file.Close();writeErr==nil{writeErr=closeErr}
+	if writeErr!=nil{os.Remove(tmp);return writeErr}
+	if err:=os.Rename(tmp,ignore);err!=nil{os.Remove(tmp);return err}
+	return nil
+}
+
 func dbCommand(args []string) error {
 	if len(args) == 0 { return errors.New("usage: arc db <status|init|migrate> [--repo DIR] [--confirm-offline]") }
 	action := args[0]
@@ -337,6 +365,7 @@ func dbCommand(args []string) error {
 			if _, err := os.Lstat(statePath(root)); err == nil { return errors.New("unactivated arc.db already exists; inspect/recover explicitly, refusing overwrite") } else if !errors.Is(err, os.ErrNotExist) { return err }
 			if _, err := os.Lstat(manifestPath(root)); err == nil { return errors.New("arc manifest already exists; refusing overwrite") } else if !errors.Is(err, os.ErrNotExist) { return err }
 			if err := os.MkdirAll(filepath.Join(root, ".arc"), 0700); err != nil { return err }
+			if err := ensureArcPrivateFiles(root); err != nil { return err }
 			if err:=ensureLocalArcExclude(root);err!=nil{return err}
 			m := arcManifest{Version: arcSchemaVersion, Active: true, DB: arcDBName}
 			var baseline map[string]gateProof
