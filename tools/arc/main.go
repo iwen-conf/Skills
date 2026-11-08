@@ -31,6 +31,7 @@ const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"  arc file update --path FILE     Record code file observation\n" +
 	"  arc change <collect|show>       Collect changed source files\n" +
 	"  arc update --changed-only       Collect Git changes idempotently\n" +
+	"  arc sync reconcile              Replay missed Git commits from cursor\n" +
 	"  arc capabilities --json        Detect supported backends and capabilities\n" +
 	"  arc version                    Print the unified entrypoint version\n\n" +
 	"Resource writes require an explicitly initialized/migrated .arc/arc.db.\n" +
@@ -130,9 +131,13 @@ func run(args []string) int {
 		return 0
 	}
 	switch args[0] {
-	case "db", "task", "file", "change", "update":
+	case "db", "task", "file", "change", "update", "sync":
 		var err error
-		if args[0] == "db" { err = dbCommand(args[1:]) } else { err = resourceCommand(args[0], args[1:]) }
+		switch args[0] {
+		case "db": err = dbCommand(args[1:])
+		case "sync": err = syncCommand(args[1:])
+		default: err = resourceCommand(args[0],args[1:])
+		}
 		if err != nil { fmt.Fprintf(os.Stderr, "arc %s: %v\n", args[0], err); return 2 }
 		return 0
 	}
