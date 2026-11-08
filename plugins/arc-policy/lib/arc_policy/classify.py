@@ -69,10 +69,10 @@ def looks_like_completion(message: str, markers: list[str]) -> bool:
         "questions": {
             "completion": {
                 "type": "noul",
-                "instructions": "Does assistant_message positively assert that the requested work is completed, fixed, or ready for delivery/commit? Judge the speaker's actual assertion, not quoted examples or individual keywords.",
+                "instructions": "Does assistant_message positively assert final verified task completion or readiness for delivery? Intermediate Git commits, committing progress, and saying code is ready to commit are NOT completion claims. Judge the speaker's actual assertion, not quoted examples or individual keywords.",
                 "criteria": {
                     "true": "The speaker claims the requested work is finished or ready for delivery.",
-                    "false": "The speaker denies readiness, explains a gate, describes remaining work, or asks for missing information.",
+                    "false": "The speaker only describes an intermediate commit, denies final readiness, explains a gate, describes remaining work, or asks for missing information.",
                 },
             }
         },
