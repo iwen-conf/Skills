@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from arc_policy.hook import handle_post_tool_use
+from arc_policy.store import begin_task
 from arc_policy.verify import check_business_graph
 from test_arc_policy import make_repo
 from test_arc_policy_business_graph import graph_proof
@@ -56,6 +57,45 @@ def test_hook_reconciles_active_arc_db_after_edit(tmp_path: Path, monkeypatch):
     assert commands
     assert commands[0][0] == [
         "/tmp/arc", "sync", "reconcile", "--repo", str(repo)
+    ]
+
+
+
+def test_hook_records_current_policy_task_in_change_set(tmp_path: Path, monkeypatch):
+    repo = enabled_repo(tmp_path)
+    policy_task = begin_task(repo, skill="arc-code", slug="payment-repair")
+    target = repo / "payment.go"
+    target.write_text("package payment")
+    commands = []
+    monkeypatch.setattr(
+        "arc_policy.hook.shutil.which",
+        lambda name: "/tmp/arc" if name == "arc" else None,
+    )
+
+    def fake_run(argv, **kwargs):
+        commands.append(argv)
+        return subprocess.CompletedProcess(argv, 0, '{}', "")
+
+    monkeypatch.setattr("arc_policy.hook.subprocess.run", fake_run)
+    handle_post_tool_use(
+        {
+            "hook_event_name": "PostToolUse",
+            "tool_name": "Write",
+            "tool_input": {"file_path": str(target)},
+            "cwd": str(repo),
+            "session_id": "arc-task-linked",
+            "tool_use_id": "write-policy",
+        }
+    )
+    assert commands == [
+        [
+            "/tmp/arc", "task", "ensure", "--id", policy_task["id"],
+            "--title", "payment-repair (arc-code)", "--repo", str(repo),
+        ],
+        [
+            "/tmp/arc", "sync", "reconcile", "--repo", str(repo),
+            "--task", policy_task["id"],
+        ],
     ]
 
 
