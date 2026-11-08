@@ -12,6 +12,11 @@ from test_arc_policy import make_repo
 from test_arc_policy_business_graph import graph_proof
 
 
+@pytest.fixture(autouse=True)
+def isolate_arc_policy_state(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("ARC_POLICY_STATE_DIR", str(tmp_path / "state"))
+
+
 def enabled_repo(tmp_path: Path) -> Path:
     repo = make_repo(tmp_path)
     (repo / ".arc").mkdir()
