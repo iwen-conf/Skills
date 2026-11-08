@@ -156,20 +156,24 @@ sync_cursors + snapshots                retry and replay checkpoints
 
 ## 6. Plugin/Hook reconciliation
 
-The existing `arc-policy` PostToolUse hook now calls `arc update
---changed-only` for repositories with a valid active manifest; missing CLI or
-failed reconciliation is reported instead of silently skipped.
+The existing `arc-policy` PostToolUse hook binds the active policy task
+with idempotent `arc task ensure`, then runs `arc sync reconcile --task <id>`
+for repositories with an active manifest. When the policy has no active task,
+reconciliation records changes without an owner. Explicitly read-only shell
+calls are skipped; missing CLI or failed writes are reported.
 
 1. **Pre-tool:** observe current task, authorization, worktree and baseline.
    Keep current `arc-policy` guard behavior; do not require a nonexistent DB.
-2. **Post-tool:** the implemented hook collects a bounded Git worktree
-   ChangeSet and records file-hash events with idempotent fingerprinting.
-   Each call may repeat a Git scan; optimized event batching remains future work.
+2. **Post-tool:** the implemented hook imports a stable `arc-policy` task identity,
+   collects a bounded Git worktree ChangeSet and records file-hash events with
+   idempotent fingerprinting. Each mutating call may repeat a Git scan; optimized
+   event batching remains future work.
 3. **Reconcile:** v1 records file hashes and task-linked changes, not AST,
    symbol, contract or documentation updates. Outbox consumers and full
    dependency invalidation remain future work; don't claim index freshness.
-4. **Stop/commit gate:** verify events are reconciled and evidence refers
-   to the exact current revision. Do not auto-close tasks. Keep existing
+4. **Stop/delivery gate:** completion claims still require revision-scoped
+   verification evidence. Ordinary `git commit` and `git push` never require
+   a per-commit verify receipt. Do not auto-close tasks; keep existing
    `arc-policy` and `arc verify` completion gates authoritative.
 5. **Recovery:** replay pending events after restart, rescan Git changes
    when hooks were skipped, and report `sync_pending` / `conflict` / `stale`
