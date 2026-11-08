@@ -1,5 +1,5 @@
 {
-  "description": "Arc Policy Runtime: inject the workflow at session start, deny unverified commits and edits without task begin, record what each tool call wrote, and gate delivery on CLI receipts.",
+  "description": "Arc Policy Runtime: inject the workflow at session start, deny edits without task begin and protected schema migration violations, record what each tool call wrote, and gate delivery on CLI receipts.",
   "hooks": {
     "SessionStart": [
       {
