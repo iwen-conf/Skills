@@ -12,7 +12,7 @@ from arc_policy.classify import classify
 from arc_policy.cli import main
 from arc_policy.hook import run_hook
 from arc_policy.store import begin_task
-from test_arc_policy import ENV, PLUGIN, git, make_repo, policy_for, write_overlay
+from test_arc_policy import ENV, PLUGIN, git, make_repo, write_overlay
 
 NO_RECEIPT = {
     "execution": {
