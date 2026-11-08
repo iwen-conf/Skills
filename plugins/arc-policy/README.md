@@ -17,8 +17,11 @@ Default mode: **the agent still writes code with host tools**. The CLI is the ga
 ## Local business-graph gate (opt-in)
 
 The existing Python `arc-policy` runtime stays intact. Its `task verify` command
-now checks the independent **Go** `arc-verify` business graph ledger when
+checks the independent **Go** business graph ledger when
 `.arc/verify/config.jsonc` exists or `verification.business_graph` is configured.
+The gate runner now prefers `arc verify gate` when `arc` is installed, falling
+back to the old `arc-verify gate` binary only if `arc` is unavailable. Both use
+the existing graph DB; the planned `.arc/arc.db` cutover is not implemented.
 
 The graph ledger lives in the target repository's local
 `.arc/verify/data.db` file, opened by the official in-process `tursogo` Go driver.
