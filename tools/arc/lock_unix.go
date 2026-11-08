@@ -17,6 +17,9 @@ import (
 func withArcLock(root string, fn func() error) error {
 	dir := filepath.Join(root, ".arc")
 	if err := os.MkdirAll(dir, 0700); err != nil { return err }
+	st, err := os.Lstat(dir)
+	if err != nil { return err }
+	if !st.IsDir() || st.Mode()&os.ModeSymlink != 0 { return errors.New("unsafe .arc directory: symlinks are forbidden") }
 	lock, err := os.OpenFile(filepath.Join(dir, "arc.lock"), os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil { return err }
 	defer lock.Close()
