@@ -9,7 +9,9 @@ DB or user-supplied model. For first modeling or missing capabilities, use
 [graph-start](business-graph-start.md); the existing Agent discovers semantics and writes the model.
 
 The Go CLI opens target-local `.arc/verify/data.db` with in-process `tursogo`, then exits.
-Remote servers are authorized test targets; no cloud ledger or persistent service. Nodes are
+Remote servers are authorized test targets; no cloud ledger or persistent service.
+The proposed [arc.db protocol](../../_shared/arc-db.md) is a separate future project
+state store; it does **not** rename, replace, or satisfy this graph's gate. Nodes are
 feature/action/condition/state; edges contains/requires/transitions/recovers/forbids.
 Prerequisites are AND, recovery alternatives OR. Keep only the current bounded card in context.
 
