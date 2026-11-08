@@ -21,7 +21,17 @@ task_id="$(python3 -c 'import json; print(json.load(open("task.json"))["id"])')"
 "$bin_dir/arc" task transition --id "$task_id" --to ready --expected-version 1 > ready.json
 echo "new code" > feature.go
 "$bin_dir/arc" file update --path feature.go --task "$task_id" > file.json
-"$bin_dir/arc" update --changed-only > update.json
+"$bin_dir/arc" file show --path feature.go > file-show.json
+python3 -c 'import json; assert json.load(open("file-show.json"))["version"]==1'
+
+# Policy task ID import must be idempotent, and a change must retain its owner.
+"$bin_dir/arc" task ensure --id policy-smoke-01 --title "policy smoke (arc-code)" > policy-task.json
+"$bin_dir/arc" task ensure --id policy-smoke-01 --title "policy smoke (arc-code)" > policy-duplicate.json
+python3 -c 'import json; assert json.load(open("policy-duplicate.json"))["duplicate"] is True'
+"$bin_dir/arc" update --changed-only --task policy-smoke-01 > update.json
+python3 -c 'import json; assert json.load(open("update.json"))["changed_files"]>0'
+"$bin_dir/arc" event list --resource task --id policy-smoke-01 --limit 10 > events.json
+python3 -c 'import json; a=json.load(open("events.json")); assert a["count"]==1 and a["events"][0]["kind"]=="task.imported"'
 "$bin_dir/arc" db status > status.json
 python3 -c 'import json; a=json.load(open("status.json")); assert a["active"] and a["pending_events"]>0'
 
