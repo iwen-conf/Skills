@@ -67,8 +67,15 @@ func statePath(root string) string { return filepath.Join(root, arcDBName) }
 func manifestPath(root string) string { return filepath.Join(root, arcManifestName) }
 
 func readManifest(root string) (*arcManifest, error) {
+	arcDir:=filepath.Join(root,".arc")
+	if st,e:=os.Lstat(arcDir);e==nil {
+		if !st.IsDir() || st.Mode()&os.ModeSymlink!=0 {return nil,errors.New("unsafe symlinked .arc directory")}
+	}else if !errors.Is(e,os.ErrNotExist){return nil,e}
+	st,e:=os.Lstat(manifestPath(root))
+	if errors.Is(e,os.ErrNotExist){return nil,nil}
+	if e!=nil{return nil,e}
+	if !st.Mode().IsRegular(){return nil,errors.New("arc cutover manifest is not a regular file")}
 	raw, err := os.ReadFile(manifestPath(root))
-	if errors.Is(err, os.ErrNotExist) { return nil, nil }
 	if err != nil { return nil, err }
 	var m arcManifest
 	if err := json.Unmarshal(raw, &m); err != nil { return nil, fmt.Errorf("invalid arc manifest: %w", err) }
@@ -263,10 +270,14 @@ func dbCommand(args []string) error {
 				original, err := shaFile(source); if err != nil { return err }
 				dir := filepath.Join(root, ".arc", "backups")
 				if err := os.MkdirAll(dir, 0700); err != nil { return err }
+				st,e:=os.Lstat(dir)
+				if e!=nil{return e}
+				if !st.IsDir() || st.Mode()&os.ModeSymlink!=0{return errors.New("unsafe symlinked backup directory")}
 				backup := filepath.Join(dir, "verify-"+original[:16]+".db")
 				if _, err := os.Lstat(backup); errors.Is(err, os.ErrNotExist) {
 					if err := copyFileExact(source, backup); err != nil { return err }
 				} else if err != nil { return err }
+				if err:=checkRegular(backup);err!=nil{return err}
 				backupHash, err := shaFile(backup)
 				if err != nil || backupHash != original { return errors.New("legacy backup checksum mismatch; aborting") }
 				if err := copyFileExact(source, statePath(root)); err != nil { return err }
