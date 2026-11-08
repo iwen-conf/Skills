@@ -253,7 +253,21 @@ func dbCommand(args []string) error {
 		m, err := readManifest(root)
 		if err != nil { return err }
 		status := map[string]any{"path": statePath(root), "active": m != nil, "schema_version": arcSchemaVersion}
-		if m != nil { status["legacy_db"] = m.LegacyDB; status["parity_graphs"] = m.ParityGraphs }
+		if m != nil {
+			status["legacy_db"],status["parity_graphs"]=m.LegacyDB,m.ParityGraphs
+			var err error
+			err=withArcLock(root,func()error{
+				db,e:=openActiveArcDB(root)
+				if e!=nil{return e}
+				defer db.Close()
+				var pending,graphs int
+				if e:=db.QueryRow("SELECT count(*) FROM arc_outbox WHERE status='pending'").Scan(&pending);e!=nil{return e}
+				if e:=db.QueryRow("SELECT count(*) FROM graphs").Scan(&graphs);e!=nil{return e}
+				status["pending_events"],status["graph_count"]=pending,graphs
+				return nil
+			})
+			if err!=nil{return err}
+		}
 		return json.NewEncoder(os.Stdout).Encode(status)
 	case "init", "migrate":
 		return withArcLock(root, func() error {
@@ -296,6 +310,15 @@ func dbCommand(args []string) error {
 			db, err := openArcDB(statePath(root))
 			if err != nil { return err }
 			err = createArcSchema(db)
+			if err==nil {
+				var n int
+				err=db.QueryRow("SELECT count(*) FROM graphs").Scan(&n)
+				if err!=nil {err=fmt.Errorf("verification graph tables absent after init/migration: %w",err)}
+			}
+			if err==nil {
+				// Ensure schema is durable before another process opens this Turso file.
+				_,err=db.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
+			}
 			db.Close()
 			if err != nil { return err }
 			if action == "migrate" {
