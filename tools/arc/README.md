@@ -10,13 +10,13 @@ From the Skills repository:
 
 ```bash
 go -C tools/arc test ./...
-go -C tools/arc build -o ~/.local/bin/arc .
+bash scripts/install_arc.sh              # builds arc-idx, arc-verify, then arc
 arc version
 arc capabilities --json
 ```
 
-Today, install the existing `arc-idx` and `arc-verify` binaries as separate
-backend dependencies. `capabilities` reports whether each is available.
+The installer builds and publishes all three binaries; humans and Skills use
+only `arc`. `arc-idx` and `arc-verify` remain internal executable dependencies. `capabilities` reports whether each is available.
 `arc` uses `os/exec` argument forwarding with no shell; it preserves stdout,
 stderr and backend process exit codes.
 
