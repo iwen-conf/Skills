@@ -8,7 +8,7 @@
 
 新客户端使用目标平台原生 SDK、UI 与系统能力，不再以跨平台 UI 复用为目标。各平台选型与既有项目维护边界见 [原生平台规则](Arc/_shared/conventions/native-platforms.md)；Web 仍遵循 Web 技术栈。
 
-Arc 公共命令统一为 `arc`（源码在 [`tools/arc/`](tools/arc/)）。目前它把代码检索交给 `arc-idx`（Zoekt、ast-grep、Universal Ctags），把业务图验证交给 `arc-verify`（本地 Turso）；CLI 已统一，数据库尚未合并。目标状态库为 `.arc/arc.db`，方案见 [`Arc/_shared/arc-db.md`](Arc/_shared/arc-db.md)，现有索引和验证协议见 [`Arc/_shared/code-intel.md`](Arc/_shared/code-intel.md)。跨 Claude Code / Codex / Grok 的强制工作流由 [Arc Policy Runtime](plugins/arc-policy/README.md) 提供（Plugin 分发、Skill 指导、Hook 拦截、`arc-policy` CLI 验证）。任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责。飞书项目空间只在用户明确要求、或项目已有 `.lark.json` 时，由 `lark` 的 project-docs 条目维护。
+Arc 公共命令统一为 `arc`（源码在 [`tools/arc/`](tools/arc/)）。代码检索继续复用 `arc-idx`（Zoekt、ast-grep、Universal Ctags），业务验证复用 `arc-verify`（Turso）。`arc` 0.2.0 新增 `arc db init/migrate/status`、`task/file/change/update` 资源状态机和事件表；经显式、离线且验证结果一致的迁移后，代码状态与原验证图共存于 `.arc/arc.db`。底层仍保留两个可执行后端，任务验收闭环和索引事件消费者尚未完成。详见 [`Arc/_shared/arc-db.md`](Arc/_shared/arc-db.md) 与 [`Arc/_shared/code-intel.md`](Arc/_shared/code-intel.md)。跨 Claude Code / Codex / Grok 的强制工作流由 [Arc Policy Runtime](plugins/arc-policy/README.md) 提供（Plugin 分发、Skill 指导、Hook 拦截、`arc-policy` CLI 验证）。任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责。飞书项目空间只在用户明确要求、或项目已有 `.lark.json` 时，由 `lark` 的 project-docs 条目维护。
 
 ## 目录
 
@@ -32,7 +32,7 @@ Skills/
 ├── ThreeJS/            # threejs 路由（库源在 Library/threejs）
 ├── Waza/               # check、health、research-write
 ├── Library/            # 本机第三方库源（git-ignored）
-├── tools/arc/          # 统一 CLI 入口（当前为兼容层）
+├── tools/arc/          # 统一 CLI + Turso 资源状态库（索引/验证仍复用原后端）
 ├── tools/arc-idx/      # 代码索引后端，迁移期保留
 ├── tools/arc-verify/   # 业务图验证后端，迁移期保留
 ├── plugins/arc-policy/   # Policy Runtime: plugin + hooks + arc-policy CLI
