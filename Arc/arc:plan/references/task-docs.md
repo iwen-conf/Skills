@@ -11,8 +11,10 @@ Status values: [contract](../../_shared/contract.md) §4. Completion, scope and 
   user request. Single-file or obvious edits get none.
 - Raw requirements stay in `docs/00-产品需求`; executable plans, leaves and progress go to
   `docs/03-执行任务`. Link the requirement; restate only actionable scope, constraints and acceptance.
-- Task entries, constraints, task trees, cards, trackers and API contracts are Markdown (headings,
-  links, tables, checklists). Tool configs and machine output are outside this rule.
+- Task entries, constraints, task trees, cards, trackers and API contracts currently remain Markdown
+  (headings, links, tables, checklists). Tool configs and machine output are outside this rule.
+  The proposed [arc.db state protocol](../../_shared/arc-db.md) does not create a second task
+  authority until an explicit tested migration; never report its commands as working.
 
 ## 2. Authoring gate
 
