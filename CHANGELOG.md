@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### arc 0.1.0 — unified public CLI (compatibility bridge)
+
+- Added `tools/arc/` with a public `arc` binary routing existing search/index commands
+  to `arc-idx` and `arc verify ...` to the `arc-verify` engine, retaining backend
+  exit codes and reporting available capabilities.
+- Updated Arc Skill sources to show `arc` / `arc verify` while leaving legacy
+  executables and the `arc-policy` graph gate untouched. `arc.db` is now the
+  explicit target for **both** resource state and business graph verification.
+- Resource commands, engine fusion, database migration and hook cutover are **not**
+  implemented by this bridge; its capabilities report that limitation.
+
+
 ### Arc skills — arc.db design protocol (documentation only)
 
 - Named the future repository-local state database `.arc/arc.db` and specified typed CLI resources,
