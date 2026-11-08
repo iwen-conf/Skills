@@ -110,6 +110,7 @@ def test_no_opt_in_preserves_existing_policy(tmp_path):
 
 
 def test_graph_gate_reads_project_config(tmp_path, monkeypatch):
+    monkeypatch.setattr("arc_policy.verify.shutil.which", lambda name: None)
     calls = []
 
     def fake_run(root, argv):
@@ -128,6 +129,28 @@ def test_graph_gate_reads_project_config(tmp_path, monkeypatch):
         ".arc/verify/data.db",
         "--graph",
         "academic-v1",
+    ]
+
+
+def test_graph_gate_prefers_unified_arc(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "arc_policy.verify.shutil.which",
+        lambda name: "/usr/local/bin/arc" if name == "arc" else None,
+    )
+    calls = []
+
+    def fake_run(root, argv):
+        calls.append(argv)
+        return subprocess.CompletedProcess(argv, 0, json.dumps(graph_proof(root)), "")
+
+    monkeypatch.setattr("arc_policy.verify._run", fake_run)
+    verdict = check_business_graph(
+        tmp_path, {"verification": {"business_graph": {"graph": "academic-v1"}}}
+    )
+    assert verdict["verdict"] == "PASS"
+    assert calls[0] == [
+        "arc", "verify", "gate", "--db", ".arc/verify/data.db",
+        "--graph", "academic-v1",
     ]
 
 
@@ -436,6 +459,7 @@ def test_unknown_proof_scope_is_blocked(tmp_path, monkeypatch):
 def test_policy_fails_when_official_gate_rejects_explore_evidence(
     tmp_path, monkeypatch
 ):
+    monkeypatch.setattr("arc_policy.verify.shutil.which", lambda name: None)
     proof = graph_proof(tmp_path)
     proof["verdict"] = "FAIL"
     proof["evidence_verdict"] = "FAIL"
