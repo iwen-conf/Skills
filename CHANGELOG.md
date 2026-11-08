@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### arc 0.2.x — migration safety, Git replay, and plugin reconciliation
+
+- Implemented the opt-in Turso-backed `.arc/arc.db` resource lifecycle and
+  unified `arc task/file/change/update` commands. The existing `arc-verify`
+  graph ledger can be migrated only offline with backup and gate parity;
+  `arc-policy` receipts remain independently enforced.
+- Strengthened cutover validation: identical empty/invalid gate output, a
+  contradictory exit status, or `PASS` without graph-scoped unchanged-input
+  proof can no longer activate the new database.
+- Fixed Git rename collection so the old file path is invalidated along with
+  the destination, and added tests for nested untracked files.
+- Added `arc sync reconcile` with durable `arc_meta.sync_head`: reconcile
+  committed changes missed by Agent hooks; cursor and change set commit together.
+- `arc-policy` PostToolUse now prefers Git replay, with an older-CLI
+  dirty-worktree fallback only for explicitly unsupported commands.
+- Added regression cases for idempotent replay, CAS/state transitions, migration
+  proof validity, and plugin synchronization. End-to-end execution against
+  the actual target environment still requires an available Go/Turso toolchain.
+
+
 ### arc-policy 0.4.2 — remove verification per Git commit/push
 
 - Removed the default unverified-commit/push receipt gate from PreToolUse policy,
