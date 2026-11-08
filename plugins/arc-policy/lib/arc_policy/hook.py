@@ -11,7 +11,6 @@ from typing import Any
 from arc_policy.classify import (
     classify,
     command_text,
-    git_command,
     looks_like_completion,
     mentions_completion,
     read_only_shell,
@@ -21,7 +20,7 @@ from arc_policy.classify import (
 from arc_policy.detect import detect_languages, recommended_skill
 from arc_policy.fallback import deny as _deny
 from arc_policy.fallback import fallback_output
-from arc_policy.gitutil import dirty_paths, git, tree_fingerprint
+from arc_policy.gitutil import dirty_paths, tree_fingerprint
 from arc_policy.host import (
     call_key,
     edit_targets,
@@ -56,7 +55,6 @@ from arc_policy.store import (
     child_tasks,
     current_receipt,
     delivered_receipt,
-    receipt_covers_commits,
     receipt_matches_tree,
 )
 
@@ -240,42 +238,15 @@ def handle_pre_tool_use(
         has_task=has_task,
         receipt_ok=False,
     )
-    if decision["action"] == "deny" and decision["operation"] in {
-        "commit",
-        "schema_migration",
-    }:
-        targets: dict[Path, set[str]] = {}
+    # Only protected schema migrations require a fresh task receipt.
+    # Normal commit/push operations must never trigger per-commit verification.
+    if decision["action"] == "deny" and decision["operation"] == "schema_migration":
         try:
-            commands = shell_commands(
-                command_text(tool_input(payload)), require_known_cwd=True
-            )
+            shell_commands(command_text(tool_input(payload)), require_known_cwd=True)
         except ValueError as exc:
             return _deny(str(exc))
-        for argv in commands:
-            parsed = git_command(argv)
-            if parsed and parsed[1] and parsed[1][0] in {"commit", "push"}:
-                result = git(directory, *parsed[0], "rev-parse", "--show-toplevel")
-                if result.returncode:
-                    return _deny(
-                        "cannot resolve Git target repository; verification remains pending"
-                    )
-                targets.setdefault(Path(result.stdout.strip()).resolve(), set()).add(
-                    parsed[1][0]
-                )
-            elif (
-                classify(
-                    tool_name="shell",
-                    tool_input={"cmd": shlex.join(argv)},
-                    policy=policy,
-                    has_task=True,
-                    receipt_ok=False,
-                )["operation"]
-                == "schema_migration"
-            ):
-                targets.setdefault(repo_root(directory), set()).add("schema_migration")
-        if decision["operation"] == "schema_migration" or not targets:
-            targets.setdefault(repo_root(directory), set()).add(decision["operation"])
-        if all(_receipt_covers(target, ops) for target, ops in targets.items()):
+        target = repo_root(directory)
+        if receipt_matches_tree(target, current_receipt(target)):
             decision = classify(
                 tool_name=tool_name(payload),
                 tool_input=tool_input(payload),
@@ -292,14 +263,6 @@ def handle_pre_tool_use(
             [] if read_only_shell(command_text(tool_input(payload))) else roots,
         )
     return None
-
-
-def _receipt_covers(root: Path, operations: set[str]) -> bool:
-    """A receipt matching the tree covers anything; a push of HEAD also passes when HEAD
-    commits exactly the receipt's tree. The Git pre-push hook checks the actual refs."""
-    if receipt_matches_tree(root, current_receipt(root)):
-        return True
-    return operations == {"push"} and receipt_covers_commits(root, ["HEAD"])
 
 
 def _authorize_quote(argv: list[str]) -> str | None:
