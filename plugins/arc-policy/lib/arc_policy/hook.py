@@ -358,10 +358,32 @@ def _reconcile_active_arc_db(payload: dict[str, Any]) -> None:
         cli = shutil.which("arc")
         if not cli:
             raise RuntimeError("active arc.db requires arc CLI for PostToolUse reconciliation")
+        # Import only a stable policy task identity. The DB records a
+        # draft binding, not another authoritative task completion status.
+        # Each edit can later be traced back to its owning Arc policy task.
+        current = active_task(root)
+        task_flags: list[str] = []
+        if current is not None:
+            task_id = current.get("id")
+            slug = current.get("slug")
+            skill = current.get("skill")
+            if not all(isinstance(value, str) and value for value in (task_id, slug, skill)):
+                raise RuntimeError("active Arc policy task has no stable identity")
+            imported = subprocess.run(
+                [cli, "task", "ensure", "--id", task_id,
+                 "--title", f"{slug} ({skill})", "--repo", str(root)],
+                cwd=root, capture_output=True, text=True, timeout=20, check=False,
+            )
+            if imported.returncode:
+                raise RuntimeError(
+                    f"arc.db task binding failed (exit {imported.returncode}): "
+                    + imported.stderr[-1200:]
+                )
+            task_flags = ["--task", task_id]
         # Catch up both worktree edits and commits missed while hooks were
         # offline. A legacy CLI can still handle dirty files until upgraded.
         result = subprocess.run(
-            [cli, "sync", "reconcile", "--repo", str(root)],
+            [cli, "sync", "reconcile", "--repo", str(root), *task_flags],
             cwd=root, capture_output=True, text=True, timeout=20, check=False,
         )
         if result.returncode and (
@@ -369,7 +391,7 @@ def _reconcile_active_arc_db(payload: dict[str, Any]) -> None:
             or "proposed arc.db resource interface" in result.stderr
         ):
             result = subprocess.run(
-                [cli, "update", "--changed-only", "--repo", str(root)],
+                [cli, "update", "--changed-only", "--repo", str(root), *task_flags],
                 cwd=root, capture_output=True, text=True, timeout=20, check=False,
             )
         if result.returncode:
