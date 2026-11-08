@@ -120,7 +120,7 @@ func TestMigrationCopiesGraphAndRequiresParity(t *testing.T) {
 	bin:=t.TempDir()
 	sh:=filepath.Join(bin,"arc-verify")
 	if err:=os.WriteFile(sh,[]byte(`#!/bin/sh
-printf '%s\\n' '{"verdict":"BLOCKED"}'
+printf '%s\n' '{"verdict":"BLOCKED"}'
 exit 1
 `),0700);err!=nil{t.Fatal(err)}
 	t.Setenv("PATH",bin+string(os.PathListSeparator)+os.Getenv("PATH"))
