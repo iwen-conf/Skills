@@ -84,6 +84,25 @@ func TestFileHashReconciliationAndSymlinkBoundary(t *testing.T) {
 	}
 }
 
+func TestFileShowAndBoundedEventInspection(t *testing.T) {
+	root,db:=testArcState(t)
+	if err:=os.WriteFile(filepath.Join(root,"example.go"),[]byte("package example\n"),0600);err!=nil{t.Fatal(err)}
+	if err:=executeFile(db,root,"example.go","");err!=nil{t.Fatal(err)}
+	if err:=showFile(db,"example.go");err!=nil{t.Fatal(err)}
+	if err:=showFile(db,".arc/arc.db");err==nil{t.Fatal("internal path was exposed")}
+	if err:=showFile(db,"../escape");err==nil{t.Fatal("path traversal was accepted")}
+	if err:=executeTask(db,"ensure","policyabcd1234","example (arc-code)","",0);err!=nil{t.Fatal(err)}
+	if err:=db.Close();err!=nil{t.Fatal(err)}
+	if err:=eventCommand([]string{"list","--repo",root,"--resource","task","--id","policyabcd1234","--limit","1"});err!=nil{t.Fatal(err)}
+	for _,args:=range [][]string{
+		{"list","--repo",root,"--limit","0"},
+		{"list","--repo",root,"--limit","201"},
+		{"list","--repo",root,"--id","policyabcd1234"},
+	}{
+		if err:=eventCommand(args);err==nil{t.Fatalf("invalid event query accepted: %v",args)}
+	}
+}
+
 func TestGitWorktreeChangeIsIdempotent(t *testing.T) {
 	root,db:=testArcState(t)
 	runGit:=func(args ...string){t.Helper();cmd:=exec.Command("git",append([]string{"-C",root},args...)...);if out,err:=cmd.CombinedOutput();err!=nil{t.Fatalf("git %v: %v %s",args,err,out)}}
