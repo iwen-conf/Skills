@@ -29,18 +29,22 @@ uses the existing official `tursogo` driver; no Turso Cloud connection is requir
 | `arc db status` | JSON status for active `.arc/arc.db` |
 | `arc db init` | Initialize a new Turso ledger when no old graph DB exists |
 | `arc db migrate --confirm-offline` | Offline copy, backup and gate-parity cutover |
-| `arc task create`, `show`, `transition` | Versioned workflow tasks |
-| `arc file update --path <path>` | Record content hash and change event |
+| `arc task create`, `ensure`, `show`, `transition` | Versioned workflow tasks; `ensure` binds an existing policy task ID idempotently |
+| `arc file update`, `show --path <path>` | Record or inspect versioned content hashes and change events |
 | `arc change collect`, `show` | Snapshot a bounded Git change set |
 | `arc update --changed-only` | Idempotent post-edit Git reconciliation |
 | `arc sync reconcile` | Catch up committed changes missed by hooks, with a durable Git cursor |
+| `arc event list` | Bounded, read-only inspection of append-only state events |
 
 ```bash
 arc db status --repo .
 arc db init --repo .                 # only without an existing verifier DB
-arc task create --title "Repair payment" 
+arc task create --title "Repair payment"
+arc task ensure --id POLICY-TASK-ID --title "payment (arc-code)"
 arc task transition --id TASK-ID --to ready --expected-version 1
 arc file update --path internal/payment/service.go
+arc file show --path internal/payment/service.go
+arc event list --resource task --limit 20
 arc update --changed-only
 arc change collect --task TASK-ID
 arc sync reconcile                   # also catches commits missed by PostToolUse
@@ -79,6 +83,9 @@ replays missed Git **commits** using `arc_meta.sync_head`. Index events stay
 `pending` until a future consumer acknowledges them: collecting changes is
 not proof that Zoekt/ctags have been incrementally reindexed.
 
-`arc-policy task` is a separate authorization/receipt mechanism (not the same
-as `arc task`). Current multi-agent scheduling remains owned by `aitask`.
+`arc-policy task` remains the authoritative authorization/receipt workflow.
+When `.arc/arc.json` is active, Plugin PostToolUse now binds its stable task ID
+through idempotent `arc task ensure` and passes `--task` to `arc sync reconcile`.
+This creates a traceable resource identity without promoting a task to `done` or
+inventing verification results. The lifecycle authorities are not yet merged. Current multi-agent scheduling remains owned by `aitask`.
 Unsupported resource commands must not be described as shipped.
