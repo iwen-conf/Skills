@@ -86,8 +86,11 @@ func resourceCommand(kind string, args []string) error {
 		case "task":
 			return executeTask(db, action, *idFlag, *title, *to, *expected)
 		case "file":
-			if action != "update" { return errors.New("arc file supports update only") }
-			return executeFile(db, root, *path, *task)
+			switch action {
+			case "update": return executeFile(db, root, *path, *task)
+			case "show": return showFile(db, *path)
+			default: return fmt.Errorf("unsupported arc file action %q (update|show)",action)
+			}
 		case "change":
 			switch action {
 			case "collect": return collectChanges(db, root, *task, *worktree)
@@ -243,6 +246,22 @@ func executeFile(db *sql.DB,root,path,task string) error {
 	}
 	if err:=tx.Commit();err!=nil{return err}
 	return emitJSON(map[string]any{"path":filepath.ToSlash(filepath.Clean(path)),"sha256":sha,"task":task,"index":"pending"})
+}
+
+// showFile reads the last stored observation without scanning the source tree.
+// A missing file in the worktree does not erase its historical DB record.
+func showFile(db *sql.DB,path string)error{
+	if path==""||filepath.IsAbs(path){return errors.New("file show requires a relative --path")}
+	clean:=filepath.ToSlash(filepath.Clean(path))
+	if clean=="."||clean==".."||strings.HasPrefix(clean,"../")||clean==".arc"||strings.HasPrefix(clean,".arc/"){
+		return errors.New("unsafe file path")
+	}
+	ctx,cancel:=context.WithTimeout(context.Background(),15*time.Second);defer cancel()
+	var sha,changed string
+	var size int64
+	var version int
+	if err:=db.QueryRowContext(ctx,"SELECT sha256,bytes,version,changed FROM arc_files WHERE path=?",clean).Scan(&sha,&size,&version,&changed);err!=nil{return err}
+	return emitJSON(map[string]any{"path":clean,"sha256":sha,"bytes":size,"version":version,"changed_at":changed})
 }
 
 type gitChange struct{ Path, Operation string }
