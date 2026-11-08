@@ -1,7 +1,7 @@
 # Arc Policy Runtime
 
 Arc workflows and their policy runtime, packaged for Claude Code, Grok Build, and Codex CLI.
-Version 0.4.1 keeps one policy engine and one canonical `Arc/` skill source, with generated
+Version 0.4.2 keeps one policy engine and one canonical `Arc/` skill source, with generated
 host manifests, a complete bundled skill tree, and a strict Codex wire adapter.
 
 | Piece | Job |
@@ -12,7 +12,7 @@ host manifests, a complete bundled skill tree, and a strict Codex wire adapter.
 | CLI (`arc-policy`) | Begin a task, verify, and write a receipt bound to the tree |
 | Policy YAML | Decide what is required or denied without editing hook scripts |
 
-Default mode: **the agent still writes code with host tools**. The CLI is the gate for `task begin`, commits, schema migrations, and delivery. Putting every file write behind the CLI is a later, much more expensive mode.
+Default mode: **the agent still writes code with host tools**. The CLI gates `task begin`, controlled schema migrations, and explicit verified delivery—not every commit. Putting every file write behind the CLI is a later, much more expensive mode.
 
 ## Local business-graph gate (opt-in)
 
@@ -42,7 +42,7 @@ The graph check is an additional fail-closed receipt condition; it accepts a v1
 unit/integration/E2E `verification.test_commands` continue to run.
 For a required graph, `verification.fail_closed: false` cannot turn BLOCKED/NOT_RUN into PASS.
 Historical PASS receipts with missing, duplicate or non-PASS mandatory graph checks are refused
-by current-tree, exact-tree push and delivered-task checks. `AUTHORIZED` remains a distinct
+by current-tree and delivered-task checks; regular commits and pushes need no receipt. `AUTHORIZED` remains a distinct
 user waiver, never business verification evidence.
 No graph ID, no local DB, unconfirmed business rules, unexecuted tasks,
 or a failing observed state => no graph PASS. Risks discovered by AI
@@ -274,11 +274,12 @@ metadata; activate only the chosen skill and its relevant references. Optional s
 
 ```bash
 arc-policy task begin --skill arc-code
-# agent writes code, follows the Arc skill
-git -C <repo> add <owned files>        # stage first: the receipt binds the index
+# agent writes code and commits freely during implementation
+git -C <repo> add <owned files>
+git -C <repo> commit -m "incremental change"
+# when ready to assert verified task completion:
 arc-policy task verify
-# receipt matches task + HEAD + index and file contents → Stop unblocks delivery claims
-# git -C <repo> commit is allowed; pushing that exact commit needs no second verify
+# a fresh PASS receipt is required for verified delivery claims, not for commits
 ```
 
 Move between existing Arc phases with an atomic handoff:
@@ -299,13 +300,14 @@ Read-only, plan-only or graph-only work retains its user scope: do not execute p
 to satisfy bookkeeping. Preserve its artifact and use a reasoned incomplete handoff when runtime
 verification is outside the authorized scope; this does not claim business PASS.
 
-When verification cannot pass and the user explicitly confirms committing anyway, the agent
-stages the commit and runs `arc-policy task authorize --quote '<the user's words>'`. The
-`AUTHORIZED` receipt binds the same tree and records the quote; it proves the user's decision,
-not any check. On hosts that send a transcript (Claude Code, Codex), `PreToolUse` refuses a quote
-that is not in one of the user's last 5 typed messages (host-injected text and pasted material
-excluded). The agent then commits and pushes itself; it never hands `git add` or `git commit`
-to the user.
+When verification cannot pass, normal Git commits and pushes can still proceed.
+Do not assert verified delivery. If the user explicitly authorizes **closing or
+delivering** the task without verification, use
+`arc-policy task authorize --quote '<the user's words>'`; its `AUTHORIZED`
+receipt records that decision without claiming that tests passed. On hosts that
+send a transcript (Claude Code, Codex), `PreToolUse` refuses a quote that is
+not in one of the user's last 5 typed messages. This authorization is
+**not** required for routine commits or pushes.
 
 A task is delivered once HEAD has moved past its PASS or AUTHORIZED receipt and the changes that receipt
 verified are committed. A delivered task no longer covers new edits: `PreToolUse` denies source
@@ -327,27 +329,14 @@ parent folder that is not a repository (several repositories side by side) runs 
 `arc-policy --cwd <repo> task begin|verify`; `SessionStart` lists the active tasks of its direct
 child repositories and `Stop` checks them. An edit tool whose input names no path is denied there.
 
-`task begin` also installs the Git-level gate in that repository (`arc-policy install-git-hooks`
-does the same by hand). It probes whether Git really executes config hooks; merely accepting
-`hook.*` config is insufficient. Supporting Git versions use config-based `pre-commit` and
-`pre-push` hooks alongside existing hooks. Older Git uses the default hook directory and
-chains existing hook files, preserving their arguments and pre-push stdin. A custom
-`core.hooksPath` on older Git is preserved and causes an explicit installation error requiring
-config-hook support (Git 2.54+); no active task is created on that error.
-
-Persistent Git commands point to the stable runtime, never the host's version cache.
-If no persistent runtime exists, `task begin` can create its offline snapshot from the already
-running installation. Human-marker detection runs before checking the runtime path.
-When an agent commits or pushes, however Git is invoked
-(`bash -c`, a script, a subprocess), the hook requires a receipt matching the tree. A push also
-passes when every commit it sends (read from the pre-push ref list; `HEAD` when Git sends none)
-is exactly the receipt's tree and descends from the receipt's `HEAD`, so a verified or authorized
-commit is pushed without another `task verify`. Ref deletions still need a matching receipt.
-Humans are not gated: the check applies only when an agent marker is set (`CLAUDECODE`,
-`GROK_AGENT`, `CODEX_THREAD_ID`, `CODEX_CI`, `CURSOR_AGENT`, `PI_CODING_AGENT`, `AI_AGENT`, or
-`ARC_POLICY_AGENT`, which the DSH adapter exports). A command the user types into the host
-(Claude Code `!`) inherits those markers: pushing the agent's receipt-covered commit works there;
-anything else runs from a separate terminal.
+Starting a task now removes any **Arc-owned** legacy `pre-commit` and
+`pre-push` verification gates, without touching another tool's hooks or custom
+`core.hooksPath`. The old `arc-policy install-git-hooks` command is a
+backward-compatible cleanup operation. Updating the persistent plugin runtime
+and running `arc-policy task begin` on a repository removes the old gate.
+If hook cleanup fails, it reports the configuration error rather than
+modifying an unrelated hook. There is no Arc verification hook on Git commit
+or push. Other repository Git hooks continue to run normally.
 
 Project overlay: `.arc/policy.yaml` (merged on top of `policies/default.yaml`).
 
@@ -389,11 +378,11 @@ last assistant message. It needs `jev` on PATH and `TYPESAFE_API_KEY` or `~/.typ
 Only the final assistant message and completion examples are sent, not session history.
 `completion_markers` are examples for the semantic judgment.
 Clear completion claims block the stop and send the agent to `task verify`; negative statements,
-questions and progress notes stay silent, because commits remain gated by the receipt either way.
+questions and progress notes stay silent; Git commits do not trigger this task-completion gate.
 When TypeSafe cannot judge (no `jev`, missing credentials, invalid response, timeout, uncertain
 answer), `completion_markers` check positive occurrences outside fenced code, inline code and
 blockquotes. A negated occurrence is ignored without hiding a separate positive claim. Neither path
-creates a receipt or authorizes commits.
+creates a verification receipt.
 
 `stop.mode: block` uses task state directly; `stop.mode: remind` only reports pending verification.
 Repeated Stop callbacks (`stop_hook_active` / Cursor `loop_count`) report a passive `systemMessage`
@@ -412,7 +401,7 @@ per process), each
 `PreToolUse` records the repositories an edit names or a shell command can reach (its directory,
 `cd` and `-C` targets, absolute paths in the command or script body) with their dirty-file
 digests at first touch, under `~/.cache/arc-policy/sessions/` (`ARC_POLICY_STATE_DIR`; logs older
-than 14 days are pruned). At Stop, uncommitted changes made since then need a matching receipt,
+than 14 days are pruned). At Stop, changes made since then need a matching receipt **only for a verified completion claim**,
 whether an edit tool, the shell or a script wrote them, and even when `task begin` came later; a
 repository without a task is reported as changed without one. Cursor's `workspace_roots` are all
 checked. When several repositories report, the strictest `stop.mode` applies.
@@ -436,7 +425,7 @@ substitutions, `sh -c` / `bash -c` scripts, `eval`, and prefix wrappers (`timeou
 `sudo`, `nice`, `time`, `exec`, `xargs`, `env`, `command`). Heredoc bodies are data, so prose with
 apostrophes no longer trips the parser. Shell input the host truncated (Grok, over 128 KiB) is
 denied because its hidden part cannot be checked. `workdir` and Git `-C` resolve against the
-target repository's receipt. Run verification in a separate tool call before committing.
+target repository's policy. Run verification separately before claiming task completion or performing protected migrations, not before each commit.
 Controlled commands using shell groups, `cd`, `env -C` / `--chdir` or `sudo -D` are refused
 because their directory scope is not interpreted; run them separately with `git -C` instead.
 
@@ -444,7 +433,7 @@ The engine fails closed: if it cannot load or crashes, edits and controlled oper
 with the error and other tool calls proceed with it as a message. The DSH adapter denies a
 tool call when the engine cannot answer at all. Claude Code, Codex and Grok ignore a hook that
 times out; `PreToolUse` therefore allows 30 seconds (it normally takes about 50 ms), and the Git
-hook still gates commits and pushes when a host skipped a call.
+explicit verification still guards completed-task claims; no Git-commit verification hook is installed.
 
 If Stop reports an unverified task, run `arc-policy task status`, then `arc-policy task verify`
 in that task's repository. Fix any `FAIL`, `BLOCKED` or `NOT_RUN` evidence before claiming delivery.
@@ -455,8 +444,8 @@ in that task's repository. Fix any `FAIL`, `BLOCKED` or `NOT_RUN` evidence befor
 |---|---|---|
 | Discover the skill | Plugin + SKILL.md | Guidance only |
 | Enter the workflow | `PreToolUse` denies writes in a repository with no `task begin` there | Host-enforced, bypassable |
-| Controlled ops | Deny `git commit` / `push` without a matching receipt; deny `--no-verify` / commit `-n` | Host-enforced, bypassable |
-| Agent commit / push by any route | Git `pre-commit` / `pre-push` config hooks require a receipt when an agent marker is set | Git-enforced, bypassable with `--no-verify` or by unsetting markers |
+| Controlled ops | Guard protected schema migrations; deny `--no-verify` / commit `-n` to avoid skipping unrelated Git hooks | Host-enforced, bypassable |
+| Agent commit / push by any route | No Arc verification receipt required; retired Arc Git hooks are removed on task begin | No per-commit gate |
 | Delivery | `Stop` checks every repository the session touched, including shell-written changes; `task verify` fail-closed | Host-enforced, bypassable |
 | Merge | CI re-runs tests on a protected branch | Real gate |
 
