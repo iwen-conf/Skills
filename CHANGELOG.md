@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Arc skills — arc.db design protocol (documentation only)
+
+- Named the future repository-local state database `.arc/arc.db` and specified typed CLI resources,
+  guarded state transitions, idempotent change events, incremental plugin/Hook reconciliation,
+  and crash recovery in `Arc/_shared/arc-db.md`.
+- Linked the feature-gated design from `arc:explore`, shared code-intel, task documents and
+  business graph references. Existing `arc-idx` CLI, `arc-policy` receipts, and `arc-verify`
+  `.arc/verify/data.db` remain unchanged; these new commands are not shipped yet.
+
+
 ### Install — drop leftover typesafe-ai extra
 
 - Removed missing-source `typesafe-ai` from `schemas/host_profiles.yaml`, the install catalog, and `route_corpus.yaml` externals. Classifier work routes to `arc-code`. `jev` and the TypeSafe skill package are not installed on this machine.
