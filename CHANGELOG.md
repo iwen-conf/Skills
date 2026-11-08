@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Arc physical-store integration — task attribution and readback
+
+- Connected activated `.arc/arc.db` ChangeSets to the **stable active Arc Policy task ID**:
+  PostToolUse now idempotently imports the task using `arc task ensure`, then
+  calls `arc sync reconcile --task <id>` (or the guarded legacy update path).
+- Added `arc file show` and bounded `arc event list` so file fingerprints
+  and append-only state transitions are inspectable without directly querying
+  Turso tables.
+- Avoided unnecessary subprocess/database synchronization for proven read-only
+  shell commands; opaque or potentially mutating calls still reconcile.
+- Added Go task identity/CLI readback tests, Plugin hook identity/readonly tests,
+  and real-backend smoke steps. Task completion remains independently gated;
+  code index outbox remains pending until an actual indexing acknowledgement.
+
+
 ### Arc CLI 0.2.0 — opt-in Turso arc.db state migration
 
 - Added namespaced `arc_*` resource schema and explicit `arc db init|migrate|status`.
