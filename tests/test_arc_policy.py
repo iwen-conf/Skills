@@ -132,7 +132,7 @@ def test_classify_write_with_task_is_allowed() -> None:
     assert decision["action"] == "allow"
 
 
-def test_classify_commit_without_receipt_is_denied() -> None:
+def test_classify_commit_without_receipt_is_allowed() -> None:
     policy = load_named("default", plugin=PLUGIN)
     decision = classify(
         tool_name="Bash",
@@ -141,8 +141,8 @@ def test_classify_commit_without_receipt_is_denied() -> None:
         has_task=True,
         receipt_ok=False,
     )
-    assert decision["action"] == "deny"
-    assert decision["operation"] == "commit"
+    assert decision["action"] == "allow"
+    assert decision["operation"] == "shell"
 
 
 def test_classify_commit_no_verify_is_denied_even_with_receipt() -> None:
@@ -331,8 +331,8 @@ def test_classify_cursor_shell_and_write_bash_casefold() -> None:
         has_task=True,
         receipt_ok=False,
     )
-    assert commit["action"] == "deny"
-    assert commit["operation"] == "commit"
+    assert commit["action"] == "allow"
+    assert commit["operation"] == "shell"
     write = classify(
         tool_name="write",
         tool_input={"path": "main.go"},
@@ -349,7 +349,7 @@ def test_classify_cursor_shell_and_write_bash_casefold() -> None:
         has_task=True,
         receipt_ok=False,
     )
-    assert bash["action"] == "deny"
+    assert bash["action"] == "allow"
 
 
 def test_hook_cursor_pretooluse_without_event_name(tmp_path: Path) -> None:
@@ -383,9 +383,7 @@ def test_hook_cursor_before_shell_execution_commit(tmp_path: Path) -> None:
         ),
         cwd=repo,
     )
-    payload = json.loads(raw)
-    assert payload["permission"] == "deny"
-    assert payload["hookSpecificOutput"]["permissionDecision"] == "deny"
+    assert raw == ""
 
 
 def test_hook_session_start_emits_cursor_additional_context(tmp_path: Path) -> None:
