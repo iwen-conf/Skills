@@ -1,7 +1,10 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -43,4 +46,30 @@ func TestHelpAndVersion(t *testing.T) {
 		t.Fatal("help/version failed")
 	}
 	if !strings.Contains(usage, "arc verify") { t.Fatal("missing verification route") }
+}
+
+func TestLegacyBackendArgumentAndExitForwarding(t *testing.T) {
+	if runtime.GOOS == "windows" { t.Skip("shell-script backend test is Unix-only") }
+	for _, tc := range []struct{
+		name string
+		binary string
+		args []string
+		expected string
+	}{
+		{"source", "arc-idx", []string{"search", "lang:go Foo", "--format", "json"}, "search\nlang:go Foo\n--format\njson\n"},
+		{"verification", "arc-verify", []string{"verify", "gate", "--graph", "G1"}, "gate\n--graph\nG1\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			capture := filepath.Join(dir, "args.txt")
+			script := "#!/bin/sh\nprintf '%s\\n' \"$@\" > \"$ARC_CAPTURE\"\nexit 17\n"
+			if err := os.WriteFile(filepath.Join(dir, tc.binary), []byte(script), 0700); err != nil { t.Fatal(err) }
+			t.Setenv("PATH", dir)
+			t.Setenv("ARC_CAPTURE", capture)
+			if code := run(tc.args); code != 17 { t.Fatalf("exit code %d, want 17", code) }
+			got, err := os.ReadFile(capture)
+			if err != nil { t.Fatal(err) }
+			if string(got) != tc.expected { t.Fatalf("argv: got %q, want %q", got, tc.expected) }
+		})
+	}
 }
