@@ -176,6 +176,29 @@ func runLegacyVerify(root, dbfile, command string, extra ...string) ([]byte, int
 	return nil, 1, err
 }
 
+// Gate parity is only meaningful for structured verifier output. Identical
+// empty text or an exit-zero stub must not activate the new database.
+func validateGateProof(body []byte, exitCode int, graph string) error {
+	var proof map[string]any
+	if err := json.Unmarshal(body, &proof); err != nil { return fmt.Errorf("graph %q gate did not return JSON evidence: %w", graph, err) }
+	verdict, ok := proof["verdict"].(string)
+	if !ok { return fmt.Errorf("graph %q gate missing verdict", graph) }
+	switch verdict {
+	case "PASS":
+		if exitCode != 0 { return fmt.Errorf("graph %q returned PASS with exit %d",graph,exitCode) }
+		scope, valid := proof["proof_scope"].(string)
+		if !valid || (scope!="planned_rule_tasks" && scope!="complete_business_model_obligations") { return fmt.Errorf("graph %q PASS lacks proof scope",graph) }
+		if proof["inputs_unchanged"]!=true { return fmt.Errorf("graph %q PASS lacks unchanged-input attestation",graph) }
+		context, valid := proof["context"].(map[string]any)
+		if !valid || context["graph"]!=graph { return fmt.Errorf("graph %q PASS has no matching graph context",graph) }
+	case "FAIL","BLOCKED","NOT_RUN","FLAKY":
+		if exitCode==0 {return fmt.Errorf("graph %q non-PASS verdict %q returned exit 0",graph,verdict)}
+	default:
+		return fmt.Errorf("graph %q unsupported verdict %q",graph,verdict)
+	}
+	return nil
+}
+
 // parity checks the original gate verdict and full structured output for every
 // graph. Any missing backend or divergent check aborts activation.
 func verifyParity(root, oldDB, newDB string) (int, error) {
@@ -199,6 +222,8 @@ func verifyParity(root, oldDB, newDB string) (int, error) {
 		if err != nil { return 0, err }
 		b, exitB, err := runLegacyVerify(root, newDB, "gate", "--graph", graph)
 		if err != nil { return 0, err }
+		if err := validateGateProof(a,exitA,graph); err != nil {return 0,fmt.Errorf("legacy gate not trustworthy: %w",err)}
+		if err := validateGateProof(b,exitB,graph); err != nil {return 0,fmt.Errorf("migrated gate not trustworthy: %w",err)}
 		if exitA != exitB || string(a) != string(b) {
 			return 0, fmt.Errorf("gate parity differs for graph %q (legacy exit %d, new exit %d); arc.db NOT activated", graph, exitA, exitB)
 		}
