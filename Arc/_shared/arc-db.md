@@ -64,9 +64,12 @@ arc db status --repo .
 arc db init --repo .                       # new project only; no legacy DB
 arc db migrate --repo . --confirm-offline   # existing legacy verify DB
 arc task create --title "修复支付并发"
+arc task ensure --id POLICY-TASK-ID --title "修复支付并发 (arc-code)"
 arc task show --id TASK-ID
 arc task transition --id TASK-ID --to ready --expected-version 1
 arc file update --path internal/payment/service.go
+arc file show --path internal/payment/service.go
+arc event list --resource task --limit 20
 arc change collect --task TASK-ID
 arc change show --id CHANGE-ID
 arc update --changed-only
@@ -85,8 +88,8 @@ project**. The code-index and verifier binaries remain separate dependencies.
 `arc-policy task verify` remains the completion authorization gate.
 
 **Not yet executable:** `arc task verify`, `arc task ... --to done`,
-`arc change verify/impact`, `arc event list`,
-`arc file show`, and `arc design/contract/schema`. They must not be described
+`arc change verify/impact`, and `arc design/contract/schema`.
+They must not be described
 as shipped or used to claim evidence.
 
 `arc update` collects an idempotent worktree ChangeSet. `arc sync reconcile`
