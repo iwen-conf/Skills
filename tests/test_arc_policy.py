@@ -76,7 +76,7 @@ def test_merge_overlay_replaces_lists() -> None:
 
 def test_default_policy_loads() -> None:
     policy = load_named("default", plugin=PLUGIN)
-    assert policy["mode"] == "free_write_forced_verify"
+    assert policy["mode"] == "free_write_explicit_verify"
     assert policy["workflow"]["require_begin"] is True
 
 
