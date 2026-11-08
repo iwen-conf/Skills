@@ -3,8 +3,11 @@
 Short-lived Go CLI using the **official in-process `tursogo` driver** as its database engine.
 
 The public command is now `arc verify ...` via the [unified Arc entrypoint](../arc/README.md).
-The original `arc-verify` binary remains an installed backend during the migration; the
-existing `.arc/verify/data.db` is not yet merged into `.arc/arc.db`.
+The original `arc-verify` binary remains an installed backend. The public
+`arc` CLI v0.2.0 can explicitly initialize `.arc/arc.db` or migrate the legacy
+`.arc/verify/data.db` with an offline assertion and graph-gate parity. Until
+`.arc/arc.json` activates the new DB, legacy defaults remain unchanged; an
+explicit `--db` still wins.
 It opens `.arc/verify/data.db` inside the tested repository and exits after every command.
 No Python runtime, no Turso Cloud URL/auth token, no daemon and no background processes.
 Turso's `tursodb` is distinct from the cloud-management `turso` CLI.
