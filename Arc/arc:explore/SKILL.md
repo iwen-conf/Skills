@@ -1,6 +1,6 @@
 ---
 name: arc:explore
-version: 2.3.2
+version: 2.3.3
 description: >-
   Read-only code intelligence for a local repository: find where code lives (代码在哪, 搜代码),
   locate definitions, list callers (谁调用), trace a call chain (调用链) or data flow, list
@@ -49,7 +49,7 @@ First matching row wins.
 | Where a file, definition or string lives (代码在哪, 搜代码, 找符号) | locate | [code-intel §3](../_shared/code-intel.md#3-query-ladder-stop-at-the-first-rung-that-answers-the-question) |
 | Module or system structure, entry points, layers (架构地图, 模块梳理) | map | [references/architecture-map.md](references/architecture-map.md) |
 | doctor, index, daemon, stale or suspicious results, index config | index-ops | [code-intel §1](../_shared/code-intel.md#1-preflight-once-per-repository-per-session) |
-| arc.db resource/state design or read-only relationship questions | index-ops | [arc.db (proposed)](../_shared/arc-db.md); inspect existing Git/Arc records until implemented |
+| arc.db resource/state, file or change lookup questions | index-ops | [arc.db](../_shared/arc-db.md); use `arc db status` / `arc task show` / `arc change show` only after activation |
 
 ## Workflow
 
@@ -73,8 +73,8 @@ Graph chain: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-
    - **map**: follow [architecture-map.md](references/architecture-map.md); label layers against
      [go-backend.md](../_shared/conventions/go-backend.md) or [frontend.md](../_shared/conventions/frontend.md).
    - **index-ops**: run supported operations from Index operations below; record doctor JSON
-     before and after. For arc.db questions, read the design reference only; no DB or proposed
-     resource command is supported by the 0.1.0 arc bridge.
+     before and after. For arc.db queries, check capabilities + active DB; only
+     implemented read actions are allowed in this read-only skill.
 5. Open the file at every hit and read the enclosing function or type. Output: the `file:line`
    evidence list.
 6. Resolve dynamic dispatch and generated code per [code-intel §5](../_shared/code-intel.md#5-when-a-query-fails).
