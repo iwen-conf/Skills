@@ -1,0 +1,38 @@
+name: Arc CLI state and verification regression
+
+on:
+  push:
+    paths:
+      - "tools/arc/**"
+      - "tools/arc-verify/**"
+      - ".github/workflows/arc-cli.yml"
+  pull_request:
+    paths:
+      - "tools/arc/**"
+      - "tools/arc-verify/**"
+      - ".github/workflows/arc-cli.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  arc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.5"
+          cache: false
+      - name: Test unified Arc CLI with local Turso state engine
+        run: go -C tools/arc test -count=1 ./...
+      - name: Build local verifier and Arc CLI
+        run: |
+          mkdir -p "$RUNNER_TEMP/arc-bin"
+          go -C tools/arc-verify build -o "$RUNNER_TEMP/arc-bin/arc-verify" .
+          go -C tools/arc build -o "$RUNNER_TEMP/arc-bin/arc" .
+          "$RUNNER_TEMP/arc-bin/arc" capabilities --json
+      - name: Run verifier's regression tests
+        run: go -C tools/arc-verify test -count=1 ./...
