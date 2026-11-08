@@ -29,16 +29,17 @@ Typical sequences: `explore → code → verify` for a change (verify starts fro
 Skip phases with current usable outputs. A closure model gate proves model checks only;
 implementation and release claims still require their own runtime evidence.
 
-## Unified `arc` CLI (compatibility stage)
+## Unified `arc` CLI and opt-in state database
 
 The supported public forms are `arc search`, `arc index`, `arc doctor`
 and `arc verify gate|trace|handoff`; see [tools/arc](../tools/arc/README.md).
 Install all backends together with `bash scripts/install_arc.sh`, then run
-`arc capabilities --json`. Version 0.1.0 delegates to the existing
-`arc-idx` and `arc-verify` executables. Their databases and the
-`arc-policy` completion gate have **not** been merged yet. The eventual
-single ledger `.arc/arc.db` and resource commands are specified in
-[arc-db.md](_shared/arc-db.md) and are explicitly feature gated.
+`arc capabilities --json`. Version 0.2.0 delegates indexing/verification to the existing binaries and
+implements `arc db init|migrate|status`, `arc task`, `arc file`, `arc change`
+and incremental `arc update`. The single `.arc/arc.db` is activated only by
+an explicit init or parity-checked offline migration. `arc-policy` receipts
+remain separate; outbox processing and proof-backed task completion are still
+pending. See [arc-db.md](_shared/arc-db.md).
 
 ## Business-chain graph verification bridge
 
