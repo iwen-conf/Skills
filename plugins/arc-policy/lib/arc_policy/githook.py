@@ -1,10 +1,8 @@
-"""Git-level backstop: agents cannot commit or push without a receipt, however Git is invoked.
+"""Compatibility helpers for removing the retired per-commit Arc receipt gate.
 
-`task begin` probes config-based hooks, which run beside existing hook files. Older Git
-uses chained file hooks in the default directory; a custom core.hooksPath is preserved
-and requires a Git version with config hooks. Humans are not gated: the
-check applies only when a host's agent marker is in the environment. A command the user
-types into the host (Claude Code `!`) inherits that marker and is checked like the agent's.
+Task verification and graph evidence are still available explicitly, but ordinary
+Git commits and pushes must not trigger or require `arc-policy task verify`.
+Only Arc-owned hooks may be uninstalled; preserve other repository hooks.
 """
 
 from __future__ import annotations
@@ -19,13 +17,6 @@ from pathlib import Path
 
 from arc_policy.gitutil import git
 from arc_policy.install import ensure_persistent_cli
-from arc_policy.store import (
-    active_task,
-    current_receipt,
-    receipt_covers_commits,
-    receipt_matches_tree,
-)
-
 # Variables each host exports to the shells its agent runs (observed in host sessions or source).
 AGENT_MARKERS = (
     "ARC_POLICY_AGENT",
@@ -139,67 +130,43 @@ def _file_hook_script(event: str, cli: Path, original: Path) -> str:
     )
 
 
-def install_git_hooks(root: Path, cli: Path | None = None) -> str:
-    supported = config_hooks_supported()
-    if not supported:
-        configured = git(root, "config", "--get", "core.hooksPath")
-        if configured.returncode == 0:
-            raise RuntimeError(
-                "this Git does not execute config hooks and core.hooksPath is already set; "
-                "upgrade to Git with config-hook support (2.54+) before task begin. "
-                "Existing hooks and task state were left unchanged."
-            )
-        # Check every destination before writing either hook.
-        for event in HOOK_EVENTS:
-            path = _file_hook(root, event)
-            if (
-                path.exists()
-                and FILE_HOOK_MARKER not in path.read_text(errors="replace")
-                and path.with_name(path.name + ".arc-policy-original").exists()
-            ):
-                raise RuntimeError(
-                    f"refusing to overwrite existing hook backup: {path}"
-                )
-    cli = cli or ensure_persistent_cli(PLUGIN)
-    if not supported:
-        for event in HOOK_EVENTS:
-            path = _file_hook(root, event)
-            original = path.with_name(path.name + ".arc-policy-original")
-            path.parent.mkdir(parents=True, exist_ok=True)
-            if (
-                path.exists() or path.is_symlink()
-            ) and FILE_HOOK_MARKER not in path.read_text(errors="replace"):
-                path.rename(original)
-            path.write_text(_file_hook_script(event, cli, original), encoding="utf-8")
-            path.chmod(0o755)
+def remove_git_hooks(root: Path) -> str:
+    """Remove only Arc-owned Git commit/push gates, preserving other Git hooks.
+
+    Previous releases installed config hooks (Git 2.54+) or managed file-hook
+    wrappers. Clean both layouts when a task starts or changes phase, so an
+    already configured repository stops demanding a receipt on each commit.
+    """
     for event in HOOK_EVENTS:
         name = f"hook.arc-policy-{event}"
-        # Record the command for diagnostics, but register only one active mechanism.
-        values = [("command", hook_command(event, cli))]
-        if supported:
-            values.append(("event", event))
-        else:
-            git(root, "config", "--local", "--unset-all", f"{name}.event")
-        for key, value in values:
-            result = git(
-                root, "config", "--local", "--replace-all", f"{name}.{key}", value
-            )
-            if result.returncode:
+        for key in ("event", "command"):
+            result = git(root, "config", "--local", "--unset-all", f"{name}.{key}")
+            if result.returncode not in (0, 5):
                 raise RuntimeError(
-                    f"git config {name}.{key} failed: {result.stderr.strip()}"
+                    f"cannot remove old Arc Git gate {name}.{key}: {result.stderr.strip()}"
                 )
-    if supported:
-        # Leave the old working mechanism in place until BOTH replacements exist.
-        # A config-write failure must not silently remove the previous gate.
-        for event in HOOK_EVENTS:
-            path = _file_hook(root, event)
-            if path.is_file() and FILE_HOOK_MARKER in path.read_text(errors="replace"):
-                original = path.with_name(path.name + ".arc-policy-original")
-                if original.exists() or original.is_symlink():
-                    os.replace(original, path)
-                else:
-                    path.unlink()
-    return "config" if supported else "file"
+
+        path = _file_hook(root, event)
+        # Never modify a symlink or another tool's hook, even if it contains
+        # the Arc marker somewhere in its contents.
+        if path.is_symlink() or not path.is_file():
+            continue
+        header = path.read_text(encoding="utf-8", errors="replace").splitlines()[:2]
+        if FILE_HOOK_MARKER not in header:
+            continue
+        original = path.with_name(path.name + ".arc-policy-original")
+        if original.is_file() and not original.is_symlink():
+            os.replace(original, path)
+        elif original.exists() or original.is_symlink():
+            raise RuntimeError(f"unsafe original Git hook backup: {original}")
+        else:
+            path.unlink()
+    return "disabled"
+
+
+def install_git_hooks(root: Path, cli: Path | None = None) -> str:
+    """Compatibility alias: commit/push receipt hooks were retired."""
+    return remove_git_hooks(root)
 
 
 ZERO_SHA = frozenset("0")
@@ -221,27 +188,9 @@ def pushed_revisions(updates: str) -> list[str] | None:
 def refusal(
     root: Path, event: str, env: Mapping[str, str], updates: str = ""
 ) -> str | None:
-    """Why an agent's commit or push must stop, or None.
+    """Legacy hook handler: commit/push no longer requires a verify receipt.
 
-    A push also passes when every pushed commit is exactly the tree the receipt bound,
-    so committing verified or user-authorized work needs no second verification.
+    Explicit task verification, business graph gates and schema migration
+    policy remain in arc_policy.verify and arc_policy.classify.
     """
-    if not is_agent(env) or receipt_matches_tree(root, current_receipt(root)):
-        return None
-    if event == "pre-push":
-        revisions = pushed_revisions(updates) if updates.strip() else ["HEAD"]
-        if revisions and receipt_covers_commits(root, revisions):
-            return None
-    action = "commit" if event == "pre-commit" else "push"
-    task = active_task(root)
-    if task is None:
-        return (
-            f"arc-policy: agent {action} refused in {root}: no Arc task. Run "
-            "`arc-policy task begin --skill <skill>`, then `arc-policy task verify`."
-        )
-    return (
-        f"arc-policy: agent {action} refused in {root}: task {task['slug']} has no receipt "
-        "matching this tree. Stage the commit, then run `arc-policy task verify`; when the "
-        "user explicitly confirmed committing without it, run "
-        "`arc-policy task authorize --quote '<their words>'`."
-    )
+    return None
