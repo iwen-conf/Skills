@@ -12,16 +12,18 @@ host manifests, a complete bundled skill tree, and a strict Codex wire adapter.
 | CLI (`arc-policy`) | Begin a task, verify, and write a receipt bound to the tree |
 | Policy YAML | Decide what is required or denied without editing hook scripts |
 
-Default mode: **the agent still writes code with host tools**. The CLI gates `task begin`, controlled schema migrations, and explicit verified delivery—not every commit. Putting every file write behind the CLI is a later, much more expensive mode.
+Default mode: **the agent still writes code with host tools**. The CLI gates `task begin`, controlled schema migrations and verified delivery—not every commit. After explicit `.arc/arc.db` cutover, PostToolUse also calls `arc update --changed-only` to persist idempotent file changes and outbox events; this does not verify or close tasks. Putting every file write behind the CLI is a later, much more expensive mode.
 
 ## Local business-graph gate (opt-in)
 
 The existing Python `arc-policy` runtime stays intact. Its `task verify` command
 checks the independent **Go** business graph ledger when
 `.arc/verify/config.jsonc` exists or `verification.business_graph` is configured.
-The gate runner now prefers `arc verify gate` when `arc` is installed, falling
-back to the old `arc-verify gate` binary only if `arc` is unavailable. Both use
-the existing graph DB; the planned `.arc/arc.db` cutover is not implemented.
+The gate runner prefers `arc verify gate` when `arc` is installed, falling
+back to the legacy backend only before an active unified-DB cutover. After
+`.arc/arc.json` activation, the default graph DB is `.arc/arc.db`, and `arc`
+is required for locked access. An explicitly pinned policy DB overrides the
+default; neither historical data nor policy receipts are silently rewritten.
 
 The graph ledger lives in the target repository's local
 `.arc/verify/data.db` file, opened by the official in-process `tursogo` Go driver.
