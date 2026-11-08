@@ -53,7 +53,7 @@ Locate evidenced findings; preserve inputs.
 
 ## Workflow
 
-Graph review: [workflow §6](../_shared/workflow.md), `arc-verify handoff --to arc-audit --graph <id>` (read-only); NOT_FOUND/RISK ≠ defect.
+Graph review: [workflow §6](../_shared/workflow.md), `arc verify handoff --to arc-audit --graph <id>` (read-only); NOT_FOUND/RISK ≠ defect.
 
 Document-only API reviews cite sections/lines; without a repository skip git/index steps.
 
@@ -64,7 +64,7 @@ Document-only API reviews cite sections/lines; without a repository skip git/ind
 3. Run the mode:
    - **review**: [diff-review.md](references/diff-review.md) §1–§8. Output: symbol table, impact rows, verdict.
    - **api-design**: [api-design-review.md](references/api-design-review.md): sourced constraints, findings, gaps and cases.
-   - **health**: pick hotspots from `arc-idx stats --format json` and `git log --since=12.months --name-only --format= | sort | uniq -c | sort -rn | head -30`. Screen all 41 [code-rot](../_shared/code-rot.md) items with their Detect queries, marking each `finding`, `clean` or `N/A`; also check architecture boundaries against the conventions, dependency health, tests, state/data risks and release readiness. Output: 41-row screen table.
+   - **health**: pick hotspots from `arc stats --format json` and `git log --since=12.months --name-only --format= | sort | uniq -c | sort -rn | head -30`. Screen all 41 [code-rot](../_shared/code-rot.md) items with their Detect queries, marking each `finding`, `clean` or `N/A`; also check architecture boundaries against the conventions, dependency health, tests, state/data risks and release readiness. Output: 41-row screen table.
    - **appsec**: [appsec.md](references/appsec.md) Phases 0–6. Output: assets, data map, hypotheses, finding cards, manual gaps, coverage rows.
    - **scan**: [scanners.md](references/scanners.md): asset snapshot, `security-scan.py` quick mode, DAST only under the authorization rule, triage of every signal group. Output: `security/` reports and a triage table.
 4. Diagnose every suspected bug or security finding through the evidence-first root-cause repair gate in [execution-truth.md](../../docs/execution-truth.md) §6: observed vs expected, hypothesis, a check that could disprove it, root cause, affected siblings. Mark each analogous path sharing the boundary `checked`, `out of scope` or `unverified`. Output: status per finding.
@@ -86,7 +86,7 @@ Document-only API reviews cite sections/lines; without a repository skip git/ind
   - printing secret values (cite `file:line` and a redacted prefix);
   - `confirmed` status without a disproving check; preferences presented as defects; numeric total scores without a user-supplied template whose every cell cites evidence;
   - posting PR comments.
-- **Fallback**: `arc-idx` unavailable → host search labeled `fallback:<tool>`; scanner missing or failed → that layer's manual checklist in [scanners.md](references/scanners.md), status `manual-gap`; no git repository → review a user-provided patch file.
+- **Fallback**: `arc` unavailable → host search labeled `fallback:<tool>`; scanner missing or failed → that layer's manual checklist in [scanners.md](references/scanners.md), status `manual-gap`; no git repository → review a user-provided patch file.
 
 ## Decision Rules
 
@@ -127,7 +127,7 @@ Document-only API reviews cite sections/lines; without a repository skip git/ind
 | Failure | Action | Budget | Stop |
 |---|---|---|---|
 | Base or head ref missing | try the base fallbacks in diff-review.md §1 | 1 pass | `BLOCKED`; ask for a local ref or a patch file |
-| `arc-idx` unhealthy | one repair per code-intel §1, then fallback search | 1 | continue on fallback, labeled |
+| `arc` unhealthy | one repair per code-intel §1, then fallback search | 1 | continue on fallback, labeled |
 | Query returns nothing | code-intel §5 widening | 5 rungs | `not found`; coverage gap |
 | Scanner error or timeout | read `logs/<tool>.stderr.txt`; rerun with doubled `--timeout` or a narrower path | 1 | manual checklist; `manual-gap` with command and error |
 | Install fails | record command and error | 1 | continue with available tools |
