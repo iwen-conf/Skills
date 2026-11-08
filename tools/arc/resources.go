@@ -120,6 +120,31 @@ func executeTask(db *sql.DB, action, id, title, to string, expected int) error {
 		if err := addEvent(ctx, tx, "task", newTaskID, "task.created", map[string]string{"title": title}); err != nil { return err }
 		if err := tx.Commit(); err != nil { return err }
 		return emitJSON(map[string]any{"id":newTaskID, "status":"draft", "version":1})
+	case "ensure":
+		// Bind the policy runtime's stable task ID to the resource graph.
+		// This is an idempotent import; it MUST NOT promote task status.
+		if id == "" || len(id) > 128 || strings.Trim(id, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-") != "" {
+			return errors.New("task ensure requires a safe --id (1..128 ASCII characters)")
+		}
+		if strings.TrimSpace(title) == "" || len(title) > 500 {
+			return errors.New("task ensure requires --title (1..500 bytes)")
+		}
+		name := strings.TrimSpace(title)
+		tx, err := db.BeginTx(ctx, nil)
+		if err != nil { return err }
+		defer tx.Rollback()
+		var existingTitle, status string
+		var version int
+		err = tx.QueryRowContext(ctx, "SELECT title,status,version FROM arc_tasks WHERE id=?", id).Scan(&existingTitle,&status,&version)
+		if err == nil {
+			if existingTitle != name { return fmt.Errorf("task %s identity collision (title differs)",id) }
+			return emitJSON(map[string]any{"id":id,"status":status,"version":version,"duplicate":true})
+		}
+		if !errors.Is(err,sql.ErrNoRows) { return err }
+		if _,err=tx.ExecContext(ctx,"INSERT INTO arc_tasks(id,title,status,version,created,updated) VALUES(?,?,'draft',1,?,?)",id,name,nowUTC(),nowUTC());err!=nil{return err}
+		if err=addEvent(ctx,tx,"task",id,"task.imported",map[string]string{"title":name,"source":"arc-policy"});err!=nil{return err}
+		if err=tx.Commit();err!=nil{return err}
+		return emitJSON(map[string]any{"id":id,"status":"draft","version":1,"duplicate":false})
 	case "show":
 		if id == "" { return errors.New("task ID required (--id or positional)") }
 		var name, status, updated string
