@@ -206,36 +206,65 @@ func validateGateProof(body []byte, exitCode int, graph string) error {
 	return nil
 }
 
-// parity checks the original gate verdict and full structured output for every
-// graph. Any missing backend or divergent check aborts activation.
-func verifyParity(root, oldDB, newDB string) (int, error) {
-	db, err := openArcDB(oldDB)
-	if err != nil { return 0, err }
+type gateProof struct {
+	Body string
+	Exit int
+}
+
+// Baseline is captured before arc.db files or backups are created so migration
+// cannot silently invalidate existing proof via new unignored worktree files.
+func snapshotGateProofs(root, dbfile string) (map[string]gateProof, error) {
+	db, err := openArcDB(dbfile)
+	if err != nil { return nil, err }
 	rows, err := db.Query("SELECT id FROM graphs ORDER BY id")
-	if err != nil { db.Close(); return 0, fmt.Errorf("legacy graph schema missing: %w", err) }
+	if err != nil { db.Close(); return nil, fmt.Errorf("legacy graph schema missing: %w",err) }
 	var ids []string
 	for rows.Next() {
 		var id string
-		if err := rows.Scan(&id); err != nil { rows.Close(); db.Close(); return 0, err }
-		ids = append(ids, id)
+		if err:=rows.Scan(&id);err!=nil {rows.Close();db.Close();return nil,err}
+		ids=append(ids,id)
 	}
-	err = rows.Err()
+	err=rows.Err()
 	rows.Close()
 	db.Close()
-	if err != nil { return 0, err }
+	if err!=nil{return nil,err}
 	sort.Strings(ids)
-	for _, graph := range ids {
-		a, exitA, err := runLegacyVerify(root, oldDB, "gate", "--graph", graph)
-		if err != nil { return 0, err }
-		b, exitB, err := runLegacyVerify(root, newDB, "gate", "--graph", graph)
-		if err != nil { return 0, err }
-		if err := validateGateProof(a,exitA,graph); err != nil {return 0,fmt.Errorf("legacy gate not trustworthy: %w",err)}
-		if err := validateGateProof(b,exitB,graph); err != nil {return 0,fmt.Errorf("migrated gate not trustworthy: %w",err)}
-		if exitA != exitB || string(a) != string(b) {
-			return 0, fmt.Errorf("gate parity differs for graph %q (legacy exit %d, new exit %d); arc.db NOT activated", graph, exitA, exitB)
+	out:=make(map[string]gateProof,len(ids))
+	for _,graph:=range ids{
+		body,exit,err:=runLegacyVerify(root,dbfile,"gate","--graph",graph)
+		if err!=nil{return nil,err}
+		if err:=validateGateProof(body,exit,graph);err!=nil{return nil,fmt.Errorf("baseline gate: %w",err)}
+		out[graph]=gateProof{Body:string(body),Exit:exit}
+	}
+	return out,nil
+}
+
+// Parity checks the before-migration gate, the current legacy gate and the new
+// ledger gate for every graph. No new worktree bookkeeping is allowed to turn a
+// previously valid PASS into BLOCKED and call that a successful migration.
+func verifyParity(root, oldDB, newDB string, baseline map[string]gateProof) (int, error) {
+	after,err:=snapshotGateProofs(root,oldDB)
+	if err!=nil{return 0,err}
+	if len(after)!=len(baseline){return 0,errors.New("graph set changed during migration")}
+	ids:=make([]string,0,len(baseline))
+	for id:=range baseline{ids=append(ids,id)}
+	sort.Strings(ids)
+	for _,graph:=range ids {
+		prior:=baseline[graph]
+		current,ok:=after[graph]
+		if !ok || current.Exit!=prior.Exit || current.Body!=prior.Body {
+			return 0,fmt.Errorf("legacy graph %q proof changed during migration; arc.db NOT activated",graph)
+		}
+		newBody,newExit,err:=runLegacyVerify(root,newDB,"gate","--graph",graph)
+		if err!=nil{return 0,err}
+		if err:=validateGateProof(newBody,newExit,graph);err!=nil{
+			return 0,fmt.Errorf("migrated gate not trustworthy: %w",err)
+		}
+		if newExit!=prior.Exit || string(newBody)!=prior.Body {
+			return 0,fmt.Errorf("graph %q parity differs (legacy exit %d, new exit %d); arc.db NOT activated",graph,prior.Exit,newExit)
 		}
 	}
-	return len(ids), nil
+	return len(ids),nil
 }
 
 func dbCommand(args []string) error {
@@ -276,12 +305,15 @@ func dbCommand(args []string) error {
 			if _, err := os.Lstat(manifestPath(root)); err == nil { return errors.New("arc manifest already exists; refusing overwrite") } else if !errors.Is(err, os.ErrNotExist) { return err }
 			if err := os.MkdirAll(filepath.Join(root, ".arc"), 0700); err != nil { return err }
 			m := arcManifest{Version: arcSchemaVersion, Active: true, DB: arcDBName}
+			var baseline map[string]gateProof
 			if action == "migrate" {
 				if !*confirm { return errors.New("migration requires --confirm-offline after stopping all legacy verification writers") }
 				source := filepath.Join(root, legacyVerifyDB)
 				if err := checkRegular(source); err != nil { return fmt.Errorf("legacy verification DB: %w", err) }
 				if err := noLiveSidecars(source); err != nil { return err }
 				original, err := shaFile(source); if err != nil { return err }
+				baseline,err=snapshotGateProofs(root,source)
+				if err!=nil{return err}
 				dir := filepath.Join(root, ".arc", "backups")
 				if err := os.MkdirAll(dir, 0700); err != nil { return err }
 				st,e:=os.Lstat(dir)
@@ -325,7 +357,7 @@ func dbCommand(args []string) error {
 				if err := noLiveSidecars(filepath.Join(root, legacyVerifyDB)); err != nil { return err }
 				h, err := shaFile(filepath.Join(root, legacyVerifyDB))
 				if err != nil || h != m.LegacySHA256 { return errors.New("legacy database changed during migration; arc.db NOT activated") }
-				n, err := verifyParity(root, filepath.Join(root, legacyVerifyDB), statePath(root))
+				n, err := verifyParity(root, filepath.Join(root, legacyVerifyDB), statePath(root), baseline)
 				if err != nil { return err }
 				m.ParityGraphs = n
 			}
