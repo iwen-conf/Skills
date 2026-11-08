@@ -108,7 +108,7 @@ func capabilities() map[string]any {
 		"code_index": supported["arc-idx"], "business_verify": supported["arc-verify"],
 		"arc_db_resources": true, "unified_database": active,
 		"arc_db_active": active, "arc_db_schema_version": arcSchemaVersion,
-		"resource_commands": []string{"db", "file update", "task create", "task show", "task transition", "change collect", "change show", "update"},
+		"resource_commands": []string{"db", "file update", "task create", "task show", "task transition", "change collect", "change show", "update", "sync reconcile"},
 		"engines": engines,
 	}
 }
