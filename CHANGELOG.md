@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Arc CLI 0.2.0 — opt-in Turso arc.db state migration
+
+- Added namespaced `arc_*` resource schema and explicit `arc db init|migrate|status`.
+  Migration requires an offline assertion, SHA-256 backup and pre/post graph
+  proof parity before activating `.arc/arc.json`; legacy graph data remains intact.
+- Implemented versioned task transitions (CAS, no unverified `done`), file
+  fingerprints and task-file edges, idempotent Git ChangeSets, transactional
+  events and outbox records, plus bounded `arc update --changed-only`.
+- Integrated active-project PostToolUse reconciliation and cutover-aware
+  `arc-policy` graph gates. Missing shared-DB serialization now blocks
+  verification instead of falling back to unsafe direct legacy DB access.
+- Added Go state/migration regression tests, focused Python hook/gate tests
+  and a dedicated GitHub Actions workflow. Live integrated results remain to
+  be confirmed; index-outbox replay and evidence-backed task completion are
+  not yet implemented.
+
 ### arc 0.2.x — migration safety, Git replay, and plugin reconciliation
 
 - Implemented the opt-in Turso-backed `.arc/arc.db` resource lifecycle and
