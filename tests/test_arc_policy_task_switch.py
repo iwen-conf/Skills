@@ -337,16 +337,13 @@ def test_invalid_history_cannot_drop_previous_phase(tmp_path, operation):
     assert state_bytes(repo) == before
 
 
-def test_cli_switch_keeps_old_phase_when_git_hook_preflight_fails(
-    tmp_path, monkeypatch
-):
+def test_cli_switch_no_longer_requires_installing_commit_hooks(tmp_path, monkeypatch):
     repo = make_repo(tmp_path)
     verified_phase(repo)
-    before = state_bytes(repo)
     git(repo, "config", "core.hooksPath", ".husky")
     monkeypatch.setattr("arc_policy.githook.config_hooks_supported", lambda: False)
-    assert main(["--cwd", str(repo), "task", "switch", "--skill", "arc-verify"]) == 2
-    assert state_bytes(repo) == before
+    assert main(["--cwd", str(repo), "task", "switch", "--skill", "arc-verify"]) == 0
+    assert active_task(repo)["skill"] == "arc-verify"
     assert not (repo / ".husky").exists()
 
 
