@@ -27,8 +27,8 @@ const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"  arc daemon <action> [flags]     Manage code indexer\n" +
 	"  arc verify <action> [flags]     Existing business graph/evidence engine\n" +
 	"  arc db <status|init|migrate>     Explicit local database lifecycle\n" +
-	"  arc task <create|show|transition> [flags]  Versioned task state\n" +
-	"  arc file update --path FILE     Record code file observation\n" +
+	"  arc task <create|ensure|show|transition> [flags]  Versioned task state\n" +
+	"  arc file <update|show> --path FILE  Write or inspect file observation\n" +
 	"  arc change <collect|show>       Collect changed source files\n" +
 	"  arc update --changed-only       Collect Git changes idempotently\n" +
 	"  arc sync reconcile              Replay missed Git commits from cursor\n" +
@@ -109,7 +109,7 @@ func capabilities() map[string]any {
 		"code_index": supported["arc-idx"], "business_verify": supported["arc-verify"],
 		"arc_db_resources": true, "unified_database": active,
 		"arc_db_active": active, "arc_db_schema_version": arcSchemaVersion,
-		"resource_commands": []string{"db", "file update", "task create", "task show", "task transition", "change collect", "change show", "update", "sync reconcile", "event list"},
+		"resource_commands": []string{"db", "file update", "file show", "task create", "task ensure", "task show", "task transition", "change collect", "change show", "update", "sync reconcile", "event list"},
 		"engines": engines,
 	}
 }
