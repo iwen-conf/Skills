@@ -20,9 +20,9 @@ arc daemon status
   is normal). `daemon_pid` present but not alive → `arc daemon restart`.
 - Identity: prefer `~/.local/bin/arc`; `arc version` identifies the public CLI and
   `arc capabilities --json` shows the available `arc-idx`/verification backends.
-  Current `arc` 0.1.0 is a delegation bridge, not a merged database. Without `arc`,
-  use an existing `arc-idx` temporarily as `legacy-cli` and report it; do not
-  claim `arc.db` support. If neither works, stop discovery and report the error.
+  Current `arc` 0.2.0 implements opt-in local state commands; the code-index and
+  graph-verifier binaries remain separate. Without `arc`, use `arc-idx` only as
+  a labelled legacy lookup fallback; no resource writes. Report the limitation.
 - Repository root: the nearest ancestor of the working directory (or of `--repo <dir>`) that holds
   an `.ai-code-index/` directory or a `.git` directory; config is `<root>/.ai-code-index/config.json`,
   else built-in defaults. Check `repo_root` in the doctor output. Use `--repo <dir>` for a child
@@ -31,14 +31,15 @@ arc daemon status
 - A `search` result with `"engine": "rg-fallback"` means no index shards were found: repair as
   above before relying on it; otherwise only §6 allows it.
 
-### Unified CLI and planned state engine
+### Unified CLI and opt-in arc.db state engine
 
-[arc.db resource and state protocol](arc-db.md) defines one eventual local
-`.arc/arc.db` store for resources **and** business verification graphs.
-Current `arc` forwards index queries and `arc verify` to the existing
-engines. `arc capabilities --json` must advertise `arc_db_resources=true`
-and `unified_database=true` before resource writes or DB migration can run.
-Until then, keep Git, task docs, policy receipts and the old graph ledger intact.
+[arc.db resource and state protocol](arc-db.md) defines implemented `db`,
+`task`, `file`, `change`, and incremental `update` operations. Require
+`arc_db_resources=true` before using `arc db init/migrate`. The database must
+also have `unified_database=true` (validated active marker) before resource
+writes. `arc verify` reads the unified DB only after cutover; old graph data
+and independent `arc-policy` receipts must not be overwritten. An index
+update never proves test success or automatic documentation freshness.
 
 ## 2. Commands
 
