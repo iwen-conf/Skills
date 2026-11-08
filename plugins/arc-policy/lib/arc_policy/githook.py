@@ -41,18 +41,9 @@ def is_agent(env: Mapping[str, str]) -> bool:
 
 
 def hook_command(event: str, cli: Path, *, replace_process: bool = True) -> str:
-    # Git appends the hook's own arguments to the command, so the CLI call stays last.
-    quoted = shlex.quote(str(cli))
-    markers = " ".join('"${' + name + '-}"' for name in AGENT_MARKERS)
-    return (
-        f"arc_policy_agent=0; for arc_policy_marker in {markers}; do "
-        "case \"$arc_policy_marker\" in ''|0|[Ff][Aa][Ll][Ss][Ee]) ;; "
-        "*) arc_policy_agent=1 ;; esac; done; "
-        '[ "$arc_policy_agent" = 1 ] || exit 0; '
-        f"[ -x {quoted} ] || {{ echo 'arc-policy: CLI missing at '{quoted}"
-        f"'; run arc-policy install to repair it' >&2; exit 1; }}; "
-        f"{'exec ' if replace_process else ''}{quoted} git-hook {event}"
-    )
+    """Retired: do not install a per-commit/pre-push Arc verifier command."""
+    return ":"  # POSIX shell no-op; preserves user Git hooks.
+
 
 
 @lru_cache(maxsize=1)
