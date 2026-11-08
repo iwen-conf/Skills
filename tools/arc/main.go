@@ -13,9 +13,9 @@ import (
 	"strings"
 )
 
-const version = "0.1.0"
+const version = "0.2.0"
 
-const usage = "arc %s — unified Arc CLI (compatibility bridge)\n\n" +
+const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"Usage:\n" +
 	"  arc index [flags]               Update source index via arc-idx\n" +
 	"  arc search <query> [flags]      Search indexed source\n" +
@@ -26,10 +26,15 @@ const usage = "arc %s — unified Arc CLI (compatibility bridge)\n\n" +
 	"  arc doctor [flags]              Diagnose index health\n" +
 	"  arc daemon <action> [flags]     Manage code indexer\n" +
 	"  arc verify <action> [flags]     Existing business graph/evidence engine\n" +
+	"  arc db <status|init|migrate>     Explicit local database lifecycle\n" +
+	"  arc task <create|show|transition> [flags]  Versioned task state\n" +
+	"  arc file update --path FILE     Record code file observation\n" +
+	"  arc change <collect|show>       Collect changed source files\n" +
+	"  arc update --changed-only       Collect Git changes idempotently\n" +
 	"  arc capabilities --json        Detect supported backends and capabilities\n" +
 	"  arc version                    Print the unified entrypoint version\n\n" +
-	"New arc.db resource commands (file/task/change/update/db/sync) are not yet\n" +
-	"implemented. The bridge preserves current arc-policy and arc-verify stores.\n"
+	"Resource writes require an explicitly initialized/migrated .arc/arc.db.\n" +
+	"Verification completion stays fail-closed; arc task done is not permitted yet.\n"
 
 var indexCommands = map[string]bool{
 	"index": true, "reindex": true, "search": true, "symbol": true,
@@ -37,7 +42,6 @@ var indexCommands = map[string]bool{
 	"stats": true, "doctor": true, "watch": true, "daemon": true,
 }
 var proposedCommands = map[string]bool{
-	"db": true, "file": true, "task": true, "change": true, "update": true,
 	"sync": true, "project": true, "repo": true, "workspace": true,
 	"worktree": true, "module": true, "dependency": true, "requirement": true,
 	"design": true, "contract": true, "schema": true, "decision": true,
@@ -86,6 +90,10 @@ func resolveBackend(name string) (string, error) {
 }
 
 func capabilities() map[string]any {
+	active := false
+	if root, err := repositoryRoot("."); err == nil {
+		if manifest, e := readManifest(root); e == nil && manifest != nil { active = true }
+	}
 	engines := make(map[string]any, 2)
 	supported := make(map[string]bool, 2)
 	for _, tool := range []string{"arc-idx", "arc-verify"} {
@@ -95,9 +103,12 @@ func capabilities() map[string]any {
 	}
 	return map[string]any{
 		"name": "arc", "protocol_version": 1, "version": version,
-		"mode": "compatibility_bridge",
+		"mode": "local_state_and_legacy_backends",
 		"code_index": supported["arc-idx"], "business_verify": supported["arc-verify"],
-		"arc_db_resources": false, "unified_database": false, "engines": engines,
+		"arc_db_resources": true, "unified_database": active,
+		"arc_db_active": active, "arc_db_schema_version": arcSchemaVersion,
+		"resource_commands": []string{"db", "file update", "task create", "task show", "task transition", "change collect", "change show", "update"},
+		"engines": engines,
 	}
 }
 
@@ -107,7 +118,7 @@ func run(args []string) int {
 		return 0
 	}
 	if args[0] == "version" || args[0] == "--version" || args[0] == "-v" {
-		fmt.Printf("arc %s — compatibility bridge (arc-idx + arc-verify)\n", version)
+		fmt.Printf("arc %s — local state + legacy index/verify engines\n", version)
 		return 0
 	}
 	if args[0] == "capabilities" {
@@ -116,6 +127,13 @@ func run(args []string) int {
 			return 2
 		}
 		_ = json.NewEncoder(os.Stdout).Encode(capabilities())
+		return 0
+	}
+	switch args[0] {
+	case "db", "task", "file", "change", "update":
+		var err error
+		if args[0] == "db" { err = dbCommand(args[1:]) } else { err = resourceCommand(args[0], args[1:]) }
+		if err != nil { fmt.Fprintf(os.Stderr, "arc %s: %v\n", args[0], err); return 2 }
 		return 0
 	}
 	selected, err := selectCommand(args)
@@ -128,16 +146,35 @@ func run(args []string) int {
 		fmt.Fprintf(os.Stderr, "arc: backend %s not found alongside arc or on PATH; use scripts/install_arc.sh\n", selected.executable)
 		return 127
 	}
-	cmd := exec.Command(binary, selected.argv...)
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	cmd.Env = os.Environ()
-	if err := cmd.Run(); err != nil {
-		var exited *exec.ExitError
-		if errors.As(err, &exited) { return exited.ExitCode() }
-		fmt.Fprintf(os.Stderr, "arc: backend %s failed: %v\n", selected.executable, err)
-		return 1
+	forward := func() int {
+		cmd := exec.Command(binary, selected.argv...)
+		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+		cmd.Env = os.Environ()
+		if err := cmd.Run(); err != nil {
+			var exited *exec.ExitError
+			if errors.As(err, &exited) { return exited.ExitCode() }
+			fmt.Fprintf(os.Stderr, "arc: backend %s failed: %v\n", selected.executable, err)
+			return 1
+		}
+		return 0
 	}
-	return 0
+	if args[0] == "verify" {
+		root, err := repositoryRoot(".")
+		if err != nil { fmt.Fprintln(os.Stderr, "arc verify:", err); return 2 }
+		m, err := readManifest(root)
+		if err != nil { fmt.Fprintln(os.Stderr, "arc verify:", err); return 2 }
+		if m != nil && !isArcDBArgument(selected.argv) {
+			selected.argv = append(selected.argv[:1], append([]string{"--db",statePath(root)},selected.argv[1:]...)...)
+		}
+		if m != nil {
+			code := 2
+			if err := withArcLock(root,func() error{ code=forward(); return nil }); err != nil {
+				fmt.Fprintln(os.Stderr,"arc verify:",err); return 2
+			}
+			return code
+		}
+	}
+	return forward()
 }
 
 func main() { os.Exit(run(os.Args[1:])) }
