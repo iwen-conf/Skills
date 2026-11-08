@@ -8,7 +8,7 @@
 
 新客户端使用目标平台原生 SDK、UI 与系统能力，不再以跨平台 UI 复用为目标。各平台选型与既有项目维护边界见 [原生平台规则](Arc/_shared/conventions/native-platforms.md)；Web 仍遵循 Web 技术栈。
 
-代码检索默认使用 `arc-idx`（编译型 Go CLI，内嵌 Zoekt，编排 ast-grep 与 Universal Ctags，源码在 `tools/arc-idx/`），协议见 [`Arc/_shared/code-intel.md`](Arc/_shared/code-intel.md)。跨 Claude Code / Codex / Grok 的强制工作流由 [Arc Policy Runtime](plugins/arc-policy/README.md) 提供（Plugin 分发、Skill 指导、Hook 拦截、`arc-policy` CLI 验证）。任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责。飞书项目空间只在用户明确要求、或项目已有 `.lark.json` 时，由 `lark` 的 project-docs 条目维护。
+Arc 公共命令统一为 `arc`（源码在 [`tools/arc/`](tools/arc/)）。目前它把代码检索交给 `arc-idx`（Zoekt、ast-grep、Universal Ctags），把业务图验证交给 `arc-verify`（本地 Turso）；CLI 已统一，数据库尚未合并。目标状态库为 `.arc/arc.db`，方案见 [`Arc/_shared/arc-db.md`](Arc/_shared/arc-db.md)，现有索引和验证协议见 [`Arc/_shared/code-intel.md`](Arc/_shared/code-intel.md)。跨 Claude Code / Codex / Grok 的强制工作流由 [Arc Policy Runtime](plugins/arc-policy/README.md) 提供（Plugin 分发、Skill 指导、Hook 拦截、`arc-policy` CLI 验证）。任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责。飞书项目空间只在用户明确要求、或项目已有 `.lark.json` 时，由 `lark` 的 project-docs 条目维护。
 
 ## 目录
 
@@ -32,7 +32,9 @@ Skills/
 ├── ThreeJS/            # threejs 路由（库源在 Library/threejs）
 ├── Waza/               # check、health、research-write
 ├── Library/            # 本机第三方库源（git-ignored）
-├── tools/arc-idx/
+├── tools/arc/          # 统一 CLI 入口（当前为兼容层）
+├── tools/arc-idx/      # 代码索引后端，迁移期保留
+├── tools/arc-verify/   # 业务图验证后端，迁移期保留
 ├── plugins/arc-policy/   # Policy Runtime: plugin + hooks + arc-policy CLI
 ├── docs/
 ├── schemas/
@@ -84,8 +86,9 @@ Skills/
 ## 校验
 
 ```bash
-arc-idx doctor --format json
-# 仅索引缺失/过期时：arc-idx index --quiet
+arc capabilities --json
+arc doctor --format json
+# 仅索引缺失/过期时：arc index --quiet
 .venv/bin/python scripts/validate_skills.py
 .venv/bin/python -m pytest tests -q
 .venv/bin/python scripts/build_skills_index.py
