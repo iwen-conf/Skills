@@ -15,7 +15,7 @@ This skill is the runtime contract. Domain work still belongs to one Arc skill p
 ## Default mode
 
 The agent writes source with host tools (`Write` / `Edit` / `search_replace` / `apply_patch` / `Shell` / DSH edit tools).
-The CLI is mandatory for workflow start, commits, schema migrations, and delivery.
+The CLI manages workflow start, controlled schema migrations and explicit task completion; ordinary Git commits and pushes do not require a verification receipt.
 
 ## Every coding session
 
@@ -29,15 +29,13 @@ The CLI is mandatory for workflow start, commits, schema migrations, and deliver
    `arc-policy --cwd <repo> task begin …` and `arc-policy --cwd <repo> task verify`.
    A new third-party dependency starts with `arc-vet`; its decision record feeds `arc-code`.
 4. Load that Arc skill and follow it. Do not skip `arc-idx` for repo search.
-5. Before claiming verified code/runtime delivery: run `arc-policy task verify` in its own tool call,
-   within the user's authorized execution scope. For a commit, first
-   stage exactly its files (`git -C <repo> add …`), then verify. The receipt binds the index;
-   staging after verify invalidates it. A delivery request uses a matching receipt or verifies
-   the newly staged tree again.
-6. `git -C <repo> commit` / `git -C <repo> push` only after a receipt that matches the current tree.
-   Never `cd <repo> && git commit`; the hook refuses directory changes before a controlled command.
-   A push needs no second verify when the pushed commit is exactly the receipt's tree.
-7. Once the verified work is committed, the task is delivered and stops covering edits.
+5. Git commits and pushes are allowed during task implementation without running
+   `arc-policy task verify` each time. Keep any unrelated Git hooks enabled; do not
+   use `--no-verify` to skip them.
+6. Before asserting verified completion or handing off a finished task, run
+   `arc-policy task verify` once on the final worktree in the authorized scope.
+   A later code change invalidates that completion evidence, not earlier commits.
+7. Once the verified task is delivered, it stops covering new edits.
    New work starts with another `arc-policy task begin` (no `--force`; the delivered task is archived).
    Run this bookkeeping yourself and retry the edit without asking the user to run or approve
    the command. Keep the user's authorized scope; a custom `--slug` is optional.
@@ -50,14 +48,12 @@ The CLI is mandatory for workflow start, commits, schema migrations, and deliver
   again. Rust compiles only on the remote build host the user's rules name: the command syncs
   the tree there and runs the tests over SSH. Never a no-op such as `true`. Do not hand the
   user a choice between configuring and bypassing.
-- A real `FAIL`, or a `BLOCKED`/`NOT_RUN` that cannot be fixed now: report it in one line and
-  keep the work uncommitted.
-- The user explicitly confirms committing anyway ("直接提交", "不 verify 了", "我明确授权你提交",
-  "不等测试，现在提交并推送"): stage the commit, run
-  `arc-policy task authorize --quote '<their exact words>'`, then `git add`/`commit`/`push`
-  yourself. A plain "提交并推送" is a delivery request, not a waiver: verify first. Never ask
-  the user to run `git add` or `git commit`; they may push the commit themselves.
-- `AUTHORIZED` proves the user's decision, not any check: the delivery report names every
+- A real `FAIL`, or a `BLOCKED`/`NOT_RUN` that cannot be fixed now: report it;
+  commits and pushes remain permitted, but do **not** claim verified task completion.
+- If the user explicitly accepts **delivery without verification**, use
+  `arc-policy task authorize --quote '<their exact words>'` to record that
+  separate delivery decision. Do not solicit this just to commit changes.
+- `AUTHORIZED` proves the user's delivery decision, not test success: report every
   check that did not run.
 
 ## Commands
@@ -122,7 +118,7 @@ Scope comes from the user, not the stack hint or the receipt command. Read-only/
 work must not run a project's test commands merely to close a policy task. Preserve its artifact
 and use an explicit incomplete handoff when runtime verification is outside the authorized scope.
 Candidate-model completion is not a graph-verification receipt. Incomplete handoff does not satisfy
-or disable Stop/Git gates; report the artifact produced and runtime NOT_RUN without claiming verified
+or disable Stop gates; report the artifact produced and runtime NOT_RUN without claiming verified
 code delivery. Existing end/begin commands remain
 available; never erase history or turn a blocked business claim into PASS during bookkeeping.
 
@@ -142,7 +138,7 @@ invent an installation path or recursively activate unrelated skills.
 | Business graph review | Bundled `arch-diagram`: spec + read-only HTML + layout result; Arc verify owns the ledger and verdict |
 | Visual direction | Available `ui-design`: existing `DESIGN.md` / design decisions feed Arc code |
 | Platform implementation | Available `android` / `harmonyos`: platform conventions within the current code scope |
-| Commit, push or PR | Available `check`: delivery uses the current matching receipt and existing user authorization |
+| Commit, push or PR | Available `check`: ordinary Git commits/pushes do not need a verify receipt; claim verified delivery only with task evidence |
 | Project workspace synchronization | Available `lark`: existing project configuration and authorized destination; no implicit external publication |
 
 For a v2 business snapshot:
@@ -170,15 +166,12 @@ it never opens the DB, approves a rule, executes a target or refreshes a busines
 - `SessionStart` initializes session state. Claude/Codex can receive its workflow context;
   Grok displays a user notification and does not inject that context into the model. Load the
   appropriate bundled Arc skill rather than treating a successful hook as loaded instructions.
-- `PreToolUse` denies source edits with no active task or only a delivered task in the repository that owns the edited path, `git commit`/`push` without a matching receipt, `--no-verify`, and schema-migration CLIs. Paths outside every Git work tree are not gated.
+- `PreToolUse` denies source edits with no active task or only a delivered task in the repository owning the edited path, unsafe `--no-verify`, and protected schema-migration CLIs. It does **not** require verification for Git commit/push.
 - A denied edit names the repository and an executable `task begin --skill arc-code` command without placeholders. Run it yourself, then retry the original edit; never route the edit through the shell or a script to get past the denial.
-- `task begin` probes Git's hook execution support before creating a task and installs
-  `pre-commit` / `pre-push` gates through config hooks or a compatible default-directory
-  file hook. Existing hooks are preserved; unsupported custom `core.hooksPath` fails explicitly.
-  An agent's commit or push,
-  by any route, needs a receipt matching the tree; a push also passes when every pushed commit is
-  exactly the receipt's tree. A command the user types into the host (Claude Code `!`) carries the
-  agent marker too, so it passes the same way; pushing other commits needs a separate terminal.
+- `task begin` removes the retired Arc-owned `pre-commit` and `pre-push`
+  verification gates, restoring any previously saved user hooks. It does not
+  install a new Git verification gate. `arc-policy install-git-hooks` is now
+  a cleanup compatibility command, not a gate installer.
 - `Stop` checks every repository the session touched (edit targets, shell `cd` / `-C` targets,
   paths in commands). Explicit edit targets are charged even without `PostToolUse`. Known read-only
   shell calls charge no concurrent source writes; possible writing calls charge changes within their
@@ -187,7 +180,7 @@ it never opens the DB, approves a rule, executes a target or refreshes a busines
 - `Stop` uses TypeSafe (`jev ask`) for completion judgments in `block_on_claim` mode; when it cannot
   judge, `completion_markers` check positive occurrences outside Markdown examples, ignoring negated
   occurrences while retaining separate positive claims. A claim blocks the stop with the verify command; other turns stay
-  silent, and each pending tree state is reported once per session. Commits stay gated either way.
+  silent, and each pending tree state is reported once per session. Commits are not gated.
 - When Stop blocks code/runtime delivery, run the named `task verify` only within authorized scope.
   For read-only/plan-only/graph-only requests that exclude execution, retain the unverified task;
   report the artifact and runtime NOT_RUN instead of running tests to silence the notice. If verify
