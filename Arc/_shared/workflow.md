@@ -132,8 +132,10 @@ A configured `verification.business_graph` also reuses this route. Ordinary loca
 do **not** require a graph. Plan-only/read-only scope remains binding; a graph-only request does not
 authorize business execution. After confirmed rules, continue already authorized testing.
 
-The verification backend exposed by `arc verify` is an ephemeral process. Its persistent ledger is
-the current *target repository*'s `.arc/verify/data.db` (local Turso file).
+The verifier behind `arc verify` is ephemeral. Its project-local ledger defaults
+to `.arc/verify/data.db` until an explicit `arc db init/migrate` activates
+`.arc/arc.db` (graph tables plus namespaced resource tables). Policy task
+receipts stay separate.
 It must not contact Turso Cloud. Remote addresses in `config.jsonc` are
 **authorization-scoped targets under test**, never the ledger database.
 No remote host/service other than those explicitly permitted by the user's
