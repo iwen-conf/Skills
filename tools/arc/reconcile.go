@@ -9,7 +9,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
@@ -118,4 +117,3 @@ func dbTransaction(ctx context.Context,db *sql.DB,fn func(*sql.Tx)error)error{
 	return tx.Commit()
 }
 
-var _=os.ErrNotExist
