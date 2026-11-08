@@ -534,13 +534,13 @@ def _verify_task(
 
 
 def authorize_task(root: Path, quote: str) -> dict[str, Any]:
-    """Bind the user's explicit go-ahead to commit and push this tree without verification.
+    """Bind the user's explicit go-ahead to deliver a task without verification.
 
     The receipt records the user's words; it is not evidence that any check passed.
     """
     quote = " ".join(quote.split())
     if not quote:
-        raise ValueError("--quote must hold the user's own words confirming the commit")
+        raise ValueError("--quote must hold the user's own words approving unverified task delivery")
     with task_lock(root):
         task = active_task(root)
         if not task:
