@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 )
 
@@ -127,7 +126,7 @@ exit 1
 	t.Setenv("PATH",bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	if err:=dbCommand([]string{"migrate","--repo",root,"--confirm-offline"});err!=nil{t.Fatal(err)}
 	m,err:=readManifest(root);if err!=nil{t.Fatal(err)}
-	if m==nil || m.ParityGraphs!=1 || !strings.HasPrefix(m.LegacySHA256,""){t.Fatal("migration was not activated after gate parity")}
+	if m==nil || m.ParityGraphs!=1 || len(m.LegacySHA256)!=64{t.Fatal("migration was not activated after gate parity")}
 	if _,err:=os.Stat(filepath.Join(root,".arc","backups","verify-"+m.LegacySHA256[:16]+".db"));err!=nil{t.Fatal(err)}
 	if err:=dbCommand([]string{"migrate","--repo",root,"--confirm-offline"});err==nil{t.Fatal("second migration was accepted")}
 }
