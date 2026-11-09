@@ -78,12 +78,20 @@ func resourceCommand(kind string, args []string) error {
 	}
 	root, err := repositoryRoot(*repoArg)
 	if err != nil { return err }
+	var completion *verifiedTaskProof
+	if kind == "task" && (action == "complete" || (action == "transition" && *to == "done")) {
+		if *idFlag == "" || *expected < 1 { return errors.New("completion requires --id and --expected-version") }
+		proof, err := loadCompletionProof(root, *idFlag)
+		if err != nil { return err }
+		completion = &proof
+	}
 	return withArcLock(root, func() error {
 		db, err := openActiveArcDB(root)
 		if err != nil { return err }
 		defer db.Close()
 		switch kind {
 		case "task":
+			if completion != nil { return commitTaskCompletion(db,root,*idFlag,*expected,*completion) }
 			return executeTask(db, action, *idFlag, *title, *to, *expected)
 		case "file":
 			switch action {
@@ -183,7 +191,7 @@ func executeTask(db *sql.DB, action, id, title, to string, expected int) error {
 		if err := tx.Commit();err!=nil{return err}
 		return emitJSON(map[string]any{"id":id,"status":to,"version":version+1})
 	default:
-		return fmt.Errorf("unsupported task action %q (create|show|transition)",action)
+		return fmt.Errorf("unsupported task action %q (create|ensure|show|transition|complete)",action)
 	}
 }
 
