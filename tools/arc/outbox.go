@@ -52,7 +52,7 @@ func isGeneratedIndexFile(path string) bool {
 
 func pendingIndexBatch(db *sql.DB) (outboxBatch, error) {
 	var batch outboxBatch
-	err := db.QueryRow("SELECT COALESCE(MAX(rowid),0), COUNT(*) FROM arc_outbox WHERE status='pending'").
+	err := db.QueryRow("SELECT COALESCE(MAX(o.rowid),0), COUNT(*) FROM arc_outbox o JOIN arc_events e ON e.id=o.event_id WHERE o.status='pending' AND e.aggregate IN ('file','change')").
 		Scan(&batch.Watermark, &batch.Count)
 	return batch, err
 }
@@ -132,11 +132,11 @@ func markIndexBatch(root string, batch outboxBatch, indexed bool, reason string)
 			var result sql.Result
 			if indexed {
 				result, err = tx.ExecContext(ctx,
-					"UPDATE arc_outbox SET status='delivered',attempts=attempts+1 WHERE status='pending' AND rowid<=?",
+					"UPDATE arc_outbox SET status='delivered',attempts=attempts+1 WHERE status='pending' AND rowid<=? AND event_id IN (SELECT id FROM arc_events WHERE aggregate IN ('file','change'))",
 					batch.Watermark)
 			} else {
 				result, err = tx.ExecContext(ctx,
-					"UPDATE arc_outbox SET attempts=attempts+1 WHERE status='pending' AND rowid<=?",
+					"UPDATE arc_outbox SET attempts=attempts+1 WHERE status='pending' AND rowid<=? AND event_id IN (SELECT id FROM arc_events WHERE aggregate IN ('file','change'))",
 					batch.Watermark)
 			}
 			if err != nil {
@@ -242,7 +242,7 @@ func flushIndexOutboxWith(root string, build func(context.Context,string) error)
 		defer cancel()
 		return dbTransaction(ctx, db, func(tx *sql.Tx) error {
 			result, err := tx.ExecContext(ctx,
-				"UPDATE arc_outbox SET status='delivered',attempts=attempts+1 WHERE status='pending' AND rowid<=?",
+				"UPDATE arc_outbox SET status='delivered',attempts=attempts+1 WHERE status='pending' AND rowid<=? AND event_id IN (SELECT id FROM arc_events WHERE aggregate IN ('file','change'))",
 				batch.Watermark)
 			if err != nil { return err }
 			processed, err = result.RowsAffected()
