@@ -129,9 +129,24 @@ def tree_fingerprint(root: Path) -> dict[str, object]:
     graph_policy = ((overlay or {}).get("verification") or {}).get("business_graph")
     graph_enabled = graph_config.is_file() or graph_policy is not None
     if graph_enabled:
+        manifest = root / ".arc/arc.json"
+        active_db = False
+        if manifest.exists():
+            if manifest.is_symlink() or not manifest.is_file():
+                raise RuntimeError("unsafe arc.db activation manifest")
+            state = json.loads(manifest.read_text(encoding="utf-8"))
+            if not isinstance(state, dict) or (
+                state.get("schema_version") != 1
+                or state.get("active") is not True
+                or state.get("db") != ".arc/arc.db"
+            ):
+                raise RuntimeError("invalid arc.db activation manifest")
+            active_db = True
+
+        default_db = ".arc/arc.db" if active_db else ".arc/verify/data.db"
         location = (
-            graph_policy.get("db", ".arc/verify/data.db")
-            if isinstance(graph_policy, dict) else ".arc/verify/data.db"
+            graph_policy.get("db", default_db)
+            if isinstance(graph_policy, dict) else default_db
         )
         if not isinstance(location, str) or not location:
             raise RuntimeError("invalid verification.business_graph.db path")
@@ -139,11 +154,19 @@ def tree_fingerprint(root: Path) -> dict[str, object]:
         if not path.is_relative_to(root):
             raise RuntimeError("verification.business_graph.db escapes the repository")
         rel_db = path.relative_to(root).as_posix()
-        for rel in (
-            ".arc/verify/config.jsonc",
-            rel_db, rel_db + "-wal", rel_db + "-shm",
-        ):
-            content[rel] = _file_digest(root / rel)
+        content[".arc/verify/config.jsonc"] = _file_digest(graph_config)
+        if active_db and rel_db == ".arc/arc.db":
+            # The shared DB holds task state, code events and Outbox acks.
+            # Hashing its raw bytes would invalidate PASS merely from a task
+            # completion write. Business graph checks are re-executed with
+            # independent proof by receipt_matches_tree; preserve the
+            # activation and graph configuration as fingerprint inputs.
+            content[".arc/arc.json"] = _file_digest(manifest)
+        else:
+            # Legacy/explicit external graph ledgers still bind their exact
+            # raw DB and WAL bytes, as before the consolidated cutover.
+            for rel in (rel_db, rel_db + "-wal", rel_db + "-shm"):
+                content[rel] = _file_digest(root / rel)
 
     digest = hashlib.sha256(
         json.dumps([index, content], sort_keys=True).encode()
