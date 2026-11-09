@@ -76,7 +76,12 @@ arc-policy task end [--incomplete]
 arc-policy install-git-hooks
 ```
 
-Receipts live in `.arc/policy/` and bind to the task instance, `git HEAD`, index and file contents.
+Before Policy cutover, receipts live in `.arc/policy/`; after explicit
+`arc policy state migrate --confirm-offline`, the active task, history and
+immutable receipts live only in `.arc/arc.db` via `arc policy state get/put`.
+Upgrade the Arc CLI and Policy runtime before cutover. A missing backend
+fails closed, never falling back to old JSON. Receipts bind task identity,
+`git HEAD`, index and source contents.
 A later edit or policy change invalidates the receipt. Re-run `task verify`; a failed attempt
 revokes any previous PASS. Verification and task begin/end share a repository lock; concurrent
 operations report `locked` and must be retried after the running operation finishes.
