@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"os"
 	"path/filepath"
 	"reflect"
 	"time"
@@ -82,13 +83,50 @@ func requirePolicyProof(taskID string, status policyTaskStatus) (verifiedTaskPro
 		!reflect.DeepEqual(status.Tree.Dirty, receipt.Dirty) {
 		return verifiedTaskProof{}, errors.New("policy receipt fingerprint differs from current tree reported by Arc Policy")
 	}
-	sum := sha256.Sum256(status.Task.Receipt)
+	sum, err := canonicalPolicyReceiptHash(status.Task.Receipt)
+	if err != nil { return verifiedTaskProof{}, err }
 	return verifiedTaskProof{
-		TaskID: taskID, ReceiptSHA256: hex.EncodeToString(sum[:]),
+		TaskID: taskID, ReceiptSHA256: sum,
 		ReceiptHead: receipt.Head, ReceiptDigest: receipt.Digest,
 		ReceiptTree: receipt.Tree, VerifiedAt: receipt.CreatedAt,
 		Checks: receipt.Checks,
 	}, nil
+}
+
+// JSON canonicalization is required because Arc Policy writes state.json
+// separately from the CLI's formatted JSON status output.
+func canonicalPolicyReceiptHash(raw []byte) (string, error) {
+	var data any
+	if err := json.Unmarshal(raw, &data); err != nil { return "", err }
+	if data == nil { return "", errors.New("empty policy receipt") }
+	canonical, err := json.Marshal(data)
+	if err != nil { return "", err }
+	sum := sha256.Sum256(canonical)
+	return hex.EncodeToString(sum[:]), nil
+}
+
+// Caller MUST hold the policy task.lock before checking this file and until
+// the arc.db transaction completes. A revoked/replaced receipt never
+// authorizes a new Done state on the same source tree.
+func validateLivePolicyReceipt(root string, proof verifiedTaskProof) error {
+	path := filepath.Join(root, ".arc", "policy", "state.json")
+	st, err := os.Lstat(path)
+	if err != nil { return fmt.Errorf("policy state unavailable: %w", err) }
+	if !st.Mode().IsRegular() { return errors.New("unsafe policy task state file") }
+	raw, err := os.ReadFile(path)
+	if err != nil { return err }
+	var state struct {
+		Active struct {
+			ID string `json:"id"`
+			Receipt json.RawMessage `json:"receipt"`
+		} `json:"active"`
+	}
+	if err := json.Unmarshal(raw, &state); err != nil { return fmt.Errorf("invalid current policy state: %w",err) }
+	if state.Active.ID != proof.TaskID { return errors.New("policy task changed during completion") }
+	hash, err := canonicalPolicyReceiptHash(state.Active.Receipt)
+	if err != nil { return fmt.Errorf("policy receipt revoked: %w",err) }
+	if hash != proof.ReceiptSHA256 { return errors.New("policy receipt changed during completion") }
+	return nil
 }
 
 func policyTaskStatusFromCLI(ctx context.Context, root string) (policyTaskStatus, error) {
