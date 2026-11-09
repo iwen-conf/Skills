@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -91,11 +90,7 @@ func TestPolicyStoreDoesNotInitializeImplicitly(t *testing.T){
 	root,db:=testArcState(t);defer db.Close()
 	doc,err:=loadPolicyDocument(db);if err!=nil{t.Fatal(err)}
 	if doc.Mode!="legacy" {t.Fatal("Policy unexpectedly migrated without an explicit command")}
-	var count int
-	err=db.QueryRow("SELECT COUNT(*) FROM arc_policy_state").Scan(&count)
-	if !errorsIsNoRowsOrMissingTable(err){t.Fatal("state table unexpectedly created")}
-}
-
-func errorsIsNoRowsOrMissingTable(err error)bool{
-	return err!=nil && (err==sql.ErrNoRows || len(err.Error())>0)
+	var tableCount int
+	if err:=db.QueryRow("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='arc_policy_state'").Scan(&tableCount);err!=nil{t.Fatal(err)}
+	if tableCount!=0{t.Fatal("policy table was created without an explicit migration")}
 }
