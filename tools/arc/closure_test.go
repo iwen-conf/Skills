@@ -163,6 +163,47 @@ func TestTaskProofRejectsAuthorizationAndStaleness(t *testing.T) {
 	}
 }
 
+func TestPolicyReceiptRevocationBlocksCompletion(t *testing.T) {
+	root:=t.TempDir()
+	dir:=filepath.Join(root,".arc","policy")
+	if err:=os.MkdirAll(dir,0700);err!=nil{t.Fatal(err)}
+	const id="policy-lock-test"
+	status:=testPolicyReceipt(id,"PASS")
+	proof,err:=requirePolicyProof(id,status)
+	if err!=nil{t.Fatal(err)}
+	path:=filepath.Join(dir,"state.json")
+	write:=func(task string,receipt json.RawMessage){
+		t.Helper()
+		body,err:=json.Marshal(map[string]any{"active":map[string]any{"id":task,"receipt":receipt}})
+		if err!=nil{t.Fatal(err)}
+		if err:=os.WriteFile(path,body,0600);err!=nil{t.Fatal(err)}
+	}
+	write(id,status.Task.Receipt)
+	if err:=validateLivePolicyReceipt(root,proof);err!=nil{t.Fatal(err)}
+	write(id,json.RawMessage("null"))
+	if err:=validateLivePolicyReceipt(root,proof);err==nil{t.Fatal("revoked PASS accepted")}
+	write("other-task",status.Task.Receipt)
+	if err:=validateLivePolicyReceipt(root,proof);err==nil{t.Fatal("changed task identity accepted")}
+	changed:=testPolicyReceipt(id,"PASS")
+	var receipt map[string]any
+	if err:=json.Unmarshal(changed.Task.Receipt,&receipt);err!=nil{t.Fatal(err)}
+	receipt["created_at"]="2026-11-09T01:00:00Z"
+	changed.Task.Receipt,err=json.Marshal(receipt);if err!=nil{t.Fatal(err)}
+	write(id,changed.Task.Receipt)
+	if err:=validateLivePolicyReceipt(root,proof);err==nil{t.Fatal("replaced PASS accepted")}
+}
+
+func TestPolicyCompletionLockExcludesConcurrentTaskOperation(t *testing.T) {
+	if runtime.GOOS=="windows"{t.Skip("Windows policy lock is fail-closed until compatible adapter")}
+	root:=t.TempDir()
+	if err:=os.MkdirAll(filepath.Join(root,".arc","policy"),0700);err!=nil{t.Fatal(err)}
+	err:=withPolicyTaskLock(root,func()error{
+		return withPolicyTaskLock(root,func()error{return nil})
+	})
+	if err==nil{t.Fatal("concurrent policy task lock accepted")}
+	if err:=withPolicyTaskLock(root,func()error{return nil});err!=nil{t.Fatal(err)}
+}
+
 func TestTaskCompletionCLIRequiresPolicyStatus(t *testing.T) {
 	if runtime.GOOS=="windows" {t.Skip("scripted policy CLI is POSIX-only")}
 	root,db:=testArcState(t)
