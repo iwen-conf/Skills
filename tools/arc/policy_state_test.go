@@ -44,8 +44,12 @@ func TestPolicyMigrationStoresActiveHistoryAndReceipts(t *testing.T){
 	var count int
 	if err:=db.QueryRow("SELECT COUNT(*) FROM arc_policy_receipts WHERE task_id=?",taskID).Scan(&count);err!=nil{t.Fatal(err)}
 	if count!=1{t.Fatalf("receipt import duplicated/missing: %d",count)}
-	if err:=policyStateCommand([]string{"migrate","--repo",root,"--confirm-offline"});err==nil{t.Fatal("already-migrated state silently overwritten")}
-	if err:=os.WriteFile(filepath.Join(root,".arc","policy","state.json"),[]byte("{}"),0600);err!=nil{t.Fatal(err)}
+	if err:=policyStateCommand([]string{"migrate","--repo",root,"--confirm-offline"});err!=nil{t.Fatal("idempotent migration finalization failed:",err)}
+	legacyGuard:=filepath.Join(root,".arc","policy","state.json")
+	st,err:=os.Lstat(legacyGuard);if err!=nil{t.Fatal(err)}
+	if !st.IsDir(){t.Fatal("legacy state file was not replaced by a write-blocking tombstone")}
+	if err:=os.WriteFile(legacyGuard,[]byte("{}"),0600);err==nil{t.Fatal("legacy state path remained writable after cutover")}
+	if _,err:=os.Stat(filepath.Join(root,".arc","backups","policy-receipts-"));err==nil{t.Fatal("unexpected receipt archive name")}
 	after,err:=loadPolicyDocument(db);if err!=nil{t.Fatal(err)}
 	if string(after.State)!=string(doc.State){t.Fatal("DB state followed legacy JSON after cutover")}
 	// Backup retained and byte-for-byte equal to original legacy source.
@@ -53,6 +57,9 @@ func TestPolicyMigrationStoresActiveHistoryAndReceipts(t *testing.T){
 	if len(entries)!=1{t.Fatalf("expected one policy JSON backup, got %d",len(entries))}
 	backup,err:=os.ReadFile(entries[0]);if err!=nil{t.Fatal(err)}
 	if string(backup)!=string(raw){t.Fatal("migration backup differs from original")}
+	receiptArchives,err:=filepath.Glob(filepath.Join(root,".arc","backups","policy-receipts-*"));if err!=nil{t.Fatal(err)}
+	if len(receiptArchives)!=1{t.Fatalf("expected legacy receipts archive, got %d",len(receiptArchives))}
+	if _,err:=os.Stat(filepath.Join(receiptArchives[0],"payment-fix.json"));err!=nil{t.Fatal(err)}
 }
 
 func TestPolicyDBStateCASAndReceiptRejection(t *testing.T){
