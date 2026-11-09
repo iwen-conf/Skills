@@ -42,6 +42,14 @@ type outboxBatch struct {
 	Count     int
 }
 
+func isGeneratedIndexFile(path string) bool {
+	switch filepath.ToSlash(path) {
+	case ".ai-code-index/tags.json", ".ai-code-index/daemon.pid", ".ai-code-index/daemon.log":
+		return true
+	}
+	return false
+}
+
 func pendingIndexBatch(db *sql.DB) (outboxBatch, error) {
 	var batch outboxBatch
 	err := db.QueryRow("SELECT COALESCE(MAX(rowid),0), COUNT(*) FROM arc_outbox WHERE status='pending'").
@@ -63,6 +71,7 @@ func sourceSnapshot(root string) (string, error) {
 	h := sha256.New()
 	_, _ = fmt.Fprintf(h, "head=%s\n", head)
 	for _, item := range changed {
+		if isGeneratedIndexFile(item.Path) { continue }
 		sha, size, op, err := observedFile(root, item.Path)
 		if err != nil {
 			return "", err
@@ -172,7 +181,17 @@ func flushIndexOutboxWith(root string, build func(context.Context,string) error)
 		}
 		defer db.Close()
 		batch, err = pendingIndexBatch(db)
-		return err
+		if err != nil { return err }
+		if batch.Count == 0 {
+			var success string
+			err = db.QueryRow("SELECT value FROM arc_meta WHERE key='index_last_success'").Scan(&success)
+			if err != nil && !errors.Is(err,sql.ErrNoRows) { return err }
+			if success != "" { return nil }
+			// No outbox events exist, but an initial source index was never
+			// confirmed. Rebuild once so a later task completion has proof.
+			batch.Count = -1
+		}
+		return nil
 	})
 	if err != nil {
 		return err
@@ -230,6 +249,10 @@ func flushIndexOutboxWith(root string, build func(context.Context,string) error)
 			if err != nil { return err }
 			if _, err = tx.ExecContext(ctx,
 				"INSERT OR REPLACE INTO arc_meta(key,value) VALUES('index_last_success',?)", nowUTC()); err != nil {
+				return err
+			}
+			if _, err = tx.ExecContext(ctx,
+				"INSERT OR REPLACE INTO arc_meta(key,value) VALUES('index_last_snapshot',?)", before); err != nil {
 				return err
 			}
 			_, err = tx.ExecContext(ctx,
