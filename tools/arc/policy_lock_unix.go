@@ -21,6 +21,11 @@ func withPolicyTaskLock(root string, fn func() error) error {
 		return errors.New("unsafe policy task lock directory")
 	}
 	path := filepath.Join(dir, "task.lock")
+	// Fail closed if an existing lock path is not an ordinary file. This
+	// avoids following a symlink into a file outside the current project.
+	if existing, statErr := os.Lstat(path); statErr == nil {
+		if !existing.Mode().IsRegular() { return errors.New("unsafe Arc Policy task.lock path") }
+	} else if !errors.Is(statErr, os.ErrNotExist) { return statErr }
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil { return err }
 	defer f.Close()
