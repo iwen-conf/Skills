@@ -30,6 +30,12 @@ python3 -c 'import json; assert json.load(open("file-show.json"))["version"]==1'
 python3 -c 'import json; assert json.load(open("policy-duplicate.json"))["duplicate"] is True'
 "$bin_dir/arc" update --changed-only --task policy-smoke-01 > update.json
 python3 -c 'import json; assert json.load(open("update.json"))["changed_files"]>0'
+# This executes the real Zoekt/ctags indexer. Capture results under .arc,
+# which is excluded from source-index reconciliation.
+"$bin_dir/arc" index flush --repo . > .arc/index-flush.json
+python3 -c 'import json; d=json.load(open(".arc/index-flush.json")); assert d["index"]=="healthy" and d["indexed_events"]>0'
+"$bin_dir/arc" db status > .arc/index-status.json
+python3 -c 'import json; assert json.load(open(".arc/index-status.json"))["pending_events"]==0'
 "$bin_dir/arc" event list --resource task --id policy-smoke-01 --limit 10 > events.json
 python3 -c 'import json; a=json.load(open("events.json")); assert a["count"]==1 and a["events"][0]["kind"]=="task.imported"'
 "$bin_dir/arc" db status > status.json
