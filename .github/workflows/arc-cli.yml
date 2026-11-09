@@ -10,6 +10,7 @@ on:
       - "plugins/arc-policy/lib/arc_policy/verify.py"
       - "tests/test_arc_policy_arc_db.py"
       - "tests/test_arc_policy_business_graph.py"
+      - "tests/test_arc_policy_graph_receipt.py"
   pull_request:
     paths:
       - "tools/arc/**"
@@ -19,6 +20,7 @@ on:
       - "plugins/arc-policy/lib/arc_policy/verify.py"
       - "tests/test_arc_policy_arc_db.py"
       - "tests/test_arc_policy_business_graph.py"
+      - "tests/test_arc_policy_graph_receipt.py"
   workflow_dispatch:
 
 permissions:
@@ -68,4 +70,4 @@ jobs:
       - name: Test post-edit reconciliation and graph cutover
         env:
           PYTHONPATH: plugins/arc-policy/lib:src
-        run: python -m pytest -q tests/test_arc_policy_arc_db.py tests/test_arc_policy_business_graph.py
+        run: python -m pytest -q tests/test_arc_policy_arc_db.py tests/test_arc_policy_business_graph.py tests/test_arc_policy_graph_receipt.py
