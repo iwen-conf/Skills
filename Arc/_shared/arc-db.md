@@ -1,13 +1,13 @@
 # arc.db — repository-local resource, state and change protocol
 
-> **Implementation status (0.2.0).** `arc` routes code intelligence to the
+> **Implementation status (0.3.0).** `arc` routes code intelligence to the
 > existing `arc-idx` engine, verification to `arc-verify`, and implements
 > versioned `arc.db` operations for `db`, `task`, `file`, `change` and
 > `update`. One physical project-local Turso DB is created with `arc db init`,
 > or the existing graph ledger is copied with `arc db migrate --confirm-offline`
 > only after explicit offline confirmation, backup and exact gate parity.
-> This is **not** yet one compiled engine, and missing resources/verification
-> finalization/index outbox consumers remain unimplemented. Check
+> This is **not** yet one compiled engine, and native per-file index updates, complete policy-state migration and
+> some advanced resources remain unimplemented. Check
 > `arc capabilities --json`; do not infer a PASS from a data migration.
 
 ## 1. Purpose and authority
