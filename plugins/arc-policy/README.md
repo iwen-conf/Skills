@@ -1,7 +1,7 @@
 # Arc Policy Runtime
 
 Arc workflows and their policy runtime, packaged for Claude Code, Grok Build, and Codex CLI.
-Version 0.4.2 keeps one policy engine and one canonical `Arc/` skill source, with generated
+Version 0.4.3 keeps one policy engine and one canonical `Arc/` skill source, with generated
 host manifests, a complete bundled skill tree, and a strict Codex wire adapter.
 
 | Piece | Job |
@@ -13,6 +13,44 @@ host manifests, a complete bundled skill tree, and a strict Codex wire adapter.
 | Policy YAML | Decide what is required or denied without editing hook scripts |
 
 Default mode: **the agent still writes code with host tools**. The CLI gates `task begin`, controlled schema migrations and verified delivery—not every commit. After explicit `.arc/arc.db` cutover, PostToolUse also calls `arc update --changed-only` to persist idempotent file changes and outbox events; this does not verify or close tasks. Putting every file write behind the CLI is a later, much more expensive mode.
+
+## Arc Policy state/receipts in arc.db (opt-in)
+
+Arc 0.4.0 + arc-policy 0.4.3 support a **separate, explicit Policy
+state cutover** after the graph/resource database has been activated.
+Install both updated runtimes and stop other agents or legacy Policy
+writers before migration:
+
+```bash
+bash scripts/install_arc.sh
+.venv/bin/python plugins/arc-policy/bin/arc-policy install
+arc db status --repo .
+arc policy state status --repo .           # legacy before cutover
+arc policy state migrate --repo . --confirm-offline
+arc policy state status --repo .           # mode = arc.db
+arc-policy --cwd . task status             # reads live task from Turso
+```
+
+The operation imports the active task, historical tasks and every historical
+receipt into the same Turso `.arc/arc.db`, under the Policy lock and Arc DB
+lock. A SHA-256-verified JSON backup remains in `.arc/backups/`, and legacy
+receipt files are archived there. A directory tombstone replaces
+`.arc/policy/state.json` to prevent older Policy runtimes from silently
+writing a second authoritative JSON state. The migration can be re-run
+offline to finish archival after interruption; it never overwrites migrated
+DB state.
+
+Python uses the `arc policy state get/put` JSON interface with optimistic
+version checks and **no fallback to state.json after cutover**. A missing
+binary, version conflict or broken Turso file blocks operations. The
+Policy task/receipt lock continues to protect the verification and
+completion path; `arc task complete` reads the current Policy receipt
+from Turso after migration. Git commits/pushes still do not run verify.
+
+**Do not migrate while old agents are running.** Windows Policy migration
+and completion remain fail-closed until compatible cross-language locking
+is implemented. This is an opt-in storage cutover, not automatic verification
+or authorization of any task.
 
 ## Local business-graph gate (opt-in)
 
@@ -293,8 +331,9 @@ reconciled by PostToolUse), `arc index flush`, and finally
 The completion command reads the existing Arc Policy PASS; it never launches
 a second test run. An `AUTHORIZED` waiver does not count as PASS. A failed
 index/changed tree/incorrect task version blocks completion, not normal Git
-commit/push. The original Python policy receipt remains authoritative until
-the receipt-store migration is separately verified. In an active shared-DB
+commit/push. The Python runtime remains authoritative for verification decisions, but
+after `arc policy state migrate` its active task, history and receipts are
+persisted only in `.arc/arc.db`. In an active shared-DB
 business graph, the receipt fingerprint binds the activation manifest and
 graph configuration, **not** unrelated task/Outbox bytes inside `arc.db`;
 `receipt_matches_tree` still re-executes the independent graph gate so a
@@ -382,7 +421,7 @@ verification:
 Each verification attempt first revokes the old receipt. Tests must finish against the same
 task instance and content snapshot they started with, including policy loading. Verification,
 task begin and task end share a repository lock; overlapping operations fail immediately with
-a `locked` diagnostic. State and receipts are saved atomically;
+a `locked` diagnostic. State and receipts are saved atomically (to Turso after Policy cutover);
 `.arc/policy/`, `.arc/artifacts/` and the generated arc-idx files
 `.ai-code-index/tags.json`, `.ai-code-index/daemon.pid`, `.ai-code-index/daemon.log` are excluded
 from snapshots and session write attribution. Index refreshes therefore do not invalidate a receipt
