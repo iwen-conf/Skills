@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const version = "0.3.0"
+const version = "0.4.0"
 
 const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"Usage:\n" +
@@ -34,6 +34,7 @@ const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"  arc update --changed-only       Collect Git changes idempotently\n" +
 	"  arc sync reconcile              Replay missed Git commits from cursor\n" +
 	"  arc event list [flags]          Inspect durable state event history\n" +
+	"  arc policy state <get|put|status|migrate>  Policy state/receipts in Turso\n" +
 	"  arc capabilities --json        Detect supported backends and capabilities\n" +
 	"  arc version                    Print the unified entrypoint version\n\n" +
 	"Resource writes require an explicitly initialized/migrated .arc/arc.db.\n" +
@@ -51,7 +52,7 @@ var proposedCommands = map[string]bool{
 	"invariant": true, "plan": true, "run": true, "artifact": true,
 	"test": true, "check": true, "evidence": true, "risk": true,
 	"agent": true, "session": true, "context": true,
-	"policy": true, "snapshot": true,
+	"snapshot": true,
 }
 
 type route struct {
@@ -112,6 +113,7 @@ func capabilities() map[string]any {
 		"arc_db_active": active, "arc_db_schema_version": arcSchemaVersion,
 		"resource_commands": []string{"db", "file update", "file show", "task create", "task ensure", "task show", "task transition", "task complete", "change collect", "change show", "update", "sync reconcile", "event list", "index flush"},
 		"outbox_consumer": "arc-idx-full-rebuild", "completion_proof": "arc-policy-current-PASS",
+		"policy_storage": "arc policy state (opt-in migration)",
 		"engines": engines,
 	}
 }
@@ -139,12 +141,14 @@ func run(args []string) int {
 			if err := indexCommand(args[1:]); err != nil { fmt.Fprintln(os.Stderr, "arc index:", err); return 2 }
 			return 0
 		}
-	case "db", "task", "file", "change", "update", "sync", "event":
+	case "db", "task", "file", "change", "update", "sync", "event", "policy":
 		var err error
 		switch args[0] {
 		case "db": err = dbCommand(args[1:])
 		case "sync": err = syncCommand(args[1:])
 		case "event": err = eventCommand(args[1:])
+		case "policy":
+			if len(args)<2 || args[1]!="state" { err = errors.New("usage: arc policy state <get|put|status|migrate>") } else { err = policyStateCommand(args[2:]) }
 		default: err = resourceCommand(args[0],args[1:])
 		}
 		if err != nil { fmt.Fprintf(os.Stderr, "arc %s: %v\n", args[0], err); return 2 }
