@@ -97,6 +97,7 @@ func resourceCommand(kind string, args []string) error {
 		switch kind {
 		case "task":
 			if completion != nil { return commitTaskCompletion(db,root,*idFlag,*expected,*completion) }
+			if action == "show" { return showTaskWithProof(db,root,*idFlag) }
 			return executeTask(db, action, *idFlag, *title, *to, *expected)
 		case "file":
 			switch action {
