@@ -6,8 +6,8 @@ query and a file that was read.
 
 ## 1. Inventory
 
-1. `arc stats --format json`: record `total` and the top extensions in `by_extension`.
-2. Find module roots: `arc files <manifest> --format json` for `go.mod`, `package.json`,
+1. `arc idx stats --format json`: record `total` and the top extensions in `by_extension`.
+2. Find module roots: `arc idx files <manifest> --format json` for `go.mod`, `package.json`,
    `pyproject.toml`, `Cargo.toml`, `pom.xml`, `build.gradle`, `Dockerfile`, `docker-compose`.
    Each manifest directory is a candidate module; a monorepo gets one row per root.
 3. Size the map:
@@ -15,7 +15,7 @@ query and a file that was read.
      only), then level 2 (packages) only for the module the question names.
    - ELSE map level 2 for every module.
    - IF doctor lists a code-only profile THEN pass `--profile <name>` to `stats` and `files`.
-4. Per module at level 2: `arc files <module-path>/ --format json`, grouped by directory
+4. Per module at level 2: `arc idx files <module-path>/ --format json`, grouped by directory
    (packages). Never list directories recursively with shell tools.
 
 ## 2. Entry points
@@ -23,15 +23,15 @@ query and a file that was read.
 Run per module, read each hit, record `file:line`:
 
 ```bash
-arc symbol main --exact --kind func --lang go --format json        # Go binaries
-arc search 'lang:go case:yes ^package main$' --format json
-arc search 'lang:go case:yes \.(GET|POST|PUT|PATCH|DELETE|Group|Handle|HandleFunc)\(' --format json   # HTTP routes
-arc search 'case:yes (cron\.New|AddFunc|@Scheduled|schedule\.every)' --format json                 # scheduled jobs
-arc search 'case:yes (Subscribe|Consume|NewConsumer|RegisterHandler)\(' --format json               # queue consumers
-arc ast --lang go 'cobra.Command{$$$}' --format json                                             # CLI commands
-arc search 'lang:go case:yes (wire\.Build|fx\.Provide)\(' --format json                          # composition root
-arc search 'lang:python case:yes (__main__|APIRouter\(|@app\.(get|post|put|delete)\()' --format json
-arc search 'case:yes (createFileRoute|createRootRoute|createBrowserRouter)\(' --format json         # frontend routes
+arc idx symbol main --exact --kind func --lang go --format json        # Go binaries
+arc idx search 'lang:go case:yes ^package main$' --format json
+arc idx search 'lang:go case:yes \.(GET|POST|PUT|PATCH|DELETE|Group|Handle|HandleFunc)\(' --format json   # HTTP routes
+arc idx search 'case:yes (cron\.New|AddFunc|@Scheduled|schedule\.every)' --format json                 # scheduled jobs
+arc idx search 'case:yes (Subscribe|Consume|NewConsumer|RegisterHandler)\(' --format json               # queue consumers
+arc idx ast --lang go 'cobra.Command{$$$}' --format json                                             # CLI commands
+arc idx search 'lang:go case:yes (wire\.Build|fx\.Provide)\(' --format json                          # composition root
+arc idx search 'lang:python case:yes (__main__|APIRouter\(|@app\.(get|post|put|delete)\()' --format json
+arc idx search 'case:yes (createFileRoute|createRootRoute|createBrowserRouter)\(' --format json         # frontend routes
 ```
 
 - Adapt the route pattern to the router the module imports (read one router file first).
@@ -60,11 +60,11 @@ arc search 'case:yes (createFileRoute|createRootRoute|createBrowserRouter)\(' --
    layer:
 
 ```bash
-arc search 'lang:go case:yes f:internal/domain/ /internal/(infrastructure|usecase|interface)/' --format json
-arc search 'lang:go case:yes f:internal/domain/ (gin-gonic/gin|jackc/pgx|go-redis|casbin)' --format json
-arc search 'lang:go case:yes f:internal/usecase/ (\"net/http\"|gin-gonic/gin|jackc/pgx|\"database/sql\")' --format json
-arc search 'lang:go case:yes f:internal/interface/restful/controllers/ (/domain/repositories|jackc/pgx|\"database/sql\")' --format json
-arc search 'lang:go case:yes f:/dto/ /internal/(domain|usecase)/' --format json
+arc idx search 'lang:go case:yes f:internal/domain/ /internal/(infrastructure|usecase|interface)/' --format json
+arc idx search 'lang:go case:yes f:internal/domain/ (gin-gonic/gin|jackc/pgx|go-redis|casbin)' --format json
+arc idx search 'lang:go case:yes f:internal/usecase/ (\"net/http\"|gin-gonic/gin|jackc/pgx|\"database/sql\")' --format json
+arc idx search 'lang:go case:yes f:internal/interface/restful/controllers/ (/domain/repositories|jackc/pgx|\"database/sql\")' --format json
+arc idx search 'lang:go case:yes f:/dto/ /internal/(domain|usecase)/' --format json
 ```
 
 2. Frontend: `search 'f:src/components/ui/ case:yes /(api|stores)/'`; server state copied into a

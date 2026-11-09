@@ -89,7 +89,7 @@ Choose the cheapest layer that reveals each branch's defect ([test-value](test-v
 ## 7. Change impact
 
 1. List changed files and symbols from the diff (code-intel §4 rows 1–2).
-2. Find affected flows: `arc search 'f:docs/07-测试质量/业务流 <file or symbol>' --format ai-md`,
+2. Find affected flows: `arc idx search 'f:docs/07-测试质量/业务流 <file or symbol>' --format ai-md`,
    plus flows whose entry points or stores the change reaches.
 3. Mark them `stale`, re-trace the changed nodes, update charts and rows; new branches enter as
    `NOT_RUN (no case)`.

@@ -1,7 +1,7 @@
 # Arc Policy Runtime
 
 Arc workflows and their policy runtime, packaged for Claude Code, Grok Build, and Codex CLI.
-Version 0.4.7 keeps one policy engine and one canonical `Arc/` skill source, with generated
+Version 0.4.8 keeps one policy engine and one canonical `Arc/` skill source, with generated
 host manifests, a complete bundled skill tree, and a strict Codex wire adapter.
 
 | Piece | Job |
@@ -476,7 +476,7 @@ repository without a task is reported as changed without one. Cursor's `workspac
 checked when the session touched them, or all of them for a host without a session ID. When several repositories report, the strictest `stop.mode` applies.
 
 Allowed edit tools record their explicit target paths even when `PostToolUse` is missing.
-Known inspection-only shell calls (such as `git status`, `arc-policy task status`, `arc search`
+Known inspection-only shell calls (such as `git status`, `arc-policy task status`, `arc idx search`
 queries and plain file reads) open an empty attribution window: they do not acquire another
 session's concurrent writes. Commands with output redirection, write options, prefix wrappers
 or opaque scripts keep conservative write windows.

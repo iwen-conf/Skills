@@ -155,7 +155,7 @@ func reindexQuiet(repo *Repo) error {
 // cmdDaemon manages a detached background watcher with a pid file.
 func cmdDaemon(args []string) error {
 	if len(args) < 1 {
-		return fmt.Errorf("usage: arc daemon start|stop|status|restart")
+		return fmt.Errorf("usage: arc idx daemon start|stop|status|restart")
 	}
 	sub, rest := args[0], args[1:]
 	fl := flag.NewFlagSet("daemon", flag.ExitOnError)

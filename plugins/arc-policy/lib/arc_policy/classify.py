@@ -184,6 +184,8 @@ def read_only_shell(command: str) -> bool:
             if not skills_read and args not in (["version"], ["detect"], ["task", "status"], ["--help"]):
                 return False
         elif executable in {"arc", "arc-idx"}:
+            if executable == "arc" and args[:1] == ["idx"]:
+                args = args[1:]
             if not args or args[0] not in {
                 "version",
                 "doctor",

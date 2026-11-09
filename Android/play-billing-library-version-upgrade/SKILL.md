@@ -77,7 +77,7 @@ string replacement.
 
 1. **Smart Checklist Verification**:
 2. Open [references/version-checklist.md](references/version-checklist.md) and locate the **Smart Version-Specific Checklist**.
-3. **Action**: For every version between your \[Detected Effective Version\] and \[Detected New Version\], verify that every item has been addressed in the code using the host arc search/structural interface.
+3. **Action**: For every version between your \[Detected Effective Version\] and \[Detected New Version\], verify that every item has been addressed in the code using the host arc idx search/structural interface.
 4. **Tests** : Run all unit and implementation tests (`./gradlew test`).
 5. **Build and business behavior**: Run the actual target variant assemble and relevant purchase/restore/acknowledgement tests once. Sync via the project-supported mechanism; do not assume a `sync` Gradle task exists or repeat clean/build without evidence. Apply [Android execution](../../docs/android-execution.md); unavailable billing/device evidence is NOT_RUN.
 

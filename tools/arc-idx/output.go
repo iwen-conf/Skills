@@ -28,7 +28,7 @@ func emitSearch(res *searchResult, format string) error {
 	fmt.Fprintf(&b, "\n%d files, %d matches, %s, engine=%s\n\n",
 		res.FileCount, res.MatchCount, res.Duration, res.Engine)
 	if res.FileCount == 0 {
-		b.WriteString("No matches. Try a broader query, another profile, or `arc doctor` if results look incomplete.\n")
+		b.WriteString("No matches. Try a broader query, another profile, or `arc idx doctor` if results look incomplete.\n")
 		fmt.Print(b.String())
 		return nil
 	}

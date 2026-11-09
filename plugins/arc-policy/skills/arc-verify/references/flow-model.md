@@ -42,8 +42,8 @@ or SPECIFICATION GAP. Docs/comments are leads; verify code paths and record diff
 
 1. **Entry points.** Query with code-intel: routes and handlers, RPC, CLI commands, consumers and
    subscribers, schedulers and timers, webhooks and callbacks, operator tools, migrations and
-   backfills; record each `file:line`. Example: `arc search 'Router|HandleFunc|Subscribe|cron'
-   --format ai-md`, then `arc symbol <handler> --format ai-md`.
+   backfills; record each `file:line`. Example: `arc idx search 'Router|HandleFunc|Subscribe|cron'
+   --format ai-md`, then `arc idx symbol <handler> --format ai-md`.
 2. **Trace each entry to its business ends**: validation, authentication and authorization, rule
    checks, reads, durable writes (table, file, key), transaction begin and commit, events or outbox,
    external calls, cache, lock or idempotency key, error mapping, retry owner, and what each failure

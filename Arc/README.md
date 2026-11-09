@@ -31,7 +31,7 @@ implementation and release claims still require their own runtime evidence.
 
 ## Unified `arc` CLI and opt-in state database
 
-The supported public forms are `arc search`, `arc index`, `arc doctor`
+The supported public forms are `arc idx search`, `arc idx index`, `arc idx doctor`
 and `arc verify gate|trace|handoff`; see [tools/arc](../tools/arc/README.md).
 Install all backends together with `bash scripts/install_arc.sh`, then run
 `arc capabilities --json`. Version 0.4.0 delegates the established

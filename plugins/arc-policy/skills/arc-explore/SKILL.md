@@ -4,8 +4,8 @@ description: 'Read-only code intelligence for a local repository: find where cod
   lives (代码在哪, 搜代码), locate definitions, list callers (谁调用), trace a call chain (调用链)
   or data flow, list everything a planned change would touch (影响面 / impact analysis),
   and draw a module or architecture map (架构地图). Also maintains the arc Zoekt index
-  (索引维护: arc doctor, index, daemon; old name arc-idx means arc). Not for edits (use
-  arc-code), read-only risk review (use arc-audit), or tests (use arc-verify).'
+  (索引维护: arc idx doctor, index, daemon; old name arc-idx means arc idx). Not for edits
+  (use arc-code), read-only risk review (use arc-audit), or tests (use arc-verify).'
 metadata:
   version: 2.3.4
 ---
@@ -85,11 +85,11 @@ Graph chain: [workflow §6](references/_shared/Arc/_shared/workflow.md#6-graph-b
 
 ### Index operations
 
-- Status: `arc doctor --format json`; `arc daemon status` (JSON: `pid`, `alive`,
+- Status: `arc idx doctor --format json`; `arc idx daemon status` (JSON: `pid`, `alive`,
   `index_dir`, `index_age`, `log_file`, `stale_index`).
-- Rebuild: `arc index --quiet`, once per repair. While the daemon is alive it reindexes 800 ms
+- Rebuild: `arc idx index --quiet`, once per repair. While the daemon is alive it reindexes 800 ms
   after file changes; do not loop manual rebuilds.
-- Daemon: `arc daemon start|stop|restart|status`. PID file `.ai-code-index/daemon.pid`, log
+- Daemon: `arc idx daemon start|stop|restart|status`. PID file `.ai-code-index/daemon.pid`, log
   `.ai-code-index/daemon.log`; it exits after 30 minutes without file events and runs under a
   512 MiB memory limit. Run `daemon stop` after a large refactor has fully finished.
 - Shards: `~/.cache/ai-code-index/zoekt/<repo basename>/`, overridden by `index_dir` in
@@ -158,13 +158,13 @@ Graph chain: [workflow §6](references/_shared/Arc/_shared/workflow.md#6-graph-b
 | Failure | Action | Retry budget | Stop condition |
 |---|---|---|---|
 | `arc` or backend missing | report `arc capabilities --json` output; use code-intel §6 fallback | 0 | fallback evidence labelled |
-| Doctor unhealthy or stale | `arc index --quiet`, re-run doctor | 1 | still unhealthy → §6 fallback, report doctor JSON |
+| Doctor unhealthy or stale | `arc idx index --quiet`, re-run doctor | 1 | still unhealthy → §6 fallback, report doctor JSON |
 | `ctags` or `ast-grep` `MISSING` | ask permission to install; meanwhile use `search` and `files`, mark symbol and AST rows `BLOCKED` with reason | 0 without permission | permission refused → report gap |
-| Daemon will not start or stale PID | `arc daemon restart` | 1 | report the `log_file` path and last lines |
+| Daemon will not start or stale PID | `arc idx daemon restart` | 1 | report the `log_file` path and last lines |
 | Zero hits | code-intel §5 widening rungs 1–5 | 5 rungs | report `not found` with every query |
 | More than 200 hits | narrow (Decision Rules) | 3 passes | sample and label `sampled` |
 | `query parse:` error | escape per code-intel §2 | 2 | rewrite as a plain literal term |
-| Text after `arc ast: ast-grep:` | simplify the pattern (fewer metavariables, complete syntax) | 2 | use the text query; note the AST gap |
+| Text after `arc idx ast: ast-grep:` | simplify the pattern (fewer metavariables, complete syntax) | 2 | use the text query; note the AST gap |
 | Hits name files absent from the repository | check doctor `repo_root` and `index_dir`; fix with `--repo` or `<clone>/.ai-code-index/`; if another clone shares the `index_dir` basename, set `index_dir` in config; reindex | 1 | report the collision |
 | `index` warns `hit max_files` | report partial coverage; narrow with profiles, or raise `max_files` on user approval | 0 | label results `partial index` |
 | Structural and text results contradict | re-read the files (Decision Rules) | 1 | report both readings as unresolved |

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### arc 0.4.3 / arc-policy 0.4.8 — `arc idx` command group
+
+- Code-index commands are written `arc idx search|symbol|files|ast|stats|doctor|index|daemon|watch`, like `arc verify …`. The bare forms (`arc search …`) still work for running sessions but are no longer documented; `arc index flush` stays an arc.db command. The engine's usage, errors, hints and doctor header say `arc idx …` (`arc idx ast: ast-grep:`).
+- `arc idx` queries count as read-only shell calls. Skills, docs, READMEs and the dsh host notes use the `arc idx` form.
+
 ### Stop no longer blames a session for other sessions' tasks
 
 - A session started in a parent folder (several repositories side by side) was blocked at Stop for every child repository with an unverified task, including tasks and changes of other sessions it never touched. A tracked session (one with a session ID) now skips repositories where none of its tool calls ran; hosts without a session ID keep checking all of them.

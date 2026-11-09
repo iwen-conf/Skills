@@ -24,5 +24,8 @@ func TestEngineMessagesNameOnlyArc(t *testing.T) {
 		if strings.Contains(string(out), "arc-idx") {
 			t.Errorf("engine %q output names arc-idx:\n%s", args, out)
 		}
+		if args != "" && args != "bogus" && !strings.Contains(string(out), "arc idx ") {
+			t.Errorf("engine %q output must name the `arc idx` command group:\n%s", args, out)
+		}
 	}
 }

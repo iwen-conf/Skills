@@ -92,7 +92,7 @@ Keep requirement/transition/scenario IDs; model PASS is not runtime PASS.
 
 ## Tool Strategy
 
-- **Preferred:** code-intel commands (`arc symbol`, `search`, `ast`, `files`) and direct file
+- **Preferred:** code-intel commands (`arc idx symbol`, `search`, `ast`, `files`) and direct file
   reads for facts; writes only under `docs/` and the task-document root.
 - **Query order:** docs indexes, trackers and cards → code-intel ladder → project agent files and
   PRDs (项目定位, 项目口径) → the user, only for what remains.

@@ -58,7 +58,7 @@ Graph runner selection: [workflow §6](../_shared/workflow.md#6-graph-based-busi
 
 1. Read [contract.md](../_shared/contract.md). A new dependency is T2 (contract §2). Output: need,
    boundary, language and version, platforms, constraints, project license, mode, `as_of`.
-2. Local first. Find manifests and lockfiles (`arc files 'go.mod|package.json|Cargo.toml|pyproject.toml|requirements'`)
+2. Local first. Find manifests and lockfiles (`arc idx files 'go.mod|package.json|Cargo.toml|pyproject.toml|requirements'`)
    and search for an existing implementation of the need ([code-intel §3](../_shared/code-intel.md#3-query-ladder-stop-at-the-first-rung-that-answers-the-question)).
    Check the standard library of the target version. Output: reuse candidates with `file:line`.
 3. Find candidates (select, replace): at least two keyword families from playbook §1 on GitHub and

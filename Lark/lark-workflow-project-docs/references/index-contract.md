@@ -66,10 +66,10 @@
   },
   "local_index": {
     "tooling": ".ai-code-index",
-    "reindex_command": "arc index",
-    "search_command": "arc search \"query\" --format json",
-    "struct_search_command": "arc ast --lang <language> '<pattern>'",
-    "symbols_command": "arc symbol <name>",
+    "reindex_command": "arc idx index",
+    "search_command": "arc idx search \"query\" --format json",
+    "struct_search_command": "arc idx ast --lang <language> '<pattern>'",
+    "symbols_command": "arc idx symbol <name>",
     "last_refreshed_at": "",
     "status": "unknown"
   },
@@ -151,7 +151,7 @@ ID 与 token 字段：
 
 ## 4. `local_index`
 
-写入前运行 `arc doctor --format json`，`last_refreshed_at` 记为该次运行的 UTC 时间：
+写入前运行 `arc idx doctor --format json`，`last_refreshed_at` 记为该次运行的 UTC 时间：
 
 | doctor 结果 | `status` |
 |---|---|

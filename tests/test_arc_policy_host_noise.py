@@ -198,6 +198,9 @@ def test_unified_arc_reads_count_as_read_only_like_the_backend():
     from arc_policy.classify import read_only_shell
 
     assert read_only_shell("arc search foo --format json")
+    assert read_only_shell("arc idx search foo --format json")
+    assert read_only_shell("arc idx doctor --format json")
+    assert not read_only_shell("arc idx index --quiet")
     assert read_only_shell("arc-idx search foo")
     assert not read_only_shell("arc task create --title x")
     assert not read_only_shell("arc index --quiet")

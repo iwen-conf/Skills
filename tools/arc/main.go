@@ -13,19 +13,19 @@ import (
 	"strings"
 )
 
-const version = "0.4.2"
+const version = "0.4.3"
 
 const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"Usage:\n" +
-	"  arc index [flags]               Rebuild the source code index\n" +
+	"  arc idx index [flags]           Rebuild the source code index\n" +
+	"  arc idx search <query> [flags]  Search indexed source\n" +
+	"  arc idx symbol <name> [flags]   Find symbols\n" +
+	"  arc idx ast <pattern> [flags]   Structural code search\n" +
+	"  arc idx files [pattern] [flags] Enumerate candidate files\n" +
+	"  arc idx stats [flags]           Indexed-source statistics\n" +
+	"  arc idx doctor [flags]          Diagnose index health\n" +
+	"  arc idx daemon <action> [flags] Manage code indexer\n" +
 	"  arc index flush [--repo DIR]    Acknowledge outbox only after healthy index\n" +
-	"  arc search <query> [flags]      Search indexed source\n" +
-	"  arc symbol <name> [flags]       Find symbols\n" +
-	"  arc ast <pattern> [flags]       Structural code search\n" +
-	"  arc files [pattern] [flags]     Enumerate candidate files\n" +
-	"  arc stats [flags]               Indexed-source statistics\n" +
-	"  arc doctor [flags]              Diagnose index health\n" +
-	"  arc daemon <action> [flags]     Manage code indexer\n" +
 	"  arc verify <action> [flags]     Existing business graph/evidence engine\n" +
 	"  arc db <status|init|migrate>     Explicit local database lifecycle\n" +
 	"  arc task <create|ensure|show|transition|complete> [flags]  Versioned task state\n" +
@@ -65,6 +65,12 @@ type route struct {
 func selectCommand(args []string) (route, error) {
 	if len(args) == 0 { return route{}, errors.New("missing subcommand") }
 	name := args[0]
+	if name == "idx" {
+		if len(args) < 2 || !indexCommands[args[1]] {
+			return route{}, errors.New("usage: arc idx <search|symbol|files|ast|stats|doctor|index|daemon|watch> [flags]")
+		}
+		return route{executable: "arc-idx", argv: args[1:]}, nil
+	}
 	if indexCommands[name] {
 		return route{executable: "arc-idx", argv: args}, nil
 	}

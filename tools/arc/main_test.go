@@ -17,6 +17,12 @@ func TestCommandRouting(t *testing.T) {
 		wantError bool
 	}{
 		{[]string{"search", "hello", "--format", "json"}, "arc-idx", []string{"search", "hello", "--format", "json"}, false},
+		{[]string{"idx", "search", "hello", "--format", "json"}, "arc-idx", []string{"search", "hello", "--format", "json"}, false},
+		{[]string{"idx", "daemon", "status"}, "arc-idx", []string{"daemon", "status"}, false},
+		{[]string{"idx"}, "", nil, true},
+		{[]string{"idx", "--format", "json"}, "", nil, true},
+		{[]string{"idx", "flush"}, "", nil, true},
+		{[]string{"idx", "task", "create"}, "", nil, true},
 		{[]string{"verify", "gate", "--graph", "g1"}, "arc-verify", []string{"gate", "--graph", "g1"}, false},
 		{[]string{"verify", "discover", "list", "--graph", "g1"}, "arc-verify", []string{"discover", "list", "--graph", "g1"}, false},
 		{[]string{"verify"}, "", nil, true},

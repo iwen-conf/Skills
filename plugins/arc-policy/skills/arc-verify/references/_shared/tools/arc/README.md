@@ -26,8 +26,8 @@ uses the existing official `tursogo` driver; no Turso Cloud connection is requir
 
 | Command | Behavior |
 |---|---|
-| `arc search`, `symbol`, `ast`, `files`, `stats` | Existing code intelligence |
-| `arc index`, `doctor`, `daemon` | Code index maintenance |
+| `arc idx search`, `symbol`, `ast`, `files`, `stats` | Existing code intelligence |
+| `arc idx index`, `doctor`, `daemon` | Code index maintenance |
 | `arc verify <action>` | Business graph model, tests, trace, gate and handoff |
 | `arc db status` | JSON status for active `.arc/arc.db` |
 | `arc db init` | Initialize a new Turso ledger when no old graph DB exists |

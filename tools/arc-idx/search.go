@@ -53,7 +53,7 @@ func cmdSearch(args []string) error {
 		return err
 	}
 	if len(positional) < 1 {
-		return fmt.Errorf("usage: arc search <zoekt-query> [--profile P] [--format json|ai-md]")
+		return fmt.Errorf("usage: arc idx search <zoekt-query> [--profile P] [--format json|ai-md]")
 	}
 	qstr := strings.Join(positional, " ")
 	repo, err := findRepo(*repoDir)

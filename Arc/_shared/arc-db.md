@@ -1,6 +1,6 @@
 # arc.db — repository-local resource, state and change protocol
 
-> **Implementation status (arc 0.4.2).** `arc` routes code intelligence and
+> **Implementation status (arc 0.4.3).** `arc` routes code intelligence and
 > verification to its private engines in `libexec/arc`, and implements
 > versioned `arc.db` operations for `db`, `task`, `file`, `change`, `update`
 > and `policy state`. One physical project-local Turso DB is created with `arc db init`,
@@ -65,8 +65,8 @@ canonical relative path, Git identity and content hash.
 
 ```bash
 arc capabilities --json
-arc doctor --format json
-arc search 'lang:go Payment' --format json
+arc idx doctor --format json
+arc idx search 'lang:go Payment' --format json
 arc db status --repo .
 arc db init --repo .                       # new project only; no legacy DB
 arc db migrate --repo . --confirm-offline   # existing legacy verify DB

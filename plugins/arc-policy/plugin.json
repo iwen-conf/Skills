@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "arc-policy",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "Arc workflow skills and policy runtime for Claude Code, Codex CLI, and Grok Build. Includes six workflow skills, pinned arch-diagram visualization, host hooks and the arc-policy CLI; Python, Node and native verification tools require separate setup.",
   "author": {
     "name": "Arc"

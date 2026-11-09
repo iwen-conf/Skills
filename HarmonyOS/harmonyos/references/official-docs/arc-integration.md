@@ -22,10 +22,10 @@ Do not make the two retrieval systems compete.
 ## Preferred combined workflow
 
 1. **Locate with arc.**
-   - `arc files` for path discovery.
-   - `arc search` for lexical/code occurrence discovery.
-   - `arc symbol` for symbol definitions/references when applicable.
-   - `arc ast` for structural questions when applicable.
+   - `arc idx files` for path discovery.
+   - `arc idx search` for lexical/code occurrence discovery.
+   - `arc idx symbol` for symbol definitions/references when applicable.
+   - `arc idx ast` for structural questions when applicable.
 2. **Extract uncertain HarmonyOS facts from the located code.**
    Examples: imported platform type, decorator, permission, lifecycle callback, JSON5 key, error code.
 3. **Verify those facts in the official-doc index.**

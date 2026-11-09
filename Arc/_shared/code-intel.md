@@ -8,18 +8,18 @@ Owned by `arc:explore`; read by every Arc skill before reading or editing unfami
 command -v arc
 arc version
 arc capabilities --json
-arc doctor --format json
-arc daemon status
+arc idx doctor --format json
+arc idx daemon status
 ```
 
-- Doctor `healthy: false`, `index_stale: true` or `tags_present: false` → `arc index --quiet`
+- Doctor `healthy: false`, `index_stale: true` or `tags_present: false` → `arc idx index --quiet`
   once, then `doctor` again. A `MISSING` tool (`ctags`, `ast-grep`) needs permission to install;
   until then `symbol`/`ast` are unavailable.
-- `daemon_alive: false` → `arc daemon start` (`already running with pid N` is normal); dead
-  `daemon_pid` → `arc daemon restart`.
-- Identity: `arc` is the only public command; `arc version` must print `arc 0.4.x`, not the engine identity
-  (a shell alias or symlink to the backend is a broken install). `arc capabilities --json`
-  lists its private `libexec/arc` engines; never call them. No `arc` → report a broken install.
+- `daemon_alive: false` → `arc idx daemon start` (`already running with pid N` is normal); dead
+  `daemon_pid` → `arc idx daemon restart`.
+- Identity: `arc` is the only public command; `arc version` must print `arc 0.4.x`. Another
+  identity, an alias, a symlink or no `arc` is a broken install: report it. Never call the
+  private `libexec/arc` engines.
 - Repository root: nearest ancestor of the cwd (or `--repo <dir>`) holding `.ai-code-index/` or a
   `.git` directory; config `<root>/.ai-code-index/config.json`, else defaults (doctor
   `repo_root`). Child clone: `--repo <dir>` and `git -C <clone>`. A worktree or submodule has a
@@ -34,12 +34,12 @@ update never proves a test passed.
 
 | Need | Command |
 |---|---|
-| File names | `arc files <pattern> --format json` (case-insensitive path substring or glob, not regex) |
-| Text / regex | `arc search '<zoekt query>' --format json` (`f:`, `lang:`, `sym:`, `case:yes`, `-<term>`, `-f:<path regex>`) |
-| Definition | `arc symbol <Name> --exact --format json` (optional `--kind`, `--lang`) |
-| Structure | `arc ast --lang <language> '<pattern>' [path ...] --format json` |
-| Inventory | `arc stats --format json` (counts by file extension) |
-| Health | `arc doctor --format json` |
+| File names | `arc idx files <pattern> --format json` (case-insensitive path substring or glob, not regex) |
+| Text / regex | `arc idx search '<zoekt query>' --format json` (`f:`, `lang:`, `sym:`, `case:yes`, `-<term>`, `-f:<path regex>`) |
+| Definition | `arc idx symbol <Name> --exact --format json` (optional `--kind`, `--lang`) |
+| Structure | `arc idx ast --lang <language> '<pattern>' [path ...] --format json` |
+| Inventory | `arc idx stats --format json` (counts by file extension) |
+| Health | `arc idx doctor --format json` |
 
 Syntax facts (verified against the engine):
 
@@ -62,7 +62,7 @@ Counts:
   When `file_count` equals `--max` the list is truncated: re-run with a larger `--max` before reporting
   a count or a complete list.
 - Zero hits: `search` → `file_count: 0`, `files: null`; `symbol` → `count: 0`; `ast` exits 1 with
-  `arc ast: ast-grep:` and nothing after it. Text after `ast-grep:` is a real error.
+  `arc idx ast: ast-grep:` and nothing after it. Text after `ast-grep:` is a real error.
 
 ## 3. Query ladder (stop at the first rung that answers the question)
 
@@ -100,7 +100,7 @@ the language's AST patterns; there `ast '$R.<Name>($$$)'` matches method calls.
 
 Cross-check: for rows 2–4 use one structural and one text query. When they disagree, re-read the
 files and trust the AST result. Exception: Go selector calls (`x.Name(…)`, `pkg.Name(…)`) never
-match through `arc ast` (the pattern parses as a type conversion), so an AST zero for them is
+match through `arc idx ast` (the pattern parses as a type conversion), so an AST zero for them is
 not evidence; decide each text hit from the source.
 
 ## 5. When a query fails
