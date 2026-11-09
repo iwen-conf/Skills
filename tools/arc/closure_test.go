@@ -122,6 +122,9 @@ func TestInitialIndexWithEmptyOutboxAndGeneratedMetadata(t *testing.T) {
 	if err := flushIndexOutboxWith(root,indexer);err!=nil{t.Fatal(err)}
 	if err := flushIndexOutboxWith(root,indexer);err!=nil{t.Fatal(err)}
 	if calls!=1{t.Fatalf("expected one initial index build, got %d",calls)}
+	if err:=os.WriteFile(filepath.Join(root,"README.txt"),[]byte("unrecorded edit\n"),0600);err!=nil{t.Fatal(err)}
+	if err:=flushIndexOutboxWith(root,indexer);err==nil{t.Fatal("unobserved Git source drift was silently considered indexed")}
+	if calls!=1{t.Fatal("no-op flush unexpectedly rebuilt without recording source changes")}
 }
 
 func TestTaskProofRejectsAuthorizationAndStaleness(t *testing.T) {
