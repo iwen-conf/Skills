@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Align managed host skill links with schemas/host_profiles.yaml.
 
---check fails on drift in declared links and known Arc entrypoints. Unrelated entries
+--check fails on drift in declared links and known Arc entrypoints, and on standalone
+copies of skills that a host's declared plugins already ship. Unrelated entries
 are reported but preserved. --apply backs up managed drift and creates declared links.
 --prune-unmanaged also checks or backs up unrelated entries; nothing is deleted.
 """
@@ -33,30 +34,53 @@ def expand(path: str) -> Path:
     return Path(path).expanduser()
 
 
-def desired_links(config: dict) -> dict[str, tuple[Path, dict[str, Path], set[str]]]:
+def plugin_skills(plugin_root: Path, plugins: list[str]) -> set[str]:
+    """Skill names an installed plugin already ships to its host."""
+    return {
+        skill.parent.name
+        for plugin in plugins
+        for skill in (plugin_root / plugin / "skills").glob("*/SKILL.md")
+    }
+
+
+def desired_links(
+    config: dict,
+) -> dict[str, tuple[Path, dict[str, Path], set[str], set[str]]]:
     source_root = expand(config["source_root"])
+    plugin_root = expand(config.get("plugin_root") or str(ROOT / "plugins"))
     external = {
         name: expand(path)
         for name, path in (config.get("external_targets") or {}).items()
     }
-    result: dict[str, tuple[Path, dict[str, Path], set[str]]] = {}
+    result: dict[str, tuple[Path, dict[str, Path], set[str], set[str]]] = {}
     for host, spec in config["hosts"].items():
         names: list[str] = []
         for profile in spec.get("profiles", []):
             names.extend(config["profiles"][profile])
         names.extend(spec.get("extra", []))
+        shipped = plugin_skills(plugin_root, spec.get("plugins", []))
         links = {
             name: external.get(name, source_root / name)
             for name in dict.fromkeys(names)
+            if name not in shipped
         }
-        result[host] = (expand(spec["root"]), links, set(spec.get("ignore", [])))
+        result[host] = (
+            expand(spec["root"]),
+            links,
+            set(spec.get("ignore", [])),
+            shipped,
+        )
     return result
 
 
 def inspect(
-    root: Path, links: dict[str, Path], ignore: set[str]
+    root: Path,
+    links: dict[str, Path],
+    ignore: set[str],
+    shipped: set[str] | None = None,
 ) -> list[tuple[str, str]]:
     """Return all (kind, name) findings, including preserved unrelated entries."""
+    shipped = shipped or set()
     problems: list[tuple[str, str]] = []
     for name, target in links.items():
         entry = root / name
@@ -76,7 +100,9 @@ def inspect(
                 continue
             problems.append(
                 (
-                    "dangling"
+                    "plugin-duplicate"
+                    if entry.name in shipped
+                    else "dangling"
                     if entry.is_symlink() and not entry.exists()
                     else "unmanaged",
                     entry.name,
@@ -109,11 +135,11 @@ def main(argv: list[str] | None = None) -> int:
         Path.home() / ".skills-backup" / f"{datetime.now():%Y-%m-%d-%H%M%S}-link-hosts"
     )
     remaining = 0
-    for host, (root, links, ignore) in plan.items():
+    for host, (root, links, ignore, shipped) in plan.items():
         if args.host and host not in args.host:
             continue
-        managed = links.keys() | ARC_SKILL_NAMES
-        findings = inspect(root, links, ignore)
+        managed = links.keys() | ARC_SKILL_NAMES | shipped
+        findings = inspect(root, links, ignore, shipped)
         problems = [
             finding
             for finding in findings
@@ -124,7 +150,13 @@ def main(argv: list[str] | None = None) -> int:
             for kind, name in problems:
                 entry = root / name
                 try:
-                    if kind in {"unmanaged", "dangling", "not-a-link", "wrong-target"}:
+                    if kind in {
+                        "unmanaged",
+                        "dangling",
+                        "not-a-link",
+                        "wrong-target",
+                        "plugin-duplicate",
+                    }:
                         target = backup / host / name
                         target.parent.mkdir(parents=True, exist_ok=True)
                         entry.rename(target)
@@ -135,7 +167,7 @@ def main(argv: list[str] | None = None) -> int:
                         f"{host:<7} apply stopped at {entry} ({kind}): {error}; entries moved so far are in {backup}"
                     )
                     return 1
-            findings = inspect(root, links, ignore)
+            findings = inspect(root, links, ignore, shipped)
             problems = [
                 finding
                 for finding in findings

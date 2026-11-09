@@ -1,7 +1,7 @@
 # Arc Policy Runtime
 
 Arc workflows and their policy runtime, packaged for Claude Code, Grok Build, and Codex CLI.
-Version 0.4.4 keeps one policy engine and one canonical `Arc/` skill source, with generated
+Version 0.4.5 keeps one policy engine and one canonical `Arc/` skill source, with generated
 host manifests, a complete bundled skill tree, and a strict Codex wire adapter.
 
 | Piece | Job |
@@ -297,6 +297,12 @@ ln -sfn /Users/iluwen/Documents/Code/Skills/plugins/arc-policy ~/.cursor/plugins
 
 `~/.cursor/hooks.json` is Cursor-native (`permission: deny`). Restart `cursor-agent`.
 
+Cursor also runs the hooks of Claude Code plugins it imports (Settings → Agents → Third-Party
+Imports, on by default). When a native `hosts/cursor/run.sh` hook is configured in
+`~/.cursor/hooks.json` or a workspace `.cursor/hooks.json`, the imported Claude copy returns
+nothing for Cursor payloads, so each event is judged once by the native install. Without a
+native hook, the imported copy keeps enforcing.
+
 ### DeepSeek Harness
 
 ```bash
@@ -488,6 +494,9 @@ denied because its hidden part cannot be checked. `workdir` and Git `-C` resolve
 target repository's policy. Run verification separately before claiming task completion or performing protected migrations, not before each commit.
 Controlled commands using shell groups, `cd`, `env -C` / `--chdir` or `sudo -D` are refused
 because their directory scope is not interpreted; run them separately with `git -C` instead.
+A shell command the parser cannot read (an unclosed quote that `bash -n` also rejects) is left
+to the shell unless its text may hide `--no-verify`/`-n` on a commit or push, or a protected
+migration; those are denied with the parse error instead of a generic hook error.
 
 The engine fails closed: if it cannot load or crashes, edits and controlled operations are denied
 with the error and other tool calls proceed with it as a message. The DSH adapter denies a
@@ -535,6 +544,9 @@ The six Arc skills (including `arc-vet`) are authored only in `Arc/`. Their gene
 and reachable references/scripts ship inside this plugin. Do not hand-edit the generated
 copies. `scripts/sync_skills.py` remains the standalone skill publisher; plugin users should
 avoid simultaneously enabling independent copies of the same six skills in other discovery roots.
+`schemas/host_profiles.yaml` lists `plugins: [arc-policy]` for each host with the plugin;
+`scripts/link_hosts.py` then reports standalone copies as `plugin-duplicate` and `--apply`
+moves them to `~/.skills-backup/`.
 
 ```bash
 .venv/bin/python scripts/build_arc_plugin.py

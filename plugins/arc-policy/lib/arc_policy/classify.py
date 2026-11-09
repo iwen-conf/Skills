@@ -562,6 +562,47 @@ def _skips_hooks(args: list[str]) -> bool:
     return False
 
 
+_UNPARSED_GIT_DELIVERY = re.compile(r"\bgit\b[^\n]*\b(?:commit|push)\b")
+_UNPARSED_SKIP_FLAG = re.compile(r"--no-verify\b|(?<!\S)-[A-Za-z]*n[A-Za-z]*(?!\S)")
+_UNPARSED_MIGRATION = re.compile(
+    r"\b(?:alembic|goose|sql-migrate|flyway|liquibase)\b"
+    r"|\b(?:diesel|prisma)\s+migrat"
+    r"|\bpsql\b[^\n]*(?:\s-f\b|--file\b)"
+)
+
+
+def _unparsed_shell(command: str, error: str, deny_direct: set[str]) -> dict[str, Any]:
+    """Text a shell cannot parse either: deny only when it may hide a controlled operation.
+
+    Earlier lines of a `bash -c` script still run before a later syntax error, so the
+    controlled words are searched in the whole text.
+    """
+    hidden = ""
+    if "skip_hooks" in deny_direct and any(
+        _UNPARSED_SKIP_FLAG.search(line)
+        for line in command.splitlines()
+        if _UNPARSED_GIT_DELIVERY.search(line)
+    ):
+        hidden = "skip_hooks"
+    elif "schema_migration" in deny_direct and _UNPARSED_MIGRATION.search(command):
+        hidden = "schema_migration"
+    if not hidden:
+        return {
+            "action": "allow",
+            "reason": "shell not controlled",
+            "operation": "shell",
+        }
+    step = "Git commit/push" if hidden == "skip_hooks" else "schema migration"
+    return {
+        "action": "deny",
+        "reason": (
+            f"cannot parse this shell command ({error}); bash rejects the same quoting. "
+            f"Fix the quotes, or run the {step} in its own call."
+        ),
+        "operation": hidden,
+    }
+
+
 def classify(
     *,
     tool_name: str,
@@ -578,7 +619,10 @@ def classify(
     require_begin = bool(workflow.get("require_begin"))
 
     if kind == "shell":
-        commands = shell_commands(command)
+        try:
+            commands = shell_commands(command)
+        except ValueError as exc:
+            return _unparsed_shell(command, str(exc), deny_direct)
         for argv in commands:
             if not argv:
                 continue

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### arc-policy 0.4.5 — fewer false hook errors in Grok, Claude Code, Cursor and Codex
+
+- Shell text the parser cannot read no longer turns into `arc-policy hook error: No closing quotation` and a denial. All 49 such Grok/Claude calls found in local logs (unclosed quotes that `bash -n` also rejects) are now left to the shell; text that may hide `--no-verify`/`-n` on commit/push or a protected migration is still denied, with the parse error and a fix hint.
+- Stop skips touched repositories that were deleted before the turn ended (temporary worktrees), instead of reporting `[Errno 2] No such file or directory`.
+- Cursor runs both its native `~/.cursor/hooks.json` hook and the hooks of imported Claude Code plugins, so every event was judged twice, sometimes by an older cached version (the retired per-commit gate came back that way). The Claude entry now returns nothing for Cursor payloads when a native `hosts/cursor/run.sh` hook is configured; `run.sh` marks itself with `ARC_POLICY_CURSOR_NATIVE=1`.
+- `host_profiles.yaml` declares `plugins: [arc-policy]` for Claude, Codex and Grok. `link_hosts.py` no longer links the six Arc skills the plugin already ships, reports leftovers as `plugin-duplicate`, and `--apply` moves them to `~/.skills-backup/`. Each host now discovers one copy of each Arc skill instead of two.
+
 ### arc-policy 0.4.4 — one public `arc` entry across skills, docs and installs
 
 - Skill references now call `arc search|symbol|ast|files|stats` instead of the `arc-idx` backend; `arc-idx` remains only as a backend name, a labelled fallback and literal engine error text. `code-intel` makes an `arc` alias or symlink to `arc-idx` an explicit broken-install signal.

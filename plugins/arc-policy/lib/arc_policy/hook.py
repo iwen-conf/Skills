@@ -520,7 +520,8 @@ def _stop_roots(
             if root
         ]
     roots += list(baselines)
-    return list(dict.fromkeys(roots))
+    # A touched temporary worktree may be deleted before the turn ends.
+    return [root for root in dict.fromkeys(roots) if root.is_dir()]
 
 
 def handle_stop(

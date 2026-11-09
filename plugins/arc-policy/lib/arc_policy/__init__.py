@@ -1,3 +1,3 @@
 """Arc Policy Runtime: skills guide, hooks intercept, CLI verifies."""
 
-__version__ = "0.4.4"
+__version__ = "0.4.5"

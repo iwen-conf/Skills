@@ -2,6 +2,8 @@
 # Each listed name links to its source (default: ~/.agents/skills/<name>). Known Arc entrypoints
 # are managed too. Other entries are preserved unless --prune-unmanaged is explicit.
 # Dot entries (for example Codex .system) and per-host ignore entries are always preserved.
+# `plugins` names plugins installed on that host (under plugins/ in this repository); skills they
+# ship are not linked again, and a standalone copy is reported as plugin-duplicate.
 source_root: ~/.agents/skills
 external_targets:
   lanhu-design: ~/Documents/Code/Go/lanhu-cli/skills/lanhu-design
@@ -13,13 +15,16 @@ profiles:
 hosts:
   claude:
     root: ~/.claude/skills
+    plugins: [arc-policy]
     profiles: [core, work, mobile, makers]
     extra: [humanizer-zh]
     ignore: [synced]  # Claude-managed copies of claude.ai skills
   codex:
     root: ~/.codex/skills
+    plugins: [arc-policy]
     profiles: [core, work, mobile, makers]
     extra: [cloudflare, lanhu-design, humanizer-zh]
   grok:
     root: ~/.grok/skills
+    plugins: [arc-policy]
     extra: [arc-explore, arc-plan, arc-code, arc-verify, arc-audit, arc-vet, easyeda-api, threejs, humanizer-zh]

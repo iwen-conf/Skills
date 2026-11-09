@@ -71,6 +71,37 @@ def _unavailable(raw: str, exc: BaseException, *, host: str = "portable") -> str
     return json.dumps({"systemMessage": message})
 
 
+def _native_cursor_hook_owns(raw: str) -> bool:
+    """Cursor also runs hooks of imported Claude Code plugins; skip that second copy.
+
+    Only a Cursor payload defers, and only when a native arc-policy Cursor hook is
+    configured, so plain Claude Code and Cursor without native hooks stay enforced.
+    """
+    if os.environ.get("ARC_POLICY_CURSOR_NATIVE") == "1":
+        return False
+    try:
+        payload = json.loads(raw)
+    except ValueError:
+        return False
+    if not isinstance(payload, dict) or "cursor_version" not in payload:
+        return False
+    configs = [Path.home() / ".cursor" / "hooks.json"]
+    roots = payload.get("workspace_roots")
+    if isinstance(roots, list):
+        configs += [
+            Path(root) / ".cursor" / "hooks.json"
+            for root in roots
+            if isinstance(root, str)
+        ]
+    for config in configs:
+        try:
+            if "hosts/cursor/run.sh" in config.read_text(encoding="utf-8"):
+                return True
+        except OSError:
+            continue
+    return False
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", choices=("portable", "codex"), default="portable")
@@ -87,6 +118,8 @@ def main() -> int:
 
         ensure_runtime()
         raw = sys.stdin.read()
+        if _native_cursor_hook_owns(raw):
+            return 0
         from arc_policy.hook import run_hook
 
         output = run_hook(raw)

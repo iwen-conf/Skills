@@ -287,6 +287,31 @@ def test_missing_source_is_reported_and_never_linked(layout, capsys) -> None:
     ).is_symlink()
 
 
+def test_skills_shipped_by_an_installed_plugin_are_not_linked_twice(
+    layout, capsys
+) -> None:
+    mod = _load_link_module()
+    host, source = layout["host"], layout["source"]
+    plugin = layout["base"] / "plugins" / "bundle" / "skills" / "alpha"
+    plugin.mkdir(parents=True)
+    (plugin / "SKILL.md").write_text("---\nname: alpha\n---\n", encoding="utf-8")
+    config = yaml.safe_load(layout["profiles"].read_text(encoding="utf-8"))
+    config["plugin_root"] = str(layout["base"] / "plugins")
+    config["hosts"]["h"]["plugins"] = ["bundle"]
+    layout["profiles"].write_text(yaml.safe_dump(config), encoding="utf-8")
+    for name in ("alpha", "beta"):
+        (host / name).symlink_to(source / name, target_is_directory=True)
+
+    assert mod.main(["--check", "--profiles", str(layout["profiles"])]) == 1
+    assert "plugin-duplicate:alpha" in capsys.readouterr().out
+    assert mod.main(["--apply", "--profiles", str(layout["profiles"])]) == 0
+
+    [backup] = (layout["home"] / ".skills-backup").glob("*-link-hosts")
+    assert _tree(backup / "h") == {"alpha": ("link", str(source / "alpha"))}
+    assert _tree(host) == {"beta": ("link", str(source / "beta"))}
+    assert mod.main(["--check", "--profiles", str(layout["profiles"])]) == 0
+
+
 def test_apply_failure_stops_and_names_the_backup_holding_moved_entries(
     layout, monkeypatch, capsys
 ) -> None:
