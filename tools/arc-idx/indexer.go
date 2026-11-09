@@ -23,6 +23,7 @@ func cmdIndex(args []string) error {
 	fl := flag.NewFlagSet("index", flag.ExitOnError)
 	repoDir := fl.String("repo", ".", "repository root or any directory inside it")
 	quiet := fl.Bool("quiet", false, "suppress progress output")
+	requireComplete := fl.Bool("require-complete", false, "fail rather than acknowledging a file-count-limited index")
 	if err := fl.Parse(args); err != nil {
 		return err
 	}
@@ -35,6 +36,9 @@ func cmdIndex(args []string) error {
 	files, err := walkRepo(repo)
 	if err != nil {
 		return err
+	}
+	if *requireComplete && len(files) >= repo.Cfg.MaxFiles {
+		return fmt.Errorf("index reached max_files=%d; incomplete results cannot be acknowledged (raise the limit or narrow scope)",repo.Cfg.MaxFiles)
 	}
 
 	var wg sync.WaitGroup
@@ -128,7 +132,7 @@ func buildZoekt(repo *Repo, files []string) error {
 	for _, rel := range files {
 		content, err := os.ReadFile(filepath.Join(repo.Root, rel))
 		if err != nil {
-			continue
+			return fmt.Errorf("cannot read indexed source file %q: %w",rel,err)
 		}
 		if bytes.IndexByte(content, 0) >= 0 {
 			continue // binary
