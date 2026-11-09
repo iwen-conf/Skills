@@ -3,7 +3,7 @@
 Search mode of `research-write`, adapted from AnySearch 3.1.1 (Apache-2.0; [LICENSE](../scripts/anysearch/LICENSE),
 [NOTICE](../scripts/anysearch/NOTICE)). Use it for current facts, fact-checks, vertical lookups with identifiers
 (stock symbol, CVE, DOI, IATA code, patent) and parallel multi-query discovery. Local repository search stays
-with `arc-idx`; a single known URL goes to fetch mode.
+with `arc`; a single known URL goes to fetch mode.
 
 ## 1. Privacy gate
 

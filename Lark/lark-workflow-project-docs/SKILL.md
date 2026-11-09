@@ -1,6 +1,6 @@
 ---
 name: lark-workflow-project-docs
-version: 2.0.0
+version: 2.0.1
 description: "飞书项目工作区工作流：创建、连接、刷新项目的飞书/Lark 工作区，并维护项目根目录 .lark.json 索引；支持全量创建、工作区更新、增量同步（task_base 进度行与 lifecycle）和已索引项目的单资源同步。触发：创建飞书项目空间、初始化飞书项目空间、更新/刷新/补齐飞书项目空间、同步到飞书、飞书项目文档、项目工作区、索引飞书资源、项目根目录已有 .lark.json；create / update / refresh Lark project space, Lark project workspace, sync to Lark. Not for writing local PRDs or task docs (use arc:plan), or editing a single Lark doc or Base table outside a project index (use lark-doc / lark-base)."
 metadata:
   requires:
@@ -75,7 +75,7 @@ metadata:
 1. 检查项目根目录的 `.lark.json` 和已有 docs 目录。
 2. 按激活状态判定模式，输出一行：`模式 · workspace_scope · 涉及的资源键`。未激活时直接结束飞书部分，继续本地工作。
 3. 已有 `.lark.json` 时，先读取并校验与本次请求相关的索引项（链接可打开、类型匹配），再做任何飞书更新。
-4. 需要仓库证据时，先用 `arc-idx search` / `arc-idx symbol` 定位再读文件，不线性通读目录。
+4. 需要仓库证据时，先用 `arc search` / `arc symbol` 定位再读文件，不线性通读目录。
 
 ### Step 2: 授权与身份
 
@@ -87,7 +87,7 @@ metadata:
 
 ### Step 4: 写入 `.lark.json`
 
-按 [`references/index-contract.md`](references/index-contract.md) 写入。每创建或解析成功一个资源，立即写入它的真实 URL/ID；创建失败时追加 `status: "blocked"` 的 lifecycle 条目。写入 `local_index` 前运行 `arc-idx doctor --format json`，按索引契约映射 `status`。
+按 [`references/index-contract.md`](references/index-contract.md) 写入。每创建或解析成功一个资源，立即写入它的真实 URL/ID；创建失败时追加 `status: "blocked"` 的 lifecycle 条目。写入 `local_index` 前运行 `arc doctor --format json`，按索引契约映射 `status`。
 
 ### Step 5: 回读校验与交接
 

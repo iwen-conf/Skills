@@ -89,7 +89,7 @@ Follow this protocol for SQL generation and validation; it does not require addi
 
 ### Step 0: Tool Setup
 
-Use an existing confirmed `trace_processor` or download the official wrapper from https://get.perfetto.dev/trace_processor into a user cache outside the repository. Keep its absolute path as `TRACE_PROCESSOR`. Do not modify the project root or .gitignore for read-only trace analysis. Follow host arc-idx discovery for repository files; never scan the whole home directory. Missing download/runtime is BLOCKED.
+Use an existing confirmed `trace_processor` or download the official wrapper from https://get.perfetto.dev/trace_processor into a user cache outside the repository. Keep its absolute path as `TRACE_PROCESSOR`. Do not modify the project root or .gitignore for read-only trace analysis. Follow host arc discovery for repository files; never scan the whole home directory. Missing download/runtime is BLOCKED.
 
 The small Python wrapper lazily downloads the native processor; readable text is expected.
 
@@ -98,7 +98,7 @@ The small Python wrapper lazily downloads the native processor; readable text is
 1. Identify the core question, required data points, and filtering conditions.
 2. **Precedence Rule:** If the user's request contains a SQL query, preserve the original and validate it first. In validation-only mode report errors without rewriting; when repair is requested, explain the correction and keep original/final queries distinct.
 3. **Mandatory Schema and Module Search:** For every table or view you plan to use, you MUST find its schema in [`perfetto-stdlib.md`](references/perfetto-stdlib.md). **Don't read the entire documentation file** --- it consumes the context window. Follow this precise workflow:
-   - **Discovery and Search:** Use host-approved arc-idx searches with bounded context for repository resources to discover relevant views, tables or modules based on your problem domain and high-level intents (for example, 'CPU time', 'running time', 'overlap', 'jank').
+   - **Discovery and Search:** Use host-approved arc searches with bounded context for repository resources to discover relevant views, tables or modules based on your problem domain and high-level intents (for example, 'CPU time', 'running time', 'overlap', 'jank').
      - **Why:** Searching solely for exact table names misses comprehensive, pre-computed views built for these analyses.
      - **Note:** You must verify if a Standard Library module already provides the needed abstraction before drafting manual arithmetic or custom functions.
    - **Targeted Bounded Reads:** Once you identify the relevant modules, efficiently read the tables and views within that module section.

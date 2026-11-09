@@ -19,7 +19,7 @@ New clients follow [native platform direction](../../Arc/_shared/conventions/nat
 ArkTS/ArkUI and HarmonyOS platform behavior. Do not choose ArkUI-X to pursue shared cross-platform UI;
 maintain an existing stack within the requested scope unless migration is authorized.
 
-Before opening the full guide, discover it with `arc-idx files full-guide.md --format json`, then use `arc-idx search 'f:full-guide.md <term>' --context 4 --max 10 --format ai-md` and read only the matched section. Installed resources outside any repository follow the host's documented external-resource search exception.
+Before opening the full guide, discover it with `arc files full-guide.md --format json`, then use `arc search 'f:full-guide.md <term>' --context 4 --max 10 --format ai-md` and read only the matched section. Installed resources outside any repository follow the host's documented external-resource search exception.
 
 ## Intent Router
 

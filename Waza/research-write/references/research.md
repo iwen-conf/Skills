@@ -13,7 +13,7 @@ Support the user's thinking; do not replace it.
 
 ## Arc handoff
 
-Use `arc-idx` for local repository discovery. Research that becomes product requirements or task planning hands its source inventory and unresolved claims to `arc:plan`; implementation and release evidence belong to `arc:code` and `arc:verify`. Use fetch and search modes for retrieval and edit mode for prose refinement, retaining the same requested artifact, accepted scope, and source provenance. Research does not authorize changing global rules, publishing, or sending messages.
+Use `arc` for local repository discovery. Research that becomes product requirements or task planning hands its source inventory and unresolved claims to `arc:plan`; implementation and release evidence belong to `arc:code` and `arc:verify`. Use fetch and search modes for retrieval and edit mode for prose refinement, retaining the same requested artifact, accepted scope, and source provenance. Research does not authorize changing global rules, publishing, or sending messages.
 
 ## Choose Mode
 

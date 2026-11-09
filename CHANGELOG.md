@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Non-Arc skills call the public `arc` entry
+
+- CNB, Waza (`health`, `research-write`), HarmonyOS, Lark `lark-workflow-project-docs` (2.0.1) and the Android `perfetto-sql` / `play-billing-library-version-upgrade` skills now write `arc search|symbol|files|ast|doctor|index` instead of the `arc-idx` backend. HarmonyOS `arc-idx-integration.md` is renamed `arc-integration.md` and points at `arc:explore` instead of the retired `arc:idx` skill.
+
 ### arc-policy 0.4.5 — fewer false hook errors in Grok, Claude Code, Cursor and Codex
 
 - Shell text the parser cannot read no longer turns into `arc-policy hook error: No closing quotation` and a denial. All 49 such Grok/Claude calls found in local logs (unclosed quotes that `bash -n` also rejects) are now left to the shell; text that may hide `--no-verify`/`-n` on commit/push or a protected migration is still denied, with the parse error and a fix hint.

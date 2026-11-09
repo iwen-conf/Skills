@@ -30,7 +30,7 @@ Adapted from [tw93/Waza](https://github.com/tw93/Waza), under the [MIT license](
 ## Collect the relevant facts
 
 Read [code-intel](../../Arc/_shared/code-intel.md) before discovering project files. Repository
-file/text discovery uses `arc-idx`; do not run a bundled collector, `find`, `os.walk`, `rglob` or
+file/text discovery uses `arc`; do not run a bundled collector, `find`, `os.walk`, `rglob` or
 another scanner to inventory the project. Follow the user's stricter index identity/fallback rules.
 
 For machine-global configuration outside repositories, use the active host's documented config

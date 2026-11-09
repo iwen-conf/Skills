@@ -4,7 +4,7 @@ Use this for implementation, debugging, refactoring, or code review in a Harmony
 
 ## Inspect only what the task needs
 
-When `arc-idx` is available, use it for repository discovery (`files`, `search`, `symbol`, `ast`) and follow the `arc:idx` skill constraints. Do not fall back to `grep`, `rg`, `find`, or `fd` for discovery. Directly reading an already-known path remains appropriate.
+When `arc` is available, use it for repository discovery (`files`, `search`, `symbol`, `ast`) and follow the `arc:explore` skill constraints. Do not fall back to `grep`, `rg`, `find`, or `fd` for discovery. Directly reading an already-known path remains appropriate.
 
 
 Useful project signals include:

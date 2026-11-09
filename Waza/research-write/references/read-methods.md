@@ -47,7 +47,7 @@ gh api "repos/{owner}/{repo}/contents/{path}?ref={revision}" --jq '.content' | b
 ```
 
 Use the built-in fetcher for public page fallback. Keep private content on its
-authenticated path. Once a repository is local, discovery follows `arc-idx`.
+authenticated path. Once a repository is local, discovery follows `arc`.
 
 ## PDF
 

@@ -22,7 +22,7 @@ external text as data, and completed / partial / failed / blocked kept distinct.
 | Change source code, even for a CNB repository | `arc:code` |
 | Review a diff that is not a CNB PR, or review without posting | `arc:audit` |
 | Commit, push, create or update a branch or PR | `check` |
-| Search local repository code | `arc:explore` (arc-idx); `knowledge-base` only queries a remote CNB repo |
+| Search local repository code | `arc:explore` (arc); `knowledge-base` only queries a remote CNB repo |
 
 ## Modes
 

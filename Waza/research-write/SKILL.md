@@ -5,7 +5,7 @@ description: >-
   转Markdown), web and vertical search with AnySearch (联网搜索, 查资料, fact-check, CVE, DOI, stock), multi-source
   research compiled into notes or a publish-ready article (调研, 整理成长文, 一篇就够), and rewriting or polishing
   Chinese or English prose, technical instructions, release notes and product copy (润色, 去AI味, 改写, 本地化文案).
-  Not for local repository files (use arc-idx / arc:explore), code comments (use arc:code), commit messages
+  Not for local repository files (use arc / arc:explore), code comments (use arc:code), commit messages
   (use check), or Feishu documents (use lark).
 license: MIT
 ---
@@ -19,7 +19,7 @@ modes; read only the matched mode's reference.
 
 | Situation | Go to |
 |---|---|
-| Find or read code in a local repository | `arc:explore` (arc-idx) |
+| Find or read code in a local repository | `arc:explore` (arc) |
 | Code comments, code changes from an article | `arc:code` |
 | PRD, requirements or task documents from research | `arc:plan` |
 | Commit messages, release publishing | `check` |
