@@ -44,6 +44,9 @@ func TestPolicyMigrationStoresActiveHistoryAndReceipts(t *testing.T){
 	var count int
 	if err:=db.QueryRow("SELECT COUNT(*) FROM arc_policy_receipts WHERE task_id=?",taskID).Scan(&count);err!=nil{t.Fatal(err)}
 	if count!=1{t.Fatalf("receipt import duplicated/missing: %d",count)}
+	var attested string
+	if err:=db.QueryRow("SELECT value FROM arc_meta WHERE key='policy_migration_verified'").Scan(&attested);err!=nil{t.Fatal(err)}
+	if len(attested)!=64{t.Fatal("migration parity has no durable attestation")}
 	if err:=policyStateCommand([]string{"migrate","--repo",root,"--confirm-offline"});err!=nil{t.Fatal("idempotent migration finalization failed:",err)}
 	legacyGuard:=filepath.Join(root,".arc","policy","state.json")
 	st,err:=os.Lstat(legacyGuard);if err!=nil{t.Fatal(err)}
@@ -60,6 +63,20 @@ func TestPolicyMigrationStoresActiveHistoryAndReceipts(t *testing.T){
 	receiptArchives,err:=filepath.Glob(filepath.Join(root,".arc","backups","policy-receipts-*"));if err!=nil{t.Fatal(err)}
 	if len(receiptArchives)!=1{t.Fatalf("expected legacy receipts archive, got %d",len(receiptArchives))}
 	if _,err:=os.Stat(filepath.Join(receiptArchives[0],"payment-fix.json"));err!=nil{t.Fatal(err)}
+}
+
+func TestMigrationRetryRejectsMissingParityAttestation(t *testing.T){
+	if runtime.GOOS=="windows"{t.Skip("Windows Policy lock intentionally blocked")}
+	root,db:=testArcState(t)
+	if err:=db.Close();err!=nil{t.Fatal(err)}
+	testLegacyPolicyState(t,root,"policy-attestation")
+	if err:=policyStateCommand([]string{"migrate","--repo",root,"--confirm-offline"});err!=nil{t.Fatal(err)}
+	db,err:=openActiveArcDB(root);if err!=nil{t.Fatal(err)}
+	if _,err:=db.Exec("DELETE FROM arc_meta WHERE key='policy_migration_verified'");err!=nil{t.Fatal(err)}
+	db.Close()
+	if err:=policyStateCommand([]string{"migrate","--repo",root,"--confirm-offline"});err==nil{
+		t.Fatal("migration retry without receipt parity attestation was accepted")
+	}
 }
 
 func TestPolicyDBStateCASAndReceiptRejection(t *testing.T){
