@@ -186,7 +186,18 @@ func flushIndexOutboxWith(root string, build func(context.Context,string) error)
 			var success string
 			err = db.QueryRow("SELECT value FROM arc_meta WHERE key='index_last_success'").Scan(&success)
 			if err != nil && !errors.Is(err,sql.ErrNoRows) { return err }
-			if success != "" { return nil }
+			if success != "" {
+				var indexedSnapshot string
+				if err := db.QueryRow("SELECT value FROM arc_meta WHERE key='index_last_snapshot'").Scan(&indexedSnapshot); err != nil {
+					return fmt.Errorf("index snapshot metadata missing: %w", err)
+				}
+				current, err := sourceSnapshot(root)
+				if err != nil { return err }
+				if current != indexedSnapshot {
+					return errors.New("source changed without a pending index event; run arc sync reconcile first")
+				}
+				return nil
+			}
 			// No outbox events exist, but an initial source index was never
 			// confirmed. Rebuild once so a later task completion has proof.
 			batch.Count = -1
