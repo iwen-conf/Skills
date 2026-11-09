@@ -40,7 +40,7 @@ func TestTaskStateAndEventAtomicity(t *testing.T) {
 	var n, pending int
 	if err:=db.QueryRow("SELECT count(*) FROM arc_events WHERE aggregate='task'").Scan(&n);err!=nil{t.Fatal(err)}
 	if err:=db.QueryRow("SELECT count(*) FROM arc_outbox WHERE status='pending'").Scan(&pending);err!=nil{t.Fatal(err)}
-	if n!=4 || pending!=4 {t.Fatalf("events=%d outbox=%d; should match committed transitions",n,pending)}
+	if n!=4 || pending!=0 {t.Fatalf("events=%d outbox=%d; task events must not trigger a source reindex",n,pending)}
 }
 
 func TestPolicyTaskEnsureBindsWithoutPromoting(t *testing.T) {
