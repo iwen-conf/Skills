@@ -133,6 +133,14 @@ func commitTaskCompletion(db *sql.DB, root, id string, expected int, proof verif
 	var pending int
 	if err := tx.QueryRowContext(ctx,"SELECT COUNT(*) FROM arc_outbox WHERE status='pending'").Scan(&pending); err != nil { return err }
 	if pending != 0 { return fmt.Errorf("%d outbox events unacknowledged; run arc index flush first", pending) }
+	var indexedSnapshot string
+	if err := tx.QueryRowContext(ctx, "SELECT value FROM arc_meta WHERE key='index_last_snapshot'").Scan(&indexedSnapshot); err != nil {
+		if errors.Is(err,sql.ErrNoRows) { return errors.New("no confirmed code index; run arc index flush first") }
+		return err
+	}
+	if indexedSnapshot == "" || indexedSnapshot != proof.SourceSnapshot {
+		return errors.New("code index snapshot is stale for this verified tree; run arc index flush")
+	}
 	// The completion claim is revision-specific. Keep the immutable PASS receipt
 	// fingerprint and all checks in the event, not as a mutable status blob.
 	res, err := tx.ExecContext(ctx,
