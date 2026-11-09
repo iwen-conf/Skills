@@ -36,6 +36,7 @@ uses the existing official `tursogo` driver; no Turso Cloud connection is requir
 | `arc sync reconcile` | Catch up committed changes missed by hooks, with a durable Git cursor |
 | `arc index flush` | Full current Zoekt/ctags rebuild; confirm source outbox batch only after healthy index and stable source snapshot |
 | `arc event list` | Bounded, read-only inspection of append-only state events |
+| `arc policy state get/put/status/migrate` | Opt-in Turso SSOT for Arc Policy task, history, and immutable receipts |
 
 ```bash
 arc db status --repo .
@@ -72,6 +73,43 @@ The old graph store lives at `.arc/verify/data.db`. A migration is **explicit**:
 
 Do **not** manually copy a live WAL database, rename files over an active
 ledger, or delete backups. Backups do not justify unverified PASS claims.
+
+### Policy state and receipt physical cutover (Arc 0.4)
+
+After installing **both** the upgraded Go `arc` CLI and Python `arc-policy`
+runtime, quiesce any old agents that might write `.arc/policy/state.json`.
+The original verification graph must already be active in `.arc/arc.db`.
+
+```bash
+arc db status --repo .
+arc policy state status --repo .          # legacy before migration
+arc policy state migrate --repo . --confirm-offline
+arc policy state status --repo .          # mode: arc.db
+arc policy state get --repo .             # active task, history and CAS version
+arc-policy --cwd . task status            # now reads the same DB
+```
+
+`arc policy state migrate` imports the active task, historical tasks and all
+legacy PASS/AUTHORIZED receipts in one Turso transaction. The source
+`state.json` receives a SHA-256-named copy in `.arc/backups/`. After
+successful DB readback, the legacy receipts directory is archived under
+`.arc/backups/` and `state.json` is replaced with a directory tombstone:
+older plugin builds cannot silently recreate a second writable state file.
+An interrupted archive can be finalized by rerunning the offline migration;
+newer agents use the DB row as the only authoritative Policy state throughout.
+Never manually delete these backups.
+
+The Python runtime accesses Turso through `arc policy state get/put`, not
+Python `sqlite3`. The `put` operation requires an expected version and appends
+an audit event plus immutable receipt rows transactionally; stale writers
+fail closed. This migration does **not** mark tasks verified, change graph
+results or run tests. `git commit` and `git push` remain free of per-commit
+verification.
+
+Install new host/plugin runtimes **before** migration. An unavailable or
+broken DB backend must fail rather than revert to the old JSON. Windows
+Policy migration and completion remain fail-closed until the Go lock matches
+the Python msvcrt protocol.
 
 ### Guarantees and deliberate limits
 
