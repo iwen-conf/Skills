@@ -351,7 +351,7 @@ func dbCommand(args []string) error {
 				if e!=nil{return e}
 				defer db.Close()
 				var pending,graphs int
-				if e:=db.QueryRow("SELECT count(*) FROM arc_outbox WHERE status='pending'").Scan(&pending);e!=nil{return e}
+				if e:=db.QueryRow("SELECT count(*) FROM arc_outbox o JOIN arc_events e ON o.event_id=e.id WHERE o.status='pending' AND e.aggregate IN ('file','change')").Scan(&pending);e!=nil{return e}
 				if e:=db.QueryRow("SELECT count(*) FROM graphs").Scan(&graphs);e!=nil{return e}
 				status["pending_events"],status["graph_count"]=pending,graphs
 				return nil
