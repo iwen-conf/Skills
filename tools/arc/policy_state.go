@@ -230,6 +230,11 @@ func migratePolicyState(root string)error{
 	doc,err:=loadPolicyDocument(db);if err!=nil{return err}
 	if doc.Mode=="arc.db"{
 		hash,err:=policyMigrationFingerprint(db);if err!=nil{return err}
+		var verified string
+		if err:=db.QueryRow("SELECT value FROM arc_meta WHERE key='policy_migration_verified'").Scan(&verified);err!=nil{
+			return fmt.Errorf("Policy migration requires manual recovery: receipt readback was not marked complete: %w",err)
+		}
+		if verified!=hash{return errors.New("Policy migration verification fingerprint mismatch; refusing legacy archival")}
 		if err:=retireLegacyPolicyFiles(root,hash);err!=nil{return err}
 		return emitJSON(map[string]any{"storage":"arc.db","already_migrated":true,"legacy_guard":"directory","active":true})
 	}
@@ -306,6 +311,9 @@ func migratePolicyState(root string)error{
 	if err:=json.Unmarshal(live.State,&restored);err!=nil{return err}
 	reencoded,err:=json.Marshal(restored);if err!=nil{return err}
 	if string(reencoded)!=string(canonical){return errors.New("migrated policy state differs from original; fail closed")}
+	// Persist proof that all archived receipts and canonical state have been
+	// checked. An interrupted migration cannot skip this gate on retry.
+	if _,err:=db.Exec("INSERT OR REPLACE INTO arc_meta(key,value) VALUES('policy_migration_verified',?)",hex.EncodeToString(rawHash[:]));err!=nil{return err}
 	if err:=retireLegacyPolicyFiles(root,hex.EncodeToString(rawHash[:]));err!=nil{
 		return fmt.Errorf("policy DB migrated, but legacy guard setup failed; rerun migrate offline to finalize: %w",err)
 	}
