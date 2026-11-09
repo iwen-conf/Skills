@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Arc CLI 0.3.0 — verified task/index closure
+
+- Added `arc index flush`: bounded outbox watermark and retry counts, one
+  real `arc-idx` full rebuild, doctor health check and worktree-fingerprint
+  recheck before acknowledgement; a failed or concurrent build leaves source
+  events pending. Generated Zoekt/ctags metadata is excluded from Git source
+  observations. This is **batched full indexing**, not per-file indexing.
+- Only file/ChangeSet events enqueue index work; task lifecycle events remain
+  in the durable journal without causing redundant index rebuilds.
+- Added `arc task complete` and `arc task transition --to done` guarded by
+  expected-version CAS, an already existing current Arc Policy PASS (not
+  `AUTHORIZED`), source snapshot and confirmed index Outbox. No per-commit
+  verification is introduced.
+- Persisted completion receipt fingerprint, source revision and check verdicts
+  in append-only `task.completed` events. `arc task show` reports historical
+  source freshness without claiming independent tests were rerun.
+- Added mocked failure/retry/race tests, first-index and generated-metadata
+  tests, receipt forgery/waiver rejection and guarded CLI completion tests.
+  Real backend regression is still required before production cutover.
+
+
 ### Arc physical-store integration — task attribution and readback
 
 - Connected activated `.arc/arc.db` ChangeSets to the **stable active Arc Policy task ID**:
