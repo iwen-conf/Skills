@@ -34,6 +34,11 @@ The CLI manages workflow start, controlled schema migrations and explicit task c
    use `--no-verify` to skip them.
 6. Before asserting verified completion or handing off a finished task, run
    `arc-policy task verify` once on the final worktree in the authorized scope.
+   For a project with activated `.arc/arc.db`, reconcile pending changes with
+   `arc sync reconcile --task <policy-task-id>`, then `arc index flush` and
+   `arc task complete --id <policy-task-id> --expected-version N` only after the
+   resource task has legally reached `verifying`. This reads the existing PASS,
+   not a second test run. Never run this sequence on every Git commit.
    A later code change invalidates that completion evidence, not earlier commits.
 7. Once the verified task is delivered, it stops covering new edits.
    New work starts with another `arc-policy task begin` (no `--force`; the delivered task is archived).
