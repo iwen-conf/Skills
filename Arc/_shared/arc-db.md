@@ -26,6 +26,11 @@ mutations belong to the authorized work owner and plugin runtime.
   the existing verifier's graph, rounds and RAW evidence metadata in one file.**
   The two task domains still have separate tables; `arc-policy` receipts remain
   outside the DB. Before opt-in, Markdown and the old graph DB retain their authority.
+- **Completion lock protocol:** `arc task complete` validates the existing
+  `arc-policy` PASS, acquires its `task.lock`, compares the live receipt again,
+  and commits under the project DB lock; never call back into the policy CLI
+  while holding the locks. Until compatible Windows byte-range locking exists,
+  Windows completion is blocked rather than accepted without coordination.
 - **Verification evidence is immutable and revision-scoped.** A successful
   index update is not a passed test, and a passed test is not task completion.
 - Avoid a second project tracker. The planned task records should replace
