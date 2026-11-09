@@ -245,8 +245,14 @@ func migratePolicyState(root string)error{
 	if info,err:=os.Lstat(receiptsDir);err==nil{
 		if !info.IsDir()||info.Mode()&os.ModeSymlink!=0 {return errors.New("unsafe legacy policy receipts directory")}
 		list,err:=filepath.Glob(filepath.Join(receiptsDir,"*.json"));if err!=nil{return err}
+		if len(list)>10000{return errors.New("legacy receipt import exceeds 10000 files")}
+		var totalBytes int64
 		for _,file:=range list {
 			if err:=checkRegular(file);err!=nil{return err}
+			info,err:=os.Stat(file);if err!=nil{return err}
+			if info.Size()>16<<20{return fmt.Errorf("legacy receipt %s exceeds 16 MiB",file)}
+			totalBytes+=info.Size()
+			if totalBytes>64<<20{return errors.New("legacy receipts exceed 64 MiB import budget")}
 			raw,err:=os.ReadFile(file);if err!=nil{return err}
 			var receipt map[string]any
 			if err:=json.Unmarshal(raw,&receipt);err!=nil{return fmt.Errorf("legacy receipt %s: %w",file,err)}
@@ -287,6 +293,13 @@ func migratePolicyState(root string)error{
 			"state_sha256":hex.EncodeToString(rawHash[:]),"receipts":len(receipts),"version":1})
 	})
 	if err!=nil{return err}
+	// Check that every receipt (including standalone archived JSON files)
+	// really exists in the committed DB before retiring its old location.
+	for _,record:=range receipts {
+		var taskID,verdict,body string
+		if err:=db.QueryRow("SELECT task_id,verdict,body FROM arc_policy_receipts WHERE sha256=?",record.Hash).Scan(&taskID,&verdict,&body);err!=nil{return fmt.Errorf("receipt import parity failure: %w",err)}
+		if taskID!=record.TaskID||verdict!=record.Verdict||body!=record.Body{return errors.New("receipt import differs from original; refusing legacy archive")}
+	}
 	live,err:=loadPolicyDocument(db)
 	if err!=nil||live.Mode!="arc.db"{return errors.New("policy migration did not commit a readable state")}
 	var restored map[string]any
