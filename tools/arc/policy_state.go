@@ -222,6 +222,7 @@ func policyMigrationFingerprint(db *sql.DB)(string,error){
 }
 
 func migratePolicyState(root string)error{
+	if err:=ensureArcPrivateFiles(root);err!=nil{return err}
 	db,err:=openActiveArcDB(root);if err!=nil{return err};defer db.Close()
 	for _,stmt:=range policyStoreSchema{
 		if _,err:=db.Exec(stmt);err!=nil{return fmt.Errorf("policy schema: %w",err)}
