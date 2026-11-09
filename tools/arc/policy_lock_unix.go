@@ -15,6 +15,7 @@ import (
 // while holding these locks; its status may invoke the graph verifier.
 func withPolicyTaskLock(root string, fn func() error) error {
 	dir := filepath.Join(root, ".arc", "policy")
+	if err:=os.MkdirAll(dir,0700);err!=nil{return err}
 	st, err := os.Lstat(dir)
 	if err != nil { return fmt.Errorf("policy task lock directory missing: %w", err) }
 	if !st.IsDir() || st.Mode()&os.ModeSymlink != 0 {
