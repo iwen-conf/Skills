@@ -81,6 +81,43 @@ func sourceSnapshot(root string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
+// A healthy search index does not repair stale file metadata. Before
+// acknowledging events, every dirty worktree path and pending file event must
+// match the latest arc_files observation, or reconciliation must run again.
+func recordedFilesCurrent(root string) error {
+	dirty,err:=changedGitPaths(root)
+	if err!=nil{return err}
+	paths:=map[string]bool{}
+	for _,item:=range dirty {paths[item.Path]=true}
+	db,err:=openActiveArcDB(root)
+	if err!=nil{return err}
+	defer db.Close()
+	rows,err:=db.Query(
+		"SELECT DISTINCT e.aggregate_id FROM arc_outbox o JOIN arc_events e ON e.id=o.event_id WHERE o.status='pending' AND e.aggregate='file'")
+	if err!=nil{return err}
+	for rows.Next(){
+		var path string
+		if err:=rows.Scan(&path);err!=nil{rows.Close();return err}
+		paths[path]=true
+		if len(paths)>1000{rows.Close();return errors.New("index candidate set exceeds 1000 files; narrow the task")}
+	}
+	if err:=rows.Err();err!=nil{rows.Close();return err}
+	if err:=rows.Close();err!=nil{return err}
+	for path:=range paths {
+		var recorded string
+		if err:=db.QueryRow("SELECT sha256 FROM arc_files WHERE path=?",filepath.ToSlash(path)).Scan(&recorded);err!=nil{
+			if errors.Is(err,sql.ErrNoRows){return fmt.Errorf("%s has no recorded file observation; run arc sync reconcile",path)}
+			return err
+		}
+		current,_,_,err:=observedFile(root,path)
+		if err!=nil{return err}
+		if current!=recorded{
+			return fmt.Errorf("%s changed since its recorded file observation; run arc sync reconcile",path)
+		}
+	}
+	return nil
+}
+
 type indexDoctor struct {
 	RepoRoot    string `json:"repo_root"`
 	Healthy     bool   `json:"healthy"`
@@ -211,6 +248,7 @@ func flushIndexOutboxWith(root string, build func(context.Context,string) error)
 		return emitJSON(map[string]any{"indexed_events": 0, "pending": 0, "index": "no_pending_work"})
 	}
 
+	if err := recordedFilesCurrent(root); err != nil { return err }
 	before, err := sourceSnapshot(root)
 	if err != nil {
 		return err
@@ -244,6 +282,7 @@ func flushIndexOutboxWith(root string, build func(context.Context,string) error)
 		if current != before {
 			return errors.New("source changed before index acknowledgement; events remain pending")
 		}
+		if err:=recordedFilesCurrent(root);err!=nil{return err}
 		db, err := openActiveArcDB(root)
 		if err != nil {
 			return err
