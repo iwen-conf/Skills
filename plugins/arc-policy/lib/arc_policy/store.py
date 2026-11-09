@@ -129,10 +129,9 @@ def child_tasks(workspace: Path) -> dict[Path, dict[str, Any]]:
     # Migrated Policy tasks no longer have a state.json file. Discover both
     # project layouts without recursing into unrelated repositories.
     roots = {
-        file.parents[2]
-        for pattern in (f"*/.arc/policy/{STATE_NAME}", "*/.arc/arc.json")
-        for file in workspace.glob(pattern)
+        file.parents[2] for file in workspace.glob(f"*/.arc/policy/{STATE_NAME}")
     }
+    roots.update(file.parents[1] for file in workspace.glob("*/.arc/arc.json"))
     for root in sorted(roots):
         task = active_task(root) if (root / ".git").exists() else None
         if task:
