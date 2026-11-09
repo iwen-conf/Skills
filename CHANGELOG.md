@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### Arc 0.4.0 / arc-policy 0.4.3 — Policy task and receipt physical cutover
+
+- Introduced `arc policy state get|put|status|migrate` using the existing
+  local Turso driver and `.arc/arc.db`. The canonical document persists active
+  task, task history and optimistic version, with immutable, indexed receipt
+  records and audit events in the same database transaction.
+- Explicit `--confirm-offline` migration imports old Policy JSON and archived
+  PASS/AUTHORIZED receipts, makes a SHA-256-verified backup and replaces the
+  old `state.json` with a directory tombstone to prevent legacy writers from
+  silently re-creating a second authoritative state. Receipt files move to
+  `.arc/backups/`. Offline migration can be rerun to finish interrupted
+  archival; it never overwrites current DB state.
+- Python Arc Policy Runtime now reads/writes through the unified `arc` CLI
+  after cutover, using CAS for state changes. Backend failures fail closed;
+  neither task mutations nor verification receipts fall back to JSON.
+  Workspace child-task discovery includes migrated repositories.
+- `arc task complete` validates the live Policy receipt from the Turso row
+  under Policy and Arc locks, not stale `state.json`. Completed-task gates,
+  business-graph verification and the rule against per-commit verification
+  retain their existing semantics.
+- Added Go migration/conflict/receipt-integrity tests and Python DB-routing,
+  stale-writer, workspace and no-fallback regression tests. Cross-language
+  Windows locking remains intentionally blocked until implemented.
+
+
 ### Arc task-completion integrity — policy lock and receipt recheck
 
 - `arc task complete` now uses the same `.arc/policy/task.lock` coordination as
