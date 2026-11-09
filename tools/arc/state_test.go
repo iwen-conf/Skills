@@ -6,12 +6,21 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
+// testRepoRoot matches repositoryRoot, which resolves symlinks (macOS TempDir is under /var -> /private/var).
+func testRepoRoot(t *testing.T) string {
+	t.Helper()
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil { t.Fatal(err) }
+	return root
+}
+
 func testArcState(t *testing.T) (string, *sql.DB) {
 	t.Helper()
-	root := t.TempDir()
+	root := testRepoRoot(t)
 	if err := os.MkdirAll(filepath.Join(root, ".arc"), 0700); err != nil { t.Fatal(err) }
 	db, err := openArcDB(statePath(root))
 	if err != nil { t.Fatal(err) }

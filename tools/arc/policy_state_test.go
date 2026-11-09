@@ -111,7 +111,7 @@ func TestPolicyDBStateCASAndReceiptRejection(t *testing.T){
 }
 
 func TestPolicyStoreDoesNotInitializeImplicitly(t *testing.T){
-	root,db:=testArcState(t);defer db.Close()
+	_,db:=testArcState(t);defer db.Close()
 	doc,err:=loadPolicyDocument(db);if err!=nil{t.Fatal(err)}
 	if doc.Mode!="legacy" {t.Fatal("Policy unexpectedly migrated without an explicit command")}
 	var tableCount int

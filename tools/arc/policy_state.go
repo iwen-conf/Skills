@@ -204,8 +204,9 @@ func retireLegacyPolicyFiles(root, expectedHash string)error{
 	if st,err:=os.Lstat(receipts);err==nil{
 		if !st.IsDir()||st.Mode()&os.ModeSymlink!=0{return errors.New("unsafe legacy receipts path")}
 		dest:=filepath.Join(base,"backups","policy-receipts-"+expectedHash[:16])
-		if _,err:=os.Lstat(dest);err==nil{return errors.New("legacy receipt archive already exists; inspect before retrying")}
-		if !errors.Is(err,os.ErrNotExist){return err}
+		if _,err:=os.Lstat(dest);err==nil{
+			return errors.New("legacy receipt archive already exists; inspect before retrying")
+		}else if !errors.Is(err,os.ErrNotExist){return err}
 		if err:=os.Rename(receipts,dest);err!=nil{return err}
 	}else if !errors.Is(err,os.ErrNotExist){return err}
 	return nil

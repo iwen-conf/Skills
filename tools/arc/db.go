@@ -194,8 +194,7 @@ func writeManifest(root string, m arcManifest) error {
 	tmp := path + ".tmp"
 	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_EXCL|os.O_CREATE, 0600)
 	if err != nil { return err }
-	_, e := f.Write(append(body, '
-'))
+	_, e := f.Write(append(body, '\n'))
 	if e == nil { e = f.Sync() }
 	if closeErr := f.Close(); e == nil { e = closeErr }
 	if e != nil { os.Remove(tmp); return e }

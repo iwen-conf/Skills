@@ -63,7 +63,12 @@ func (d db) close() error {
 	if d.handle == nil {
 		return nil
 	}
-	return d.handle.Close()
+	// The Turso driver does not checkpoint on Close, and `arc db migrate`
+	// rejects a ledger whose WAL still holds frames.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	_, checkpoint := d.handle.ExecContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE)")
+	cancel()
+	return errors.Join(checkpoint, d.handle.Close())
 }
 func (d db) sql(statement string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

@@ -90,7 +90,7 @@ func TestIndexBackendMustReturnRealHealthyDoctor(t *testing.T) {
 	script:="#!/bin/sh\ncase \"$1\" in\n  index) exit 0 ;;\n  doctor) printf '%s\\n' \"$ARC_INDEX_DOCTOR_JSON\"; exit 0 ;;\nesac\nexit 2\n"
 	if err:=os.WriteFile(filepath.Join(bin,"arc-idx"),[]byte(script),0700);err!=nil{t.Fatal(err)}
 	t.Setenv("PATH",bin+string(os.PathListSeparator)+os.Getenv("PATH"))
-	root:=t.TempDir()
+	root:=testRepoRoot(t)
 	for _,tc:=range []struct{name string;healthy,stale,tags,correctRoot,want bool}{
 		{"healthy",true,false,true,true,true},
 		{"unhealthy",false,false,true,true,false},
@@ -164,7 +164,9 @@ func TestTaskProofRejectsAuthorizationAndStaleness(t *testing.T) {
 }
 
 func TestPolicyReceiptRevocationBlocksCompletion(t *testing.T) {
-	root:=t.TempDir()
+	// Completion always runs with an active arc.db; Policy itself is still in legacy JSON mode here.
+	root,db:=testArcState(t)
+	if err:=db.Close();err!=nil{t.Fatal(err)}
 	dir:=filepath.Join(root,".arc","policy")
 	if err:=os.MkdirAll(dir,0700);err!=nil{t.Fatal(err)}
 	const id="policy-lock-test"

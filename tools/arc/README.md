@@ -1,6 +1,6 @@
 # arc — one CLI, project-local state and verification
 
-`arc` 0.3.x is the public entrypoint for source intelligence, project resource state,
+`arc` 0.4.x is the public entrypoint for source intelligence, project resource state,
 and business graph verification. It still delegates code indexing to `arc-idx`
 and business graph execution to `arc-verify`, while **resource state uses
 the same local Turso database after activation**.

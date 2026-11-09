@@ -90,7 +90,7 @@ func zoektSearch(repo *Repo, qstr string, m *profileMatcher, maxDocs, contextLin
 
 	searcher, err := zsearch.NewDirectorySearcher(repo.IndexDir)
 	if err != nil {
-		return nil, fmt.Errorf("open index %s: %w (run `arc-idx index`)", repo.IndexDir, err)
+		return nil, fmt.Errorf("open index %s: %w (run `arc index`)", repo.IndexDir, err)
 	}
 	defer searcher.Close()
 
@@ -170,7 +170,7 @@ func truncateLine(s string) string {
 func rgSearch(repo *Repo, qstr string, m *profileMatcher, maxDocs, contextLines int) (*searchResult, error) {
 	rgBin, err := exec.LookPath("rg")
 	if err != nil {
-		return nil, fmt.Errorf("no zoekt index and rg not installed; run `arc-idx index`")
+		return nil, fmt.Errorf("no zoekt index and rg not installed; run `arc index`")
 	}
 	pattern, rgArgs := translateQueryToRg(qstr)
 	rgArgs = append(rgArgs, "--json", "--max-count", "20")
