@@ -105,6 +105,18 @@ func TestTaskProofRejectsAuthorizationAndStaleness(t *testing.T) {
 		{"wrong-task",testPolicyReceipt("another-task","PASS"),false},
 		{"stale-tree",func()policyTaskStatus{s:=testPolicyReceipt(id,"PASS");s.ReceiptOK=false;return s}(),false},
 		{"inconsistent-tree",func()policyTaskStatus{s:=testPolicyReceipt(id,"PASS");s.Tree.Digest="different";return s}(),false},
+		{"no-independent-proof",func()policyTaskStatus{
+			s:=testPolicyReceipt(id,"PASS")
+			var receipt map[string]any
+			_ = json.Unmarshal(s.Task.Receipt,&receipt)
+			receipt["checks"]=[]map[string]any{
+				{"id":"snapshot","verdict":"PASS"},
+				{"id":"cli_receipt","verdict":"PASS"},
+				{"id":"tests","verdict":"NOT_RUN"},
+			}
+			s.Task.Receipt,_=json.Marshal(receipt)
+			return s
+		}(),false},
 	}{
 		t.Run(tc.name,func(t *testing.T){
 			proof,err:=requirePolicyProof(id,tc.status)
