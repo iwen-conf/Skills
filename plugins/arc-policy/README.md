@@ -284,6 +284,18 @@ arc-policy task verify
 # a fresh PASS receipt is required for verified delivery claims, not for commits
 ```
 
+If this repository explicitly activated `.arc/arc.db`, close the separate
+resource task **once**, after verification—not on every commit. Set its
+versioned state to `verifying` through legal `arc task transition` steps,
+then run `arc sync reconcile --task <policy-task-id>` (if not already
+reconciled by PostToolUse), `arc index flush`, and finally
+`arc task complete --id <policy-task-id> --expected-version <N>`.
+The completion command reads the existing Arc Policy PASS; it never launches
+a second test run. An `AUTHORIZED` waiver does not count as PASS. A failed
+index/changed tree/incorrect task version blocks completion, not normal Git
+commit/push. The original Python policy receipt remains authoritative until
+the receipt-store migration is separately verified.
+
 Move between existing Arc phases with an atomic handoff:
 
 ```bash
