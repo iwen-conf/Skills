@@ -52,6 +52,12 @@ func TestOutboxFailureRaceAndIdempotentRecovery(t *testing.T) {
 	}
 	if err:=flushIndexOutboxWith(root,changeDuringIndex);err==nil{t.Fatal("source race incorrectly acknowledged events")}
 	check("pending",2)
+	// The edit that raced with indexing must be durably reconciled before
+	// the next retry can acknowledge anything.
+	db2,err:=openActiveArcDB(root)
+	if err!=nil{t.Fatal(err)}
+	if err:=reconcileGit(db2,root,"");err!=nil{db2.Close();t.Fatal(err)}
+	if err:=db2.Close();err!=nil{t.Fatal(err)}
 	okBuild:=func(context.Context,string)error{countCalls++;return nil}
 	if err:=flushIndexOutboxWith(root,okBuild);err!=nil{t.Fatal(err)}
 	check("delivered",3)
