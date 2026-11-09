@@ -72,6 +72,24 @@ func testPolicyReceipt(taskID, verdict string) policyTaskStatus {
 	return status
 }
 
+func TestInitialIndexWithEmptyOutboxAndGeneratedMetadata(t *testing.T) {
+	root, db := testArcState(t)
+	initClosureRepo(t, root)
+	if err := db.Close(); err != nil { t.Fatal(err) }
+	before, err := sourceSnapshot(root); if err != nil { t.Fatal(err) }
+	// Arc index produces tags in .ai-code-index; that generated file
+	// must not become a source event or invalidate its own index snapshot.
+	if err := os.MkdirAll(filepath.Join(root,".ai-code-index"),0700);err!=nil{t.Fatal(err)}
+	if err := os.WriteFile(filepath.Join(root,".ai-code-index","tags.json"),[]byte("{}\n"),0600);err!=nil{t.Fatal(err)}
+	after, err := sourceSnapshot(root); if err != nil { t.Fatal(err) }
+	if before != after {t.Fatal("generated index metadata changed the source fingerprint")}
+	calls := 0
+	indexer := func(context.Context,string)error{calls++;return nil}
+	if err := flushIndexOutboxWith(root,indexer);err!=nil{t.Fatal(err)}
+	if err := flushIndexOutboxWith(root,indexer);err!=nil{t.Fatal(err)}
+	if calls!=1{t.Fatalf("expected one initial index build, got %d",calls)}
+}
+
 func TestTaskProofRejectsAuthorizationAndStaleness(t *testing.T) {
 	const id="policy-task"
 	for _,tc:=range []struct{ name string; status policyTaskStatus; valid bool }{
