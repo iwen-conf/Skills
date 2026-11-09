@@ -18,6 +18,10 @@
 - Persisted completion receipt fingerprint, source revision and check verdicts
   in append-only `task.completed` events. `arc task show` reports historical
   source freshness without claiming independent tests were rerun.
+- Fixed a shared-store receipt feedback loop: Arc Policy now fingerprints an
+  active graph's cutover manifest and config instead of the entire mutable
+  `arc.db` file. Independent graph gates are still rechecked on receipt use;
+  old standalone graph ledgers retain byte/WAL fingerprinting.
 - Added mocked failure/retry/race tests, first-index and generated-metadata
   tests, receipt forgery/waiver rejection and guarded CLI completion tests.
   Real backend regression is still required before production cutover.
