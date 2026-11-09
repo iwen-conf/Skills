@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"time"
 )
 
@@ -19,6 +20,11 @@ import (
 type policyTaskStatus struct {
 	RepoRoot  string `json:"repo_root"`
 	ReceiptOK bool   `json:"receipt_ok"`
+	Tree struct {
+		Head string `json:"head"`
+		Digest string `json:"digest"`
+		Dirty []string `json:"dirty"`
+	} `json:"tree"`
 	Task      struct {
 		ID      string          `json:"id"`
 		Receipt json.RawMessage `json:"receipt"`
@@ -46,6 +52,7 @@ func requirePolicyProof(taskID string, status policyTaskStatus) (verifiedTaskPro
 		Head      string           `json:"head"`
 		Digest    string           `json:"digest"`
 		Tree      string           `json:"tree"`
+		Dirty     []string         `json:"dirty"`
 		Checks    []map[string]any `json:"checks"`
 	}
 	if err := json.Unmarshal(status.Task.Receipt, &receipt); err != nil {
@@ -68,6 +75,10 @@ func requirePolicyProof(taskID string, status policyTaskStatus) (verifiedTaskPro
 	}
 	if !snapshotOK || !receiptOK {
 		return verifiedTaskProof{}, errors.New("policy PASS lacks successful snapshot and receipt checks")
+	}
+	if status.Tree.Head != receipt.Head || status.Tree.Digest != receipt.Digest ||
+		!reflect.DeepEqual(status.Tree.Dirty, receipt.Dirty) {
+		return verifiedTaskProof{}, errors.New("policy receipt fingerprint differs from current tree reported by Arc Policy")
 	}
 	sum := sha256.Sum256(status.Task.Receipt)
 	return verifiedTaskProof{
