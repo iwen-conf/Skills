@@ -20,7 +20,7 @@ arc daemon status
   is normal). `daemon_pid` present but not alive → `arc daemon restart`.
 - Identity: prefer `~/.local/bin/arc`; `arc version` identifies the public CLI and
   `arc capabilities --json` shows the available `arc-idx`/verification backends.
-  Current `arc` 0.2.0 implements opt-in local state commands; the code-index and
+  Current `arc` 0.3.0 implements opt-in local state, batched index outbox and proof-bound completion; the code-index and
   graph-verifier binaries remain separate. Without `arc`, use `arc-idx` only as
   a labelled legacy lookup fallback; no resource writes. Report the limitation.
 - Repository root: the nearest ancestor of the working directory (or of `--repo <dir>`) that holds
