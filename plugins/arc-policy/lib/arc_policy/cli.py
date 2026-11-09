@@ -208,6 +208,27 @@ def cmd_install(args: argparse.Namespace) -> int:
     return 0
 
 
+def _arc_engines(arc_binary: str | None) -> dict[str, bool]:
+    """Engines are private to arc (libexec/arc), so ask arc rather than PATH."""
+    if not arc_binary:
+        return {}
+    try:
+        result = subprocess.run(
+            [arc_binary, "capabilities", "--json"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        engines = json.loads(result.stdout).get("engines") or {}
+    except (OSError, subprocess.TimeoutExpired, ValueError, AttributeError):
+        return {}
+    return {
+        name: bool(isinstance(info, dict) and info.get("available"))
+        for name, info in engines.items()
+    }
+
+
 def cmd_doctor(args: argparse.Namespace) -> int:
     import shutil
 
@@ -232,14 +253,23 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         if policy_ok
         else (root / ".arc/verify/config.jsonc").is_file()
     )
-    verify_binary = shutil.which("arc-verify")
+    arc_binary = shutil.which("arc")
+    engines = _arc_engines(arc_binary)
+    legacy_verify = shutil.which("arc-verify")
+    verify_argv: list[str] | None
+    if arc_binary and engines.get("arc-verify"):
+        verify_argv = [arc_binary, "verify"]
+    elif legacy_verify:
+        verify_argv = [legacy_verify]
+    else:
+        verify_argv = None
     turso_binary = shutil.which("tursodb")  # optional manual inspection only
     native_db_ok = False
     native_db_error = None
-    if graph_declared and verify_binary:
+    if graph_declared and verify_argv:
         try:
             selftest = subprocess.run(
-                [verify_binary, "selftest"],
+                [*verify_argv, "selftest"],
                 capture_output=True,
                 text=True,
                 timeout=30,
@@ -252,17 +282,18 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             native_db_error = str(exc)
     report = {
         "graph_configured": graph_declared,
-        "arc_verify_on_path": bool(verify_binary),
+        "arc_on_path": arc_binary is not None,
+        "verify_engine_ready": bool(verify_argv),
         "tursodb_on_path": bool(turso_binary),
-        "graph_runtime_ready": not graph_declared
-        or bool(verify_binary and native_db_ok),
+        "graph_runtime_ready": not graph_declared or bool(verify_argv and native_db_ok),
         "native_turso_selftest": native_db_ok if graph_declared else None,
         "native_turso_error": native_db_error,
         "version": __version__,
         "repo_root": str(root),
         "plugin_root": str(plugin_root()),
         "cli_on_path": shutil.which("arc-policy") is not None,
-        "arc_idx_on_path": shutil.which("arc-idx") is not None,
+        "code_index_ready": bool(engines.get("arc-idx"))
+        or shutil.which("arc-idx") is not None,
         "completion_judge": "jev" if shutil.which("jev") else "completion_markers",
         "policy_ok": policy_ok,
         "policy_error": error,
@@ -307,7 +338,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             "engine_ready",
             "skills_ready",
             "cli_ready",
-            "arc_idx_on_path",
+            "code_index_ready",
             "graph_runtime_ready",
             "git_gate_installable",
         )

@@ -95,3 +95,23 @@ func TestDelegationPreservesBackendExitCode(t *testing.T) {
 		t.Fatalf("verify exit code: got %d, want 19", got)
 	}
 }
+
+func TestBackendResolvesFromPrivateLibexec(t *testing.T) {
+	if runtime.GOOS == "windows" { t.Skip("Unix layout only") }
+	prefix := t.TempDir()
+	bin := filepath.Join(prefix, "bin")
+	private := filepath.Join(prefix, "libexec", "arc")
+	for _, dir := range []string{bin, private} {
+		if err := os.MkdirAll(dir, 0o755); err != nil { t.Fatal(err) }
+	}
+	backend := filepath.Join(private, "arc-idx")
+	if err := os.WriteFile(backend, []byte("#!/bin/sh\n"), 0o755); err != nil { t.Fatal(err) }
+	t.Setenv("PATH", t.TempDir())
+	got, err := resolveBackendFrom(bin, "arc-idx")
+	if err != nil || got != backend { t.Fatalf("got %q, %v; want %q", got, err, backend) }
+	sibling := filepath.Join(bin, "arc-idx")
+	if err := os.WriteFile(sibling, []byte("#!/bin/sh\n"), 0o755); err != nil { t.Fatal(err) }
+	if got, _ := resolveBackendFrom(bin, "arc-idx"); got != backend {
+		t.Fatalf("private backend must win over a stale public copy, got %q", got)
+	}
+}

@@ -192,3 +192,12 @@ def test_claude_code_payload_is_never_treated_as_cursor(tmp_path: Path) -> None:
     # A Cursor-launched terminal can leak CURSOR_* variables into Claude Code.
     out = entry(PLUGIN, payload, home, CURSOR_VERSION="3.0.0")
     assert json.loads(out)["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+def test_unified_arc_reads_count_as_read_only_like_the_backend():
+    from arc_policy.classify import read_only_shell
+
+    assert read_only_shell("arc search foo --format json")
+    assert read_only_shell("arc-idx search foo")
+    assert not read_only_shell("arc task create --title x")
+    assert not read_only_shell("arc index --quiet")

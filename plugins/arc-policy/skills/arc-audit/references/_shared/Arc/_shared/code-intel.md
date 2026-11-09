@@ -19,8 +19,7 @@ arc daemon status
   `daemon_pid` → `arc daemon restart`.
 - Identity: `arc` is the only public command; `arc version` must print `arc`, not `arc-idx`
   (a shell alias or symlink to the backend is a broken install). `arc capabilities --json`
-  lists its backends. Without `arc`, use `arc-idx` only as a labelled lookup fallback with no
-  resource writes, and report it.
+  lists its private `libexec/arc` engines; never call them. No `arc` → report a broken install.
 - Repository root: nearest ancestor of the cwd (or `--repo <dir>`) holding `.ai-code-index/` or a
   `.git` directory; config `<root>/.ai-code-index/config.json`, else defaults (doctor
   `repo_root`). Child clone: `--repo <dir>` and `git -C <clone>`. A worktree or submodule has a

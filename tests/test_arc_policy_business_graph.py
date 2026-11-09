@@ -390,7 +390,7 @@ def test_doctor_reports_local_graph_runtime_requirements(tmp_path, monkeypatch, 
     assert result == 1
     assert report["graph_configured"] is True
     assert report["graph_runtime_ready"] is False
-    assert report["arc_verify_on_path"] is False
+    assert report["verify_engine_ready"] is False
     assert report["tursodb_on_path"] is False
 
 
@@ -475,3 +475,41 @@ def test_policy_fails_when_official_gate_rejects_explore_evidence(
     )
     assert result["verdict"] == "FAIL"
     assert "graph gate FAIL" in result["reason"]
+
+
+def test_doctor_uses_private_engines_through_arc(tmp_path, monkeypatch, capsys):
+    from arc_policy.cli import main
+    import json
+    import os
+    import subprocess
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    (repo / ".arc/verify").mkdir(parents=True)
+    (repo / ".arc/verify/config.jsonc").write_text("{}")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    calls = tmp_path / "calls"
+    fake_arc = bin_dir / "arc"
+    fake_arc.write_text(
+        "#!/bin/sh\n"
+        f'echo "$*" >> "{calls}"\n'
+        'case "$1" in\n'
+        "  capabilities) echo '{\"engines\":{\"arc-idx\":{\"available\":true},"
+        "\"arc-verify\":{\"available\":true}}}' ;;\n"
+        "  verify) exit 0 ;;\n"
+        "esac\n"
+    )
+    fake_arc.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}/usr/bin{os.pathsep}/bin")
+
+    main(["--cwd", str(repo), "doctor"])
+    report = json.loads(capsys.readouterr().out)
+
+    assert report["arc_on_path"] is True
+    assert report["code_index_ready"] is True
+    assert report["verify_engine_ready"] is True
+    assert report["native_turso_selftest"] is True
+    assert "verify selftest" in calls.read_text()
+    assert "arc_idx_on_path" not in report

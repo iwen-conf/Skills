@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const version = "0.4.0"
+const version = "0.4.1"
 
 const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"Usage:\n" +
@@ -78,19 +78,26 @@ func selectCommand(args []string) (route, error) {
 	return route{}, fmt.Errorf("unknown arc command %q", name)
 }
 
-// resolveBackend prefers the sibling built by scripts/install_arc.sh, then PATH.
-// It makes a standalone bin directory usable even when not yet on PATH.
+// resolveBackend finds an engine for the public arc command. Engines live in the
+// private <prefix>/libexec/arc directory so agents cannot call them by name; a
+// sibling of arc (pre-0.4.1 layout) and PATH remain migration fallbacks.
 func resolveBackend(name string) (string, error) {
 	self, err := os.Executable()
-	if err == nil {
-		candidate := filepath.Join(filepath.Dir(self), name)
-		if runtime.GOOS == "windows" { candidate += ".exe" }
+	if err != nil { return exec.LookPath(name) }
+	if resolved, e := filepath.EvalSymlinks(self); e == nil { self = resolved }
+	return resolveBackendFrom(filepath.Dir(self), name)
+}
+
+func resolveBackendFrom(binDir, name string) (string, error) {
+	if runtime.GOOS == "windows" { name += ".exe" }
+	for _, dir := range []string{filepath.Join(filepath.Dir(binDir), "libexec", "arc"), binDir} {
+		candidate := filepath.Join(dir, name)
 		if st, statErr := os.Stat(candidate); statErr == nil && st.Mode().IsRegular() &&
 			(runtime.GOOS == "windows" || st.Mode().Perm() & 0111 != 0) {
 			return candidate, nil
 		}
 	}
-	return exec.LookPath(name)
+	return exec.LookPath(strings.TrimSuffix(name, ".exe"))
 }
 
 func capabilities() map[string]any {
@@ -161,7 +168,7 @@ func run(args []string) int {
 	}
 	binary, err := resolveBackend(selected.executable)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "arc: backend %s not found alongside arc or on PATH; use scripts/install_arc.sh\n", selected.executable)
+		fmt.Fprintf(os.Stderr, "arc: backend %s not found in libexec/arc, beside arc or on PATH; run scripts/install_arc.sh\n", selected.executable)
 		return 127
 	}
 	forward := func() int {

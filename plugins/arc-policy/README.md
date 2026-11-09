@@ -1,7 +1,7 @@
 # Arc Policy Runtime
 
 Arc workflows and their policy runtime, packaged for Claude Code, Grok Build, and Codex CLI.
-Version 0.4.5 keeps one policy engine and one canonical `Arc/` skill source, with generated
+Version 0.4.6 keeps one policy engine and one canonical `Arc/` skill source, with generated
 host manifests, a complete bundled skill tree, and a strict Codex wire adapter.
 
 | Piece | Job |
@@ -194,19 +194,21 @@ Installation itself is offline; only the explicit environment bootstrap may down
 
 This stable runtime survives host plugin cache replacement. Re-run `install` from the updated
 plugin after an upgrade. Old runtime snapshots remain available to running processes.
-The binary stays `arc-policy`. The unified `arc` CLI (with its `arc-idx`/`arc-verify` backends)
-is installed separately by `bash scripts/install_arc.sh`; an `arc` alias or symlink to `arc-idx`
-breaks arc.db Policy state and must be removed.
+The binary stays `arc-policy`. The unified `arc` CLI is installed separately by
+`bash scripts/install_arc.sh`; its `arc-idx`/`arc-verify` engines are private in
+`<prefix>/libexec/arc` and off `PATH`. An `arc` alias or symlink to `arc-idx` breaks arc.db
+Policy state and must be removed.
 
 Hook startup first uses an installed dependency copy, then the plugin/source `.venv`, then
 the invoking Python. It never provisions packages inside a tool hook. A Python entrypoint
 that can run but cannot load the engine emits an explicit refusal; a missing Python binary,
 host timeout, disabled handler or untrusted hook cannot be treated as enforced policy.
 
-`arc-policy doctor` reports engine, bundled skills, persistent CLI, external `arc-idx`,
-optional graph runtime and Git capability separately. Its `workflow_ready` requires those
-local prerequisites. `host_hooks_ready: null` means native host loading/trust and an actual
-denied tool call still need verification. Python, `arc-idx` and optional `arc-verify` are
+`arc-policy doctor` reports engine, bundled skills, persistent CLI, `arc` with its code-index
+and verify engines (`arc_on_path`, `code_index_ready`, `verify_engine_ready`, read from
+`arc capabilities --json`), optional graph runtime and Git capability separately. Its
+`workflow_ready` requires those local prerequisites. `host_hooks_ready: null` means native host
+loading/trust and an actual denied tool call still need verification. Python and `arc` are
 external dependencies; the plugin does not silently install them.
 
 ### Grok
@@ -473,7 +475,7 @@ repository without a task is reported as changed without one. Cursor's `workspac
 checked. When several repositories report, the strictest `stop.mode` applies.
 
 Allowed edit tools record their explicit target paths even when `PostToolUse` is missing.
-Known inspection-only shell calls (such as `git status`, `arc-policy task status`, `arc-idx`
+Known inspection-only shell calls (such as `git status`, `arc-policy task status`, `arc search`
 queries and plain file reads) open an empty attribution window: they do not acquire another
 session's concurrent writes. Commands with output redirection, write options, prefix wrappers
 or opaque scripts keep conservative write windows.

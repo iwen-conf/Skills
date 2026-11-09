@@ -15,8 +15,11 @@ arc version
 arc capabilities --json
 ```
 
-The installer builds `arc`, `arc-idx`, and `arc-verify` into the same binary
-directory; `arc` finds sibling binaries before `PATH`. The resource engine
+The installer publishes only `arc` to the binary directory. The `arc-idx` and
+`arc-verify` engines go to the private `<prefix>/libexec/arc` (for
+`~/.local/bin` that is `~/.local/libexec/arc`), outside `PATH`, and stale public
+copies from earlier installs are removed. `arc` resolves engines from
+`libexec/arc`, then beside itself, then `PATH`. The resource engine
 uses the existing official `tursogo` driver; no Turso Cloud connection is required.
 
 ## Supported commands

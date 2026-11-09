@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### arc 0.4.1 / arc-policy 0.4.6 — `arc` is the only callable entry
+
+- `scripts/install_arc.sh` publishes only `arc` to the bin directory; the `arc-idx` and `arc-verify` engines move to the private `<prefix>/libexec/arc` and stale public copies are removed, so agents cannot call the backends by name. `arc` resolves engines from `libexec/arc`, then beside itself, then `PATH`.
+- `arc-policy doctor` asks `arc capabilities --json` for engines and runs `arc verify selftest`. `arc_idx_on_path`/`arc_verify_on_path` are replaced by `arc_on_path`, `code_index_ready` and `verify_engine_ready`; `workflow_ready` uses `code_index_ready`.
+- `arc search|symbol|files|ast|stats|doctor|version` count as read-only shell calls, like the same `arc-idx` queries.
+- `code-intel` drops the "use `arc-idx` without `arc`" fallback: a missing `arc` is reported as a broken install.
+
 ### Non-Arc skills call the public `arc` entry
 
 - CNB, Waza (`health`, `research-write`), HarmonyOS, Lark `lark-workflow-project-docs` (2.0.1) and the Android `perfetto-sql` / `play-billing-library-version-upgrade` skills now write `arc search|symbol|files|ast|doctor|index` instead of the `arc-idx` backend. HarmonyOS `arc-idx-integration.md` is renamed `arc-integration.md` and points at `arc:explore` instead of the retired `arc:idx` skill.
