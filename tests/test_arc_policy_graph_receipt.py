@@ -51,3 +51,47 @@ def test_no_graph_opt_in_does_not_fingerprint_runtime_files(tmp_path):
     first = tree_fingerprint(tmp_path)["digest"]
     db.write_bytes(b"two")
     assert tree_fingerprint(tmp_path)["digest"] == first
+
+
+def test_active_shared_graph_database_ignores_unrelated_resource_writes(tmp_path):
+    """The graph gate revalidates independent proof; resource-table writes are not tests."""
+    import json
+    import os
+    import subprocess
+
+    repo = tmp_path / "shared"
+    repo.mkdir()
+    env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+    subprocess.run(["git", "init", "-q"], cwd=repo, env=env, check=True)
+    (repo / ".gitignore").write_text(".arc/\n")
+    subprocess.run(["git", "add", ".gitignore"], cwd=repo, env=env, check=True)
+    subprocess.run(
+        ["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid",
+         "commit", "-qm", "init"],
+        cwd=repo, env=env, check=True,
+    )
+    verify = repo / ".arc/verify"
+    verify.mkdir(parents=True)
+    config = verify / "config.jsonc"
+    config.write_text('{"environments":{}}', encoding="utf-8")
+    manifest = repo / ".arc/arc.json"
+    manifest.write_text(json.dumps({
+        "schema_version": 1, "active": True, "db": ".arc/arc.db",
+    }))
+    db = repo / ".arc/arc.db"
+    db.write_bytes(b"graph-and-task-state-v1")
+    first = tree_fingerprint(repo)["digest"]
+    # Task/Outbox updates must not revoke a valid business graph receipt.
+    db.write_bytes(b"graph-and-task-state-v1-and-more-task-events")
+    assert tree_fingerprint(repo)["digest"] == first
+    (repo / ".arc/arc.db-wal").write_bytes(b"new task event")
+    assert tree_fingerprint(repo)["digest"] == first
+    # But activation and graph configuration remain part of proof identity.
+    config.write_text('{"environments":{"test":{}}}', encoding="utf-8")
+    assert tree_fingerprint(repo)["digest"] != first
+    manifest.write_text(json.dumps({
+        "schema_version": 2, "active": True, "db": ".arc/arc.db",
+    }))
+    import pytest
+    with pytest.raises(RuntimeError, match="activation manifest"):
+        tree_fingerprint(repo)
