@@ -13,33 +13,34 @@ git config user.email "arc@example.invalid"
 echo "baseline" > README.txt
 git add README.txt
 git commit -qm baseline
+mkdir -p .arc
 
-"$bin_dir/arc" db init --repo . > init.json
-python3 -c 'import json; assert json.load(open("init.json"))["active"] is True'
-"$bin_dir/arc" task create --title "smoke test" > task.json
-task_id="$(python3 -c 'import json; print(json.load(open("task.json"))["id"])')"
-"$bin_dir/arc" task transition --id "$task_id" --to ready --expected-version 1 > ready.json
+"$bin_dir/arc" db init --repo . > .arc/init.json
+python3 -c 'import json; assert json.load(open(".arc/init.json"))["active"] is True'
+"$bin_dir/arc" task create --title "smoke test" > .arc/task.json
+task_id="$(python3 -c 'import json; print(json.load(open(".arc/task.json"))["id"])')"
+"$bin_dir/arc" task transition --id "$task_id" --to ready --expected-version 1 > .arc/ready.json
 echo "new code" > feature.go
-"$bin_dir/arc" file update --path feature.go --task "$task_id" > file.json
-"$bin_dir/arc" file show --path feature.go > file-show.json
-python3 -c 'import json; assert json.load(open("file-show.json"))["version"]==1'
+"$bin_dir/arc" file update --path feature.go --task "$task_id" > .arc/file.json
+"$bin_dir/arc" file show --path feature.go > .arc/file-show.json
+python3 -c 'import json; assert json.load(open(".arc/file-show.json"))["version"]==1'
 
 # Policy task ID import must be idempotent, and a change must retain its owner.
-"$bin_dir/arc" task ensure --id policy-smoke-01 --title "policy smoke (arc-code)" > policy-task.json
-"$bin_dir/arc" task ensure --id policy-smoke-01 --title "policy smoke (arc-code)" > policy-duplicate.json
-python3 -c 'import json; assert json.load(open("policy-duplicate.json"))["duplicate"] is True'
-"$bin_dir/arc" update --changed-only --task policy-smoke-01 > update.json
-python3 -c 'import json; assert json.load(open("update.json"))["changed_files"]>0'
+"$bin_dir/arc" task ensure --id policy-smoke-01 --title "policy smoke (arc-code)" > .arc/policy-task.json
+"$bin_dir/arc" task ensure --id policy-smoke-01 --title "policy smoke (arc-code)" > .arc/policy-duplicate.json
+python3 -c 'import json; assert json.load(open(".arc/policy-duplicate.json"))["duplicate"] is True'
+"$bin_dir/arc" update --changed-only --task policy-smoke-01 > .arc/update.json
+python3 -c 'import json; assert json.load(open(".arc/update.json"))["changed_files"]>0'
 # This executes the real Zoekt/ctags indexer. Capture results under .arc,
 # which is excluded from source-index reconciliation.
 "$bin_dir/arc" index flush --repo . > .arc/index-flush.json
 python3 -c 'import json; d=json.load(open(".arc/index-flush.json")); assert d["index"]=="healthy" and d["indexed_events"]>0'
 "$bin_dir/arc" db status > .arc/index-status.json
 python3 -c 'import json; assert json.load(open(".arc/index-status.json"))["pending_events"]==0'
-"$bin_dir/arc" event list --resource task --id policy-smoke-01 --limit 10 > events.json
-python3 -c 'import json; a=json.load(open("events.json")); assert a["count"]==1 and a["events"][0]["kind"]=="task.imported"'
-"$bin_dir/arc" db status > status.json
-python3 -c 'import json; a=json.load(open("status.json")); assert a["active"] and a["pending_events"]>0'
+"$bin_dir/arc" event list --resource task --id policy-smoke-01 --limit 10 > .arc/events.json
+python3 -c 'import json; a=json.load(open(".arc/events.json")); assert a["count"]==1 and a["events"][0]["kind"]=="task.imported"'
+"$bin_dir/arc" db status > .arc/status.json
+python3 -c 'import json; a=json.load(open(".arc/status.json")); assert a["active"] and a["pending_events"]==0'
 
 # Independent verification: a separate repository holding a legacy graph.
 mkdir "$tmp/old"
@@ -52,7 +53,7 @@ git add README.txt
 git commit -qm baseline
 "$bin_dir/arc-verify" init >/dev/null
 "$bin_dir/arc-verify" import --file "$skills_root/tools/arc-verify/examples/academic-v1.json" >/dev/null
-"$bin_dir/arc" db migrate --confirm-offline > migrated.json
-python3 -c 'import json; x=json.load(open("migrated.json")); assert x["active"] and x["migrated_graphs"]==1'
-"$bin_dir/arc" db status > status.json
-python3 -c 'import json; x=json.load(open("status.json")); assert x["graph_count"]==1'
+"$bin_dir/arc" db migrate --confirm-offline > .arc/migrated.json
+python3 -c 'import json; x=json.load(open(".arc/migrated.json")); assert x["active"] and x["migrated_graphs"]==1'
+"$bin_dir/arc" db status > .arc/status.json
+python3 -c 'import json; x=json.load(open(".arc/status.json")); assert x["graph_count"]==1'
