@@ -34,8 +34,10 @@ jobs:
         with:
           go-version: "1.26.5"
           cache: false
-      - name: Test unified Arc CLI with local Turso state engine
-        run: go -C tools/arc test -count=1 ./...
+      - name: Test indexer strict coverage and Arc state engine
+        run: |
+          go -C tools/arc-idx test -count=1 ./...
+          go -C tools/arc test -count=1 ./...
       - name: Install real code-index dependencies
         run: |
           sudo apt-get update -qq
