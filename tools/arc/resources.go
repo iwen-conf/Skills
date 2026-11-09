@@ -90,8 +90,12 @@ func resourceCommand(kind string, args []string) error {
 		if err != nil { return err }
 		completion = &proof
 	}
-	return withArcLock(root, func() error {
-		db, err := openActiveArcDB(root)
+	work := func() error {
+		return withArcLock(root, func() error {
+			if completion != nil {
+				if err := validateLivePolicyReceipt(root, *completion); err != nil { return err }
+			}
+			db, err := openActiveArcDB(root)
 		if err != nil { return err }
 		defer db.Close()
 		switch kind {
@@ -118,7 +122,14 @@ func resourceCommand(kind string, args []string) error {
 		default:
 			return fmt.Errorf("unknown arc resource %q", kind)
 		}
-	})
+		})
+	}
+	if completion != nil {
+		// Always acquire the policy lock first to avoid a lock-order cycle
+		// with arc-policy verification calling the graph backend.
+		return withPolicyTaskLock(root, work)
+	}
+	return work()
 }
 
 func executeTask(db *sql.DB, action, id, title, to string, expected int) error {
