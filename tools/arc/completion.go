@@ -160,3 +160,41 @@ func commitTaskCompletion(db *sql.DB, root, id string, expected int, proof verif
 	if err := tx.Commit(); err != nil { return err }
 	return emitJSON(map[string]any{"id":id, "status":"done", "version":expected+1, "receipt_sha256": proof.ReceiptSHA256})
 }
+
+
+// Task completion is historical, not a perpetual PASS. Showing a completed
+// task compares the immutable completion event with the current source tree,
+// and explicitly does NOT claim the external business proof was rerun.
+func showTaskWithProof(db *sql.DB,root,id string)error{
+	if id==""{return errors.New("task show requires --id")}
+	ctx,cancel:=context.WithTimeout(context.Background(),15*time.Second)
+	defer cancel()
+	var title,status,updated string
+	var version int
+	if err:=db.QueryRowContext(ctx,
+		"SELECT title,status,version,updated FROM arc_tasks WHERE id=?",id).
+		Scan(&title,&status,&version,&updated);err!=nil{return err}
+	out:=map[string]any{"id":id,"title":title,"status":status,"version":version,"updated":updated}
+	if status=="done"{
+		var raw string
+		err:=db.QueryRowContext(ctx,
+			"SELECT payload FROM arc_events WHERE aggregate='task' AND aggregate_id=? AND kind='task.completed' ORDER BY created DESC,id DESC LIMIT 1",id).Scan(&raw)
+		if err!=nil && !errors.Is(err,sql.ErrNoRows){return err}
+		var record struct{
+			ReceiptSHA256 string `json:"receipt_sha256"`
+			Head string `json:"head"`
+			SourceSnapshot string `json:"source_snapshot"`
+		}
+		if err==nil{
+			if jsonErr:=json.Unmarshal([]byte(raw),&record);jsonErr!=nil{return jsonErr}
+		}
+		snapshot,snapshotErr:=sourceSnapshot(root)
+		if snapshotErr!=nil{return snapshotErr}
+		out["completion"]=map[string]any{
+			"receipt_sha256":record.ReceiptSHA256,"head":record.Head,
+			"source_revision_current":record.SourceSnapshot!="" && record.SourceSnapshot==snapshot,
+			"independent_proof_rechecked":false,
+		}
+	}
+	return emitJSON(out)
+}
