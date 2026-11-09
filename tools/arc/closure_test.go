@@ -31,6 +31,8 @@ func TestOutboxFailureRaceAndIdempotentRecovery(t *testing.T) {
 	root, db := testArcState(t)
 	initClosureRepo(t, root)
 	if err:=executeTask(db,"create","","a pending task","",0);err!=nil{t.Fatal(err)}
+	if err:=os.WriteFile(filepath.Join(root,"feature.go"),[]byte("package feature\n"),0600);err!=nil{t.Fatal(err)}
+	if err:=executeFile(db,root,"feature.go","");err!=nil{t.Fatal(err)}
 	if err:=db.Close();err!=nil{t.Fatal(err)}
 	countCalls:=0
 	failBuild:=func(context.Context,string)error{countCalls++;return errors.New("index backend unavailable")}
@@ -115,6 +117,8 @@ func TestCompletionRequiresConfirmedOutboxAndBoundRevision(t *testing.T) {
 	for _,step:=range []struct{to string;version int}{{"ready",1},{"running",2},{"verifying",3}}{
 		if err:=executeTask(db,"transition",id,"",step.to,step.version);err!=nil{t.Fatal(err)}
 	}
+	if err:=os.WriteFile(filepath.Join(root,"feature.go"),[]byte("package feature\n"),0600);err!=nil{t.Fatal(err)}
+	if err:=executeFile(db,root,"feature.go",id);err!=nil{t.Fatal(err)}
 	proof,err:=requirePolicyProof(id,testPolicyReceipt(id,"PASS"));if err!=nil{t.Fatal(err)}
 	proof.SourceSnapshot,err=sourceSnapshot(root);if err!=nil{t.Fatal(err)}
 	if err:=commitTaskCompletion(db,root,id,4,proof);err==nil{t.Fatal("completion with pending events succeeded")}
