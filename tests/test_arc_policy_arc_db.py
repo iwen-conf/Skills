@@ -16,6 +16,9 @@ from test_arc_policy_business_graph import graph_proof
 @pytest.fixture(autouse=True)
 def isolate_arc_policy_state(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("ARC_POLICY_STATE_DIR", str(tmp_path / "state"))
+    # This suite uses a placeholder Turso file, not a real migrated Policy
+    # ledger. Keep its synthetic PostToolUse fixtures in pre-migration mode.
+    monkeypatch.setattr("arc_policy.store.load_db_state", lambda root: None)
 
 
 def enabled_repo(tmp_path: Path) -> Path:
