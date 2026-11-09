@@ -76,6 +76,13 @@ ledger, or delete backups. Backups do not justify unverified PASS claims.
 ### Guarantees and deliberate limits
 
 Resource writes use short SQL transactions and append-only events/outbox rows.
+Task completion now rechecks the *live* policy receipt while holding the same
+`.arc/policy/task.lock` used by `arc-policy`, then acquires the `arc.db` lock
+(policy lock first, database lock second) and commits the CAS transition.
+Revoked/replaced receipts and concurrent policy task changes cannot silently
+produce `done`. This completion path currently fails closed on Windows until
+its policy lock adapter matches Python's `msvcrt` locking protocol.
+
 Task transitions use expected-version CAS. `done` is now available only through
 `arc task complete --id <policy-task-id> --expected-version N` (or `arc task
 transition --to done`), which checks an **existing current PASS** from
