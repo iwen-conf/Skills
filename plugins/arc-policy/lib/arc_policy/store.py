@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from arc_policy.dbstore import DBState, load_db_state, save_db_state
 from arc_policy.detect import normalize_skill_name
 from arc_policy.gitutil import commit_tree, dirty_paths, git, head, tree_fingerprint
 from arc_policy.paths import policy_state_dir
@@ -93,10 +94,18 @@ def validate_slug(slug: object) -> None:
 
 
 def load_state(root: Path) -> dict[str, Any]:
-    return _read(policy_state_dir(root) / STATE_NAME)
+    current = load_db_state(root)
+    return current if current is not None else _read(policy_state_dir(root) / STATE_NAME)
 
 
 def save_state(root: Path, state: dict[str, Any]) -> None:
+    if isinstance(state, DBState):
+        save_db_state(root, state)
+        return
+    # A caller holding an old dict is never allowed to overwrite a migrated
+    # DB record by falling back to a legacy JSON write.
+    if load_db_state(root) is not None:
+        raise RuntimeError("Policy state migrated to arc.db; reload before saving")
     _write(policy_state_dir(root) / STATE_NAME, state)
 
 
@@ -117,8 +126,14 @@ def active_task(root: Path) -> dict[str, Any] | None:
 def child_tasks(workspace: Path) -> dict[Path, dict[str, Any]]:
     """Active Arc tasks of the Git repositories directly under a non-Git workspace."""
     tasks = {}
-    for state in sorted(workspace.glob(f"*/.arc/policy/{STATE_NAME}")):
-        root = state.parents[2]
+    # Migrated Policy tasks no longer have a state.json file. Discover both
+    # project layouts without recursing into unrelated repositories.
+    roots = {
+        file.parents[2]
+        for pattern in (f"*/.arc/policy/{STATE_NAME}", "*/.arc/arc.json")
+        for file in workspace.glob(pattern)
+    }
+    for root in sorted(roots):
         task = active_task(root) if (root / ".git").exists() else None
         if task:
             tasks[root] = task
@@ -326,8 +341,11 @@ def save_receipt(root: Path, receipt: dict[str, Any]) -> Path:
     ):
         raise RuntimeError("active task changed during verification; receipt not saved")
     path = policy_state_dir(root) / "receipts" / f"{slug}.json"
-    _write(path, receipt)
     state = load_state(root)
+    # Once migrated, receipts are inserted transactionally by save_state into
+    # arc_policy_receipts; never create/overwrite legacy receipt JSON files.
+    if not isinstance(state, DBState):
+        _write(path, receipt)
     active = state.get("active")
     if (
         not isinstance(active, dict)
@@ -337,7 +355,7 @@ def save_receipt(root: Path, receipt: dict[str, Any]) -> Path:
         raise RuntimeError("active task changed during verification; receipt not saved")
     active["receipt"] = receipt
     save_state(root, state)
-    return path
+    return (root / ".arc" / "arc.db") if isinstance(state, DBState) else path
 
 
 def invalidate_receipt(root: Path) -> dict[str, Any]:
