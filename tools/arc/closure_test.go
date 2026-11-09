@@ -177,6 +177,11 @@ func TestTaskCompletionCLIRequiresPolicyStatus(t *testing.T) {
 	bin:=t.TempDir()
 	status:=testPolicyReceipt(id,"PASS")
 	status.RepoRoot=root
+	policyDir:=filepath.Join(root,".arc","policy")
+	if err:=os.MkdirAll(policyDir,0700);err!=nil{t.Fatal(err)}
+	stateBody,err:=json.Marshal(map[string]any{"active":map[string]any{"id":id,"receipt":json.RawMessage(status.Task.Receipt)}})
+	if err!=nil{t.Fatal(err)}
+	if err:=os.WriteFile(filepath.Join(policyDir,"state.json"),stateBody,0600);err!=nil{t.Fatal(err)}
 	body,err:=json.Marshal(status);if err!=nil{t.Fatal(err)}
 	script:="#!/bin/sh\ncat <<'ARC_JSON'\n"+string(body)+"\nARC_JSON\n"
 	if err:=os.WriteFile(filepath.Join(bin,"arc-policy"),[]byte(script),0700);err!=nil{t.Fatal(err)}
