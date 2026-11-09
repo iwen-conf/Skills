@@ -28,7 +28,7 @@ The CLI manages workflow start, controlled schema migrations and explicit task c
    that owns the files. From a parent folder that is not a repository, use
    `arc-policy --cwd <repo> task begin …` and `arc-policy --cwd <repo> task verify`.
    A new third-party dependency starts with `arc-vet`; its decision record feeds `arc-code`.
-4. Load that Arc skill and follow it. Use `arc search|symbol|files|ast` for repo search; never call the private `arc-idx` engine.
+4. Load that Arc skill and follow it. Use `arc search|symbol|files|ast` for repo search; never call its internal engines by name.
 5. Git commits and pushes are allowed during task implementation without running
    `arc-policy task verify` each time. Keep any unrelated Git hooks enabled; do not
    use `--no-verify` to skip them.

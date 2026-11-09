@@ -9,7 +9,7 @@ session id per harness process and exports `ARC_POLICY_AGENT=1`, so the Git hook
 the harness's shells make. The harness has no turn-end hook wired here; delivery relies on the
 commit gate and the Git hook.
 
-Does not replace `dsh-force-arc-idx` (repository search still goes through arc-idx).
+Does not replace `dsh-force-arc-idx` (repository search goes through `arc`).
 
 ## Install (desktop profile)
 

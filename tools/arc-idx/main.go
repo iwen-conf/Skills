@@ -17,21 +17,21 @@ const version = "1.0.0"
 
 // identity is the single-line fingerprint agents compare against before
 // trusting this binary as the mandated local context engine.
-const identity = "arc-idx %s — local AI context engine (zoekt + ctags + ast-grep)"
+const identity = "arc index engine %s — internal to arc (zoekt + ctags + ast-grep); run `arc`"
 
 const usage = identity + `
 
 Usage:
-  arc-idx index    [--repo DIR]                        rebuild zoekt shards + ctags symbols
-  arc-idx search   <query> [--profile P] [--max N] [--context N] [--format json|ai-md]
-  arc-idx symbol   <name>  [--kind K] [--lang L] [--exact] [--format json|ai-md]
-  arc-idx ast      --lang L <pattern> [paths...] [--format json|ai-md]
-  arc-idx files    [pattern] [--profile P] [--format plain|json]   list candidate files
-  arc-idx stats    [--profile P] [--format json|ai-md]             language/LOC inventory
-  arc-idx doctor   [--format json|ai-md]                           tool + index health report
-  arc-idx watch    [--ttl MIN] [--mem MB]              foreground incremental indexer
-  arc-idx daemon   start|stop|status|restart           background indexer lifecycle
-  arc-idx version
+  arc index        [--repo DIR]                        rebuild zoekt shards + ctags symbols
+  arc search       <query> [--profile P] [--max N] [--context N] [--format json|ai-md]
+  arc symbol       <name>  [--kind K] [--lang L] [--exact] [--format json|ai-md]
+  arc ast          --lang L <pattern> [paths...] [--format json|ai-md]
+  arc files        [pattern] [--profile P] [--format plain|json]   list candidate files
+  arc stats        [--profile P] [--format json|ai-md]             language/LOC inventory
+  arc doctor       [--format json|ai-md]                           tool + index health report
+  arc watch        [--ttl MIN] [--mem MB]              foreground incremental indexer
+  arc daemon       start|stop|status|restart           background indexer lifecycle
+  arc version
 
 Query syntax for search follows zoekt: 'foo bar', 'f:\.go$ handler', 'sym:UserService', 'lang:go case:yes Foo'.
 All commands run from anywhere inside the repository; the repo root and
@@ -81,12 +81,12 @@ func main() {
 	case "help", "--help", "-h":
 		fmt.Printf(usage, version)
 	default:
-		fmt.Fprintf(os.Stderr, "arc-idx: unknown command %q\n\n", cmd)
+		fmt.Fprintf(os.Stderr, "arc: unknown command %q\n\n", cmd)
 		fmt.Fprintf(os.Stderr, usage, version)
 		os.Exit(2)
 	}
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "arc-idx %s: %v\n", cmd, err)
+		fmt.Fprintf(os.Stderr, "arc %s: %v\n", cmd, err)
 		os.Exit(1)
 	}
 }

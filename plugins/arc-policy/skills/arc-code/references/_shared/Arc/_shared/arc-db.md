@@ -1,7 +1,7 @@
 # arc.db — repository-local resource, state and change protocol
 
-> **Implementation status (arc 0.4.0).** `arc` routes code intelligence to the
-> existing `arc-idx` engine, verification to `arc-verify`, and implements
+> **Implementation status (arc 0.4.2).** `arc` routes code intelligence and
+> verification to its private engines in `libexec/arc`, and implements
 > versioned `arc.db` operations for `db`, `task`, `file`, `change`, `update`
 > and `policy state`. One physical project-local Turso DB is created with `arc db init`,
 > or the existing graph ledger is copied with `arc db migrate --confirm-offline`
@@ -13,8 +13,8 @@
 ## 1. Purpose and authority
 
 `arc.db` is the **filename** of the opt-in project-local state store:
-`<repo>/.arc/arc.db`. The public CLI is **`arc`**; the current `arc-idx`
-and `arc-verify` executables are transitional backends. The end-state is one
+`<repo>/.arc/arc.db`. The public CLI is **`arc`**; its code-index and verify
+engines are private transitional executables, never called by name. The end-state is one
 CLI, one versioned project-local database and separate internal engines for code
 indexing, workflow state and business verification. Keep `arc-explore` read-only;
 mutations belong to the authorized work owner and plugin runtime.

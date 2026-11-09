@@ -132,12 +132,12 @@ func rebuildIndex(ctx context.Context, root string) error {
 	}
 	run := exec.CommandContext(ctx, bin, "index", "--repo", root, "--quiet", "--require-complete")
 	if out, err := run.CombinedOutput(); err != nil {
-		return fmt.Errorf("arc-idx index failed: %w: %s", err, string(out))
+		return fmt.Errorf("code index rebuild failed: %w: %s", err, string(out))
 	}
 	doctor := exec.CommandContext(ctx, bin, "doctor", "--repo", root, "--format", "json")
 	body, err := doctor.Output()
 	if err != nil {
-		return fmt.Errorf("arc-idx doctor failed after rebuild: %w", err)
+		return fmt.Errorf("index health check failed after rebuild: %w", err)
 	}
 	var result indexDoctor
 	if err := json.Unmarshal(body, &result); err != nil {

@@ -1,8 +1,8 @@
 # arc — one CLI, project-local state and verification
 
 `arc` 0.4.x is the public entrypoint for source intelligence, project resource state,
-and business graph verification. It still delegates code indexing to `arc-idx`
-and business graph execution to `arc-verify`, while **resource state uses
+and business graph verification. It delegates code indexing and business graph execution to private engines in
+`libexec/arc`, while **resource state uses
 the same local Turso database after activation**.
 
 ## Build and test
@@ -15,8 +15,8 @@ arc version
 arc capabilities --json
 ```
 
-The installer publishes only `arc` to the binary directory. The `arc-idx` and
-`arc-verify` engines go to the private `<prefix>/libexec/arc` (for
+The installer publishes only `arc` to the binary directory. The code-index and
+verify engines go to the private `<prefix>/libexec/arc` (for
 `~/.local/bin` that is `~/.local/libexec/arc`), outside `PATH`, and stale public
 copies from earlier installs are removed. `arc` resolves engines from
 `libexec/arc`, then beside itself, then `PATH`. The resource engine
@@ -134,7 +134,7 @@ Index shards remain independently rebuildable and are not part of `arc.db`.
 `arc update` observes the dirty worktree; `arc sync reconcile` additionally
 replays missed Git **commits** using `arc_meta.sync_head`. Only file/change events enter the index Outbox; task lifecycle events remain
 in the append-only journal without triggering a full rebuild. `arc index flush`
-is the real Outbox consumer. It runs the **existing full** `arc-idx` indexer,
+is the real Outbox consumer. It runs the **existing full** code indexer,
 checks `doctor` health, source snapshot freshness and concurrent changes before
 marking its bounded original event batch delivered. Failures keep events
 pending for retry; newer events are not accidentally acknowledged. This is

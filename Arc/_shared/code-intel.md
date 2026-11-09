@@ -17,7 +17,7 @@ arc daemon status
   until then `symbol`/`ast` are unavailable.
 - `daemon_alive: false` → `arc daemon start` (`already running with pid N` is normal); dead
   `daemon_pid` → `arc daemon restart`.
-- Identity: `arc` is the only public command; `arc version` must print `arc`, not `arc-idx`
+- Identity: `arc` is the only public command; `arc version` must print `arc 0.4.x`, not the engine identity
   (a shell alias or symlink to the backend is a broken install). `arc capabilities --json`
   lists its private `libexec/arc` engines; never call them. No `arc` → report a broken install.
 - Repository root: nearest ancestor of the cwd (or `--repo <dir>`) holding `.ai-code-index/` or a
@@ -62,7 +62,7 @@ Counts:
   When `file_count` equals `--max` the list is truncated: re-run with a larger `--max` before reporting
   a count or a complete list.
 - Zero hits: `search` → `file_count: 0`, `files: null`; `symbol` → `count: 0`; `ast` exits 1 with
-  `arc-idx ast: ast-grep:` and nothing after it. Text after `ast-grep:` is a real error.
+  `arc ast: ast-grep:` and nothing after it. Text after `ast-grep:` is a real error.
 
 ## 3. Query ladder (stop at the first rung that answers the question)
 

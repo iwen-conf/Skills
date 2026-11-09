@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### arc 0.4.2 / arc-policy 0.4.7 — agents never see the engine name
+
+- The code-index engine prints `arc …` in usage, errors, hints and the `doctor` header (`arc ast: ast-grep:` replaces `arc-idx ast: ast-grep:`); its identity reads `arc index engine …`, which never matches `arc 0.4.x`, so an `arc` alias to the engine is still detected. `arc index flush` and the missing-engine error name the engine role instead of its file.
+- `arc:explore`, `code-intel`, `arc-db`, the CNB/Android runtime docs, the arc-policy skill and the dsh host notes name only `arc`.
+
 ### arc 0.4.1 / arc-policy 0.4.6 — `arc` is the only callable entry
 
 - `scripts/install_arc.sh` publishes only `arc` to the bin directory; the `arc-idx` and `arc-verify` engines move to the private `<prefix>/libexec/arc` and stale public copies are removed, so agents cannot call the backends by name. `arc` resolves engines from `libexec/arc`, then beside itself, then `PATH`.

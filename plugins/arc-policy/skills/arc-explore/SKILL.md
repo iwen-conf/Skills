@@ -3,9 +3,9 @@ name: arc-explore
 description: 'Read-only code intelligence for a local repository: find where code
   lives (代码在哪, 搜代码), locate definitions, list callers (谁调用), trace a call chain (调用链)
   or data flow, list everything a planned change would touch (影响面 / impact analysis),
-  and draw a module or architecture map (架构地图). Also maintains the arc Zoekt index,
-  arc-idx backend (索引维护: doctor, index, daemon). Not for edits (use arc-code), read-only
-  risk review (use arc-audit), or tests (use arc-verify).'
+  and draw a module or architecture map (架构地图). Also maintains the arc Zoekt index
+  (索引维护: arc doctor, index, daemon; old name arc-idx means arc). Not for edits (use
+  arc-code), read-only risk review (use arc-audit), or tests (use arc-verify).'
 metadata:
   version: 2.3.4
 ---
@@ -97,9 +97,8 @@ Graph chain: [workflow §6](references/_shared/Arc/_shared/workflow.md#6-graph-b
 - Config keys in `.ai-code-index/config.json`: `profiles`, `ignore_dirs`, `ignore_files`,
   `index_exts`, `max_files` (default 50000), `size_max` (default 1 MiB), `index_dir`. Edit it only on
   a user request or a Failure Recovery row below, and report the diff.
-- Engine source in the Skills repository is `tools/arc-idx/`. After an engine change and only on user
-  request, rebuild the backend in `tools/arc-idx/`, then build the unified CLI with
-  `go -C tools/arc build -o ~/.local/bin/arc .`; check `arc capabilities --json`.
+- Engine source lives in the Skills repository under `tools/`. After an engine change and only on
+  user request, run `bash scripts/install_arc.sh` there; check `arc capabilities --json`.
 
 ## Tool Strategy
 
@@ -165,7 +164,7 @@ Graph chain: [workflow §6](references/_shared/Arc/_shared/workflow.md#6-graph-b
 | Zero hits | code-intel §5 widening rungs 1–5 | 5 rungs | report `not found` with every query |
 | More than 200 hits | narrow (Decision Rules) | 3 passes | sample and label `sampled` |
 | `query parse:` error | escape per code-intel §2 | 2 | rewrite as a plain literal term |
-| Text after `arc-idx ast: ast-grep:` | simplify the pattern (fewer metavariables, complete syntax) | 2 | use the text query; note the AST gap |
+| Text after `arc ast: ast-grep:` | simplify the pattern (fewer metavariables, complete syntax) | 2 | use the text query; note the AST gap |
 | Hits name files absent from the repository | check doctor `repo_root` and `index_dir`; fix with `--repo` or `<clone>/.ai-code-index/`; if another clone shares the `index_dir` basename, set `index_dir` in config; reindex | 1 | report the collision |
 | `index` warns `hit max_files` | report partial coverage; narrow with profiles, or raise `max_files` on user approval | 0 | label results `partial index` |
 | Structural and text results contradict | re-read the files (Decision Rules) | 1 | report both readings as unresolved |

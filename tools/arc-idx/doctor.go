@@ -101,7 +101,7 @@ func cmdDoctor(args []string) error {
 	if !rep.Healthy || rep.IndexStale {
 		status = "needs attention"
 	}
-	fmt.Fprintf(&b, "## arc-idx doctor — %s\n\n", status)
+	fmt.Fprintf(&b, "## arc doctor — %s\n\n", status)
 	fmt.Fprintf(&b, "- repo: %s\n- index: %s (age: %s, stale: %v)\n- symbols: %v\n- daemon: pid=%d alive=%v\n- config: %s\n- profiles: %s\n",
 		rep.RepoRoot, rep.IndexDir, orDefault(rep.IndexAge, "none"), rep.IndexStale,
 		rep.TagsPresent, rep.DaemonPid, rep.DaemonAlive, rep.ConfigSource,

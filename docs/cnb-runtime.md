@@ -1,6 +1,6 @@
 # CNB 运行合同
 
-仅在调用 CNB CLI/API 时应用；仓内代码检索遵循宿主 arc-idx 规则。
+仅在调用 CNB CLI/API 时应用；仓内代码检索遵循宿主 `arc` 检索规则。
 
 - `SKILL_ROOT` 是已加载技能入口所在目录；脚本用绝对路径，项目 cwd 独立指定。
 - 快捷命令需要 `CNB_REPO_SLUG` 及当前目标：Issue 用 `CNB_ISSUE_IID`，PR 用 `CNB_PULL_REQUEST_IID`。两者都有时按用户指定对象选择一个；缺值或歧义先读上下文，仍不明则停止目标写入。跨仓库/编号使用当前 help 确认的显式参数，不能沿用错误环境。

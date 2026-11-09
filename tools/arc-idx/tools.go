@@ -131,7 +131,7 @@ func cmdAst(args []string) error {
 		return err
 	}
 	if len(positional) < 1 || *lang == "" {
-		return fmt.Errorf("usage: arc-idx ast --lang go '<pattern>' [paths...]")
+		return fmt.Errorf("usage: arc ast --lang go '<pattern>' [paths...]")
 	}
 	pattern := positional[0]
 	paths := positional[1:]

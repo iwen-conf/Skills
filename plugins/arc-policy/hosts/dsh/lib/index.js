@@ -30,8 +30,8 @@ one Arc skill per phase (arc-explore, arc-plan, arc-code, arc-verify, arc-audit,
 
    arc-policy task begin --skill <arc-code|arc-explore|arc-plan|arc-verify|arc-audit|arc-vet>
 
-2. Write source with host tools after begin. Repository search still goes through
-   arc-idx (dsh-force-arc-idx).
+2. Write source with host tools after begin. Repository search goes through
+   arc (dsh-force-arc-idx).
 
 3. Git commit/push are allowed without verification. Before protected schema migrations or claiming verified task completion:
 
