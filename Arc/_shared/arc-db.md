@@ -54,7 +54,7 @@ affected files and symbols, execution run, tests, evidence and decisions.
 Avoid relying on ambiguous file paths alone: use repository and worktree IDs,
 canonical relative path, Git identity and content hash.
 
-## 3. Implemented CLI (0.2.0) vs future features
+## 3. Implemented CLI (0.3.0) vs future features
 
 ```bash
 arc capabilities --json
@@ -67,9 +67,11 @@ arc task create --title "修复支付并发"
 arc task ensure --id POLICY-TASK-ID --title "修复支付并发 (arc-code)"
 arc task show --id TASK-ID
 arc task transition --id TASK-ID --to ready --expected-version 1
+arc task complete --id POLICY-TASK-ID --expected-version N
 arc file update --path internal/payment/service.go
 arc file show --path internal/payment/service.go
 arc event list --resource task --limit 20
+arc index flush --repo .                    # real full rebuild + conditional outbox ACK
 arc change collect --task TASK-ID
 arc change show --id CHANGE-ID
 arc update --changed-only
@@ -87,23 +89,27 @@ The plugin graph gate follows the marker when policy has no explicit DB override
 project**. The code-index and verifier binaries remain separate dependencies.
 `arc-policy task verify` remains the completion authorization gate.
 
-**Not yet executable:** `arc task verify`, `arc task ... --to done`,
-`arc change verify/impact`, and `arc design/contract/schema`.
-They must not be described
-as shipped or used to claim evidence.
+**Not yet executable:** native `arc task verify`, `arc change verify/impact`,
+`arc design/contract/schema` or a complete policy-receipt store migration.
+`arc task complete` requires an existing **current PASS** from `arc-policy`;
+`AUTHORIZED` never counts as passing independent verification.
 
 `arc update` collects an idempotent worktree ChangeSet. `arc sync reconcile`
 also replays commits missed by hooks, maintaining an atomic `arc_meta.sync_head`
-cursor. Both update file hashes and queue events in the outbox. It does **not** promise that Zoekt,
-AST, symbols, docs or tests are already fresh. The index daemon retains its
-own watcher; task completion and verification remain separate.
+cursor. File/change events enter the index outbox; task events remain journal-only.
+`arc index flush` batches a **full** Zoekt/ctags rebuild, checks index health
+and stable source fingerprints, then atomically acknowledges only the original
+batch. Failed/stale builds retain pending events. This is not yet incremental
+per-file index writing. The index daemon retains its own watcher.
 
 ## 4. State machines and invariants
 
 - **Task:** `draft → ready → running → verifying → done`, with guarded
-  blocked/reopened branches. The v1 implementation enforces CAS on transitions
-  and intentionally **rejects `done`** until independent revision-scoped
-  evidence acceptance is implemented. Edits never complete tasks.
+  blocked/reopened branches. The current implementation enforces CAS and allows `done` only when the
+  matching Arc Policy task has a live PASS receipt, the code-index snapshot
+  matches that source and the relevant outbox is drained. A completion event
+  stores the receipt fingerprint and independent check results. Edits alone
+  never complete tasks; `arc task show` labels historical source freshness.
 - **Change:** `discovered → collected → reconciled → verified|rejected`.
   A newer source hash creates a new revision and invalidates prior verification;
   do not silently rewrite a verified change record.
@@ -168,9 +174,10 @@ calls are skipped; missing CLI or failed writes are reported.
    collects a bounded Git worktree ChangeSet and records file-hash events with
    idempotent fingerprinting. Each mutating call may repeat a Git scan; optimized
    event batching remains future work.
-3. **Reconcile:** v1 records file hashes and task-linked changes, not AST,
-   symbol, contract or documentation updates. Outbox consumers and full
-   dependency invalidation remain future work; don't claim index freshness.
+3. **Reconcile:** file hashes and task-linked changes are recorded. The
+   `arc index flush` consumer confirms the existing full indexer output before
+   acknowledging source events; native per-file incremental indexing,
+   dependency invalidation and document projection remain future work.
 4. **Stop/delivery gate:** completion claims still require revision-scoped
    verification evidence. Ordinary `git commit` and `git push` never require
    a per-commit verify receipt. Do not auto-close tasks; keep existing
