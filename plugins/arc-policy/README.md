@@ -294,7 +294,12 @@ The completion command reads the existing Arc Policy PASS; it never launches
 a second test run. An `AUTHORIZED` waiver does not count as PASS. A failed
 index/changed tree/incorrect task version blocks completion, not normal Git
 commit/push. The original Python policy receipt remains authoritative until
-the receipt-store migration is separately verified.
+the receipt-store migration is separately verified. In an active shared-DB
+business graph, the receipt fingerprint binds the activation manifest and
+graph configuration, **not** unrelated task/Outbox bytes inside `arc.db`;
+`receipt_matches_tree` still re-executes the independent graph gate so a
+real business failure invalidates the claim. Legacy dedicated graph ledgers
+continue to bind their raw DB and WAL fingerprints.
 
 Move between existing Arc phases with an atomic handoff:
 
