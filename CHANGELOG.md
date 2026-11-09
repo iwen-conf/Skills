@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### arc:verify 3.9.0 — tester-army/e2e execution guidance
+
+- Added an on-demand Web/mobile runner reference, reviewed against upstream `232ce75ab4b68ded93525162e1121bf973792ea8`: atomic agent goals plus exact assertions, readable-state negative checks, fixture/session boundaries and evidence-first debugging.
+- Connected it to the existing E2E and graph-card workflow. Per-attempt output, independent readback and full report inspection preserve skipped/flaky cases and original FAILs; cache/healing, mobile providers and secret handling have explicit evidence limits.
+
+
 ### Arc 0.4.0 / arc-policy 0.4.3 — Policy task and receipt physical cutover
 
 - Introduced `arc policy state get|put|status|migrate` using the existing

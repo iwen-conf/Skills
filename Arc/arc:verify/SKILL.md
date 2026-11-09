@@ -1,11 +1,11 @@
 ---
 name: arc:verify
-version: 3.8.3
+version: 3.9.0
 description: >-
   Whole-system testing with project-local DB business graphs (完整测试, 测试整个系统, 所有交互,
-  完整业务测试, 业务树图, 业务图), including AI-led candidate modeling from scratch.
-  Proves business code meets business expectations: flow inventories (业务流), test plans,
-  write tests, TDD (测试先行), test-value review (测试价值), browser E2E (网页实测), coverage, fuzz,
+  完整业务测试, 业务树图, 业务图), including AI candidate modeling.
+  Tests business expectations: flows (业务流), test plans,
+  write tests, TDD (测试先行), test-value review (测试价值), web/mobile E2E (网页实测, tester-army/e2e), coverage, fuzz,
   property tests, SQL lint, transaction design, reliability (concurrency, idempotency, faults),
   PostgreSQL G0-G31, flaky triage, load tests, release go/no-go. Verdicts PASS/FAIL/BLOCKED/NOT_RUN/FLAKY
   with independent oracles. Triggers: 写测试, 测试方案, 用例设计, 测试范围, 覆盖率, 可靠性, 业务不变量,
@@ -56,6 +56,7 @@ Confirmed claims have IDs, source, oracle, verdict and sensitivity record; candi
 | Execute SQL parse/lint (SQL 语法检查) | write | [sql-static](references/sql-static.md) |
 | Transaction design per engine (事务设计), no execution | design | [txn-design](references/txn-design.md) |
 | Web load/interaction speed, Core Web Vitals, Lighthouse (网页性能) | write | [web-perf](references/web-perf.md) |
+| tester-army/e2e tests | write | [e2e](references/tester-army-e2e.md) |
 | Browser journey on a running or startable app (网页实测) | write | [web-e2e](references/web-e2e.md) |
 | Untrusted input into parsers, decoders, uploads or protocols (模糊测试) | write | [fuzz-campaign](references/fuzz-campaign.md) |
 | Property/model tests; code-to-model conformance | write | [model-conformance](references/model-conformance.md) |
@@ -78,13 +79,13 @@ matching gate proof, never treat migration or task-state events as PASS.
 
 Graph mode follows [business-graph](references/business-graph.md), replacing steps 2–10.
 Draw via [arch-diagram](references/business-diagram.md); inspect screenshots; release execution refs.
-Without a confirmed model use [first start](references/business-graph-start.md): the Agent drafts,
-imports and exports a candidate for review, then continues authorized verification after confirmation.
-Do not ask users to write graph JSON or finish a full test request at a plan.
-Execution uses [v2 commands](references/business-graph-v2.md); handoffs use
+Without a confirmed graph, [first start](references/business-graph-start.md) has the Agent draft,
+import and export a candidate for review, then continue authorized tests after confirmation;
+never ask users to write graph JSON or end a full test request at a plan.
+Execute [v2](references/business-graph-v2.md); handoffs:
 [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
 `arc verify handoff --to arc-verify --graph <id>` expands bounded local context.
-New tests still require sensitivity proof. No Agent handshake or model HTTP.
+UI cards load their runner. New tests still require sensitivity proof. No Agent handshake or model HTTP.
 
 1. Read [contract](../_shared/contract.md) and existing progress; record tier, scope, mode,
    environment and git baseline.

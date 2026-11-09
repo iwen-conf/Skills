@@ -30,7 +30,7 @@ def test_inventory_resolves_actual_bundled_skills_without_host_path_guesses() ->
     verify = resolve_skill("arc:verify", PLUGIN)
     assert verify == resolve_skill("arc-verify", PLUGIN)
     assert Path(verify["entry"]).is_file()
-    assert verify["version"] == "3.8.1"
+    assert verify["version"] == "3.9.0"
     diagram = resolve_skill("arc-policy:arch-diagram", PLUGIN)
     assert diagram["version"] == "1.2.3"
     assert (

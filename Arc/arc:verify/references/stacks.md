@@ -152,6 +152,8 @@ await expect(page.getByRole('button', { name: 'Checkout' })).toBeEnabled();
 - Native without a runner: record authorized device/platform observations and label automated
   checks `NOT_RUN`; do not substitute browser evidence.
 - Web Playwright CI runs with `--fail-on-flaky-tests` so a pass-on-retry is visible.
+- Projects selecting tester-army/e2e use [e2e runner](tester-army-e2e.md) for exact/agent actions,
+  cache, reports and mobile bindings; an executor summary alone never proves the business claim.
 
 ## Load and benchmark
 

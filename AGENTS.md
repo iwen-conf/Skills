@@ -32,6 +32,12 @@
 - verify 的业务图、业务树和流程图统一用 [arch-diagram 插件](https://github.com/bassnova42/arch-diagram-skill) 绘制，业务用中文表述，节点命名为 `中文业务名【实际英文业务包名】`。包名以被测项目目录、包声明和配置为依据，不自行翻译或编造；未定位实现时标明业务包待核实。
 - 插件只负责只读可视化；本地 DB、CLI 快照、流程台账和真实 RAW 继续保留。具体绘图约定见 [business-diagram](Arc/arc:verify/references/business-diagram.md)。
 
+## 2026-11-07：E2E 技能强化裁决
+
+- 用户指定 [tester-army/e2e](https://github.com/tester-army/e2e) 强化现有 `arc:verify`；按需执行指引见 [tester-army-e2e](Arc/arc:verify/references/tester-army-e2e.md)，源码核对固定到 `232ce75ab4b68ded93525162e1121bf973792ea8`。
+- 采用逐目标操作、确定性断言、失败现场诊断和 Web/移动端执行接口；业务判定继续绑定已确认 RULE、独立回读及任务/轮次/环境/账号。每次执行单独保存报告，缓存与自动修复不覆盖首次 FAIL；退出码 0、跳过或过滤不充当业务 PASS。
+- SDK 模型配置只在被测项目执行器中按已授权配置使用；远程设备兼容、真实产品 E2E 和独立可信 Runner 仍需各自的真实执行证据。
+
 ## 本仓验收命令
 
 ```bash

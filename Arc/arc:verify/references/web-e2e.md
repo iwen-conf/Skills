@@ -10,6 +10,7 @@ elements and writing journeys whose oracle is not the page itself.
 |---|---|
 | Static HTML | read the file for selectors, open it via `file://`, script directly |
 | Playwright config with `webServer` | run the project's suite; it starts the app |
+| tester-army/e2e package/config | use [e2e runner](tester-army-e2e.md); keep the readiness and oracle rules below |
 | App not running, no `webServer` | start it through `with_server.py` (§2) |
 | User-supplied running URL | recon, then script; record the URL and label the build unverified unless the deployment shows it |
 
@@ -70,6 +71,10 @@ The UI is an observer, not the oracle. Each journey asserts:
   denied role sees no data and the direct API call is rejected too;
 - the four UI checks on the screens involved.
 
+Before an absence/denial assertion, positively identify the loaded screen, intended actor and
+relevant object. A blank/crashed app or a locator that never matched cannot prove a forbidden
+effect absent; independently read back the affected resource too.
+
 Add a case when the risk applies: double click or submit; back, refresh or reopen mid-flow; one
 slow or failing API (`page.route` delays or fails it) with a visible, recoverable error; session
 expiry; a permission-denied deep link; both sides of every input limit; two tabs editing the same
@@ -100,6 +105,9 @@ test('VIP checkout creates exactly one order at the discounted total', async ({ 
   server logs under `.arc/artifacts/<task-slug>/logs/`.
 - Flake check: `--repeat-each=20 --retries=0`; CI uses `--fail-on-flaky-tests`.
 - `page.route` stubs only third parties outside the claim, never the API whose behavior is claimed.
+- Diagnose from the recorded failure screen, expected/observed values, trace, console and server
+  logs first. Check the remaining steps against that evidence; rerun only the selected case after
+  independently reconstructing its initial state. Expectations still come from the contract.
 
 ## 6. Verdicts
 

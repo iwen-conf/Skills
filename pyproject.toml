@@ -34,7 +34,7 @@ exclude = [
 
 [tool.mypy]
 python_version = "3.12"
-mypy_path = "$MYPY_CONFIG_FILE_DIR/src"
+mypy_path = ["$MYPY_CONFIG_FILE_DIR/src", "$MYPY_CONFIG_FILE_DIR/plugins/arc-policy/lib"]
 files = [
     "scripts/arc_privacy.py",
     "scripts/build_skills_index.py",
