@@ -78,6 +78,34 @@ func testPolicyReceipt(taskID, verdict string) policyTaskStatus {
 	return status
 }
 
+func TestIndexBackendMustReturnRealHealthyDoctor(t *testing.T) {
+	if runtime.GOOS=="windows"{t.Skip("scripted backend is POSIX-only")}
+	bin:=t.TempDir()
+	script:="#!/bin/sh\ncase \"$1\" in\n  index) exit 0 ;;\n  doctor) printf '%s\\n' \"$ARC_INDEX_DOCTOR_JSON\"; exit 0 ;;\nesac\nexit 2\n"
+	if err:=os.WriteFile(filepath.Join(bin,"arc-idx"),[]byte(script),0700);err!=nil{t.Fatal(err)}
+	t.Setenv("PATH",bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	root:=t.TempDir()
+	for _,tc:=range []struct{name string;healthy,stale,tags,correctRoot,want bool}{
+		{"healthy",true,false,true,true,true},
+		{"unhealthy",false,false,true,true,false},
+		{"stale",true,true,true,true,false},
+		{"missing-tags",true,false,false,true,false},
+		{"wrong-repository",true,false,true,false,false},
+	}{
+		t.Run(tc.name,func(t *testing.T){
+			repo:=root
+			if !tc.correctRoot{repo=t.TempDir()}
+			body,_:=json.Marshal(map[string]any{
+				"repo_root":repo,"healthy":tc.healthy,
+				"index_stale":tc.stale,"tags_present":tc.tags,
+			})
+			t.Setenv("ARC_INDEX_DOCTOR_JSON",string(body))
+			err:=rebuildIndex(context.Background(),root)
+			if (err==nil)!=tc.want{t.Fatalf("index health acceptance=%v error=%v",tc.want,err)}
+		})
+	}
+}
+
 func TestInitialIndexWithEmptyOutboxAndGeneratedMetadata(t *testing.T) {
 	root, db := testArcState(t)
 	initClosureRepo(t, root)
