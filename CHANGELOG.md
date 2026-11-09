@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Arc task-completion integrity — policy lock and receipt recheck
+
+- `arc task complete` now uses the same `.arc/policy/task.lock` coordination as
+  `arc-policy`, taking that lock before `arc.db` to match graph-verification
+  lock ordering. The live receipt ID and canonical contents are rechecked
+  before committing a revision-scoped `done` state.
+- Added regression tests for revoked, replaced and wrong-task receipts and a
+  competing policy lock. Windows completion remains fail-closed until an
+  equivalent `msvcrt` byte-range lock adapter is implemented.
+
+
 ### Arc CLI 0.3.0 — verified task/index closure
 
 - Added `arc index flush`: bounded outbox watermark and retry counts, one
