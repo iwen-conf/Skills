@@ -73,6 +73,8 @@ python3 -c 'import json; p=json.load(open(".arc/policy-migrated.json")); assert 
 python3 -c 'import json; p=json.load(open(".arc/policy-state.json")); assert p["mode"]=="arc.db" and p["state"]["active"]["id"]=="smoke-task"'
 test -d .arc/policy/state.json
 test ! -e .arc/policy/receipts
+"$bin_dir/arc" db status --repo . > .arc/policy-db-status.json
+python3 -c 'import json; p=json.load(open(".arc/policy-db-status.json")); assert p["policy_storage"]=="arc.db" and p["policy_state_version"]==1'
 "$bin_dir/arc" policy state migrate --repo . --confirm-offline > .arc/policy-retry.json
 python3 -c 'import json; p=json.load(open(".arc/policy-retry.json")); assert p["already_migrated"] is True'
 
