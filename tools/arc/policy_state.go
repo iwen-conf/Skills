@@ -175,13 +175,63 @@ func policyStateCommand(args []string)error{
 	}
 }
 
+// retireLegacyPolicyFiles leaves a directory tombstone at state.json so
+// older plugin builds cannot silently recreate an authoritative JSON file.
+// The original bytes remain in a content-addressed backup. Re-running is safe
+// after a crash between committing the DB row and retiring the files.
+func retireLegacyPolicyFiles(root, expectedHash string)error{
+	if len(expectedHash)!=64{return errors.New("missing original policy backup fingerprint")}
+	base:=filepath.Join(root,".arc")
+	backup:=filepath.Join(base,"backups","policy-state-"+expectedHash+".json")
+	if err:=checkRegular(backup);err!=nil{return fmt.Errorf("policy backup unavailable: %w",err)}
+	checksum,err:=shaFile(backup);if err!=nil||checksum!=expectedHash{return errors.New("policy backup checksum mismatch")}
+	policyDir:=filepath.Join(base,"policy")
+	legacy:=filepath.Join(policyDir,"state.json")
+	st,err:=os.Lstat(legacy)
+	if errors.Is(err,os.ErrNotExist){
+		if err:=os.Mkdir(legacy,0700);err!=nil{return err}
+	}else if err!=nil{return err}else if st.IsDir(){
+		entries,err:=os.ReadDir(legacy);if err!=nil{return err}
+		if len(entries)!=0{return errors.New("legacy state tombstone contains unexpected files")}
+	}else if st.Mode().IsRegular(){
+		liveHash,err:=shaFile(legacy);if err!=nil{return err}
+		if liveHash!=expectedHash{return errors.New("legacy state changed after migration; manual recovery required")}
+		// The backup is verified; only now may the duplicate live path be removed.
+		if err:=os.Remove(legacy);err!=nil{return err}
+		if err:=os.Mkdir(legacy,0700);err!=nil{return fmt.Errorf("cannot install old-runtime tombstone: %w",err)}
+	}else{return errors.New("unsafe legacy policy state path")}
+	receipts:=filepath.Join(policyDir,"receipts")
+	if st,err:=os.Lstat(receipts);err==nil{
+		if !st.IsDir()||st.Mode()&os.ModeSymlink!=0{return errors.New("unsafe legacy receipts path")}
+		dest:=filepath.Join(base,"backups","policy-receipts-"+expectedHash[:16])
+		if _,err:=os.Lstat(dest);err==nil{return errors.New("legacy receipt archive already exists; inspect before retrying")}
+		if !errors.Is(err,os.ErrNotExist){return err}
+		if err:=os.Rename(receipts,dest);err!=nil{return err}
+	}else if !errors.Is(err,os.ErrNotExist){return err}
+	return nil
+}
+
+func policyMigrationFingerprint(db *sql.DB)(string,error){
+	var payload string
+	err:=db.QueryRow("SELECT payload FROM arc_events WHERE aggregate='policy' AND kind='policy.state.migrated' ORDER BY created DESC,id DESC LIMIT 1").Scan(&payload)
+	if err!=nil{return "",err}
+	var v struct{ SHA string `json:"state_sha256"` }
+	if err:=json.Unmarshal([]byte(payload),&v);err!=nil{return "",err}
+	if len(v.SHA)!=64{return "",errors.New("migration event has no policy backup fingerprint")}
+	return v.SHA,nil
+}
+
 func migratePolicyState(root string)error{
 	db,err:=openActiveArcDB(root);if err!=nil{return err};defer db.Close()
 	for _,stmt:=range policyStoreSchema{
 		if _,err:=db.Exec(stmt);err!=nil{return fmt.Errorf("policy schema: %w",err)}
 	}
 	doc,err:=loadPolicyDocument(db);if err!=nil{return err}
-	if doc.Mode=="arc.db"{return errors.New("policy state already migrated; refusing to replace live state")}
+	if doc.Mode=="arc.db"{
+		hash,err:=policyMigrationFingerprint(db);if err!=nil{return err}
+		if err:=retireLegacyPolicyFiles(root,hash);err!=nil{return err}
+		return emitJSON(map[string]any{"storage":"arc.db","already_migrated":true,"legacy_guard":"directory","active":true})
+	}
 	legacy:=filepath.Join(root,".arc","policy","state.json")
 	body:=[]byte("{}")
 	if st,err:=os.Lstat(legacy);err==nil {
@@ -242,5 +292,8 @@ func migratePolicyState(root string)error{
 	if err:=json.Unmarshal(live.State,&restored);err!=nil{return err}
 	reencoded,err:=json.Marshal(restored);if err!=nil{return err}
 	if string(reencoded)!=string(canonical){return errors.New("migrated policy state differs from original; fail closed")}
-	return emitJSON(map[string]any{"storage":"arc.db","version":1,"backup":backup,"imported_receipts":len(receipts),"active":true})
+	if err:=retireLegacyPolicyFiles(root,hex.EncodeToString(rawHash[:]));err!=nil{
+		return fmt.Errorf("policy DB migrated, but legacy guard setup failed; rerun migrate offline to finalize: %w",err)
+	}
+	return emitJSON(map[string]any{"storage":"arc.db","version":1,"backup":backup,"imported_receipts":len(receipts),"legacy_guard":"directory","active":true})
 }
