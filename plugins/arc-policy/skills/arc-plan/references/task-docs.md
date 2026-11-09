@@ -11,8 +11,11 @@ Status values: [contract](_shared/Arc/_shared/contract.md) §4. Completion, scop
   user request. Single-file or obvious edits get none.
 - Raw requirements stay in `docs/00-产品需求`; executable plans, leaves and progress go to
   `docs/03-执行任务`. Link the requirement; restate only actionable scope, constraints and acceptance.
-- Task entries, constraints, task trees, cards, trackers and API contracts are Markdown (headings,
-  links, tables, checklists). Tool configs and machine output are outside this rule.
+- Task entries, constraints, task trees, cards, trackers and API contracts currently remain Markdown
+  (headings, links, tables, checklists). Tool configs and machine output are outside this rule.
+  New [arc.db resource commands](_shared/Arc/_shared/arc-db.md) exist, but legacy task
+  Markdown remains authoritative until an explicit project task cutover. Avoid
+  duplicating a task in both stores; never equate a DB row with verification.
 
 ## 2. Authoring gate
 
@@ -116,7 +119,7 @@ Every leaf states, in project terms:
 5. Behavior before and after, including error and empty states for API and UI leaves.
 6. Acceptance: commands or manual checks with expected results.
 7. Parent, owning side, priority, difficulty with evidence, upstream readiness, downstream consumers.
-8. `<Context-Queries>`: exact `arc-idx files/search/symbol/ast` commands with real paths, symbols
+8. `<Context-Queries>`: exact `arc files/search/symbol/ast` commands with real paths, symbols
    and `--format json` or `--format ai-md`; the author runs each once and confirms it returns the
    target. No placeholders. The executor runs them before editing.
 

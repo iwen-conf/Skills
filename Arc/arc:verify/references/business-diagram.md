@@ -8,7 +8,7 @@ visuals. The Arc plugin bundles a pinned, licensed upstream copy. Resolve its ac
 `arc-policy skills --name arch-diagram`; read that `SKILL.md` and `references/spec.md` only for
 this drawing substep. Carry the selected snapshot, stable IDs, package evidence and scope; release
 unrelated execution references. Other installations use the host inventory, never a guessed cache path.
-Repository discovery still follows [code-intel](../../_shared/code-intel.md), using `arc-idx`.
+Repository discovery still follows [code-intel](../../_shared/code-intel.md), using `arc`.
 
 ## Choose a readable business structure
 

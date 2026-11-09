@@ -1,6 +1,6 @@
 ---
 name: arc:plan
-version: 2.6.1
+version: 2.6.2
 description: >-
   Turns intent into written specs and checkable models without touching source code: PRD or
   blueprint (写PRD, 立项, 需求文档), clarify a vague request into a brief with acceptance criteria (需求澄清,

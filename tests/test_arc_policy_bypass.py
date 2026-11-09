@@ -263,7 +263,8 @@ def broken_plugin(tmp_path: Path) -> Path:
     "tool, tool_input, denied",
     [
         ("Write", {"file_path": "a.txt"}, True),
-        ("Bash", {"command": "git commit -m x"}, True),
+        ("Bash", {"command": "git commit --no-verify -m x"}, True),
+        ("Bash", {"command": "git commit -m x"}, False),
         ("Bash", {"command": "ls"}, False),
     ],
 )

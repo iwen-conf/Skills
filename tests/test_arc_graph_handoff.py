@@ -9,7 +9,8 @@ def test_each_existing_arc_skill_links_shared_graph_handoff():
     for skill in SKILLS:
         content = (ROOT / "Arc" / f"arc:{skill}" / "SKILL.md").read_text()
         assert "workflow.md" in content
-        assert f"arc-verify handoff --to arc-{skill}" in content
+        assert f"arc verify handoff --to arc-{skill}" in content
+        assert "arc-verify handoff" not in content
 
 
 def test_graph_bridge_preserves_single_owner_and_risk_boundary():

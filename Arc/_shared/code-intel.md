@@ -12,34 +12,24 @@ arc doctor --format json
 arc daemon status
 ```
 
-- Repair when doctor shows `healthy: false`, `index_stale: true` or `tags_present: false`: run
-  `arc index --quiet` once, then re-run `doctor`. `index` does not fix a tool reported as
-  `MISSING` under `tools` (`ctags`, `ast-grep`); installing needs permission, and until then
-  `symbol` and `ast` are unavailable.
-- Daemon: `daemon_alive: false` → `arc daemon start` (exit 1 with `already running with pid N`
-  is normal). `daemon_pid` present but not alive → `arc daemon restart`.
-- Identity: prefer `~/.local/bin/arc`; `arc version` identifies the public CLI and
-  `arc capabilities --json` shows the available `arc-idx`/verification backends.
-  Current `arc` 0.3.0 implements opt-in local state, batched index outbox and proof-bound completion; the code-index and
-  graph-verifier binaries remain separate. Without `arc`, use `arc-idx` only as
-  a labelled legacy lookup fallback; no resource writes. Report the limitation.
-- Repository root: the nearest ancestor of the working directory (or of `--repo <dir>`) that holds
-  an `.ai-code-index/` directory or a `.git` directory; config is `<root>/.ai-code-index/config.json`,
-  else built-in defaults. Check `repo_root` in the doctor output. Use `--repo <dir>` for a child
-  clone and `git -C <clone>` for git commands. A git worktree or submodule has a `.git` file, not a
-  directory, and resolves to the parent: create `<clone>/.ai-code-index/` first.
-- A `search` result with `"engine": "rg-fallback"` means no index shards were found: repair as
-  above before relying on it; otherwise only §6 allows it.
+- Doctor `healthy: false`, `index_stale: true` or `tags_present: false` → `arc index --quiet`
+  once, then `doctor` again. A `MISSING` tool (`ctags`, `ast-grep`) needs permission to install;
+  until then `symbol`/`ast` are unavailable.
+- `daemon_alive: false` → `arc daemon start` (`already running with pid N` is normal); dead
+  `daemon_pid` → `arc daemon restart`.
+- Identity: `arc` is the only public command; `arc version` must print `arc`, not `arc-idx`
+  (a shell alias or symlink to the backend is a broken install). `arc capabilities --json`
+  lists its backends. Without `arc`, use `arc-idx` only as a labelled lookup fallback with no
+  resource writes, and report it.
+- Repository root: nearest ancestor of the cwd (or `--repo <dir>`) holding `.ai-code-index/` or a
+  `.git` directory; config `<root>/.ai-code-index/config.json`, else defaults (doctor
+  `repo_root`). Child clone: `--repo <dir>` and `git -C <clone>`. A worktree or submodule has a
+  `.git` file and resolves to the parent: create `<clone>/.ai-code-index/` first.
+- `"engine": "rg-fallback"` in `search` means no shards: repair first; otherwise only §6 allows it.
 
-### Unified CLI and opt-in arc.db state engine
-
-[arc.db resource and state protocol](arc-db.md) defines implemented `db`,
-`task`, `file`, `change`, and incremental `update` operations. Require
-`arc_db_resources=true` before using `arc db init/migrate`. The database must
-also have `unified_database=true` (validated active marker) before resource
-writes. `arc verify` reads the unified DB only after cutover; old graph data
-and independent `arc-policy` receipts must not be overwritten. An index
-update never proves test success or automatic documentation freshness.
+State commands (`db`, `task`, `file`, `change`, `update`, `policy state`) follow
+[arc.db](arc-db.md): write only when capabilities report `unified_database=true`. An index
+update never proves a test passed.
 
 ## 2. Commands
 
@@ -135,12 +125,12 @@ corruption survives one repair, or the target lies outside every repository (suc
 directory). Missing binary or failed identity check stops first as §1 requires. Label fallback
 evidence and state its reason. Never directly call ctags, ast-grep, zoekt or MCP search.
 
-Never indexed: dot-directories except `.github`. Not indexed by default (`ignore_dirs`,
-`ignore_files`, `index_exts`, `size_max` in `.ai-code-index/config.json` replace these): directories
-such as `vendor`, `node_modules`, `dist`, `build`, `target`, `out`, `outputs`, `release`, `tmp`,
-`logs`, `coverage`, `uploads`; files over 1 MiB; extensions outside the code/config/docs allowlist
-(`.txt`, `.csv`, `.log` among them); lock files, `go.sum`, `*.min.js`, `*.map`, `*.snap`. These paths
-remain in the repository: report index coverage limits rather than treating them as outside it.
+Never indexed: dot-directories except `.github`. Default exclusions (replaced by `ignore_dirs`,
+`ignore_files`, `index_exts`, `size_max` in `.ai-code-index/config.json`): `vendor`,
+`node_modules`, `dist`, `build`, `target`, `out`, `outputs`, `release`, `tmp`, `logs`, `coverage`,
+`uploads`; files over 1 MiB; non-code extensions (`.txt`, `.csv`, `.log`); lock files, `go.sum`,
+`*.min.js`, `*.map`, `*.snap`.
+They stay in the repository: report the coverage limit instead of calling them outside it.
 
 ## 7. Evidence format
 

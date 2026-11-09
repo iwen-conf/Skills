@@ -34,7 +34,7 @@ These design checks adapt Waza's Think workflow under the [MIT license](../../..
 
 ## Rules
 
-1. Inspect local context before asking anything: `arc-idx search` first (fallback per
+1. Inspect local context before asking anything: `arc search` first (fallback per
    [code-intel](../../_shared/code-intel.md) §6), the files the request names, and `.lark.json`
    when it exists.
 2. Separate facts (with `file:line` or query evidence), assumptions and open questions; never hide

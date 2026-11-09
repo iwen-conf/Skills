@@ -217,8 +217,8 @@ split.
 <Context-Queries>
 
 ```bash
-arc-idx files '<已确认的文件片段>' --format json
-arc-idx search 'f:<已确认的路径> <已确认的符号或文案>' --context 3 --max 10 --format ai-md
+arc files '<已确认的文件片段>' --format json
+arc search 'f:<已确认的路径> <已确认的符号或文案>' --context 3 --max 10 --format ai-md
 ```
 
 </Context-Queries>

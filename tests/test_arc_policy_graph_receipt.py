@@ -123,6 +123,10 @@ def test_active_graph_receipt_still_rechecks_independent_gate(tmp_path, monkeypa
     )
     db = repo / ".arc/arc.db"
     db.write_bytes(b"graph-before")
+    # The shared DB is active for graphs, but Policy has not migrated out of JSON.
+    monkeypatch.setattr(
+        "arc_policy.dbstore._arc_command", lambda root, *args, data=None: {"mode": "legacy"}
+    )
 
     task = begin_task(repo, skill="arc-verify", slug="proof")
     snapshot = tree_fingerprint(repo)

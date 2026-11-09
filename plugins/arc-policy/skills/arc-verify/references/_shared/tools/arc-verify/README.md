@@ -1,6 +1,13 @@
 # ARC Verify (local graph test ledger, Go)
 
 Short-lived Go CLI using the **official in-process `tursogo` driver** as its database engine.
+
+The public command is now `arc verify ...` via the [unified Arc entrypoint](../arc/README.md).
+The original `arc-verify` binary remains an installed backend. The public
+`arc` CLI v0.2.0 can explicitly initialize `.arc/arc.db` or migrate the legacy
+`.arc/verify/data.db` with an offline assertion and graph-gate parity. Until
+`.arc/arc.json` activates the new DB, legacy defaults remain unchanged; an
+explicit `--db` still wins.
 It opens `.arc/verify/data.db` inside the tested repository and exits after every command.
 No Python runtime, no Turso Cloud URL/auth token, no daemon and no background processes.
 Turso's `tursodb` is distinct from the cloud-management `turso` CLI.
@@ -19,21 +26,21 @@ The official `tursodb` shell is optional and intended only for manually inspecti
 This demonstrates recording externally executed evidence. For v2 runner registration, round
 creation and real execution, use the [minimal v2 lifecycle](../../../business-graph-v2.md#minimal-v2-execution).
 
-    arc-verify init
-    arc-verify validate --file /path/to/Skills/tools/arc-verify/examples/academic-v1.json
-    arc-verify import --file /path/to/Skills/tools/arc-verify/examples/academic-v1.json
-    arc-verify approve --graph academic-v1           # USER terminal approval
-    arc-verify approve --graph academic-v1 --rule R-ENROLL
-    arc-verify plan --graph academic-v1
-    arc-verify next --graph academic-v1
-    arc-verify fixtures --file /path/to/Skills/tools/arc-verify/examples/fixtures.json
-    arc-verify start --task academic-v1/R-ENROLL/POSITIVE --env test60 --commit HEAD_SHA --account student-01 --fixture course-open
-    arc-verify step --run RUN_ID --expected ENROLLED --observed ENROLLED --evidence .arc/verify/raw/RUN_ID-step-1.json
-    arc-verify finish --run RUN_ID
+    arc verify init
+    arc verify validate --file /path/to/Skills/tools/arc-verify/examples/academic-v1.json
+    arc verify import --file /path/to/Skills/tools/arc-verify/examples/academic-v1.json
+    arc verify approve --graph academic-v1           # USER terminal approval
+    arc verify approve --graph academic-v1 --rule R-ENROLL
+    arc verify plan --graph academic-v1
+    arc verify next --graph academic-v1
+    arc verify fixtures --file /path/to/Skills/tools/arc-verify/examples/fixtures.json
+    arc verify start --task academic-v1/R-ENROLL/POSITIVE --env test60 --commit HEAD_SHA --account student-01 --fixture course-open
+    arc verify step --run RUN_ID --expected ENROLLED --observed ENROLLED --evidence .arc/verify/raw/RUN_ID-step-1.json
+    arc verify finish --run RUN_ID
     # record remains a shorthand for a single step plus finish
-    arc-verify trace --run RUN_ID
-    arc-verify risk --graph academic-v1
-    arc-verify gate --graph academic-v1
+    arc verify trace --run RUN_ID
+    arc verify risk --graph academic-v1
+    arc verify gate --graph academic-v1
 
 An unconfirmed rule cannot produce required test tasks; a risk never becomes a rule
 implicitly. Import never overwrites a graph version. RAW must contain matching `identity`, `run`,
@@ -65,10 +72,10 @@ Remote-system E2E needs its own executed client journey and independent business
 
 Fixture/implementation evidence commands (status is never inferred from missing UI alone):
 
-    arc-verify fixtures --file /path/to/Skills/tools/arc-verify/examples/fixtures.json
-    arc-verify fixture --id student-01
-    arc-verify scan --file /path/to/Skills/tools/arc-verify/examples/implementation-scan.json
-    arc-verify gaps --graph academic-v1
+    arc verify fixtures --file /path/to/Skills/tools/arc-verify/examples/fixtures.json
+    arc verify fixture --id student-01
+    arc verify scan --file /path/to/Skills/tools/arc-verify/examples/implementation-scan.json
+    arc verify gaps --graph academic-v1
 
 Fixtures retain logical IDs, intended states, role metadata and only secret references
 (e.g. `env://TEST_STUDENT_PASSWORD`), not passwords. An imported fixture is a
@@ -96,16 +103,16 @@ and rechecks frozen task meaning and RAW content/hash; counts alone cannot grant
 and conflicting stored obligations are rejected rather than silently ignored.
 
 
-`arc-verify trace --run RUN_ID` returns an ordered execution trace with the **first diverging step**, latest observed state and next decision. A failed task cannot be overwritten by a successful diagnostic branch. `arc-verify recover --graph GRAPH --condition CONDITION` explores bounded AND prerequisites and OR recovery actions and marks unconfirmed actions unresolved rather than inventing rules.
+`arc verify trace --run RUN_ID` returns an ordered execution trace with the **first diverging step**, latest observed state and next decision. A failed task cannot be overwritten by a successful diagnostic branch. `arc verify recover --graph GRAPH --condition CONDITION` explores bounded AND prerequisites and OR recovery actions and marks unconfirmed actions unresolved rather than inventing rules.
 
 ## Resuming after failure or a lost runner
 
-    arc-verify trace --run R123
-    arc-verify abort --run R123 --reason "browser crashed; state unknown"
-    arc-verify context --run R123 --phase fixture --commit CURRENT_HEAD
+    arc verify trace --run R123
+    arc verify abort --run R123 --reason "browser crashed; state unknown"
+    arc verify context --run R123 --phase fixture --commit CURRENT_HEAD
     # Independently reconstruct and observe the authorized fixture, recording checkpoint RAW.
-    arc-verify retry --task "academic-v1/R-ENROLL/POSITIVE" --reason "recreated baseline" --commit CURRENT_HEAD --evidence .arc/verify/raw/R123-checkpoint.json
-    arc-verify next --graph academic-v1
+    arc verify retry --task "academic-v1/R-ENROLL/POSITIVE" --reason "recreated baseline" --commit CURRENT_HEAD --evidence .arc/verify/raw/R123-checkpoint.json
+    arc verify next --graph academic-v1
 
 An abort saves BLOCKED plus an immutable event. A retry creates a new
 READY task attempt without deleting old FAIL/BLOCKED runs or RAW. This is not
@@ -132,7 +139,7 @@ existing ledgers with `init` before using the new binding/checkpoint tables.
 
 There is no local workbench service. `snapshot` exports one existing ledger context once and exits:
 
-    arc-verify snapshot --graph course-v2 [--env independent] [--round ROUND_ID] [--run RUN_A,RUN_B] \
+    arc verify snapshot --graph course-v2 [--env independent] [--round ROUND_ID] [--run RUN_A,RUN_B] \
       --assets tools/arc-verify/workbench/dist [--out DIR]
 
 It writes `snapshot.json` and an `index.html` that embeds the same JSON
@@ -154,24 +161,24 @@ Details and semantics: `Arc/arc-verify/references/business-graph-v2.md`.
 Start with its [runner → round → execute example](../../../business-graph-v2.md#minimal-v2-execution);
 register every fixture/runner before opening the round. A single card does not complete the graph.
 
-    arc-verify run-chain --graph G --env E --round Q --root . --config C --commit SHA \
+    arc verify run-chain --graph G --env E --round Q --root . --config C --commit SHA \
       --account A --fixture F --max-steps 16 --deadline 10m      # exit 0 done, 10-15 = stop reason
-    arc-verify derive --run RUN [--budget 16]                     # obligations from a failed run
-    arc-verify discover record --file exploration.json            # UNSPECIFIED, never PASS/FAIL
-    arc-verify discover run --file adapter.json --graph G --flow F --env E --round Q \
+    arc verify derive --run RUN [--budget 16]                     # obligations from a failed run
+    arc verify discover record --file exploration.json            # UNSPECIFIED, never PASS/FAIL
+    arc verify discover run --file adapter.json --graph G --flow F --env E --round Q \
       --account A --fixture F --commit SHA [--mode heuristic|deterministic|ai] [--planner FILE]
       # --mode ai --planner FILE is a scripted comparison fixture only; no Agent handshake or model API.
-    arc-verify discover status [--id CAMPAIGN] [--graph G]
-    arc-verify discover resume --id CAMPAIGN --file adapter.json --graph G --flow F --env E --round Q \
+    arc verify discover status [--id CAMPAIGN] [--graph G]
+    arc verify discover resume --id CAMPAIGN --file adapter.json --graph G --flow F --env E --round Q \
       --account A --fixture F --commit SHA
-    arc-verify discover abort --id CAMPAIGN --reason TEXT
-    arc-verify discover triage --graph G --id ITEM --as missing_requirement   # USER terminal
-    arc-verify report --graph G --kind acceptance|risk
-    arc-verify reject-risk --graph G --risk ID                    # USER terminal
-    arc-verify risk refute --graph G --risk ID --result refuted --evidence FILE
-    arc-verify reference-import --file examples/references/enrollment.jsonc
-    arc-verify reference-match --graph G
-    arc-verify mutation-report --file mutations.json
+    arc verify discover abort --id CAMPAIGN --reason TEXT
+    arc verify discover triage --graph G --id ITEM --as missing_requirement   # USER terminal
+    arc verify report --graph G --kind acceptance|risk
+    arc verify reject-risk --graph G --risk ID                    # USER terminal
+    arc verify risk refute --graph G --risk ID --result refuted --evidence FILE
+    arc verify reference-import --file examples/references/enrollment.jsonc
+    arc verify reference-match --graph G
+    arc verify mutation-report --file mutations.json
 
 `scan` input may carry `"commit"`; EXISTENCE obligations only accept scans bound to the round's
 candidate commit. Decisions marked USER need an interactive terminal; agents must not pipe them.
@@ -183,12 +190,12 @@ No seventh top-level Arc skill is installed. The graph ledger is owned by
 identifiers rather than keeping separate agent memory or a second task tree.
 
 ```sh
-arc-verify handoff --to arc-explore --graph academic-v1
-arc-verify handoff --to arc-plan --graph academic-v1
-arc-verify handoff --to arc-verify --graph academic-v1
-arc-verify handoff --to arc-code --run R-FAILED
-arc-verify handoff --to arc-audit --graph academic-v1
-arc-verify handoff --to arc-vet --graph academic-v1
+arc verify handoff --to arc-explore --graph academic-v1
+arc verify handoff --to arc-plan --graph academic-v1
+arc verify handoff --to arc-verify --graph academic-v1
+arc verify handoff --to arc-code --run R-FAILED
+arc verify handoff --to arc-audit --graph academic-v1
+arc verify handoff --to arc-vet --graph academic-v1
 ```
 
 The response is bounded JSON: `arc-code` receives only an independently observed FAIL
@@ -229,7 +236,7 @@ reads only an indexed bounded graph slice (max depth 8, max 128 actions).
 confirmed obligations; never substitute a fast status count for an E2E receipt.
 
 
-The planner cursor is stored in `plan_cursor` and committed atomically with each task batch, so invoking the short-lived CLI again resumes without re-scanning earlier rules. Explicit approval of a previously unconfirmed rule resets the cursor safely; an existing task is reused only when its meaning is identical. Run `arc-verify init` after upgrading an existing local graph DB to add indexes and the cursor table. Each rule is capped at 64 named preconditions to bound the working set.
+The planner cursor is stored in `plan_cursor` and committed atomically with each task batch, so invoking the short-lived CLI again resumes without re-scanning earlier rules. Explicit approval of a previously unconfirmed rule resets the cursor safely; an existing task is reused only when its meaning is identical. Run `arc verify init` after upgrading an existing local graph DB to add indexes and the cursor table. Each rule is capped at 64 named preconditions to bound the working set.
 
 Graph gate PASS covers planned positive, per-condition negative and forced obligations.
 Condition recovery, cross-role sequences, concurrency and real E2E are separate coverage
@@ -239,7 +246,7 @@ implementation; do not let current code or an AI proposal become the expected co
 
 ### Initialization and migrations
 
-Run `arc-verify init` from the tested repository root before the first graph import
+Run `arc verify init` from the tested repository root before the first graph import
 and after upgrading the Go CLI. Initialization creates the tables **before** their
 indexes in a single transaction, is safe to repeat, and preserves existing graph,
 task and run records. The integration tests include fresh, repeated and existing
@@ -248,7 +255,7 @@ ledger initialization. This does not install a browser or grant remote access.
 ### Real native-Turso readiness check
 
 ```bash
-arc-verify selftest
+arc verify selftest
 arc-policy doctor
 ```
 

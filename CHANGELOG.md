@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### arc-policy 0.4.4 — one public `arc` entry across skills, docs and installs
+
+- Skill references now call `arc search|symbol|ast|files|stats` instead of the `arc-idx` backend; `arc-idx` remains only as a backend name, a labelled fallback and literal engine error text. `code-intel` makes an `arc` alias or symlink to `arc-idx` an explicit broken-install signal.
+- Graph docs (`business-graph`, `business-graph-start`, `workflow` §6) select the active `.arc/arc.db` after migration and the legacy `.arc/verify/data.db` otherwise; `arc-db.md`, READMEs and AGENTS.md report arc 0.4.0 with `arc policy state` implemented.
+- Removed the `.github/workflows/arc-cli.yml` workflow that violated the no-GitHub-Actions rule; its Go tests and real-backend smoke moved into the AGENTS.md acceptance commands.
+- Dropped the dead `unverified_commit` fallback category and updated hook tests that still expected plain `git commit` to be denied; `--no-verify` stays denied, including when the engine cannot load.
+- `tests/conftest.py` clears the `ARC_POLICY_ROOT` exported by the installed launcher, so the suite passes under `arc-policy task verify` instead of resolving fixture entries to the installed runtime.
+- `tools/arc` builds again: a corrupted `'\n'` rune in `writeManifest` had made every 0.4.0 commit uncompilable, and two test files did not compile. Fixed `retireLegacyPolicyFiles`, where a shadowed `err` returned before archiving `.arc/policy/receipts`; Policy migration now actually moves legacy receipts into `.arc/backups/`. Test fixtures resolve symlinked temp roots like `repositoryRoot` does.
+- `arc-verify` checkpoints its WAL (`PRAGMA wal_checkpoint(TRUNCATE)`) on close. Every write used to leave an uncheckpointed `data.db-wal`, so `arc db migrate --confirm-offline` always refused a real legacy ledger; the real-backend smoke now passes end to end.
+- `arc-idx` doctor advice and search errors now tell agents to run `arc index` / `arc daemon ...` instead of the backend command.
+- Restored the `arc-idx` trigger term in `arc:explore` and brought every load scenario back under its token ceiling. Skill versions: explore 2.3.4, code 2.7.3, plan 2.6.2, audit 2.7.1, vet 1.1.1.
+
 ### arc:verify 3.9.0 — tester-army/e2e execution guidance
 
 - Added an on-demand Web/mobile runner reference, reviewed against upstream `232ce75ab4b68ded93525162e1121bf973792ea8`: atomic agent goals plus exact assertions, readable-state negative checks, fixture/session boundaries and evidence-first debugging.

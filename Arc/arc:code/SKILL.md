@@ -1,6 +1,6 @@
 ---
 name: arc:code
-version: 2.7.2
+version: 2.7.3
 description: >-
   Every task that changes source code: write code to implement (写代码, 实现, 开发功能, 落地改动)
   a feature, endpoint or page (前端, 落地页, 要好看, shadcn, 小程序) on the project's stack; fix (修复) a bug,

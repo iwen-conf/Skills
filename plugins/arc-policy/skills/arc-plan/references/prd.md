@@ -14,7 +14,7 @@ to `docs/00-产品需求/README.md`.
 
 ## Rules
 
-1. Brownfield: search existing domain terms with `arc-idx search` first, then `arc-idx symbol` for
+1. Brownfield: search existing domain terms with `arc search` first, then `arc symbol` for
    entity names; use the repository's vocabulary.
 2. One canonical name per domain concept; never introduce a second name for an existing one.
 3. Read `.lark.json` before drafting when it exists, so PRD, owners, requirements and Wiki links stay

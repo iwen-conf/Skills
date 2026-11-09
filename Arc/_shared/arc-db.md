@@ -1,12 +1,12 @@
 # arc.db — repository-local resource, state and change protocol
 
-> **Implementation status (0.3.0).** `arc` routes code intelligence to the
+> **Implementation status (arc 0.4.0).** `arc` routes code intelligence to the
 > existing `arc-idx` engine, verification to `arc-verify`, and implements
-> versioned `arc.db` operations for `db`, `task`, `file`, `change` and
-> `update`. One physical project-local Turso DB is created with `arc db init`,
+> versioned `arc.db` operations for `db`, `task`, `file`, `change`, `update`
+> and `policy state`. One physical project-local Turso DB is created with `arc db init`,
 > or the existing graph ledger is copied with `arc db migrate --confirm-offline`
 > only after explicit offline confirmation, backup and exact gate parity.
-> This is **not** yet one compiled engine, and native per-file index updates, complete policy-state migration and
+> This is **not** yet one compiled engine, and native per-file index updates and
 > some advanced resources remain unimplemented. Check
 > `arc capabilities --json`; do not infer a PASS from a data migration.
 
@@ -61,7 +61,7 @@ affected files and symbols, execution run, tests, evidence and decisions.
 Avoid relying on ambiguous file paths alone: use repository and worktree IDs,
 canonical relative path, Git identity and content hash.
 
-## 3. Implemented CLI (0.3.0) vs future features
+## 3. Implemented CLI (0.4.0) vs future features
 
 ```bash
 arc capabilities --json
@@ -98,8 +98,8 @@ The plugin graph gate follows the marker when policy has no explicit DB override
 project**. The code-index and verifier binaries remain separate dependencies.
 `arc-policy task verify` remains the completion authorization gate.
 
-**Not yet executable:** native `arc task verify`, `arc change verify/impact`,
-`arc design/contract/schema` or a complete policy-receipt store migration.
+**Not yet executable:** native `arc task verify`, `arc change verify/impact`
+or `arc design/contract/schema`.
 `arc task complete` requires an existing **current PASS** from `arc-policy`;
 `AUTHORIZED` never counts as passing independent verification.
 

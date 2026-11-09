@@ -11,7 +11,7 @@ description: 'Every task that changes source code: write code to implement (写�
   task docs or closure models (use arc-plan), visual direction without code (use ui-design),
   or commit, push and PR delivery (use check).'
 metadata:
-  version: 2.7.0
+  version: 2.7.3
 ---
 
 # arc-code
@@ -59,7 +59,7 @@ Implement behavior through the real HTTP/CLI/UI/job entry, update affected sibli
 
 ## Workflow
 
-Graph repairs: [workflow §6](references/_shared/Arc/_shared/workflow.md); `arc-verify handoff --to arc-code --run <id>`. Preserve prior FAIL, RAW and rules; verify reruns E2E.
+Graph repairs: [workflow §6](references/_shared/Arc/_shared/workflow.md); `arc verify handoff --to arc-code --run <id>`. Preserve prior FAIL, RAW and rules; verify reruns E2E.
 
 1. Read [contract.md](references/_shared/Arc/_shared/contract.md), [code-intel.md](references/_shared/Arc/_shared/code-intel.md) and [coding-discipline.md](references/_shared/Arc/_shared/coding-discipline.md). Write one line: `Mode · Tier · Scope lock · Task slug`. IF T2 and no task document THEN write an inline brief (≤10 lines, contract §2) before any edit.
 2. Run the code-intel preflight. For T1/T2 run `bash <skill-dir>/scripts/gate.sh start --task <slug>` (`<skill-dir>` holds this file) before the first edit. Output: baseline recorded.
@@ -76,12 +76,12 @@ Graph repairs: [workflow §6](references/_shared/Arc/_shared/workflow.md); `arc-
 7. Expectations come from the requirement, never from the new code's output.
 8. Run `bash <skill-dir>/scripts/gate.sh check --task <slug> --max-files <N>` (N = impact-list files plus their tests); add `--require-red` in implement and repair modes, `--strict` for T2 and `--scope <file>` under a scope lock. Cite the report path it prints. T0 without `start` diffs against HEAD: pre-existing dirty files count as changed.
 9. Exercise the real entry point: HTTP call, CLI run, UI action, job trigger, or a test through the handler. A helper-only test does not prove reachability.
-10. Update task-document status with contract vocabulary, apply the contract Lark hook, and report in the contract §9 format; repair mode adds the execution-truth §6 repair packet.
+10. After explicit arc.db activation, PostToolUse records file/ChangeSet events via `arc update`; see the [arc.db protocol](references/_shared/Arc/_shared/arc-db.md). Outbox pending is not verified/complete. Update the current task document/receipts and Lark hook; report per contract §9 (repair adds execution-truth §6).
 
 ## Tool Strategy
 
 - **Query order:** code-intel §3 ladder (symbol → exact string → AST → file name → broadened text → host search).
-- **Preferred:** `arc-idx`; the project's own format, lint, typecheck and test commands; `gate.sh`; the project's structured logger; language-aware rename/move tools (gopls rename, IDE refactor).
+- **Preferred:** `arc`; the project's own format, lint, typecheck and test commands; `gate.sh`; the project's structured logger; language-aware rename/move tools (gopls rename, IDE refactor).
 - **Forbidden:**
   - `--no-verify`, disabling lint rules, skipping or deleting tests to get green.
   - Suppressions: `//nolint`, `eslint-disable`, `@ts-ignore`, `# type: ignore`, `pyright: ignore`, a new `any` or `interface{}` that silences a type error.
@@ -92,7 +92,7 @@ Graph repairs: [workflow §6](references/_shared/Arc/_shared/workflow.md); `arc-
   - Invented config keys, table or column names, enum values, routes, error codes or domain identity keys.
   - Editing an already-applied migration.
   - Reverting, stashing or reformatting user changes recorded in the baseline.
-- **Fallback:** `arc-idx` unhealthy after one repair → host search labelled `fallback:<tool>`. `gate.sh` missing or erroring → run its checks by hand (placeholder/suppression scan of changed lines, non-mutating format check, lint/typecheck, affected tests) and record each verdict. A check the project lacks → `NOT_RUN(<reason>)`, never `PASS`.
+- **Fallback:** `arc` unhealthy after one repair → host search labelled `fallback:<tool>`. `gate.sh` missing or erroring → run its checks by hand (placeholder/suppression scan of changed lines, non-mutating format check, lint/typecheck, affected tests) and record each verdict. A check the project lacks → `NOT_RUN(<reason>)`, never `PASS`.
 - **When a query fails:** follow code-intel §5; after the last rung report `not found` with every query run; never guess a path, key or enum. Unresolved dynamic dispatch → `dynamic — confirm at runtime`, covered by a real-entry test.
 
 ## Decision Rules

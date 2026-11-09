@@ -55,9 +55,9 @@ network evidence from the configured observer.
 
 ## 4. Codebase evidence (own repositories only)
 
-Use code-intel queries, not tree scans: separate `arc-idx files 'vite.config' --format json`,
-`arc-idx files 'next.config' --format json` (and the project's other configured build file names),
-`arc-idx search 'from "lodash"'`, `'moment'`, `'core-js'`, `'sideEffects'`, `'browserslist'`.
+Use code-intel queries, not tree scans: separate `arc files 'vite.config' --format json`,
+`arc files 'next.config' --format json` (and the project's other configured build file names),
+`arc search 'from "lodash"'`, `'moment'`, `'core-js'`, `'sideEffects'`, `'browserslist'`.
 Each candidate (wholesale imports, barrel re-exports, polyfill breadth, production source maps,
 missing compression) is a hypothesis until the trace shows its cost.
 

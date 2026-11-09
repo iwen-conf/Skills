@@ -119,7 +119,7 @@ Every leaf states, in project terms:
 5. Behavior before and after, including error and empty states for API and UI leaves.
 6. Acceptance: commands or manual checks with expected results.
 7. Parent, owning side, priority, difficulty with evidence, upstream readiness, downstream consumers.
-8. `<Context-Queries>`: exact `arc-idx files/search/symbol/ast` commands with real paths, symbols
+8. `<Context-Queries>`: exact `arc files/search/symbol/ast` commands with real paths, symbols
    and `--format json` or `--format ai-md`; the author runs each once and confirms it returns the
    target. No placeholders. The executor runs them before editing.
 

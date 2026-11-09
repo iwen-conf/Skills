@@ -8,7 +8,9 @@ Whole-system/all-business/all-interaction tests select this route without requir
 DB or user-supplied model. For first modeling or missing capabilities, use
 [graph-start](business-graph-start.md); the existing Agent discovers semantics and writes the model.
 
-The Go CLI opens target-local `.arc/verify/data.db` with in-process `tursogo`, then exits.
+`arc verify` forwards to the Go verifier (in-process `tursogo`, then exits). Its ledger is the
+active `.arc/arc.db` after explicit [arc.db](_shared/Arc/_shared/arc-db.md) migration (`arc verify`
+injects `--db`), else target-local `.arc/verify/data.db`; never both as writable truths.
 Remote servers are authorized test targets; no cloud ledger or persistent service. Nodes are
 feature/action/condition/state; edges contains/requires/transitions/recovers/forbids.
 Prerequisites are AND, recovery alternatives OR. Keep only the current bounded card in context.

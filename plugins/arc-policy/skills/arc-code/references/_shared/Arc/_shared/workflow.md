@@ -55,7 +55,7 @@ Requirement and API contract paths + existing IDs:
 Model path + spec/checker hashes + check/gate commands and results, or not applicable:
 REQ → entity/transition/event/invariant/scenario → task → code → runtime claim:
 Facts and source locations / assumptions / unresolved questions:
-Context-Queries (exact arc-idx commands):
+Context-Queries (exact arc commands):
 Evidence (command, result, candidate revision, environment, artifact):
 Open findings (ID, severity, status, owner) / invalidated evidence:
 Next action and readiness condition:
@@ -132,12 +132,11 @@ A configured `verification.business_graph` also reuses this route. Ordinary loca
 do **not** require a graph. Plan-only/read-only scope remains binding; a graph-only request does not
 authorize business execution. After confirmed rules, continue already authorized testing.
 
-The local `arc-verify` Go CLI is an ephemeral process. Its persistent ledger is
-the current *target repository*'s `.arc/verify/data.db` (local Turso file).
-It must not contact Turso Cloud. Remote addresses in `config.jsonc` are
-**authorization-scoped targets under test**, never the ledger database.
-No remote host/service other than those explicitly permitted by the user's
-environment constraints may be accessed as a workaround.
+The verifier behind `arc verify` is ephemeral. Its ledger is `.arc/arc.db` once
+`arc db init/migrate` activates it, else the legacy `.arc/verify/data.db`; Policy receipts
+move only via `arc policy state migrate`. It must not contact Turso Cloud. Remote addresses in `config.jsonc` are
+**authorization-scoped targets under test**, never the ledger; no other remote
+host/service may be accessed as a workaround.
 
 | Existing skill | Receives | Output / boundary |
 |---|---|---|
@@ -151,12 +150,8 @@ environment constraints may be accessed as a workaround.
 **Bridge command** (read-only; no extra tracker):
 
 ```bash
-arc-verify handoff --to arc-explore --graph academic-v1
-arc-verify handoff --to arc-plan --graph academic-v1
-arc-verify handoff --to arc-verify --graph academic-v1
-arc-verify handoff --to arc-code --run R-FAILED   # requires failed run
-arc-verify handoff --to arc-audit --graph academic-v1
-arc-verify handoff --to arc-vet --graph academic-v1
+arc verify handoff --to arc-explore --graph academic-v1   # also arc-plan|arc-verify|arc-audit|arc-vet
+arc verify handoff --to arc-code --run R-FAILED          # requires failed run
 ```
 
 This bounded JSON packet is **context**, not an authority to change scope, access
@@ -188,7 +183,6 @@ new run. Fixture reconstruction and a later PASS never rewrite earlier FAIL.
 Graph gate PASS currently covers planned positive/negative/forced obligations;
 additional recovery, cross-role, concurrency and E2E claims need their own RAW.
 
-CLI Campaign, Checkpoint, Frontier and fencing recover a crashed test run.
-They are not an Agent session or cross-Agent takeover.
-
-A handoff/model operation does not prove runner authenticity or fixture restoration.
+CLI Campaign, Checkpoint, Frontier and fencing recover a crashed test run, not an Agent
+session or cross-Agent takeover. A handoff/model operation does not prove runner
+authenticity or fixture restoration.

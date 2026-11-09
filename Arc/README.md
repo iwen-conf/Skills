@@ -34,15 +34,15 @@ implementation and release claims still require their own runtime evidence.
 The supported public forms are `arc search`, `arc index`, `arc doctor`
 and `arc verify gate|trace|handoff`; see [tools/arc](../tools/arc/README.md).
 Install all backends together with `bash scripts/install_arc.sh`, then run
-`arc capabilities --json`. Version 0.3.0 delegates the established
+`arc capabilities --json`. Version 0.4.0 delegates the established
 index and verification engines to the existing binaries, while providing
-`arc db`, `arc task`, `arc file`, `arc change`, `arc update` and `arc sync`.
+`arc db`, `arc task`, `arc file`, `arc change`, `arc update`, `arc sync` and `arc policy state`.
 After explicit `.arc/arc.db` activation, `arc index flush` performs a
 verified batched **full** index build and acknowledges source Outbox events.
 `arc task complete` requires an existing current Arc Policy PASS, a matching
 indexed revision and CAS; normal Git commits never trigger `task verify`.
-The Python policy receipt remains the verification authority until native
-state migration. See [arc-db.md](_shared/arc-db.md).
+The `arc-policy` PASS receipt remains the verification authority; after
+`arc policy state migrate` it is stored in `arc.db` instead of JSON. See [arc-db.md](_shared/arc-db.md).
 
 ## Business-chain graph verification bridge
 

@@ -26,7 +26,7 @@
 - 来源：<REQ / INV / transition / scenario ID 与路径>
 - 模型证据：<spec 路径和 SHA256、checker SHA256、check/gate 命令及结果、状态文件>
 - 影响面：<代码文件和已核实调用点；复用 explore 结果>
-- 上下文检索：<执行者需复跑的精确 arc-idx 查询>
+- 上下文检索：<执行者需复跑的精确 arc 查询>
 - 下游验收：<任务卡/测试场景、独立 oracle、目标环境与命令>
 - 未决项：<假设、豁免、范围决策；无则写“无”>
 - 返回条件：<实现偏差返 code；合同缺口返 closure；证据缺口返 verify>

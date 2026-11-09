@@ -9,7 +9,7 @@ description: 'Turns intent into written specs and checkable models without touch
   into task batches. Not for implementation (use arc-code), code review (use arc-audit),
   or Lark workspace sync (use lark).'
 metadata:
-  version: 2.6.0
+  version: 2.6.2
 ---
 
 # arc-plan
@@ -61,7 +61,7 @@ Checker findings: [closure-rules.md](references/closure-rules.md). HTTP specs us
 
 ## Workflow
 
-Use [graph handoffs](references/_shared/Arc/_shared/workflow.md) and read-only `arc-verify handoff --to arc-plan --graph <id>`.
+Use [graph handoffs](references/_shared/Arc/_shared/workflow.md) and read-only `arc verify handoff --to arc-plan --graph <id>`.
 Only user-approved rules are normative; document changes remain docs-only.
 Keep requirement/transition/scenario IDs; model PASS is not runtime PASS.
 
@@ -92,13 +92,13 @@ Keep requirement/transition/scenario IDs; model PASS is not runtime PASS.
 
 ## Tool Strategy
 
-- **Preferred:** code-intel commands (`arc-idx symbol`, `search`, `ast`, `files`) and direct file
+- **Preferred:** code-intel commands (`arc symbol`, `search`, `ast`, `files`) and direct file
   reads for facts; writes only under `docs/` and the task-document root.
 - **Query order:** docs indexes, trackers and cards → code-intel ladder → project agent files and
   PRDs (项目定位, 项目口径) → the user, only for what remains.
 - **When a query fails:** widen per code-intel §5, then write `not found (queries …)` as a Question
   or `[?]` item; never write an unconfirmed path, symbol or key.
-- **Fallback:** `arc-idx` missing or unhealthy after one repair → host search labeled
+- **Fallback:** `arc` or its backend missing or unhealthy after one repair → host search labeled
   `fallback:<tool>` with the reason (code-intel §6).
 - **Closure checker** (`<skill-dir>` holds this file):
   `python3 <skill-dir>/scripts/closure/check_closure.py check|gate|render <spec>`; self-test
@@ -176,7 +176,7 @@ rg -n '`\[[^ /?x!-]\]`' <written-docs-dir>
 | Failure | Action | Retry budget | Stop condition |
 |---|---|---|---|
 | Blocking question unanswered | Continue on top-listed defaults; dependents `[?]` | 1 round | Default touches an interface, data, auth or money → `[!]`, stop |
-| `arc-idx` unhealthy | One repair per code-intel §1, then labeled fallback | 1 repair | Target unreadable → facts become Questions |
+| `arc` index backend unhealthy | One repair per code-intel §1, then labeled fallback | 1 repair | Target unreadable → facts become Questions |
 | Named file or symbol not found | Widen per code-intel §5 | 5 rungs | Report `not found` with every query; never guess |
 | Doc structure conflicts with defaults | Keep existing structure; add missing indexes only | 0 | User asks to reorganize → `layout` mode |
 | Campaign handoff incomplete | One discovery pass for 项目定位 and 项目口径 | 1 pass | Still missing → `[!]` on dependent tasks; hand back to `arc-audit` |

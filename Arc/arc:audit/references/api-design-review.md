@@ -9,7 +9,7 @@ artifact directory. Do not create or rewrite contracts during this mode.
    inside the otherwise excluded artifact directory. In a repository also compare worktree/index
    diffs; unchanged `git status` alone cannot prove unchanged bytes. Discover local routes,
    DTOs, validators, auth middleware, gateway limits, upload/storage
-   handlers and clients with `arc-idx` when source is provided. Missing source is a coverage gap,
+   handlers and clients with `arc` when source is provided. Missing source is a coverage gap,
    not grounds to assume a missing control. Without a repository, cite document sections/lines.
 2. Apply [HTTP design](../../_shared/http-api-design.md), loading its JSON/upload references only
    where relevant. Perform its primary-source web verification. Record source version/section,

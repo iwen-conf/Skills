@@ -15,7 +15,7 @@ Before editing, name:
 
 Only ask when unresolved alternatives materially change the deliverable. Existing authorization
 covers a concrete in-scope correction; silence is never authorization for a redesign.
-Locate owning components/tokens with `arc-idx`, then inspect sibling consumers. A deterministic
+Locate owning components/tokens with `arc`, then inspect sibling consumers. A deterministic
 rendering, data, font or timing regression uses arc:code repair with this visual evidence.
 
 ## 2. Fix the shared cause
@@ -35,7 +35,7 @@ Freeze the relevant matrix before claiming completion; omit irrelevant rows with
 
 | Dimension | Evidence to select |
 |---|---|
-| Shared consumers | Affected sibling pages/components discovered with arc-idx |
+| Shared consumers | Affected sibling pages/components discovered with arc |
 | Size | Both sides of affected web breakpoints; native minimum width/height and normal size |
 | State | Default, selected/focused, disabled, loading, empty/error and localized content that can occur |
 | Timing | Before/during/after a changed transition; cold/warm entry for initialization defects |

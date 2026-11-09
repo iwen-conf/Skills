@@ -87,7 +87,7 @@ finding: `file:line: <tag> <what>. <replacement>.` with tag `yagni`, `stdlib`, `
 
 | # | Rot | Gate | Detect |
 |---|---|---|---|
-| 37 | Speculative abstraction (`yagni`) | No interface with one implementation, factory with one product, wrapper that only delegates, config nobody sets, or layer with one caller, unless a contract or test seam requires it. | `arc-idx ast` for interface types, then `symbol` each method for implementer count; read wrappers whose body is one call. |
+| 37 | Speculative abstraction (`yagni`) | No interface with one implementation, factory with one product, wrapper that only delegates, config nobody sets, or layer with one caller, unless a contract or test seam requires it. | `arc ast` for interface types, then `symbol` each method for implementer count; read wrappers whose body is one call. |
 | 38 | Hand-rolled standard library (`stdlib`) | Use the language standard library before writing utilities. | `files 'util'`, `'helper'`; read each function against the stdlib of its language. |
 | 39 | Dependency for a platform feature (`native`) | Platform first: `<input type="date">`, CSS, DB constraints, native SDK APIs before a package. | Manifest dependencies vs their import sites (`search 'import .*<pkg>'`); one or two call sites are candidates. |
 | 40 | Removable flexibility or verbosity (`delete`, `shrink`) | Delete unused options, flags and branches; prefer the shorter equivalent with identical behavior. | `search` each flag or option name for readers; unread ones are candidates. |

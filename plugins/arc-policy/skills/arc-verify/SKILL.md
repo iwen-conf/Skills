@@ -72,6 +72,10 @@ HTTP/JSON/upload claims use
 
 ## Workflow
 
+The unified `arc verify` command keeps the existing graph/evidence engine.
+An [opt-in arc.db migration](references/_shared/Arc/_shared/arc-db.md) now exists; require a
+matching gate proof, never treat migration or task-state events as PASS.
+
 Graph mode follows [business-graph](references/business-graph.md), replacing steps 2–10.
 Draw via [arch-diagram](references/business-diagram.md); inspect screenshots; release execution refs.
 Without a confirmed graph, [first start](references/business-graph-start.md) has the Agent draft,

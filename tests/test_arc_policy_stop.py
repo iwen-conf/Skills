@@ -189,7 +189,7 @@ def test_stop_preserves_graph_only_scope_without_waiving_receipts(
             "session_id": session,
             "cwd": str(repo),
             "tool_name": "Bash",
-            "tool_input": {"command": "git commit -m candidate"},
+            "tool_input": {"command": "git commit --no-verify -m candidate"},
         }
     )
     assert denied["hookSpecificOutput"]["permissionDecision"] == "deny"
@@ -410,7 +410,7 @@ def test_denied_shell_call_charges_nothing(tmp_path: Path, no_jev: None) -> None
             "cwd": str(repo),
             "tool_name": "Bash",
             "tool_use_id": "t2",
-            "tool_input": {"command": "git commit -m x"},
+            "tool_input": {"command": "git commit --no-verify -m x"},
         }
     )
     assert denied["hookSpecificOutput"]["permissionDecision"] == "deny"

@@ -10,7 +10,7 @@ description: 'Open-source due diligence before a new dependency or a non-trivial
   or finds a successor. Not for implementing the chosen option (use arc-code), dependency
   vulnerability scans (use arc-audit), or research articles (use research-write).'
 metadata:
-  version: 1.1.0
+  version: 1.1.1
 ---
 # arc-vet
 
@@ -55,11 +55,11 @@ First matching row wins.
 
 ## Workflow
 
-Graph runner selection: [workflow §6](references/_shared/Arc/_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills), `arc-verify handoff --to arc-vet --graph <id>`; prefer existing runners and no new daemon/cloud database.
+Graph runner selection: [workflow §6](references/_shared/Arc/_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills), `arc verify handoff --to arc-vet --graph <id>`; prefer existing runners and no new daemon/cloud database.
 
 1. Read [contract.md](references/_shared/Arc/_shared/contract.md). A new dependency is T2 (contract §2). Output: need,
    boundary, language and version, platforms, constraints, project license, mode, `as_of`.
-2. Local first. Find manifests and lockfiles (`arc-idx files 'go.mod|package.json|Cargo.toml|pyproject.toml|requirements'`)
+2. Local first. Find manifests and lockfiles (`arc files 'go.mod|package.json|Cargo.toml|pyproject.toml|requirements'`)
    and search for an existing implementation of the need ([code-intel §3](references/_shared/Arc/_shared/code-intel.md#3-query-ladder-stop-at-the-first-rung-that-answers-the-question)).
    Check the standard library of the target version. Output: reuse candidates with `file:line`.
 3. Find candidates (select, replace): at least two keyword families from playbook §1 on GitHub and
@@ -88,7 +88,7 @@ Graph runner selection: [workflow §6](references/_shared/Arc/_shared/workflow.m
 
 - **Preferred**: `gh search repos`, `gh api` (playbook §2), `scripts/github_health.py` (Python 3
   standard library, `GITHUB_TOKEN` or `GH_TOKEN` optional), ecosystem registries, GitHub Security
-  Advisories and OSV, `arc-idx` for the local repository.
+  Advisories and OSV, `arc` for the local repository.
 - **Order**: local repository → search → health script → manual confirmation of core commits,
   releases, license, advisories → dependency tree.
 - **Fallback**: host web search or fetch when `gh` is missing; label each fact with its source.
@@ -162,7 +162,7 @@ Graph runner selection: [workflow §6](references/_shared/Arc/_shared/workflow.m
 ## Completion Criteria
 
 - [ ] Need, constraints, project license, mode and `as_of` stated.
-- [ ] Local reuse checked with `arc-idx` evidence.
+- [ ] Local reuse checked with `arc` evidence.
 - [ ] At least three comparable candidates, or the shortfall explained.
 - [ ] Every candidate row has a check date and source URLs, or `未核实` with a reason.
 - [ ] No archived or ≥ 36-month-stale library in the decision without a recorded exception.

@@ -358,7 +358,7 @@ def test_corrupt_state_does_not_allow_controlled_operations(
     state_file.write_text(state)
     for tool_name, tool_input in [
         ("Write", {"path": "main.go"}),
-        ("Bash", {"command": "git commit -m wip"}),
+        ("Bash", {"command": "git commit --no-verify -m wip"}),
     ]:
         result = json.loads(
             run_hook(

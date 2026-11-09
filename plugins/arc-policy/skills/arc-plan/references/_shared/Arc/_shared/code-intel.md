@@ -5,40 +5,42 @@ Owned by `arc-explore`; read by every Arc skill before reading or editing unfami
 ## 1. Preflight (once per repository per session)
 
 ```bash
-command -v arc-idx
-arc-idx version
-arc-idx doctor --format json
-arc-idx daemon status
+command -v arc
+arc version
+arc capabilities --json
+arc doctor --format json
+arc daemon status
 ```
 
-- Repair when doctor shows `healthy: false`, `index_stale: true` or `tags_present: false`: run
-  `arc-idx index --quiet` once, then re-run `doctor`. `index` does not fix a tool reported as
-  `MISSING` under `tools` (`ctags`, `ast-grep`); installing needs permission, and until then
-  `symbol` and `ast` are unavailable.
-- Daemon: `daemon_alive: false` → `arc-idx daemon start` (exit 1 with `already running with pid N`
-  is normal). `daemon_pid` present but not alive → `arc-idx daemon restart`.
-- Identity: `command -v arc-idx` must resolve to `~/.local/bin/arc-idx`, and version must print
-  `arc-idx 1.0.0 — local AI context engine (zoekt + ctags + ast-grep)`. If PATH lacks it, try that
-  exact path and report the fallback. A missing binary or identity mismatch stops repository
-  discovery; report actual path/output and do not substitute another engine.
-- Repository root: the nearest ancestor of the working directory (or of `--repo <dir>`) that holds
-  an `.ai-code-index/` directory or a `.git` directory; config is `<root>/.ai-code-index/config.json`,
-  else built-in defaults. Check `repo_root` in the doctor output. Use `--repo <dir>` for a child
-  clone and `git -C <clone>` for git commands. A git worktree or submodule has a `.git` file, not a
-  directory, and resolves to the parent: create `<clone>/.ai-code-index/` first.
-- A `search` result with `"engine": "rg-fallback"` means no index shards were found: repair as
-  above before relying on it; otherwise only §6 allows it.
+- Doctor `healthy: false`, `index_stale: true` or `tags_present: false` → `arc index --quiet`
+  once, then `doctor` again. A `MISSING` tool (`ctags`, `ast-grep`) needs permission to install;
+  until then `symbol`/`ast` are unavailable.
+- `daemon_alive: false` → `arc daemon start` (`already running with pid N` is normal); dead
+  `daemon_pid` → `arc daemon restart`.
+- Identity: `arc` is the only public command; `arc version` must print `arc`, not `arc-idx`
+  (a shell alias or symlink to the backend is a broken install). `arc capabilities --json`
+  lists its backends. Without `arc`, use `arc-idx` only as a labelled lookup fallback with no
+  resource writes, and report it.
+- Repository root: nearest ancestor of the cwd (or `--repo <dir>`) holding `.ai-code-index/` or a
+  `.git` directory; config `<root>/.ai-code-index/config.json`, else defaults (doctor
+  `repo_root`). Child clone: `--repo <dir>` and `git -C <clone>`. A worktree or submodule has a
+  `.git` file and resolves to the parent: create `<clone>/.ai-code-index/` first.
+- `"engine": "rg-fallback"` in `search` means no shards: repair first; otherwise only §6 allows it.
+
+State commands (`db`, `task`, `file`, `change`, `update`, `policy state`) follow
+[arc.db](arc-db.md): write only when capabilities report `unified_database=true`. An index
+update never proves a test passed.
 
 ## 2. Commands
 
 | Need | Command |
 |---|---|
-| File names | `arc-idx files <pattern> --format json` (case-insensitive path substring or glob, not regex) |
-| Text / regex | `arc-idx search '<zoekt query>' --format json` (`f:`, `lang:`, `sym:`, `case:yes`, `-<term>`, `-f:<path regex>`) |
-| Definition | `arc-idx symbol <Name> --exact --format json` (optional `--kind`, `--lang`) |
-| Structure | `arc-idx ast --lang <language> '<pattern>' [path ...] --format json` |
-| Inventory | `arc-idx stats --format json` (counts by file extension) |
-| Health | `arc-idx doctor --format json` |
+| File names | `arc files <pattern> --format json` (case-insensitive path substring or glob, not regex) |
+| Text / regex | `arc search '<zoekt query>' --format json` (`f:`, `lang:`, `sym:`, `case:yes`, `-<term>`, `-f:<path regex>`) |
+| Definition | `arc symbol <Name> --exact --format json` (optional `--kind`, `--lang`) |
+| Structure | `arc ast --lang <language> '<pattern>' [path ...] --format json` |
+| Inventory | `arc stats --format json` (counts by file extension) |
+| Health | `arc doctor --format json` |
 
 Syntax facts (verified against the engine):
 
@@ -99,7 +101,7 @@ the language's AST patterns; there `ast '$R.<Name>($$$)'` matches method calls.
 
 Cross-check: for rows 2–4 use one structural and one text query. When they disagree, re-read the
 files and trust the AST result. Exception: Go selector calls (`x.Name(…)`, `pkg.Name(…)`) never
-match through `arc-idx ast` (the pattern parses as a type conversion), so an AST zero for them is
+match through `arc ast` (the pattern parses as a type conversion), so an AST zero for them is
 not evidence; decide each text hit from the source.
 
 ## 5. When a query fails
@@ -123,12 +125,12 @@ corruption survives one repair, or the target lies outside every repository (suc
 directory). Missing binary or failed identity check stops first as §1 requires. Label fallback
 evidence and state its reason. Never directly call ctags, ast-grep, zoekt or MCP search.
 
-Never indexed: dot-directories except `.github`. Not indexed by default (`ignore_dirs`,
-`ignore_files`, `index_exts`, `size_max` in `.ai-code-index/config.json` replace these): directories
-such as `vendor`, `node_modules`, `dist`, `build`, `target`, `out`, `outputs`, `release`, `tmp`,
-`logs`, `coverage`, `uploads`; files over 1 MiB; extensions outside the code/config/docs allowlist
-(`.txt`, `.csv`, `.log` among them); lock files, `go.sum`, `*.min.js`, `*.map`, `*.snap`. These paths
-remain in the repository: report index coverage limits rather than treating them as outside it.
+Never indexed: dot-directories except `.github`. Default exclusions (replaced by `ignore_dirs`,
+`ignore_files`, `index_exts`, `size_max` in `.ai-code-index/config.json`): `vendor`,
+`node_modules`, `dist`, `build`, `target`, `out`, `outputs`, `release`, `tmp`, `logs`, `coverage`,
+`uploads`; files over 1 MiB; non-code extensions (`.txt`, `.csv`, `.log`); lock files, `go.sum`,
+`*.min.js`, `*.map`, `*.snap`.
+They stay in the repository: report the coverage limit instead of calling them outside it.
 
 ## 7. Evidence format
 

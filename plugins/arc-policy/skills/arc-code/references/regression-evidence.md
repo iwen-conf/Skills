@@ -64,5 +64,5 @@ show paint order. For timing faults, if logging changes the symptom, retain that
 of scheduling or lifetime sensitivity. Temporary instrumentation follows repair.md's scope and
 cleanup rules.
 
-Search analogous paths with `arc-idx` using the actual symbol, API call or structure. Keep the
+Search analogous paths with `arc` using the actual symbol, API call or structure. Keep the
 existing sibling list and independent before/after oracle; do not create a second repair ledger.

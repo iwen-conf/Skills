@@ -1,7 +1,7 @@
 # Arc Policy Runtime
 
 Arc workflows and their policy runtime, packaged for Claude Code, Grok Build, and Codex CLI.
-Version 0.4.3 keeps one policy engine and one canonical `Arc/` skill source, with generated
+Version 0.4.4 keeps one policy engine and one canonical `Arc/` skill source, with generated
 host manifests, a complete bundled skill tree, and a strict Codex wire adapter.
 
 | Piece | Job |
@@ -16,7 +16,7 @@ Default mode: **the agent still writes code with host tools**. The CLI gates `ta
 
 ## Arc Policy state/receipts in arc.db (opt-in)
 
-Arc 0.4.0 + arc-policy 0.4.3 support a **separate, explicit Policy
+Arc 0.4.0 + arc-policy 0.4.3 or later support a **separate, explicit Policy
 state cutover** after the graph/resource database has been activated.
 Install both updated runtimes and stop other agents or legacy Policy
 writers before migration:
@@ -194,7 +194,9 @@ Installation itself is offline; only the explicit environment bootstrap may down
 
 This stable runtime survives host plugin cache replacement. Re-run `install` from the updated
 plugin after an upgrade. Old runtime snapshots remain available to running processes.
-The binary stays `arc-policy`; the existing `arc` → `arc-idx` entry is separate.
+The binary stays `arc-policy`. The unified `arc` CLI (with its `arc-idx`/`arc-verify` backends)
+is installed separately by `bash scripts/install_arc.sh`; an `arc` alias or symlink to `arc-idx`
+breaks arc.db Policy state and must be removed.
 
 Hook startup first uses an installed dependency copy, then the plugin/source `.venv`, then
 the invoking Python. It never provisions packages inside a tool hook. A Python entrypoint

@@ -1,11 +1,11 @@
 ---
 name: arc:explore
-version: 2.3.3
+version: 2.3.4
 description: >-
   Read-only code intelligence for a local repository: find where code lives (代码在哪, 搜代码),
   locate definitions, list callers (谁调用), trace a call chain (调用链) or data flow, list
   everything a planned change would touch (影响面 / impact analysis), and draw a module or
-  architecture map (架构地图). Also maintains the arc / Zoekt index (索引维护: doctor, index,
+  architecture map (架构地图). Also maintains the arc Zoekt index, arc-idx backend (索引维护: doctor, index,
   daemon). Not for edits (use arc:code), read-only risk review (use arc:audit), or tests (use
   arc:verify).
 ---

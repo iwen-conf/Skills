@@ -10,9 +10,7 @@ from arc_policy.host import event_name, tool_input, tool_name
 
 FALLBACK_POLICY = {
     "workflow": {"require_begin": True},
-    "execution": {
-        "deny_direct": ["unverified_commit", "skip_hooks", "schema_migration"]
-    },
+    "execution": {"deny_direct": ["skip_hooks", "schema_migration"]},
 }
 
 

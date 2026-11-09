@@ -42,20 +42,20 @@ Register **all** fixtures/runners before round: it freezes their hashes. Registe
 the same CLI binary. Then use these commands, copying IDs from each JSON response:
 
 ```bash
-arc-verify runner --file "$VERIFY_RUNNER_FILE"
+arc verify runner --file "$VERIFY_RUNNER_FILE"
 # Set VERIFY_RUNNER to response manifest.id; repeat registration for other required runners.
-arc-verify round --graph "$VERIFY_GRAPH" --env "$VERIFY_ENV" --root "$VERIFY_ROOT" \
+arc verify round --graph "$VERIFY_GRAPH" --env "$VERIFY_ENV" --root "$VERIFY_ROOT" \
   --config "$VERIFY_CONFIG" --commit "$VERIFY_COMMIT"
 # Set VERIFY_ROUND to response id.
-arc-verify plan --graph "$VERIFY_GRAPH"
-arc-verify next --graph "$VERIFY_GRAPH"
+arc verify plan --graph "$VERIFY_GRAPH"
+arc verify next --graph "$VERIFY_GRAPH"
 # Select VERIFY_TASK from a ready card; bounded plan may need further batches.
-arc-verify execute --task "$VERIFY_TASK" --runner "$VERIFY_RUNNER" --round "$VERIFY_ROUND" \
+arc verify execute --task "$VERIFY_TASK" --runner "$VERIFY_RUNNER" --round "$VERIFY_ROUND" \
   --env "$VERIFY_ENV" --root "$VERIFY_ROOT" --config "$VERIFY_CONFIG" \
   --commit "$VERIFY_COMMIT" --account "$VERIFY_ACCOUNT" --fixture "$VERIFY_FIXTURE"
 # Set VERIFY_RUN to response run; inspect verdict and recovery.verdict, even with exit 0.
-arc-verify trace --run "$VERIFY_RUN"
-arc-verify gate --graph "$VERIFY_GRAPH"
+arc verify trace --run "$VERIFY_RUN"
+arc verify gate --graph "$VERIFY_GRAPH"
 ```
 
 Multi-actor cards also need `--accounts` with the card's registered account aliases. A single card

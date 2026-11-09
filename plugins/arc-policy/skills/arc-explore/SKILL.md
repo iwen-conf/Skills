@@ -3,16 +3,16 @@ name: arc-explore
 description: 'Read-only code intelligence for a local repository: find where code
   lives (代码在哪, 搜代码), locate definitions, list callers (谁调用), trace a call chain (调用链)
   or data flow, list everything a planned change would touch (影响面 / impact analysis),
-  and draw a module or architecture map (架构地图). Also maintains the arc-idx / zoekt
-  index (索引维护: doctor, index, daemon). Not for edits (use arc-code), read-only risk
-  review (use arc-audit), or tests (use arc-verify).'
+  and draw a module or architecture map (架构地图). Also maintains the arc Zoekt index,
+  arc-idx backend (索引维护: doctor, index, daemon). Not for edits (use arc-code), read-only
+  risk review (use arc-audit), or tests (use arc-verify).'
 metadata:
-  version: 2.3.0
+  version: 2.3.4
 ---
 # arc-explore
 
 Answer where code lives, who depends on it and what a change would touch, with reproducible
-`arc-idx` query evidence; change nothing except index files.
+`arc` query evidence; change nothing except index files.
 
 ## Non-trigger
 
@@ -49,13 +49,14 @@ First matching row wins.
 | Where a file, definition or string lives (代码在哪, 搜代码, 找符号) | locate | [code-intel §3](references/_shared/Arc/_shared/code-intel.md#3-query-ladder-stop-at-the-first-rung-that-answers-the-question) |
 | Module or system structure, entry points, layers (架构地图, 模块梳理) | map | [references/architecture-map.md](references/architecture-map.md) |
 | doctor, index, daemon, stale or suspicious results, index config | index-ops | [code-intel §1](references/_shared/Arc/_shared/code-intel.md#1-preflight-once-per-repository-per-session) |
+| arc.db resource/state, file or change lookup questions | index-ops | [arc.db](references/_shared/Arc/_shared/arc-db.md); use `arc db status` / `arc task show` / `arc change show` only after activation |
 
 ## Workflow
 
-Graph chain: [workflow §6](references/_shared/Arc/_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills); `arc-verify handoff --to arc-explore --graph <id>` is read-only. Supply source facts, not FAIL claims.
+Graph chain: [workflow §6](references/_shared/Arc/_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills); `arc verify handoff --to arc-explore --graph <id>` is read-only. Supply source facts, not FAIL claims.
 
 1. Read [contract.md](references/_shared/Arc/_shared/contract.md) and [code-intel.md](references/_shared/Arc/_shared/code-intel.md); run the
-   code-intel §1 preflight. Output one line: `arc-idx <version> · repo_root · healthy · index_stale ·
+   code-intel §1 preflight. Output one line: `arc <version> · capabilities · repo_root · healthy · index_stale ·
    daemon_alive · repairs run`.
 2. Select the mode with the Intent Router. Output: `Mode · scope · depth`.
 3. Turn the question into seeds: identifiers, route strings, error strings, table or column names,
@@ -71,8 +72,9 @@ Graph chain: [workflow §6](references/_shared/Arc/_shared/workflow.md#6-graph-b
      the change names; cross-check rows 2–4 with one structural and one text query.
    - **map**: follow [architecture-map.md](references/architecture-map.md); label layers against
      [go-backend.md](references/_shared/Arc/_shared/conventions/go-backend.md) or [frontend.md](references/_shared/Arc/_shared/conventions/frontend.md).
-   - **index-ops**: run the requested operation from Index operations below; record doctor JSON
-     before and after.
+   - **index-ops**: run supported operations from Index operations below; record doctor JSON
+     before and after. For arc.db queries, check capabilities + active DB; only
+     implemented read actions are allowed in this read-only skill.
 5. Open the file at every hit and read the enclosing function or type. Output: the `file:line`
    evidence list.
 6. Resolve dynamic dispatch and generated code per [code-intel §5](references/_shared/Arc/_shared/code-intel.md#5-when-a-query-fails).
@@ -83,11 +85,11 @@ Graph chain: [workflow §6](references/_shared/Arc/_shared/workflow.md#6-graph-b
 
 ### Index operations
 
-- Status: `arc-idx doctor --format json`; `arc-idx daemon status` (JSON: `pid`, `alive`,
+- Status: `arc doctor --format json`; `arc daemon status` (JSON: `pid`, `alive`,
   `index_dir`, `index_age`, `log_file`, `stale_index`).
-- Rebuild: `arc-idx index --quiet`, once per repair. While the daemon is alive it reindexes 800 ms
+- Rebuild: `arc index --quiet`, once per repair. While the daemon is alive it reindexes 800 ms
   after file changes; do not loop manual rebuilds.
-- Daemon: `arc-idx daemon start|stop|restart|status`. PID file `.ai-code-index/daemon.pid`, log
+- Daemon: `arc daemon start|stop|restart|status`. PID file `.ai-code-index/daemon.pid`, log
   `.ai-code-index/daemon.log`; it exits after 30 minutes without file events and runs under a
   512 MiB memory limit. Run `daemon stop` after a large refactor has fully finished.
 - Shards: `~/.cache/ai-code-index/zoekt/<repo basename>/`, overridden by `index_dir` in
@@ -96,11 +98,12 @@ Graph chain: [workflow §6](references/_shared/Arc/_shared/workflow.md#6-graph-b
   `index_exts`, `max_files` (default 50000), `size_max` (default 1 MiB), `index_dir`. Edit it only on
   a user request or a Failure Recovery row below, and report the diff.
 - Engine source in the Skills repository is `tools/arc-idx/`. After an engine change and only on user
-  request: `go -C tools/arc-idx build -o ~/.local/bin/arc-idx .`, then `arc-idx version`.
+  request, rebuild the backend in `tools/arc-idx/`, then build the unified CLI with
+  `go -C tools/arc build -o ~/.local/bin/arc .`; check `arc capabilities --json`.
 
 ## Tool Strategy
 
-- **Preferred**: the `arc-idx` commands in [code-intel §2](references/_shared/Arc/_shared/code-intel.md#2-commands). JSON
+- **Preferred**: the `arc` commands in [code-intel §2](references/_shared/Arc/_shared/code-intel.md#2-commands). JSON
   output for counting, `--format ai-md --context 3` for reading hits. Run independent queries in
   parallel.
 - **Query order**: locate follows §3; trace runs row 1, then row 2 per hop; impact runs rows 1–8 in
@@ -155,10 +158,10 @@ Graph chain: [workflow §6](references/_shared/Arc/_shared/workflow.md#6-graph-b
 
 | Failure | Action | Retry budget | Stop condition |
 |---|---|---|---|
-| `arc-idx` not on PATH | report `command -v arc-idx` output; use code-intel §6 fallback | 0 | fallback evidence labelled |
-| Doctor unhealthy or stale | `arc-idx index --quiet`, re-run doctor | 1 | still unhealthy → §6 fallback, report doctor JSON |
+| `arc` or backend missing | report `arc capabilities --json` output; use code-intel §6 fallback | 0 | fallback evidence labelled |
+| Doctor unhealthy or stale | `arc index --quiet`, re-run doctor | 1 | still unhealthy → §6 fallback, report doctor JSON |
 | `ctags` or `ast-grep` `MISSING` | ask permission to install; meanwhile use `search` and `files`, mark symbol and AST rows `BLOCKED` with reason | 0 without permission | permission refused → report gap |
-| Daemon will not start or stale PID | `arc-idx daemon restart` | 1 | report the `log_file` path and last lines |
+| Daemon will not start or stale PID | `arc daemon restart` | 1 | report the `log_file` path and last lines |
 | Zero hits | code-intel §5 widening rungs 1–5 | 5 rungs | report `not found` with every query |
 | More than 200 hits | narrow (Decision Rules) | 3 passes | sample and label `sampled` |
 | `query parse:` error | escape per code-intel §2 | 2 | rewrite as a plain literal term |

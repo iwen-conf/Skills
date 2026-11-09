@@ -78,7 +78,7 @@ and license signals as JSON with warning codes. Its output is a precheck, never 
   needs evidence (maintainer replies, compatibility with current toolchains, downstream use, a
   patch channel) to pass the stale exception.
 - In replace mode, record the current pinned version, what breaks if it stays, and the migration
-  cost per call site (from `arc-idx` evidence) for each successor.
+  cost per call site (from `arc` evidence) for each successor.
 
 ## 5. Supply chain hygiene
 

@@ -1,6 +1,6 @@
 ---
 name: arc:vet
-version: 1.1.0
+version: 1.1.1
 description: >-
   Open-source due diligence before a new dependency or a non-trivial generic component (开源选型,
   技术选型, 引入依赖, 不要重复造轮子, build vs buy): checks existing code and the standard library first,

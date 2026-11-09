@@ -6,11 +6,11 @@ The current Agent discovers business and writes JSON; the user confirms decision
 
 ## 1. Find the current project and scope
 
-Read its AGENTS, requirements, contracts, flow catalog and existing Markdown progress. Discover
-the existing `.arc/verify/data.db`, graph source/version and `.arc/policy.yaml` references before
-creating anything. Use `model --db ... --graph ...` to verify a known ID; the CLI has no `model list`.
-If an existing ledger's ID cannot be recovered with available project references/tools, preserve
-it and report that lookup gap; never reset it or silently start a parallel graph.
+Read its AGENTS, requirements, contracts, flow catalog and Markdown progress. Before creating
+anything, find the ledger (`arc db status`: active `.arc/arc.db`, else legacy `.arc/verify/data.db`),
+graph source/version and `.arc/policy.yaml` references. Verify a known ID with `arc verify model
+--graph ...` (no `model list`). An unrecoverable ledger ID is preserved and reported as a lookup
+gap; never reset it or start a parallel graph.
 
 Plan-only creates no ledger unless requested. Read-only does not init/import/approve/plan or change
 ledger/target. CLI `--db` is not a read-only connection: use existing snapshots or a consistent
@@ -41,15 +41,15 @@ Import retains a BLOCKED schema guard; missing rules/observations stay unverifie
 Resolve these paths/IDs from the target project and tool installation, then run existing commands:
 
 ```bash
-arc-verify init --db "$VERIFY_DB"
-arc-verify validate --file "$VERIFY_GRAPH_FILE"
-arc-verify import --db "$VERIFY_DB" --file "$VERIFY_GRAPH_FILE"
-arc-verify model --db "$VERIFY_DB" --graph "$VERIFY_GRAPH"
-arc-verify snapshot --db "$VERIFY_DB" --graph "$VERIFY_GRAPH" \
+arc verify init --db "$VERIFY_DB"
+arc verify validate --file "$VERIFY_GRAPH_FILE"
+arc verify import --db "$VERIFY_DB" --file "$VERIFY_GRAPH_FILE"
+arc verify model --db "$VERIFY_DB" --graph "$VERIFY_GRAPH"
+arc verify snapshot --db "$VERIFY_DB" --graph "$VERIFY_GRAPH" \
   --assets "$VERIFY_ASSETS" --out "$VERIFY_SNAPSHOT_DIR"
 ```
 
-`VERIFY_DB` is target-local `.arc/verify/data.db`; record the generated model's ID/source in existing
+`VERIFY_DB` is the ledger found in §1; record the generated model's ID/source in existing
 progress. `VERIFY_ASSETS` is the tool's built static workbench, not a guessed target-project path.
 Use the existing workbench build if needed; missing assets blocks visual export, not model import.
 Snapshot output must be absent/empty. For initial review omit `--env`, `--round`, `--run`: do not

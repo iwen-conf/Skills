@@ -1,6 +1,6 @@
 ---
 name: arc:audit
-version: 2.7.0
+version: 2.7.1
 description: >-
   Read-only evaluation (只读) that produces ranked, evidence-backed code findings and never edits code:
   review any diff, PR or branch (代码评审, 能不能合), project health, code rot, over-engineering and
