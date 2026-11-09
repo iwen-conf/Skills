@@ -93,7 +93,7 @@ func rebuildIndex(ctx context.Context, root string) error {
 	if err != nil {
 		return fmt.Errorf("index backend unavailable (outbox remains pending): %w", err)
 	}
-	run := exec.CommandContext(ctx, bin, "index", "--repo", root, "--quiet")
+	run := exec.CommandContext(ctx, bin, "index", "--repo", root, "--quiet", "--require-complete")
 	if out, err := run.CombinedOutput(); err != nil {
 		return fmt.Errorf("arc-idx index failed: %w: %s", err, string(out))
 	}
