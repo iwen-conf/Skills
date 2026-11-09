@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -107,6 +108,29 @@ func TestTaskProofRejectsAuthorizationAndStaleness(t *testing.T) {
 			if tc.valid&&proof.ReceiptSHA256==""{t.Fatal("PASS not fingerprinted")}
 		})
 	}
+}
+
+func TestTaskCompletionCLIRequiresPolicyStatus(t *testing.T) {
+	if runtime.GOOS=="windows" {t.Skip("scripted policy CLI is POSIX-only")}
+	root,db:=testArcState(t)
+	initClosureRepo(t,root)
+	const id="policy-cli-final"
+	if err:=executeTask(db,"ensure",id,"verified task (arc-code)","",0);err!=nil{t.Fatal(err)}
+	for _,step:=range []struct{to string;version int}{{"ready",1},{"running",2},{"verifying",3}}{
+		if err:=executeTask(db,"transition",id,"",step.to,step.version);err!=nil{t.Fatal(err)}
+	}
+	if err:=db.Close();err!=nil{t.Fatal(err)}
+	if err:=flushIndexOutboxWith(root,func(context.Context,string)error{return nil});err!=nil{t.Fatal(err)}
+	bin:=t.TempDir()
+	status:=testPolicyReceipt(id,"PASS")
+	status.RepoRoot=root
+	body,err:=json.Marshal(status);if err!=nil{t.Fatal(err)}
+	script:="#!/bin/sh\ncat <<'ARC_JSON'\n"+string(body)+"\nARC_JSON\n"
+	if err:=os.WriteFile(filepath.Join(bin,"arc-policy"),[]byte(script),0700);err!=nil{t.Fatal(err)}
+	t.Setenv("PATH",bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	if err:=resourceCommand("task",[]string{"complete","--repo",root,"--id",id,"--expected-version","4"});err!=nil{t.Fatal(err)}
+	if err:=resourceCommand("task",[]string{"show","--repo",root,"--id",id});err!=nil{t.Fatal(err)}
+	if err:=resourceCommand("task",[]string{"complete","--repo",root,"--id",id,"--expected-version","4"});err==nil{t.Fatal("same receipt completed task twice")}
 }
 
 func TestCompletionRequiresConfirmedOutboxAndBoundRevision(t *testing.T) {
