@@ -64,17 +64,19 @@ func requirePolicyProof(taskID string, status policyTaskStatus) (verifiedTaskPro
 		receipt.CreatedAt == "" {
 		return verifiedTaskProof{}, errors.New("task completion requires a genuine revision-bound PASS, not authorization or absent evidence")
 	}
-	snapshotOK, receiptOK := false, false
+	snapshotOK, receiptOK, independentOK := false, false, false
 	for _, check := range receipt.Checks {
 		switch check["id"] {
 		case "snapshot":
 			snapshotOK = check["verdict"] == "PASS"
 		case "cli_receipt":
 			receiptOK = check["verdict"] == "PASS"
+		case "tests", "business_graph":
+			if check["verdict"] == "PASS" { independentOK = true }
 		}
 	}
-	if !snapshotOK || !receiptOK {
-		return verifiedTaskProof{}, errors.New("policy PASS lacks successful snapshot and receipt checks")
+	if !snapshotOK || !receiptOK || !independentOK {
+		return verifiedTaskProof{}, errors.New("policy PASS lacks successful snapshot, receipt, or independent tests/business graph evidence")
 	}
 	if status.Tree.Head != receipt.Head || status.Tree.Digest != receipt.Digest ||
 		!reflect.DeepEqual(status.Tree.Dirty, receipt.Dirty) {
