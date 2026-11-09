@@ -35,7 +35,12 @@ func addEvent(ctx context.Context, tx *sql.Tx, resource, id, event string, detai
 	if err != nil { return err }
 	if _, err = tx.ExecContext(ctx, "INSERT INTO arc_events(id,aggregate,aggregate_id,kind,payload,created) VALUES(?,?,?,?,?,?)",
 		eventID, resource, id, event, string(payload), nowUTC()); err != nil { return err }
-	_, err = tx.ExecContext(ctx, "INSERT INTO arc_outbox(event_id,status) VALUES(?,'pending')", eventID)
+	// All state changes remain in the immutable event journal. Only source
+	// observations and ChangeSets need code-index reprocessing; task lifecycle
+	// events must not trigger expensive full-repository index builds.
+	if resource == "file" || resource == "change" {
+		_, err = tx.ExecContext(ctx, "INSERT INTO arc_outbox(event_id,status) VALUES(?,'pending')", eventID)
+	}
 	return err
 }
 
