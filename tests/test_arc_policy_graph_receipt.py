@@ -95,3 +95,61 @@ def test_active_shared_graph_database_ignores_unrelated_resource_writes(tmp_path
     import pytest
     with pytest.raises(RuntimeError, match="activation manifest"):
         tree_fingerprint(repo)
+
+
+def test_active_graph_receipt_still_rechecks_independent_gate(tmp_path, monkeypatch):
+    import json
+    import os
+    import subprocess
+
+    from arc_policy.store import begin_task, current_receipt, receipt_matches_tree, save_receipt
+
+    repo = tmp_path / "graph-proof"
+    repo.mkdir()
+    env = {**os.environ, "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+    subprocess.run(["git", "init", "-q"], cwd=repo, env=env, check=True)
+    (repo / ".gitignore").write_text(".arc/\n")
+    subprocess.run(["git", "add", ".gitignore"], cwd=repo, env=env, check=True)
+    subprocess.run(
+        ["git", "-c", "user.name=Test", "-c", "user.email=test@example.invalid",
+         "commit", "-qm", "init"],
+        cwd=repo, env=env, check=True,
+    )
+    verify = repo / ".arc/verify"
+    verify.mkdir(parents=True)
+    (verify / "config.jsonc").write_text("{}")
+    (repo / ".arc/arc.json").write_text(
+        json.dumps({"schema_version": 1, "active": True, "db": ".arc/arc.db"})
+    )
+    db = repo / ".arc/arc.db"
+    db.write_bytes(b"graph-before")
+
+    task = begin_task(repo, skill="arc-verify", slug="proof")
+    snapshot = tree_fingerprint(repo)
+    graph_check = {
+        "id": "business_graph",
+        "verdict": "PASS",
+        "proof_scope": "planned_rule_tasks",
+        "context": {"graph": "verified-business"},
+    }
+    receipt = {
+        "task_id": task["id"], "slug": task["slug"], "skill": task["skill"],
+        "verdict": "PASS", "checks": [graph_check],
+        **snapshot,
+    }
+    save_receipt(repo, receipt)
+    monkeypatch.setattr(
+        "arc_policy.verify.check_business_graph",
+        lambda root, policy: dict(graph_check),
+    )
+    assert receipt_matches_tree(repo, current_receipt(repo))
+    db.write_bytes(b"graph-and-task-changes")
+    assert receipt_matches_tree(repo, current_receipt(repo))
+
+    # A fresh independent business FAIL still revokes the receipt even though
+    # unrelated changes to the shared file do not change the Git fingerprint.
+    monkeypatch.setattr(
+        "arc_policy.verify.check_business_graph",
+        lambda root, policy: {**graph_check, "verdict": "FAIL"},
+    )
+    assert not receipt_matches_tree(repo, current_receipt(repo))
