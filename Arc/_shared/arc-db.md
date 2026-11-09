@@ -22,12 +22,14 @@ mutations belong to the authorized work owner and plugin runtime.
 - **Git/worktree is authoritative for source bytes and committed revisions.**
   File content, AST and symbol results must be rederived from the actual tree;
   a database row never overrides the bytes on disk.
-- **After explicit init/migration, arc.db persists new `arc_*` resources and
-  the existing verifier's graph, rounds and RAW evidence metadata in one file.**
-  The two task domains still have separate tables; `arc-policy` receipts remain
-  outside the DB. Before opt-in, Markdown and the old graph DB retain their authority.
+- **After explicit init/migration**, `arc.db` holds source resources and
+  verifier graphs, rounds and RAW metadata. `arc policy state migrate
+  --confirm-offline` additionally imports Policy active/history state and
+  immutable receipts into Turso. Until this separate cutover, Policy JSON
+  remains authoritative; after it, the Go DB is the only Policy state source.
 - **Completion lock protocol:** `arc task complete` validates the existing
-  `arc-policy` PASS, acquires its `task.lock`, compares the live receipt again,
+  `arc-policy` PASS, acquires its `task.lock`, compares the live receipt in
+  `arc.db` (or the legacy file before Policy cutover),
   and commits under the project DB lock; never call back into the policy CLI
   while holding the locks. Until compatible Windows byte-range locking exists,
   Windows completion is blocked rather than accepted without coordination.
@@ -73,6 +75,8 @@ arc task ensure --id POLICY-TASK-ID --title "修复支付并发 (arc-code)"
 arc task show --id TASK-ID
 arc task transition --id TASK-ID --to ready --expected-version 1
 arc task complete --id POLICY-TASK-ID --expected-version N
+arc policy state status --repo .
+arc policy state migrate --repo . --confirm-offline
 arc file update --path internal/payment/service.go
 arc file show --path internal/payment/service.go
 arc event list --resource task --limit 20
