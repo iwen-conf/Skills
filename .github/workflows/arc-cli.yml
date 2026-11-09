@@ -36,9 +36,15 @@ jobs:
           cache: false
       - name: Test unified Arc CLI with local Turso state engine
         run: go -C tools/arc test -count=1 ./...
-      - name: Build local verifier and Arc CLI
+      - name: Install real code-index dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y universal-ctags
+          npm install --global @ast-grep/cli@0.51.1
+      - name: Build both actual indexing and verification backends plus Arc CLI
         run: |
           mkdir -p "$RUNNER_TEMP/arc-bin"
+          go -C tools/arc-idx build -o "$RUNNER_TEMP/arc-bin/arc-idx" .
           go -C tools/arc-verify build -o "$RUNNER_TEMP/arc-bin/arc-verify" .
           go -C tools/arc build -o "$RUNNER_TEMP/arc-bin/arc" .
           "$RUNNER_TEMP/arc-bin/arc" capabilities --json
