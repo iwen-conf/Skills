@@ -18,6 +18,7 @@ const version = "0.2.0"
 const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"Usage:\n" +
 	"  arc index [flags]               Update source index via arc-idx\n" +
+	"  arc index flush [--repo DIR]    Acknowledge outbox only after healthy index\n" +
 	"  arc search <query> [flags]      Search indexed source\n" +
 	"  arc symbol <name> [flags]       Find symbols\n" +
 	"  arc ast <pattern> [flags]       Structural code search\n" +
@@ -109,7 +110,7 @@ func capabilities() map[string]any {
 		"code_index": supported["arc-idx"], "business_verify": supported["arc-verify"],
 		"arc_db_resources": true, "unified_database": active,
 		"arc_db_active": active, "arc_db_schema_version": arcSchemaVersion,
-		"resource_commands": []string{"db", "file update", "file show", "task create", "task ensure", "task show", "task transition", "change collect", "change show", "update", "sync reconcile", "event list"},
+		"resource_commands": []string{"db", "file update", "file show", "task create", "task ensure", "task show", "task transition", "change collect", "change show", "update", "sync reconcile", "event list", "index flush"},
 		"engines": engines,
 	}
 }
@@ -132,6 +133,11 @@ func run(args []string) int {
 		return 0
 	}
 	switch args[0] {
+	case "index":
+		if len(args) > 1 && args[1] == "flush" {
+			if err := indexCommand(args[1:]); err != nil { fmt.Fprintln(os.Stderr, "arc index:", err); return 2 }
+			return 0
+		}
 	case "db", "task", "file", "change", "update", "sync", "event":
 		var err error
 		switch args[0] {
