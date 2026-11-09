@@ -33,7 +33,7 @@ func cmdIndex(args []string) error {
 	}
 	start := time.Now()
 
-	files, err := walkRepo(repo)
+	files, err := walkRepo(repo, *requireComplete)
 	if err != nil {
 		return err
 	}
@@ -68,12 +68,14 @@ func cmdIndex(args []string) error {
 }
 
 // walkRepo returns repo-relative paths of every indexable file.
-func walkRepo(repo *Repo) ([]string, error) {
+func walkRepo(repo *Repo, requireComplete ...bool) ([]string, error) {
+	strict := len(requireComplete) > 0 && requireComplete[0]
 	ignore := repo.ignoreSet()
 	var files []string
 	err := filepath.WalkDir(repo.Root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return nil // unreadable entries are skipped, not fatal
+			if strict { return err }
+			return nil // legacy best-effort queries may skip unreadable trees
 		}
 		name := d.Name()
 		if d.IsDir() {
@@ -89,10 +91,15 @@ func walkRepo(repo *Repo) ([]string, error) {
 			return nil
 		}
 		info, err := d.Info()
-		if err != nil || info.Size() > int64(repo.Cfg.SizeMax) || info.Size() == 0 {
+		if err != nil {
+			if strict { return err }
 			return nil
 		}
-		rel, _ := filepath.Rel(repo.Root, path)
+		if info.Size() > int64(repo.Cfg.SizeMax) || info.Size() == 0 {
+			return nil
+		}
+		rel, err := filepath.Rel(repo.Root, path)
+		if err != nil { return err }
 		rel = filepath.ToSlash(rel)
 		if repo.ignoredFile(rel) || !repo.indexableExt(rel) {
 			return nil
