@@ -313,8 +313,11 @@ func ensureArcPrivateFiles(root string) error {
 	raw,err:=os.ReadFile(ignore)
 	if err!=nil&&!errors.Is(err,os.ErrNotExist){return err}
 	if st,e:=os.Lstat(ignore);e==nil && !st.Mode().IsRegular(){return errors.New("unsafe .arc/.gitignore")}
-	if strings.Contains(string(raw),"# arc local state (generated)") {return nil}
-	block:="# arc local state (generated)\narc.db\narc.db-*\narc.json\narc.lock\nbackups/\nverify/*.db\nverify/*.db-*\n"
+	if strings.Contains(string(raw),"# arc local state (generated)") && strings.Contains(string(raw),"\npolicy/\n") {return nil}
+	block:="policy/\n"
+	if !strings.Contains(string(raw),"# arc local state (generated)") {
+		block="# arc local state (generated)\narc.db\narc.db-*\narc.json\narc.lock\nbackups/\npolicy/\nverify/*.db\nverify/*.db-*\n"
+	}
 	text:=string(raw)
 	if text!=""&&!strings.HasSuffix(text,"\n"){text+="\n"}
 	text+=block
