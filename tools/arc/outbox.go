@@ -158,6 +158,12 @@ func markIndexBatch(root string, batch outboxBatch, indexed bool, reason string)
 }
 
 func flushIndexOutbox(root string) error {
+	return flushIndexOutboxWith(root,rebuildIndex)
+}
+
+// Injectable build function permits deterministic failure/race/retry testing
+// without pretending a mock backend proves the production Zoekt/ctags build.
+func flushIndexOutboxWith(root string, build func(context.Context,string) error) error {
 	var batch outboxBatch
 	err := withArcLock(root, func() error {
 		db, err := openActiveArcDB(root)
@@ -181,7 +187,7 @@ func flushIndexOutbox(root string) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
-	indexErr := rebuildIndex(ctx, root)
+	indexErr := build(ctx, root)
 	after, snapshotErr := sourceSnapshot(root)
 	if indexErr == nil && snapshotErr != nil {
 		indexErr = snapshotErr
