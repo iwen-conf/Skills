@@ -62,9 +62,12 @@ func TestOutboxFailureRaceAndIdempotentRecovery(t *testing.T) {
 func testPolicyReceipt(taskID, verdict string) policyTaskStatus {
 	status:=policyTaskStatus{ReceiptOK:true}
 	status.Task.ID=taskID
+	status.Tree.Head="abc"
+	status.Tree.Digest="source-digest"
+	status.Tree.Dirty=[]string{}
 	receipt:=map[string]any{
 		"task_id":taskID,"verdict":verdict,"created_at":"2026-11-09T00:00:00Z",
-		"head":"abc","digest":"source-digest","tree":"git-tree",
+		"head":"abc","digest":"source-digest","tree":"git-tree","dirty":[]string{},
 		"checks":[]map[string]any{
 			{"id":"snapshot","verdict":"PASS"},
 			{"id":"cli_receipt","verdict":"PASS"},
@@ -101,6 +104,7 @@ func TestTaskProofRejectsAuthorizationAndStaleness(t *testing.T) {
 		{"failed-tests",testPolicyReceipt(id,"FAIL"),false},
 		{"wrong-task",testPolicyReceipt("another-task","PASS"),false},
 		{"stale-tree",func()policyTaskStatus{s:=testPolicyReceipt(id,"PASS");s.ReceiptOK=false;return s}(),false},
+		{"inconsistent-tree",func()policyTaskStatus{s:=testPolicyReceipt(id,"PASS");s.Tree.Digest="different";return s}(),false},
 	}{
 		t.Run(tc.name,func(t *testing.T){
 			proof,err:=requirePolicyProof(id,tc.status)
