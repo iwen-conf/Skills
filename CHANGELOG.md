@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Stop no longer blames a session for other sessions' tasks
+
+- A session started in a parent folder (several repositories side by side) was blocked at Stop for every child repository with an unverified task, including tasks and changes of other sessions it never touched. A tracked session (one with a session ID) now skips repositories where none of its tool calls ran; hosts without a session ID keep checking all of them.
+
 ### arc 0.4.2 / arc-policy 0.4.7 — agents never see the engine name
 
 - The code-index engine prints `arc …` in usage, errors, hints and the `doctor` header (`arc ast: ast-grep:` replaces `arc-idx ast: ast-grep:`); its identity reads `arc index engine …`, which never matches `arc 0.4.x`, so an `arc` alias to the engine is still detected. `arc index flush` and the missing-engine error name the engine role instead of its file.

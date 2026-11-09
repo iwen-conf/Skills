@@ -395,7 +395,8 @@ covers edits in another, and a patch across repositories needs a task in each. P
 every Git work tree have no task scope, since `task begin` needs Git. A session started in a
 parent folder that is not a repository (several repositories side by side) runs the CLI with
 `arc-policy --cwd <repo> task begin|verify`; `SessionStart` lists the active tasks of its direct
-child repositories and `Stop` checks them. An edit tool whose input names no path is denied there.
+child repositories; `Stop` checks only the ones this session touched (a tracked session
+skips child tasks of other sessions). An edit tool whose input names no path is denied there.
 
 Starting a task now removes any **Arc-owned** legacy `pre-commit` and
 `pre-push` verification gates, without touching another tool's hooks or custom
@@ -471,8 +472,8 @@ per process), each
 digests at first touch, under `~/.cache/arc-policy/sessions/` (`ARC_POLICY_STATE_DIR`; logs older
 than 14 days are pruned). At Stop, changes made since then need a matching receipt **only for a verified completion claim**,
 whether an edit tool, the shell or a script wrote them, and even when `task begin` came later; a
-repository without a task is reported as changed without one. Cursor's `workspace_roots` are all
-checked. When several repositories report, the strictest `stop.mode` applies.
+repository without a task is reported as changed without one. Cursor's `workspace_roots` are
+checked when the session touched them, or all of them for a host without a session ID. When several repositories report, the strictest `stop.mode` applies.
 
 Allowed edit tools record their explicit target paths even when `PostToolUse` is missing.
 Known inspection-only shell calls (such as `git status`, `arc-policy task status`, `arc search`

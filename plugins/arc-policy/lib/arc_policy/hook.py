@@ -541,6 +541,10 @@ def handle_stop(
     markers: list[str] = []
     states: list[list[str]] = []
     for root in _stop_roots(cwd, payload, baselines):
+        # Every tool call of a tracked session records its repository; one it never
+        # touched holds other sessions' work (a workspace lists all child tasks).
+        if session and root not in baselines:
+            continue
         root_policy = policy if root == cwd else _policy_for(root)
         reminder = _stop_reminder(
             root,

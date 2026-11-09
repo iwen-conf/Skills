@@ -221,6 +221,36 @@ def test_shell_named_repository_is_tracked_for_stop(tmp_path: Path) -> None:
     assert "note.txt" in result["reason"]
 
 
+def test_workspace_stop_skips_child_repositories_the_session_never_touched(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "ditie"
+    workspace.mkdir()
+    mine = named_repo(workspace, "mine")
+    theirs = named_repo(workspace, "theirs")
+    for repo in (mine, theirs):
+        write_overlay(repo, {"stop": {"mode": "block"}})
+    begin_task(mine, skill="arc-code", slug="my-task")
+    begin_task(theirs, skill="arc-code", slug="their-task")
+    (theirs / "theirs.txt").write_text("another session\n")
+    session = {"session_id": "umbrella", "cwd": str(workspace)}
+    hook({"hook_event_name": "SessionStart", **session})
+    hook(
+        {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Bash",
+            "tool_input": {"command": f"printf x > {mine}/mine.txt"},
+            **session,
+        }
+    )
+    (mine / "mine.txt").write_text("this session\n")
+    result = hook({"hook_event_name": "Stop", **session})
+    assert result["decision"] == "block"
+    assert "my-task" in result["reason"]
+    assert "their-task" not in result["reason"]
+    assert str(theirs) not in result["reason"]
+
+
 def test_stop_reports_changes_made_before_a_late_task_begin(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
     write_overlay(repo, {"stop": {"mode": "block"}})
