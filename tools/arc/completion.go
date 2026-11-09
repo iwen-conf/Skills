@@ -131,7 +131,7 @@ func commitTaskCompletion(db *sql.DB, root, id string, expected int, proof verif
 	if version != expected { return fmt.Errorf("task version conflict: expected %d actual %d", expected, version) }
 	if old != "verifying" { return fmt.Errorf("task must be verifying before done, currently %s", old) }
 	var pending int
-	if err := tx.QueryRowContext(ctx,"SELECT COUNT(*) FROM arc_outbox WHERE status='pending'").Scan(&pending); err != nil { return err }
+	if err := tx.QueryRowContext(ctx,"SELECT COUNT(*) FROM arc_outbox o JOIN arc_events e ON e.id=o.event_id WHERE o.status='pending' AND e.aggregate IN ('file','change')").Scan(&pending); err != nil { return err }
 	if pending != 0 { return fmt.Errorf("%d outbox events unacknowledged; run arc index flush first", pending) }
 	var indexedSnapshot string
 	if err := tx.QueryRowContext(ctx, "SELECT value FROM arc_meta WHERE key='index_last_snapshot'").Scan(&indexedSnapshot); err != nil {
