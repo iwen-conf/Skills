@@ -109,12 +109,24 @@ func canonicalPolicyReceiptHash(raw []byte) (string, error) {
 // the arc.db transaction completes. A revoked/replaced receipt never
 // authorizes a new Done state on the same source tree.
 func validateLivePolicyReceipt(root string, proof verifiedTaskProof) error {
-	path := filepath.Join(root, ".arc", "policy", "state.json")
-	st, err := os.Lstat(path)
-	if err != nil { return fmt.Errorf("policy state unavailable: %w", err) }
-	if !st.Mode().IsRegular() { return errors.New("unsafe policy task state file") }
-	raw, err := os.ReadFile(path)
+	// The caller holds policy task.lock -> arc.lock. Read the canonical
+	// Turso row after cutover; never accept a stale legacy state.json.
+	db, err := openActiveArcDB(root)
 	if err != nil { return err }
+	doc, err := loadPolicyDocument(db)
+	if e := db.Close(); err == nil { err = e }
+	if err != nil { return err }
+	var raw []byte
+	if doc.Mode == "arc.db" {
+		raw = doc.State
+	} else {
+		path := filepath.Join(root, ".arc", "policy", "state.json")
+		st, err := os.Lstat(path)
+		if err != nil { return fmt.Errorf("policy state unavailable: %w", err) }
+		if !st.Mode().IsRegular() { return errors.New("unsafe policy task state file") }
+		raw, err = os.ReadFile(path)
+		if err != nil { return err }
+	}
 	var state struct {
 		Active struct {
 			ID string `json:"id"`
