@@ -32,6 +32,14 @@ type policyDocument struct {
 }
 
 func loadPolicyDocument(db *sql.DB) (policyDocument, error) {
+	// Arc 0.3 ledgers predate policy tables. An absent table means legacy
+	// state is still authoritative until explicit policy migration.
+	var table string
+	tableErr:=db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name='arc_policy_state'").Scan(&table)
+	if errors.Is(tableErr,sql.ErrNoRows) {
+		return policyDocument{Mode:"legacy", Version:0, State:json.RawMessage("{}")},nil
+	}
+	if tableErr!=nil{return policyDocument{},tableErr}
 	var body string
 	var version int64
 	err := db.QueryRow("SELECT version, body FROM arc_policy_state WHERE id=1").Scan(&version, &body)
