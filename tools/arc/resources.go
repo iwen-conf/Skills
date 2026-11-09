@@ -287,11 +287,11 @@ func changedGitPaths(root string) ([]gitChange,error) {
 			// A rename invalidates both paths; a copy keeps its source.
 			if i+1>=len(parts)||parts[i+1]=="" {return nil,errors.New("incomplete Git rename/copy record")}
 			original:=parts[i+1];i++
-			if strings.Contains(code,"R") && original!=path && original!=".arc" && !strings.HasPrefix(original,".arc/") {
+			if strings.Contains(code,"R") && original!=path && original!=".arc" && !strings.HasPrefix(original,".arc/") && !isGeneratedIndexFile(original) {
 				ops[original]="deleted"
 			}
 		}
-		if path==".arc" || strings.HasPrefix(path,".arc/"){continue}
+		if path==".arc" || strings.HasPrefix(path,".arc/") || isGeneratedIndexFile(path){continue}
 		op:="modified"
 		if strings.Contains(code,"D"){op="deleted"}else if code=="??" {op="untracked"}else if strings.Contains(code,"A"){op="added"}else if strings.ContainsAny(code,"RC"){op="renamed"}
 		ops[path]=op
