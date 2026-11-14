@@ -1,15 +1,8 @@
 {
   "name": "skills",
-  "description": "Arc skills and the Arc Policy Runtime",
+  "description": "Agent skills from the Skills repository",
   "owner": {
     "name": "Arc"
   },
-  "plugins": [
-    {
-      "name": "arc-policy",
-      "description": "Arc workflow skills and policy runtime for Claude Code, Codex CLI, and Grok Build. Includes six workflow skills, pinned arch-diagram visualization, host hooks and the arc-policy CLI; Python, Node and native verification tools require separate setup.",
-      "source": "./plugins/arc-policy",
-      "version": "0.4.8"
-    }
-  ]
+  "plugins": []
 }

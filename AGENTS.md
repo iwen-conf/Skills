@@ -1,6 +1,6 @@
 # Skills 项目事实
 
-- 主技能源码在 `Arc/`；共享协议在 `Arc/_shared/`。现有六个 Arc 技能与 `plugins/arc-policy/` 协作。
+- 主技能源码在 `Arc/`；共享协议在 `Arc/_shared/`。六个 Arc 技能由 `scripts/sync_skills.py` 与 `scripts/link_hosts.py` 安装到各宿主。
 - 唯一公共命令是 `arc`（`tools/arc/`），它把检索转给 `tools/arc-idx/`、把业务图转给 `tools/arc-verify/`；三者都是短生命周期 Go CLI，用官方 `tursogo` 进程内驱动，由 `bash scripts/install_arc.sh` 一起安装。技能文档检索写 `arc idx <子命令>`、业务图写 `arc verify <子命令>`，不写裸 `arc search` 等旧形式。Python 脚本负责既有测试与校验工具。
 - 索引 profile：`skills`、`docs`、`code`、`meta`。
 - 技能注册表从源码生成：`.venv/bin/python scripts/build_skills_index.py`；不要手改 `skills.index.json`。

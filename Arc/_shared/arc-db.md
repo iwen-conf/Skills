@@ -28,11 +28,11 @@ mutations belong to the authorized work owner and plugin runtime.
   immutable receipts into Turso. Until this separate cutover, Policy JSON
   remains authoritative; after it, the Go DB is the only Policy state source.
 - **Completion lock protocol:** `arc task complete` validates the existing
-  `arc-policy` PASS, acquires its `task.lock`, compares the live receipt in
+  verification PASS, acquires its `task.lock`, compares the live receipt in
   `arc.db` (or the legacy file before Policy cutover),
-  and commits under the project DB lock; never call back into the policy CLI
-  while holding the locks. Until compatible Windows byte-range locking exists,
-  Windows completion is blocked rather than accepted without coordination.
+  and commits under the project DB lock. Until compatible Windows byte-range
+  locking exists, Windows completion is blocked rather than accepted without
+  coordination.
 - **Verification evidence is immutable and revision-scoped.** A successful
   index update is not a passed test, and a passed test is not task completion.
 - Avoid a second project tracker. The planned task records should replace
@@ -91,16 +91,16 @@ arc verify gate --graph GRAPH-ID
 Flags precede positional IDs in v1. All resource writes require an active
 `.arc/arc.json` manifest and `.arc/arc.db`; no silent migration. `arc verify`
 uses `arc.db` by default **only after activation**; explicit `--db` still wins.
-The plugin graph gate follows the marker when policy has no explicit DB override.
+The graph gate follows the marker when policy has no explicit DB override.
 
 `arc capabilities --json` exposes `arc_db_resources=true`,
 `arc_db_schema_version=1`, and `unified_database=true` **only in an active
 project**. The code-index and verifier binaries remain separate dependencies.
-`arc-policy task verify` remains the completion authorization gate.
+Independent runtime evidence remains the completion authorization gate.
 
 **Not yet executable:** native `arc task verify`, `arc change verify/impact`
 or `arc design/contract/schema`.
-`arc task complete` requires an existing **current PASS** from `arc-policy`;
+`arc task complete` requires an existing **current PASS**;
 `AUTHORIZED` never counts as passing independent verification.
 
 `arc update` collects an idempotent worktree ChangeSet. `arc sync reconcile`
@@ -169,30 +169,28 @@ sync_cursors + snapshots                retry and replay checkpoints
   define replayable exported events or migrations, not Git merges of a
   binary database. No credentials or full private source by default.
 
-## 6. Plugin/Hook reconciliation
+## 6. Worktree reconciliation
 
-The existing `arc-policy` PostToolUse hook binds the active policy task
-with idempotent `arc task ensure`, then runs `arc sync reconcile --task <id>`
-for repositories with an active manifest. When the policy has no active task,
-reconciliation records changes without an owner. Explicitly read-only shell
-calls are skipped; missing CLI or failed writes are reported.
+For repositories with an active `.arc/arc.json` manifest, `arc sync reconcile --task <id>`
+records file-hash events. When there is no active task, reconciliation records
+changes without an owner. Explicitly read-only work is skipped; missing CLI or
+failed writes are reported.
 
-1. **Pre-tool:** observe current task, authorization, worktree and baseline.
-   Keep current `arc-policy` guard behavior; do not require a nonexistent DB.
-2. **Post-tool:** the implemented hook imports a stable `arc-policy` task identity,
-   collects a bounded Git worktree ChangeSet and records file-hash events with
+1. **Observe:** current task, authorization, worktree and baseline. Do not
+   require a nonexistent DB.
+2. **Record:** collect a bounded Git worktree ChangeSet and file-hash events with
    idempotent fingerprinting. Each mutating call may repeat a Git scan; optimized
    event batching remains future work.
 3. **Reconcile:** file hashes and task-linked changes are recorded. The
    `arc index flush` consumer confirms the existing full indexer output before
    acknowledging source events; native per-file incremental indexing,
    dependency invalidation and document projection remain future work.
-4. **Stop/delivery gate:** completion claims still require revision-scoped
-   verification evidence. Ordinary `git commit` and `git push` never require
-   a per-commit verify receipt. Do not auto-close tasks; keep existing
-   `arc-policy` and `arc verify` completion gates authoritative.
+4. **Delivery:** completion claims still require revision-scoped verification
+   evidence. Ordinary `git commit` and `git push` never require a per-commit
+   verify receipt. Do not auto-close tasks; keep `arc verify` completion gates
+   authoritative.
 5. **Recovery:** replay pending events after restart, rescan Git changes
-   when hooks were skipped, and report `sync_pending` / `conflict` / `stale`
+   when they were skipped, and report `sync_pending` / `conflict` / `stale`
    explicitly. A missing event never means "no change".
 
 ## 7. Migration and acceptance

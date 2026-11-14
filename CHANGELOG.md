@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Removed the Arc Policy plugin
+
+- Deleted `plugins/arc-policy`, its host marketplace entries, the plugin builder, and the Python runtime tests. Claude, Codex and Grok now receive the six Arc skills only through `scripts/link_hosts.py`.
+- `arch-diagram` is no longer bundled here; draw business diagrams with the upstream [arch-diagram](https://github.com/bassnova42/arch-diagram-skill) plugin when needed.
+
 ### arc 0.4.3 / arc-policy 0.4.8 — `arc idx` command group
 
 - Code-index commands are written `arc idx search|symbol|files|ast|stats|doctor|index|daemon|watch`, like `arc verify …`. The bare forms (`arc search …`) still work for running sessions but are no longer documented; `arc index flush` stays an arc.db command. The engine's usage, errors, hints and doctor header say `arc idx …` (`arc idx ast: ast-grep:`).

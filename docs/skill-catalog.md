@@ -29,7 +29,7 @@
 
 ## 宿主安装面
 
-`schemas/host_profiles.yaml` 是唯一来源，`scripts/link_hosts.py --check` 校验：Claude 13、Codex 15、Grok 3 个独立链接入口（2026-10-24 移除未使用的 Gemini、Pi 宿主配置；2026-10-27 增加 `humanizer-zh`；2026-11-01 撤出 `typesafe-ai`；2026-11-09 三个宿主声明 `plugins: [arc-policy]`，六个 Arc 技能只由插件提供，不再重复链接）。打包器只安装路由与独立入口；库成员不可单独安装，`--check` 发现残留独立副本即报错。Cloudflare `security-audit` 已于 2026-10-24 撤出全部宿主（含 DSH、Cursor）并删除本机副本，只以上游 GitHub 作为 `arc:audit` 的学习源，见 [04 安全审计上游学习](01-系统设计/04-安全审计上游学习.md)。
+`schemas/host_profiles.yaml` 是唯一来源，`scripts/link_hosts.py --check` 校验：Claude 13、Codex 15、Grok 3 个独立链接入口（2026-10-24 移除未使用的 Gemini、Pi 宿主配置；2026-10-27 增加 `humanizer-zh`；2026-11-01 撤出 `typesafe-ai`；2026-11-14 撤回 `arc-policy` 插件，六个 Arc 技能重新由宿主技能链接提供）。打包器只安装路由与独立入口；库成员不可单独安装，`--check` 发现残留独立副本即报错。Cloudflare `security-audit` 已于 2026-10-24 撤出全部宿主（含 DSH、Cursor）并删除本机副本，只以上游 GitHub 作为 `arc:audit` 的学习源，见 [04 安全审计上游学习](01-系统设计/04-安全审计上游学习.md)。
 
 ## 校验
 

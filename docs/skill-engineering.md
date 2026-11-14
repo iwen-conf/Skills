@@ -50,7 +50,7 @@ and URL patterns. Third-party sources without a published license live under git
   `schemas/host_profiles.yaml`. Unrelated user entries are reported but preserved; explicitly add
   `--prune-unmanaged` to check or back them up. Managed replacements also move to `~/.skills-backup/`,
   never deleted. Unknown `--host` values fail before writes. A correct link tree does not prove a host's
-  full discovery state; see [plugin host compatibility](plugin-host-compatibility.md).
+  full discovery state.
 - `scripts/route_probe.py` runs `schemas/route_corpus.yaml` through TypeSafe Jev against every
   discoverable description (top-1 must be the expected skill with probability ≥ 0.5). It needs the
   `jev` CLI and an API key; it is evidence about descriptions, not about a host's real router.

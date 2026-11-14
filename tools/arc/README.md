@@ -68,9 +68,8 @@ The old graph store lives at `.arc/verify/data.db`. A migration is **explicit**:
    adds `arc_*` resource tables and compares the **actual gate output of
    every legacy graph** against the migrated graph.
 3. Only if all checks pass, it atomically installs `.arc/arc.json` to mark the
-   database active. `arc verify` then selects `.arc/arc.db` by default, and
-   `arc-policy` follows the activation manifest unless its configuration
-   explicitly pins another database.
+   database active. `arc verify` then selects `.arc/arc.db` by default unless
+   configuration explicitly pins another database.
 4. The legacy database stays available for inspection and recovery. Failed
    migrations do not produce an active manifest and must not be treated as done.
 
@@ -79,9 +78,9 @@ ledger, or delete backups. Backups do not justify unverified PASS claims.
 
 ### Policy state and receipt physical cutover (Arc 0.4)
 
-After installing **both** the upgraded Go `arc` CLI and Python `arc-policy`
-runtime, quiesce any old agents that might write `.arc/policy/state.json`.
-The original verification graph must already be active in `.arc/arc.db`.
+After installing the upgraded Go `arc` CLI, quiesce any old agents that might
+write `.arc/policy/state.json`. The original verification graph must already
+be active in `.arc/arc.db`.
 
 ```bash
 arc db status --repo .
@@ -89,7 +88,6 @@ arc policy state status --repo .          # legacy before migration
 arc policy state migrate --repo . --confirm-offline
 arc policy state status --repo .          # mode: arc.db
 arc policy state get --repo .             # active task, history and CAS version
-arc-policy --cwd . task status            # now reads the same DB
 ```
 
 `arc policy state migrate` imports the active task, historical tasks and all
@@ -97,28 +95,27 @@ legacy PASS/AUTHORIZED receipts in one Turso transaction. The source
 `state.json` receives a SHA-256-named copy in `.arc/backups/`. After
 successful DB readback, the legacy receipts directory is archived under
 `.arc/backups/` and `state.json` is replaced with a directory tombstone:
-older plugin builds cannot silently recreate a second writable state file.
+older Policy writers cannot silently recreate a second writable state file.
 An interrupted archive can be finalized by rerunning the offline migration;
 newer agents use the DB row as the only authoritative Policy state throughout.
 Never manually delete these backups.
 
-The Python runtime accesses Turso through `arc policy state get/put`, not
-Python `sqlite3`. The `put` operation requires an expected version and appends
+`arc policy state get/put` is the Turso interface, not a direct `sqlite3`
+session. The `put` operation requires an expected version and appends
 an audit event plus immutable receipt rows transactionally; stale writers
 fail closed. This migration does **not** mark tasks verified, change graph
 results or run tests. `git commit` and `git push` remain free of per-commit
 verification.
 
-Install new host/plugin runtimes **before** migration. An unavailable or
-broken DB backend must fail rather than revert to the old JSON. Windows
-Policy migration and completion remain fail-closed until the Go lock matches
-the Python msvcrt protocol.
+An unavailable or broken DB backend must fail rather than revert to the old
+JSON. Windows Policy migration and completion remain fail-closed until the Go
+lock matches the existing locking protocol.
 
 ### Guarantees and deliberate limits
 
 Resource writes use short SQL transactions and append-only events/outbox rows.
 Task completion now rechecks the *live* policy receipt while holding the same
-`.arc/policy/task.lock` used by `arc-policy`, then acquires the `arc.db` lock
+`.arc/policy/task.lock`, then acquires the `arc.db` lock
 (policy lock first, database lock second) and commits the CAS transition.
 Revoked/replaced receipts and concurrent policy task changes cannot silently
 produce `done`. This completion path currently fails closed on Windows until
@@ -127,7 +124,7 @@ its policy lock adapter matches Python's `msvcrt` locking protocol.
 Task transitions use expected-version CAS. `done` is now available only through
 `arc task complete --id <policy-task-id> --expected-version N` (or `arc task
 transition --to done`), which checks an **existing current PASS** from
-`arc-policy task status`. An `AUTHORIZED` waiver is not a PASS. The completion
+the live Policy receipt. An `AUTHORIZED` waiver is not a PASS. The completion
 and evidence fingerprint commit atomically, and tests are not re-run by `complete`.
 Index shards remain independently rebuildable and are not part of `arc.db`.
 
@@ -140,17 +137,14 @@ marking its bounded original event batch delivered. Failures keep events
 pending for retry; newer events are not accidentally acknowledged. This is
 **batched full indexing**, not yet a true per-file incremental Zoekt writer.
 
-`arc-policy task` remains the authoritative authorization/receipt workflow.
-When `.arc/arc.json` is active, Plugin PostToolUse now binds its stable task ID
-through idempotent `arc task ensure` and passes `--task` to `arc sync reconcile`.
-This creates traceable task identity without prematurely promoting it to
-`done`. `arc task complete` additionally requires no pending source index events
+When `.arc/arc.json` is active, `arc task ensure` and `arc sync reconcile --task`
+create traceable task identity without prematurely promoting it to `done`.
+`arc task complete` additionally requires no pending source index events
 and an index snapshot matching the verified source. Run it after `arc index flush`
-and a successful `arc-policy task verify`, not on each Git commit.
+and independent runtime evidence, not on each Git commit.
 
 `arc task show` reports the historical completion and `source_revision_current`,
-but does **not** rerun independent runtime evidence. `arc-policy` remains the
-current authority for the actual verification receipt; `arc.db` records its
-immutable fingerprint and checks in `task.completed` events. Full policy-state
-migration and native incremental indexing are future work. Current multi-agent scheduling remains owned by `aitask`.
-Unsupported resource commands must not be described as shipped.
+but does **not** rerun independent runtime evidence. `arc.db` records the
+immutable fingerprint and checks in `task.completed` events. Native incremental
+indexing remains future work. Current multi-agent scheduling remains owned by
+`aitask`. Unsupported resource commands must not be described as shipped.

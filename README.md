@@ -8,7 +8,7 @@
 
 新客户端使用目标平台原生 SDK、UI 与系统能力，不再以跨平台 UI 复用为目标。各平台选型与既有项目维护边界见 [原生平台规则](Arc/_shared/conventions/native-platforms.md)；Web 仍遵循 Web 技术栈。
 
-Arc 公共命令统一为 `arc`（源码在 [`tools/arc/`](tools/arc/)）。代码检索继续复用 `arc-idx`（Zoekt、ast-grep、Universal Ctags），业务验证复用 `arc-verify`（Turso）。`arc` 0.4.3 提供 `arc db init/migrate/status`、`task/file/change/update`、`arc index flush` 索引 Outbox 消费（批量全量重建）、基于现有 PASS 回执的 `arc task complete`，以及 `arc policy state migrate`（Policy 任务与回执迁入同一库）；经显式、离线且验证结果一致的迁移后，代码状态、原验证图与 Policy 状态共存于 `.arc/arc.db`。底层仍保留两个可执行后端，原生逐文件增量索引和 `arc task verify` 尚未实现。用 `bash scripts/install_arc.sh` 安装（引擎私有于 `<prefix>/libexec/arc`，只有 `arc` 在 PATH 上）；`arc` 不能是指向 `arc-idx` 的别名或软链。详见 [`Arc/_shared/arc-db.md`](Arc/_shared/arc-db.md) 与 [`Arc/_shared/code-intel.md`](Arc/_shared/code-intel.md)。跨 Claude Code / Codex / Grok 的强制工作流由 [Arc Policy Runtime](plugins/arc-policy/README.md) 提供（Plugin 分发、Skill 指导、Hook 拦截、`arc-policy` CLI 验证）。任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责。飞书项目空间只在用户明确要求、或项目已有 `.lark.json` 时，由 `lark` 的 project-docs 条目维护。
+Arc 公共命令统一为 `arc`（源码在 [`tools/arc/`](tools/arc/)）。代码检索继续复用 `arc-idx`（Zoekt、ast-grep、Universal Ctags），业务验证复用 `arc-verify`（Turso）。`arc` 0.4.3 提供 `arc db init/migrate/status`、`task/file/change/update`、`arc index flush` 索引 Outbox 消费（批量全量重建）、基于现有 PASS 回执的 `arc task complete`，以及 `arc policy state migrate`（Policy 任务与回执迁入同一库）；经显式、离线且验证结果一致的迁移后，代码状态、原验证图与 Policy 状态共存于 `.arc/arc.db`。底层仍保留两个可执行后端，原生逐文件增量索引和 `arc task verify` 尚未实现。用 `bash scripts/install_arc.sh` 安装（引擎私有于 `<prefix>/libexec/arc`，只有 `arc` 在 PATH 上）；`arc` 不能是指向 `arc-idx` 的别名或软链。详见 [`Arc/_shared/arc-db.md`](Arc/_shared/arc-db.md) 与 [`Arc/_shared/code-intel.md`](Arc/_shared/code-intel.md)。任务编排、Inbox 和跨 Agent 状态由 `aitask` 体系负责。飞书项目空间只在用户明确要求、或项目已有 `.lark.json` 时，由 `lark` 的 project-docs 条目维护。
 
 ## 目录
 
@@ -35,7 +35,6 @@ Skills/
 ├── tools/arc/          # 统一 CLI + Turso 资源状态库（索引/验证仍复用原后端）
 ├── tools/arc-idx/      # 代码索引后端，迁移期保留
 ├── tools/arc-verify/   # 业务图验证后端，迁移期保留
-├── plugins/arc-policy/   # Policy Runtime: plugin + hooks + arc-policy CLI
 ├── docs/
 ├── schemas/
 ├── scripts/

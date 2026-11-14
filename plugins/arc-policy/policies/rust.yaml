@@ -1,7 +1,0 @@
-version: 1
-extends: default
-
-languages:
-  rust:
-    skill: arc-code
-    verify_hint: "Never compile Rust on this Mac, not even with cargo zigbuild; build and test on the remote build host."

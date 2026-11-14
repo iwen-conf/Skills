@@ -5,11 +5,10 @@ The same agent activates the next skill within the user's existing authorization
 Load only that phase's skill and relevant references. Do not recursively load all six skills,
 treat a skill switch as new permission, or stop at a handoff when the next action is already authorized.
 
-With `arc-policy`, loading a skill does not switch task identity. Check `task status`, then
-`task switch --skill <next-skill>` to archive the old evidence atomically. An unfinished phase
-requires `--incomplete --reason '<why>'`; keep its detail in the existing progress document.
-The next phase gets a new task and no inherited receipt. Do not use `--force` for handoffs.
-Business PASS needs the matching phase's graph check; code receipts and AUTHORIZED are not proof.
+Loading a skill does not by itself switch task identity. Finish the current phase artifact,
+then activate the next skill under the same authorization. An unfinished phase keeps its
+detail in the existing progress document. Business PASS needs the matching phase's graph
+check; a code change or an unverified claim is not proof.
 
 ## 1. Select the owner by the requested result
 

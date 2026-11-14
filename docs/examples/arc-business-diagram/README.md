@@ -1,6 +1,6 @@
 # arch-diagram 业务图示例
 
-这些页面由 Arc plugin **0.4.1** 调用固定的官方 arch-diagram **1.2.3** 构建。
+这些页面由固定的官方 arch-diagram **1.2.3** 构建。
 先打开审阅页查看业务结构，源 ID、包名证据、规则和运行历史可在下方展开；原始 renderer HTML 保持不变。
 
 | 示例 | 审阅页 | 原图与完整数据 | 来源 |
@@ -46,14 +46,9 @@
 正常 `diagram` 命令始终先返回 `visual_review: NOT_RUN`，因为自动几何检查无法代替看图。
 本目录示例的后续截图检查单独记录在 `manual_visual_review`；没有自动把生成成功当作视觉通过。
 
-重新生成时使用新的输出目录，命令不覆盖已有图：
-
-```bash
-arc-policy diagram \
-  --snapshot docs/examples/arc-business-diagram/async-overview.snapshot.json \
-  --presentation docs/examples/arc-business-diagram/async-overview.presentation.json \
-  --view capabilities --out .arc/verify/diagrams/screenshot-layout-fixture/new-review
-```
+重新生成时使用新的输出目录，不要覆盖已有图。用已安装的
+[arch-diagram](https://github.com/bassnova42/arch-diagram-skill)
+技能，输入本目录的 snapshot 与 presentation JSON，`--view capabilities`。
 
 官方渲染器固定于
 [`879ca7fa503a64ab46b5bc77d2062ded32fadc84`](https://github.com/bassnova42/arch-diagram-skill/tree/879ca7fa503a64ab46b5bc77d2062ded32fadc84)。

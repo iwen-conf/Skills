@@ -4,10 +4,9 @@ Sections: [Structure](#choose-a-readable-business-structure) · [Naming](#langua
 [Evidence](#source-and-evidence-boundaries) · [Build and review](#build-and-deliver).
 
 Use the [arch-diagram plugin](https://github.com/bassnova42/arch-diagram-skill) for graph/flow review
-visuals. The Arc plugin bundles a pinned, licensed upstream copy. Resolve its actual location with
-`arc-policy skills --name arch-diagram`; read that `SKILL.md` and `references/spec.md` only for
+visuals. Install it from the host inventory; read that `SKILL.md` and `references/spec.md` only for
 this drawing substep. Carry the selected snapshot, stable IDs, package evidence and scope; release
-unrelated execution references. Other installations use the host inventory, never a guessed cache path.
+unrelated execution references. Never guess a cache path.
 Repository discovery still follows [code-intel](../../_shared/code-intel.md), using `arc`.
 
 ## Choose a readable business structure
@@ -71,16 +70,11 @@ the pinned upstream engine or hand-edit generated HTML to add controls.
 
 ## Build and deliver
 
-For an existing v2 DB snapshot, use the plugin's file-only bridge:
-
-```bash
-arc-policy --cwd "$TARGET_REPO" diagram --snapshot "$VERIFY_SNAPSHOT" \
-  --presentation "$VERIFY_PRESENTATION" --view flows --out "$VERIFY_DIAGRAM_DIR"
-```
-
-The input is the original `snapshot.json`, never a freshly invented model. `--view capabilities`
-draws the capability tree. The optional presentation JSON supplies Chinese names and package
-evidence, not rules or verdicts. It is bound to the snapshot's `graph` and `graph_sha256`.
+For an existing v2 DB snapshot, use the installed arch-diagram skill's file-only
+build path with the original `snapshot.json` (never a freshly invented model).
+`--view capabilities` draws the capability tree. The optional presentation JSON
+supplies Chinese names and package evidence, not rules or verdicts. It is bound
+to the snapshot's `graph` and `graph_sha256`.
 Resolve names from the user's business vocabulary. A package requires a readable source `file`,
 one-based `line` and its actual identifier on that line; otherwise show `业务包待核实`. Select
 `node_ids` for graphs over 16 nodes and report omitted nodes/edges. No hidden truncation.

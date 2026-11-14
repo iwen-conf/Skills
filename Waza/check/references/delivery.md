@@ -43,17 +43,8 @@ Use the existing Arc evidence and gate semantics; do not replace them with an ov
 - After push, read the target remote SHA and required CI status for that SHA. Poll structured
   state rather than piping a watch command through output filters that hide its exit status.
 
-### Under the arc-policy runtime
-
-Order, each in its own tool call: `git -C <repo> add <owned files>` → `arc-policy task verify`
-→ `git -C <repo> commit` → `git -C <repo> push`. Never `cd <repo> && git …`; the hook refuses
-it. Pushing the commit the receipt covers needs no second verify. Verify `NOT_RUN` for missing
-test commands is fixed by declaring the project's real commands, a real failure is reported,
-and only the user's explicit go-ahead ("直接提交", "不 verify 了") becomes
-`arc-policy task authorize --quote '<their words>'` (arc-policy skill, "When verify cannot pass").
-The agent runs `git add` and `git commit` itself and never hands them to the user; the user may
-push the resulting commit themselves. A "现在提交并推送，不等 X" skips the named wait, not the
-receipt.
+The agent runs `git add` and `git commit` itself and never hands them to the user when those
+actions are authorized. A "现在提交并推送，不等 X" skips the named wait, not the commit itself.
 
 ## Branches and pull requests (any host)
 

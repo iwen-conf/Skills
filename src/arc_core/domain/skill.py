@@ -142,8 +142,6 @@ ARC_LOAD_SCENARIOS: dict[str, tuple[int, tuple[str, ...]]] = {
         (
             "Arc/arc:verify/SKILL.md",
             "Arc/arc:verify/references/business-diagram.md",
-            "plugins/arc-policy/skills/arch-diagram/SKILL.md",
-            "plugins/arc-policy/skills/arch-diagram/references/spec.md",
         ),
     ),
     "plan-model": (

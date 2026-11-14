@@ -39,10 +39,10 @@ index and verification engines to the existing binaries, while providing
 `arc db`, `arc task`, `arc file`, `arc change`, `arc update`, `arc sync` and `arc policy state`.
 After explicit `.arc/arc.db` activation, `arc index flush` performs a
 verified batched **full** index build and acknowledges source Outbox events.
-`arc task complete` requires an existing current Arc Policy PASS, a matching
+`arc task complete` requires an existing current verification PASS, a matching
 indexed revision and CAS; normal Git commits never trigger `task verify`.
-The `arc-policy` PASS receipt remains the verification authority; after
-`arc policy state migrate` it is stored in `arc.db` instead of JSON. See [arc-db.md](_shared/arc-db.md).
+After `arc policy state migrate`, Policy receipts live in `arc.db` instead of JSON.
+See [arc-db.md](_shared/arc-db.md).
 
 ## Business-chain graph verification bridge
 
