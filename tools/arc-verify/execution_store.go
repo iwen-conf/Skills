@@ -82,7 +82,10 @@ func (d db) registeredRunner(id string) (RegisteredRunner, error) {
 	return RegisteredRunner{Manifest: manifest, SHA256: rows[0][3], CodeSHA256: code}, nil
 }
 
-func (d db) runnerSnapshot(graph string) (string, error) {
+func (d db) runnerSnapshot(graph, sourceRoot string) (string, error) {
+	if !filepath.IsAbs(sourceRoot) {
+		return "", errors.New("runner snapshot requires an absolute candidate source root")
+	}
 	rows, err := d.query("SELECT id,sha256,code_sha256 FROM registered_runners WHERE graph="+quote(graph)+" ORDER BY id LIMIT 20001", 3)
 	if err != nil {
 		return "", err
@@ -97,6 +100,13 @@ func (d db) runnerSnapshot(graph string) (string, error) {
 		}
 		if runner.SHA256 != row[1] || runner.CodeSHA256 != row[2] {
 			return "", errors.New("runner registry changed during snapshot")
+		}
+		code, err := runnerCodeFingerprintAtRoot(runner.Manifest, sourceRoot)
+		if err != nil {
+			return "", err
+		}
+		if code != runner.CodeSHA256 {
+			return "", errors.New("runner execution-root code or input differs from its registered identity")
 		}
 	}
 	body, err := json.Marshal(rows)
@@ -143,7 +153,7 @@ func (d db) createRound(graph, environment, commit, root, config string) (Verifi
 	if err != nil {
 		return result, err
 	}
-	result.RunnersSHA256, err = d.runnerSnapshot(graph)
+	result.RunnersSHA256, err = d.runnerSnapshot(graph, root)
 	if err != nil {
 		return result, err
 	}
@@ -194,7 +204,7 @@ func (d db) validateRound(round VerificationRound) error {
 	if err != nil {
 		return err
 	}
-	runners, err := d.runnerSnapshot(round.Context.Graph)
+	runners, err := d.runnerSnapshot(round.Context.Graph, round.Context.SourceRoot)
 	if err != nil {
 		return err
 	}

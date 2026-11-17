@@ -474,7 +474,65 @@ func equalArgs(left, right []string) bool {
 	return true
 }
 
+// commandDirectory resolves the working directory used by the child process.
+// Registration has no SourceRoot: a missing or relative directory is therefore
+// unknown until a verification round binds the candidate root.
+func commandDirectory(call AdapterCall, sourceRoot string) (string, error) {
+	directory := call.Directory
+	if !filepath.IsAbs(directory) {
+		if sourceRoot == "" {
+			return "", nil
+		}
+		directory = filepath.Join(sourceRoot, directory)
+	}
+	resolved, err := filepath.EvalSymlinks(directory)
+	if err != nil {
+		return "", fmt.Errorf("command directory: %w", err)
+	}
+	info, err := os.Stat(resolved)
+	if err != nil {
+		return "", fmt.Errorf("command directory: %w", err)
+	}
+	if !info.IsDir() {
+		return "", errors.New("command directory is not a directory")
+	}
+	return filepath.Abs(resolved)
+}
+
+// Resolve slash-containing relative executables against the child's directory,
+// not the CLI cwd. Pin a PATH result to an absolute path so a relative PATH entry
+// cannot change meaning when exec.Cmd changes directory in the child process.
+func commandExecutable(call AdapterCall, directory string) (string, error) {
+	if len(call.Args) == 0 || call.Args[0] == "" {
+		return "", errors.New("command executable is missing")
+	}
+	name := call.Args[0]
+	if !filepath.IsAbs(name) && strings.ContainsRune(name, os.PathSeparator) {
+		if directory == "" {
+			return "", errors.New("relative command executable requires an absolute execution directory at registration")
+		}
+		// Preserve symlink/.. semantics until the OS resolves the file.
+		name = directory + string(os.PathSeparator) + name
+	}
+	path, err := exec.LookPath(name)
+	if err != nil {
+		return "", err
+	}
+	if !filepath.IsAbs(path) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return "", err
+		}
+		path = cwd + string(os.PathSeparator) + path
+	}
+	return path, nil
+}
+
 func runnerCodeFingerprint(manifest RunnerManifest) (string, error) {
+	return runnerCodeFingerprintAtRoot(manifest, "")
+}
+
+func runnerCodeFingerprintAtRoot(manifest RunnerManifest, sourceRoot string) (string, error) {
 	executable, err := os.Executable()
 	if err != nil {
 		return "", err
@@ -482,7 +540,10 @@ func runnerCodeFingerprint(manifest RunnerManifest) (string, error) {
 	paths := []string{executable}
 	inputs := map[string]bool{}
 	for _, input := range manifest.InputFiles {
-		absolute, err := filepath.Abs(input)
+		absolute, err := filepath.EvalSymlinks(input)
+		if err == nil {
+			absolute, err = filepath.Abs(absolute)
+		}
 		if err != nil {
 			return "", err
 		}
@@ -492,7 +553,11 @@ func runnerCodeFingerprint(manifest RunnerManifest) (string, error) {
 		if call.Kind != adapterCommand {
 			return nil
 		}
-		path, err := exec.LookPath(call.Args[0])
+		directory, err := commandDirectory(call, sourceRoot)
+		if err != nil {
+			return err
+		}
+		path, err := commandExecutable(call, directory)
 		if err != nil {
 			return err
 		}
@@ -503,16 +568,21 @@ func runnerCodeFingerprint(manifest RunnerManifest) (string, error) {
 			}
 			candidate := arg
 			if !filepath.IsAbs(candidate) {
-				candidate = filepath.Join(call.Directory, candidate)
+				if directory == "" {
+					// The same check is required again at round admission and
+					// replay, when the candidate SourceRoot is known.
+					continue
+				}
+				candidate = directory + string(os.PathSeparator) + candidate
 			}
 			stat, err := os.Stat(candidate)
 			if err != nil || !stat.Mode().IsRegular() {
 				continue
 			}
-			if !filepath.IsAbs(arg) && !filepath.IsAbs(call.Directory) {
-				return errors.New("command file inputs require an absolute path or execution directory")
+			absolute, err := filepath.EvalSymlinks(candidate)
+			if err == nil {
+				absolute, err = filepath.Abs(absolute)
 			}
-			absolute, err := filepath.Abs(candidate)
 			if err != nil {
 				return err
 			}
@@ -1094,13 +1164,17 @@ func performCallWithRequestCapture(ctx context.Context, call AdapterCall, bindin
 			return output, fmt.Errorf("HTTP adapter status %d is outside the declared contract", response.StatusCode)
 		}
 	case adapterCommand:
-		command := exec.CommandContext(ctx, actualCall.Args[0], actualCall.Args[1:]...)
-		command.Dir = actualCall.Directory
-		if command.Dir == "" {
-			command.Dir = binding.SourceRoot
-		} else if !filepath.IsAbs(command.Dir) {
-			command.Dir = filepath.Join(binding.SourceRoot, command.Dir)
+		directory, err := commandDirectory(actualCall, binding.SourceRoot)
+		if err != nil {
+			return output, err
 		}
+		executable, err := commandExecutable(actualCall, directory)
+		if err != nil {
+			return output, err
+		}
+		command := exec.CommandContext(ctx, executable, actualCall.Args[1:]...)
+		command.Args[0] = actualCall.Args[0]
+		command.Dir = directory
 		command.Env = []string{"PATH=" + os.Getenv("PATH"), "LANG=C.UTF-8", "ARC_VERIFY_TARGET=" + binding.Identity.Target, "ARC_VERIFY_PRINCIPAL=" + account.Refs["principal"], "ARC_VERIFY_FIXTURE=" + binding.Identity.Fixture}
 		for name, ref := range actualCall.EnvRefs {
 			value, err := credential(ref)

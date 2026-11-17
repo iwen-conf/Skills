@@ -44,6 +44,9 @@ matches the observed failure, not a setup, fixture or environment error. Save th
 output as the **before** record; for options 1–2 run it as `gate.sh red -- <command>`, which
 refuses if production files already changed or the command passes.
 
+Keep maintained tests outside `.arc/artifacts/`; its logs and passive source snapshots cannot
+be red/green test entries or working directories.
+
 - IF it passes on unchanged code THEN the failure is not reproduced → §6.
 - IF repeated identical runs disagree THEN → §7.
 

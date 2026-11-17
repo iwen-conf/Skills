@@ -5,9 +5,11 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -41,7 +43,9 @@ ENV.update(
 
 
 def git(repo: Path, *args: str) -> str:
-    result = subprocess.run(["git", *args], cwd=repo, env=ENV, check=True, capture_output=True, text=True)
+    result = subprocess.run(
+        ["git", *args], cwd=repo, env=ENV, check=True, capture_output=True, text=True
+    )
     return result.stdout
 
 
@@ -89,7 +93,9 @@ def sha256(data: bytes) -> str:
 def tree_state(repo: Path) -> tuple[object, ...]:
     status = [
         entry
-        for entry in git(repo, "status", "--porcelain=v1", "-z", "--untracked-files=all").split("\0")
+        for entry in git(
+            repo, "status", "--porcelain=v1", "-z", "--untracked-files=all"
+        ).split("\0")
         if entry and not entry[3:].startswith(".arc/")
     ]
     hashes = {
@@ -114,7 +120,9 @@ def report_path(repo: Path, output: str) -> Path:
 def test_gate_is_executable_and_parses() -> None:
     assert os.access(GATE, os.X_OK)
     subprocess.run([BASH, "-n", str(GATE)], check=True)
-    result = subprocess.run([str(GATE), "--help"], env=ENV, capture_output=True, text=True, timeout=30)
+    result = subprocess.run(
+        [str(GATE), "--help"], env=ENV, capture_output=True, text=True, timeout=30
+    )
     assert result.returncode == 0
     assert "gate.sh check" in result.stdout
 
@@ -129,7 +137,10 @@ def test_start_writes_baseline_and_refuses_overwrite(tmp_path: Path) -> None:
     baseline_file = repo / ".arc/artifacts/t1/baseline.json"
     baseline = json.loads(baseline_file.read_text(encoding="utf-8"))
     assert baseline["head"] == git(repo, "rev-parse", "HEAD").strip()
-    assert {entry["path"]: entry["xy"] for entry in baseline["status"]} == {"README.txt": " M", "notes.txt": "??"}
+    assert {entry["path"]: entry["xy"] for entry in baseline["status"]} == {
+        "README.txt": " M",
+        "notes.txt": "??",
+    }
     assert baseline["files"]["notes.txt"]["hash"] == sha256(b"draft\n")
     assert baseline["files"]["README.txt"]["hash"] == sha256(b"hello\nuser edit\n")
 
@@ -142,7 +153,9 @@ def test_start_writes_baseline_and_refuses_overwrite(tmp_path: Path) -> None:
 
     forced = gate(repo, "start", "--task", "t1", "--force")
     assert forced.returncode == 0, forced.stderr
-    assert json.loads(baseline_file.read_text(encoding="utf-8"))["files"]["notes.txt"]["hash"] == sha256(b"changed\n")
+    assert json.loads(baseline_file.read_text(encoding="utf-8"))["files"]["notes.txt"][
+        "hash"
+    ] == sha256(b"changed\n")
 
 
 def test_default_slug_comes_from_sanitized_branch(tmp_path: Path) -> None:
@@ -159,7 +172,12 @@ def test_repo_without_commits_uses_none_head(tmp_path: Path) -> None:
     (repo / "existing.txt").write_text(f"{MARK} from the user\n", encoding="utf-8")
 
     assert gate(repo, "start").returncode == 0
-    assert json.loads((repo / ".arc/artifacts/main/baseline.json").read_text(encoding="utf-8"))["head"] == "none"
+    assert (
+        json.loads(
+            (repo / ".arc/artifacts/main/baseline.json").read_text(encoding="utf-8")
+        )["head"]
+        == "none"
+    )
 
     (repo / "new.txt").write_text(f"{MARK} from the agent\n", encoding="utf-8")
     result = gate(repo, "check")
@@ -169,7 +187,9 @@ def test_repo_without_commits_uses_none_head(tmp_path: Path) -> None:
     assert "existing.txt" not in result.stdout
 
 
-def test_preexisting_dirty_markers_are_excluded_but_agent_markers_fail(tmp_path: Path) -> None:
+def test_preexisting_dirty_markers_are_excluded_but_agent_markers_fail(
+    tmp_path: Path,
+) -> None:
     repo = make_repo(tmp_path)
     (repo / "README.txt").write_text(f"hello\nuser {MARK} keep\n", encoding="utf-8")
     (repo / "notes.txt").write_text(f"{MARK} user note\n", encoding="utf-8")
@@ -180,9 +200,13 @@ def test_preexisting_dirty_markers_are_excluded_but_agent_markers_fail(tmp_path:
     assert "changed=0" in untouched.stdout
     assert checks(untouched.stdout)["placeholders"] == "PASS"
 
-    (repo / "README.txt").write_text(f"agent line\nhello\nuser {MARK} keep\nagent {MARK} too\n", encoding="utf-8")
+    (repo / "README.txt").write_text(
+        f"agent line\nhello\nuser {MARK} keep\nagent {MARK} too\n", encoding="utf-8"
+    )
     (repo / "src").mkdir()
-    (repo / "src" / "new.txt").write_text(f"ok\nagent {MARK} left\n{RAISE_NIE}\n", encoding="utf-8")
+    (repo / "src" / "new.txt").write_text(
+        f"ok\nagent {MARK} left\n{RAISE_NIE}\n", encoding="utf-8"
+    )
     result = gate(repo, "check")
     lines = result.stdout.splitlines()
 
@@ -206,8 +230,12 @@ def test_suppressions_only_count_added_lines(tmp_path: Path) -> None:
     edited = gate(repo, "check")
     assert checks(edited.stdout)["suppressions"] == "PASS"
 
-    (repo / "config.txt").write_text(f"x = 1  {NOQA}\ny = 2\nz = 3  {NOQA}\n", encoding="utf-8")
-    (repo / "app.ts").write_text(f"const v: any = 1;\n// {TS_IGNORE}\n", encoding="utf-8")
+    (repo / "config.txt").write_text(
+        f"x = 1  {NOQA}\ny = 2\nz = 3  {NOQA}\n", encoding="utf-8"
+    )
+    (repo / "app.ts").write_text(
+        f"const v: any = 1;\n// {TS_IGNORE}\n", encoding="utf-8"
+    )
     (repo / "plain.txt").write_text("const v: any = 1;\n", encoding="utf-8")
     result = gate(repo, "check")
     lines = result.stdout.splitlines()
@@ -291,7 +319,10 @@ def test_check_never_modifies_the_working_tree(tmp_path: Path) -> None:
     (repo / "agent.txt").write_text(f"{MARK}\n", encoding="utf-8")
     (repo / "bad.go").write_text("package main\nfunc  main( ) {}\n", encoding="utf-8")
     (repo / "mod.py").write_text("x=1\n", encoding="utf-8")
-    env = {**ENV, "PATH": f"{Path(sys.executable).parent}{os.pathsep}{ENV.get('PATH', '')}"}
+    env = {
+        **ENV,
+        "PATH": f"{Path(sys.executable).parent}{os.pathsep}{ENV.get('PATH', '')}",
+    }
 
     before = tree_state(repo)
     result = gate(repo, "check", "--strict", env=env)
@@ -310,7 +341,9 @@ def test_exit_codes_and_usage_errors(tmp_path: Path) -> None:
 
     outside = tmp_path / "not-a-repo"
     outside.mkdir()
-    no_repo = gate(outside, "check", env={**ENV, "GIT_CEILING_DIRECTORIES": str(tmp_path)})
+    no_repo = gate(
+        outside, "check", env={**ENV, "GIT_CEILING_DIRECTORIES": str(tmp_path)}
+    )
     assert no_repo.returncode == 2
     assert "not inside a git work tree" in no_repo.stderr
 
@@ -321,7 +354,9 @@ def test_exit_codes_and_usage_errors(tmp_path: Path) -> None:
 def test_hit_listing_is_capped_and_report_keeps_everything(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
     assert gate(repo, "start").returncode == 0
-    (repo / "many.txt").write_text("".join(f"{MARK} {index}\n" for index in range(25)), encoding="utf-8")
+    (repo / "many.txt").write_text(
+        "".join(f"{MARK} {index}\n" for index in range(25)), encoding="utf-8"
+    )
 
     result = gate(repo, "check")
     lines = result.stdout.splitlines()
@@ -363,17 +398,23 @@ def test_gofmt_reports_unformatted_go_without_rewriting(tmp_path: Path) -> None:
 @pytest.mark.skipif(shutil.which("go") is None, reason="go not installed")
 def test_go_module_vets_and_tests_affected_packages(tmp_path: Path) -> None:
     repo = make_repo(tmp_path)
-    (repo / "go.mod").write_text("module example.com/gate\n\ngo 1.21\n", encoding="utf-8")
+    (repo / "go.mod").write_text(
+        "module example.com/gate\n\ngo 1.21\n", encoding="utf-8"
+    )
     (repo / "calc").mkdir()
     (repo / "calc" / "calc_test.go").write_text(
         'package calc\n\nimport "testing"\n\nfunc TestAdd(t *testing.T) {\n'
         '\tif Add(1, 2) != 3 {\n\t\tt.Fatal("Add(1, 2) != 3")\n\t}\n}\n',
         encoding="utf-8",
     )
-    (repo / "calc" / "calc.go").write_text("package calc\n\nfunc Add(a, b int) int { return a + b }\n", encoding="utf-8")
+    (repo / "calc" / "calc.go").write_text(
+        "package calc\n\nfunc Add(a, b int) int { return a + b }\n", encoding="utf-8"
+    )
     commit_all(repo)
     assert gate(repo, "start").returncode == 0
-    (repo / "calc" / "calc.go").write_text("package calc\n\nfunc Add(a, b int) int { return a - b }\n", encoding="utf-8")
+    (repo / "calc" / "calc.go").write_text(
+        "package calc\n\nfunc Add(a, b int) int { return a - b }\n", encoding="utf-8"
+    )
 
     result = gate(repo, "check", env={**ENV, "GOTOOLCHAIN": "local", "GOFLAGS": ""})
     status = checks(result.stdout)
@@ -385,12 +426,16 @@ def test_go_module_vets_and_tests_affected_packages(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("system", ["Darwin", "Linux"])
-def test_rust_clippy_and_tests_never_compile_on_macos(tmp_path: Path, system: str) -> None:
+def test_rust_clippy_and_tests_never_compile_on_macos(
+    tmp_path: Path, system: str
+) -> None:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     calls = tmp_path / "cargo-calls"
     (bin_dir / "uname").write_text(f"#!/bin/sh\necho {system}\n", encoding="utf-8")
-    (bin_dir / "cargo").write_text(f'#!/bin/sh\necho "$*" >> "{calls}"\n', encoding="utf-8")
+    (bin_dir / "cargo").write_text(
+        f'#!/bin/sh\necho "$*" >> "{calls}"\n', encoding="utf-8"
+    )
     for stub in bin_dir.iterdir():
         stub.chmod(0o755)
     repo = make_repo(tmp_path)
@@ -420,20 +465,29 @@ def test_python_runs_tests_named_after_changed_module(tmp_path: Path) -> None:
         pytest.skip("pytest not installed next to the running interpreter")
     env = {**ENV, "PATH": f"{bindir}{os.pathsep}{ENV.get('PATH', '')}"}
     repo = make_repo(tmp_path)
-    (repo / "pyproject.toml").write_text('[tool.pytest.ini_options]\npythonpath = ["."]\n', encoding="utf-8")
-    (repo / "calc.py").write_text("def add(a, b):\n    return a + b\n", encoding="utf-8")
+    (repo / "pyproject.toml").write_text(
+        '[tool.pytest.ini_options]\npythonpath = ["."]\n', encoding="utf-8"
+    )
+    (repo / "calc.py").write_text(
+        "def add(a, b):\n    return a + b\n", encoding="utf-8"
+    )
     (repo / "tests").mkdir()
     (repo / "tests" / "test_calc.py").write_text(
-        "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n", encoding="utf-8"
+        "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        encoding="utf-8",
     )
     commit_all(repo)
     assert gate(repo, "start", env=env).returncode == 0
-    (repo / "calc.py").write_text("def add(a, b):\n    return a - b\n", encoding="utf-8")
+    (repo / "calc.py").write_text(
+        "def add(a, b):\n    return a - b\n", encoding="utf-8"
+    )
 
     before = tree_state(repo)
     result = gate(repo, "check", env=env)
 
-    assert checks(result.stdout)["tests(python)"] == "FAIL(pytest exit 1)", result.stdout
+    assert checks(result.stdout)["tests(python)"] == "FAIL(pytest exit 1)", (
+        result.stdout
+    )
     assert tree_state(repo) == before
 
 
@@ -456,10 +510,15 @@ def red_repo(tmp_path: Path) -> Path:
 
 def red_records(repo: Path) -> list[dict]:
     reddir = repo / ".arc/artifacts/r/red"
-    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(reddir.glob("red-*.json"))]
+    return [
+        json.loads(p.read_text(encoding="utf-8"))
+        for p in sorted(reddir.glob("red-*.json"))
+    ]
 
 
-def test_red_refuses_production_edits_before_the_first_failing_test(tmp_path: Path) -> None:
+def test_red_refuses_production_edits_before_the_first_failing_test(
+    tmp_path: Path,
+) -> None:
     repo = red_repo(tmp_path)
     (repo / "calc.sh").write_text(PRICE_NEW, encoding="utf-8")
     (repo / "NOTES.md").write_text("docs may change\n", encoding="utf-8")
@@ -480,10 +539,17 @@ def test_red_then_green_passes_require_red(tmp_path: Path) -> None:
     assert red.returncode == 0, red.stdout + red.stderr
     assert "kind assertion" in red.stdout
     [record] = red_records(repo)
-    assert (record["argv"], record["exit"], record["cwd"]) == (["bash", "tests/check_price.sh"], 1, ".")
+    assert (record["argv"], record["exit"], record["cwd"]) == (
+        ["bash", "tests/check_price.sh"],
+        1,
+        ".",
+    )
 
     still_red = gate(repo, "check", "--task", "r", "--require-red")
-    assert checks(still_red.stdout)["red-first"] == "FAIL(1 of 1 red command(s) still fail)"
+    assert (
+        checks(still_red.stdout)["red-first"]
+        == "FAIL(1 of 1 red command(s) still fail)"
+    )
     assert still_red.returncode == 1
 
     (repo / "calc.sh").write_text(PRICE_NEW, encoding="utf-8")
@@ -494,7 +560,9 @@ def test_red_then_green_passes_require_red(tmp_path: Path) -> None:
 
 def test_red_refuses_a_command_that_already_passes(tmp_path: Path) -> None:
     repo = red_repo(tmp_path)
-    (repo / "tests" / "check_price.sh").write_text('. ./calc.sh\n[ "$(price)" = 100 ]\n', encoding="utf-8")
+    (repo / "tests" / "check_price.sh").write_text(
+        '. ./calc.sh\n[ "$(price)" = 100 ]\n', encoding="utf-8"
+    )
 
     result = gate(repo, *RED)
 
@@ -503,7 +571,9 @@ def test_red_refuses_a_command_that_already_passes(tmp_path: Path) -> None:
     assert red_records(repo) == []
 
 
-def test_require_red_fails_without_a_record_and_is_silent_otherwise(tmp_path: Path) -> None:
+def test_require_red_fails_without_a_record_and_is_silent_otherwise(
+    tmp_path: Path,
+) -> None:
     repo = red_repo(tmp_path)
     (repo / "calc.sh").write_text(PRICE_NEW, encoding="utf-8")
 
@@ -525,36 +595,82 @@ def test_build_error_red_needs_a_stub_and_an_assertion_red(tmp_path: Path) -> No
 
     build = gate(repo, *RED)
     assert "kind build" in build.stdout
-    assert checks(gate(repo, "check", "--task", "r", "--require-red").stdout)["red-first"] == (
-        "FAIL(no red run failed on an assertion (build or import errors only))"
-    )
+    assert checks(gate(repo, "check", "--task", "r", "--require-red").stdout)[
+        "red-first"
+    ] == ("FAIL(no red run failed on an assertion (build or import errors only))")
 
-    (repo / "calc.sh").write_text(PRICE_OLD + "vip_price() { echo 0; }\n", encoding="utf-8")
-    assert gate(repo, *RED).returncode == 1  # the stub is a production edit until declared
-    stubbed = gate(repo, "red", "--task", "r", "--allow", "calc.sh", "--", "bash", "tests/check_price.sh")
+    (repo / "calc.sh").write_text(
+        PRICE_OLD + "vip_price() { echo 0; }\n", encoding="utf-8"
+    )
+    assert (
+        gate(repo, *RED).returncode == 1
+    )  # the stub is a production edit until declared
+    stubbed = gate(
+        repo,
+        "red",
+        "--task",
+        "r",
+        "--allow",
+        "calc.sh",
+        "--",
+        "bash",
+        "tests/check_price.sh",
+    )
     assert "kind assertion" in stubbed.stdout, stubbed.stdout
     assert red_records(repo)[-1]["allowed"] == {"calc.sh": 1}
 
 
-def test_red_hygiene_warns_on_large_stubs_and_tests_changed_after_red(tmp_path: Path) -> None:
+def test_red_hygiene_warns_on_large_stubs_and_tests_changed_after_red(
+    tmp_path: Path,
+) -> None:
     repo = red_repo(tmp_path)
     body = "".join(f"helper_{i}() {{ echo {i}; }}\n" for i in range(25))
     (repo / "calc.sh").write_text(PRICE_OLD + body, encoding="utf-8")
-    assert gate(repo, "red", "--task", "r", "--allow", "calc.sh", "--", "bash", "tests/check_price.sh").returncode == 0
+    assert (
+        gate(
+            repo,
+            "red",
+            "--task",
+            "r",
+            "--allow",
+            "calc.sh",
+            "--",
+            "bash",
+            "tests/check_price.sh",
+        ).returncode
+        == 0
+    )
 
     (repo / "calc.sh").write_text(PRICE_NEW + body, encoding="utf-8")
-    (repo / "tests" / "check_price.sh").write_text(". ./calc.sh\ntrue\n", encoding="utf-8")
+    (repo / "tests" / "check_price.sh").write_text(
+        ". ./calc.sh\ntrue\n", encoding="utf-8"
+    )
     result = gate(repo, "check", "--task", "r", "--require-red")
 
     assert checks(result.stdout)["red-hygiene"] == "WARN(2 item(s))"
-    assert any("calc.sh: 25 lines added before red" in line for line in result.stdout.splitlines())
-    assert any("tests/check_price.sh: changed after its last red run" in line for line in result.stdout.splitlines())
+    assert any(
+        "calc.sh: 25 lines added before red" in line
+        for line in result.stdout.splitlines()
+    )
+    assert any(
+        "tests/check_price.sh: changed after its last red run" in line
+        for line in result.stdout.splitlines()
+    )
 
 
 def test_red_rejects_a_selector_that_runs_no_test(tmp_path: Path) -> None:
     repo = red_repo(tmp_path)
 
-    result = gate(repo, "red", "--task", "r", "--", "bash", "-c", "echo 'no tests ran in 0.01s'; exit 5")
+    result = gate(
+        repo,
+        "red",
+        "--task",
+        "r",
+        "--",
+        "bash",
+        "-c",
+        "echo 'no tests ran in 0.01s'; exit 5",
+    )
 
     assert result.returncode == 2
     assert "ran no test" in result.stdout
@@ -566,7 +682,8 @@ def test_later_reds_may_follow_production_edits(tmp_path: Path) -> None:
     assert gate(repo, *RED).returncode == 0
     (repo / "calc.sh").write_text(PRICE_NEW, encoding="utf-8")
     (repo / "tests" / "check_member.sh").write_text(
-        '. ./calc.sh\n[ "$(price member)" = 95 ] || { echo "member price: want 95"; exit 1; }\n', encoding="utf-8"
+        '. ./calc.sh\n[ "$(price member)" = 95 ] || { echo "member price: want 95"; exit 1; }\n',
+        encoding="utf-8",
     )
 
     second = gate(repo, "red", "--task", "r", "--", "bash", "tests/check_member.sh")
@@ -582,7 +699,9 @@ def sql_repo(tmp_path: Path, configured: bool) -> Path:
     repo = make_repo(tmp_path)
     (repo / ".gitignore").write_text(".venv/\n", encoding="utf-8")
     if configured:
-        (repo / ".sqlfluff").write_text("[sqlfluff]\ndialect = postgres\n", encoding="utf-8")
+        (repo / ".sqlfluff").write_text(
+            "[sqlfluff]\ndialect = postgres\n", encoding="utf-8"
+        )
     (repo / "db").mkdir()
     (repo / "db" / "q.sql").write_text("SELECT 1;\n", encoding="utf-8")
     commit_all(repo)
@@ -612,7 +731,10 @@ def test_sql_lint_needs_the_project_dialect(tmp_path: Path) -> None:
 
     result = gate(repo, "check")
 
-    assert checks(result.stdout)["lint(sql)"] == "NOT_RUN(no sqlfluff config naming the dialect)"
+    assert (
+        checks(result.stdout)["lint(sql)"]
+        == "NOT_RUN(no sqlfluff config naming the dialect)"
+    )
 
 
 def _vanish_baseline_head(repo: Path, task: str = "r") -> None:
@@ -665,6 +787,432 @@ def test_check_with_a_vanished_baseline_head_diffs_against_head(tmp_path: Path) 
     result = gate(repo, "check", "--task", "r")
     lines = result.stdout.splitlines()
 
-    assert "baseline: NOT_RUN(baseline head 000000000000 not found; using HEAD)" in lines
+    assert (
+        "baseline: NOT_RUN(baseline head 000000000000 not found; using HEAD)" in lines
+    )
     assert f"  README.txt:2: {MARK}" in lines
     assert result.returncode == 1
+
+
+@pytest.mark.parametrize("entry", ["relative", "absolute", "cwd", "symlink"])
+def test_red_refuses_artifact_test_entrypoints(tmp_path: Path, entry: str) -> None:
+    repo = red_repo(tmp_path)
+    artifact = repo / ".arc/artifacts/r/sources/check_price.sh"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text(
+        PRICE_TEST.replace(". ./calc.sh", ". " + shlex.quote(str(repo / "calc.sh"))),
+        encoding="utf-8",
+    )
+    owner = repo / "tests/check_price.sh"
+    owner.unlink()
+    cwd = repo
+    argument = artifact.relative_to(repo).as_posix()
+    if entry == "absolute":
+        argument = str(artifact)
+    elif entry == "cwd":
+        cwd, argument = artifact.parent, artifact.name
+    elif entry == "symlink":
+        owner.symlink_to(artifact)
+        argument = owner.relative_to(repo).as_posix()
+
+    result = gate(repo, "red", "--task", "r", "--", "bash", argument, cwd=cwd)
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "artifact" in result.stdout.lower(), result.stdout
+    assert red_records(repo) == []
+
+
+def test_existing_red_records_cannot_promote_artifact_copies_to_tests(
+    tmp_path: Path,
+) -> None:
+    repo = red_repo(tmp_path)
+    assert gate(repo, *RED).returncode == 0
+    artifact = repo / ".arc/artifacts/r/sources/check_price.sh"
+    artifact.parent.mkdir(parents=True)
+    shutil.copy(repo / "tests/check_price.sh", artifact)
+    record_path = repo / ".arc/artifacts/r/red/red-001.json"
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    record["argv"] = ["bash", artifact.relative_to(repo).as_posix()]
+    record_path.write_text(json.dumps(record), encoding="utf-8")
+    (repo / "calc.sh").write_text(PRICE_NEW, encoding="utf-8")
+
+    result = gate(repo, "check", "--task", "r", "--require-red")
+
+    assert result.returncode == 1, result.stdout
+    assert checks(result.stdout)["red-first"].startswith("FAIL("), result.stdout
+    assert "artifact" in result.stdout.lower(), result.stdout
+
+
+def test_python_affected_tests_do_not_execute_artifact_source_snapshots(
+    tmp_path: Path,
+) -> None:
+    repo = make_repo(tmp_path)
+    env = {
+        **ENV,
+        "PATH": f"{Path(sys.executable).parent}{os.pathsep}{ENV.get('PATH', '')}",
+    }
+    (repo / "pyproject.toml").write_text(
+        '[tool.pytest.ini_options]\npythonpath = ["."]\n', encoding="utf-8"
+    )
+    (repo / "calc.py").write_text(
+        "def add(a, b):\n    return a + b\n", encoding="utf-8"
+    )
+    commit_all(repo)
+    assert gate(repo, "start", env=env).returncode == 0
+    artifact = repo / ".arc/artifacts/main/sources/test_calc.py"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text(
+        "from pathlib import Path\n\n\ndef test_snapshot():\n"
+        '    Path("artifact-was-executed").write_text("not an owning test")\n',
+        encoding="utf-8",
+    )
+    (repo / "calc.py").write_text(
+        "def add(a, b):\n    return a - b\n", encoding="utf-8"
+    )
+
+    result = gate(repo, "check", env=env)
+
+    assert not (repo / "artifact-was-executed").exists(), result.stdout
+    assert (
+        checks(result.stdout)["tests(python)"]
+        == "NOT_RUN(no tests found for changed Python files)"
+    )
+
+
+def test_passive_artifact_sources_logs_and_baseline_blobs_are_preserved(
+    tmp_path: Path,
+) -> None:
+    repo = make_repo(tmp_path)
+    dirty_source = f"# {MARK}: historical source snapshot\nvalue = 1\n"
+    (repo / "existing.py").write_text(dirty_source, encoding="utf-8")
+    assert gate(repo, "start", "--task", "r").returncode == 0
+    artdir = repo / ".arc/artifacts/r"
+    baseline = json.loads((artdir / "baseline.json").read_text(encoding="utf-8"))
+    blob = artdir / baseline["files"]["existing.py"]["blob"]
+    assert blob.read_text(encoding="utf-8") == dirty_source
+    evidence = {
+        "sources/test_history.py": dirty_source,
+        "sources/history_test.go": f"package history\n// {MARK}: copied evidence\n",
+        "logs/before.log": f"failed assertion: {MARK}\n",
+        "reports/report.txt": f"recorded {MARK}, not new source\n",
+    }
+    for name, text in evidence.items():
+        path = artdir / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    result = gate(repo, "check", "--task", "r")
+
+    assert result.returncode == 0, result.stdout
+    assert "changed=0" in result.stdout
+    assert blob.read_text(encoding="utf-8") == dirty_source
+    assert all(
+        (artdir / name).read_text(encoding="utf-8") == text
+        for name, text in evidence.items()
+    )
+
+
+def test_red_pytest_report_output_may_use_the_artifact_directory(
+    tmp_path: Path,
+) -> None:
+    repo = make_repo(tmp_path)
+    (repo / "pyproject.toml").write_text(
+        '[tool.pytest.ini_options]\npythonpath = ["."]\n', encoding="utf-8"
+    )
+    (repo / "calc.py").write_text("def price():\n    return 100\n", encoding="utf-8")
+    commit_all(repo)
+    assert gate(repo, "start", "--task", "r").returncode == 0
+    (repo / "tests").mkdir()
+    (repo / "tests/test_calc.py").write_text(
+        "from calc import price\n\n\ndef test_price():\n    assert price() == 90\n",
+        encoding="utf-8",
+    )
+    report = ".arc/artifacts/r/reports/pytest.xml"
+    red = gate(
+        repo,
+        "red",
+        "--task",
+        "r",
+        "--",
+        sys.executable,
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_calc.py",
+        "--junitxml",
+        report,
+    )
+    assert red.returncode == 0, red.stdout + red.stderr
+    assert (repo / report).is_file()
+    (repo / "calc.py").write_text("def price():\n    return 90\n", encoding="utf-8")
+
+    green = gate(repo, "check", "--task", "r", "--require-red")
+
+    assert checks(green.stdout)["red-first"] == "PASS", green.stdout
+
+
+def test_rc_artifacts_is_not_an_alias_for_arc_artifacts(tmp_path: Path) -> None:
+    repo = make_repo(tmp_path)
+    assert gate(repo, "start").returncode == 0
+    path = repo / "rc/artifacts/task/sources/subject_test.go"
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        f"package subject\n// {MARK}: a changed source file\n", encoding="utf-8"
+    )
+
+    result = gate(repo, "check")
+
+    assert result.returncode == 1
+    assert "changed=1" in result.stdout
+    assert checks(result.stdout)["placeholders"] == "FAIL(1 hit)"
+    assert path.relative_to(repo).as_posix() in result.stdout
+
+
+def test_red_log_crosses_filesystems_without_changing_its_bytes(tmp_path: Path) -> None:
+    repo = red_repo(tmp_path)
+    destination_device = repo.stat().st_dev
+    other_filesystem = next(
+        (
+            path
+            for path in (Path("/dev/shm"), Path("/tmp"))
+            if path.is_dir()
+            and os.access(path, os.W_OK)
+            and path.stat().st_dev != destination_device
+        ),
+        None,
+    )
+    if other_filesystem is None:
+        pytest.skip(
+            "no writable second filesystem available for the real EXDEV boundary"
+        )
+    before = tree_state(repo)
+    with tempfile.TemporaryDirectory(
+        prefix="arc-gate-cross-device-", dir=other_filesystem
+    ) as temporary:
+        result = gate(repo, *RED, env={**ENV, "TMPDIR": temporary})
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    [record] = red_records(repo)
+    assert record["kind"] == "assertion" and record["exit"] == 1
+    expected = b"vip price: want 90, got 100\n"
+    archived = repo / ".arc/artifacts/r/red" / record["log"]
+    assert archived.read_bytes() == expected
+    assert sha256(archived.read_bytes()) == sha256(expected)
+    assert tree_state(repo) == before
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "FAIL\texample.invalid/module [setup failed]\nFAIL\n",
+        "go: writing go.mod cache: write /cache/module.tmp: no space left on device\n"
+        "FAIL\texample.invalid/module [setup failed]\nFAIL\n",
+    ],
+)
+def test_red_setup_failures_never_qualify_as_assertion_evidence(
+    tmp_path: Path, failure: str
+) -> None:
+    repo = red_repo(tmp_path)
+    command = "printf %s " + shlex.quote(failure) + "; exit 1"
+
+    result = gate(repo, "red", "--task", "r", "--", "bash", "-c", command)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    [record] = red_records(repo)
+    assert record["kind"] == "build", result.stdout
+    assert (repo / ".arc/artifacts/r/red" / record["log"]).read_text(
+        encoding="utf-8"
+    ) == failure
+    check = gate(repo, "check", "--task", "r", "--require-red")
+    assert (
+        checks(check.stdout)["red-first"]
+        == "FAIL(no red run failed on an assertion (build or import errors only))"
+    )
+
+
+def test_misclassified_setup_record_does_not_unlock_production_edits(
+    tmp_path: Path,
+) -> None:
+    repo = red_repo(tmp_path)
+    test = repo / "tests/check_price.sh"
+    test.write_text(
+        "printf 'FAIL\\texample.invalid/module [setup failed]\\nFAIL\\n'; exit 1\n",
+        encoding="utf-8",
+    )
+    assert gate(repo, *RED).returncode == 0
+    record_path = repo / ".arc/artifacts/r/red/red-001.json"
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    record["kind"] = "assertion"  # a legacy record written by the old classifier
+    record.pop("log_sha256", None)
+    record_path.write_text(json.dumps(record), encoding="utf-8")
+    (repo / "calc.sh").write_text(PRICE_NEW, encoding="utf-8")
+    test.write_text(
+        '. ./calc.sh\n[ "$(price member)" = 95 ] || { echo "member price: want 95"; exit 1; }\n',
+        encoding="utf-8",
+    )
+
+    result = gate(repo, *RED)
+
+    assert result.returncode == 1, result.stdout
+    assert "production files changed before the first failing test" in result.stdout
+    assert len(red_records(repo)) == 1
+    assert json.loads(record_path.read_text(encoding="utf-8"))["kind"] == "assertion"
+
+
+def test_red_green_replay_rejects_zero_tests_even_when_exit_is_zero(
+    tmp_path: Path,
+) -> None:
+    repo = red_repo(tmp_path)
+    assert gate(repo, *RED).returncode == 0
+    (repo / "calc.sh").write_text(PRICE_NEW, encoding="utf-8")
+    (repo / "tests/check_price.sh").write_text(
+        "echo 'no tests ran in 0.01s'\nexit 0\n", encoding="utf-8"
+    )
+
+    result = gate(repo, "check", "--task", "r", "--require-red")
+
+    assert result.returncode == 1, result.stdout
+    assert checks(result.stdout)["red-first"].startswith("FAIL("), result.stdout
+    assert "no tests ran" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        "python-script",
+        "python-no-extension",
+        "pytest",
+        "pytest-override",
+        "go-C",
+        "env-C",
+        "make-directory",
+    ],
+)
+def test_red_checks_supported_artifact_input_and_directory_forms(
+    tmp_path: Path, entry: str
+) -> None:
+    repo = red_repo(tmp_path)
+    source = repo / ".arc/artifacts/r/sources"
+    source.mkdir(parents=True)
+    (repo / "tests/check_price.sh").unlink()
+    script = source / "check_price.sh"
+    script.write_text(
+        PRICE_TEST.replace(". ./calc.sh", ". " + shlex.quote(str(repo / "calc.sh"))),
+        encoding="utf-8",
+    )
+    relative = source.relative_to(repo).as_posix()
+    if entry.startswith("python") or entry.startswith("pytest"):
+        test = source / ("probe" if entry == "python-no-extension" else "test_price.py")
+        test.write_text(
+            "def test_price():\n    assert 100 == 90\n\nif __name__ == '__main__':\n    test_price()\n",
+            encoding="utf-8",
+        )
+        if entry.startswith("python"):
+            command = [sys.executable, "-B", test.relative_to(repo).as_posix()]
+        elif entry == "pytest":
+            command = [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                test.relative_to(repo).as_posix() + "::test_price",
+            ]
+        else:
+            command = [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "-o",
+                "testpaths=" + relative,
+            ]
+    elif entry == "go-C":
+        (source / "go.mod").write_text(
+            "module example.invalid/artifact\n\ngo 1.21\n", encoding="utf-8"
+        )
+        (source / "price_test.go").write_text(
+            'package price\nimport "testing"\nfunc TestPrice(t *testing.T) { t.Fatal("want 90, got 100") }\n',
+            encoding="utf-8",
+        )
+        command = ["go", "-C", relative, "test", "."]
+    elif entry == "env-C":
+        command = ["env", "-C", relative, "bash", script.name]
+    else:
+        (source / "Makefile").write_text(
+            "test:\n\tbash check_price.sh\n", encoding="utf-8"
+        )
+        command = ["make", "--directory=" + relative, "test"]
+
+    result = gate(repo, "red", "--task", "r", "--", *command)
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "artifact" in result.stdout.lower(), result.stdout
+    assert red_records(repo) == []
+
+
+def test_red_resolves_relative_executable_path_after_env_chdir(tmp_path: Path) -> None:
+    repo = red_repo(tmp_path)
+    artifact = repo / ".arc/artifacts/r/sources/bin/price-test"
+    artifact.parent.mkdir(parents=True)
+    marker = repo / "artifact-command-executed"
+    artifact.write_text(
+        "#!/bin/bash\n: > "
+        + shlex.quote(str(marker))
+        + "\n"
+        + PRICE_TEST.replace(". ./calc.sh", ". " + shlex.quote(str(repo / "calc.sh"))),
+        encoding="utf-8",
+    )
+    artifact.chmod(0o700)
+    search = "../.arc/artifacts/r/sources/bin:" + ENV.get("PATH", "")
+
+    result = gate(
+        repo,
+        "red",
+        "--task",
+        "r",
+        "--",
+        "env",
+        "-C",
+        "tests",
+        "PATH=" + search,
+        "price-test",
+    )
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "artifact executable" in result.stdout
+    assert not marker.exists()
+    assert red_records(repo) == []
+
+
+def test_inline_commands_do_not_become_owning_test_evidence(tmp_path: Path) -> None:
+    repo = red_repo(tmp_path)
+
+    result = gate(repo, "red", "--task", "r", "--", "bash", "-c", PRICE_TEST)
+
+    assert result.returncode == 1, result.stdout + result.stderr
+    assert "owning test source" in result.stdout
+    assert red_records(repo) == []
+
+
+def test_red_archive_other_io_errors_do_not_publish_assertion_records(
+    tmp_path: Path,
+) -> None:
+    repo = red_repo(tmp_path)
+    injection = tmp_path / "injected-io"
+    injection.mkdir()
+    (injection / "sitecustomize.py").write_text(
+        "import errno, os\noriginal = os.replace\n"
+        "def replace(source, destination):\n"
+        "    if str(source).endswith('/redlog'):\n"
+        "        raise OSError(errno.EIO, 'injected red archive write failure')\n"
+        "    return original(source, destination)\n"
+        "os.replace = replace\n",
+        encoding="utf-8",
+    )
+
+    result = gate(repo, *RED, env={**ENV, "PYTHONPATH": str(injection)})
+
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert "cannot archive red log" in result.stderr
+    assert "red: recorded" not in result.stdout
+    assert red_records(repo) == []

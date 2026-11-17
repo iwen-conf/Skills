@@ -25,6 +25,9 @@ red     Run a test command that must fail before the production code exists and 
         signature stub or test scaffolding; their added lines are recorded). A passing command, or
         one that runs no test, is refused. Output that looks like a build or import error is
         recorded as kind=build: add the minimal stub and run red again.
+        Test entrypoints and working directories must be outside .arc/artifacts; that tree
+        holds passive evidence, not owning tests. Inline commands and Go overlays cannot
+        establish an owning test source. Log/report output paths may use the artifact tree.
 check   Check the change set since the baseline: placeholders, suppressions, format,
         lint/typecheck (changed .sql files: sqlfluff under the project's config, squawk when
         .squawk.toml exists), affected tests, red records, scope. Prints one line per check and writes
@@ -50,12 +53,15 @@ die() {
 }
 
 IFS= read -r -d '' PY_HELPER <<'PY' || true
+import errno
 import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 ART = ".arc/artifacts/"
@@ -72,7 +78,9 @@ TEST_FILE = re.compile(r"(?:^test_.*\.py|_test\.(?:go|py)|\.(?:test|spec)\.[cm]?
 BUILD_ERROR = re.compile(r"\[build failed\]|\bundefined: |\bcannot find package\b|\bcould not compile\b"
                          r"|\berror\[E\d{4}\]|\bTS\d{4}:|Cannot find module|\bModuleNotFoundError\b"
                          r"|\bImportError\b|\bSyntaxError\b|\bERROR collecting\b|\berrors? during collection\b"
-                         r"|\bcannot find symbol\b|\bUnresolved reference\b|error: cannot find '[^']+' in scope")
+                         r"|\bcannot find symbol\b|\bUnresolved reference\b|error: cannot find '[^']+' in scope"
+                         r"|(?m:^FAIL[ \t]+[^\r\n]+\[setup failed\]$)"
+                         r"|(?m:^go: [^\r\n]*no space left on device$)")
 NO_TESTS = re.compile(r"\bno tests ran\b|\bno test files\b|\bNo tests? (?:files )?found\b"
                       r"|\bno tests to run\b|^Ran 0 tests\b|\b0 passing\b", re.M)
 STUB_LINES = 20
@@ -288,7 +296,8 @@ def pytests(root, changed, out):
         return name.startswith("test_") or name.endswith("_test.py")
 
     paths = [p for p in read_list(changed) if p.endswith(".py")]
-    selected = {p for p in paths if is_test(os.path.basename(p)) and os.path.isfile(os.path.join(root, p))}
+    selected = {p for p in paths if is_test(os.path.basename(p)) and os.path.isfile(os.path.join(root, p))
+                and not in_artifacts(root, root, p)}
     wanted = set()
     for path in paths:
         name = os.path.basename(path)
@@ -296,7 +305,7 @@ def pytests(root, changed, out):
             wanted.update(("test_" + name, name[:-3] + "_test.py"))
     if wanted:
         for path in zsplit(git(root, ["ls-files", "-z", "--cached", "--others", "--exclude-standard"])):
-            if os.path.basename(path) in wanted and os.path.isfile(os.path.join(root, path)):
+            if os.path.basename(path) in wanted and os.path.isfile(os.path.join(root, path)) and not in_artifacts(root, root, path):
                 selected.add(path)
     write_list(out, sorted(selected))
 
@@ -304,6 +313,166 @@ def pytests(root, changed, out):
 def is_test_path(path):
     parts = path.split("/")
     return any(part in TEST_DIRS for part in parts[:-1]) or bool(TEST_FILE.search(parts[-1]))
+
+
+def in_artifacts(root, cwd, path):
+    actual = os.path.realpath(os.path.join(cwd, path.split("::", 1)[0]))
+    artifacts = os.path.realpath(os.path.join(root, ART))
+    return actual == artifacts or actual.startswith(artifacts + os.sep)
+
+
+def red_inputs(root, cwd, argv):
+    """Check explicit execution inputs; this does not trace imports or shell scripts."""
+    cwd = os.path.realpath(os.path.join(root, cwd))
+    args, issues, opaque = list(argv), [], ""
+    search_path = os.environ.get("PATH", "")
+    selectors = {"-run", "-bench", "-count", "-timeout", "-parallel", "-shuffle", "-tags", "-vet",
+                 "-cpu", "-coverpkg", "-k", "--maxfail", "--tb", "--color", "--capture"}
+    source_suffixes = (".py", ".pyi", ".go", ".sh", ".bash", ".js", ".jsx", ".mjs", ".cjs",
+                       ".ts", ".tsx", ".rb", ".rs", ".java", ".kt", ".swift", ".cs")
+    while args and os.path.basename(args[0]) == "env":
+        args.pop(0)
+        while args:
+            option, separator, value = args[0].partition("=")
+            if option in ("-C", "--chdir"):
+                args.pop(0)
+                value = value if separator else (args.pop(0) if args else "")
+                cwd = os.path.realpath(os.path.join(cwd, value))
+            elif args[0] == "--":
+                args.pop(0)
+                break
+            elif re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", args[0]):
+                if option == "PATH":
+                    search_path = value
+                args.pop(0)
+            elif args[0] in ("-i", "--ignore-environment"):
+                search_path = os.defpath
+                args.pop(0)
+            elif option in ("-u", "--unset"):
+                args.pop(0)
+                if not separator and args:
+                    value = args.pop(0)
+                if value == "PATH":
+                    search_path = os.defpath
+            elif option in ("-S", "--split-string"):
+                return ["env split-string is an unverified command; pass separate argv entries"], opaque
+            else:
+                break
+    if not args:
+        return ["test command has no executable after env"], opaque
+    program = os.path.basename(args[0])
+    python_command = bool(re.fullmatch(r"python[0-9.]*", program))
+    shell_command = program in ("sh", "bash", "zsh", "ksh")
+    pytest_command = program in ("pytest", "py.test") or python_command and any(args[n:n + 2] == ["-m", "pytest"] for n in range(1, len(args)))
+    outputs = set()
+    if pytest_command:
+        outputs = {"--junitxml", "--junit-xml", "--log-file", "--basetemp", "--html", "--cov-report"}
+    elif program == "go":
+        outputs = {"-o", "-coverprofile", "-cpuprofile", "-memprofile", "-blockprofile", "-mutexprofile", "-trace", "-outputdir"}
+    resolved_search = os.pathsep.join(os.path.join(cwd, path) for path in search_path.split(os.pathsep))
+    executable = args[0] if os.sep in args[0] else shutil.which(args[0], path=resolved_search)
+    if executable and in_artifacts(root, cwd, executable):
+        issues.append("artifact executable: " + args[0])
+    i, script_pending = 1, python_command or shell_command
+    while i < len(args):
+        arg = args[i]
+        option, separator, value = arg.partition("=")
+        if program in ("go", "make", "gmake") and option in ("-C", "--directory"):
+            if not separator and i + 1 < len(args):
+                i += 1
+                value = args[i]
+            cwd = os.path.realpath(os.path.join(cwd, value))
+        elif program in ("go", "make", "gmake") and arg.startswith("-C") and len(arg) > 2:
+            cwd = os.path.realpath(os.path.join(cwd, arg[2:]))
+        elif program == "go" and option in ("-overlay", "-exec"):
+            issues.append("unverified Go source/exec indirection: " + option)
+        elif pytest_command and option in ("-o", "--override-ini"):
+            if not separator and i + 1 < len(args):
+                i += 1
+                value = args[i]
+            key, _, setting = value.partition("=")
+            if key in ("testpaths", "pythonpath"):
+                for path in setting.split():
+                    if in_artifacts(root, cwd, path):
+                        issues.append("artifact pytest " + key + ": " + path)
+        elif option in outputs or option in selectors or option == "-m":
+            if python_command and option == "-m":
+                script_pending = False
+            if not separator and i + 1 < len(args):
+                i += 1
+        elif (shell_command and option in ("-o", "-O")) or (python_command and option in ("-W", "-X")):
+            if not separator and i + 1 < len(args):
+                i += 1
+        elif (shell_command and arg.startswith("-") and "c" in arg[1:]) or (python_command and option == "-c"):
+            opaque = "inline commands cannot establish an owning test source; use a test file"
+            break
+        elif not arg.startswith("-"):
+            path = arg.split("::", 1)[0]
+            full = os.path.join(cwd, path)
+            entry = script_pending and os.path.isfile(full)
+            if entry:
+                script_pending = False
+            if in_artifacts(root, cwd, path) and (entry or pytest_command or os.path.isdir(full) or path.endswith(source_suffixes) or is_test_path(path) or i == 1):
+                issues.append("artifact test input: " + arg)
+        i += 1
+    if in_artifacts(root, cwd, "."):
+        issues.append("artifact working directory: " + cwd)
+    return issues, opaque
+
+
+def red_kind(text):
+    if NO_TESTS.search(text):
+        return "none"
+    return "build" if BUILD_ERROR.search(text) else "assertion"
+
+
+def red_evidence(artdir, root, record):
+    issues, opaque = red_inputs(root, record["cwd"], record["argv"])
+    warning = ""
+    try:
+        log = record["log"]
+        if os.path.basename(log) != log:
+            raise ValueError("red log path is not an archive filename")
+        with open(os.path.join(artdir, "red", log), "rb") as fh:
+            raw = fh.read()
+        if record.get("log_sha256") and record["log_sha256"] != hashlib.sha256(raw).hexdigest():
+            raise ValueError("red log hash differs from its recorded bytes")
+        actual_kind = red_kind(raw.decode("utf-8", "replace"))
+    except (OSError, ValueError, KeyError) as exc:
+        issues.append("unreadable red evidence: " + str(exc))
+        actual_kind = "none"
+    asserted = record.get("kind") == "assertion" and actual_kind == "assertion"
+    if asserted and opaque:
+        issues.append(opaque)
+    elif record.get("kind") == "assertion" and not asserted:
+        warning = "%s: archived output is %s, not assertion evidence" % (record.get("log", "red log"), actual_kind)
+    return asserted and not issues, issues, warning
+
+
+def replay_kind(log):
+    with open(log, "rb") as fh:
+        print(red_kind(fh.read().decode("utf-8", "replace")))
+
+
+def archive_red_log(source, destination):
+    try:
+        os.replace(source, destination)
+    except OSError as exc:
+        if exc.errno != errno.EXDEV:
+            raise
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=os.path.dirname(destination), prefix=".red-log-", delete=False) as out:
+                temporary = out.name
+                with open(source, "rb") as original:
+                    shutil.copyfileobj(original, out)
+                out.flush()
+                os.fsync(out.fileno())
+            os.replace(temporary, destination)
+            os.unlink(source)
+        finally:
+            if temporary and os.path.exists(temporary):
+                os.unlink(temporary)
 
 
 def red_records(artdir):
@@ -317,14 +486,14 @@ def red_records(artdir):
     return records
 
 
-def redprep(root, base, baseline, artdir, allow_file, out):
+def redprep(root, base, baseline, artdir, allow_file, out, cwd, argv_file):
     files = load_baseline(baseline).get("files", {})
     blobdir = os.path.dirname(baseline)
     untracked = set(zsplit(git(root, ["ls-files", "--others", "--exclude-standard", "-z"])))
     changed = changeset(root, base, files, untracked)
     real_root = os.path.realpath(root)
     allow = {os.path.relpath(os.path.realpath(p), real_root) for p in read_list(allow_file)}
-    first = not any(r.get("kind") == "assertion" for r in red_records(artdir))
+    first = not any(red_evidence(artdir, root, record)[0] for record in red_records(artdir))
     blocked = [p for p in changed
                if first and p not in allow and not is_test_path(p) and not p.lower().endswith(DOCS)]
     allowed = {}
@@ -333,25 +502,35 @@ def redprep(root, base, baseline, artdir, allow_file, out):
             lines = path_added_lines(root, base, files, blobdir, untracked, path)
             allowed[path] = sum(1 for _, raw in lines if raw.strip())
     tests = {p: file_state(os.path.join(root, p))[0] for p in changed if is_test_path(p)}
+    issues, opaque = red_inputs(root, cwd, read_list(argv_file))
     with open(out, "w", encoding="utf-8") as fh:
-        json.dump({"allowed": allowed, "tests": tests}, fh)
+        json.dump({"allowed": allowed, "tests": tests, "unverified": opaque}, fh)
     write_list(out + ".blocked", blocked)
+    with open(out + ".inputs", "w", encoding="utf-8") as fh:
+        fh.write("".join(issue + "\n" for issue in issues))
 
 
 def redrecord(artdir, state_file, cwd, rc, log, argv_file):
     with open(state_file, encoding="utf-8") as fh:
         state = json.load(fh)
     with open(log, "rb") as fh:
-        text = fh.read().decode("utf-8", "replace")
-    if NO_TESTS.search(text):
+        raw = fh.read()
+    kind = red_kind(raw.decode("utf-8", "replace"))
+    if kind == "none":
         print("none -")
         return
-    kind = "build" if BUILD_ERROR.search(text) else "assertion"
+    if kind == "assertion" and state.get("unverified"):
+        print("unverified " + state["unverified"])
+        return
     reddir = os.path.join(artdir, "red")
     os.makedirs(reddir, exist_ok=True)
     number = 1 + sum(1 for name in os.listdir(reddir) if name.startswith("red-") and name.endswith(".json"))
     stem = os.path.join(reddir, "red-%03d" % number)
-    os.replace(log, stem + ".log")
+    try:
+        archive_red_log(log, stem + ".log")
+    except OSError as exc:
+        sys.stderr.write("gate.sh: cannot archive red log: %s\n" % exc)
+        sys.exit(2)
     record = {
         "version": 1,
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -360,6 +539,7 @@ def redrecord(artdir, state_file, cwd, rc, log, argv_file):
         "exit": int(rc),
         "kind": kind,
         "log": os.path.basename(stem) + ".log",
+        "log_sha256": hashlib.sha256(raw).hexdigest(),
         "allowed": state["allowed"],
         "tests": state["tests"],
     }
@@ -371,8 +551,13 @@ def redrecord(artdir, state_file, cwd, rc, log, argv_file):
 
 def redplan(artdir, root, outdir):
     records = red_records(artdir)
-    commands = []
+    commands, blocked, warnings, asserted = [], [], [], 0
     for record in records:
+        valid, issues, warning = red_evidence(artdir, root, record)
+        blocked.extend(issues)
+        asserted += int(valid)
+        if warning:
+            warnings.append(warning)
         key = (record["cwd"], tuple(record["argv"]))
         if key not in commands:
             commands.append(key)
@@ -380,7 +565,7 @@ def redplan(artdir, root, outdir):
         write_list(os.path.join(outdir, "redargv.%d" % i), argv)
         with open(os.path.join(outdir, "redcwd.%d" % i), "w", encoding="utf-8") as fh:
             fh.write(cwd)
-    warnings, latest = [], {}
+    latest = {}
     for record in records:
         latest.update(record.get("tests", {}))
         for path, count in sorted(record.get("allowed", {}).items()):
@@ -392,11 +577,13 @@ def redplan(artdir, root, outdir):
             warnings.append("%s: changed after its last red run; confirm no assertion was weakened" % path)
     with open(os.path.join(outdir, "redwarn"), "w", encoding="utf-8") as fh:
         fh.write("".join(item + "\n" for item in warnings))
-    print(len(records), sum(1 for r in records if r.get("kind") == "assertion"), len(commands))
+    with open(os.path.join(outdir, "redblocked"), "w", encoding="utf-8") as fh:
+        fh.write("".join(item + "\n" for item in blocked))
+    print(len(records), asserted, len(commands))
 
 
 COMMANDS = {"snapshot": snapshot, "head": head, "analyze": analyze, "pytests": pytests,
-            "redprep": redprep, "redrecord": redrecord, "redplan": redplan}
+            "redprep": redprep, "redrecord": redrecord, "redplan": redplan, "replay-kind": replay_kind}
 COMMANDS[sys.argv[1]](*sys.argv[2:])
 PY
 
@@ -986,6 +1173,11 @@ check_red() {
   local info total asserted ncmd i=1 cwd arg failed=0
   info=$(py redplan "$ARTDIR" "$ROOT" "$TMP")
   read -r total asserted ncmd <<<"$info"
+  if [ -s "$TMP/redblocked" ]; then
+    emit red-first FAIL "artifact or unverified test inputs/evidence"
+    list_capped "$TMP/redblocked"
+    return 0
+  fi
   if [ "$total" -eq 0 ]; then
     if [ "$REQUIRE_RED" -eq 1 ]; then
       emit red-first FAIL "no red record: run gate.sh red -- <test command> before the first production edit"
@@ -1000,7 +1192,7 @@ check_red() {
       while IFS= read -r -d '' arg; do RED_ARGV+=("$arg"); done <"$TMP/redargv.$i"
       cwd=$(cat "$TMP/redcwd.$i")
       run_tool "$ROOT/$cwd" "${RED_ARGV[@]}"
-      if [ "$RC" -ne 0 ]; then
+      if [ "$RC" -ne 0 ] || [ "$(py replay-kind "$TMP/out")" != assertion ]; then
         failed=$((failed + 1))
         cp "$TMP/out" "$TMP/redfail"
       fi
@@ -1139,7 +1331,14 @@ cmd_red() {
     printf '%s\0' "$f" >>"$TMP/allow"
   done
   : >"$TMP/summary"
-  py redprep "$ROOT" "$base" "$BASELINE" "$ARTDIR" "$TMP/allow" "$TMP/redstate"
+  : >"$TMP/argv"
+  for f in "${RED_CMD[@]}"; do printf '%s\0' "$f" >>"$TMP/argv"; done
+  py redprep "$ROOT" "$base" "$BASELINE" "$ARTDIR" "$TMP/allow" "$TMP/redstate" "$(rel_dir "$ORIG_PWD")" "$TMP/argv"
+  if [ -s "$TMP/redstate.inputs" ]; then
+    say "red: refused: artifact or unverified test inputs; keep owning tests outside .arc/artifacts:"
+    list_capped "$TMP/redstate.inputs"
+    exit 1
+  fi
   if [ -s "$TMP/redstate.blocked" ]; then
     say "red: refused: production files changed before the first failing test:"
     tr '\0' '\n' <"$TMP/redstate.blocked" >"$TMP/list"
@@ -1147,8 +1346,6 @@ cmd_red() {
     say "  discard your own pre-red edits, or name a signature stub or test scaffolding file with --allow"
     exit 1
   fi
-  : >"$TMP/argv"
-  for f in "${RED_CMD[@]}"; do printf '%s\0' "$f" >>"$TMP/argv"; done
   if (cd "$ORIG_PWD" && "${RED_CMD[@]}") >"$TMP/out" 2>&1 </dev/null; then RC=0; else RC=$?; fi
   case $RC in
     0)
@@ -1170,6 +1367,11 @@ cmd_red() {
     say "red: refused: the command ran no test (exit $RC); check the test selector"
     show_output
     exit 2
+  fi
+  if [ "$kind" = unverified ]; then
+    say "red: refused: $record"
+    show_output
+    exit 1
   fi
   say "red: recorded $(rel "$record") (exit $RC, kind $kind)"
   if [ "$kind" = build ]; then

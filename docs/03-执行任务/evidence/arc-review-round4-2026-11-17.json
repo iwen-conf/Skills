@@ -1,0 +1,683 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-17",
+  "timezone": "Asia/Shanghai",
+  "reviewed_base_commit": "089b72f98ab71272a7c4903fb8819c3cc2f33977",
+  "branch": "main",
+  "scope": "Confirmed runner execution identity, owning-test provenance and red/green evidence defects; no SQL or business-rule change.",
+  "tested_source": {
+    "verify_production": {
+      "file_count": 86,
+      "sha256": "de86087c1f235a08d38a5ad9c4118fda2281ec22df985dd89a8108872c9b7966",
+      "unchanged_after_full_test": true
+    },
+    "verify_all_go": {
+      "file_count": 189,
+      "sha256": "a007b83e742e90e0d0375ffcaba1cbb77bd43c2775df832f47c69eb004ebe1c1",
+      "unchanged_after_full_test": true
+    },
+    "workbench_src": {
+      "file_count": 42,
+      "sha256": "e1faea95dbd0cb5c0130e0310f993e07f44d9f242e864675d2884a208f6e0539",
+      "unchanged_after_full_test": true
+    },
+    "workbench_dist": {
+      "file_count": 5,
+      "sha256": "13e19ae6c3762362cb50c1423406727ad44cbc0550b37d16c62c4a20ab926385",
+      "unchanged_after_full_test": true
+    },
+    "repair_gate": {
+      "files": [
+        {
+          "path": "Arc/arc:code/scripts/gate.sh",
+          "sha256": "a7febd71e30ca14eea6bd87516232fef1a845c9b07772a2e0ad628d7fc269712"
+        },
+        {
+          "path": "tests/test_gate_script.py",
+          "sha256": "bf08cb18ee0d2eea2f98f03a626c3a7d801476b0952f061e1e43758329940a73"
+        }
+      ],
+      "unchanged_after_full_test": true
+    }
+  },
+  "changed_code": [
+    {
+      "path": "Arc/arc:code/scripts/gate.sh",
+      "sha256": "a7febd71e30ca14eea6bd87516232fef1a845c9b07772a2e0ad628d7fc269712"
+    },
+    {
+      "path": "tests/test_gate_script.py",
+      "sha256": "bf08cb18ee0d2eea2f98f03a626c3a7d801476b0952f061e1e43758329940a73"
+    },
+    {
+      "path": "tools/arc-verify/execution_store.go",
+      "sha256": "ba0ea3ff5e75cd3cf8879cdc64459b24dd272d755ed68d4cec1b5a44231299fd"
+    },
+    {
+      "path": "tools/arc-verify/runner.go",
+      "sha256": "ee08524eabff4c1cb7353fb77ec2f4213037bc859a5ea0b3d6bdca66573472b7"
+    },
+    {
+      "path": "tools/arc-verify/runner_command_identity_test.go",
+      "sha256": "6dac92be077eae25ecabff474e82b8fcc78826ba2121ce03cb44a225cc449545"
+    },
+    {
+      "path": "tools/arc-verify/snapshot_execution_identity_test.go",
+      "sha256": "966998aad24c7e9c64f0fb7d3d73a2c7298eb658ef113daa77a9a234ba504c30"
+    }
+  ],
+  "fixes": [
+    {
+      "id": "R4-01",
+      "problem": "Relative executable was hashed in the CLI cwd but executed in the child directory.",
+      "fix": "Shared command directory/executable resolvers; absolute PATH selection; current historical qualification reuses the same fingerprint.",
+      "evidence": "Changed actual script previously issued one target request and PASS. Fixed result blocks before dispatch. Downstream snapshot now preserves the original trace and RAW but reports evidence BLOCKED and zero passing branch coverage, without replay."
+    },
+    {
+      "id": "R4-02",
+      "problem": "A source-relative script argument absent in the CLI cwd was skipped and never frozen.",
+      "fix": "Require the frozen SourceRoot at round admission/revalidation, resolve static file arguments there, and require declared input_files.",
+      "evidence": "Ignored undeclared script previously ran and PASSed. Fixed round refuses before SUT IO; declared inputs remain valid across absolute, relative and default directories."
+    },
+    {
+      "id": "R4-03",
+      "problem": "Artifact source copies could act as owning red/green tests and be auto-selected as Python regressions.",
+      "fix": "Check direct execution inputs, executable paths and cwd changes including symlinks/PATH; recheck old red commands; exclude artifact Python source copies from discovery.",
+      "evidence": "Original artifact entry, replay and automatic discovery cases failed before repair; passive sources, baseline blobs and report outputs remain supported."
+    },
+    {
+      "id": "R4-04",
+      "problem": "Red log archival failed with EXDEV across filesystems.",
+      "fix": "On EXDEV only, copy into the destination directory, fsync, atomically replace, and record the archived byte hash.",
+      "evidence": "Actual different-device temporary/archive paths reproduce the failure; regression checks exact retained bytes and no source mutation."
+    },
+    {
+      "id": "R4-05",
+      "problem": "Go setup failures could count as assertion red, including legacy records; zero-test green could qualify a repair.",
+      "fix": "Reclassify original logs at both first-red admission and replay; reject known zero-test/build-only green output and invalid evidence.",
+      "evidence": "Original red-001 is retained but no longer qualifying. Setup, legacy classification and zero-test controls exercise the shared gate."
+    }
+  ],
+  "checks": {
+    "verify_full_race": {
+      "command": "go -C tools/arc-verify test -race -json -count=1 -timeout=20m ./...",
+      "integration_inputs": [
+        "ARC_VERIFY_CHAIN_BINARY",
+        "ARC_CAMPAIGN_BINARY",
+        "ARC_WORKBENCH_EXPORT_DIR",
+        "ARC_CAMPAIGN_EXPORT_DIR",
+        "ARC_WORKBENCH_ASSETS"
+      ],
+      "log": "arc-round4-verify-full-race.jsonl",
+      "bytes": 1039315,
+      "sha256": "8ed74504bc109cc2e400aa4a9670c63b9471295dc46591b38b8c47b08d3283b4",
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 738.436,
+      "top_level_passed": 506,
+      "subtests_passed": 389,
+      "skipped": [
+        "TestIMMongoFixturesMustBindIsolationNotSharedLan50",
+        "TestIMMongoConfigKeepsSharedStacksUnapproved"
+      ]
+    },
+    "public_cli_race": {
+      "command": "go -C tools/arc test -race -json -count=1 ./...",
+      "log": "arc-round4-cli-race.jsonl",
+      "bytes": 98057,
+      "sha256": "d71dad0a57a2fb6400c47e05e00fb67d2a2943a2f5235f00b5cccd41b5491edc",
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 3.036,
+      "top_level_passed": 37,
+      "subtests_passed": 40,
+      "skipped": []
+    },
+    "index_race": {
+      "command": "TMPDIR=/tmp go -C tools/arc-idx test -race -json -count=1 ./...",
+      "log": "arc-round4-idx-isolated-race.jsonl",
+      "bytes": 2448,
+      "sha256": "4a33917387e07c1204dc9c7dac7f8afa3052b2b0cbce131ad92f2e4c97dced06",
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 4.155,
+      "top_level_passed": 2,
+      "subtests_passed": 0,
+      "skipped": [],
+      "environment_correction": {
+        "initial_status": "FAIL",
+        "log": "arc-round4-idx-race.jsonl",
+        "bytes": 37794,
+        "sha256": "8e8e3055d31e18fec5e38dbff08e251029be71a4afff5d6e48f1d6cbb77ad2e9",
+        "reason": "Workspace TMPDIR caused the index naming fixture to inherit an ancestor index root and search sibling checkouts. Rerun used /tmp outside that index root; code, assertion and test selection were unchanged. Go caches remain on the workspace filesystem."
+      }
+    },
+    "runner_targeted_race": {
+      "log": "arc-round4-runner-targeted-race.log",
+      "bytes": 3991,
+      "sha256": "b3963c5a242a73fcc4ca3e4efd618ea2c27e5b6f270f772e59cec0f7662826d2",
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 13.553,
+      "top_level_passed": 9,
+      "subtests_passed": 15
+    },
+    "snapshot_targeted_race": {
+      "log": "arc-round4-snapshot-identity-race.log",
+      "bytes": 864,
+      "sha256": "50704286e5dd7dbd287ff33772290bbc05fb628a0f484cd6d970e4ac1c5f04f2",
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 16.945,
+      "top_level_passed": 1,
+      "subtests_passed": 3
+    },
+    "verify_vet": {
+      "command": "go -C tools/arc-verify vet ./...",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round4-vet.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "installation": {
+      "command": "bash scripts/install_arc.sh BIN_DIR",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round4-install.log",
+      "bytes": 1430,
+      "sha256": "c6d84f9c4287a943662f5c22aebcedebaa42388da6d7488d4df325317d07f86f",
+      "binaries": [
+        {
+          "name": "arc",
+          "sha256": "0b2bdb9d661925f2aa44a93bf5a952ad866cc66deb8c27cab3f35113f76b9639",
+          "bytes": 28576128
+        },
+        {
+          "name": "arc-verify",
+          "sha256": "908acc756a813e18be8b50d34bce352a296c1757dd34cf46dabd30cd5421ba23",
+          "bytes": 35692584
+        },
+        {
+          "name": "arc-idx",
+          "sha256": "0ae9b46d897f98a56af291d830c148ecf9de7616d11e691e7f20592917f612da",
+          "bytes": 40319110
+        }
+      ]
+    },
+    "smoke": {
+      "command": "bash tools/arc/smoke.sh BIN_DIR REPO_ROOT",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round4-smoke.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "gate_suite": {
+      "command": ".venv/bin/python -m pytest -q tests/test_gate_script.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "passed": 57,
+      "skipped": 0,
+      "seconds": 18.85,
+      "log": "arc-round4-gate-suite.log",
+      "bytes": 100,
+      "sha256": "eafa79dfed6a068ca7a87347e3d8e4b63bb7d32557d4d7aad609d469fe5eb3d7"
+    },
+    "python": {
+      "command": ".venv/bin/python -m pytest -q",
+      "status": "BASELINE_EXTERNAL_FAILURE",
+      "exit_code": 1,
+      "failed": 1,
+      "passed": 238,
+      "skipped": 1,
+      "seconds": 51.28,
+      "failed_tests": [
+        "tests/test_sync_skills.py::test_all_runtime_families_have_a_complete_package"
+      ],
+      "reason": "Existing missing Cloudflare/cloudflare-platform source package, unchanged from the previous main verification.",
+      "log": "arc-round4-python.log",
+      "bytes": 2661,
+      "sha256": "31ea987616dbbe34c0f4be886941de7893c1e8f37c3d39946e0eae0b4ee3b120"
+    },
+    "dbqual": {
+      "command": ".venv/bin/python -m pytest -q Arc/arc:verify/scripts/dbqual/tests",
+      "status": "PASS_WITH_EXTERNAL_SKIP",
+      "exit_code": 0,
+      "passed": 160,
+      "skipped": 1,
+      "subtests_passed": 139,
+      "seconds": 17.28,
+      "log": "arc-round4-dbqual.log",
+      "bytes": 536,
+      "sha256": "a7375c258704bfc247db389f7898bcb55114c12f4e9aca775350c8e5a70630a3"
+    },
+    "skills": {
+      "command": ".venv/bin/python scripts/validate_skills.py",
+      "status": "ARC_PASS_WITH_BASELINE_EXTERNAL_ERRORS",
+      "exit_code": 1,
+      "current_errors": 52,
+      "previous_errors": 52,
+      "identical": true,
+      "new_errors": [],
+      "resolved_errors": [],
+      "log": "arc-round4-skills-final.log",
+      "bytes": 7624,
+      "sha256": "eeebedbaae87ffc7aec65a978f9e1ad2677f148d300f61e360a1ef2d874da577",
+      "initial_load_budget_failure": {
+        "log": "arc-round4-skills.log",
+        "bytes": 7894,
+        "sha256": "c42cb909d73d1edc08de9fecb93a255d5eebf76bb9f8780ca1a26b656acf3693"
+      },
+      "resolution": "Compressed the added loaded instructions and kept detailed runtime semantics in the owning README; no budget increase."
+    },
+    "frontend_suite": {
+      "command": "ARC_WORKBENCH_SNAPSHOT_PATHS=[prepared,campaign] vp test run",
+      "status": "PASS",
+      "exit_code": 0,
+      "passed": 124,
+      "skipped": 0,
+      "log": "arc-round4-workbench-tests.log",
+      "bytes": 237,
+      "sha256": "b4c75e1f3149632a7be8e2a8150146a8c9fdaf623fece71ef34ee8d753d516c1",
+      "launcher_correction": "Initial shell command returned 2 for an unmatched quote before any test ran. Relaunched with structured subprocess argv and environment; no code or test changes.",
+      "scope": "Unchanged frontend production reader, selection and SSR consume fresh actual Go tool-run exports. No browser visual acceptance or product E2E claim."
+    },
+    "repair_gate": {
+      "command": "bash Arc/arc:code/scripts/gate.sh check --task arc-runtime-provenance --require-red --strict --max-files 12",
+      "status": "FAIL_BASELINE_EXTERNAL_SOURCE",
+      "exit_code": 1,
+      "failures": [
+        "tests(python): FAIL(pytest exit 1)"
+      ],
+      "not_run": [],
+      "warnings": [
+        "red-hygiene: WARN(4 item(s))"
+      ],
+      "log": "arc-round4-gate-check.log",
+      "bytes": 1682,
+      "sha256": "0b916fa072ca02dd12939df1499f2d01811061adf1851f2297de3a5451e9b98f"
+    }
+  },
+  "fresh_exports": [
+    {
+      "directory": "arc-round4-export-prepared",
+      "snapshot_sha256": "6033eeca09525cf7275e57f5fbf2c5c0ff9f9eb15013cf80414090abfaa916d1",
+      "frontend_validation": {
+        "version": 1,
+        "status": "PASS",
+        "scope": "Actual supplied Go export -> production readSnapshotText -> unified selection -> SSR. No target execution, RAW revalidation, product E2E claim or browser acceptance.",
+        "validated_at": "2026-11-17T06:29:09.852Z",
+        "snapshot_sha256": "6033eeca09525cf7275e57f5fbf2c5c0ff9f9eb15013cf80414090abfaa916d1",
+        "graph": "course-v2",
+        "parser": "PASS",
+        "unified_selection": "PASS",
+        "ssr": "PASS",
+        "browser": "NOT_RUN",
+        "raw_revalidated_by_frontend": false,
+        "rendered_views": 2,
+        "representative_ssr_views": 1,
+        "assets_match_current_dist": true,
+        "preparation": {
+          "status": "EXERCISED",
+          "runs": 1,
+          "actual_actions": 1,
+          "independent_readbacks": 3
+        },
+        "expected_actual": {
+          "status": "EXERCISED",
+          "frozen_decisions": 1,
+          "unassociated_step_views": 0,
+          "request_captures": 1
+        },
+        "entity_selection": {
+          "status": "NOT_PRESENT",
+          "selections": 0
+        },
+        "campaign": {
+          "status": "NOT_PRESENT",
+          "linked_children": 0,
+          "unexported_children": 0
+        },
+        "runs": [
+          {
+            "run": "R-e80e45743e8ab07fe03f7760c16e6b95",
+            "environment": "independent",
+            "round": "Q-f3cac7cf71b5d3386b8f9aef4be48018",
+            "runner": "typed-business",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 1,
+            "recovery_mode": "checkpoint"
+          }
+        ],
+        "campaigns": []
+      },
+      "source": "Actual Go HTTP tool target, independently observed and exported by production code; not pay_gateway E2E"
+    },
+    {
+      "directory": "arc-round4-export-campaign",
+      "snapshot_sha256": "ac05393bcafa5632dcca0e9c8135ca542c7ecbda86f1d106009e9fb414d69cc3",
+      "frontend_validation": {
+        "version": 1,
+        "status": "PASS",
+        "scope": "Actual supplied Go export -> production readSnapshotText -> unified selection -> SSR. No target execution, RAW revalidation, product E2E claim or browser acceptance.",
+        "validated_at": "2026-11-17T06:29:10.334Z",
+        "snapshot_sha256": "ac05393bcafa5632dcca0e9c8135ca542c7ecbda86f1d106009e9fb414d69cc3",
+        "graph": "course-v2",
+        "parser": "PASS",
+        "unified_selection": "PASS",
+        "ssr": "PASS",
+        "browser": "NOT_RUN",
+        "raw_revalidated_by_frontend": false,
+        "rendered_views": 16,
+        "representative_ssr_views": 7,
+        "assets_match_current_dist": true,
+        "preparation": {
+          "status": "EXERCISED",
+          "runs": 2,
+          "actual_actions": 1,
+          "independent_readbacks": 4
+        },
+        "expected_actual": {
+          "status": "EXERCISED",
+          "frozen_decisions": 3,
+          "unassociated_step_views": 0,
+          "request_captures": 3
+        },
+        "entity_selection": {
+          "status": "EXERCISED",
+          "selections": 3
+        },
+        "campaign": {
+          "status": "EXERCISED",
+          "linked_children": 3,
+          "unexported_children": 0
+        },
+        "runs": [
+          {
+            "run": "R-73cba2daa0e80fe263c7d0b199852ce4",
+            "environment": "independent",
+            "round": "Q-357ac4271f67f8e213f9af2b3d3d6ed9",
+            "runner": "enroll-b",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 1,
+            "recovery_mode": "checkpoint"
+          },
+          {
+            "run": "R-b91093d63749f3a5a629002fcdf9424e",
+            "environment": "independent",
+            "round": "Q-357ac4271f67f8e213f9af2b3d3d6ed9",
+            "runner": "clear",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 0,
+            "recovery_mode": "checkpoint"
+          },
+          {
+            "run": "R-9f3285034e06db634d1ec3b14106bd6d",
+            "environment": "independent",
+            "round": "Q-357ac4271f67f8e213f9af2b3d3d6ed9",
+            "runner": "enroll-a",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 1,
+            "recovery_mode": "checkpoint"
+          }
+        ],
+        "campaigns": [
+          {
+            "campaign": "BC-aa547b8fbc497a9d3d0c04236e2885bd",
+            "environment": "independent",
+            "round": "Q-357ac4271f67f8e213f9af2b3d3d6ed9",
+            "status": "COMPLETED_IN_SCOPE",
+            "evidence_status": "PASS",
+            "variants": 3,
+            "child_visits": 3,
+            "pre_action_intents": 3,
+            "selected_variants_covered": true,
+            "full_business_coverage": false
+          }
+        ]
+      },
+      "source": "Actual Go HTTP tool target, independently observed and exported by production code; not pay_gateway E2E"
+    }
+  ],
+  "red_counterexamples": [
+    {
+      "record": "red-001",
+      "record_sha256": "c65961e5f8d1f26685bea98a4e4545b1ecc53d22547f74b4d2489490a8068618",
+      "log_sha256": "d529140ead2bf00f5a9102a6bae18e11164efe3c1c895cb4f103af6ecd73d472",
+      "recorded_kind": "assertion",
+      "effective_kind": "build",
+      "exit": 1,
+      "argv": [
+        "env",
+        "PATH=/workspace/scratch/5b127f988034/toolchains/go/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+        "GOTOOLCHAIN=local",
+        "go",
+        "-C",
+        "tools/arc-verify",
+        "test",
+        "-count=1",
+        "-run",
+        "^TestRound4Runner(RelativeExecutableUsesFrozenDirectory|SourceRelativeFileCannotEscapeFrozenInputs)$",
+        "-v",
+        "."
+      ],
+      "test_hashes_at_red": {
+        "tools/arc-verify/runner_round4_identity_test.go": "sha256:b7cc761809e63e6c208dfa177bd69597a048e66691102a8f9a9d954c7357c1f1"
+      },
+      "note": "Go setup/disk-space failure. Preserved, never counted as assertion evidence."
+    },
+    {
+      "record": "red-002",
+      "record_sha256": "42da3fb0870eb410b149a3b7af4c213bffede59a99d7f17bdf8e0b41489a95d7",
+      "log_sha256": "a51faf447bf8be2931e6c132ea15683026abde23bf405badcbce2f1dd70938a5",
+      "recorded_kind": "assertion",
+      "effective_kind": "assertion",
+      "exit": 1,
+      "argv": [
+        "env",
+        "PATH=/workspace/scratch/5b127f988034/toolchains/go/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+        "GOTOOLCHAIN=local",
+        "GOCACHE=/workspace/scratch/5b127f988034/arc-round4-go-build-cache",
+        "GOMODCACHE=/workspace/scratch/5b127f988034/arc-round4-go-mod-cache",
+        "go",
+        "-C",
+        "tools/arc-verify",
+        "test",
+        "-count=1",
+        "-run",
+        "^TestRound4Runner(RelativeExecutableUsesFrozenDirectory|SourceRelativeFileCannotEscapeFrozenInputs)$",
+        "-v",
+        "."
+      ],
+      "test_hashes_at_red": {
+        "tests/test_gate_script.py": "sha256:894e83e24f402a5d7d14dd01f5fa46e32f6164298f492d838abd84100d988dd9",
+        "tools/arc-verify/runner_round4_identity_test.go": "sha256:95c013575996224212f5bad669ad48f9dffaf837544eefa2f2cc20587119c46b"
+      },
+      "note": "Observed assertion failure before the production fix."
+    },
+    {
+      "record": "red-003",
+      "record_sha256": "cd3ff52a7108c4931dd8a1a02a0508060a71286284f50618d9b21e24f766f14f",
+      "log_sha256": "1c922dc6b4c6b56182f017e82138f73864d0424c529d675e308c902e8c5dbf6e",
+      "recorded_kind": "assertion",
+      "effective_kind": "assertion",
+      "exit": 1,
+      "argv": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_gate_script.py",
+        "-k",
+        "artifact or red_log_crosses_filesystems or red_setup_failures"
+      ],
+      "test_hashes_at_red": {
+        "tests/test_gate_script.py": "sha256:e40e1a54cb5320c2388440c8f1ea8858114c2bbfd67a7325e20802913c775eca",
+        "tools/arc-verify/runner_round4_identity_test.go": "sha256:95c013575996224212f5bad669ad48f9dffaf837544eefa2f2cc20587119c46b",
+        "tools/arc-verify/snapshot_execution_identity_test.go": "sha256:e030baa1fc73ee057e768a0cd93f141f013ceeaff0dcc4783f5df0323c2d94a3"
+      },
+      "note": "Observed assertion failure before the production fix."
+    }
+  ],
+  "downstream_red": {
+    "log": "arc-round4-snapshot-identity-red.log",
+    "bytes": 1442,
+    "sha256": "b117dbe2d4e4f68e3b7adc414ab38f5475fde6bec86e0dca62ab8443ae93189f"
+  },
+  "independent_gate_review": {
+    "repo": "/workspace/scratch/5b127f988034/arc-round4-env-cwd-0q4kbm6y/repo",
+    "gate_sha_before": "fa40d87f52c82fbbd27a4c8de6d0f8a8b332819a8aff37c00541326f9105b350",
+    "gate_sha_after": "fa40d87f52c82fbbd27a4c8de6d0f8a8b332819a8aff37c00541326f9105b350",
+    "old_which_from_actual_cwd": null,
+    "actual_env_lookup": "../.arc/artifacts/r/sources/bin/price-test",
+    "argv": [
+      "red",
+      "--task",
+      "r",
+      "--",
+      "env",
+      "-C",
+      "tests",
+      "PATH=../.arc/artifacts/r/sources/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+      "price-test"
+    ],
+    "exit": 1,
+    "artifact_executed": false,
+    "record_count": 0,
+    "kinds": [],
+    "stdout": "red: refused: artifact or unverified test inputs; keep owning tests outside .arc/artifacts:\n  artifact executable: price-test\n",
+    "stderr": ""
+  },
+  "independent_gate_review_note": {
+    "precheck": {
+      "status": "ENVIRONMENT_FAILURE_NOT_TEST_RESULT",
+      "command_interpreter": "python3",
+      "observed_error": "ModuleNotFoundError: No module named 'pytest'",
+      "stage": "importing tests/test_gate_script.py before fixture creation or gate execution",
+      "counted_as_red": false
+    },
+    "successful_check": {
+      "interpreter": "/workspace/scratch/5b127f988034/arc-rebuild/.venv/bin/python",
+      "report": "/workspace/scratch/5b127f988034/arc-round4-gate-relative-path-review.json",
+      "claim": "Old shutil.which actual-cwd lookup mismatch reproduced directly; the production gate run used the already patched PATH resolver and refused execution. No pre-fix full gate red run is claimed."
+    },
+    "review": {
+      "redprep_first": "Observed final candidate delegates to red_evidence, same as redplan; stored kind alone is no longer accepted.",
+      "scope": "Read-only patch review; no production script copied or edited; no browser, no generic command parser added."
+    }
+  },
+  "test_format_only_change": {
+    "command": ".venv/bin/ruff format tests/test_gate_script.py",
+    "exit_code": 0,
+    "stdout": "1 file reformatted\n",
+    "stderr": "",
+    "ast_unchanged": true,
+    "before_sha256": "d337340beab90b0f1eb0d98f6dd15a163754af4124cff29f8e3b55fa74e9376d",
+    "after_sha256": "bf08cb18ee0d2eea2f98f03a626c3a7d801476b0952f061e1e43758329940a73"
+  },
+  "gate_additional_counterexamples": {
+    "log": "arc-round4-gate-legacy-red.log",
+    "bytes": 3847,
+    "sha256": "0db05a3be48d7f942132305d9e7c589589a085927c080ef1a2059ee9b40075ed"
+  },
+  "gate_owner_review": {
+    "base_commit": "089b72f98ab71272a7c4903fb8819c3cc2f33977",
+    "production_frozen": true,
+    "formal_red": {
+      "task": "arc-runtime-provenance",
+      "record": "red-003",
+      "pytest_exit": 1,
+      "gate_exit": 0,
+      "failed": 9,
+      "passed_controls": 3,
+      "deselected": 33,
+      "elapsed_seconds": 4.91
+    },
+    "legacy_and_empty_replay_red": {
+      "failed": 2,
+      "elapsed_seconds": 1.05
+    },
+    "complete_gate_tests": {
+      "passed": 57,
+      "failed": 0,
+      "skipped": 0,
+      "elapsed_seconds": 18.85
+    },
+    "file_checks": {
+      "ruff_format": 0,
+      "ruff_check": 0,
+      "mypy": 0,
+      "bash_syntax": 0,
+      "git_diff_check": 0
+    },
+    "test_file_formatted_after_suite": true,
+    "format_preserved_full_python_ast": true,
+    "remaining_boundaries": [
+      "Explicit test inputs, executable resolution and supported cwd relocations are checked; indirect imports and custom runner configuration are not comprehensively traced.",
+      "Inline assertion commands do not qualify; identified build/no-tests output remains diagnostic. Go overlay/exec and env split-string are refused as unverifiable inputs.",
+      "Passive source snapshots and artifact output destinations remain allowed. Manual prose alone does not establish test ownership.",
+      "The user-mentioned rc/artifacts/cnb-v2-current-retry22/sources/cnb22_notification_test.go was not present or inspected; rc/artifacts is not an alias for .arc/artifacts.",
+      "The relative PATH review supplied a real post-fix control, not a complete pre-fix gate red. Its first driver attempt failed to import pytest and is not test evidence."
+    ],
+    "artifacts": {
+      "gate_source": {
+        "path": "/workspace/scratch/5b127f988034/arc-rebuild/Arc/arc:code/scripts/gate.sh",
+        "sha256": "a7febd71e30ca14eea6bd87516232fef1a845c9b07772a2e0ad628d7fc269712"
+      },
+      "test_source": {
+        "path": "/workspace/scratch/5b127f988034/arc-rebuild/tests/test_gate_script.py",
+        "sha256": "bf08cb18ee0d2eea2f98f03a626c3a7d801476b0952f061e1e43758329940a73"
+      },
+      "formal_red": {
+        "path": "/workspace/scratch/5b127f988034/arc-rebuild/.arc/artifacts/arc-runtime-provenance/red/red-003.log",
+        "sha256": "1c922dc6b4c6b56182f017e82138f73864d0424c529d675e308c902e8c5dbf6e"
+      },
+      "legacy_red": {
+        "path": "/workspace/scratch/5b127f988034/arc-round4-gate-legacy-red.log",
+        "sha256": "0db05a3be48d7f942132305d9e7c589589a085927c080ef1a2059ee9b40075ed"
+      },
+      "complete_suite": {
+        "path": "/workspace/scratch/5b127f988034/arc-round4-gate-suite.log",
+        "sha256": "eafa79dfed6a068ca7a87347e3d8e4b63bb7d32557d4d7aad609d469fe5eb3d7"
+      },
+      "ruff_format": {
+        "path": "/workspace/scratch/5b127f988034/arc-round4-gate-ruff-format.log",
+        "sha256": "fd2299c9f1c6dc869070883e281051bfe93aacf66c1a3b0069f45b4aa410ca50"
+      },
+      "ruff_check": {
+        "path": "/workspace/scratch/5b127f988034/arc-round4-gate-ruff-check.log",
+        "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+      },
+      "mypy": {
+        "path": "/workspace/scratch/5b127f988034/arc-round4-gate-mypy.log",
+        "sha256": "5d4b6d285b77932e3d08212c3b4974d0a803f98ec60408ac6ccf6a063fa6c19e"
+      },
+      "bash_syntax": {
+        "path": "/workspace/scratch/5b127f988034/arc-round4-gate-bash-syntax.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "format_ast_check": {
+        "path": "/workspace/scratch/5b127f988034/arc-round4-gate-test-format.json",
+        "sha256": "8dccc63615f6167a1d618199ac64ef3ade4ec49778935821fcb4bdcd96a13da8"
+      }
+    }
+  },
+  "compatibility": [
+    "No database migration; no rewrite of historical RAW, registered identities or stored verdicts.",
+    "Original red function entry names remain replayable. The new formal file/helper names were changed from round-number labels to command-identity names; assertions were retained and positive controls added.",
+    "Working public CLI 0.5.0 was incorrectly rejected by the documentation pinned to 0.4.x. The protocol now compares version and capability identity, without changing the CLI."
+  ],
+  "boundaries": [
+    "No full dependency closure for templates, arguments hidden in flags, imports, shell expressions or arbitrary program reads. Explicit input declarations remain required.",
+    "Artifact checks cover explicit supported command shapes; they do not trace arbitrary test-driver imports or establish host trust.",
+    "The user-referenced cnb22_notification_test.go is not available in this workspace and was not modified or claimed reviewed.",
+    "pay_gateway isolated product E2E remains BLOCKED/NOT_RUN. Tool HTTP fixtures and SSR are not product evidence.",
+    "Browser visual/accessibility acceptance remains NOT_RUN; no alternative browser route was attempted.",
+    "No GitHub Actions, no new API/schema, no new external dependency installation, and no deletion of historical evidence."
+  ]
+}

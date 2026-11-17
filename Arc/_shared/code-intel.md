@@ -17,9 +17,9 @@ arc idx daemon status
   until then `symbol`/`ast` are unavailable.
 - `daemon_alive: false` → `arc idx daemon start` (`already running with pid N` is normal); dead
   `daemon_pid` → `arc idx daemon restart`.
-- Identity: `arc` is the only public command; `arc version` must print `arc 0.4.x`. Another
-  identity, an alias, a symlink or no `arc` is a broken install: report it. Never call the
-  private `libexec/arc` engines.
+- Identity: `arc version` must agree with capabilities `name: "arc"` and `version`; check
+  capability flags and engine availability, not a fixed minor version. Report mismatches or
+  missing engines. Only `arc` is public; never call private `libexec/arc` engines.
 - Repository root: nearest ancestor of the cwd (or `--repo <dir>`) holding `.ai-code-index/` or a
   `.git` directory; config `<root>/.ai-code-index/config.json`, else defaults (doctor
   `repo_root`). Child clone: `--repo <dir>` and `git -C <clone>`. A worktree or submodule has a

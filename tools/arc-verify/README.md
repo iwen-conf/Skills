@@ -250,6 +250,30 @@ register every fixture/runner before opening the round. A single card does not c
 `scan` input may carry `"commit"`; EXISTENCE obligations only accept scans bound to the round's
 candidate commit. Decisions marked USER need an interactive terminal; agents must not pipe them.
 
+### Command execution identity
+
+Runner registration freezes the executable bytes and declared `input_files`. Relative
+`input_files` are made absolute from the registration cwd. A relative executable containing
+a slash, such as `./driver.py`, requires an absolute `directory` at registration; it is
+resolved in that directory. A bare executable name is resolved through PATH and its selected
+path is made absolute before spawning the child. Fingerprinting and execution share these
+resolvers, including symlink resolution of the working directory.
+
+An omitted or relative `directory` is bound to the candidate `SourceRoot` when a round is
+created. At round admission and revalidation, every statically visible regular-file argument
+must refer to a declared `input_files` entry. Registration does not guess this root from the
+CLI cwd. The checks apply to setup, preparation, target actions, Oracles and recovery.
+
+Changed command code or frozen inputs block new execution and remove the old run's eligibility
+as current branch evidence. Historical verdicts and RAW stay intact; read-only revalidation
+does not repeat the target operation. Register changed inputs under a new Runner ID and open
+a new round. There is no database migration or historical evidence rewrite for these checks.
+
+This is not a dependency closure for arbitrary programs: files hidden inside flags, runtime
+template substitutions, shell expressions, imports or other dynamic reads still need explicit
+dependency declarations and separate verification. No command sandbox or independent host
+attestation is implied.
+
 ## Existing Arc skill integration
 
 No seventh top-level Arc skill is installed. The graph ledger is owned by
