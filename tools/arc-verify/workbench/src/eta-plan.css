@@ -1,0 +1,30 @@
+/* ETA-style read-only plan; states refer to independent observation, not business PASS. */
+.eta-plan-overview { padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--surface); margin:12px 0; }
+.eta-plan-summary { display:flex; gap:8px 16px; flex-wrap:wrap; align-items:baseline; }
+.eta-plan-summary strong { font-size:16px; font-variant-numeric:tabular-nums; }
+.eta-plan-summary span { font-size:12px; color:var(--muted); }
+.eta-plan-overview p { margin:8px 0 10px; font-size:11px; color:var(--muted); }
+.eta-plan-controls { display:flex; gap:8px; flex-wrap:wrap; }
+.eta-plan-controls input,.eta-plan-controls select { min-width:0; max-width:100%; flex:1 1 180px; border:1px solid var(--line); border-radius:6px; padding:7px 10px; font:inherit; background:var(--surface); }
+.eta-plan-critical { padding:12px; margin:12px 0; border:1px solid var(--line); border-radius:8px; }
+.eta-plan-critical h3 { font-size:13px; margin:0 0 5px; }
+.eta-plan-critical p { font-size:11px; color:var(--muted); }
+.eta-plan-critical ol { display:flex; flex-wrap:wrap; gap:6px; list-style:none; margin:9px 0 0; padding:0; }
+.eta-plan-critical li:not(:first-child)::before { content:"→"; margin-right:7px; color:var(--muted); }
+.eta-plan-critical button { border:1px solid var(--line); padding:5px 8px; font-size:11px; border-radius:6px; }
+.eta-plan-critical button[data-attention="true"] { border-color:var(--warning); background:var(--soft); font-weight:700; }
+.eta-plan-group-progress { display:flex; align-items:center; flex-wrap:wrap; gap:7px; padding:8px 14px; color:var(--muted); font-size:11px; }
+.eta-plan-group-progress progress { width:130px; max-width:40%; height:7px; accent-color:var(--accent); }
+.dependency-plan-node[data-proof-state="BLOCKED"] { border-left:3px solid var(--warning); }
+.dependency-plan-node[data-proof-state="MISMATCH"] { border-left:3px solid var(--fail); }
+.dependency-plan-node[data-plan-critical="true"] { outline:1px solid var(--muted); outline-offset:-2px; }
+.eta-plan-waits,.eta-plan-releases { display:block; padding:0 12px 8px; color:var(--muted); font-size:10px; }
+.eta-plan-empty { margin:12px 0; padding:12px; border:1px dashed var(--line); border-radius:8px; }
+@media (max-width:760px) {
+  .eta-plan-controls { display:grid; grid-template-columns:1fr; }
+  .eta-plan-controls input,.eta-plan-controls select { width:100%; }
+  .eta-plan-critical ol { flex-direction:column; align-items:stretch; gap:4px; }
+  .eta-plan-critical li:not(:first-child)::before { content:"↓"; display:block; margin:0 0 4px 8px; }
+  .eta-plan-critical button { width:100%; min-height:44px; text-align:left; }
+  .eta-plan-group-progress progress { flex:1; max-width:none; }
+}
