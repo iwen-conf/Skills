@@ -608,3 +608,17 @@
 .lineage-node-input_data strong{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
 .lineage-node-expected strong{white-space:normal;line-height:1.4}
 .react-flow__minimap{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+
+/* Information architecture: data -> preparation -> constraints -> action -> proof. */
+.genealogy-route{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:12px 0 16px}
+.genealogy-route-stage{min-width:0;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 8px;border:1px solid var(--line);border-radius:10px;background:var(--canvas)}
+.genealogy-route-stage strong{font-size:18px;font-variant-numeric:tabular-nums;color:var(--text)}
+.genealogy-route-stage span{font-size:12px;color:var(--muted);white-space:nowrap}
+.genealogy-route-stage:first-child{border-top:3px solid var(--accent)}
+.genealogy-route-stage:last-child{border-top:3px solid var(--pass)}
+.lineage-node{border-radius:12px;padding:14px 16px;box-shadow:0 3px 16px rgba(15,23,42,.06)}
+.lineage-node-target{box-shadow:0 0 0 3px var(--accent-soft)}
+.lineage-node-input_data,.lineage-node-assertion,.lineage-node-invariant{background:var(--surface)}
+.lineage-node-assertion,.lineage-node-invariant{border-left:3px solid var(--pass)}
+@media(max-width:850px){.genealogy-route{grid-template-columns:repeat(3,minmax(0,1fr))}.genealogy-route-stage{flex-direction:column;gap:2px}.genealogy-route-stage span{font-size:10px}}
+@media(max-width:480px){.genealogy-route{grid-template-columns:repeat(2,minmax(0,1fr))}}

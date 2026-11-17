@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Background, BaseEdge, Controls, MiniMap, MarkerType, Position, ReactFlow } from "@xyflow/react";
+import { Background, BaseEdge, Controls, MarkerType, Position, ReactFlow } from "@xyflow/react";
 import type { Edge, EdgeProps, Node } from "@xyflow/react";
 import { analyzeDirected, layoutDirected, neighborhood } from "./layout";
 import type { CanvasEdge, CanvasGraph, CanvasNode } from "./graph-model";
@@ -302,8 +302,25 @@ export default function GraphCanvas({
     if (edge.branch) dispatch({ type: "branch", value: edge.branch });
     else if (edge.action) dispatch({ type: "node", value: edge.action });
   };
+  const semanticStages = [
+    { label: "前置数据", kinds: ["input_data"] },
+    { label: "准备动作", kinds: ["preparation"] },
+    { label: "约束与前态", kinds: ["state", "condition", "logic"] },
+    { label: "业务操作", kinds: ["target"] },
+    { label: "执行后核验", kinds: ["expected", "assertion", "invariant"] },
+  ];
   return (
     <>
+      {dependencyGraph && graph.lineage?.graph && (
+        <div className="genealogy-route" aria-label="数据至结果的五层系谱">
+          {semanticStages.map((stage) => (
+            <div className="genealogy-route-stage" key={stage.label}>
+              <strong>{graph.nodes.filter((node) => stage.kinds.includes(node.kind)).length}</strong>
+              <span>{stage.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <p className="canvas-caption">{graph.caption}</p>
       {selection.canvas === "states" && graph.stateOverlay && (
         <div className="state-path-legend" aria-label="预期与实际路径图例">
@@ -419,7 +436,6 @@ export default function GraphCanvas({
           >
             <Background gap={24} size={1} />
             <Controls showInteractive={false} />
-            {dependencyGraph && MiniMap && <MiniMap pannable zoomable nodeStrokeWidth={2} />}
           </ReactFlow>
         </div>
       ) : (
