@@ -133,6 +133,20 @@ describe("typed business state graph", () => {
     expect(html).toContain("ready");
   });
 
+  it("isolates the chosen branch without reviving other branches as legacy states", () => {
+    const snapshot = typedBranchStateSnapshot();
+    const selection = {
+      ...initialSelection(snapshot.meta.graph),
+      branch: "accept",
+      flow: "flow.enrollment",
+    };
+    const graph = graphFor(snapshot, selection, branchOptions(snapshot));
+    expect(graph.edges.every((edge) => edge.branch === "accept")).toBe(true);
+    expect(graph.edges.some((edge) => edge.legacy)).toBe(false);
+    expect(graph.nodes.some((node) => node.id === "pending")).toBe(true);
+    expect(graph.nodes.some((node) => node.id === "ready")).toBe(true);
+  });
+
   it("keeps each declared prestate for UNCHANGED and does not choose a default prestate", () => {
     const snapshot = typedBranchStateSnapshot();
     const branch = snapshot.model.data.business_contract!.branches[1];

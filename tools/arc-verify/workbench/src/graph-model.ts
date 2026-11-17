@@ -136,8 +136,11 @@ export function graphFor(
       .map((edge) => edge.to),
   );
   const scopedBranches = branches.filter(
-    (branch) => branch.contract && branchAppliesToFlow(branch, state.flow),
+    (branch) =>
+      branch.contract && branchAppliesToFlow(branch, state.flow) &&
+      (!state.branch || branch.id === state.branch),
   );
+  const selectedBranchScoped = Boolean(state.branch && scopedBranches.length);
   const declaredEdges: CanvasEdge[] = [];
   const resultNodes = new Map<string, CanvasNode>();
   for (const { contract: branch } of scopedBranches) {
@@ -184,11 +187,14 @@ export function graphFor(
   );
   const transitions = (model.transitions ?? []).filter(
     (transition) =>
-      !state.flow || explicitTransitions.has(transition.edge) || flowActions.has(transition.action),
+      selectedBranchScoped
+        ? explicitTransitions.has(transition.edge)
+        : !state.flow || explicitTransitions.has(transition.edge) || flowActions.has(transition.action),
   );
   const transitionIds = new Set(transitions.map((transition) => transition.edge));
   const legacyEdges: CanvasEdge[] = model.edges
-    .filter((edge) => edge.kind === "transitions_to" && (!state.flow || transitionIds.has(edge.id)))
+    .filter((edge) => !selectedBranchScoped && edge.kind === "transitions_to" &&
+      (!state.flow || transitionIds.has(edge.id)))
     .filter((edge) => {
       const transition = transitions.find((item) => item.edge === edge.id);
       // Expected owns every covered action/prestate pair. An old edge cannot add
@@ -213,9 +219,10 @@ export function graphFor(
     });
   const edges = [...declaredEdges, ...legacyEdges].sort((a, b) => a.id.localeCompare(b.id));
   const ids = new Set(edges.flatMap((edge) => [edge.from, edge.to]));
-  if (flow?.initial) ids.add(flow.initial);
+  if (flow?.initial && !selectedBranchScoped) ids.add(flow.initial);
   const nodes: CanvasNode[] = model.nodes
-    .filter((node) => node.kind === "state" && (ids.has(node.id) || !state.flow))
+    .filter((node) => node.kind === "state" &&
+      (ids.has(node.id) || (!state.flow && !selectedBranchScoped)))
     .map((node) => ({ ...node, subject: node.id, detail: node.id }));
   nodes.push(...resultNodes.values());
   return withObservedStatePath(
