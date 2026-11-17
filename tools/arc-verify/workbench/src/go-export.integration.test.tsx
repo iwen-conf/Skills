@@ -13,6 +13,8 @@ import { actorsOf, branchOptions, factsOf, selectionContext } from "./explorer-m
 import { graphFor } from "./graph-model";
 import { analyzeDirected } from "./layout";
 import { occurrenceKey } from "./lineage";
+import { buildDependencyMap } from "./lineage-map";
+import { buildLineageBlockers } from "./lineage-blockers";
 import { entityKey } from "./facts";
 import type { UnifiedStepFact } from "./facts";
 import { initialSelection, reduceSelection } from "./selection";
@@ -115,6 +117,11 @@ function validateExport(path: string) {
     const campaignReports: Record<string, unknown>[] = [];
     const lineageReports: Record<string, unknown>[] = [];
     const lineageScopeReports: Record<string, unknown>[] = [];
+    const blockerReports: Record<string, unknown>[] = [];
+    const statePathReports: Record<string, unknown>[] = [];
+    let observedSelections = 0;
+    let observedEntitySelections = 0;
+    let blockedPreparationsWithoutTarget = 0;
     const render = (selection: Selection, representative?: string) => {
       const html = renderToStaticMarkup(<App state={{ snapshot }} initialContext={selection} />);
       for (const label of ["能力树与分支导航", "分支与事实面板", "执行轨迹", "离线只读快照"])
@@ -143,15 +150,130 @@ function validateExport(path: string) {
       return selection;
     };
 
+    const sharedMap = buildDependencyMap(snapshot);
+    let sharedMapReport: Record<string, unknown> = { status: "NOT_PRESENT" };
+    if (snapshot.business_lineage?.branches.length) {
+      expect(sharedMap.status, sharedMap.reason).toBe("READY");
+      const selected = reduce(initialSelection(snapshot.meta.graph), {
+        type: "dependencyScope",
+        value: "model",
+      });
+      const graph = graphFor(snapshot, selected, branchOptions(snapshot));
+      expect(graph).toEqual(sharedMap.graph);
+      expect(graph.stateOverlay).toBeUndefined();
+      expect(graph.lineage).toBeUndefined();
+      expect(graph.nodes.every((node) => node.status === "NOT_OBSERVED" && !node.actual)).toBe(
+        true,
+      );
+      expect(graph.edges.every((edge) => !edge.actual && edge.kind !== "actual_transition")).toBe(
+        true,
+      );
+      const projectedBySource = new Map<string, string>();
+      for (const [id, members] of sharedMap.members) {
+        expect(graph.nodes.some((node) => node.id === id)).toBe(true);
+        expect(members.length).toBeGreaterThan(0);
+        for (const member of members) {
+          const key = JSON.stringify([member.branch, member.node]);
+          expect(projectedBySource.has(key), "an original node has exactly one projection").toBe(
+            false,
+          );
+          projectedBySource.set(key, id);
+          const original = snapshot.business_lineage.branches
+            .find((branch) => branch.branch === member.branch)
+            ?.nodes.find((node) => node.id === member.node);
+          expect(member.declaration, "a shared member retains its exact declaration").toEqual(
+            original,
+          );
+          expect(member.source_ref).toBe(original?.source_ref);
+        }
+      }
+      const edgeSources: string[] = [];
+      for (const [id, members] of sharedMap.edgeMembers) {
+        const edge = graph.edges.find((item) => item.id === id)!;
+        expect(edge).toBeDefined();
+        expect(members.length).toBeGreaterThan(0);
+        for (const member of members) {
+          const original = snapshot.business_lineage.branches
+            .find((branch) => branch.branch === member.branch)
+            ?.edges.find((item) => item.id === member.edge);
+          expect(original).toBeDefined();
+          expect(member.declaration).toEqual(original);
+          expect(member.source_ref).toBe(original!.source_ref);
+          expect(edge.kind).toBe(original!.kind);
+          expect(edge.from).toBe(
+            projectedBySource.get(JSON.stringify([member.branch, original!.from])),
+          );
+          expect(edge.to).toBe(
+            projectedBySource.get(JSON.stringify([member.branch, original!.to])),
+          );
+          if (original!.alternative) expect(edge.alternative).toBe(true);
+          edgeSources.push(JSON.stringify([member.branch, member.edge]));
+        }
+      }
+      expect([...projectedBySource.keys()].sort()).toEqual(
+        snapshot.business_lineage.branches
+          .flatMap((branch) => branch.nodes.map((node) => JSON.stringify([branch.branch, node.id])))
+          .sort(),
+      );
+      expect(edgeSources.sort()).toEqual(
+        snapshot.business_lineage.branches
+          .flatMap((branch) => branch.edges.map((edge) => JSON.stringify([branch.branch, edge.id])))
+          .sort(),
+      );
+      expect(graph.groups!.flatMap((group) => group.members).sort()).toEqual(
+        graph.nodes.map((node) => node.id).sort(),
+      );
+      const html = render(selected, "Shared dependency model");
+      visible(html, "共享依赖与影响分支", "global dependency inspector");
+      visible(html, "未叠加任何运行结果", "declarations do not borrow Actual");
+      for (const group of graph.groups!) {
+        visible(html, group.label, "declared capability grouping");
+        expect(html).toContain(`data-plan-group="${escaped(group.id)}"`);
+        for (const id of group.members) expect(html).toContain(`data-plan-node="${escaped(id)}"`);
+      }
+      const shared = [...sharedMap.members].filter(([, members]) => members.length > 1);
+      for (const [id, members] of shared) {
+        const nodeHTML = render(
+          reduce(selected, { type: "lineage", value: id }),
+          pages.has("Shared dependency provenance") ? undefined : "Shared dependency provenance",
+        );
+        visible(nodeHTML, "原始分支节点与规则来源", "expandable source provenance");
+        for (const member of members) {
+          visible(nodeHTML, member.branch, "shared node source branch");
+          visible(nodeHTML, member.node, "shared node original identity");
+          visible(nodeHTML, member.source_ref, "shared node rule source");
+        }
+      }
+      const analysis = analyzeDirected(graph.nodes, graph.edges);
+      expect(analysis.cycles).toEqual([]);
+      sharedMapReport = {
+        status: "EXERCISED",
+        branches: snapshot.business_lineage.branches.length,
+        nodes: graph.nodes.length,
+        original_nodes: projectedBySource.size,
+        shared_nodes: shared.length,
+        edges: graph.edges.length,
+        original_edges: edgeSources.length,
+        groups: graph.groups,
+        source_members_preserved: true,
+        source_relations_preserved: true,
+        actual_occurrences: 0,
+      };
+    }
+
     for (const lineage of snapshot.business_lineage?.branches ?? []) {
       let selected = reduce(initialSelection(snapshot.meta.graph), {
         type: "branch",
         value: lineage.branch,
       });
       selected = reduce(selected, { type: "canvas", value: "dependencies" });
+      expect(selected.dependencyScope).toBe("branch");
       const graph = graphFor(snapshot, selected, branchOptions(snapshot));
+      expect(graph.lineage?.graph).toBe(lineage);
       expect(graph.nodes.map((node) => node.id)).toEqual(lineage.nodes.map((node) => node.id));
       expect(graph.nodes.every((node) => node.status === "NOT_OBSERVED")).toBe(true);
+      expect(graph.groups).toBeUndefined();
+      expect(buildLineageBlockers(graph.lineage!).status).toBe("UNOBSERVED");
       const analysis = analyzeDirected(graph.nodes, graph.edges);
       const html = render(selected, pages.has("Model genealogy") ? undefined : "Model genealogy");
       visible(html, "依赖系谱分层目录", "complete dependency directory");
@@ -165,6 +287,7 @@ function validateExport(path: string) {
         candidate_providers: graph.edges.filter((edge) => edge.kind === "candidate_provider")
           .length,
         observed_nodes: 0,
+        explicit_branch_scope: selected.dependencyScope,
         dense_directory_default: graph.nodes.length > 16,
       });
     }
@@ -310,6 +433,26 @@ function validateExport(path: string) {
         }
         if (overlay.phase === "preparation")
           expect(graph.nodes.some((node) => node.status === "READY")).toBe(false);
+        const blockers = buildLineageBlockers(graph.lineage!);
+        expect(blockers.scope).toMatchObject({
+          branch: overlay.branch,
+          run: overlay.run,
+          step: overlay.step,
+          actor: overlay.actor,
+          action_index: overlay.action_index,
+          phase: overlay.phase,
+        });
+        if (overlay.diagnostic) {
+          expect(blockers.status).toBe("DIAGNOSTIC");
+          expect(blockers.issues.length).toBeGreaterThan(0);
+          visible(html, blockers.reason, "evidence blockage remains explicit");
+        }
+        blockerReports.push({
+          ...blockers.scope,
+          status: blockers.status,
+          reason: blockers.reason,
+          issues: blockers.issues,
+        });
         lineageScopeReports.push({
           run: run.trace.run,
           branch: overlay.branch,
@@ -324,6 +467,160 @@ function validateExport(path: string) {
           nodes: overlay.nodes.length,
         });
       }
+      let stateSelection = selectRun(run.trace.run);
+      stateSelection = reduce(stateSelection, { type: "canvas", value: "states" });
+      const expectedGraph = graphFor(snapshot, stateSelection, branchOptions(snapshot));
+      const stateGraph = graphFor(snapshot, stateSelection, branchOptions(snapshot), run);
+      expect(stateGraph.stateOverlay).toBeDefined();
+      expect(stateGraph.edges.filter((edge) => !edge.actual)).toEqual(expectedGraph.edges);
+      const actualEdges = stateGraph.edges.filter((edge) => edge.kind === "actual_transition");
+      expect(actualEdges.map((edge) => edge.actual)).toEqual(stateGraph.stateOverlay!.occurrences);
+      const sourceActions = facts.flatMap((fact) =>
+        fact.seq > 0
+          ? (fact.business_expectations ?? [])
+              .filter(
+                (item) =>
+                  !stateSelection.flow ||
+                  !item.decision.frozen?.flow ||
+                  item.decision.frozen.flow === stateSelection.flow,
+              )
+              .map((item) => ({ fact, item }))
+          : [],
+      );
+      const recordedStates = sourceActions.filter(
+        ({ fact, item }) =>
+          run.evidence_status === "PASS" &&
+          fact.evidence_status === "PASS" &&
+          item.decision.frozen?.before.state &&
+          item.after?.state &&
+          item.comparison,
+      );
+      for (const { fact, item } of recordedStates) {
+        const matching = actualEdges.filter(
+          (edge) =>
+            edge.actual?.step === String(fact.seq) &&
+            edge.actual.actor === item.actor &&
+            edge.actual.action_index === item.action_index,
+        );
+        expect(matching, JSON.stringify(stateGraph.stateOverlay!.diagnostics)).toHaveLength(1);
+      }
+      for (const edge of actualEdges) {
+        const actual = edge.actual!;
+        const sources = sourceActions.filter(
+          ({ fact, item }) =>
+            String(fact.seq) === actual.step &&
+            item.actor === actual.actor &&
+            item.action_index === actual.action_index,
+        );
+        expect(sources, "Actual is backed by one scoped action in this run").toHaveLength(1);
+        const { fact, item } = sources[0];
+        const frozen = item.decision.frozen!;
+        expect(actual).toMatchObject({
+          run: run.trace.run,
+          step: String(fact.seq),
+          actor: item.actor,
+          action_index: item.action_index,
+          branch: frozen.branch,
+          action: frozen.action,
+          from_state: frozen.before.state,
+          to_state: item.after!.state,
+          evidence_sha256: fact.evidence_sha256,
+        });
+        expect(actual.occurrence).toBe(
+          JSON.stringify([
+            run.trace.run,
+            fact.seq,
+            item.actor,
+            item.action_index,
+            "before",
+            frozen.branch,
+            null,
+          ]),
+        );
+        expect(stateGraph.nodes.find((node) => node.id === edge.from)?.subject).toBe(
+          frozen.before.state,
+        );
+        expect(stateGraph.nodes.find((node) => node.id === edge.to)?.subject).toBe(
+          item.after!.state,
+        );
+        if (fact.verdict === "PASS") expect(actual.verdict).toBe(item.comparison!.status);
+        if (item.comparison!.status === "FAIL") expect(actual.verdict).toBe("FAIL");
+        const selected = reduce(stateSelection, { type: "observed", value: actual });
+        expect(selected).toMatchObject({
+          model: snapshot.meta.graph,
+          environment: run.environment,
+          run: run.trace.run,
+          step: String(fact.seq),
+          actor: item.actor,
+          branch: frozen.branch,
+          node: frozen.action,
+          occurrence: actual.occurrence,
+          canvas: "states",
+          dependencyScope: "branch",
+        });
+        const actualHTML = render(selected, `Actual state path ${run.trace.run}`);
+        visible(actualHTML, "本次运行的实际状态路径", "observed state path inspector");
+        visible(actualHTML, frozen.sha256, "selected immutable Expected");
+        visible(
+          actualHTML,
+          `${frozen.before.state} → ${item.after!.state}`,
+          "independent Actual path",
+        );
+        visible(actualHTML, `${run.trace.run} / 第 ${fact.seq} 步`, "selected step identity");
+        observedSelections++;
+        for (const entity of fact.before_entities ?? []) {
+          if (frozen.before.bindings?.[entity.alias] !== entity.id) continue;
+          const key = entityKey(entity);
+          expect(actual.entity_keys).toContain(key);
+          const scoped = reduce(selected, { type: "entity", value: key });
+          const located = reduce(scoped, { type: "observed", value: actual });
+          expect(located.entity, "an observed edge preserves full entity identity").toBe(key);
+          expect(located.occurrence).toBe(actual.occurrence);
+          const graph = graphFor(snapshot, located, branchOptions(snapshot), run);
+          expect(graph.stateOverlay!.occurrences.some((item) => item.id === actual.id)).toBe(true);
+          observedEntitySelections++;
+        }
+        for (const other of snapshot.runs.filter((item) => item.trace.run !== run.trace.run)) {
+          const otherSelection = selectRun(other.trace.run);
+          expect(reduce(otherSelection, { type: "observed", value: actual })).toEqual(
+            otherSelection,
+          );
+        }
+      }
+      const blockedPreparation = preparations.some(
+        (preparation) => preparation.status === "BLOCKED",
+      );
+      if (blockedPreparation && !facts.some((fact) => fact.seq > 0)) {
+        expect(actualEdges).toEqual([]);
+        expect(stateGraph.nodes.some((node) => node.actual)).toBe(false);
+        expect(stateGraph.stateOverlay!.diagnostics.length).toBeGreaterThan(0);
+        const diagnosticHTML = render(stateSelection, `Blocked target ${run.trace.run}`);
+        for (const diagnostic of stateGraph.stateOverlay!.diagnostics)
+          visible(
+            diagnosticHTML,
+            diagnostic.reason,
+            "blocked preparation creates no target Actual",
+          );
+        blockedPreparationsWithoutTarget++;
+      }
+      if (snapshot.business_lineage?.branches.length) {
+        const globalSelection = reduce(stateSelection, { type: "dependencyScope", value: "model" });
+        const globalGraph = graphFor(snapshot, globalSelection, branchOptions(snapshot), run);
+        expect(globalGraph).toEqual(sharedMap.graph);
+        expect(globalGraph.stateOverlay).toBeUndefined();
+        expect(globalGraph.nodes.some((node) => node.actual || node.reading)).toBe(false);
+        const globalHTML = render(globalSelection);
+        visible(globalHTML, "未叠加任何运行结果", "global declaration view with a selected run");
+      }
+      statePathReports.push({
+        run: run.trace.run,
+        source_state_observations: recordedStates.length,
+        actual_edges: actualEdges.length,
+        expected_edges_unchanged: true,
+        occurrences: stateGraph.stateOverlay!.occurrences,
+        diagnostics: stateGraph.stateOverlay!.diagnostics,
+        blocked_preparation: blockedPreparation,
+      });
       if (run.trace.recovery?.mode === "checkpoint") {
         visible(html, "现场检查点", "checkpoint boundary");
         visible(html, "不表示环境已恢复", "checkpoint is not restore");
@@ -508,9 +805,18 @@ function validateExport(path: string) {
           assets_match_current_dist: assetsMatch,
           genealogy: {
             model_only: snapshot.runs.length === 0,
+            shared_model: sharedMapReport,
             branches: lineageReports,
             observed_occurrences: lineageScopeReports,
+            blocker_diagnostics: blockerReports,
             business_execution_claim: "NOT_INFERRED_FROM_FRONTEND_VALIDATION",
+          },
+          state_paths: {
+            status: statePathReports.length ? "EXERCISED" : "NOT_PRESENT",
+            runs: statePathReports,
+            observed_selections: observedSelections,
+            exact_entity_selections: observedEntitySelections,
+            blocked_preparations_without_target: blockedPreparationsWithoutTarget,
           },
           preparation: {
             status: preparationRuns ? "EXERCISED" : "NOT_PRESENT",

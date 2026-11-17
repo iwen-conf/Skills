@@ -11,7 +11,13 @@ import {
 import type { BranchOption } from "./explorer-model";
 import { entityKey, factEntities } from "./facts";
 import LineagePanel from "./LineagePanel";
-import { lineageSelection } from "./lineage";
+import { lineageSelection, occurrenceKey } from "./lineage";
+import {
+  stateFactDiagnostic,
+  stateOccurrenceDiagnostic,
+  stateOccurrenceEntityKeys,
+  stateOccurrenceVerdict,
+} from "./state-overlay-evidence";
 import type {
   ActionObservation,
   PreparationExecution,
@@ -326,12 +332,55 @@ export default function FactPanel({
     (item) => item.branch === branch?.id,
   );
   const executionScope = executionCoverageScope(snapshot, selection);
-  const atOccurrence = (item: { actor?: string; action_index?: number }) =>
-    !lineage?.graph ||
-    !selection.run ||
-    (lineage.overlay?.phase === "before" &&
-      item.actor === lineage.overlay.actor &&
-      (item.action_index ?? 0) === lineage.overlay.action_index);
+  const entityOccurrences = new Set(
+    selection.entity && run && fact
+      ? (fact.business_expectations ?? [])
+          .filter((item) => stateOccurrenceEntityKeys(run, fact, item).includes(selection.entity))
+          .map((item) => JSON.stringify([item.actor, item.action_index]))
+      : [],
+  );
+  const atEntity = (item: { actor?: string; action_index?: number }) =>
+    !selection.entity ||
+    entityOccurrences.has(JSON.stringify([item.actor, item.action_index ?? 0]));
+  const selectedOccurrences =
+    selection.occurrence && fact?.run === selection.run && String(fact.seq) === selection.step
+      ? (fact.business_expectations ?? []).filter((item) => {
+          const frozen = item.decision.frozen;
+          return (
+            frozen &&
+            atEntity(item) &&
+            (!selection.actor || item.actor === selection.actor) &&
+            (!selection.branch || frozen.branch === selection.branch) &&
+            occurrenceKey({
+              run: fact.run,
+              step: fact.seq,
+              actor: item.actor,
+              action_index: item.action_index,
+              phase: "before",
+              branch: frozen.branch,
+              evidence_status: fact.evidence_status ?? "LEGACY",
+              nodes: [],
+            }) === selection.occurrence
+          );
+        })
+      : [];
+  const selectedOccurrence = selectedOccurrences.length === 1 ? selectedOccurrences[0] : undefined;
+  const atOccurrence = (item: { actor?: string; action_index?: number }) => {
+    if (!atEntity(item)) return false;
+    if (selection.occurrence)
+      return (
+        selectedOccurrence !== undefined &&
+        item.actor === selectedOccurrence.actor &&
+        (item.action_index ?? 0) === selectedOccurrence.action_index
+      );
+    return (
+      !lineage?.graph ||
+      !selection.run ||
+      (lineage.overlay?.phase === "before" &&
+        item.actor === lineage.overlay.actor &&
+        (item.action_index ?? 0) === lineage.overlay.action_index)
+    );
+  };
   const decisions = (fact?.business_expectations ?? []).filter(
     (item) =>
       atOccurrence(item) &&
@@ -347,6 +396,8 @@ export default function FactPanel({
   const conditions = (fact?.conditions ?? []).filter(
     (item) =>
       !lineage?.graph &&
+      !selection.occurrence &&
+      !selection.entity &&
       (!selection.actor || !item.observer_actor || item.observer_actor === selection.actor),
   );
   const waits = (fact?.waits ?? []).filter(
@@ -378,14 +429,42 @@ export default function FactPanel({
   const account = identity?.account ?? (focusedActor === fact?.actor ? fact?.account : undefined);
   const principal =
     identity?.principal ?? (focusedActor === fact?.actor ? fact?.principal : undefined);
-  const actorDecision = selection.actor && decisions.length === 1 ? decisions[0] : undefined;
-  const canUseStepSummary = !selection.actor || selection.actor === fact?.actor;
+  const actorDecision =
+    (selection.actor || selection.entity || selection.occurrence) && decisions.length === 1
+      ? decisions[0]
+      : undefined;
+  const canUseStepSummary =
+    !selection.entity &&
+    !selection.occurrence &&
+    (!selection.actor || selection.actor === fact?.actor);
   const actionIndex = (value?: number) =>
     value ?? ((fact?.evidence_version ?? 0) >= 2 ? 0 : "历史身份未记录");
   const preparationFact = run?.facts?.find(
     (item) => item.run === run.trace.run && item.graph === snapshot.meta.graph && item.preparation,
   );
-  const factTrust = fact?.evidence_status ?? run?.evidence_status ?? "LEGACY";
+  const capturedFactDiagnostic =
+    run && fact && (fact.evidence_version ?? 0) >= 2
+      ? stateFactDiagnostic(snapshot, run, fact)
+      : undefined;
+  const decisionDiagnostics = new Map(
+    fact && (fact.evidence_version ?? 0) >= 2
+      ? decisions.flatMap((item) => {
+          if (!item.comparison) return [];
+          const reason = capturedFactDiagnostic || stateOccurrenceDiagnostic(snapshot, fact, item);
+          return reason ? [[item, reason] as const] : [];
+        })
+      : [],
+  );
+  const decisionVerdicts = new Map(
+    fact
+      ? decisions.flatMap((item) =>
+          item.comparison ? [[item, stateOccurrenceVerdict(fact, item)] as const] : [],
+        )
+      : [],
+  );
+  const factTrust = decisionDiagnostics.size
+    ? "BLOCKED"
+    : (fact?.evidence_status ?? run?.evidence_status ?? "LEGACY");
   return (
     <aside className="fact-panel" aria-label="分支与事实面板">
       <div className="panel-heading">
@@ -578,6 +657,11 @@ export default function FactPanel({
               步骤汇总 <Status value={fact?.verdict ?? trace?.verdict ?? "NOT_RUN"} /> 证据{" "}
               <Status value={factTrust} raw />
             </p>
+            {(selection.entity || selection.occurrence) && !decisions.length && (
+              <p className="notice">
+                当前实体或动作发生范围没有可准确关联的冻结事实；不展示其他动作的响应或独立回读。
+              </p>
+            )}
             {factTrust !== "PASS" && (
               <p className="notice">
                 {factTrust === "LEGACY"
@@ -587,7 +671,13 @@ export default function FactPanel({
             )}
             <div className="result-pair">
               <div>
-                <span>{selection.actor ? "当前主体冻结预期" : "步骤汇总预期"}</span>
+                <span>
+                  {selection.entity || selection.occurrence
+                    ? "当前选择冻结预期"
+                    : selection.actor
+                      ? "当前主体冻结预期"
+                      : "步骤汇总预期"}
+                </span>
                 <strong>
                   {actorDecision?.decision.frozen?.expected.outcomes
                     .map((outcome) => outcome.state ?? outcome.id)
@@ -597,7 +687,13 @@ export default function FactPanel({
                 </strong>
               </div>
               <div>
-                <span>{selection.actor ? "当前主体实际观察" : "步骤汇总观察"}</span>
+                <span>
+                  {selection.entity || selection.occurrence
+                    ? "当前选择实际观察"
+                    : selection.actor
+                      ? "当前主体实际观察"
+                      : "步骤汇总观察"}
+                </span>
                 <strong>
                   {actorDecision?.after?.state ||
                     (canUseStepSummary ? (fact?.observed_state ?? trace?.observed) : undefined) ||
@@ -700,9 +796,32 @@ export default function FactPanel({
           )}
           {item.comparison && (
             <>
-              <p className="panel-status">
-                <Status value={item.comparison.status} raw /> {item.comparison.reason}
-              </p>
+              {decisionDiagnostics.has(item) ? (
+                <>
+                  <p className="panel-status">
+                    展示证据 <Status value="BLOCKED" raw />
+                  </p>
+                  <p className="notice">{decisionDiagnostics.get(item)}</p>
+                  <p className="muted">
+                    原始记录 {item.comparison.status} · {item.comparison.reason}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="panel-status">
+                    <Status
+                      value={decisionVerdicts.get(item)?.verdict ?? item.comparison.status}
+                      raw
+                    />{" "}
+                    {decisionVerdicts.get(item)?.reason ?? item.comparison.reason}
+                  </p>
+                  {decisionVerdicts.get(item)?.verdict !== item.comparison.status && (
+                    <p className="muted">
+                      原始记录 {item.comparison.status} · {item.comparison.reason}
+                    </p>
+                  )}
+                </>
+              )}
               <p>实际匹配结果 {item.comparison.outcome || "未记录唯一结果身份"}</p>
               {item.comparison.unknown?.length ? (
                 <p className="notice">
@@ -954,7 +1073,9 @@ export default function FactPanel({
           </section>
           <section className="detail-section">
             <h3>
-              {lineage?.graph ? "步骤汇总断言 · 不替代所选发生记录" : "确定性断言"}{" "}
+              {lineage?.graph || selection.occurrence
+                ? "步骤汇总断言 · 不替代所选发生记录"
+                : "确定性断言"}{" "}
               <small>{fact.assertions?.length ?? 0}</small>
             </h3>
             {fact.assertions?.length ? (

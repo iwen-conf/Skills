@@ -1,11 +1,14 @@
 import { predicateText } from "./contract";
 import { lineageGraphFor } from "./lineage";
+import { buildDependencyMap } from "./lineage-map";
 import type { LineageSelection } from "./lineage";
 import type { BusinessLineageNode, BusinessLineageReading } from "./lineage-types";
 import { branchAppliesToFlow } from "./explorer-model";
 import type { BranchOption } from "./explorer-model";
 import type { Selection, SelectionStep } from "./selection";
 import type { BusinessNode, Relation, Snapshot, SnapshotRun } from "./types";
+import { withObservedStatePath } from "./state-overlay";
+import type { StateOverlay, StatePathOccurrence } from "./state-overlay";
 
 export interface CanvasNode extends BusinessNode {
   subject: string;
@@ -15,6 +18,7 @@ export interface CanvasNode extends BusinessNode {
   branch?: string;
   lineage?: BusinessLineageNode;
   reading?: BusinessLineageReading;
+  actual?: StatePathOccurrence;
 }
 export interface CanvasEdge extends Relation {
   label: string;
@@ -26,6 +30,7 @@ export interface CanvasEdge extends Relation {
   denied?: boolean;
   legacy?: boolean;
   alternative?: boolean;
+  actual?: StatePathOccurrence;
 }
 export interface CanvasGraph {
   nodes: CanvasNode[];
@@ -33,6 +38,8 @@ export interface CanvasGraph {
   empty: string;
   caption: string;
   lineage?: LineageSelection;
+  stateOverlay?: StateOverlay;
+  groups?: { id: string; label: string; members: string[] }[];
 }
 
 export function graphFor(
@@ -45,6 +52,12 @@ export function graphFor(
   const model = snapshot.model.data;
   const names = new Map(model.nodes.map((node) => [node.id, node.name]));
   if (state.canvas === "dependencies") {
+    if (
+      snapshot.business_lineage &&
+      (!state.branch || (state.dependencyScope && state.dependencyScope !== "branch"))
+    )
+      return buildDependencyMap(snapshot, state.dependencyScope === "model" ? "" : state.flow)
+        .graph;
     if (snapshot.business_lineage) return lineageGraphFor(snapshot, state, run);
     const preparations = model.business_contract?.preparation ?? [];
     return {
@@ -205,12 +218,17 @@ export function graphFor(
     .filter((node) => node.kind === "state" && (ids.has(node.id) || !state.flow))
     .map((node) => ({ ...node, subject: node.id, detail: node.id }));
   nodes.push(...resultNodes.values());
-  return {
-    nodes,
-    edges,
-    empty: "当前范围没有已声明的状态迁移。先选择流程，或补充有来源的状态与条件。",
-    caption: model.business_contract
-      ? "契约边按分支、前态和预期结果分别展示；允许结果集合仍属于同一分支。历史迁移以虚线单独标识，不补写契约。图不代表实际执行。"
-      : "历史状态迁移允许重试和恢复环；尚未声明确定性业务契约，不代表本次运行已满足。",
-  };
+  return withObservedStatePath(
+    {
+      nodes,
+      edges,
+      empty: "当前范围没有已声明的状态迁移。先选择流程，或补充有来源的状态与条件。",
+      caption: model.business_contract
+        ? "契约边按分支、前态和预期结果分别展示；允许结果集合仍属于同一分支。历史迁移以虚线单独标识，不补写契约。图不代表实际执行。"
+        : "历史状态迁移允许重试和恢复环；尚未声明确定性业务契约，不代表本次运行已满足。",
+    },
+    snapshot,
+    state,
+    run,
+  );
 }

@@ -1,10 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vite-plus/test";
 import App from "./App";
-import { selectionContext } from "./explorer-model";
+import { branchOptions, selectionContext } from "./explorer-model";
 import { entityKey } from "./facts";
 import { initialSelection, reduceSelection } from "./selection";
 import { readSnapshotText, SnapshotError } from "./snapshot";
+import { graphFor } from "./graph-model";
+import { mirrorRaw, recordedFixture } from "./state-overlay-fixtures";
 import { contractFixture } from "./test-fixtures";
 import type { Snapshot } from "./types";
 
@@ -204,26 +206,62 @@ describe("recorded scope and historical identity stay attached to displayed fact
   });
 
   it("shows backend unresolved alternatives without changing a proven action's PASS or inventing one outcome", () => {
-    const snapshot = contractFixture();
-    const record = snapshot.runs[0].facts![0].business_expectations![0];
+    const { snapshot, run, selection } = recordedFixture();
+    const fact = run.facts![0];
+    const record = fact.business_expectations![0];
+    const contract = snapshot.model.data.business_contract!;
+    const branch = contract.branches[0];
+    contract.subjects.push({
+      id: "provider",
+      kind: "external",
+      requires_binding: false,
+      attributes: [{ name: "unobserved_settlement", type: "boolean" }],
+    });
+    branch.expected = {
+      mode: "allowed_outcomes",
+      reason: "Synthetic allowed outcomes preserve an independently unobserved alternative",
+      outcomes: [
+        { ...branch.expected.outcomes[0], id: "known" },
+        {
+          id: "possible",
+          denied: false,
+          predicate: {
+            op: "eq",
+            left: { ref: { subject: "provider", attribute: "unobserved_settlement" } },
+            right: { literal: { type: "boolean", value: true } },
+          },
+        },
+      ],
+    };
+    record.decision.frozen!.expected = structuredClone(branch.expected);
     record.comparison = {
       status: "PASS",
       reason: "current-action-proved-with-unresolved-alternative",
       branch: "B-CREATE",
       outcome: "",
       checks: [
-        { outcome: "known", state_passed: true, predicate: { value: "TRUE" } },
+        {
+          outcome: "known",
+          state_passed: true,
+          denied_passed: true,
+          predicate: { value: "TRUE" },
+        },
         {
           outcome: "possible",
+          denied_passed: true,
           predicate: { value: "UNKNOWN", unknown: ["provider.unobserved_settlement"] },
         },
       ],
       unknown: ["provider.unobserved_settlement"],
       next_allowed: [],
     };
+    mirrorRaw(snapshot, run, fact);
+    const parsed = readFixture(snapshot);
+    const graph = graphFor(parsed, selection, branchOptions(parsed), parsed.runs[0]);
+    expect(graph.edges.find((edge) => edge.actual?.step === "1")?.actual?.verdict).toBe("PASS");
     const html = renderToStaticMarkup(
       <App
-        state={{ snapshot: readFixture(snapshot) }}
+        state={{ snapshot: parsed }}
         initialContext={{ branch: "B-CREATE", run: snapshot.runs[0].trace.run, step: "1" }}
       />,
     );

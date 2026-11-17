@@ -32,28 +32,42 @@ export function analyzeDirected(nodes: BusinessNode[], edges: Relation[]): Direc
   const stack: string[] = [];
   const active = new Set<string>();
   const components: string[][] = [];
-  const visit = (id: string) => {
+  const adjacency = new Map([...outgoing].map(([id, targets]) => [id, [...targets].sort(compare)]));
+  const frames: { id: string; next: number }[] = [];
+  const discover = (id: string) => {
     index.set(id, nextIndex);
     low.set(id, nextIndex++);
     stack.push(id);
     active.add(id);
-    for (const target of [...outgoing.get(id)!].sort(compare)) {
-      if (!index.has(target)) {
-        visit(target);
-        low.set(id, Math.min(low.get(id)!, low.get(target)!));
-      } else if (active.has(target)) low.set(id, Math.min(low.get(id)!, index.get(target)!));
-    }
-    if (low.get(id) !== index.get(id)) return;
-    const members: string[] = [];
-    let member: string;
-    do {
-      member = stack.pop()!;
-      active.delete(member);
-      members.push(member);
-    } while (member !== id);
-    components.push(members.sort(compare));
+    frames.push({ id, next: 0 });
   };
-  for (const id of ids) if (!index.has(id)) visit(id);
+  for (const root of ids) {
+    if (index.has(root)) continue;
+    discover(root);
+    while (frames.length) {
+      const frame = frames[frames.length - 1];
+      const targets = adjacency.get(frame.id)!;
+      if (frame.next < targets.length) {
+        const target = targets[frame.next++];
+        if (!index.has(target)) discover(target);
+        else if (active.has(target))
+          low.set(frame.id, Math.min(low.get(frame.id)!, index.get(target)!));
+        continue;
+      }
+      frames.pop();
+      const parent = frames[frames.length - 1];
+      if (parent) low.set(parent.id, Math.min(low.get(parent.id)!, low.get(frame.id)!));
+      if (low.get(frame.id) !== index.get(frame.id)) continue;
+      const members: string[] = [];
+      let member: string;
+      do {
+        member = stack.pop()!;
+        active.delete(member);
+        members.push(member);
+      } while (member !== frame.id);
+      components.push(members.sort(compare));
+    }
+  }
   components.sort((left, right) => compare(left[0], right[0]));
   const componentOf = new Map<string, number>();
   components.forEach((members, component) =>
@@ -73,9 +87,8 @@ export function analyzeDirected(nodes: BusinessNode[], edges: Relation[]): Direc
   const queue = indegree.flatMap((count, component) => (count === 0 ? [component] : []));
   const order: number[] = [];
   const depth = components.map(() => 0);
-  while (queue.length) {
-    queue.sort((left, right) => compare(components[left][0], components[right][0]));
-    const current = queue.shift()!;
+  for (let cursor = 0; cursor < queue.length; cursor++) {
+    const current = queue[cursor];
     order.push(current);
     for (const target of forward[current]) {
       depth[target] = Math.max(depth[target], depth[current] + 1);
@@ -83,11 +96,12 @@ export function analyzeDirected(nodes: BusinessNode[], edges: Relation[]): Direc
     }
   }
   const remaining = components.map(() => 0);
-  for (const current of [...order].reverse()) {
+  for (let cursor = order.length - 1; cursor >= 0; cursor--) {
+    const current = order[cursor];
     for (const target of forward[current])
       remaining[current] = Math.max(remaining[current], remaining[target] + 1);
   }
-  const longest = Math.max(0, ...depth);
+  const longest = depth.reduce((maximum, level) => Math.max(maximum, level), 0);
   const levels = new Map(ids.map((id) => [id, depth[componentOf.get(id)!]]));
   const criticalNodes = new Set(
     ids.filter((id) => {
@@ -105,9 +119,7 @@ export function analyzeDirected(nodes: BusinessNode[], edges: Relation[]): Direc
       .map((edge) => edge.id),
   );
   const cycles = components.filter(
-    (members) =>
-      members.length > 1 ||
-      relations.some((edge) => edge.from === members[0] && edge.to === members[0]),
+    (members) => members.length > 1 || outgoing.get(members[0])!.has(members[0]),
   );
   return { components, componentOf, cycles, levels, criticalNodes, criticalEdges };
 }
@@ -120,12 +132,17 @@ export function neighborhood(
 ): Set<string> {
   const result = new Set(selected ? [selected] : []);
   const pending = selected ? [selected] : [];
-  while (pending.length) {
-    const current = pending.shift()!;
-    for (const edge of edges) {
-      const from = direction === "downstream" ? edge.from : edge.to;
-      const to = direction === "downstream" ? edge.to : edge.from;
-      if (from === current && !result.has(to)) {
+  const adjacency = new Map<string, string[]>();
+  for (const edge of edges) {
+    const from = direction === "downstream" ? edge.from : edge.to;
+    const to = direction === "downstream" ? edge.to : edge.from;
+    const targets = adjacency.get(from);
+    if (targets) targets.push(to);
+    else adjacency.set(from, [to]);
+  }
+  for (let cursor = 0; cursor < pending.length; cursor++) {
+    for (const to of adjacency.get(pending[cursor]) ?? []) {
+      if (!result.has(to)) {
         result.add(to);
         pending.push(to);
       }
@@ -141,6 +158,9 @@ export function layoutDirected(
 ): PositionedNode[] {
   const sorted = [...nodes].sort(byID);
   const { levels } = analyzeDirected(sorted, edges);
+  const parents = new Map(sorted.map((node) => [node.id, [] as string[]]));
+  for (const edge of edges) if (parents.has(edge.from)) parents.get(edge.to)?.push(edge.from);
+  for (const upstream of parents.values()) upstream.sort(compare);
   const columns = new Map<number, BusinessNode[]>();
   for (const node of sorted) {
     const level = levels.get(node.id)!;
@@ -150,17 +170,23 @@ export function layoutDirected(
   // Stable barycentres reduce avoidable crossings without changing dependency depth.
   for (const level of [...columns.keys()].sort((a, b) => a - b)) {
     const column = columns.get(level)!;
-    const center = (id: string) => {
-      const parents = edges
-        .filter((edge) => edge.to === id && positions.has(edge.from))
-        .map((edge) => positions.get(edge.from)!);
-      return parents.length
-        ? parents.reduce((sum, value) => sum + value, 0) / parents.length
-        : Number.POSITIVE_INFINITY;
-    };
+    const centers = new Map(
+      column.map((node) => {
+        const rows = parents
+          .get(node.id)!
+          .filter((id) => positions.has(id))
+          .map((id) => positions.get(id)!);
+        return [
+          node.id,
+          rows.length
+            ? rows.reduce((sum, value) => sum + value, 0) / rows.length
+            : Number.POSITIVE_INFINITY,
+        ];
+      }),
+    );
     column.sort((a, b) => {
-      const left = center(a.id),
-        right = center(b.id);
+      const left = centers.get(a.id)!,
+        right = centers.get(b.id)!;
       return left === right ? compare(a.id, b.id) : left - right;
     });
     column.forEach((node, row) => positions.set(node.id, row));

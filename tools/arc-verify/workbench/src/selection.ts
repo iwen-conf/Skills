@@ -1,5 +1,15 @@
 export type CanvasMode = "dependencies" | "states" | "run";
-export type FocusMode = "all" | "upstream" | "downstream" | "critical";
+export type FocusMode = "all" | "upstream" | "downstream" | "critical" | "blocked";
+export type DependencyScope = "branch" | "flow" | "model";
+export interface ObservedSelection {
+  run: string;
+  step: string;
+  actor: string;
+  action_index: number;
+  branch: string;
+  occurrence: string;
+  entity_keys: string[];
+}
 export interface Selection {
   model: string;
   environment: string;
@@ -15,6 +25,7 @@ export interface Selection {
   occurrence?: string;
   canvas: CanvasMode;
   focus: FocusMode;
+  dependencyScope?: DependencyScope;
 }
 export interface SelectionStep {
   id: string;
@@ -76,7 +87,9 @@ export type SelectionAction =
       value: string;
     }
   | { type: "canvas"; value: CanvasMode }
-  | { type: "focus"; value: FocusMode };
+  | { type: "focus"; value: FocusMode }
+  | { type: "dependencyScope"; value: DependencyScope }
+  | { type: "observed"; value: ObservedSelection };
 
 export function initialSelection(model: string, environment = "", node = ""): Selection {
   return {
@@ -153,6 +166,7 @@ function atStep(state: Selection, step?: SelectionStep, context?: SelectionConte
     node: nodes ? (nodes.length === 1 ? nodes[0] : "") : (step?.node ?? state.node),
     branch: branch?.id ?? state.branch,
     flow: branch?.flow || state.flow,
+    dependencyScope: step ? "branch" : state.dependencyScope,
   };
 }
 
@@ -162,6 +176,54 @@ export function reduceSelection(
   action: SelectionAction,
   context: SelectionContext,
 ): Selection {
+  if (action.type === "dependencyScope")
+    return {
+      ...state,
+      dependencyScope: action.value,
+      canvas: "dependencies",
+      node: "",
+      focus: "all",
+    };
+  if (action.type === "observed") {
+    const value = action.value;
+    const run = matchingRuns(context, state).find((item) => item.id === value.run);
+    const step = run?.steps.find((item) => item.id === value.step);
+    const branch = context.branches.find((item) => item.id === value.branch);
+    const branches = step?.actorBranches?.[value.actor] ?? step?.branches ?? [];
+    const key = JSON.stringify([
+      value.run,
+      Number(value.step),
+      value.actor,
+      value.action_index,
+      "before",
+      value.branch,
+      null,
+    ]);
+    if (
+      value.run !== state.run ||
+      !step ||
+      !branch ||
+      !step.actors.includes(value.actor) ||
+      !branches.includes(value.branch) ||
+      !Number.isSafeInteger(value.action_index) ||
+      value.action_index < 0 ||
+      value.occurrence !== key ||
+      (state.entity && !value.entity_keys.includes(state.entity))
+    )
+      return state;
+    return {
+      ...state,
+      step: step.id,
+      actor: value.actor,
+      branch: branch.id,
+      flow: branch.flow || state.flow,
+      node: branch.action,
+      occurrence: value.occurrence,
+      canvas: "states",
+      focus: "all",
+      dependencyScope: "branch",
+    };
+  }
   if (action.type === "lineage") return { ...state, node: action.value };
   if (action.type === "occurrence") return { ...state, occurrence: action.value };
   if (action.type === "model")
@@ -181,6 +243,7 @@ export function reduceSelection(
       branch: "",
       node: "",
       focus: "all",
+      dependencyScope: "flow",
     };
   if (action.type === "campaign") {
     if (!action.value)
@@ -211,6 +274,7 @@ export function reduceSelection(
       flow: campaign.flow,
       node: branch.action,
       focus: "all",
+      dependencyScope: "branch",
     };
   }
   if (action.type === "visit") {
@@ -225,7 +289,8 @@ export function reduceSelection(
     return reduceSelection(selectedVariant, { type: "run", value: visit.run }, context);
   }
   if (action.type === "branch") {
-    if (!action.value) return { ...clearedRun(state), branch: "", variant: "", node: "" };
+    if (!action.value)
+      return { ...clearedRun(state), branch: "", variant: "", node: "", dependencyScope: "flow" };
     const branch = context.branches.find((item) => item.id === action.value);
     if (!branch) return state;
     return {
@@ -235,6 +300,7 @@ export function reduceSelection(
       flow: branch.flow || state.flow,
       node: branch.action,
       focus: "all",
+      dependencyScope: "branch",
     };
   }
   if (action.type === "run") {
@@ -262,10 +328,14 @@ export function reduceSelection(
     return {
       ...state,
       canvas: action.value,
-      focus: state.focus === "critical" && action.value !== "dependencies" ? "all" : state.focus,
+      focus:
+        (state.focus === "critical" || state.focus === "blocked") && action.value !== "dependencies"
+          ? "all"
+          : state.focus,
     };
   if (action.type === "focus")
-    return action.value === "critical" && state.canvas !== "dependencies"
+    return (action.value === "critical" || action.value === "blocked") &&
+      state.canvas !== "dependencies"
       ? state
       : { ...state, focus: action.value };
   const run = matchingRuns(context, state).find((item) => item.id === state.run);

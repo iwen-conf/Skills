@@ -228,6 +228,12 @@ The workbench consumes this projection instead of drawing every preparation as a
 Provider alternatives and OR choices remain alternatives; state-machine cycles never become
 preparation dependencies. Run overlays are scoped by step, actor and action occurrence, with
 sources from the frozen before observation. Missing or damaged evidence never becomes satisfied.
+The all-model/current-flow map shares only equivalent declarations with retained provenance;
+compact capability groups expose cross-group upstream/downstream links and a vertical narrow
+layout. The branch view explains scoped AND/OR/NOT blockers separately from the structural
+required chain. The state view adds independent Actual before/after edges with exact action and
+entity identities, preserving deviations and model-external states. Clicking an occurrence also
+scopes the fact inspector; aggregate step assertions remain clearly labeled as aggregates.
 See the [wire contract](../../docs/02-API记录/arc-verify-snapshot.md) and
 [pay_gateway model-only export](examples/pay-gateway/README.md#0-没有支付环境时先生成可审阅的业务系谱).
 

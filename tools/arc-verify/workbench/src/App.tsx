@@ -10,7 +10,10 @@ import { entityKey, factEntities } from "./facts";
 import FactPanel from "./FactPanel";
 import { CampaignTrail } from "./CampaignViews";
 import GraphCanvas from "./GraphCanvas";
+import DependencyInspector, { LineageBlockerPanel } from "./DependencyInspector";
 import { graphFor } from "./graph-model";
+import { buildDependencyMap } from "./lineage-map";
+import { buildLineageBlockers } from "./lineage-blockers";
 import { occurrenceKey, occurrenceLabel } from "./lineage";
 import { initialSelection, matchingRuns, matchesStep, reduceSelection } from "./selection";
 import type { Selection, SelectionAction, SelectionContext } from "./selection";
@@ -113,6 +116,7 @@ function initialize(
   }
   if (initial.canvas) state.canvas = initial.canvas;
   if (initial.focus) state.focus = initial.focus;
+  if (initial.dependencyScope) state.dependencyScope = initial.dependencyScope;
   return state;
 }
 
@@ -161,13 +165,6 @@ function Workbench({
   const trace =
     run && currentStep ? run.trace.steps.find((item) => item.step === currentStep.id) : undefined;
   const branch = branches.find((item) => item.id === selection.branch);
-  const graph = graphFor(
-    snapshot,
-    selection,
-    branches,
-    run,
-    stepContexts.filter((item) => matchesStep(item, selection)),
-  );
   const actorIDs = [...new Set(stepContexts.flatMap((step) => step.actors))];
   const entities = [
     ...new Map(
@@ -203,6 +200,41 @@ function Workbench({
           .toLowerCase()
           .includes(search.toLowerCase())),
   );
+  const dependencyScope =
+    selection.dependencyScope ?? (selection.branch ? "branch" : selection.flow ? "flow" : "model");
+  const dependencyMap =
+    snapshot.business_lineage &&
+    selection.canvas === "dependencies" &&
+    (!selection.branch || dependencyScope !== "branch")
+      ? buildDependencyMap(
+          snapshot,
+          dependencyScope === "model" ? "" : selection.flow,
+          treeRoot
+            ? branches.filter((item) => reachable.has(item.action)).map((item) => item.id)
+            : undefined,
+        )
+      : undefined;
+  const graph =
+    dependencyMap?.graph ??
+    graphFor(
+      snapshot,
+      selection,
+      branches,
+      run,
+      stepContexts.filter((item) => matchesStep(item, selection)),
+    );
+  const blockers = graph.lineage ? buildLineageBlockers(graph.lineage) : undefined;
+  const blockerNodes = blockers
+    ? [
+        ...new Set(
+          blockers.issues.flatMap((issue) => [
+            ...issue.path,
+            issue.node,
+            ...issue.alternatives.map((entry) => entry.node),
+          ]),
+        ),
+      ]
+    : [];
   const diagnostics = [
     ...new Map(
       Object.values(snapshot.views)
@@ -529,6 +561,27 @@ function Workbench({
             </div>
           </div>
           <div className="canvas-toolbar">
+            {selection.canvas === "dependencies" && snapshot.business_lineage && (
+              <label>
+                系谱范围
+                <select
+                  aria-label="系谱范围"
+                  value={dependencyScope}
+                  onChange={(event) =>
+                    dispatch({
+                      type: "dependencyScope",
+                      value: event.target.value as NonNullable<Selection["dependencyScope"]>,
+                    })
+                  }
+                >
+                  <option value="model">全模型声明</option>
+                  <option value="flow">当前流程声明</option>
+                  <option value="branch" disabled={!selection.branch}>
+                    当前分支与观察
+                  </option>
+                </select>
+              </label>
+            )}
             <label>
               局部范围
               <select
@@ -542,7 +595,10 @@ function Workbench({
                 <option value="upstream">所选节点的上游</option>
                 <option value="downstream">所选节点的下游</option>
                 <option value="critical" disabled={selection.canvas !== "dependencies"}>
-                  依赖关键链
+                  声明关系最长链
+                </option>
+                <option value="blocked" disabled={!graph.lineage?.overlay}>
+                  当前观察阻断链
                 </option>
               </select>
             </label>
@@ -606,7 +662,82 @@ function Workbench({
               </label>
             </div>
           )}
-          <GraphCanvas graph={graph} selection={selection} dispatch={dispatch} />
+          {dependencyMap && (
+            <p className="canvas-caption">
+              {dependencyScope === "model"
+                ? "全模型声明"
+                : selection.flow
+                  ? `流程 ${selection.flow}`
+                  : "全部声明流程"}
+              {treeRoot ? " · 限定所选业务能力" : ""} · 共享节点保留分支来源；未叠加任何运行结果。
+            </p>
+          )}
+          {blockers && graph.lineage && (
+            <LineageBlockerPanel
+              lineage={graph.lineage}
+              report={blockers}
+              choose={(node) => {
+                dispatch({ type: "lineage", value: node });
+                dispatch({ type: "focus", value: "upstream" });
+              }}
+              focus={() => dispatch({ type: "focus", value: "blocked" })}
+            />
+          )}
+          <GraphCanvas
+            graph={graph}
+            selection={selection}
+            dispatch={dispatch}
+            blockerNodes={blockerNodes}
+            onSelectNode={(node) => {
+              if (node.actual) dispatch({ type: "observed", value: node.actual });
+              else if (dependencyMap || node.lineage) dispatch({ type: "lineage", value: node.id });
+              else if (node.step) dispatch({ type: "step", value: node.step });
+              else if (node.branch) dispatch({ type: "branch", value: node.branch });
+              else dispatch({ type: "node", value: node.subject });
+            }}
+            onSelectEdge={(edge) => {
+              if (edge.actual) dispatch({ type: "observed", value: edge.actual });
+              else if (dependencyMap || graph.lineage)
+                dispatch({ type: "lineage", value: edge.to });
+              else if (edge.branch) dispatch({ type: "branch", value: edge.branch });
+              else if (edge.action) dispatch({ type: "node", value: edge.action });
+            }}
+          />
+          {graph.stateOverlay && (
+            <section className="state-path-review" aria-label="本次运行的实际状态路径">
+              <h3>本次运行的实际状态路径</h3>
+              <p>
+                Expected 保留契约定义；Actual
+                来自对应动作的独立前后态。点击记录可定位账号、步骤和证据。
+              </p>
+              <ol>
+                {graph.stateOverlay.occurrences.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      aria-pressed={selection.occurrence === item.occurrence}
+                      onClick={() => dispatch({ type: "observed", value: item })}
+                    >
+                      <strong>
+                        {item.from_state} → {item.to_state}
+                      </strong>
+                      <span>
+                        第 {item.step} 步 · {item.actor} / 动作 {item.action_index} · {item.branch}
+                      </span>
+                      <Status value={item.verdict} raw />
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              {graph.stateOverlay.diagnostics.map((diagnostic, index) => (
+                <p className="notice" key={index}>
+                  {diagnostic.step ? `第 ${diagnostic.step} 步 · ` : ""}
+                  {diagnostic.actor ? `${diagnostic.actor} · ` : ""}
+                  {diagnostic.reason}
+                </p>
+              ))}
+            </section>
+          )}
           <div className="model-disclosures">
             <details>
               <summary>
@@ -704,16 +835,26 @@ function Workbench({
             </details>
           </div>
         </main>
-        <FactPanel
-          snapshot={snapshot}
-          selection={selection}
-          branch={branch}
-          run={run}
-          fact={fact}
-          trace={trace}
-          campaign={campaign}
-          dispatch={dispatch}
-        />
+        {dependencyMap ? (
+          <DependencyInspector
+            snapshot={snapshot}
+            map={dependencyMap}
+            node={selection.node}
+            chooseNode={(node) => dispatch({ type: "lineage", value: node })}
+            chooseBranch={(id) => dispatch({ type: "branch", value: id })}
+          />
+        ) : (
+          <FactPanel
+            snapshot={snapshot}
+            selection={selection}
+            branch={branch}
+            run={run}
+            fact={fact}
+            trace={trace}
+            campaign={campaign}
+            dispatch={dispatch}
+          />
+        )}
         <section className="trace-panel" aria-label="执行轨迹">
           {campaign && (
             <CampaignTrail

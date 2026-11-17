@@ -87,4 +87,65 @@ describe("typed visual projection", () => {
       "success",
     ]);
   });
+
+  it("handles a dependency chain at the export node budget without recursive stack overflow", () => {
+    const count = 65_536;
+    const chain = Array.from({ length: count }, (_, index) => ({
+      id: `node-${String(index).padStart(5, "0")}`,
+      name: `条件 ${index}`,
+      kind: "condition",
+    }));
+    const links = chain.slice(1).map((node, index) => ({
+      id: `edge-${index}`,
+      kind: "requires",
+      from: chain[index].id,
+      to: node.id,
+    }));
+    let analysis: ReturnType<typeof analyzeDirected> | undefined;
+    expect(() => {
+      analysis = analyzeDirected(chain, links);
+    }).not.toThrow();
+    expect(analysis?.levels.get(chain[count - 1].id)).toBe(count - 1);
+    expect(analysis?.cycles).toEqual([]);
+    expect(analysis?.criticalEdges.size).toBe(count - 1);
+    expect(neighborhood(links, chain[count - 1].id, "upstream").size).toBe(count);
+  });
+
+  it("preserves exactly the mutually reachable state components across branching cycles", () => {
+    let seed = 17;
+    for (let sample = 0; sample < 96; sample++) {
+      const states = Array.from({ length: 7 }, (_, index) => ({
+        id: String(index),
+        kind: "state",
+        name: String(index),
+      }));
+      const reachable = states.map(() => states.map(() => false));
+      const links: Relation[] = [];
+      for (let from = 0; from < states.length; from++) {
+        for (let to = 0; to < states.length; to++) {
+          seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+          if (seed % 5 !== 0) continue;
+          reachable[from][to] = true;
+          links.push({
+            id: `${from}:${to}`,
+            kind: "transitions_to",
+            from: String(from),
+            to: String(to),
+          });
+        }
+      }
+      for (let via = 0; via < states.length; via++)
+        for (let from = 0; from < states.length; from++)
+          for (let to = 0; to < states.length; to++)
+            reachable[from][to] ||= reachable[from][via] && reachable[via][to];
+      const analysis = analyzeDirected(states, links);
+      for (let from = 0; from < states.length; from++) {
+        for (let to = 0; to < states.length; to++) {
+          expect(
+            analysis.componentOf.get(String(from)) === analysis.componentOf.get(String(to)),
+          ).toBe(from === to || (reachable[from][to] && reachable[to][from]));
+        }
+      }
+    }
+  });
 });

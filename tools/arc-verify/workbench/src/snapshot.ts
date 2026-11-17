@@ -142,6 +142,7 @@ export function parseSnapshot(value: unknown): Snapshot {
           if (fact[key] !== undefined && !Array.isArray(fact[key]))
             fail("snapshot.facts", `步骤 ${String(fact.seq)} 的 ${key} 不是数组`);
         }
+        checkIdentityCollections(fact);
         for (const item of (fact.business_expectations ?? []) as unknown[]) {
           if (
             !fields(item) ||
@@ -152,6 +153,7 @@ export function parseSnapshot(value: unknown): Snapshot {
             fail("snapshot.facts", `步骤 ${String(fact.seq)} 缺少确定性决策身份`);
           if (item.request !== undefined) checkRequest(item.request);
           if (item.after !== undefined) checkObservation(item.after);
+          if (item.comparison !== undefined) checkComparison(item.comparison);
           if (item.decision.frozen !== undefined) {
             if (
               !fields(item.decision.frozen) ||
@@ -189,6 +191,61 @@ export function parseSnapshot(value: unknown): Snapshot {
     checkCampaigns(value.business_campaigns, meta.graph, fail);
   checkLineage(value, fail);
   return value as unknown as Snapshot;
+}
+
+function checkTruth(value: unknown) {
+  if (
+    !fields(value) ||
+    typeof value.value !== "string" ||
+    !["TRUE", "FALSE", "UNKNOWN"].includes(value.value) ||
+    (value.reason !== undefined && typeof value.reason !== "string") ||
+    (value.unknown !== undefined &&
+      (!Array.isArray(value.unknown) || value.unknown.some((item) => typeof item !== "string")))
+  )
+    fail("snapshot.facts", "比较记录缺少合法的判定值或未确认项身份");
+}
+
+function checkCapturedAssertions(value: unknown) {
+  if (!Array.isArray(value)) fail("snapshot.facts", "独立业务断言不是数组");
+  for (const check of value) {
+    if (
+      !fields(check) ||
+      ["id", "kind", "oracle", "source_ref"].some((key) => typeof check[key] !== "string")
+    )
+      fail("snapshot.facts", "独立业务断言缺少身份、判据或规则来源");
+    checkTruth(check.evaluation);
+  }
+}
+
+function checkComparison(value: unknown) {
+  if (
+    !fields(value) ||
+    ["status", "reason", "branch"].some((key) => typeof value[key] !== "string") ||
+    (value.outcome !== undefined && typeof value.outcome !== "string") ||
+    !Array.isArray(value.checks)
+  )
+    fail("snapshot.facts", "业务比较记录缺少分支、判定或逐项检查");
+  for (const key of ["unknown", "next_allowed"]) {
+    if (
+      value[key] !== undefined &&
+      !(key === "next_allowed" && value[key] === null) &&
+      (!Array.isArray(value[key]) || value[key].some((item) => typeof item !== "string"))
+    )
+      fail("snapshot.facts", `业务比较的 ${key} 不是身份列表`);
+  }
+  for (const check of value.checks) {
+    if (
+      !fields(check) ||
+      typeof check.outcome !== "string" ||
+      ["state_passed", "denied_passed"].some(
+        (key) => check[key] !== undefined && typeof check[key] !== "boolean",
+      )
+    )
+      fail("snapshot.facts", "业务结果检查缺少结果身份或状态响应判定");
+    checkTruth(check.predicate);
+    if (check.assertions !== undefined) checkCapturedAssertions(check.assertions);
+  }
+  if (value.invariant_checks !== undefined) checkCapturedAssertions(value.invariant_checks);
 }
 
 /** Check occurrence identities only; RAW bytes and digests remain the CLI's proof boundary. */
@@ -243,6 +300,38 @@ function checkRequest(value: unknown) {
     (value.values !== null && !fields(value.values))
   )
     fail("snapshot.facts", "请求捕获缺少动作身份或输入字段对象");
+}
+
+function checkIdentityCollections(fact: Fields) {
+  const shapes = {
+    participants: ["alias", "role", "account", "principal", "sha256"],
+    entities: ["alias", "kind", "id", "owner_actor", "owner_principal", "source_field"],
+    before_entities: ["alias", "kind", "id", "owner_actor", "owner_principal", "source_field"],
+    sessions: ["scope", "actor", "principal", "digest"],
+    before_sessions: ["scope", "actor", "principal", "digest"],
+  };
+  for (const [key, required] of Object.entries(shapes)) {
+    for (const entry of (fact[key] ?? []) as unknown[]) {
+      if (!fields(entry) || required.some((field) => typeof entry[field] !== "string"))
+        fail("snapshot.facts", `步骤 ${String(fact.seq)} 的 ${key} 含不完整的身份对象`);
+      if (key === "entities" || key === "before_entities") {
+        if (
+          !Number.isInteger(entry.source_step) ||
+          (entry.channel_account_id !== undefined &&
+            typeof entry.channel_account_id !== "string") ||
+          (entry.metadata !== undefined &&
+            (!fields(entry.metadata) ||
+              Object.values(entry.metadata).some((value) => typeof value !== "string")))
+        )
+          fail("snapshot.facts", `步骤 ${String(fact.seq)} 的 ${key} 缺少有效实体来源或命名空间`);
+      }
+      if (
+        (key === "sessions" || key === "before_sessions") &&
+        (!Number.isInteger(entry.acquired_step) || typeof entry.active !== "boolean")
+      )
+        fail("snapshot.facts", `步骤 ${String(fact.seq)} 的 ${key} 缺少有效会话状态或取得步骤`);
+    }
+  }
 }
 
 function checkObservation(value: unknown) {

@@ -34,6 +34,23 @@ Old runs without a frozen branch remain visibly unassociated legacy history.
 - Select a single run/step/actor/action occurrence before showing observed conditions. A false
   NOT child or unused OR alternative is not automatically a blocker. Preparation readbacks use
   their own occurrence and setup RAW provenance; diagnostic failures stay BLOCKED.
+- Begin with the all-model or current-flow declaration map when no branch is selected. Share
+  conditions and preparation nodes only when complete semantics, prerequisites and provenance
+  agree; retain every original branch/node/edge source. Shared declarations never share Actual.
+- Use collapsible capability groups and a compact dependency plan, with common global levels,
+  upstream/downstream navigation and a vertical narrow-screen layout. Keep the relation canvas
+  available. Neither visual depth nor grouping establishes concurrency or an executable plan.
+- Separate the structural longest required chain from the selected observation's blockers.
+  Exclude provider alternatives and OR alternatives from required-chain calculations. A blocker
+  explains the required truth value, recorded truth, path and relevant candidate providers;
+  FALSE under NOT must not recommend an action merely because it establishes TRUE.
+- Overlay Actual state transitions only from a scoped frozen before, captured request/action
+  and independently observed after. Keep contract transitions unchanged, including retries and
+  cycles. Model-external observations remain visible deviations, not new allowed contract exits.
+- Clicking an Actual occurrence synchronizes run, step, actor, branch and action index together.
+  Match complete entity identity and prefer explicit subject-to-entity provenance over aliases.
+  Missing or contradictory evidence cannot draw a PASS edge; a blocked step cannot become green
+  from an isolated comparison label. Step-wide assertions remain explicitly aggregate.
 - Focus on a selected local subgraph, keep canonical IDs and expose any omitted/truncated scope.
   Group related nodes and show meaningful Chinese business names; do not flatten every domain
   into a giant task sequence. Actual package names remain source-backed implementation details.
