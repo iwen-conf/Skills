@@ -32,8 +32,11 @@ events, side effects, forbidden effects and invariants independently. Missing ob
 oracle provenance cannot satisfy a check. Explicit denied=false differs from missing denial data.
 
 Outcome `next_allowed` distinguishes an absent/null field (no declared successor restriction),
-`[]` (no successor permitted), and a nonempty action allowlist. If multiple allowed outcomes
-match the actual facts, intersect their restrictions; an empty intersection must stay empty.
+`[]` (no successor permitted), and a nonempty action allowlist. Intersect the restrictions of
+all outcomes not disproven by actual facts, including UNKNOWN alternatives; empty stays empty.
+One proven outcome and passing common invariants can establish acceptance while other outcomes
+remain unresolved. Preserve those unknowns and omit a unique outcome identity; missing evidence
+must not widen continuation permissions. An independently false alternative contributes no restriction.
 Ordinary sequences, campaign dispatch and offline replay use the same policy. Changing actors
 does not bypass the policy within a sequence. A later independent run has its own context.
 Old valid omitted/nonempty policies remain readable; historical execution that violated the
@@ -54,18 +57,41 @@ specification gap. The same encoding applies to finite domains and preparation e
 model change rather than an implicit reinterpretation of historical observations. Declaring an
 unused attribute is not a whole-request schema validator.
 
+General numeric parsing retains JSON number tokens through model loading, request/response capture,
+Oracle observations and RAW revalidation. Exact comparison uses bounded rational arithmetic, not
+float64 range or rounding. Existing numeric length/exponent limits and `json_i64` checks still apply.
+
 ## Execution and history
 
 Registered runners and rounds remain the execution entry. Before each target action the runner
 collects its independent oracle observations, freezes the matched branch and records the decision.
+The selected branch must belong to that step's registered rule. Explicit branch registration,
+runtime selection and offline reconstruction all enforce this identity, even for the same action.
 No-match/ambiguity/wrong prestate leaves a blocked, unattempted action record. After execution,
 the actual observation and comparison are retained beside the frozen object in
 `business_expectations`; they are not folded into Expected. A later run must keep its own identity.
+
+Every registered Oracle is checked by action index, actor, ID, boundary, principal, role, fixture
+scope and declared observation fields. Consistency assertions select the final action's scoped
+Oracle, never the first matching array entry. Reordering evidence cannot change its verdict.
+
+Preparation reuse and dependencies require observed Ensures **and all declared Effects**. Before
+preparation writes, compare its goal/write subjects with the initial target batch's bindings,
+including explicit adapter mappings. An ADMIN may prepare the same STUDENT business subject;
+equal attribute aliases cannot authorize preparation of a different account. Baseline preflight
+may defer absent IDs until setup. Actual plan admission permits both IDs to be absent only for
+a checked subject with `requires_binding=false`; a known target and an unknown or different
+preparation identity cannot be treated as the same entity. Independent
+readback remains required. Offline replay rebuilds identities from the empty execution session
+and only preceding registered extractions, without borrowing final entities or later actions.
 
 Use `arc verify explain --run ID` and `snapshot --graph ID --assets BUILD --run ID` to inspect
 the validated facts. Snapshots include typed facts and evidence verification errors. Without
 `--run`, the current graph/environment/round exports its latest 32 runs and explicit truncation
 counts. The browser cannot repair or reclassify evidence.
+Projection summaries retain their source environment/round. A different selected context cannot
+reuse their PASS badge. Model-only exports remain readable without claiming an executed verdict;
+before-only entities and unresolved outcome alternatives remain visible in captured facts.
 
 `recovery.mode: "checkpoint"` retains an owned fixture after independent identity/state/checks
 verification, with no reset operation. It is suitable for durable business records that should

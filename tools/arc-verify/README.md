@@ -41,9 +41,10 @@ replayed. `COMPLETED_IN_SCOPE` covers the selected variants only. Missing rules,
 guards, unavailable preparation and damaged evidence remain explicit non-success results.
 
 `next_allowed` is a contract allowlist: omitted/null leaves successors unrestricted, `[]`
-permits none, and a nonempty list permits only its actions. Matching allowed outcomes intersect
-their lists. Ordinary sequences, campaign scheduling and evidence replay enforce the same
-restriction before accepting a continuation.
+permits none, and a nonempty list permits only its actions. All outcomes not disproven by actual
+facts, including UNKNOWN alternatives, intersect their lists. Acceptance of the current action
+does not prove a unique outcome or widen the next operation's permissions. Ordinary sequences,
+campaign scheduling and evidence replay enforce the same restriction before continuation.
 
 `gate` and `report --kind acceptance` distinguish `complete_in_declared_scope` from business
 journey acceptance. Their `business_e2e_status` is `NOT_EVALUATED`; the compatibility boolean

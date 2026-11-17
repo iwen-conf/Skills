@@ -1,0 +1,584 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-17",
+  "timezone": "Asia/Shanghai",
+  "execution_receipt": false,
+  "scope": "Second review R2-01 through R2-10: Arc kernel and tool tests, actual isolated HTTP targets, durable ledger and production frontend reader/selection/SSR. Not pay_gateway product E2E or browser visual acceptance.",
+  "reviewed_base_commit": "ba5c789a4d6ba5127462521f38b714d2a85a17cc",
+  "tested_source": {
+    "commit": "9cfed98b45a606d4f07e7f9f52f4f9a244196fa6",
+    "tree": "f4fd0ff21de9cea019991e6222dc33accc673199",
+    "sha256": "3401d8e8b0cb6ca50cc94f826e25e9c90686241419aecff4ab0270809112db95",
+    "algorithm": "sorted top-level non-test tools/arc-verify/*.go: basename + NUL + bytes + NUL",
+    "production_files": 86,
+    "published_equivalent_commit": "b65c2ddb475a8cc8eb5e2acc66ca9d02844bc45c",
+    "published_equivalent_tree": "f4fd0ff21de9cea019991e6222dc33accc673199",
+    "publication_note": "GitHub Git Data API creates equivalent commits with different metadata; every published tree was checked against its exact local tree.",
+    "unchanged_after_full_test": true
+  },
+  "fixes": [
+    {
+      "id": "R2-01",
+      "change": "Intersect successor policies from all not-disproven outcomes, retaining UNKNOWN candidates and their identity uncertainty",
+      "tests": [
+        "TestBusinessSuccessorUnknownAlternativeCannotPermitUnprovenContinuation",
+        "TestBusinessSuccessorUnknownAlternativeNeverDispatchesForbiddenNextRequest",
+        "TestBusinessSuccessorObservedFalseAlternativeDoesNotRestrictContinuation",
+        "TestBusinessSuccessorUnknownUnrestrictiveAlternativePreservesProvenPolicy"
+      ],
+      "observed_boundary": "The red ordinary HTTP sequence sent one forbidden confirmation and passed. The fixed sequence sends none; consistent-hash historical widening is rejected."
+    },
+    {
+      "id": "R2-02",
+      "change": "Preserve exact JSON numeric tokens through unique-key validation, model decoding and request/response/Oracle/RAW capture",
+      "tests": [
+        "TestBusinessExactNumbersDoNotDependOnFloat64Range",
+        "TestBusinessExactNumberRuntimePreservesRequestResponseOracleAndLedger",
+        "TestBusinessExactNumberModelImportFreezeAndFiniteProof",
+        "TestBusinessExactNumberValidationStillRejectsDuplicateKeys"
+      ],
+      "observed_boundary": "Model-permitted 1e400 traverses a real isolated HTTP action once and revalidates. Existing numeric bounds, duplicate rejection and strict json_i64 token rules remain."
+    },
+    {
+      "id": "R2-03",
+      "change": "Revalidate every registered Oracle by action, actor, ID, observation boundary, principal, role, scope and declared field set",
+      "tests": [
+        "TestRuntimeEveryDeclaredOracleRetainsItsActorAndFixtureScope",
+        "TestRuntimeSecondaryOracleWrongScopeBlocksBeforeTarget"
+      ],
+      "observed_boundary": "Self-consistent archived secondary-reader identity mutations are blocked. Live wrong-reader controls send no target requests; this is not host-controlled evidence authenticity."
+    },
+    {
+      "id": "R2-04",
+      "change": "Bind consistency assertions to the final action index rather than Oracle array order",
+      "tests": [
+        "TestRuntimeConsistencyUsesFinalActionIndexRegardlessOfOracleOrder"
+      ],
+      "observed_boundary": "Real two-action same-actor/same-Oracle observations retain both FAIL and PASS verdicts when reordered; ambiguous legacy evidence is blocked."
+    },
+    {
+      "id": "R2-05",
+      "change": "Require observed Ensures and all declared typed Effects before skipping preparation or satisfying its dependencies",
+      "tests": [
+        "TestBusinessPreparationKeepsMissingEffectsWhenEnsuresAlreadyTrue",
+        "TestBusinessPreparationDependencyNeedsAllObservedEffects",
+        "TestBusinessCampaignPreparationUsesMissingEffectAndActualGoalReadback"
+      ]
+    },
+    {
+      "id": "R2-06",
+      "change": "Before planned preparation writes, validate observer and explicit adapter bindings for subjects referenced by preparation Goal or selected plan Effects and used by the initial target batch; reconstruct historical bindings only from preceding actions",
+      "tests": [
+        "TestBusinessCampaignPreparationCannotApplyAnotherSubjectsEffects",
+        "TestRuntimePreparationBindsEntityCreatedByActualSetup"
+      ],
+      "observed_boundary": "Wrong observer/adapter through campaign and execute now produce zero preparation, target and recovery requests. ADMIN preparing the same STUDENT, static setup creation and auto-preparation creation remain valid. Baseline preflight may defer absent IDs until setup. For checked subjects, actual plan admission permits IDs absent on both sides only when requires_binding=false; a known ID with a missing or different counterpart is blocked."
+    },
+    {
+      "id": "R2-07",
+      "change": "Keep projection node summaries in their source environment and round rather than borrowing PASS into another selected context",
+      "tests": [
+        "workbench/src/projection-isolation.test.tsx"
+      ]
+    },
+    {
+      "id": "R2-08",
+      "change": "Check declared model ID/hash across metadata, model, projections and nonempty proof contexts while preserving no-round model-only exports",
+      "tests": [
+        "workbench/src/projection-isolation.test.tsx"
+      ],
+      "observed_boundary": "Reader consistency validation does not cryptographically verify model contents or RAW authenticity in the browser."
+    },
+    {
+      "id": "R2-09",
+      "change": "Select captured before/after entity identities without merging equal display IDs across alias, kind, owner or channel",
+      "tests": [
+        "workbench/src/projection-isolation.test.tsx"
+      ],
+      "observed_boundary": "Before-only entities remain inspectable after identity failure. A missing after record is not asserted deletion. Unresolved outcome candidates are also displayed without changing the backend verdict."
+    },
+    {
+      "id": "R2-10",
+      "change": "Bind selected branch.rule to the step registered rule at registration, pre-action freezing and offline reconstruction",
+      "tests": [
+        "TestRuntimeBusinessSelectedBranchCannotBorrowAnotherRulesExpectation",
+        "TestRuntimeBusinessNamedBranchMustBelongToTheRegisteredRule",
+        "TestRuntimeBusinessCorrectRuleExecutesButCannotRequalifyAnotherRule"
+      ],
+      "observed_boundary": "Both same-role and different-role wrong-rule red runs issued a request and passed; fixed runs issue zero. A correctly bound R-OTHER run and its own qualification still pass."
+    }
+  ],
+  "checks": {
+    "verify_full_race": {
+      "command": "go test -race -json -count=1 ./...",
+      "cwd": "tools/arc-verify",
+      "integration_inputs": [
+        "ARC_VERIFY_CHAIN_BINARY",
+        "ARC_CAMPAIGN_BINARY",
+        "ARC_WORKBENCH_EXPORT_DIR",
+        "ARC_CAMPAIGN_EXPORT_DIR",
+        "ARC_WORKBENCH_ASSETS"
+      ],
+      "log": "arc-round2-verify-full-race.jsonl",
+      "bytes": 990426,
+      "sha256": "4a7ef7ee7aa2981555819ebeb38b03ba21cc88c7104039be6d5c19694c2abccc",
+      "status": "PASS",
+      "seconds": 514.704,
+      "top_level_passed": 493,
+      "subtests_passed": 360,
+      "skipped": [
+        "TestIMMongoFixturesMustBindIsolationNotSharedLan50",
+        "TestIMMongoConfigKeepsSharedStacksUnapproved"
+      ],
+      "no_test_packages": [
+        "github.com/iwen-conf/Skills/tools/arc-verify/workbench/node_modules/flatted/golang/pkg/flatted"
+      ]
+    },
+    "public_cli_race": {
+      "command": "go -C tools/arc test -race -json -count=1 ./...",
+      "log": "arc-round2-cli-race.jsonl",
+      "bytes": 97968,
+      "sha256": "92a89fdaea6d2ed1c3a774e0deafab7c08f328537397cf3bcce8520280059c3d",
+      "status": "PASS",
+      "seconds": 2.7199999999999998,
+      "top_level_passed": 37,
+      "subtests_passed": 40,
+      "skipped": [],
+      "no_test_packages": []
+    },
+    "index": {
+      "command": "go -C tools/arc-idx test -json -count=1 ./...",
+      "log": "arc-round2-index.jsonl",
+      "bytes": 2449,
+      "sha256": "0b90bdcf5c5c5a167169524b7630fcbfa667fce597e78260a25a49600a80f54f",
+      "status": "PASS",
+      "seconds": 0.807,
+      "top_level_passed": 2,
+      "subtests_passed": 0,
+      "skipped": [],
+      "no_test_packages": []
+    },
+    "verify_vet": {
+      "command": "go -C tools/arc-verify vet ./...",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round2-vet.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "installation": {
+      "command": "bash scripts/install_arc.sh BIN_DIR",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round2-install.log",
+      "bytes": 1430,
+      "sha256": "e8210a5c5597be2dc07b6e33a47633c6f0d4eade1f197dfbbbe0abf990b9754f",
+      "binaries": [
+        {
+          "name": "arc",
+          "bytes": 28576128,
+          "sha256": "f759c67be628a593ee2a4446967fec579216e2a6a8d82a82d1e8254f7200d8f9"
+        },
+        {
+          "name": "arc-verify",
+          "bytes": 35676768,
+          "sha256": "2e009bf37ecb3b2df4a235a628a913b817ff4ebfea0ce24c4aab7a2340847b0f"
+        },
+        {
+          "name": "arc-idx",
+          "bytes": 40286918,
+          "sha256": "be5866b4771dd509e630cad22976f8e10e439a6425b6c2c4648902098ff58876"
+        }
+      ]
+    },
+    "smoke": {
+      "command": "bash tools/arc/smoke.sh BIN_DIR REPO_ROOT",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round2-smoke.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "frontend_types": {
+      "command": "tsc -b --force",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round2-workbench-types.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "frontend_check": {
+      "command": "vp check",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round2-workbench-check.log",
+      "bytes": 145,
+      "sha256": "0b9c6489fc204cf0235667cdd9a0da5ac52c7fee55dca93f62b86e93801e0214"
+    },
+    "frontend_build": {
+      "command": "vp build",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round2-workbench-build.log",
+      "bytes": 782,
+      "sha256": "6b6800326f8b26c2e650616d5ff3a4e52451b9979d302971fc88c8f8a4b10324",
+      "advisory": "Single offline IIFE exceeds the existing 500 kB advisory; threshold and bundling policy unchanged",
+      "assets": [
+        {
+          "file": "index-Ddcpzb0q.js",
+          "bytes": 504926,
+          "sha256": "37a91ab22ae59735384a01ef7f354b22dcc21edc275e3e26be4a5ffa0523c175"
+        },
+        {
+          "file": "style-zNCNQtJp.css",
+          "bytes": 36046,
+          "sha256": "7e0537b393d4fc9c8a526946a545c78544c90edb8e1a418e5a8632a2a2b2517a"
+        }
+      ]
+    },
+    "frontend_default": {
+      "command": "vp test run",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round2-workbench-tests.log",
+      "bytes": 261,
+      "sha256": "67fe005a9b58122a536ad1beb26eb5e452ec90abc269cefed48030641d108fea",
+      "passed": 101,
+      "skipped": 1,
+      "skip_reason": "No supplied Go snapshots in default invocation; the actual fresh exports are tested separately below"
+    },
+    "frontend_go_export": {
+      "command": "ARC_WORKBENCH_SNAPSHOT_PATHS=[prepared,campaign] vp test run src/go-export.integration.test.tsx",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round2-workbench-go-export.log",
+      "bytes": 231,
+      "sha256": "a6decf4f498e8ca58b72072e90152feb6cf7fb3a6240687c704ee9553c9a738e",
+      "passed": 2
+    },
+    "python": {
+      "command": "PATH=GO_TOOLCHAIN/bin:$PATH GOTOOLCHAIN=local .venv/bin/python -m pytest -q",
+      "status": "BASELINE_FAILURE",
+      "exit_code": 1,
+      "passed": 214,
+      "skipped": 1,
+      "failed": 1,
+      "failure": "test_all_runtime_families_have_a_complete_package: missing Cloudflare source package cloudflare-platform",
+      "skip_reason": "R8_PROTO_PYTHON not supplied",
+      "log": "arc-round2-python.log",
+      "bytes": 2581,
+      "sha256": "cca15b63086172045e139e9593fd529593ffe4d4236ff7cf1b5793ae4c2e7c16",
+      "prior_baseline_reproduction": {
+        "log": "arc-fix-python-baseline.log",
+        "bytes": 2285,
+        "sha256": "d93de9fc61d4dc01a67579addd647e4e3cf13eae2f0b3f42420b03a8b525ab75"
+      },
+      "corrected_invocation": {
+        "reason": "Initial invocation omitted the installed Go toolchain PATH and selected an unrelated go executable; reran the full Python suite with the actual Go toolchain, without source changes",
+        "log": "arc-round2-python-missing-toolchain.log",
+        "bytes": 6010,
+        "sha256": "d7f803d35b7daa30326df1d661ec95d808772360bdc2293b21e9f6c2bfc4cdaf"
+      }
+    },
+    "dbqual": {
+      "command": ".venv/bin/python -m pytest -q Arc/arc:verify/scripts/dbqual/tests",
+      "status": "PASS",
+      "passed": 160,
+      "subtests_passed": 139,
+      "skipped": 1,
+      "skip_reason": "SQLVERIFY_SQLFLUFF_CMD not supplied",
+      "log": "arc-round2-dbqual.log",
+      "bytes": 536,
+      "sha256": "09764ec64cc88ede1eac276234ff8bc1246becc8f8f4d17b7657a8de6443027a"
+    },
+    "skills": {
+      "command": ".venv/bin/python scripts/validate_skills.py",
+      "exit_code": 1,
+      "status": "ARC_PASS_WITH_BASELINE_EXTERNAL_ERRORS",
+      "current_errors": 52,
+      "baseline_errors": 52,
+      "baseline_commit": "ba5c789a4d6ba5127462521f38b714d2a85a17cc",
+      "new_errors": [],
+      "resolved_errors": [],
+      "arc_errors": [],
+      "warnings": [],
+      "baseline_warnings": [],
+      "load_scenarios": {
+        "go-repair": {
+          "estimated_tokens": 15443,
+          "ceiling": 15500
+        },
+        "go-feature": {
+          "estimated_tokens": 11653,
+          "ceiling": 12000
+        },
+        "fullstack-api": {
+          "estimated_tokens": 17749,
+          "ceiling": 18000
+        },
+        "pr-review": {
+          "estimated_tokens": 9286,
+          "ceiling": 9500
+        },
+        "pr-re-review": {
+          "estimated_tokens": 9827,
+          "ceiling": 10500
+        },
+        "appsec-campaign": {
+          "estimated_tokens": 18399,
+          "ceiling": 19000
+        },
+        "pg-reliability": {
+          "estimated_tokens": 15273,
+          "ceiling": 15500
+        },
+        "verify-flow": {
+          "estimated_tokens": 13987,
+          "ceiling": 14000
+        },
+        "verify-graph": {
+          "estimated_tokens": 13966,
+          "ceiling": 14000
+        },
+        "verify-graph-start": {
+          "estimated_tokens": 13985,
+          "ceiling": 14000
+        },
+        "verify-diagram": {
+          "estimated_tokens": 4312,
+          "ceiling": 11000
+        },
+        "plan-model": {
+          "estimated_tokens": 12657,
+          "ceiling": 13000
+        },
+        "plan-tasks": {
+          "estimated_tokens": 15094,
+          "ceiling": 15500
+        },
+        "vet-select": {
+          "estimated_tokens": 8242,
+          "ceiling": 9000
+        }
+      },
+      "skill_files": 65,
+      "log": "arc-round2-skills-check.log",
+      "bytes": 7624,
+      "sha256": "eeebedbaae87ffc7aec65a978f9e1ad2677f148d300f61e360a1ef2d874da577"
+    }
+  },
+  "fresh_exports": [
+    {
+      "directory": "arc-round2-export-prepared",
+      "snapshot_sha256": "a52be142bd09fc2a0648a11eef760725ff0dfdd4010d6b1febf65277182e2f37",
+      "frontend_validation_sha256": "eb43bce4a357c25c356482ec55022d9883f3f66b400d7b7cd972fdad2d62840d",
+      "report": {
+        "version": 1,
+        "status": "PASS",
+        "scope": "Actual supplied Go export -> production readSnapshotText -> unified selection -> SSR. No target execution, RAW revalidation, product E2E claim or browser acceptance.",
+        "validated_at": "2026-11-17T05:13:59.574Z",
+        "snapshot_sha256": "a52be142bd09fc2a0648a11eef760725ff0dfdd4010d6b1febf65277182e2f37",
+        "graph": "course-v2",
+        "parser": "PASS",
+        "unified_selection": "PASS",
+        "ssr": "PASS",
+        "browser": "NOT_RUN",
+        "raw_revalidated_by_frontend": false,
+        "rendered_views": 2,
+        "representative_ssr_views": 1,
+        "assets_match_current_dist": true,
+        "preparation": {
+          "status": "EXERCISED",
+          "runs": 1,
+          "actual_actions": 1,
+          "independent_readbacks": 3
+        },
+        "expected_actual": {
+          "status": "EXERCISED",
+          "frozen_decisions": 1,
+          "request_captures": 1
+        },
+        "entity_selection": {
+          "status": "NOT_PRESENT",
+          "selections": 0
+        },
+        "campaign": {
+          "status": "NOT_PRESENT",
+          "linked_children": 0,
+          "unexported_children": 0
+        },
+        "runs": [
+          {
+            "run": "R-57e03d95cc220aea43f523e7354e75dc",
+            "environment": "independent",
+            "round": "Q-34e7d68c8f09ff60946d9d97b9f0897f",
+            "runner": "typed-business",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 1,
+            "recovery_mode": "checkpoint"
+          }
+        ],
+        "campaigns": []
+      }
+    },
+    {
+      "directory": "arc-round2-export-campaign",
+      "snapshot_sha256": "d01835f1a7c03f9760e454f1a3eed63a9f887ba152edc36250020cf60edbbb99",
+      "frontend_validation_sha256": "2c108cc7d8ecc10e1f0a6567cf92452dc0addc52697b08e0b3bf07f4c2dcb051",
+      "report": {
+        "version": 1,
+        "status": "PASS",
+        "scope": "Actual supplied Go export -> production readSnapshotText -> unified selection -> SSR. No target execution, RAW revalidation, product E2E claim or browser acceptance.",
+        "validated_at": "2026-11-17T05:13:59.866Z",
+        "snapshot_sha256": "d01835f1a7c03f9760e454f1a3eed63a9f887ba152edc36250020cf60edbbb99",
+        "graph": "course-v2",
+        "parser": "PASS",
+        "unified_selection": "PASS",
+        "ssr": "PASS",
+        "browser": "NOT_RUN",
+        "raw_revalidated_by_frontend": false,
+        "rendered_views": 16,
+        "representative_ssr_views": 7,
+        "assets_match_current_dist": true,
+        "preparation": {
+          "status": "EXERCISED",
+          "runs": 2,
+          "actual_actions": 1,
+          "independent_readbacks": 4
+        },
+        "expected_actual": {
+          "status": "EXERCISED",
+          "frozen_decisions": 3,
+          "request_captures": 3
+        },
+        "entity_selection": {
+          "status": "EXERCISED",
+          "selections": 3
+        },
+        "campaign": {
+          "status": "EXERCISED",
+          "linked_children": 3,
+          "unexported_children": 0
+        },
+        "runs": [
+          {
+            "run": "R-5f5babbc4f8c5b7e20f4bfd116f57806",
+            "environment": "independent",
+            "round": "Q-7b436d25f00bb9410ffa848f019d83de",
+            "runner": "enroll-b",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 1,
+            "recovery_mode": "checkpoint"
+          },
+          {
+            "run": "R-f77f7f2eb3e144e89bcb2cf2bb86efcf",
+            "environment": "independent",
+            "round": "Q-7b436d25f00bb9410ffa848f019d83de",
+            "runner": "clear",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 0,
+            "recovery_mode": "checkpoint"
+          },
+          {
+            "run": "R-41068b274b61a8bd1aad6f84ffcc187a",
+            "environment": "independent",
+            "round": "Q-7b436d25f00bb9410ffa848f019d83de",
+            "runner": "enroll-a",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 1,
+            "recovery_mode": "checkpoint"
+          }
+        ],
+        "campaigns": [
+          {
+            "campaign": "BC-75670101a59e55576b0882d4b76422cd",
+            "environment": "independent",
+            "round": "Q-7b436d25f00bb9410ffa848f019d83de",
+            "status": "COMPLETED_IN_SCOPE",
+            "evidence_status": "PASS",
+            "variants": 3,
+            "child_visits": 3,
+            "pre_action_intents": 3,
+            "selected_variants_covered": true,
+            "full_business_coverage": false
+          }
+        ]
+      }
+    }
+  ],
+  "red_counterexamples": [
+    {
+      "log": "arc-round2-successor-red.log",
+      "bytes": 2621,
+      "sha256": "9f4e70574b79b40fc5c9b541bc2798bffa7a33b507fab473a4e03c121ed25b91"
+    },
+    {
+      "log": "arc-round2-numbers-red.log",
+      "bytes": 3661,
+      "sha256": "8bbf3c436f678caecaec0d15c03bb5f1a27fb2b42aa0af95a6ebec7631df3b19"
+    },
+    {
+      "log": "arc-round2-number-transport-red.log",
+      "bytes": 381,
+      "sha256": "d7f9c86250dc29a3058593ede62ec471db93f66876008a1224f54165142bcc56"
+    },
+    {
+      "log": "arc-round2-runtime-final-regressions-base-red.log",
+      "bytes": 4054,
+      "sha256": "8dbef5118785a9e05ab28315edf8e383b960ca87eb98cd5b7159cca9d6765c9c"
+    },
+    {
+      "log": "arc-round2-preparation-red.log",
+      "bytes": 663,
+      "sha256": "4d108e1decc04a8e7af23cf2eaa87fe24bc2315dec2751498bb1138b0bf487f8"
+    },
+    {
+      "log": "arc-round2-preparation-dependency-red.log",
+      "bytes": 949,
+      "sha256": "1cb459902e959401078f1e11e4e9b74465deeccc59f953c8c000b2cfcd87216d"
+    },
+    {
+      "log": "arc-round2-preparation-identity-baseline.log",
+      "bytes": 12525,
+      "sha256": "dfed921ab65a5586dcc965a71f647e12d7d9b1903325fbe880817039a75fce2f"
+    },
+    {
+      "log": "round2-workbench-red.log",
+      "bytes": 28506,
+      "sha256": "c6f4a508012b9b80a747d88e3bcf1a01efca0d4f7e0ee0101b5b1a997699dcce"
+    },
+    {
+      "log": "round2-workbench-model-only-red.log",
+      "bytes": 1357,
+      "sha256": "5dc5dbf5ef47578eb08b8cc94d8e7fb844f1ebc271bc86e7dc9523c651ceefd1"
+    },
+    {
+      "log": "arc-round2-branch-rule-red.log",
+      "bytes": 3557,
+      "sha256": "11e71f819c743675745af571beff2f3944e27c90c34a9eb15962e2457c7b28d4"
+    }
+  ],
+  "independent_review": "Separate read-only review of successor and exact-number changes, preparation effect/identity/temporal reconstruction and rule identity. Valid automatic entity creation was corrected before the final full run.",
+  "boundaries": {
+    "pay_gateway_product_e2e": {
+      "status": "NOT_RUN",
+      "gate": "BLOCKED",
+      "reason": "No bound owned gateway, isolated PostgreSQL oracle and caller credentials; no product requests were issued"
+    },
+    "browser_visual_acceptance": {
+      "status": "NOT_RUN",
+      "gate": "BLOCKED",
+      "reason": "Existing browser/local-page policy rejection remains; no alternate route attempted. SSR is not visual acceptance."
+    },
+    "full_business_coverage": false,
+    "evidence_authenticity": "Scope, content, hash and projection checks do not prove authenticity against a party controlling the execution host. Frontend declared identity checks are not browser cryptographic validation.",
+    "preparation_scope": "Checks cover subjects referenced by preparation Goal or selected plan Effects and used by the initial target batch, including explicit adapter mappings for those subjects. Opaque adapter side effects require independent readback and product environment acceptance.",
+    "history": "Original RAW is preserved. Self-consistent but contract-invalid historical facts become blocked on revalidation; valid controls remain readable.",
+    "migration": "No SQL schema change or historical fact rewrite; existing model/fact/campaign storage is reused.",
+    "remaining_work": "Full payment product branches, generic parameter generation, lifecycle preparation search, equivalence reduction, parallel/async preparation and external formal methods remain outside this repair."
+  }
+}

@@ -331,6 +331,13 @@ func validateManifest(g Graph, manifest RunnerManifest) (ModelObligation, error)
 			}
 		}
 		judged := stepRule(x, *obligation, step.Transition)
+		if step.BusinessBranch != "" && g.BusinessContract != nil {
+			for _, branch := range g.BusinessContract.Branches {
+				if branch.ID == step.BusinessBranch && branch.Rule != judged.ID {
+					return ModelObligation{}, fmt.Errorf("business_branch %s belongs to rule %s, not the registered step rule %s", branch.ID, branch.Rule, judged.ID)
+				}
+			}
+		}
 		if !seen[judged.Oracle] {
 			return ModelObligation{}, errors.New("frozen rule oracle is missing")
 		}

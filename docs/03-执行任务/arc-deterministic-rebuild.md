@@ -214,6 +214,47 @@ UNKNOWN 及预算预留，不盲目重试。正常 `retry` 仍不能重开已 PA
 超过 500 kB 的体积提示。本轮工具 HTTP、SSR 和源码检查都不计作 pay_gateway 产品 E2E 或浏览器
 视觉验收；这两项仍维持明确的 NOT_RUN/BLOCKED。
 
+## 第二轮复审：准备主体、规则身份与事实作用域（2026-11-17）
+
+本轮从已合并的 `ba5c789a4d6ba5127462521f38b714d2a85a17cc` 继续复审，新增十项可复现问题。
+修复覆盖真实派发前的约束、离线证据重验和工作台选择语义；每项反例均进入正式回归，保留合法
+执行的正向控制，没有通过修改预期结果、重写 RAW 或删除旧门禁使测试变绿。
+
+| 问题 | 修复与实测边界 |
+|---|---|
+| R2-01：UNKNOWN 结果候选丢失后续限制 | 所有未被 Actual 否定的候选参与 `next_allowed` 交集；当前动作可通过仍不等于唯一结果已知。原反例后续确认请求实际发出一次，修复后为零；同样限制离线重验，保留 UNKNOWN 明细 |
+| R2-02：精确数值先被 float64 拒绝 | JSON 重复键扫描、结构解码、请求/响应和 Oracle 捕获保留数字原文。模型允许范围内的 `1e400` 可真实传输、精确比较和重验；原长度/指数限制及 `json_i64` 的 token 规则不变 |
+| R2-03：次级 Oracle 跨作用域证据仍可通过 | 重验全部注册 Oracle 的 action/actor/ID、观察边界、principal/role/scope、字段与唯一性；自洽摘要的历史错账号/角色/边界记录也被拒绝。真实错误读者保持目标零请求 |
+| R2-04：Oracle 数组顺序改变一致性判定 | 一致性层绑定最终动作的 action_index；同 actor、同名 Oracle 的两个动作重排后不再把 FAIL 变 PASS，或把 PASS 变 FAIL；无法唯一定位的 legacy 记录阻断 |
+| R2-05：弱 Ensures 跳过必要准备及依赖 | 判断已完成时同时检查 Ensures 和全部声明 Effects；规划、依赖层、真实动作前回读及离线重算共用该规则，不把预测写进 Actual |
+| R2-06：准备写入错误账号 | 准备 Goal 或所选计划 Effects 涉及、且与初始目标 batch 相关的主体，其 observer 与显式 adapter 绑定必须同目标一致；实际 campaign/execute 错账号反例修复后准备、目标、恢复全部零请求。保留合法 ADMIN 代办、静态 setup 创建及自动准备创建实体；重验不借用未来提取或伪造初始绑定 |
+| R2-07：其他环境或轮次的节点 PASS 被误用 | 节点汇总展示来源；选中不同 environment/round/variant 时不借用原 PASS，聚合结果也不替代当前运行和步骤判定 |
+| R2-08：模型、metadata 与视图身份错配 | 生产解析器核对声明的模型 ID/hash 与 proof context；无轮次初始模型保持可读但不显示已证明 PASS。这里只验证声明一致性，不声称浏览器重新验证 RAW 真实性 |
+| R2-09：动作前实体在失败后无法选择 | 实体选择取 `before_entities ∪ entities`，保留 alias/kind/ID/owner/channel 身份；展示动作前后捕获情况，不将后态缺记录推断为删除 |
+| R2-10：执行器借用同操作的另一条规则 | 显式分支注册、执行前冻结与离线重建核对 branch.rule 与 step rule；原反例同角色或另一角色均实际发请求并 PASS，修复后请求为零。正确绑定另一规则的执行和重验仍通过 |
+
+主体检查约束已声明的业务身份，不能推断任意 opaque HTTP/command adapter 在服务器内部实际修改
+了谁；独立读回仍承担验证真实状态的职责。准备作用域限定初始目标 batch，不禁止后续步骤合法
+切换主体。独立复核也补上了创建前允许无 ID 的兼容正控，避免因身份检查误封正常准备路径。
+
+详细测试命令、源码与日志指纹、实际工具导出和验收边界见
+[第二轮复审验证记录](evidence/arc-review-round2-2026-11-17.json)。本轮不改变 SQL schema，
+不修改原始历史证据，不新增公共 CLI，不启用 GitHub Actions。
+
+| 最终整合验证 | 实际结果 |
+|---|---|
+| verify 全量 race | 493 个顶层 Test/Fuzz、360 个子测试 PASS，0 FAIL；两项原有 IM-mongo 环境测试 SKIP，514.704s |
+| 公开 CLI / 索引 / vet | CLI 37 个顶层及 40 个子测试 race PASS；索引 2 PASS；verify vet PASS |
+| 安装与进程 | 三引擎安装、统一 CLI smoke、真实索引及迁移检查通过；完整 race 使用本次安装的 run-chain 与 campaign 二进制 |
+| 工作台 | 101 PASS、1 个默认无导出路径的 SKIP；另提供本轮实际 Go 快照后 2 项集成 PASS；44 文件格式、35 文件 lint/type、TypeScript、构建通过 |
+| 实际导出贯通 | 自动准备运行及三次连续 checkpoint campaign 通过生产解析器、选择上下文与 SSR；分别验证 2、16 个上下文，导出资产与本次 dist 一致 |
+| Python / dbqual | 配置正确 Go 工具链后，Python 214 PASS、1 SKIP、1 个原有 Cloudflare 源包缺失 FAIL；dbqual 160 PASS、139 子例 PASS、1 个外部 SQLFluff SKIP |
+| Skill 校验 | Arc 0 error、0 warning，14 项加载预算未变；全仓原有 52 个外部技能链接错误与本轮基线逐项一致 |
+
+整合后 86 个 Go 生产文件的摘要在全量测试前后保持一致；提交到 GitHub 的代码树也逐提交与本地
+核对一致。工作台仍有单个离线包超过 500 kB 的体积提示。pay_gateway 产品 E2E 和实际浏览器
+视觉验收继续维持 `NOT_RUN/BLOCKED`，不以工具 HTTP 目标或 SSR 代替。
+
 ## 使用与迁移
 
 工具仍由 `bash scripts/install_arc.sh` 安装，公共命令只有 `arc`。升级现有激活库后显式

@@ -31,8 +31,10 @@ One branch freezes its response, resulting state, persistence, events, side effe
 effects, invariants and permitted next actions before the real operation. Source-backed
 `allowed_outcomes` may express true contract-permitted nondeterminism, with common invariants;
 ordinary exceptions and external events belong to their own conditioned transitions.
-`next_allowed` absent/null is unrestricted; `[]` permits no successor. Intersect matching outcomes'
-allowlists. Enforce this policy before dispatch and during offline replay, including ordinary sequences.
+`next_allowed` absent/null is unrestricted; `[]` permits no successor. Intersect allowlists from
+every outcome not disproven by Actual, including UNKNOWN alternatives. One proven outcome can
+establish acceptance without proving a unique outcome identity; preserve remaining uncertainty.
+Enforce the safe intersection before dispatch and during offline replay, including ordinary sequences.
 
 The runtime must never use an actual response to rewrite Expected or pick a different branch.
 Unknown or out-of-model actual states remain observations, not newly approved expectations.
@@ -42,10 +44,12 @@ Unknown or out-of-model actual states remain observations, not newly approved ex
 1. Observe the actor, bound entities, state, relevant history and external conditions.
 2. Compare `ObservedPreState` with the required `ExpectedPreState` at attribute level.
 3. Plan all missing conditions through declared preparations. Effects are predictions; failed
-   unmapped prerequisites remain blockers. Reuse only freshly observed satisfied conditions.
+   unmapped prerequisites remain blockers. Skip a preparation or satisfy its dependencies only
+   when both its Ensures and declared Effects are observed. Bind preparation to the target subject.
 4. Execute authorized preparation through real entries, preserve its evidence, and independently
    read back each postcondition. Preparation failure blocks the target action.
-5. Match exactly one branch from the observed prestate and freeze its contract/version/hash.
+5. Match exactly one branch from the observed prestate, require its rule to match the registered
+   operation's rule, and freeze its contract/version/hash.
 6. Execute the real action, retain request occurrence and actor/entity/session references.
 7. Independently observe actual response, poststate, writes, messages and external effects.
 8. Compare each frozen obligation, retain the first deviation and continue only from observed
@@ -61,6 +65,7 @@ Use one project ledger: `.arc/arc.db` after activation; preserve legacy history 
 The immutable model, frozen expectations, RAW, `step_facts`, `step_assertions` and
 `run_entity_bindings` form the evidence chain. Identity includes run, step, actor, account/entity,
 oracle and observation phase. Two accounts may use the same oracle name without sharing facts.
+Revalidate every registered Oracle, including secondary readers; array order never selects a fact.
 An archived RAW fallback is valid only after digest, identity and ledger projection checks.
 
 Finite proofs declare actions, states, attribute domains and budgets. `PROVEN_IN_SCOPE` and

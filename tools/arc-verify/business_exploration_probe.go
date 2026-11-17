@@ -191,6 +191,12 @@ func (d db) probeBusinessCampaign(ctx context.Context, c BusinessCampaign, g Gra
 		result.Eligibility, result.Reason = "MODEL_ERROR", plan.Reason
 		return result
 	}
+	if plan.Status == "READY" || plan.Status == "ALREADY_SATISFIED" {
+		if err := validateRuntimePreparationPlanSubjectScope(g, runtime.Runner.Manifest, plan, prepBefore.Bindings, &obs); err != nil {
+			result.Eligibility, result.Reason = "BLOCKED", err.Error()
+			return result
+		}
+	}
 	if plan.Status == "ALREADY_SATISFIED" {
 		return result
 	}

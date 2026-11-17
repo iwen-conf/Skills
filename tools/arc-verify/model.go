@@ -234,20 +234,31 @@ func decodeStrictJSON(raw []byte, target any) error {
 		return err
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
 	decoder.DisallowUnknownFields()
 	return decoder.Decode(target)
 }
 
 // Duplicate keys must not replace a failed observation or an approval decision.
 func decodeUniqueJSON(raw []byte, target any) error {
+	if err := validateUniqueJSON(raw); err != nil {
+		return err
+	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	return decoder.Decode(target)
+}
+
+func validateUniqueJSON(raw []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
 	if err := checkJSONValue(decoder); err != nil {
 		return err
 	}
 	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
 		return errors.New("JSON must contain exactly one value")
 	}
-	return json.Unmarshal(raw, target)
+	return nil
 }
 
 func checkJSONValue(decoder *json.Decoder) error {

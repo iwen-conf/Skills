@@ -367,8 +367,13 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 		}
 		baseline = append(baseline, OracleObservation{Actor: participant.Alias, ID: oracle.ID, Boundary: oracle.Boundary, Before: facts, After: facts, BeforeSHA256: hash, AfterSHA256: hash})
 	}
-	isolationVerified := !setupFailed
 	setupObservation.Oracles = baseline
+	if !setupFailed && manifest.Preparation != nil {
+		if err := validateRuntimePreparationPreflight(model, manifest, &setupObservation); err != nil {
+			result.Reason, setupFailed = "preparation identity preflight: "+err.Error(), true
+		}
+	}
+	isolationVerified := !setupFailed
 	if isolationVerified {
 		for operationIndex, operation := range manifest.Setup {
 			output, callErr := call(actionCtx, operation.Call, operation.Actor)
@@ -393,8 +398,13 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 		}
 	}
 	if !setupFailed && manifest.Preparation != nil {
-		preparation := runRuntimePreparation(actionCtx, model, obligation.Definition.Flow, manifest, binding, accounts, actors, sess, &setupObservation)
+		preparation, scopeRejected := runRuntimePreparation(actionCtx, model, obligation.Definition.Flow, manifest, binding, accounts, actors, sess, &setupObservation)
 		setupObservation.Preparation = &preparation
+		if scopeRejected && len(setupObservation.Actions) == 0 {
+			// No write was attempted. A rejected target identity must not
+			// trigger a recovery write to an unrelated subject either.
+			isolationVerified = false
+		}
 		if !preparation.TargetReady {
 			setupFailed = true
 			result.Reason = "automatic preparation: " + preparation.Status + ": " + preparation.Reason
@@ -511,7 +521,7 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 						}
 						observation.Requests = append(observation.Requests, request)
 					}
-					frozen := freezeRuntimeBusiness(model, obligation.Definition.Flow, stepJudged.Oracle, step, actionIndex+1, &observation)
+					frozen := freezeRuntimeBusiness(model, obligation.Definition.Flow, stepJudged, step, actionIndex+1, &observation)
 					observation.BusinessExpectations = append(observation.BusinessExpectations, frozen)
 					if frozen.Decision.Status != "READY" {
 						raw.ExitCode = 1

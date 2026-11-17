@@ -217,6 +217,9 @@ func (d db) verifyExplainFact(fact *UnifiedStepFact, embedded string) error {
 			if err := ValidatePreparationExecution(*contract.Model, PreparationRequest{Goal: p.Goal, MaxSteps: p.MaxSteps, MaxStates: p.MaxStates}, *raw.Model.Preparation); err != nil {
 				return fmt.Errorf("setup preparation proof: %w", err)
 			}
+			if err := validateRuntimePreparationIdentityEvidence(*contract.Model, runner.Manifest, raw.Model); err != nil {
+				return fmt.Errorf("setup preparation subject proof: %w", err)
+			}
 		}
 		if fact.SourceKind == "execute" || fact.SourceKind == "sequence" {
 			contract, err := d.runTaskContract(fact.Run)
