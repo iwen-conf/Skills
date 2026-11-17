@@ -106,10 +106,15 @@ func preparationIdentityContinuity(contract *BusinessContract, before, after Bus
 func ExecutePreparation(ctx context.Context, g Graph, request PreparationRequest,
 	observe func(context.Context) (BusinessObservation, error),
 	act func(context.Context, PlannedPreparationStep) (PreparationReceipt, error),
+	admission ...func(PreparationPlan, BusinessObservation) error,
 ) PreparationExecution {
 	result := PreparationExecution{Status: "BLOCKED", Plans: []PreparationPlan{}, Steps: []PreparationActualStep{}, Readbacks: []PreparationReadback{}, ParallelExecuted: false}
 	if observe == nil || act == nil {
 		result.Reason = "automatic preparation requires independent observer and registered action adapters"
+		return result
+	}
+	if len(admission) > 1 {
+		result.Reason = "automatic preparation accepts at most one target-scope admission check"
 		return result
 	}
 	if g.BusinessContract == nil {
@@ -224,11 +229,23 @@ func ExecutePreparation(ctx context.Context, g Graph, request PreparationRequest
 			// it, instead of forcing the old planned step to look applicable.
 			continue
 		}
+		if len(admission) == 1 && admission[0] != nil {
+			admittedPlan, planError := cloneBusinessJSON(plan)
+			admittedBefore, beforeError := cloneBusinessJSON(before)
+			if planError != nil || beforeError != nil {
+				result.Reason = "preparation target-scope admission could not freeze its plan or actual observation"
+				return result
+			}
+			if err := admission[0](admittedPlan, admittedBefore); err != nil {
+				result.Reason = "preparation target-scope admission: " + err.Error()
+				return result
+			}
+		}
 		step := PreparationActualStep{Index: len(result.Steps), BeforeRead: beforeRead, AfterRead: -1, Planned: planned, Before: before, Dependencies: map[string]TruthEvaluation{}, Status: "BLOCKED", Ensures: unknownBusiness(nil, "action has not executed")}
 		step.Requirements = evaluateBusinessPredicate(planned.Requires, before, attributes)
 		ready := step.Requirements.Value == businessTrue
 		for _, dependency := range preparations[planned.ID].DependsOn {
-			reading := evaluateBusinessPredicate(preparations[dependency].Ensures, before, attributes)
+			reading := preparationSatisfaction(preparations[dependency], before, attributes)
 			step.Dependencies[dependency] = reading
 			ready = ready && reading.Value == businessTrue
 		}
@@ -430,7 +447,7 @@ func ValidatePreparationExecution(g Graph, request PreparationRequest, execution
 			return fmt.Errorf("preparation step %d omits dependency observations", index)
 		}
 		for _, dependency := range declared.DependsOn {
-			reading := evaluateBusinessPredicate(preparations[dependency].Ensures, step.Before, attributes)
+			reading := preparationSatisfaction(preparations[dependency], step.Before, attributes)
 			if reading.Value != businessTrue || !sameBusinessJSON(reading, step.Dependencies[dependency]) {
 				return fmt.Errorf("preparation step %d depends on an unverified actual effect", index)
 			}

@@ -568,6 +568,9 @@ func (d db) validateModelCompletion(contract runContract) error {
 		if err := ValidatePreparationExecution(*contract.Model, request, *raw.Model.Preparation); err != nil {
 			return fmt.Errorf("automatic preparation evidence: %w", err)
 		}
+		if err := validateRuntimePreparationIdentityEvidence(*contract.Model, runner.Manifest, raw.Model); err != nil {
+			return fmt.Errorf("automatic preparation subject evidence: %w", err)
+		}
 		if len(raw.Model.Actions) != len(runner.Manifest.Setup)+len(raw.Model.Preparation.Steps) {
 			return errors.New("automatic preparation action captures are incomplete")
 		}

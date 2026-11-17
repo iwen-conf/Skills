@@ -63,8 +63,8 @@ func validateRunnerBusinessBindings(g Graph, step RunnerStep, actors map[string]
 	return nil
 }
 
-func runtimeBusinessObservation(flow, primaryOracle string, step RunnerStep, actionIndex int, before bool, observed *ModelObservation) (BusinessObservation, error) {
-	result := BusinessObservation{Flow: flow, Values: map[string]json.RawMessage{}, Bindings: map[string]string{}, Sources: map[string][]string{}}
+func runtimeBusinessBindings(step RunnerStep, before bool, observed *ModelObservation) (map[string]string, error) {
+	result := BusinessObservation{Bindings: map[string]string{}}
 	defaultAliases := map[string]bool{}
 	defaultBinding := func(alias, value string) {
 		if alias == "" {
@@ -103,7 +103,7 @@ func runtimeBusinessObservation(flow, primaryOracle string, step RunnerStep, act
 		delete(result.Bindings, subject)
 		parts := strings.Split(source, ".")
 		if len(parts) != 3 {
-			return result, fmt.Errorf("invalid subject binding for %s", subject)
+			return nil, fmt.Errorf("invalid subject binding for %s", subject)
 		}
 		switch parts[0] {
 		case "actor":
@@ -129,6 +129,15 @@ func runtimeBusinessObservation(flow, primaryOracle string, step RunnerStep, act
 				}
 			}
 		}
+	}
+	return result.Bindings, nil
+}
+
+func runtimeBusinessObservation(flow, primaryOracle string, step RunnerStep, actionIndex int, before bool, observed *ModelObservation) (BusinessObservation, error) {
+	bindings, err := runtimeBusinessBindings(step, before, observed)
+	result := BusinessObservation{Flow: flow, Values: map[string]json.RawMessage{}, Bindings: bindings, Sources: map[string][]string{}}
+	if err != nil {
+		return result, err
 	}
 	stateFound := false
 	for _, item := range observed.Oracles {

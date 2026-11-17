@@ -33,6 +33,37 @@ func preparationWrites(action PreparationAction) []string {
 	return uniqueSortedBusiness(keys)
 }
 
+func preparationSatisfaction(action PreparationAction, observed BusinessObservation, attributes map[string]businessAttributeInfo) TruthEvaluation {
+	ensures := evaluateBusinessPredicate(action.Ensures, observed, attributes)
+	if ensures.Value == businessFalse {
+		return ensures
+	}
+	unknown := append([]string(nil), ensures.Unknown...)
+	// Ensures can be weaker than the declared effects. Omit an action only
+	// when its full predicted effect is already independently known; otherwise
+	// it may still be the sole producer of a missing preparation goal.
+	for _, effect := range action.Effects {
+		info, exists := attributes[effect.Subject+"."+effect.Attribute]
+		if !exists {
+			return unknownBusiness([]string{effect.Subject + "." + effect.Attribute}, "preparation effect is not declared")
+		}
+		actual, missing := resolveBusinessOperand(BusinessOperand{Ref: &BusinessAttributeRef{Subject: effect.Subject, Attribute: effect.Attribute}}, observed, attributes)
+		expected, err := parseBusinessAttributeValue(info.attribute, effect.Value)
+		if err != nil {
+			return unknownBusiness([]string{effect.Subject + "." + effect.Attribute}, "preparation effect is ill-typed")
+		}
+		if len(missing) > 0 {
+			unknown = append(unknown, missing...)
+		} else if !businessValueEqual(actual, expected) {
+			return businessTruth(false)
+		}
+	}
+	if ensures.Value == businessUnknown || len(unknown) > 0 {
+		return unknownBusiness(unknown, "preparation effects need independent observations")
+	}
+	return businessTruth(true)
+}
+
 func intersectsBusinessIDs(left, right []string) bool {
 	seen := map[string]bool{}
 	for _, id := range left {
@@ -57,6 +88,7 @@ func preparationLayers(actions []PreparationAction, path []int) []PreparationLay
 		result := append(businessPredicateRefs(action.Requires), businessPredicateRefs(action.Ensures)...)
 		for _, dependency := range action.DependsOn {
 			result = append(result, businessPredicateRefs(byID[dependency].Ensures)...)
+			result = append(result, preparationWrites(byID[dependency])...)
 		}
 		return uniqueSortedBusiness(result)
 	}
@@ -119,7 +151,7 @@ func PlanPreparation(g Graph, request PreparationRequest) PreparationPlan {
 	byID := map[string]PreparationAction{}
 	for _, action := range actions {
 		byID[action.ID] = action
-		if evaluateBusinessPredicate(action.Ensures, request.Observed, attributes).Value == businessTrue {
+		if preparationSatisfaction(action, request.Observed, attributes).Value == businessTrue {
 			result.AlreadySatisfied = append(result.AlreadySatisfied, action.ID)
 		}
 	}
@@ -162,12 +194,12 @@ func PlanPreparation(g Graph, request PreparationRequest) PreparationPlan {
 			if current.used[index] {
 				continue
 			}
-			if evaluateBusinessPredicate(action.Ensures, current.observation, attributes).Value == businessTrue {
+			if preparationSatisfaction(action, current.observation, attributes).Value == businessTrue {
 				continue
 			}
 			dependenciesReady := true
 			for _, dependency := range action.DependsOn {
-				observed := evaluateBusinessPredicate(byID[dependency].Ensures, current.observation, attributes)
+				observed := preparationSatisfaction(byID[dependency], current.observation, attributes)
 				if observed.Value != businessTrue {
 					dependenciesReady = false
 					if observed.Value == businessUnknown {

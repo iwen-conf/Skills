@@ -96,8 +96,17 @@ func validateRunnerPreparation(g Graph, manifest RunnerManifest, actors map[stri
 	return nil
 }
 
-func runRuntimePreparation(ctx context.Context, g Graph, flow string, manifest RunnerManifest, binding RunBinding, accounts map[string]Fixture, actors map[string]ParticipantBinding, sess *execSession, setup *ModelObservation) PreparationExecution {
+func runRuntimePreparation(ctx context.Context, g Graph, flow string, manifest RunnerManifest, binding RunBinding, accounts map[string]Fixture, actors map[string]ParticipantBinding, sess *execSession, setup *ModelObservation) (PreparationExecution, bool) {
 	p := manifest.Preparation
+	scopeRejected := false
+	checkScope := func(subjects []string, prepared map[string]string) error {
+		current := ModelObservation{Participants: setup.Participants, BeforeEntities: sess.entitySlice(), BeforeSessions: sess.sessionSlice()}
+		if err := validateRuntimePreparationSubjectScope(g, manifest, subjects, prepared, &current, false); err != nil {
+			scopeRejected = true
+			return err
+		}
+		return nil
+	}
 	observe := func(ctx context.Context) (BusinessObservation, error) {
 		observed := ModelObservation{EvidenceVersion: runtimeEvidenceVersion, Participants: setup.Participants, BeforeEntities: sess.entitySlice(), BeforeSessions: sess.sessionSlice()}
 		for _, oracle := range p.Observer.Oracles {
@@ -109,7 +118,11 @@ func runRuntimePreparation(ctx context.Context, g Graph, flow string, manifest R
 			}
 			observed.Oracles = append(observed.Oracles, OracleObservation{ActionIndex: 1, Actor: p.Observer.Actor, ID: oracle.ID, Boundary: oracle.Boundary, Before: facts, BeforeSHA256: hash})
 		}
-		return runtimeBusinessObservation(flow, p.Observer.Oracles[0].ID, p.Observer, 1, true, &observed)
+		actual, err := runtimeBusinessObservation(flow, p.Observer.Oracles[0].ID, p.Observer, 1, true, &observed)
+		if err == nil {
+			err = checkScope(preparationGoalSubjects(p.Goal), actual.Bindings)
+		}
+		return actual, err
 	}
 	act := func(ctx context.Context, planned PlannedPreparationStep) (PreparationReceipt, error) {
 		adapter, found := p.Adapters[planned.ID]
@@ -146,5 +159,14 @@ func runRuntimePreparation(ctx context.Context, g Graph, flow string, manifest R
 		setup.Extractions = append(setup.Extractions, extracted...)
 		return receipt, err
 	}
-	return ExecutePreparation(ctx, g, PreparationRequest{Goal: p.Goal, MaxSteps: p.MaxSteps, MaxStates: p.MaxStates}, observe, act)
+	result := ExecutePreparation(ctx, g, PreparationRequest{Goal: p.Goal, MaxSteps: p.MaxSteps, MaxStates: p.MaxStates}, observe, act,
+		func(plan PreparationPlan, before BusinessObservation) error {
+			current := ModelObservation{Participants: setup.Participants, BeforeEntities: sess.entitySlice(), BeforeSessions: sess.sessionSlice()}
+			if err := validateRuntimePreparationPlanSubjectScope(g, manifest, plan, before.Bindings, &current); err != nil {
+				scopeRejected = true
+				return err
+			}
+			return nil
+		})
+	return result, scopeRejected
 }

@@ -627,6 +627,11 @@ func (d db) verifyBusinessCampaignCandidate(c BusinessCampaign, g Graph, candida
 		if !equalBusinessCampaignJSON(plan, *candidate.Preparation) {
 			return errors.New("candidate preparation plan differs from deterministic planning")
 		}
+		if candidate.Eligibility == "READY" || candidate.Eligibility == "PREPARABLE" {
+			if err := validateRuntimePreparationPlanSubjectScope(g, runner.Manifest, plan, actual.Bindings, obs); err != nil {
+				return fmt.Errorf("candidate preparation subject: %w", err)
+			}
+		}
 		if candidate.Eligibility == "PREPARABLE" {
 			if plan.Status != "READY" {
 				return errors.New("candidate preparation is not READY")
