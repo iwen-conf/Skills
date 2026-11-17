@@ -40,6 +40,7 @@ export default function DependencyPlan({
         ...plan.critical.slice(-4),
       ])];
   const hiddenCritical = plan.critical.length - shownCritical.length;
+  const criticalIDs = new Set(plan.critical);
   const groupElements = useRef(new Map<string, HTMLDetailsElement>());
   const nodeElements = useRef(new Map<string, HTMLButtonElement>());
   const byID = new Map(graph.nodes.map((node) => [node.id, node]));
@@ -198,7 +199,7 @@ export default function DependencyPlan({
                           data-plan-node={node.id}
                           className={`dependency-plan-node${selected.has(node.id) ? " is-selected" : ""}`}
                           data-proof-state={plan.state.get(node.id)}
-                          data-plan-critical={plan.critical.includes(node.id) ? "true" : "false"}
+                          data-plan-critical={criticalIDs.has(node.id) ? "true" : "false"}
                         >
                           <button
                             type="button"
