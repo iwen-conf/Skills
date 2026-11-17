@@ -73,6 +73,16 @@ describe("embedded snapshot boundary", () => {
     expect(stageOf(() => parseSnapshot(damaged))).toBe("snapshot.contract");
     expect(parseSnapshot(JSON.parse(sampleText)).model.data.business_contract).toBeUndefined();
   });
+  it.each([undefined, null, [], [""], [7]])(
+    "refuses malformed typed prestates before state projection: %j",
+    (fromStates) => {
+      const snapshot = contractFixture();
+      Object.assign(snapshot.model.data.business_contract!.branches[0], {
+        from_states: fromStates,
+      });
+      expect(stageOf(() => parseSnapshot(snapshot))).toBe("snapshot.contract");
+    },
+  );
   it("rejects damaged preparation and captured-response structures at the facts boundary", () => {
     const preparation = contractFixture();
     Object.assign(preparation.runs[0].facts![0], {

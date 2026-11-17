@@ -87,6 +87,21 @@ describe("one business selection context", () => {
       });
     }
   });
+  it("preserves the selected flow for an unrestricted branch without importing another flow's run", () => {
+    const global = structuredClone(context);
+    global.branches[0].flow = "";
+    global.runs[1].flow = "refund";
+    global.runs[1].steps[0].branches = ["active"];
+    let state = reduceSelection(
+      initialSelection(global.model, "isolated"),
+      { type: "flow", value: "payment" },
+      global,
+    );
+    state = reduceSelection(state, { type: "branch", value: "active" }, global);
+    expect(state.flow).toBe("payment");
+    expect(matchingRuns(global, state).map((run) => run.id)).toEqual(["run-A"]);
+    expect(reduceSelection(state, { type: "run", value: "run-B" }, global)).toEqual(state);
+  });
   it("filters steps by the selected participant without silently displaying another actor", () => {
     const state = reduce(selected(), "actor", "channel");
     expect(state).toMatchObject({ node: "callback", step: "2" });

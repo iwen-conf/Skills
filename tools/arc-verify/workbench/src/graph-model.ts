@@ -1,4 +1,5 @@
 import { predicateText } from "./contract";
+import { branchAppliesToFlow } from "./explorer-model";
 import type { BranchOption } from "./explorer-model";
 import type { Selection, SelectionStep } from "./selection";
 import type { BusinessNode, Relation, Snapshot, SnapshotRun } from "./types";
@@ -8,11 +9,17 @@ export interface CanvasNode extends BusinessNode {
   detail?: string;
   step?: string;
   status?: string;
+  branch?: string;
 }
 export interface CanvasEdge extends Relation {
   label: string;
   branch?: string;
   action?: string;
+  outcome?: string;
+  expectationMode?: "deterministic" | "allowed_outcomes";
+  expectedState?: string;
+  denied?: boolean;
+  legacy?: boolean;
 }
 export interface CanvasGraph {
   nodes: CanvasNode[];
@@ -104,8 +111,49 @@ export function graphFor(
       .map((edge) => edge.to),
   );
   const scopedBranches = branches.filter(
-    (branch) => branch.contract && (!state.flow || branch.flow === state.flow),
+    (branch) => branch.contract && branchAppliesToFlow(branch, state.flow),
   );
+  const declaredEdges: CanvasEdge[] = [];
+  const resultNodes = new Map<string, CanvasNode>();
+  for (const { contract: branch } of scopedBranches) {
+    if (!branch) continue;
+    for (const from of branch.from_states) {
+      for (const outcome of branch.expected.outcomes) {
+        const resultID = `expected-result:${[branch.id, outcome.id].map(encodeURIComponent).join("/")}`;
+        const to = outcome.state === "UNCHANGED" ? from : outcome.state || resultID;
+        if (!outcome.state)
+          resultNodes.set(resultID, {
+            id: resultID,
+            subject: resultID,
+            branch: branch.id,
+            kind: "expected_result",
+            name: outcome.id,
+            detail: "预期结果约束占位 · 未声明后态，不是生命周期状态或实际观察",
+          });
+        const label = [
+          names.get(branch.action) ?? branch.action,
+          `${branch.id} / ${outcome.id}`,
+          branch.expected.mode === "allowed_outcomes" ? "允许结果集合成员" : "确定性结果",
+          outcome.denied === undefined ? "" : outcome.denied ? "应拒绝" : "应允许",
+          outcome.state === "UNCHANGED" ? "保持前态" : outcome.state ? "" : "后态未声明",
+          `当 ${predicateText(branch.when)}`,
+        ].filter(Boolean);
+        declaredEdges.push({
+          id: `expected:${[branch.id, from, outcome.id].map(encodeURIComponent).join("/")}`,
+          from,
+          to,
+          kind: "expected_outcome",
+          label: label.join(" · "),
+          branch: branch.id,
+          action: branch.action,
+          outcome: outcome.id,
+          expectationMode: branch.expected.mode,
+          expectedState: outcome.state,
+          denied: outcome.denied,
+        });
+      }
+    }
+  }
   const explicitTransitions = new Set(
     scopedBranches.map((branch) => branch.contract?.transition).filter(Boolean),
   );
@@ -114,37 +162,43 @@ export function graphFor(
       !state.flow || explicitTransitions.has(transition.edge) || flowActions.has(transition.action),
   );
   const transitionIds = new Set(transitions.map((transition) => transition.edge));
-  const edges: CanvasEdge[] = model.edges
+  const legacyEdges: CanvasEdge[] = model.edges
     .filter((edge) => edge.kind === "transitions_to" && (!state.flow || transitionIds.has(edge.id)))
+    .filter((edge) => {
+      const transition = transitions.find((item) => item.edge === edge.id);
+      // Expected owns every covered action/prestate pair. An old edge cannot add
+      // an undeclared outcome or merge allow/deny guards into its former target.
+      return !scopedBranches.some(
+        ({ contract: branch }) =>
+          branch?.action === transition?.action && branch?.from_states.includes(edge.from),
+      );
+    })
     .map((edge) => {
       const transition = transitions.find((item) => item.edge === edge.id);
-      const choices = scopedBranches.filter(
-        (branch) =>
-          branch.contract?.from_states?.includes(edge.from) &&
-          (branch.contract?.transition === edge.id ||
-            (!branch.contract?.transition && branch.action === transition?.action)),
-      );
-      const condition = choices.map((branch) => predicateText(branch.contract?.when)).join(" / ");
       const rule = model.rules.find((item) => item.id === transition?.rule);
       const fallback = Object.entries(transition?.preconditions ?? {})
         .map(([id, value]) => `${names.get(id) ?? id}=${value}`)
         .join(" 且 ");
       return {
         ...edge,
-        label: `${names.get(transition?.action ?? "") ?? transition?.action ?? rule?.description ?? "状态转换"}${condition || fallback ? ` · ${condition || fallback}` : ""}`,
-        branch: choices.length === 1 ? choices[0].id : undefined,
+        label: `历史迁移 · ${names.get(transition?.action ?? "") ?? transition?.action ?? rule?.description ?? "状态转换"}${fallback ? ` · ${fallback}` : ""}`,
         action: transition?.action,
+        legacy: true,
       };
     });
+  const edges = [...declaredEdges, ...legacyEdges].sort((a, b) => a.id.localeCompare(b.id));
   const ids = new Set(edges.flatMap((edge) => [edge.from, edge.to]));
   if (flow?.initial) ids.add(flow.initial);
   const nodes: CanvasNode[] = model.nodes
     .filter((node) => node.kind === "state" && (ids.has(node.id) || !state.flow))
     .map((node) => ({ ...node, subject: node.id, detail: node.id }));
+  nodes.push(...resultNodes.values());
   return {
     nodes,
     edges,
     empty: "当前范围没有已声明的状态迁移。先选择流程，或补充有来源的状态与条件。",
-    caption: "状态图允许重试和恢复环；线上的条件来自模型，不代表本次运行已满足。",
+    caption: model.business_contract
+      ? "契约边按分支、前态和预期结果分别展示；允许结果集合仍属于同一分支。历史迁移以虚线单独标识，不补写契约。图不代表实际执行。"
+      : "历史状态迁移允许重试和恢复环；尚未声明确定性业务契约，不代表本次运行已满足。",
   };
 }

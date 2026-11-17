@@ -17,6 +17,10 @@ const unique = (items: (string | undefined)[]) => [
   ...new Set(items.filter((value): value is string => Boolean(value))),
 ];
 
+/** An omitted branch flow is unrestricted, as in the kernel's branch matcher. */
+export const branchAppliesToFlow = (branch: { flow?: string }, flow: string) =>
+  !flow || !branch.flow || branch.flow === flow;
+
 export function executionCoverageScope(snapshot: Snapshot, selection: Selection) {
   const round = snapshot.contract_execution?.round ?? "";
   const environment =
