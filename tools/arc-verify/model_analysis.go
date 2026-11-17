@@ -584,6 +584,7 @@ func (d db) modelGate(g Graph) (map[string]any, error) {
 		return nil, err
 	}
 	strongContract := analysis.ContractProof != nil && analysis.ContractProof.Status == "PROVEN_IN_SCOPE" && analysis.ContractExecution != nil && analysis.ContractExecution.Status == "PASS"
+	completeInScope := strongContract && analysis.Verdict == "PASS" && analysis.UnconfirmedRules == 0 && missing == 0 && missingRunners == 0 && invalid == 0
 	proofScope := "legacy_business_model_obligations"
 	if g.BusinessContract != nil {
 		proofScope = "declared_finite_contract_scope_and_verified_branch_execution"
@@ -597,10 +598,12 @@ func (d db) modelGate(g Graph) (map[string]any, error) {
 		"not_run_obligations":        notRun,
 		"passed_obligations":         passed,
 		"total_obligations":          analysis.Coverage.Obligations.Total,
-		"complete_business_e2e":      strongContract && analysis.Verdict == "PASS" && analysis.UnconfirmedRules == 0 && missing == 0,
+		"complete_in_declared_scope": completeInScope,
+		"complete_business_e2e":      false,
+		"business_e2e_status":        "NOT_EVALUATED",
 		"contract_partition_proven":  analysis.ContractProof != nil && analysis.ContractProof.Status == "PROVEN_IN_SCOPE",
 		"contract_branches_executed": analysis.ContractExecution != nil && analysis.ContractExecution.Status == "PASS",
-		"real_e2e_boundary":          "model gate verifies local obligations inside registered execution contexts; unexecuted live endpoints and remote hosts require separate real execution evidence",
+		"real_e2e_boundary":          "model gate verifies declared finite partitions and registered branch obligations, not a complete business journey; journey acceptance requires separate continuous real execution and independent evidence for its explicitly declared scope",
 	}
 	return d.attachExploreEvidence(g.ID, map[string]any{"verdict": analysis.Verdict, "reason": analysis.Reason, "catalog_approved": analysis.CatalogApproved, "confirmed_rules": len(g.Rules) - analysis.UnconfirmedRules, "unconfirmed_rules": analysis.UnconfirmedRules, "required_tasks": analysis.Coverage.Obligations.Total, "actual_tasks": analysis.ActualTasks, "passed_with_valid_raw": passed, "missing_tasks": missing, "invalid_tasks_or_evidence": invalid, "open_risks": openRisks, "completeness": completeness, "proof_scope": proofScope, "contract_proof": analysis.ContractProof, "contract_execution": analysis.ContractExecution, "execution_contexts": func() int {
 		if analysis.Round != "" {
