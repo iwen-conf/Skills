@@ -218,7 +218,7 @@ export function reduceSelection(
       ...clearedRun(state),
       branch: branch.id,
       variant: "",
-      flow: branch.flow,
+      flow: branch.flow || state.flow,
       node: branch.action,
       focus: "all",
     };

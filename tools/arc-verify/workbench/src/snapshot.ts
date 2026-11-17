@@ -288,9 +288,12 @@ function checkContract(value: unknown) {
       !fields(branch) ||
       typeof branch.id !== "string" ||
       typeof branch.action !== "string" ||
+      !Array.isArray(branch.from_states) ||
+      branch.from_states.length === 0 ||
+      branch.from_states.some((state) => typeof state !== "string" || state === "") ||
       ids.has(branch.id)
     )
-      fail("snapshot.contract", "业务分支身份非法或重复");
+      fail("snapshot.contract", "业务分支身份或前态非法，或分支身份重复");
     ids.add(branch.id);
     checkPredicate(branch.when);
     checkExpectation(branch.expected, "snapshot.contract");

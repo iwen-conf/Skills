@@ -95,7 +95,7 @@ func TestBusinessContractGatePublishesProofAndUnexecutedBranchGap(t *testing.T) 
 		t.Fatal(err)
 	}
 	completeness, ok := gate["completeness"].(map[string]any)
-	if !ok || completeness["complete_business_e2e"] != false || gate["proof_scope"] != "declared_finite_contract_scope_and_verified_branch_execution" {
+	if !ok || completeness["complete_business_e2e"] != false || completeness["complete_in_declared_scope"] != false || completeness["business_e2e_status"] != "NOT_EVALUATED" || gate["proof_scope"] != "declared_finite_contract_scope_and_verified_branch_execution" {
 		t.Fatalf("finite partition proof was presented as executed E2E: %+v", gate)
 	}
 	if gate["verdict"] == "PASS" || gate["inputs_unchanged"] != false {
@@ -115,7 +115,7 @@ func TestBusinessContractLegacyGateCannotClaimDeterministicCompleteness(t *testi
 		t.Fatal(err)
 	}
 	completeness := gate["completeness"].(map[string]any)
-	if completeness["complete_business_e2e"] != false || gate["proof_scope"] != "legacy_business_model_obligations" {
+	if completeness["complete_business_e2e"] != false || completeness["complete_in_declared_scope"] != false || completeness["business_e2e_status"] != "NOT_EVALUATED" || gate["proof_scope"] != "legacy_business_model_obligations" {
 		t.Fatalf("legacy graph gained a new strong coverage claim: %+v", gate)
 	}
 	proof := gate["contract_proof"].(*BusinessCoverageProof)

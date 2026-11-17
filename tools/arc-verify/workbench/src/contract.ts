@@ -186,6 +186,12 @@ export function displayValue(value: unknown): string {
   if (value === undefined) return "未观察";
   return jsonValueText(value);
 }
+
+/** Render the persisted policy; an explicit empty allowed set is not an omission. */
+export function successorPolicyText(policy?: readonly string[] | null): string {
+  if (policy == null) return "未声明额外后续限制";
+  return policy.length ? policy.join("、") : "无合法后继（显式空集合）";
+}
 function operandText(operand?: Operand): string {
   if (operand?.ref) return `${operand.ref.subject}.${operand.ref.attribute}`;
   return operand?.literal ? displayValue(operand.literal.value) : "未声明操作数";

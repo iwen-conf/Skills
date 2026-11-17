@@ -290,7 +290,25 @@ describe("bounded campaign selection and evidence", () => {
       />,
     );
     expect(html).toContain("没有已导出的子运行记录");
-    expect(html).toContain("未记录额外后续限制");
+    expect(html).toContain("无合法后继（显式空集合）");
+  });
+  it.each([
+    { policy: undefined, text: "未声明额外后续限制" },
+    { policy: null, text: "未声明额外后续限制" },
+    { policy: [], text: "无合法后继（显式空集合）" },
+    { policy: ["callback"], text: "callback" },
+  ])("preserves the campaign successor policy meaning: $text", ({ policy, text }) => {
+    const snapshot = campaignFixture();
+    Object.assign(snapshot.business_campaigns![0], { next_allowed: policy });
+    const html = renderToStaticMarkup(
+      <App
+        state={{ snapshot: readSnapshotText(JSON.stringify(snapshot)) }}
+        initialContext={{ campaign: "synthetic-campaign-A" }}
+      />,
+    );
+    const restriction = html.match(/<h4>后续动作限制[\s\S]*?<\/h4><p>(.*?)<\/p>/)![1];
+    expect(restriction).toBe(text);
+    if (policy?.length === 0) expect(restriction).not.toContain("未声明");
   });
   it("carries exact JSON i64 tokens from the text parser into candidate actual displays", () => {
     const fixture = campaignFixture();

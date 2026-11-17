@@ -360,7 +360,7 @@ func (d db) driveBusinessCampaign(ctx context.Context, c BusinessCampaign, g Gra
 		selected := -1
 		stop := "BLOCKED"
 		for i, runtime := range runtimes {
-			candidate := BusinessCampaignCandidate{VariantID: runtime.Variant.ID, Branch: runtime.Variant.Branch, Runner: runtime.Variant.Runner, Run: newID("R"), Eligibility: "BUDGET", Reason: "observed-context budget exhausted", NextAllowed: len(c.NextAllowed) == 0 || containsBusinessID(c.NextAllowed, runtime.Variant.Action)}
+			candidate := BusinessCampaignCandidate{VariantID: runtime.Variant.ID, Branch: runtime.Variant.Branch, Runner: runtime.Variant.Runner, Run: newID("R"), Eligibility: "BUDGET", Reason: "observed-context budget exhausted", NextAllowed: c.NextAllowed.Allows(runtime.Variant.Action)}
 			if !candidate.NextAllowed {
 				candidate.Eligibility, candidate.Reason = "NEXT_DISALLOWED", "previous verified actual outcome restricts the next action"
 			} else if c.Spent.States < c.Budget.MaxStates && ctx.Err() == nil {

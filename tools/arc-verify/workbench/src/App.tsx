@@ -1,5 +1,11 @@
 import { useMemo, useReducer, useState } from "react";
-import { branchOptions, executionCoverageScope, factsOf, selectionContext } from "./explorer-model";
+import {
+  branchAppliesToFlow,
+  branchOptions,
+  executionCoverageScope,
+  factsOf,
+  selectionContext,
+} from "./explorer-model";
 import { entityKey } from "./facts";
 import FactPanel from "./FactPanel";
 import { CampaignTrail } from "./CampaignViews";
@@ -170,7 +176,7 @@ function Workbench({
   }
   const visibleBranches = branches.filter(
     (item) =>
-      (!selection.flow || item.flow === selection.flow) &&
+      branchAppliesToFlow(item, selection.flow) &&
       (showLegacy || !item.legacy) &&
       (!treeRoot || reachable.has(item.action)) &&
       (!search ||

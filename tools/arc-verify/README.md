@@ -40,6 +40,16 @@ reconciles durable child-run history before proceeding; uncertain actions are ne
 replayed. `COMPLETED_IN_SCOPE` covers the selected variants only. Missing rules, overlapping
 guards, unavailable preparation and damaged evidence remain explicit non-success results.
 
+`next_allowed` is a contract allowlist: omitted/null leaves successors unrestricted, `[]`
+permits none, and a nonempty list permits only its actions. Matching allowed outcomes intersect
+their lists. Ordinary sequences, campaign scheduling and evidence replay enforce the same
+restriction before accepting a continuation.
+
+`gate` and `report --kind acceptance` distinguish `complete_in_declared_scope` from business
+journey acceptance. Their `business_e2e_status` is `NOT_EVALUATED`; the compatibility boolean
+`complete_business_e2e` remains false. A passing finite partition and all registered branch
+obligations do not establish complete business E2E.
+
 Campaign requests declare `{id, branch, runner}` variants and action/state/time budgets along
 with the full model/environment/round/account/fixture/source context. Registered Runner manifests
 own actual parameters. The scheduler does not invent request values or approve rules. Its first

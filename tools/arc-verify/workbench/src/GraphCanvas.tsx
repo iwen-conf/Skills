@@ -3,6 +3,7 @@ import { Background, Controls, MarkerType, Position, ReactFlow } from "@xyflow/r
 import type { Edge, Node } from "@xyflow/react";
 import { analyzeDirected, layoutDirected, neighborhood } from "./layout";
 import type { CanvasEdge, CanvasGraph, CanvasNode } from "./graph-model";
+import { canvasSelectionAnchors } from "./graph-focus";
 import type { Selection, SelectionAction } from "./selection";
 
 export default function GraphCanvas({
@@ -17,22 +18,12 @@ export default function GraphCanvas({
   const [foldCycles, setFoldCycles] = useState(true);
   const analysis = useMemo(() => analyzeDirected(graph.nodes, graph.edges), [graph]);
   const cyclic = new Set(analysis.cycles.flat());
-  const selectedTransition = graph.edges.find(
-    (edge) => edge.branch === selection.branch || edge.action === selection.node,
-  );
-  const selectedId =
-    graph.nodes.find((node) =>
-      selection.canvas === "run" ? node.step === selection.step : node.subject === selection.node,
-    )?.id ??
-    (selection.canvas === "states" && selectedTransition
-      ? selection.focus === "upstream"
-        ? selectedTransition.from
-        : selectedTransition.to
-      : selection.node);
+  const selectedIDs = canvasSelectionAnchors(graph, selection);
+  const focus = selection.focus;
   let allowed: Set<string> | undefined;
-  if (selection.focus === "critical") allowed = analysis.criticalNodes;
-  else if (selection.focus !== "all" && selectedId)
-    allowed = neighborhood(graph.edges, selectedId, selection.focus);
+  if (focus === "critical") allowed = analysis.criticalNodes;
+  else if (focus !== "all")
+    allowed = new Set([...selectedIDs].flatMap((id) => [...neighborhood(graph.edges, id, focus)]));
   const scopeNodes = graph.nodes.filter((node) => !allowed || allowed.has(node.id));
   const scopeIDs = new Set(scopeNodes.map((node) => node.id));
   const scopeEdges = graph.edges.filter((edge) => scopeIDs.has(edge.from) && scopeIDs.has(edge.to));
@@ -73,7 +64,7 @@ export default function GraphCanvas({
   );
   const nodes: Node[] = displayNodes.map((node) => {
     const position = positions.get(node.id)!;
-    const selected = node.members?.includes(selectedId) || node.id === selectedId;
+    const selected = node.members?.some((id) => selectedIDs.has(id)) || selectedIDs.has(node.id);
     return {
       id: node.id,
       position: { x: position.x, y: position.y },
@@ -88,9 +79,11 @@ export default function GraphCanvas({
                 ? "准备动作"
                 : node.kind === "cycle"
                   ? "可展开的状态环"
-                  : node.kind === "step"
-                    ? `第 ${node.step} 步`
-                    : "业务状态"}
+                  : node.kind === "expected_result"
+                    ? "预期约束 · 后态未声明"
+                    : node.kind === "step"
+                      ? `第 ${node.step} 步`
+                      : "业务状态"}
               {cyclic.has(node.id) ? " · 循环" : ""}
             </span>
             <strong>{node.name}</strong>
@@ -122,6 +115,7 @@ export default function GraphCanvas({
           : "#94a3b8",
       strokeWidth:
         analysis.criticalEdges.has(edge.id) && selection.canvas === "dependencies" ? 2.4 : 1.5,
+      strokeDasharray: edge.legacy ? "6 4" : undefined,
     },
     labelStyle: { fill: "#334155", fontSize: 11 },
     labelBgStyle: { fill: "#fff", fillOpacity: 0.96 },
@@ -171,10 +165,12 @@ export default function GraphCanvas({
               dispatch(
                 node.step
                   ? { type: "step", value: node.step }
-                  : {
-                      type: "node",
-                      value: selection.canvas === "dependencies" ? node.id : node.subject,
-                    },
+                  : node.branch
+                    ? { type: "branch", value: node.branch }
+                    : {
+                        type: "node",
+                        value: selection.canvas === "dependencies" ? node.id : node.subject,
+                      },
               );
             }}
             onEdgeClick={(_, item) => {

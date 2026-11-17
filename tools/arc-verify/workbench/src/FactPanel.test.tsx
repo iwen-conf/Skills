@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vite-plus/test";
 import App from "./App";
 import type { ActionObservation, PreparationExecution } from "./facts";
-import { parseSnapshot } from "./snapshot";
+import { parseSnapshot, readSnapshotText } from "./snapshot";
 import { contractFixture } from "./test-fixtures";
 
 const capture: ActionObservation = {
@@ -197,5 +197,56 @@ describe("new execution facts remain inspectable", () => {
     expect(html).toContain("channel-response-only");
     expect(html).not.toContain("synthetic-captured-order");
     expect(html).not.toContain("synthetic unique branch");
+  });
+  it.each([
+    { policy: undefined, text: "未声明额外后续限制" },
+    { policy: null, text: "未声明额外后续限制" },
+    { policy: [], text: "无合法后继（显式空集合）" },
+    { policy: ["callback"], text: "callback" },
+  ])(
+    "keeps declared, frozen and compared successor restrictions distinct: $text",
+    ({ policy, text }) => {
+      const snapshot = contractFixture();
+      const branch = snapshot.model.data.business_contract!.branches[0];
+      const record = snapshot.runs[0].facts![0].business_expectations![0];
+      Object.assign(branch.expected.outcomes[0], { next_allowed: policy });
+      Object.assign(record.decision.frozen!.expected.outcomes[0], { next_allowed: policy });
+      Object.assign(record.comparison!, { next_allowed: policy });
+      const html = renderToStaticMarkup(
+        <App
+          state={{ snapshot: readSnapshotText(JSON.stringify(snapshot)) }}
+          initialContext={{ branch: branch.id, run: snapshot.runs[0].trace.run, step: "1" }}
+        />,
+      );
+      expect(html).toContain(`声明后续动作限制 ${text}`);
+      expect(html).toContain(`冻结后续动作限制 ${text}`);
+      expect(html).toContain(`比较结果的后续动作限制 ${text}`);
+    },
+  );
+  it("keeps an empty compared successor intersection instead of borrowing a declared outcome's list", () => {
+    const snapshot = contractFixture();
+    const branch = snapshot.model.data.business_contract!.branches[0];
+    const record = snapshot.runs[0].facts![0].business_expectations![0];
+    const outcome = branch.expected.outcomes[0];
+    branch.expected = {
+      mode: "allowed_outcomes",
+      reason: "Synthetic overlapping allowed results with disjoint successor policies",
+      outcomes: [
+        { ...outcome, id: "first", next_allowed: ["callback"] },
+        { ...outcome, id: "second", next_allowed: ["disable"] },
+      ],
+    };
+    record.decision.frozen!.expected = structuredClone(branch.expected);
+    record.comparison!.next_allowed = [];
+    const html = renderToStaticMarkup(
+      <App
+        state={{ snapshot: readSnapshotText(JSON.stringify(snapshot)) }}
+        initialContext={{ branch: branch.id, run: snapshot.runs[0].trace.run, step: "1" }}
+      />,
+    );
+    expect(html).toContain("声明后续动作限制 callback");
+    expect(html).toContain("冻结后续动作限制 disable");
+    expect(html).toContain("比较结果的后续动作限制 无合法后继（显式空集合）");
+    expect(html).not.toContain("比较结果的后续动作限制 callback");
   });
 });

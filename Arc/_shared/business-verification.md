@@ -18,10 +18,9 @@ not prove business correctness. A state-machine retry loop is not a dependency c
 
 `(complete relevant PreState, Guard, Actor, Action) -> ExpectedOutcome`.
 
-Each branch binds model/version, flow, action, transition, RULE, source, capability and test
-obligations. Conditions identify their subjects, typed attributes, operators and values; use
-AND/OR/NOT, ranges, sets and relations when required. Do not collapse a multi-subject condition
-into one unexplained boolean. Model aliases bind to actual account/entity identities at runtime.
+Bind each branch to model/version, flow, action, transition, RULE/source, capability and obligations.
+Conditions retain subjects, typed attributes, operators and values, including boolean composition,
+ranges, sets and relations. Bind aliases to observed account/entity identities; retain each subject.
 
 For a complete input, confirmed guards must yield exactly one branch. Overlap, even when two
 rules happen to produce the same output, is an explicit ambiguity; reject it as `MODEL_ERROR`.
@@ -32,6 +31,8 @@ One branch freezes its response, resulting state, persistence, events, side effe
 effects, invariants and permitted next actions before the real operation. Source-backed
 `allowed_outcomes` may express true contract-permitted nondeterminism, with common invariants;
 ordinary exceptions and external events belong to their own conditioned transitions.
+`next_allowed` absent/null is unrestricted; `[]` permits no successor. Intersect matching outcomes'
+allowlists. Enforce this policy before dispatch and during offline replay, including ordinary sequences.
 
 The runtime must never use an actual response to rewrite Expected or pick a different branch.
 Unknown or out-of-model actual states remain observations, not newly approved expectations.
@@ -40,8 +41,8 @@ Unknown or out-of-model actual states remain observations, not newly approved ex
 
 1. Observe the actor, bound entities, state, relevant history and external conditions.
 2. Compare `ObservedPreState` with the required `ExpectedPreState` at attribute level.
-3. Plan missing conditions through declared preparation actions and dependency layers. Predicted
-   effects are planning hints only. Existing satisfied conditions require fresh observations.
+3. Plan all missing conditions through declared preparations. Effects are predictions; failed
+   unmapped prerequisites remain blockers. Reuse only freshly observed satisfied conditions.
 4. Execute authorized preparation through real entries, preserve its evidence, and independently
    read back each postcondition. Preparation failure blocks the target action.
 5. Match exactly one branch from the observed prestate and freeze its contract/version/hash.
@@ -62,11 +63,11 @@ The immutable model, frozen expectations, RAW, `step_facts`, `step_assertions` a
 oracle and observation phase. Two accounts may use the same oracle name without sharing facts.
 An archived RAW fallback is valid only after digest, identity and ledger projection checks.
 
-Model analysis and real execution are separate. Finite-domain coverage states its actions,
-states, relevant attribute domains, budget and checked scope. `PROVEN_IN_SCOPE` proves that
-partition only. Unbounded values, omitted states, unconfirmed rules and exhausted budgets stay
-visible. Endpoint coverage, node count and a green diagram never prove business completeness.
-Old models without `business_contract` remain `LEGACY_UNDECLARED` for this stronger contract.
+Finite proofs declare actions, states, attribute domains and budgets. `PROVEN_IN_SCOPE` and
+gate `complete_in_declared_scope` cover that partition and its executed obligations only;
+`business_e2e_status=NOT_EVALUATED` requires separate journey acceptance. Keep omitted states,
+unknown rules and exhausted budgets visible. Endpoint/node counts do not prove completeness.
+Models without `business_contract` remain `LEGACY_UNDECLARED` for this stronger contract.
 
 Bounded online exploration uses `arc verify campaign` with explicit registered input variants,
 fresh scoped observations and the same prepare/freeze/execute/compare path. Its ledger retains
@@ -102,11 +103,10 @@ external-effect observations. Unavailable dependencies are named blockers, never
 ## Make repeated corrections executable
 
 Following [Lauren Tan's engineering argument](https://ai.engineer/code/2026/talks/lauren-tan),
-prefer a better API, architectural boundary, type check or regression over another prose warning.
-Arc enforces branch uniqueness, pre-action captures, scoped oracle identity and verified evidence
-in code. `TestBusinessKernelHasNoAmbientIO` guards direct IO imports in the decision kernel;
-`FuzzBusinessContractUniqueFreezeDoesNotFollowActual` exercises exact integer partitions,
-branch-order independence and immutable Expected. Neither is a whole-program formal proof.
+enforce corrections through APIs, boundaries, types and regressions. Arc checks branch uniqueness,
+pre-action capture, oracle identity and evidence. `TestBusinessKernelHasNoAmbientIO` checks direct
+kernel imports; `FuzzBusinessContractUniqueFreezeDoesNotFollowActual` exercises integer partitions,
+branch order and frozen Expected. Neither proves whole-program correctness.
 
 The capability tree is the shared user-facing feature vocabulary; registered CLI adapters are
 reusable drivers. Reviewers inspect their scoped model, actual assertions and reproducible traces.

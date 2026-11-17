@@ -101,12 +101,13 @@ describe("snapshot-to-workbench identity", () => {
     snapshot.model.data.business_contract!.branches[2].transition = undefined;
     const state = { ...initialSelection(snapshot.meta.graph), flow: "F-PAY" };
     const graph = graphFor(snapshot, state, branchOptions(snapshot));
-    expect(graph.edges.find((edge) => edge.id === "T-CALLBACK")?.label).toContain(
+    expect(graph.edges.find((edge) => edge.branch === "B-CALLBACK")?.label).toContain(
       "merchant.enabled",
     );
-    expect(graph.edges.find((edge) => edge.id === "T-RETURN")?.label).not.toContain(
-      "merchant.enabled",
-    );
+    const legacy = graph.edges.find((edge) => edge.id === "T-RETURN");
+    expect(legacy?.label).not.toContain("merchant.enabled");
+    expect(legacy?.label).toContain("历史迁移");
+    expect(legacy?.branch).toBeUndefined();
   });
   it("does not color a stored PASS as verified when its evidence is blocked", () => {
     const snapshot = contractFixture();

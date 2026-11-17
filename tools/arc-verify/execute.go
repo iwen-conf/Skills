@@ -420,6 +420,7 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 		}
 	}
 	if !setupFailed {
+		var successors BusinessSuccessorPolicy
 		for index, batch := range runnerBatches(manifest) {
 			last := batch[len(batch)-1]
 			expected := obligation.Definition.Expected
@@ -529,6 +530,11 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 						raw.ExitCode = 1
 						observation.Error = "actual state differs from the declared transition source"
 					}
+				}
+			}
+			if raw.ExitCode == 0 && model.BusinessContract != nil {
+				if err := checkBusinessSuccessors(successors, batch); err != nil {
+					raw.ExitCode, observation.Error = 1, err.Error()+"; no batch action was attempted"
 				}
 			}
 			if raw.ExitCode == 0 && request.campaign != nil {
@@ -736,6 +742,14 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 					result.Reason = "independent business state or property contradicted the frozen expectation"
 				}
 				break
+			}
+			if model.BusinessContract != nil {
+				var err error
+				successors, err = businessSuccessorsAfter(&observation)
+				if err != nil {
+					result.Verdict, result.Reason = "BLOCKED", err.Error()
+					break
+				}
 			}
 		}
 	}

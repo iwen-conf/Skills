@@ -95,7 +95,7 @@ func campaignObservationKey(c BusinessCampaign, runtime businessCampaignVariantR
 
 func (d db) probeBusinessCampaign(ctx context.Context, c BusinessCampaign, g Graph, runtime businessCampaignVariantRuntime, run string, lease businessCampaignLease) BusinessCampaignCandidate {
 	step := runtime.Runner.Manifest.Steps[0]
-	result := BusinessCampaignCandidate{VariantID: runtime.Variant.ID, Branch: runtime.Variant.Branch, Runner: runtime.Variant.Runner, Run: run, Eligibility: "BLOCKED", NextAllowed: len(c.NextAllowed) == 0 || containsBusinessID(c.NextAllowed, step.Node)}
+	result := BusinessCampaignCandidate{VariantID: runtime.Variant.ID, Branch: runtime.Variant.Branch, Runner: runtime.Variant.Runner, Run: run, Eligibility: "BLOCKED", NextAllowed: c.NextAllowed.Allows(step.Node)}
 	if !result.NextAllowed {
 		result.Eligibility, result.Reason = "NEXT_DISALLOWED", "previous verified outcome restricts the next action"
 		return result
@@ -218,6 +218,10 @@ func (d db) probeBusinessCampaign(ctx context.Context, c BusinessCampaign, g Gra
 		if preparedDecision.Status == "MODEL_ERROR" {
 			result.Eligibility = "MODEL_ERROR"
 		}
+		return result
+	}
+	if err := businessCampaignPreparedPreconditions(g, runtime.Obligation, step, obs, before, predicted); err != nil {
+		result.Eligibility, result.Reason = "BLOCKED", err.Error()
 		return result
 	}
 	result.Eligibility, result.Reason = "PREPARABLE", "explicit preparation plan may enable the selected branch; target still requires fresh readback and an exact pre-action freeze"

@@ -91,7 +91,7 @@ type BusinessExpectedOutcome struct {
 	Denied      *bool                   `json:"denied,omitempty"`
 	Predicate   BusinessPredicate       `json:"predicate"`
 	Checks      []BusinessExpectedCheck `json:"checks,omitempty"`
-	NextAllowed []string                `json:"next_allowed,omitempty"`
+	NextAllowed BusinessSuccessorPolicy `json:"next_allowed,omitzero"`
 }
 
 type BusinessExpectedCheck struct {
@@ -175,7 +175,7 @@ type BusinessComparison struct {
 	Checks          []BusinessCheckResult     `json:"checks"`
 	Unknown         []string                  `json:"unknown,omitempty"`
 	InvariantChecks []BusinessAssertionResult `json:"invariant_checks,omitempty"`
-	NextAllowed     []string                  `json:"next_allowed,omitempty"`
+	NextAllowed     BusinessSuccessorPolicy   `json:"next_allowed,omitzero"`
 }
 
 type BusinessCoverageDomain struct {

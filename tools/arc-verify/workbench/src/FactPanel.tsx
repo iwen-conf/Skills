@@ -1,4 +1,4 @@
-import { displayValue, predicateText } from "./contract";
+import { displayValue, predicateText, successorPolicyText } from "./contract";
 import { CampaignPanel } from "./CampaignViews";
 import type { BusinessCampaign } from "./campaign";
 import type { BusinessAssertionResult, BusinessExpectedCheck } from "./contract";
@@ -423,9 +423,7 @@ export default function FactPanel({
                     )}
                     <span>{predicateText(outcome.predicate)}</span>
                     <DeclaredChecks checks={outcome.checks} />
-                    {outcome.next_allowed?.length ? (
-                      <small>声明后续动作 {outcome.next_allowed.join("、")}</small>
-                    ) : null}
+                    <small>声明后续动作限制 {successorPolicyText(outcome.next_allowed)}</small>
                   </li>
                 ))}
               </ul>
@@ -614,6 +612,7 @@ export default function FactPanel({
                     </span>
                     <span>{predicateText(outcome.predicate)}</span>
                     <DeclaredChecks checks={outcome.checks} />
+                    <small>冻结后续动作限制 {successorPolicyText(outcome.next_allowed)}</small>
                   </li>
                 ))}
               </ul>
@@ -679,10 +678,7 @@ export default function FactPanel({
                   <AssertionResults checks={item.comparison.invariant_checks} />
                 </>
               ) : null}
-              <p>
-                确定性允许的下一步{" "}
-                {item.comparison.next_allowed?.join("、") || "未记录额外后续限制"}
-              </p>
+              <p>比较结果的后续动作限制 {successorPolicyText(item.comparison.next_allowed)}</p>
             </>
           )}
         </section>

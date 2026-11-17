@@ -84,8 +84,8 @@ default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src
 | `requests`、`actions`、`oracles` | 冻结前的实际请求捕获、动作响应、独立前后回读          | 响应值不能替代独立 DB 事实；缺失值保留未知。                                                  |
 | `preparation`                    | 计划历史、实际准备步骤、独立 readbacks 和目标就绪状态 | `predicted_effects` 是预计效果；实际是否执行和是否满足条件以捕获及回读为准。                  |
 | `recovery.mode=checkpoint`       | 只读确认并保留运行现场                                | 不表示已回滚或恢复；旧记录缺少 mode 时不能推断为 checkpoint。跨运行自动继承变量仍需单独实现。 |
-| `business_campaigns`             | 指定输入变体的观察、派发、child run、预算和恢复历史   | `COMPLETED_IN_SCOPE` 仅表示所选变体通过，`full_business_coverage` 仍为 false。                 |
-| `campaign.last_actual`           | 最近目标动作的实际后态                               | 后续 restore 可能改变现场；恢复观察单独展示，下次候选必须重新读取实际状态。                    |
+| `business_campaigns`             | 指定输入变体的观察、派发、child run、预算和恢复历史   | `COMPLETED_IN_SCOPE` 仅表示所选变体通过，`full_business_coverage` 仍为 false。                |
+| `campaign.last_actual`           | 最近目标动作的实际后态                                | 后续 restore 可能改变现场；恢复观察单独展示，下次候选必须重新读取实际状态。                   |
 
 前端只展示 Go 已持久化的匹配与比较结果，不在浏览器重新选择业务分支或重算证据判定。历史数据继续可读，但没有新的冻结身份、独立判据或完整 RAW 时保持 `LEGACY` 或 `BLOCKED`。
 
