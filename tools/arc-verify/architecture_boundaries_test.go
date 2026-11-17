@@ -19,7 +19,7 @@ func TestBusinessKernelHasNoAmbientIO(t *testing.T) {
 	}
 	for _, entry := range entries {
 		name := entry.Name()
-		kernel := strings.HasPrefix(name, "business_contract") || name == "preparation.go" || name == "preparation_runtime.go"
+		kernel := strings.HasPrefix(name, "business_contract") || name == "business_successor.go" || name == "preparation.go" || name == "preparation_runtime.go"
 		if !kernel || strings.Contains(name, "_runtime") && name != "preparation_runtime.go" || strings.HasSuffix(name, "_test.go") || !strings.HasSuffix(name, ".go") {
 			continue
 		}

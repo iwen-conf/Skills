@@ -64,6 +64,28 @@ func (d db) modelObservationVerdict(contract runContract, raw StepRAW, index int
 }
 
 func (d db) evaluateModelObservation(contract runContract, raw StepRAW, index int, hash string) (string, string, []StepAssertion, error) {
+	verdict, reason, assertions, err := d.evaluateModelObservationLocal(contract, raw, index, hash)
+	if err != nil || verdict != "PASS" || contract.Model.BusinessContract == nil || index <= 1 {
+		return verdict, reason, assertions, err
+	}
+	policy, err := d.precedingBusinessSuccessors(contract, raw.Run, index)
+	if err == nil {
+		runner, runnerErr := d.registeredRunner(contract.Receipt.Runner)
+		if runnerErr != nil {
+			err = runnerErr
+		} else {
+			err = checkBusinessSuccessors(policy, runnerBatches(runner.Manifest)[index-1])
+		}
+	}
+	if err != nil {
+		reason = "ordered business successor evidence: " + err.Error()
+		assertions = append(assertions, StepAssertion{Kind: "business_successor", Name: "next_allowed", Verdict: "BLOCKED", Reason: reason})
+		return "BLOCKED", reason, assertions, nil
+	}
+	return verdict, reason, assertions, nil
+}
+
+func (d db) evaluateModelObservationLocal(contract runContract, raw StepRAW, index int, hash string) (string, string, []StepAssertion, error) {
 	assertions := []StepAssertion{}
 	if contract.Model == nil || contract.Obligation == nil || contract.Receipt == nil || raw.Model == nil {
 		return "BLOCKED", "model observation has no frozen execution context", assertions, errors.New("model observation has no frozen execution context")

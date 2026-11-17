@@ -131,7 +131,7 @@ type BusinessCampaign struct {
 	Coverage        BusinessCampaignCoverage            `json:"coverage"`
 	LastActual      *BusinessObservation                `json:"last_actual,omitempty"`
 	LastRun         string                              `json:"last_run,omitempty"`
-	NextAllowed     []string                            `json:"next_allowed,omitempty"`
+	NextAllowed     BusinessSuccessorPolicy             `json:"next_allowed,omitzero"`
 	FirstDivergence string                              `json:"first_divergence,omitempty"`
 	HistorySHA256   string                              `json:"history_sha256"`
 	Revision        int                                 `json:"revision"`

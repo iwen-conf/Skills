@@ -333,19 +333,8 @@ func CompareBusinessExpectation(g Graph, frozen FrozenBusinessExpectation, after
 	}
 	// If explicit allowed outcomes overlap, report only next actions allowed by
 	// every matching outcome. Actual must never silently widen the next step.
-	allowed := map[string]bool{}
-	for _, action := range matched[0].NextAllowed {
-		allowed[action] = true
-	}
-	for _, outcome := range matched[1:] {
-		for action := range allowed {
-			if !containsBusinessID(outcome.NextAllowed, action) {
-				delete(allowed, action)
-			}
-		}
-	}
-	for action := range allowed {
-		result.NextAllowed = append(result.NextAllowed, action)
+	for _, outcome := range matched {
+		result.NextAllowed = result.NextAllowed.Intersect(outcome.NextAllowed)
 	}
 	sort.Strings(result.NextAllowed)
 	if len(matched) > 1 {

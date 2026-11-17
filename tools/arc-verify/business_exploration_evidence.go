@@ -301,7 +301,7 @@ func appendBusinessCampaignVisit(c *BusinessCampaign, visit BusinessCampaignVisi
 	c.LastRun, c.LastActual = visit.Run, visit.After
 	c.NextAllowed = nil
 	if visit.Comparison != nil && visit.Comparison.Status == "PASS" {
-		c.NextAllowed = append([]string(nil), visit.Comparison.NextAllowed...)
+		c.NextAllowed = visit.Comparison.NextAllowed.Clone()
 	}
 	if visit.Status != "PASS" {
 		if c.FirstDivergence == "" {
@@ -426,7 +426,7 @@ func (d db) verifyBusinessCampaignEvidence(c BusinessCampaign) (BusinessCampaign
 		if intent.Candidate.Decision == nil {
 			return bad(errors.New("dispatch has no typed decision"))
 		}
-		if len(derived.NextAllowed) > 0 && !containsBusinessID(derived.NextAllowed, intent.Candidate.Decision.Action) {
+		if !derived.NextAllowed.Allows(intent.Candidate.Decision.Action) {
 			return bad(errors.New("dispatch violates the previous verified next_allowed action set"))
 		}
 		if intent.Candidate.Eligibility != "READY" && intent.Candidate.Eligibility != "PREPARABLE" {
