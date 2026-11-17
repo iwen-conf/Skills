@@ -74,6 +74,10 @@ export function parseSnapshot(value: unknown): Snapshot {
   if (!fields(value.model) || !fields(value.model.data) || typeof value.model.sha256 !== "string") {
     fail("snapshot.model", "快照缺少版本化模型");
   }
+  // Compare exported identities only. Content hashes and RAW authenticity are
+  // checked by the CLI; the static reader does not re-verify those proofs.
+  if (value.model.data.id !== meta.graph || value.model.sha256 !== meta.graph_sha256)
+    fail("snapshot.model", "模型声明的身份或指纹与快照元数据不一致；拒绝混用历史事实");
   if (
     !Array.isArray(value.model.data.nodes) ||
     !Array.isArray(value.model.data.edges) ||
@@ -85,7 +89,8 @@ export function parseSnapshot(value: unknown): Snapshot {
   if (!fields(value.catalog)) fail("snapshot.catalog", "快照缺少账本目录");
   const views = value.views;
   if (!fields(views)) fail("snapshot.views", "快照缺少视图");
-  for (const view of businessViews) checkProjection(view, views[view]);
+  for (const view of businessViews)
+    checkProjection(view, views[view], meta.graph, meta.graph_sha256);
   if (!Array.isArray(value.runs)) fail("snapshot.runs", "快照的运行列表不是数组");
   value.runs.forEach((run, index) => {
     if (
@@ -302,9 +307,22 @@ function checkContract(value: unknown) {
     fail("snapshot.contract", "准备依赖不是数组");
 }
 
-function checkProjection(view: BusinessView, value: unknown) {
+function checkProjection(view: BusinessView, value: unknown, graph: string, graphSHA: string) {
   if (!fields(value)) fail("snapshot.views", `缺少视图 ${view}`);
   if (value.view !== view) fail("snapshot.views", `视图 ${view} 的内容属于 ${String(value.view)}`);
+  // A model-only export has a zero-valued ProofContext until a round is selected.
+  // Accept absent proof identity, but never a conflicting declared identity.
+  if (
+    value.graph !== graph ||
+    !fields(value.context) ||
+    typeof value.context.graph !== "string" ||
+    typeof value.context.graph_sha256 !== "string" ||
+    (value.context.graph !== "" && value.context.graph !== graph) ||
+    (value.context.graph_sha256 !== "" && value.context.graph_sha256 !== graphSHA)
+  )
+    fail("snapshot.views", `视图 ${view} 声明的模型身份或指纹与快照元数据不一致`);
+  if (value.round && (!value.context.graph || !value.context.graph_sha256))
+    fail("snapshot.views", `视图 ${view} 声明了验证轮次，但缺少该轮次的模型身份`);
   if (!verdicts.has(String(value.verdict)))
     fail("snapshot.views", `视图 ${view} 的结论 ${String(value.verdict)} 不是合法状态`);
   if (

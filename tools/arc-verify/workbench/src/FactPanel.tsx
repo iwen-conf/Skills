@@ -2,9 +2,9 @@ import { displayValue, predicateText, successorPolicyText } from "./contract";
 import { CampaignPanel } from "./CampaignViews";
 import type { BusinessCampaign } from "./campaign";
 import type { BusinessAssertionResult, BusinessExpectedCheck } from "./contract";
-import { actorsOf, executionCoverageScope } from "./explorer-model";
+import { actorsOf, executionCoverageScope, projectionScope } from "./explorer-model";
 import type { BranchOption } from "./explorer-model";
-import { entityKey } from "./facts";
+import { entityKey, factEntities } from "./facts";
 import type {
   ActionObservation,
   PreparationExecution,
@@ -301,9 +301,11 @@ export default function FactPanel({
   const node = snapshot.model.data.nodes.find(
     (item) => item.id === selection.node || item.id === preparation?.action,
   );
-  const readiness =
-    snapshot.views.capabilities.nodes.find((item) => item.id === selection.node) ??
-    snapshot.views.overview.nodes.find((item) => item.id === selection.node);
+  const readinessView = snapshot.views.capabilities.nodes.some((item) => item.id === selection.node)
+    ? snapshot.views.capabilities
+    : snapshot.views.overview;
+  const readiness = readinessView.nodes.find((item) => item.id === selection.node);
+  const readinessScope = projectionScope(snapshot, selection, readinessView);
   const exploration = snapshot.exploration?.[selection.node];
   const contract = branch?.contract;
   const branchExecution = snapshot.contract_execution?.branches.find(
@@ -327,7 +329,7 @@ export default function FactPanel({
   const waits = (fact?.waits ?? []).filter(
     (item) => !selection.actor || !item.actor || item.actor === selection.actor,
   );
-  const entities = (fact?.entities ?? []).filter(
+  const entities = factEntities(fact).filter(
     (item) => !selection.entity || entityKey(item) === selection.entity,
   );
   const sessions = (fact?.sessions ?? []).filter(
@@ -372,11 +374,19 @@ export default function FactPanel({
         </details>
       )}
       {readiness && (
-        <p className="panel-status">
-          <small>节点汇总</small>
-          <Status value={readiness.status} />
-          <span>{readiness.reason}</span>
-        </p>
+        <div className="node-summary">
+          <p className="muted">节点汇总范围：{readinessScope.label}</p>
+          {readinessScope.appliesToSelection ? (
+            <p className="panel-status">
+              <small>节点汇总</small>
+              <Status value={readiness.status} />
+              <span>{readiness.reason}</span>
+            </p>
+          ) : (
+            <p className="notice">节点汇总不适用于当前选择：{readinessScope.reason}。</p>
+          )}
+          <p className="muted">节点汇总不代替当前运行、主体或步骤的判定。</p>
+        </div>
       )}
       {branch ? (
         <section className="detail-section">
@@ -659,7 +669,13 @@ export default function FactPanel({
               <p className="panel-status">
                 <Status value={item.comparison.status} raw /> {item.comparison.reason}
               </p>
-              <p>实际匹配结果 {item.comparison.outcome ?? "无"}</p>
+              <p>实际匹配结果 {item.comparison.outcome || "未记录唯一结果身份"}</p>
+              {item.comparison.unknown?.length ? (
+                <p className="notice">
+                  后端未确认项 {item.comparison.unknown.join("、")}
+                  ；当前动作判定与后继限制分别保留。
+                </p>
+              ) : null}
               <ul>
                 {item.comparison.checks.map((check) => (
                   <li key={check.outcome}>
@@ -668,6 +684,9 @@ export default function FactPanel({
                     拒绝{" "}
                     {check.denied_passed === undefined ? "未约束" : String(check.denied_passed)}
                     {check.predicate.reason && <p>{check.predicate.reason}</p>}
+                    {check.predicate.unknown?.length ? (
+                      <small>结果条件未确认 {check.predicate.unknown.join("、")}</small>
+                    ) : null}
                     <AssertionResults checks={check.assertions} />
                   </li>
                 ))}
@@ -782,10 +801,16 @@ export default function FactPanel({
                   </span>
                   {fact.before_entities && (
                     <small>
-                      动作前绑定{" "}
-                      {fact.before_entities.find((before) => before.alias === entity.alias)?.id ??
-                        "未绑定"}{" "}
-                      → 动作后 {entity.id}
+                      动作前
+                      {fact.before_entities.some(
+                        (before) => entityKey(before) === entityKey(entity),
+                      )
+                        ? `绑定 ${entity.id}`
+                        : "未记录此身份"}{" "}
+                      → 动作后
+                      {fact.entities?.some((after) => entityKey(after) === entityKey(entity))
+                        ? `绑定 ${entity.id}`
+                        : "未记录此身份"}
                     </small>
                   )}
                   {entity.channel_account_id && <span>渠道账号 {entity.channel_account_id}</span>}
@@ -1005,8 +1030,13 @@ export default function FactPanel({
           </p>
           <p>证据可信状态 {exploration.evidence_trust ?? "UNVERIFIED"}</p>
           <p>
-            节点义务 {readiness?.readiness.verified ? "已验证" : "尚未验证"} ·{" "}
-            {exploration.tested ? "已测试" : "尚未测试"}
+            节点义务{" "}
+            {readinessScope.appliesToSelection
+              ? readiness?.readiness.verified
+                ? "已验证"
+                : "尚未验证"
+              : "当前范围无适用汇总"}{" "}
+            · {exploration.tested ? "已测试" : "尚未测试"}
           </p>
           {Object.entries(exploration)
             .filter(([, value]) => Array.isArray(value))

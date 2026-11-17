@@ -6,7 +6,7 @@ import {
   factsOf,
   selectionContext,
 } from "./explorer-model";
-import { entityKey } from "./facts";
+import { entityKey, factEntities } from "./facts";
 import FactPanel from "./FactPanel";
 import { CampaignTrail } from "./CampaignViews";
 import GraphCanvas from "./GraphCanvas";
@@ -153,7 +153,7 @@ function Workbench({
   const entities = [
     ...new Map(
       (run ? factsOf(snapshot, run) : [])
-        .flatMap((item) => item.entities ?? [])
+        .flatMap(factEntities)
         .map((entity) => [entityKey(entity), entity]),
     ).entries(),
   ];
@@ -554,7 +554,9 @@ function Workbench({
                 <option value="">本次运行全部实体</option>
                 {entities.map(([key, entity]) => (
                   <option key={key} value={key}>
-                    {entity.alias} · {entity.id} · {entity.owner_principal}
+                    {entity.alias} · {entity.kind} · {entity.id} · {entity.owner_actor} /{" "}
+                    {entity.owner_principal}
+                    {entity.channel_account_id ? ` · 渠道 ${entity.channel_account_id}` : ""}
                   </option>
                 ))}
               </select>

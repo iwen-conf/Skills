@@ -1,8 +1,8 @@
 import type { ContractBranch } from "./contract";
-import { entityKey } from "./facts";
+import { entityKey, factEntities } from "./facts";
 import type { UnifiedStepFact } from "./facts";
 import type { Selection, SelectionContext, SelectionRun, SelectionStep } from "./selection";
-import type { Snapshot, SnapshotRun, TestDefinition } from "./types";
+import type { Projection, Snapshot, SnapshotRun, TestDefinition } from "./types";
 
 export interface BranchOption {
   id: string;
@@ -40,6 +40,26 @@ export function executionCoverageScope(snapshot: Snapshot, selection: Selection)
   return {
     round,
     environment,
+    label: `环境 ${environment || "未声明"} / 轮次 ${round || "未指定"}`,
+    appliesToSelection: reasons.length === 0,
+    reason: reasons.join("；"),
+  };
+}
+
+/** Node aggregates belong to the exported view, not whichever run is currently selected. */
+export function projectionScope(snapshot: Snapshot, selection: Selection, projection: Projection) {
+  const environment = projection.environment || projection.context.environment;
+  const round = projection.round ?? "";
+  const run = snapshot.runs.find((item) => item.trace.run === selection.run);
+  const campaign = snapshot.business_campaigns?.find((item) => item.id === selection.campaign);
+  const reasons: string[] = [];
+  if (!round) reasons.push("节点汇总未绑定验证轮次");
+  if (selection.environment && selection.environment !== environment)
+    reasons.push("所选环境不同于汇总环境");
+  if (run && run.trace.round !== round) reasons.push("所选运行不同于汇总轮次");
+  if (campaign && campaign.round !== round) reasons.push("所选 Campaign 不同于汇总轮次");
+  if (selection.variant) reasons.push("节点汇总不能作为输入变体的判定");
+  return {
     label: `环境 ${environment || "未声明"} / 轮次 ${round || "未指定"}`,
     appliesToSelection: reasons.length === 0,
     reason: reasons.join("；"),
@@ -168,7 +188,7 @@ export function runSteps(snapshot: Snapshot, run: SnapshotRun): SelectionStep[] 
           ),
         ]),
       ),
-      entities: (fact?.entities ?? []).map(entityKey),
+      entities: factEntities(fact).map(entityKey),
       branches: factBranches(fact).length
         ? factBranches(fact)
         : run.branch_id

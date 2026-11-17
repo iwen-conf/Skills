@@ -266,6 +266,25 @@ export interface PreparationExecution {
   first_failure_index?: number;
 }
 
-/** Alias + stable ID prevents two distinct orders with the same display alias being merged. */
+/** A captured binding keeps its namespace and owner; equal display IDs do not prove identity. */
 export const entityKey = (entity: EntityBinding) =>
-  JSON.stringify([entity.alias, entity.id, entity.owner_principal]);
+  JSON.stringify([
+    entity.alias,
+    entity.kind,
+    entity.id,
+    entity.owner_actor,
+    entity.owner_principal,
+    entity.channel_account_id ?? "",
+  ]);
+
+/** Both sides of a failed rebinding remain selectable; missing after is not a deletion claim. */
+export function factEntities(fact?: UnifiedStepFact): EntityBinding[] {
+  return [
+    ...new Map(
+      [...(fact?.before_entities ?? []), ...(fact?.entities ?? [])].map((entity) => [
+        entityKey(entity),
+        entity,
+      ]),
+    ).values(),
+  ];
+}
