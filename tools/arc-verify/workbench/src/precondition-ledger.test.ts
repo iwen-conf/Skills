@@ -73,7 +73,7 @@ describe("source-first precondition inventory", () => {
       source: "spec", source_ref: "spec:R1", confirmed: true,
     };
     const rows = extractPreconditions(base, branch);
-    expect(rows.filter((r) => r.key === "payment.paid").map((r) => r.phase)).toEqual(["after", "before"]);
+    expect(rows.filter((r) => r.key === "payment.paid").map((r) => r.phase)).toEqual(["before", "after"]);
   });
   it("requires the exact frozen action before reading post-action facts", () => {
     const observation = {

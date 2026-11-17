@@ -74,7 +74,8 @@ export function extractPreconditions(lineage: LineageSelection, branch?: Contrac
     for (const invariant of branch.expected.common_invariants ?? []) addExpected(invariant.predicate);
   }
   return [...result.values()].sort((a, b) =>
-    a.phase.localeCompare(b.phase) || a.key.localeCompare(b.key));
+    (a.phase === b.phase ? 0 : a.phase === "before" ? -1 : 1) ||
+    a.key.localeCompare(b.key));
 }
 
 /** Use one fully qualified occurrence; multiple matching facts are ambiguous, not PASS. */
@@ -113,7 +114,16 @@ export default function PreconditionLedger({
     const observations = row.phase === "after" ? [] : row.conditions.flatMap((node) => lineage.readings.get(node.id)?.values ?? [])
       .filter((value) => value.subject + "." + value.attribute === row.key);
     const blocked = row.conditions.some((node) => lineage.readings.get(node.id)?.status === "BLOCKED");
-    const evidenced = observations.filter((value) => value.actual !== undefined && value.sources.length > 0);
+    const unique = new Map<string, (typeof observations)[number]>();
+    for (const value of observations) {
+      if (value.actual === undefined || !value.sources.length) continue;
+      const key = [value.subject, value.attribute, value.binding,
+        displayValue(value.actual),
+        ...value.sources.map((source) => source.kind + ":" + source.oracle + ":" + (source.sha256 ?? "")),
+      ].join("|");
+      unique.set(key, value);
+    }
+    const evidenced = [...unique.values()];
     const afterValue = row.phase === "after" ? after?.values[row.key] : undefined;
     const afterSources = row.phase === "after" ? (after?.sources?.[row.key] ?? []) : [];
     return { ...row, evidenced, blocked, afterValue, afterSources,
