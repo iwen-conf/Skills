@@ -141,6 +141,9 @@ func (d db) evaluateModelObservationLocal(contract runContract, raw StepRAW, ind
 	for _, participant := range receipt.Participants {
 		participants[participant.Alias] = participant
 	}
+	if err := validateRuntimeOracleScope(batch, observed, participants, runner.Manifest.IsolationScope); err != nil {
+		return "BLOCKED", err.Error(), assertions, err
+	}
 	for position, action := range observed.Actions {
 		step := batch[position]
 		stepJudged := stepRule(x, *contract.Obligation, step.Transition)
@@ -343,7 +346,7 @@ func (d db) evaluateModelObservationLocal(contract runContract, raw StepRAW, ind
 		setVerdict("FAIL", "rejected action mutated independent state snapshot")
 	}
 	if definition.Kind == testConsistency && index == len(batches) {
-		layerV, layerAssertions, err := evaluateLayersWithAssertions(definition.Layers, observed.Oracles, final.Actor, participants[final.Actor].Principal, expected)
+		layerV, layerAssertions, err := evaluateLayersWithAssertions(definition.Layers, observed.Oracles, final.Actor, participants[final.Actor].Principal, expected, len(batch), observed.EvidenceVersion)
 		assertions = append(assertions, layerAssertions...)
 		if layerV != "PASS" {
 			reason := "multi-layer consistency check failed"
@@ -402,14 +405,19 @@ func (d db) evaluateModelObservationLocal(contract runContract, raw StepRAW, ind
 	return stepVerdict, stepReason, assertions, nil
 }
 
-func evaluateLayersWithAssertions(layers []ObservationLayer, oracles []OracleObservation, actor, principal, expected string) (string, []StepAssertion, error) {
+func evaluateLayersWithAssertions(layers []ObservationLayer, oracles []OracleObservation, actor, principal, expected string, actionIndex, evidenceVersion int) (string, []StepAssertion, error) {
 	assertions := make([]StepAssertion, 0, len(layers))
 	verdict := "PASS"
 	var firstErr error
 	for _, layer := range layers {
 		var item *OracleObservation
 		for position := range oracles {
-			if oracles[position].ID == layer.Oracle && oracles[position].Actor == actor {
+			if oracles[position].ID == layer.Oracle && oracleForAction(oracles[position], actor, actionIndex, evidenceVersion) {
+				if item != nil {
+					err := fmt.Errorf("layer %s has duplicate independent observations for the same actor and action", layer.Layer)
+					assertions = append(assertions, StepAssertion{Kind: "layer", Name: layer.Layer, OracleID: layer.Oracle, Subject: actor, Expected: expected, Actual: "AMBIGUOUS", Operator: "eq", Verdict: "BLOCKED", Reason: err.Error()})
+					return "BLOCKED", assertions, err
+				}
 				item = &oracles[position]
 			}
 		}
@@ -451,7 +459,7 @@ func evaluateLayersWithAssertions(layers []ObservationLayer, oracles []OracleObs
 // expectation: a layer without its own observation blocks, a disagreeing
 // layer fails, and agreement across all layers passes.
 func layerVerdict(layers []ObservationLayer, oracles []OracleObservation, actor, principal, expected string) (string, error) {
-	verdict, _, err := evaluateLayersWithAssertions(layers, oracles, actor, principal, expected)
+	verdict, _, err := evaluateLayersWithAssertions(layers, oracles, actor, principal, expected, 0, 0)
 	return verdict, err
 }
 

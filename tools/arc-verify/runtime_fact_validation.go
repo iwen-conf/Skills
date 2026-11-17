@@ -58,6 +58,63 @@ func oracleForAction(item OracleObservation, actor string, actionIndex, version 
 	return item.Actor == actor && (version < runtimeEvidenceVersion || item.ActionIndex == actionIndex)
 }
 
+// Every independent reader executes as its step's bound actor. Its payload may
+// describe several subjects; the reader principal/role/isolation metadata still
+// has the same contract enforced live by readOracleWithSession. Replay must not
+// grant stronger trust to a secondary persistence/event/consistency reader.
+func validateRuntimeOracleScope(batch []RunnerStep, observed *ModelObservation, participants map[string]ParticipantBinding, scope string) error {
+	expected := map[oracleIdentity]OracleAdapter{}
+	for position, step := range batch {
+		index := position + 1
+		if observed.EvidenceVersion < runtimeEvidenceVersion {
+			index = 0
+		}
+		for _, oracle := range step.Oracles {
+			key := oracleIdentity{ActionIndex: index, Actor: step.Actor, ID: oracle.ID}
+			if _, exists := expected[key]; exists {
+				return fmt.Errorf("legacy oracle evidence cannot distinguish repeated actor/action readers")
+			}
+			expected[key] = oracle
+		}
+	}
+	if len(observed.Oracles) != len(expected) {
+		return fmt.Errorf("independent oracle count differs from the registered batch")
+	}
+	seen := map[oracleIdentity]bool{}
+	for _, item := range observed.Oracles {
+		index := item.ActionIndex
+		if observed.EvidenceVersion < runtimeEvidenceVersion {
+			index = 0
+		}
+		key := oracleIdentity{ActionIndex: index, Actor: item.Actor, ID: item.ID}
+		oracle, declared := expected[key]
+		participant, bound := participants[item.Actor]
+		if !declared || !bound || seen[key] || item.Boundary != oracle.Boundary {
+			return fmt.Errorf("independent oracle identity, action index, uniqueness or boundary differs from its registered reader")
+		}
+		seen[key] = true
+		for _, facts := range []IndependentFacts{item.Before, item.After} {
+			if facts.Principal != participant.Principal || facts.Role != participant.Role || facts.Scope != scope || facts.State == "" {
+				return fmt.Errorf("independent oracle %s actor or fixture scope is missing or differs from its registered reader", item.ID)
+			}
+			if len(facts.Conditions) != len(oracle.Conditions) || len(facts.Values) != len(oracle.Measurements) {
+				return fmt.Errorf("independent oracle %s observations differ from its registered fields", item.ID)
+			}
+			for name := range oracle.Conditions {
+				if _, found := facts.Conditions[name]; !found {
+					return fmt.Errorf("independent oracle %s omits condition %s", item.ID, name)
+				}
+			}
+			for name := range oracle.Measurements {
+				if value, found := facts.Values[name]; !found || !json.Valid(value) {
+					return fmt.Errorf("independent oracle %s omits or corrupts measurement %s", item.ID, name)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func verifyStepWait(step RunnerStep, seq, actionIndex int, observed *ModelObservation) StepAssertion {
 	wait := step.AsyncWait
 	assertion := StepAssertion{Kind: "async_wait", Name: wait.OracleID, OracleID: wait.OracleID, Subject: step.Actor, Expected: wait.UntilState, Operator: "async", Verdict: "BLOCKED"}
