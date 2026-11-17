@@ -1,6 +1,6 @@
 import type { BusinessCampaign, BusinessCampaignCandidate } from "./campaign";
 import { isCampaignDiagnostic } from "./campaign";
-import { displayValue, predicateText } from "./contract";
+import { displayValue, predicateText, successorPolicyText } from "./contract";
 import type { BusinessObservation } from "./contract";
 import { entityKey } from "./facts";
 import { reduceSelection } from "./selection";
@@ -318,11 +318,7 @@ export function CampaignPanel({
       <h4>
         后续动作限制 <code>next_allowed</code>
       </h4>
-      <p>
-        {campaign.next_allowed?.length
-          ? campaign.next_allowed.join("、")
-          : "未记录额外后续限制；不能由空列表推导可执行分支。"}
-      </p>
+      <p>{successorPolicyText(campaign.next_allowed)}</p>
       <label className="campaign-variant-select">
         输入变体
         <select
