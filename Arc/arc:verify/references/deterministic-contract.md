@@ -32,8 +32,11 @@ events, side effects, forbidden effects and invariants independently. Missing ob
 oracle provenance cannot satisfy a check. Explicit denied=false differs from missing denial data.
 
 Outcome `next_allowed` distinguishes an absent/null field (no declared successor restriction),
-`[]` (no successor permitted), and a nonempty action allowlist. If multiple allowed outcomes
-match the actual facts, intersect their restrictions; an empty intersection must stay empty.
+`[]` (no successor permitted), and a nonempty action allowlist. Intersect the restrictions of
+all outcomes not disproven by actual facts, including UNKNOWN alternatives; empty stays empty.
+One proven outcome and passing common invariants can establish acceptance while other outcomes
+remain unresolved. Preserve those unknowns and omit a unique outcome identity; missing evidence
+must not widen continuation permissions. An independently false alternative contributes no restriction.
 Ordinary sequences, campaign dispatch and offline replay use the same policy. Changing actors
 does not bypass the policy within a sequence. A later independent run has its own context.
 Old valid omitted/nonempty policies remain readable; historical execution that violated the
@@ -53,6 +56,10 @@ specification gap. The same encoding applies to finite domains and preparation e
 `integer` attributes retain mathematical semantics, so this stricter protocol is a versioned
 model change rather than an implicit reinterpretation of historical observations. Declaring an
 unused attribute is not a whole-request schema validator.
+
+General numeric parsing retains JSON number tokens through model loading, request/response capture,
+Oracle observations and RAW revalidation. Exact comparison uses bounded rational arithmetic, not
+float64 range or rounding. Existing numeric length/exponent limits and `json_i64` checks still apply.
 
 ## Execution and history
 

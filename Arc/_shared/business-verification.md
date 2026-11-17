@@ -31,8 +31,10 @@ One branch freezes its response, resulting state, persistence, events, side effe
 effects, invariants and permitted next actions before the real operation. Source-backed
 `allowed_outcomes` may express true contract-permitted nondeterminism, with common invariants;
 ordinary exceptions and external events belong to their own conditioned transitions.
-`next_allowed` absent/null is unrestricted; `[]` permits no successor. Intersect matching outcomes'
-allowlists. Enforce this policy before dispatch and during offline replay, including ordinary sequences.
+`next_allowed` absent/null is unrestricted; `[]` permits no successor. Intersect allowlists from
+every outcome not disproven by Actual, including UNKNOWN alternatives. One proven outcome can
+establish acceptance without proving a unique outcome identity; preserve remaining uncertainty.
+Enforce the safe intersection before dispatch and during offline replay, including ordinary sequences.
 
 The runtime must never use an actual response to rewrite Expected or pick a different branch.
 Unknown or out-of-model actual states remain observations, not newly approved expectations.
