@@ -71,6 +71,7 @@ export function parseSnapshot(value: unknown): Snapshot {
   ) {
     fail("snapshot.meta", "快照缺少生成时间、图版本、hash、版本或导出命令");
   }
+  const graphID = meta.graph;
   if (!fields(value.model) || !fields(value.model.data) || typeof value.model.sha256 !== "string") {
     fail("snapshot.model", "快照缺少版本化模型");
   }
@@ -102,6 +103,7 @@ export function parseSnapshot(value: unknown): Snapshot {
     ) {
       fail("snapshot.runs", `第 ${index + 1} 个运行缺少回放或证据`);
     }
+    checkRunEvidence(run.evidence, run.trace.run, run.trace.task, graphID);
     if (run.facts !== undefined) {
       if (!Array.isArray(run.facts)) fail("snapshot.facts", `运行 ${run.trace.run} 的事实不是数组`);
       const seen = new Set<number>();
@@ -185,6 +187,48 @@ export function parseSnapshot(value: unknown): Snapshot {
   if (value.business_campaigns !== undefined)
     checkCampaigns(value.business_campaigns, meta.graph, fail);
   return value as unknown as Snapshot;
+}
+
+/** Check occurrence identities only; RAW bytes and digests remain the CLI's proof boundary. */
+function checkRunEvidence(entries: unknown[], run: string, task: unknown, graph: string) {
+  const occurrences = new Set<string>();
+  for (const entry of entries) {
+    if (
+      !fields(entry) ||
+      entry.run !== run ||
+      typeof entry.phase !== "string" ||
+      !["action", "setup", "fixture"].includes(entry.phase) ||
+      typeof entry.step !== "number" ||
+      !Number.isInteger(entry.step) ||
+      (entry.phase === "action" ? entry.step < 1 : entry.step !== 0)
+    )
+      fail("snapshot.evidence", `运行 ${run} 的 RAW 摘要身份不完整或属于其他运行`);
+    const occurrence = `${entry.phase}/${entry.step}`;
+    if (occurrences.has(occurrence))
+      fail("snapshot.evidence", `运行 ${run} 的 RAW 摘要 ${occurrence} 重复`);
+    occurrences.add(occurrence);
+    if (entry.data !== undefined) {
+      const raw = entry.data;
+      const expectedStep = entry.phase === "setup" ? -1 : entry.step;
+      if (
+        !fields(raw) ||
+        raw.run !== run ||
+        raw.step !== expectedStep ||
+        (raw.phase === undefined || raw.phase === "" ? "action" : raw.phase) !== entry.phase ||
+        !fields(raw.identity) ||
+        (raw.identity.graph !== undefined &&
+          raw.identity.graph !== "" &&
+          raw.identity.graph !== graph) ||
+        (typeof task === "string" &&
+          raw.identity.task !== undefined &&
+          raw.identity.task !== "" &&
+          raw.identity.task !== task)
+      )
+        fail("snapshot.evidence", `运行 ${run} 的 RAW 内容身份与 ${occurrence} 摘要不一致`);
+    } else if (typeof entry.error !== "string" || !entry.error.trim()) {
+      fail("snapshot.evidence", `运行 ${run} 的 RAW 摘要 ${occurrence} 缺少数据或读取失败原因`);
+    }
+  }
 }
 
 function checkRequest(value: unknown) {

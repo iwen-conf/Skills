@@ -307,7 +307,7 @@ func (d db) resumeBusinessCampaign(ctx context.Context, request BusinessCampaign
 	if err := d.reconcileBusinessCampaign(&c, g, lease); err != nil {
 		return c, err
 	}
-	if c.Status == "UNKNOWN" || c.Status == "DIVERGED" || c.Status == "BLOCKED" && c.FirstDivergence != "" {
+	if c.Status == "UNKNOWN" || c.Status == "DIVERGED" || c.FirstDivergence != "" {
 		return c, nil
 	}
 	c.Status, c.Reason = "RUNNING", "resuming from fresh independent observations; no captured session is inherited"

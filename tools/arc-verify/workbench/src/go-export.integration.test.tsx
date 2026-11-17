@@ -101,6 +101,7 @@ function validateExport(path: string) {
     let preparationActions = 0;
     let preparationReadbacks = 0;
     let frozenComparisons = 0;
+    let unassociatedStepViews = 0;
     let requestCaptures = 0;
     let entitySelections = 0;
     let linkedChildren = 0;
@@ -177,6 +178,16 @@ function validateExport(path: string) {
         for (const actor of actors.length ? actors : [""]) {
           const selected = selectRun(run.trace.run, fact, actor);
           const factHTML = render(selected);
+          if (snapshot.model.data.business_contract && !fact.business_expectations?.length) {
+            expect(
+              selected.branch,
+              "a pre-freeze failure must not inherit another step's branch",
+            ).toBe("unresolved:records");
+            visible(factHTML, "分支未解析 · 运行诊断", "missing frozen branch diagnostic");
+            const panel = factHTML.match(/<aside class="fact-panel"[\s\S]*?<\/aside>/)?.[0] ?? "";
+            expect(panel).not.toContain("预期操作与结果");
+            unassociatedStepViews++;
+          }
           visible(factHTML, `${run.trace.run} / 第 ${fact.seq} 步`, "step/run scope");
           const participant = fact.participants?.find((item) => item.alias === actor);
           visible(factHTML, participant?.principal, "selected participant identity");
@@ -411,6 +422,7 @@ function validateExport(path: string) {
           expected_actual: {
             status: frozenComparisons ? "EXERCISED" : "NOT_PRESENT",
             frozen_decisions: frozenComparisons,
+            unassociated_step_views: unassociatedStepViews,
             request_captures: requestCaptures,
           },
           entity_selection: {

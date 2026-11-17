@@ -420,6 +420,9 @@ func (d db) verifyBusinessCampaignEvidence(c BusinessCampaign) (BusinessCampaign
 	pending := false
 	for _, row := range rows {
 		intent := row.Intent
+		if derived.FirstDivergence != "" {
+			return bad(errors.New("campaign dispatched after its first verified child failure"))
+		}
 		if intent.HistorySHA256 != derived.HistorySHA256 {
 			return bad(errors.New("dispatch branches from another campaign history"))
 		}
@@ -463,6 +466,12 @@ func (d db) verifyBusinessCampaignEvidence(c BusinessCampaign) (BusinessCampaign
 	}
 	if len(derived.Visits) != len(c.Visits) || !equalBusinessCampaignJSON(derived.Variants, c.Variants) || derived.HistorySHA256 != c.HistorySHA256 || !equalBusinessCampaignJSON(derived.LastActual, c.LastActual) || derived.LastRun != c.LastRun || derived.FirstDivergence != c.FirstDivergence || !equalBusinessCampaignJSON(derived.NextAllowed, c.NextAllowed) {
 		return bad(errors.New("campaign coverage, history or actual-state projection differs from child evidence"))
+	}
+	// Failure is a permanent dispatch boundary derived from the child RAW. A
+	// rehashed projection must not turn it into a resumable budget/blocked stop.
+	// Explicit abort may retain that failure, but cannot authorize another child.
+	if derived.FirstDivergence != "" && c.Status != derived.Status && c.Status != "ABORTED" {
+		return bad(errors.New("campaign stop status contradicts its first verified child failure"))
 	}
 	coverage := businessCampaignCoverage(g, derived.Variants, c.Flow)
 	if !equalBusinessCampaignJSON(coverage, c.Coverage) || derived.Spent.Actions != c.Spent.Actions || derived.Spent.ReservedActions != c.Spent.ReservedActions || derived.Spent.TargetActions != c.Spent.TargetActions || derived.Spent.PreparationActions != c.Spent.PreparationActions || derived.Spent.RecoveryActions != c.Spent.RecoveryActions || c.Spent.Actions+c.Spent.ReservedActions > c.Budget.MaxActions || c.Spent.States > c.Budget.MaxStates || c.Spent.States < len(c.Visits) {

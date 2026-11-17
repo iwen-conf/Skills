@@ -2,7 +2,12 @@ import { displayValue, predicateText, successorPolicyText } from "./contract";
 import { CampaignPanel } from "./CampaignViews";
 import type { BusinessCampaign } from "./campaign";
 import type { BusinessAssertionResult, BusinessExpectedCheck } from "./contract";
-import { actorsOf, executionCoverageScope, projectionScope } from "./explorer-model";
+import {
+  actorsOf,
+  executionCoverageScope,
+  hasUnexecutedFreeze,
+  projectionScope,
+} from "./explorer-model";
 import type { BranchOption } from "./explorer-model";
 import { entityKey, factEntities } from "./facts";
 import type {
@@ -480,7 +485,7 @@ export default function FactPanel({
             <>
               <p className="notice">
                 {branch.unresolved
-                  ? "本组运行没有可用的已持久化分支关联。保留失败与未知原因，不从实际结果补写业务预期。"
+                  ? "所选步骤或判定没有可用的已持久化分支关联；同一运行的其他步骤可能已有分支。保留失败与未知原因，不从实际结果补写业务预期。"
                   : "旧格式测试可回看；未声明新的确定性业务契约。"}
               </p>
               <p>{branch.legacy?.name}</p>
@@ -577,6 +582,11 @@ export default function FactPanel({
               </div>
             </div>
             <p>{fact?.reason ?? fact?.decision ?? trace?.decision}</p>
+            {hasUnexecutedFreeze(fact) && (
+              <p className="notice">
+                本步在动作发出前中止；保留已捕获成员的冻结事实，未记录的批次成员或失败主体保持未知。
+              </p>
+            )}
             {!fact && (
               <p className="notice">
                 此运行未导出统一 step_facts。下方只展示历史 trace 和 RAW 摘要。

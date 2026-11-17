@@ -89,7 +89,8 @@ function initialize(
     "step",
     "node",
   ] as const) {
-    if (initial[type] !== undefined)
+    // An absent actor-specific node is not a request to clear a valid step.
+    if (initial[type] !== undefined && !(type === "node" && initial[type] === ""))
       state = reduceSelection(state, { type, value: initial[type]! }, context);
   }
   if (initial.canvas) state.canvas = initial.canvas;

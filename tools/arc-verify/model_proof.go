@@ -382,24 +382,28 @@ func (d db) evaluateModelObservationLocal(contract runContract, raw StepRAW, ind
 			}
 		}
 	}
-	// Model invariant property checks.
-	for _, invariant := range x.invariants[judged.ID] {
-		found := false
-		for _, item := range observed.Oracles {
-			if item.ID == invariant.Oracle && item.Boundary == invariant.ObservationBoundary && oracleForAction(item, final.Actor, len(batch), observed.EvidenceVersion) {
-				found = true
-				for _, outcome := range evaluateProperties(invariant.Checks, item.After.Values) {
-					check := invariant.Checks[outcome.Index-1]
-					assertions = append(assertions, StepAssertion{Kind: "invariant", Name: invariant.ID + "." + check.Left, OracleID: invariant.Oracle, Subject: item.Actor, Expected: string(outcome.Right), Actual: string(outcome.Left), Operator: string(check.Operator), Verdict: outcome.Verdict, Reason: outcome.Reason})
-					if outcome.Verdict != "PASS" {
-						setVerdict(outcome.Verdict, outcome.Reason)
+	// Each operation retains its own rule and reader, including nonfinal actors
+	// and repeated actor/oracle pairs inside the same concurrent batch.
+	for position, step := range batch {
+		stepJudged := stepRule(x, *contract.Obligation, step.Transition)
+		for _, invariant := range x.invariants[stepJudged.ID] {
+			found := false
+			for _, item := range observed.Oracles {
+				if item.ID == invariant.Oracle && item.Boundary == invariant.ObservationBoundary && oracleForAction(item, step.Actor, position+1, observed.EvidenceVersion) {
+					found = true
+					for _, outcome := range evaluateProperties(invariant.Checks, item.After.Values) {
+						check := invariant.Checks[outcome.Index-1]
+						assertions = append(assertions, StepAssertion{Kind: "invariant", Name: invariant.ID + "." + check.Left, OracleID: invariant.Oracle, Subject: item.Actor, Expected: string(outcome.Right), Actual: string(outcome.Left), Operator: string(check.Operator), Verdict: outcome.Verdict, Reason: outcome.Reason})
+						if outcome.Verdict != "PASS" {
+							setVerdict(outcome.Verdict, outcome.Reason)
+						}
 					}
 				}
 			}
-		}
-		if !found {
-			assertions = append(assertions, StepAssertion{Kind: "invariant", Name: invariant.ID, OracleID: invariant.Oracle, Verdict: "BLOCKED", Reason: "invariant independent oracle observation missing"})
-			setVerdict("BLOCKED", "invariant independent oracle observation missing")
+			if !found {
+				assertions = append(assertions, StepAssertion{Kind: "invariant", Name: invariant.ID, OracleID: invariant.Oracle, Subject: step.Actor, Verdict: "BLOCKED", Reason: "invariant independent oracle observation missing"})
+				setVerdict("BLOCKED", "invariant independent oracle observation missing")
+			}
 		}
 	}
 	return stepVerdict, stepReason, assertions, nil

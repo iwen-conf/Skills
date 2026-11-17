@@ -1,6 +1,6 @@
 import type { ContractBranch } from "./contract";
 import { entityKey, factEntities } from "./facts";
-import type { UnifiedStepFact } from "./facts";
+import type { BusinessExpectationObservation, UnifiedStepFact } from "./facts";
 import type { Selection, SelectionContext, SelectionRun, SelectionStep } from "./selection";
 import type { Projection, Snapshot, SnapshotRun, TestDefinition } from "./types";
 
@@ -16,6 +16,7 @@ export interface BranchOption {
 const unique = (items: (string | undefined)[]) => [
   ...new Set(items.filter((value): value is string => Boolean(value))),
 ];
+const unresolvedBranch = "unresolved:records";
 
 /** An omitted branch flow is unrestricted, as in the kernel's branch matcher. */
 export const branchAppliesToFlow = (branch: { flow?: string }, flow: string) =>
@@ -94,25 +95,13 @@ export function branchOptions(snapshot: Snapshot): BranchOption[] {
       legacy: test,
     });
   }
-  const ids = new Set(branches.map((branch) => branch.id));
   if (
-    snapshot.runs.some((run) => {
-      const linked = [run.branch_id, ...factsOf(snapshot, run).flatMap(factBranches)].filter(
-        Boolean,
-      );
-      return (
-        !linked.some((id) => ids.has(id!)) &&
-        !branches.some(
-          (branch) =>
-            branch.legacy &&
-            (run.trace.task === branch.legacy.id ||
-              run.trace.task.endsWith(`/${branch.legacy.id}`)),
-        )
-      );
-    })
+    snapshot.runs.some((run) =>
+      runAssociations(snapshot, run, branches).attached.includes(unresolvedBranch),
+    )
   )
     branches.push({
-      id: "unresolved:records",
+      id: unresolvedBranch,
       label: "未关联分支的运行 · 诊断",
       action: "",
       flow: "",
@@ -134,6 +123,36 @@ export function factBranches(fact?: UnifiedStepFact): string[] {
     ]),
   );
 }
+/** An explicit decision without a branch is a fact, not a missing run default. */
+function decisionBranches(records: BusinessExpectationObservation[] = []): string[] {
+  return unique(
+    records.flatMap((item) => {
+      const ids = unique([item.decision.frozen?.branch, item.decision.branch]);
+      return ids.length ? ids : [unresolvedBranch];
+    }),
+  );
+}
+function recordedActorAlias(fact?: UnifiedStepFact): string | undefined {
+  const participants = fact?.participants ?? [];
+  const consistent = (participant: (typeof participants)[number]) =>
+    (!fact?.principal || participant.principal === fact.principal) &&
+    (!fact?.account || participant.account === fact.account);
+  const aliases = participants.filter((participant) => participant.alias === fact?.actor);
+  if (aliases.length)
+    return aliases.length === 1 && consistent(aliases[0]) ? aliases[0].alias : undefined;
+  if (!fact?.principal && !fact?.account) return undefined;
+  const identities = participants.filter(consistent);
+  return identities.length === 1 ? identities[0].alias : undefined;
+}
+/** A captured freeze without outbound actions cannot identify every aborted batch member. */
+export function hasUnexecutedFreeze(fact?: UnifiedStepFact): boolean {
+  return Boolean(
+    fact &&
+    ["BLOCKED", "UNKNOWN"].includes(fact.verdict) &&
+    !fact.actions?.length &&
+    fact.business_expectations?.some((item) => item.decision.frozen && !item.comparison),
+  );
+}
 export function actorsOf(fact?: UnifiedStepFact): string[] {
   const observed = unique([
     ...(fact?.actions ?? []).map((action) =>
@@ -142,6 +161,7 @@ export function actorsOf(fact?: UnifiedStepFact): string[] {
     ...(fact?.business_expectations ?? []).map((item) => item.actor),
     ...(fact?.oracles ?? []).map((item) => item.actor),
     ...(fact?.requests ?? []).map((item) => item.actor),
+    recordedActorAlias(fact),
   ]);
   if (observed.length) return observed;
   const participants = unique((fact?.participants ?? []).map((item) => item.alias));
@@ -157,6 +177,35 @@ export function runSteps(snapshot: Snapshot, run: SnapshotRun): SelectionStep[] 
     const fact = facts.find((item) => String(item.seq) === id);
     const step = run.trace.steps.find((item) => item.step === id);
     const actors = actorsOf(fact);
+    const recordedBranches = decisionBranches(fact?.business_expectations);
+    // A typed action can fail its independent before-read before freeze runs.
+    // Its persisted fact is explicit absence, unlike an old export with no facts.
+    const typedFact = Boolean(snapshot.model.data.business_contract && fact && fact.seq > 0);
+    const incompleteBatch = typedFact && hasUnexecutedFreeze(fact);
+    const missingTypedDecision =
+      typedFact &&
+      (incompleteBatch ||
+        !recordedBranches.length ||
+        (fact?.node &&
+          !fact.business_expectations?.some((item) => item.decision.action === fact.node)));
+    const actorBranches = Object.fromEntries(
+      actors.map((actor) => {
+        const branches = decisionBranches(
+          (fact?.business_expectations ?? []).filter((item) => item.actor === actor),
+        );
+        return [
+          actor,
+          typedFact && (!branches.length || incompleteBatch)
+            ? unique([...branches, unresolvedBranch])
+            : branches,
+        ];
+      }),
+    );
+    const stepBranches = unique([
+      ...recordedBranches,
+      ...Object.values(actorBranches).flat(),
+      ...(missingTypedDecision ? [unresolvedBranch] : []),
+    ]);
     return {
       id,
       node: fact?.node ?? step?.node ?? "",
@@ -178,24 +227,35 @@ export function runSteps(snapshot: Snapshot, run: SnapshotRun): SelectionStep[] 
           ]),
         ]),
       ),
-      actorBranches: Object.fromEntries(
-        actors.map((actor) => [
-          actor,
-          unique(
-            (fact?.business_expectations ?? [])
-              .filter((item) => item.actor === actor)
-              .flatMap((item) => [item.decision.frozen?.branch, item.decision.branch]),
-          ),
-        ]),
-      ),
+      actorBranches,
       entities: factEntities(fact).map(entityKey),
-      branches: factBranches(fact).length
-        ? factBranches(fact)
-        : run.branch_id
-          ? [run.branch_id]
-          : [],
+      branches: stepBranches.length ? stepBranches : run.branch_id ? [run.branch_id] : [],
     };
   });
+}
+
+function runAssociations(snapshot: Snapshot, run: SnapshotRun, branches: BranchOption[]) {
+  const rawSteps = runSteps(snapshot, run);
+  const explicit = unique([run.branch_id, ...rawSteps.flatMap((step) => step.branches ?? [])]);
+  const legacy = explicit.length
+    ? undefined
+    : branches.find(
+        (branch) =>
+          branch.legacy &&
+          (run.trace.task === branch.legacy.id || run.trace.task.endsWith(`/${branch.legacy.id}`)),
+      );
+  const known = new Set(branches.map((branch) => branch.id));
+  const identify = (ids: string[]) =>
+    unique(ids.map((id) => (known.has(id) ? id : unresolvedBranch)));
+  const steps = rawSteps.map((step) => ({
+    ...step,
+    branches: step.branches?.length ? identify(step.branches) : [legacy?.id ?? unresolvedBranch],
+    actorBranches: Object.fromEntries(
+      Object.entries(step.actorBranches ?? {}).map(([actor, ids]) => [actor, identify(ids)]),
+    ),
+  }));
+  const attached = unique([...identify(explicit), ...steps.flatMap((step) => step.branches)]);
+  return { steps, legacy, attached: attached.length ? attached : [legacy?.id ?? unresolvedBranch] };
 }
 
 export function selectionContext(
@@ -205,18 +265,7 @@ export function selectionContext(
   const runs: SelectionRun[] = snapshot.runs.map((run) => {
     const catalog = snapshot.catalog.runs.find((item) => item.id === run.trace.run);
     const round = snapshot.catalog.rounds.find((item) => item.id === run.trace.round);
-    const steps = runSteps(snapshot, run);
-    const explicit = unique([run.branch_id, ...steps.flatMap((step) => step.branches ?? [])]);
-    const legacy = explicit.length
-      ? undefined
-      : branches.find(
-          (branch) =>
-            branch.legacy &&
-            (run.trace.task === branch.legacy.id ||
-              run.trace.task.endsWith(`/${branch.legacy.id}`)),
-        );
-    const known = explicit.filter((id) => branches.some((branch) => branch.id === id));
-    const attached = known.length ? known : legacy ? [legacy.id] : ["unresolved:records"];
+    const { steps, legacy, attached } = runAssociations(snapshot, run, branches);
     return {
       id: run.trace.run,
       branch: attached.length === 1 ? attached[0] : "",
@@ -225,14 +274,7 @@ export function selectionContext(
       environment: run.environment ?? catalog?.environment ?? round?.environment ?? "",
       round: run.trace.round,
       runner: run.runner_id,
-      steps: steps.map((step) => ({
-        ...step,
-        branches: step.branches?.length
-          ? step.branches
-          : legacy
-            ? [legacy.id]
-            : ["unresolved:records"],
-      })),
+      steps,
     };
   });
   return {

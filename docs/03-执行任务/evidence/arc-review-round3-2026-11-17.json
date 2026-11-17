@@ -1,0 +1,955 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-17",
+  "timezone": "Asia/Shanghai",
+  "execution_receipt": false,
+  "scope": "Third review R3-01 through R3-05: Arc model/runtime/campaign fixes and production frontend. Real isolated HTTP tool targets, durable ledger, parsing/selection/SSR. Not pay_gateway product E2E or browser visual acceptance.",
+  "reviewed_base_commit": "3f5a41d31e111affb5f0fd02689ae1997908083c",
+  "branch": "main",
+  "tested_source": {
+    "algorithm": "sha256(name + NUL + file bytes + NUL) over sorted top-level non-test Go files",
+    "source_root": "tools/arc-verify",
+    "files": 86,
+    "sha256": "ce2ba54046d48a87c83e0338b9b76300a8d8931d5704d1d377410f8b99ee4405",
+    "base_commit": "3f5a41d31e111affb5f0fd02689ae1997908083c",
+    "unchanged_after_full_test": true,
+    "integration_source_tree": {
+      "tree": "063fc0a146807f303bc750ccb4d5a3ebb57f6691",
+      "base": "3f5a41d31e111affb5f0fd02689ae1997908083c",
+      "changed_files": [
+        {
+          "path": "Arc/_shared/business-verification.md",
+          "sha256": "4a81ee0abc223c1051382fab0ef03435e58a66524220a41a8a3838fd9cdd703f"
+        },
+        {
+          "path": "Arc/arc:verify/references/deterministic-contract.md",
+          "sha256": "31ccd642bc9e48fb2a2088482892bc97a61973b363816567c63c257606fd945e"
+        },
+        {
+          "path": "docs/03-执行任务/arc-deterministic-rebuild.md",
+          "sha256": "345d4bdf9037d85cd08cc8a9e8d5eb6cbe57743772e0aa087aa9875c5df5ceab"
+        },
+        {
+          "path": "tools/arc-verify/business_campaign_lifecycle_regression_test.go",
+          "sha256": "e22af1e5c502b69289601565cf2b2076c7d3e608efeca63be63b56dc354d6ccd"
+        },
+        {
+          "path": "tools/arc-verify/business_contract_match.go",
+          "sha256": "5b85f6c930da38a5eae9f0d3178c78f5e1646e53484f41bb36d993e49acae268"
+        },
+        {
+          "path": "tools/arc-verify/business_contract_round3_scope_test.go",
+          "sha256": "ad9f62a7841efd541ade0086b05f18defc1ad07f49e10c0fe8e4a4d33a9aa233"
+        },
+        {
+          "path": "tools/arc-verify/business_exploration_evidence.go",
+          "sha256": "6b3881bf6252b982f391e78ffb56c997a61597d2b7a968c873dda2a46448cd73"
+        },
+        {
+          "path": "tools/arc-verify/business_exploration_runtime.go",
+          "sha256": "483d542fdd3b5c56190a72fdf3068ed78ac2d3b26327e0b7ef621e5b27e18ed2"
+        },
+        {
+          "path": "tools/arc-verify/model_proof.go",
+          "sha256": "3ec675e7ef5dfbd72299bde670f7573c22cb89693bb257dfda17cc5eab541489"
+        },
+        {
+          "path": "tools/arc-verify/runtime_round3_invariant_test.go",
+          "sha256": "98c3d15585a6c6b5d05bf17f98e77992f5e4ce0888ca009edae0582bd75ce286"
+        },
+        {
+          "path": "tools/arc-verify/workbench/src/App.tsx",
+          "sha256": "0229f92711aa61298ae847d89cd165cbc08a39d27d323eca71c0bf9a9d1c4d86"
+        },
+        {
+          "path": "tools/arc-verify/workbench/src/FactPanel.tsx",
+          "sha256": "254ac8778aadfa22ec5a5afdef28dde9528b19c48bfecb93571ff30d42d2abfb"
+        },
+        {
+          "path": "tools/arc-verify/workbench/src/explorer-model.ts",
+          "sha256": "978f8aa73b7ca8e35d3b5ca9b03c1593fac75ccc99cd802fe10ebd154c029835"
+        },
+        {
+          "path": "tools/arc-verify/workbench/src/go-export.integration.test.tsx",
+          "sha256": "62b3c9be0cd761a59b5d3fd9ebafd2d307d9cafab0f8ee50c5c1c466b74bfb31"
+        },
+        {
+          "path": "tools/arc-verify/workbench/src/selection-diagnostics.test.tsx",
+          "sha256": "0f48e0b7c47df285eeb01e4303fc7fb95c5828b9c04390b3dc76dc377f365e69"
+        },
+        {
+          "path": "tools/arc-verify/workbench/src/selection.ts",
+          "sha256": "530ebc91b46d92b9d445b126f2ee2d19ff2ec4df8652f7597d0ee898b1dae2cb"
+        },
+        {
+          "path": "tools/arc-verify/workbench/src/snapshot-evidence.test.tsx",
+          "sha256": "efc1fba1e187a83f1783fdcf3bdcba95e6ef316cd42edcfdb2b0fba688f9a262"
+        },
+        {
+          "path": "tools/arc-verify/workbench/src/snapshot.ts",
+          "sha256": "9c7e3540b957a9b52a0c7ea767e68e86be732a79560deaa2c9a3b4afdb151260"
+        }
+      ],
+      "scope": "Frozen Go/runtime tests and final frontend/skill reference source. Final task verification summary and new evidence record are added after gates; production and test files remain byte-identical."
+    }
+  },
+  "fixes": [
+    {
+      "id": "R3-01",
+      "change": "Evaluate each batch operation rule invariant with its own actor, action index, Oracle ID and boundary",
+      "tests": [
+        "TestRuntimeRound3ParallelInvariantsCoverEveryParticipant",
+        "TestRuntimeRound3HistoricalInvariantCannotBorrowHealthyFinalParticipant",
+        "TestRuntimeRound3RepeatedActorInvariantsKeepActionIndex"
+      ],
+      "observed_boundary": "Four valid red counterexamples (typed/legacy, both participant orderings) returned business PASS when the nonfinal actor had enrolled=3/capacity=2. Fixed live and offline results are FAIL with valid evidence. Same-actor repeated actions retain independent action-index readings. Self-consistent historical hashes cannot qualify the violation as PASS."
+    },
+    {
+      "id": "R3-02",
+      "change": "Exclude branches inapplicable to the known prestate before enforcing their flow identity requirements",
+      "tests": [
+        "TestRound3BusinessUnrelatedPrestateDoesNotRequireItsFlow"
+      ],
+      "observed_boundary": "Both branch orders previously blocked the complete pending-state partition because a ready-only branch required flow. Known current-state candidates still require flow; the finite proof remains limited to its declared scope. This was a false BLOCKED, not a false PASS."
+    },
+    {
+      "id": "R3-03",
+      "change": "Derive campaign failure boundaries from child evidence; reject later dispatches and contradictory stop labels; resume never crosses FirstDivergence",
+      "tests": [
+        "TestBusinessCampaignCannotResumePastVerifiedFailureByChangingStopStatus",
+        "TestBusinessCampaignResumeContinuesHealthyCancellationStop"
+      ],
+      "observed_boundary": "Actual FAIL/BLOCKED child runs remained intact while the stop status alone was changed to BUDGET with consistent event hashes. Previously resume issued an extra target request (1->2 or 0->1); fixed counters remain 1 and 0. Original failure evidence and explicit abort remain valid, and a healthy cancellation budget stop still resumes."
+    },
+    {
+      "id": "R3-04",
+      "change": "Keep unbound typed action and actor decisions diagnostic within mixed runs; do not borrow another step or actor branch; preserve selected diagnostic scope during rendering",
+      "tests": [
+        "workbench/src/selection-diagnostics.test.tsx",
+        "workbench/src/go-export.integration.test.tsx"
+      ],
+      "observed_boundary": "An actual Go sequence export has a passing frozen first step followed by an Oracle-404 second step without business_expectations and no second target request. The run-level branch still identifies step 1; step 2 must render as unresolved. Explicit BLOCKED decisions, missing/empty arrays and per-actor partial freezes are separately tested. Old exports without unified facts retain their recorded legacy association."
+    },
+    {
+      "id": "R3-05",
+      "change": "Validate nested evidence envelope and RAW run/phase/step identity, declared graph/task identity and occurrence uniqueness before rendering",
+      "tests": [
+        "workbench/src/snapshot-evidence.test.tsx"
+      ],
+      "observed_boundary": "Another run complete RAW entry and internal scope mutations are rejected. Setup envelope step 0 versus RAW step -1, omitted legacy action phase and error-only evidence entries remain readable. This is consistency validation, not frontend RAW hash/authenticity verification."
+    }
+  ],
+  "checks": {
+    "verify_full_race": {
+      "command": "go -C tools/arc-verify test -race -json -count=1 -timeout=20m ./...",
+      "integration_inputs": [
+        "ARC_VERIFY_CHAIN_BINARY",
+        "ARC_CAMPAIGN_BINARY",
+        "ARC_WORKBENCH_EXPORT_DIR",
+        "ARC_CAMPAIGN_EXPORT_DIR",
+        "ARC_WORKBENCH_ASSETS"
+      ],
+      "log": "arc-round3-verify-full-race.jsonl",
+      "bytes": 1014816,
+      "sha256": "8a359def75ca9285c6075e37fdeb582e7dd91474d2d63a1e9cdf0c9e1a1590af",
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 577.156,
+      "top_level_passed": 499,
+      "subtests_passed": 376,
+      "skipped": [
+        "TestIMMongoFixturesMustBindIsolationNotSharedLan50",
+        "TestIMMongoConfigKeepsSharedStacksUnapproved"
+      ],
+      "no_test_packages": [
+        "github.com/iwen-conf/Skills/tools/arc-verify/workbench/node_modules/flatted/golang/pkg/flatted"
+      ]
+    },
+    "public_cli_race": {
+      "command": "go -C tools/arc test -race -json -count=1 ./...",
+      "log": "arc-round3-cli-race.jsonl",
+      "bytes": 97955,
+      "sha256": "a310afc6f9f76fd080a0e591d88701d9988d34995cf86d251558cf5e4c5326d7",
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 2.512,
+      "top_level_passed": 37,
+      "subtests_passed": 40,
+      "skipped": [],
+      "no_test_packages": []
+    },
+    "index_race": {
+      "command": "go -C tools/arc-idx test -race -json -count=1 ./...",
+      "log": "arc-round3-idx-race.jsonl",
+      "bytes": 2449,
+      "sha256": "45bd518e96bd7041fca7925bea8ea0fd5c12ab645a97b35df580b2f78a54d85a",
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 3.767,
+      "top_level_passed": 2,
+      "subtests_passed": 0,
+      "skipped": [],
+      "no_test_packages": []
+    },
+    "invariant_targeted_race": {
+      "command": "go test -race -json -count=1 -run '^TestRuntimeRound3.*Invariant' .",
+      "log": "arc-round3-invariant-final-green.jsonl",
+      "bytes": 15073,
+      "sha256": "06196dac6887dd04dd2d6214664b1678663b1254dcb65d931a05e4ee3c5f6b23",
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 16.723,
+      "top_level_passed": 3,
+      "subtests_passed": 10,
+      "skipped": [],
+      "no_test_packages": []
+    },
+    "campaign_export_final_assets": {
+      "command": "ARC_CAMPAIGN_EXPORT_DIR=<fresh-directory> ARC_WORKBENCH_ASSETS=<final-dist> go -C tools/arc-verify test -race -json -count=1 -run '^TestWorkbenchExportObservedBusinessCampaign$' .",
+      "reason": "The full-suite campaign exported before the final UI build. Preserve that original export and execute a fresh campaign into a separate directory with final assets.",
+      "log": "arc-round3-campaign-final-export.jsonl",
+      "bytes": 1943,
+      "sha256": "21c5369096392f46a266ceeefb3333ba84052a23feb9d7c493aa55f24e913b72",
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 36.902,
+      "top_level_passed": 1,
+      "subtests_passed": 0,
+      "skipped": [],
+      "no_test_packages": []
+    },
+    "kernel_targeted_race": {
+      "status": "PASS",
+      "exit_code": 0,
+      "scope": "TestRound3Business|TestBusinessContract|TestBusinessPreparation|TestBusinessExactNumber|TestPayGatewayModel",
+      "seconds": 12.54,
+      "top_level_passed": 60,
+      "subtests_passed": 104,
+      "log": "arc-round3-kernel-targeted-race.log",
+      "bytes": 34839,
+      "sha256": "ff0cf262c2701db333af6c4476d6a34057ec2f692de2e341059d8ac074795e3f"
+    },
+    "campaign_targeted_race": {
+      "status": "PASS",
+      "exit_code": 0,
+      "scope": "lifecycle failures, healthy cancellation, crash reconciliation, abort, child-record persistence failure, numeric lexeme integrity and replayed action budgets",
+      "seconds": 83.52,
+      "top_level_passed": 8,
+      "subtests_passed": 10,
+      "log": "arc-round3-campaign-focused-race.log",
+      "bytes": 3441,
+      "sha256": "3a17cb9675a68730af602cdc7b125233352026600fdfb348d4f2b28650f5954f"
+    },
+    "verify_vet": {
+      "command": "go -C tools/arc-verify vet ./...",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round3-vet.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "installation": {
+      "command": "bash scripts/install_arc.sh BIN_DIR",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round3-install.log",
+      "bytes": 1430,
+      "sha256": "42c5763a62a3b94ec70e0af6b8847d0f58b2c620904f5f99511910f82b94351f",
+      "binaries": [
+        {
+          "name": "arc",
+          "bytes": 28576128,
+          "sha256": "d7b2e866c17282edae4c01f5e993f2ba97b9db16bd25a46e77a7c61619ed9afb"
+        },
+        {
+          "name": "arc-verify",
+          "bytes": 35681536,
+          "sha256": "44ad3ab890c7f8d5a363ad2f5a9a35bf2a05f357f201ecdbdaeb211119f0aa74"
+        },
+        {
+          "name": "arc-idx",
+          "bytes": 40286918,
+          "sha256": "90606ab7bd39a8c0b09f086a5b486aef9d4afc97b9acdc55ae7dfc57e423fa4c"
+        }
+      ]
+    },
+    "smoke": {
+      "command": "bash tools/arc/smoke.sh BIN_DIR REPO_ROOT",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round3-smoke.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "frontend_types": {
+      "command": "tsc -b --force",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round3-workbench-types.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "frontend_check": {
+      "command": "vp check",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round3-workbench-check.log",
+      "bytes": 145,
+      "sha256": "dcae601cf26fea403802e9d2c8589365b42f60f78f4aebe640c56414078eda10"
+    },
+    "frontend_build": {
+      "command": "vp build",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round3-workbench-build.log",
+      "bytes": 782,
+      "sha256": "f0a4f8a2180cce8867a0e51cc2b422d00598e90d815e4d9514718eb881951f65",
+      "advisory": "Single offline IIFE exceeds the existing 500 kB advisory; threshold and bundling policy unchanged",
+      "assets": [
+        {
+          "file": "index-B14cfH0Z.js",
+          "bytes": 507090,
+          "sha256": "1cb74948d2fbd67409efe3df747214d9548a002c0b96855cbf0e1bc7758ebe04"
+        },
+        {
+          "file": "style-zNCNQtJp.css",
+          "bytes": 36046,
+          "sha256": "7e0537b393d4fc9c8a526946a545c78544c90edb8e1a418e5a8632a2a2b2517a"
+        }
+      ]
+    },
+    "frontend_suite": {
+      "command": "ARC_WORKBENCH_SNAPSHOT_PATH=<actual-oracle-failure-export> vp test run",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round3-workbench-tests.log",
+      "bytes": 237,
+      "sha256": "840b71f997563757e94c8e7679919e899bfe684298ff686f9ff33669e3d610a1",
+      "passed": 123,
+      "skipped": 0,
+      "integration_scope": "Full frontend suite including its optional export integration, supplied with the actual Oracle-failure Go export. Final prepared/campaign/failure exports are checked together below."
+    },
+    "frontend_go_export": {
+      "command": "ARC_WORKBENCH_SNAPSHOT_PATHS=[prepared,campaign,oracle-failure] vp test run src/go-export.integration.test.tsx",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arc-round3-workbench-go-export.log",
+      "bytes": 231,
+      "sha256": "ea822bc74b2a049735cebd74f820d375094840e90add2cd5300112a4fa09b734",
+      "passed": 3
+    },
+    "python": {
+      "command": ".venv/bin/python -m pytest -q",
+      "exit_code": 1,
+      "failed": 1,
+      "passed": 214,
+      "skipped": 1,
+      "elapsed_seconds": 46.68,
+      "failure": [
+        "E               ValueError: cloudflare: missing library source skill cloudflare-platform",
+        "FAILED tests/test_sync_skills.py::test_all_runtime_families_have_a_complete_package"
+      ],
+      "skip_reasons": [
+        "SKIPPED [1] tests/test_audit_regressions.py:100: Set R8_PROTO_PYTHON to an interpreter with protobuf >= 6.33.4"
+      ],
+      "same_failure_as_round2": true,
+      "same_skips_as_round2": true,
+      "log": "arc-round3-python.log",
+      "sha256": "0ac1710d78ebd3bff2293b19a8f056d92fed0de2cb7e5ffbad93528bfcfb9f47",
+      "status": "BASELINE_FAILURE"
+    },
+    "dbqual": {
+      "command": ".venv/bin/python -m pytest -q Arc/arc:verify/scripts/dbqual/tests",
+      "exit_code": 0,
+      "passed": 160,
+      "skipped": 1,
+      "subtests_passed": 139,
+      "elapsed_seconds": 19.13,
+      "skip_reasons": [
+        "SKIPPED [1] Arc/arc:verify/scripts/dbqual/tests/test_sql_static.py:193: set SQLVERIFY_SQLFLUFF_CMD (e.g. 'uvx sqlfluff==4.4.0') to run the real tool"
+      ],
+      "log": "arc-round3-dbqual.log",
+      "sha256": "27ab5b674d908a0cdfee180e29cea5fbaa9ea8f3986a65c24c5327d077851093",
+      "status": "PASS_WITH_EXPLICIT_OPTIONAL_SKIP"
+    },
+    "skills": {
+      "command": ".venv/bin/python scripts/validate_skills.py",
+      "exit_code": 1,
+      "elapsed_seconds": 0.382,
+      "skill_files": 65,
+      "current_errors": 52,
+      "baseline_errors": 52,
+      "baseline_commit": "ba5c789a4d6ba5127462521f38b714d2a85a17cc",
+      "baseline_log": "arc-round2-skills-check.log",
+      "baseline_log_sha256": "eeebedbaae87ffc7aec65a978f9e1ad2677f148d300f61e360a1ef2d874da577",
+      "new_errors": [],
+      "resolved_errors": [],
+      "arc_errors": [],
+      "warnings": [],
+      "initial_current_errors": 53,
+      "initial_new_errors": [
+        "/workspace/scratch/5b127f988034/arc-rebuild/Arc/arc:verify/references/deterministic-contract.md: reference exceeds 3500 estimated tokens (3641); move detail into references"
+      ],
+      "reference": "Arc/arc:verify/references/deterministic-contract.md",
+      "reference_estimated_tokens": 3418,
+      "reference_token_ceiling": 3500,
+      "final_log_sha256": "eef4f06b3ec44d486dcc1588d81c9713b352546f4065cc056e70eaff8677e958",
+      "initial_log_sha256": "93afbad8c83187c1970d1b304a054a37991ba16119bce6cbe13a48284b5344e8",
+      "log": "arc-round3-skills-validation.log",
+      "comparison_report": "arc-round3-skills-validation.json",
+      "status": "ARC_PASS_WITH_BASELINE_EXTERNAL_ERRORS",
+      "initial_budget_failure_corrected": {
+        "log": "arc-round3-skills-initial-budget.log",
+        "bytes": 7841,
+        "sha256": "93afbad8c83187c1970d1b304a054a37991ba16119bce6cbe13a48284b5344e8"
+      }
+    }
+  },
+  "fresh_exports": [
+    {
+      "directory": "arc-round3-export-prepared",
+      "snapshot_sha256": "5aa790213e0b5f9551b8b14a69ad5a4389b767175007a78c584d15ffea46b2ad",
+      "frontend_validation_sha256": "b81dd1187113b0e526eabc9a59f889f662990f50caa306387d1434f4e971d586",
+      "report": {
+        "version": 1,
+        "status": "PASS",
+        "scope": "Actual supplied Go export -> production readSnapshotText -> unified selection -> SSR. No target execution, RAW revalidation, product E2E claim or browser acceptance.",
+        "validated_at": "2026-11-17T05:38:16.785Z",
+        "snapshot_sha256": "5aa790213e0b5f9551b8b14a69ad5a4389b767175007a78c584d15ffea46b2ad",
+        "graph": "course-v2",
+        "parser": "PASS",
+        "unified_selection": "PASS",
+        "ssr": "PASS",
+        "browser": "NOT_RUN",
+        "raw_revalidated_by_frontend": false,
+        "rendered_views": 2,
+        "representative_ssr_views": 1,
+        "assets_match_current_dist": true,
+        "preparation": {
+          "status": "EXERCISED",
+          "runs": 1,
+          "actual_actions": 1,
+          "independent_readbacks": 3
+        },
+        "expected_actual": {
+          "status": "EXERCISED",
+          "frozen_decisions": 1,
+          "unassociated_step_views": 0,
+          "request_captures": 1
+        },
+        "entity_selection": {
+          "status": "NOT_PRESENT",
+          "selections": 0
+        },
+        "campaign": {
+          "status": "NOT_PRESENT",
+          "linked_children": 0,
+          "unexported_children": 0
+        },
+        "runs": [
+          {
+            "run": "R-a40ccc87d81f737866aac6b2f002aec4",
+            "environment": "independent",
+            "round": "Q-0b69a24238df9e93953bc04b637f4a4a",
+            "runner": "typed-business",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 1,
+            "recovery_mode": "checkpoint"
+          }
+        ],
+        "campaigns": []
+      }
+    },
+    {
+      "directory": "arc-round3-final-export-campaign",
+      "snapshot_sha256": "a144b00cc867af522d6f8ee8372efe4e80e2cf2152c40197b6f1ffa07362eaa3",
+      "frontend_validation_sha256": "0ee2b473a76a268c01daade6cb06a55237e480567d52c2769f53e66ff0a48448",
+      "report": {
+        "version": 1,
+        "status": "PASS",
+        "scope": "Actual supplied Go export -> production readSnapshotText -> unified selection -> SSR. No target execution, RAW revalidation, product E2E claim or browser acceptance.",
+        "validated_at": "2026-11-17T05:38:17.054Z",
+        "snapshot_sha256": "a144b00cc867af522d6f8ee8372efe4e80e2cf2152c40197b6f1ffa07362eaa3",
+        "graph": "course-v2",
+        "parser": "PASS",
+        "unified_selection": "PASS",
+        "ssr": "PASS",
+        "browser": "NOT_RUN",
+        "raw_revalidated_by_frontend": false,
+        "rendered_views": 16,
+        "representative_ssr_views": 7,
+        "assets_match_current_dist": true,
+        "preparation": {
+          "status": "EXERCISED",
+          "runs": 2,
+          "actual_actions": 1,
+          "independent_readbacks": 4
+        },
+        "expected_actual": {
+          "status": "EXERCISED",
+          "frozen_decisions": 3,
+          "unassociated_step_views": 0,
+          "request_captures": 3
+        },
+        "entity_selection": {
+          "status": "EXERCISED",
+          "selections": 3
+        },
+        "campaign": {
+          "status": "EXERCISED",
+          "linked_children": 3,
+          "unexported_children": 0
+        },
+        "runs": [
+          {
+            "run": "R-33f9b64818241a832b648906f581e2bc",
+            "environment": "independent",
+            "round": "Q-4f228b7dddcbe684ea394e136e917b91",
+            "runner": "enroll-b",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 1,
+            "recovery_mode": "checkpoint"
+          },
+          {
+            "run": "R-c50c3f8d6b50b85554e3c700d232c508",
+            "environment": "independent",
+            "round": "Q-4f228b7dddcbe684ea394e136e917b91",
+            "runner": "clear",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 0,
+            "recovery_mode": "checkpoint"
+          },
+          {
+            "run": "R-59941d7d5d4b7701c60c707e0e0efcb3",
+            "environment": "independent",
+            "round": "Q-4f228b7dddcbe684ea394e136e917b91",
+            "runner": "enroll-a",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 1,
+            "recovery_mode": "checkpoint"
+          }
+        ],
+        "campaigns": [
+          {
+            "campaign": "BC-ccff221478fb68b65e9a6b0c8ccd6df9",
+            "environment": "independent",
+            "round": "Q-4f228b7dddcbe684ea394e136e917b91",
+            "status": "COMPLETED_IN_SCOPE",
+            "evidence_status": "PASS",
+            "variants": 3,
+            "child_visits": 3,
+            "pre_action_intents": 3,
+            "selected_variants_covered": true,
+            "full_business_coverage": false
+          }
+        ]
+      }
+    },
+    {
+      "directory": "arc-round3-oracle-failure-final",
+      "snapshot_sha256": "064a3a5e0f212e3e4760d65710666f3cdde50c70eae61851e1e644bf992a8863",
+      "frontend_validation_sha256": "01bc048dc1210d7ba35a47412e76443da9cb1b48f1229f3617372b608798c85d",
+      "report": {
+        "version": 1,
+        "status": "PASS",
+        "scope": "Actual supplied Go export -> production readSnapshotText -> unified selection -> SSR. No target execution, RAW revalidation, product E2E claim or browser acceptance.",
+        "validated_at": "2026-11-17T05:38:17.076Z",
+        "snapshot_sha256": "064a3a5e0f212e3e4760d65710666f3cdde50c70eae61851e1e644bf992a8863",
+        "graph": "course-v2",
+        "parser": "PASS",
+        "unified_selection": "PASS",
+        "ssr": "PASS",
+        "browser": "NOT_RUN",
+        "raw_revalidated_by_frontend": false,
+        "rendered_views": 3,
+        "representative_ssr_views": 1,
+        "assets_match_current_dist": true,
+        "preparation": {
+          "status": "NOT_PRESENT",
+          "runs": 0,
+          "actual_actions": 0,
+          "independent_readbacks": 0
+        },
+        "expected_actual": {
+          "status": "EXERCISED",
+          "frozen_decisions": 1,
+          "unassociated_step_views": 1,
+          "request_captures": 0
+        },
+        "entity_selection": {
+          "status": "NOT_PRESENT",
+          "selections": 0
+        },
+        "campaign": {
+          "status": "NOT_PRESENT",
+          "linked_children": 0,
+          "unexported_children": 0
+        },
+        "runs": [
+          {
+            "run": "R-49f622c65a402f504ccb8e98daa1aa24",
+            "environment": "independent",
+            "round": "Q-8deab900f94778158c9c5b9b69a6543b",
+            "runner": "round3-prefreeze-oracle-failure",
+            "evidence_status": "PASS",
+            "action_steps": 2,
+            "preparation_records": 0,
+            "recovery_mode": "restore"
+          }
+        ],
+        "campaigns": []
+      }
+    }
+  ],
+  "red_counterexamples": [
+    {
+      "log": "arc-round3-invariant-red.log",
+      "bytes": 7708,
+      "sha256": "9dbea9cc15064cc08e2b392a7121569f0036b20538cd7dda52bbe0a7415f5e89"
+    },
+    {
+      "log": "arc-round3-kernel-scope-red.log",
+      "bytes": 3345,
+      "sha256": "b84e9d205be489108201d0a59db3d7215d113d76b3189f72749c13de3277009d"
+    },
+    {
+      "log": "arc-round3-campaign-lifecycle-red.log",
+      "bytes": 1498,
+      "sha256": "199ce6373e8e77dc500733ac87f9ec5c35e26f4f9c67d537b674245f0dea672f"
+    },
+    {
+      "log": "arc-round3-workbench-red.log",
+      "bytes": 3225,
+      "sha256": "73a153d286c7b3572e131a1dc02608998ca4388862c57ba0a19e9b02bb00b5ea"
+    },
+    {
+      "log": "arc-round3-workbench-evidence-red.log",
+      "bytes": 3591,
+      "sha256": "898ec413e139766fb97278fbc62bc855734eac878b895abc11d6413e714e685f"
+    }
+  ],
+  "frontend_runtime_counterexample": {
+    "version": 1,
+    "scope": "Round 3 frontend supplement: native tool HTTP fixture plus production snapshot reader, selection and SSR regressions. No browser acceptance, product E2E or frontend RAW digest revalidation.",
+    "base_commit": "3f5a41d31e111affb5f0fd02689ae1997908083c",
+    "source_root": "/workspace/scratch/5b127f988034/arc-rebuild/tools/arc-verify/workbench",
+    "repository_go_files_changed_by_this_agent": false,
+    "actual_oracle_failure": {
+      "test": "TestRound3FrontendOracleFailureExport",
+      "source_mechanism": "Go -overlay injects a scratch test file without changing repository Go source",
+      "target": "existing newKindsServer httptest tool fixture; not product environment",
+      "native_observed": {
+        "first_step": "PASS with enroll-only-again frozen branch",
+        "second_step": "BLOCKED before-action Oracle 404",
+        "second_action_requests": 0,
+        "source_kind": "sequence",
+        "second_step_business_expectations": "omitted/empty",
+        "run_branch_id": "enroll-only-again",
+        "export_evidence_status": "PASS"
+      },
+      "original": {
+        "command": "PATH=/workspace/scratch/5b127f988034/toolchains/go/bin:$PATH GOTOOLCHAIN=local go -C tools/arc-verify test -overlay /workspace/scratch/5b127f988034/round3-oracle-overlay/overlay.json -run '^TestRound3FrontendOracleFailureExport$' -count=1 -v",
+        "exit_code": 0,
+        "fixture": {
+          "path": "/workspace/scratch/5b127f988034/round3-oracle-overlay/oracle_failure_export_test.go",
+          "sha256": "7f2e285ba04f38527e390b47dbc874822f385a2aa9792f4d37d0bae1d5c13d8b",
+          "bytes": 2126
+        },
+        "overlay": {
+          "path": "/workspace/scratch/5b127f988034/round3-oracle-overlay/overlay.json",
+          "sha256": "27d3ae11dbe1dc845300b83022845e1f0e2eeef05fd0c725ea3746fa079762a6",
+          "bytes": 201
+        },
+        "snapshot": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-oracle-failure-export/snapshot.json",
+          "sha256": "c6d10fb3aa36e4b3631f6056f96e7a813b027b01acba4855d3686c2d1c3b51b4",
+          "bytes": 125172
+        },
+        "run": "R-7ff9fe6085288560ff6810be798616a6",
+        "log": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-oracle-runtime.log",
+          "sha256": "825bf84244cb2669b60cac1f09fdbb8dc5f7ec06f2fef1fe2a076abfeab99e1e",
+          "bytes": 382
+        }
+      },
+      "final": {
+        "command": "PATH=/workspace/scratch/5b127f988034/toolchains/go/bin:$PATH GOTOOLCHAIN=local go -C tools/arc-verify test -overlay /workspace/scratch/5b127f988034/round3-oracle-overlay/overlay-final.json -run '^TestRound3FrontendOracleFailureExport$' -count=1 -v",
+        "exit_code": 0,
+        "fixture": {
+          "path": "/workspace/scratch/5b127f988034/round3-oracle-overlay/oracle_failure_final_test.go",
+          "sha256": "4a8b23163f834d33c488aeeb9fb6d951f308df8e5c74b7c860f1f39b67f83c78",
+          "bytes": 2125
+        },
+        "overlay": {
+          "path": "/workspace/scratch/5b127f988034/round3-oracle-overlay/overlay-final.json",
+          "sha256": "59dd04c480fdc656edfec8467545cfa395855aaded4264a2e572221ba14f7d6b",
+          "bytes": 200
+        },
+        "snapshot": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-oracle-failure-final/snapshot.json",
+          "sha256": "064a3a5e0f212e3e4760d65710666f3cdde50c70eae61851e1e644bf992a8863",
+          "bytes": 125191
+        },
+        "run": "R-49f622c65a402f504ccb8e98daa1aa24",
+        "log": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-oracle-runtime-final.log",
+          "sha256": "5b33c8c33e7f8317960dd2a7d6828d865d42d830736b052cf443f917a1b37112",
+          "bytes": 381
+        },
+        "production_reader_selection_ssr": {
+          "status": "PASS",
+          "parser": "PASS",
+          "unified_selection": "PASS",
+          "ssr": "PASS",
+          "browser": "NOT_RUN",
+          "raw_revalidated_by_frontend": false,
+          "rendered_views": 3,
+          "assets_match_current_dist": true
+        },
+        "unassociated_step_views": 1
+      },
+      "reproduction_fixture_source": "package main\n\nimport (\n  \"testing\"\n)\n\n// Read-only frontend regression source: inject through go -overlay, never into\n// repository Go sources. The target is the existing explicit tool HTTP fixture.\nfunc TestRound3FrontendOracleFailureExport(t *testing.T) {\n  target, server := newKindsServer(t)\n  f := prepareExecutionFixture(t, successorSequenceGraph(t, nil), server.URL)\n  const runner = \"round3-prefreeze-oracle-failure\"\n  manifest := kindsManifest(t, runner, \"test.sequence.enroll-confirm\",\n    kindsStep(\"enroll\", \"submit-flow\", \"/enroll\", kindsOracle(\"fixture-independent-store\", \"/oracle\")),\n    kindsStep(\"confirm\", \"confirm-flow\", \"/confirm\", kindsOracle(\"confirm-store\", \"/missing-oracle\")))\n  f.registerAndRound(t, manifest)\n  result := executeKinds(t, f, runner, \"test.sequence.enroll-confirm\")\n  if result.Verdict != \"BLOCKED\" || result.Steps != 2 || target.confirmCalls != 0 {\n    t.Fatalf(\"before-oracle failure did not stop the second request: %+v confirms=%d\", result, target.confirmCalls)\n  }\n  exported, err := f.d.snapshotRun(\"course-v2\", result.Run)\n  if err != nil || exported.BranchID != \"enroll-only-again\" || exported.EvidenceStatus != \"PASS\" {\n    t.Fatalf(\"not a verified mixed run: %+v %v\", exported, err)\n  }\n  found := false\n  for _, fact := range exported.Facts {\n    if fact.Seq == 2 {\n      found = fact.SourceKind == \"sequence\" && fact.Node == \"confirm\" && fact.Verdict == \"BLOCKED\" && len(fact.BusinessExpectations) == 0\n    }\n  }\n  if !found { t.Fatalf(\"missing native pre-freeze failure fact: %+v\", exported.Facts) }\n  path, err := f.d.writeSnapshot(SnapshotRequest{Graph:\"course-v2\", Environment:\"independent\", Round:f.round, Config:f.config,\n    Assets:\"/workspace/scratch/5b127f988034/arc-rebuild/tools/arc-verify/workbench/dist\",\n    Out:\"/workspace/scratch/5b127f988034/arc-round3-oracle-failure-final\", Runs:[]string{result.Run},\n    Argv:[]string{\"frontend-prefreeze-regression\",\"tool-fixture-not-product-e2e\"}})\n  if err != nil { t.Fatal(err) }\n  t.Logf(\"run=%s frozen-branch=%s second-action-requests=%d snapshot=%s\", result.Run, exported.BranchID, target.confirmCalls, path)\n}\n",
+      "reproduction_note": "The exact overlay fixture is retained here for reproduction; adapt absolute repository and export paths when running elsewhere. It depends on the repository test helpers and is not a product Runner."
+    },
+    "regressions": {
+      "typed_missing_decisions": {
+        "file": "src/selection-diagnostics.test.tsx",
+        "cases": [
+          "omitted business_expectations",
+          "empty business_expectations",
+          "legacy no-facts association remains readable"
+        ],
+        "native_red": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-prefreeze-red.log",
+          "sha256": "99bbcf8854a6ba672bb4a77c465f9f865b4c148e15ef63b4d6aa9df7644fe561",
+          "bytes": 2986
+        },
+        "native_red_counts": {
+          "failed": 3,
+          "passed": 5,
+          "includes_actual_export_failure": true
+        }
+      },
+      "empty_node_rehydration": {
+        "fix": "App.initialize does not replay an empty actor-specific node as a command to clear a valid step",
+        "red": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-prefreeze-rehydrate-red.log",
+          "sha256": "1ab846f6779905f865ce3d24514aa4945efc78ea09f61ca17b717bb012f72cef",
+          "bytes": 2433
+        },
+        "red_counts": {
+          "failed": 2,
+          "passed": 5
+        }
+      },
+      "partial_batch_actors": {
+        "fix": "Declared alias or unique matching principal/account only; typed selectable actor without its own decision stays diagnostic. The recorded summary identity does not identify an unobserved failed member.",
+        "red": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-partial-batch-red.log",
+          "sha256": "6e27e2a89335c9251a594b08060a4415d9841f85e041a218058917090e104e7e",
+          "bytes": 3556
+        },
+        "new_failed_cases": 2
+      },
+      "same_actor_partial_freeze": {
+        "evidence_kind": "production reader/selection/SSR frontend regression built from verified executor control-flow shape, not a separate actual concurrent target run",
+        "cases": [
+          "same actor / repeated same action",
+          "same actor / different final action"
+        ],
+        "fix": "BLOCKED or UNKNOWN with zero captured actions and frozen decision lacking comparison remains diagnostic; preserve captured frozen evidence; failed member identity stays unknown",
+        "red": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-same-actor-batch-red.log",
+          "sha256": "c1eaf5f12bd8a4498c92d5800c0cd465849acfd4a0fbeec00ae38d5968ca1b4a",
+          "bytes": 2320
+        },
+        "red_counts": {
+          "failed": 2,
+          "passed": 10
+        }
+      },
+      "targeted_green": {
+        "counts": {
+          "passed": 13,
+          "failed": 0
+        },
+        "log": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-prefreeze-green.log",
+          "sha256": "7e5ad618af15259a7977e9a11a207b496f4fd7a6fe10b5fa5d0ef0ee54b5a338",
+          "bytes": 233
+        }
+      },
+      "first_round_issue_red": {
+        "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-red.log",
+        "sha256": "73a153d286c7b3572e131a1dc02608998ca4388862c57ba0a19e9b02bb00b5ea",
+        "bytes": 3225
+      },
+      "raw_summary_identity_red": {
+        "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-evidence-red.log",
+        "sha256": "898ec413e139766fb97278fbc62bc855734eac878b895abc11d6413e714e685f",
+        "bytes": 3591
+      }
+    },
+    "final_gates": [
+      {
+        "command": "ARC_WORKBENCH_SNAPSHOT_PATH=/workspace/scratch/5b127f988034/arc-round3-oracle-failure-export ./node_modules/.bin/vp test run",
+        "exit_code": 0,
+        "test_files_passed": 14,
+        "tests_passed": 123,
+        "tests_skipped": 0,
+        "tests_failed": 0,
+        "log": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-tests.log",
+          "sha256": "840b71f997563757e94c8e7679919e899bfe684298ff686f9ff33669e3d610a1",
+          "bytes": 237
+        }
+      },
+      {
+        "command": "./node_modules/.bin/vp check",
+        "exit_code": 0,
+        "formatted_files": 46,
+        "lint_type_files": 37,
+        "errors": 0,
+        "warnings": 0,
+        "log": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-check.log",
+          "sha256": "dcae601cf26fea403802e9d2c8589365b42f60f78f4aebe640c56414078eda10",
+          "bytes": 145
+        }
+      },
+      {
+        "command": "./node_modules/.bin/tsc -b --force",
+        "exit_code": 0,
+        "log": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-types.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      },
+      {
+        "command": "./node_modules/.bin/vp build",
+        "exit_code": 0,
+        "note": "507.09 kB single JS chunk produces nonblocking 500 kB size advisory",
+        "log": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-build.log",
+          "sha256": "f0a4f8a2180cce8867a0e51cc2b422d00598e90d815e4d9514718eb881951f65",
+          "bytes": 782
+        }
+      },
+      {
+        "command": "ARC_WORKBENCH_SNAPSHOT_PATH=/workspace/scratch/5b127f988034/arc-round3-oracle-failure-final ./node_modules/.bin/vp test run src/go-export.integration.test.tsx",
+        "exit_code": 0,
+        "test_files_passed": 1,
+        "tests_passed": 1,
+        "tests_skipped": 0,
+        "tests_failed": 0,
+        "log": {
+          "path": "/workspace/scratch/5b127f988034/arc-round3-workbench-oracle-final-integration.log",
+          "sha256": "53593e58d2024319190d29e006f1e8cf35ed40ceca140e51fc8e5a64c523eb7a",
+          "bytes": 231
+        }
+      },
+      {
+        "command": "git diff --check -- tools/arc-verify/workbench/src",
+        "exit_code": 0
+      }
+    ],
+    "final_fingerprints": {
+      "src": {
+        "path": "/workspace/scratch/5b127f988034/arc-rebuild/tools/arc-verify/workbench/src",
+        "file_count": 42,
+        "sha256": "b1bd0780b6c134f0148780b02caf5e681f44de57f09e78346a02ac65c5c0d84e",
+        "algorithm": "SHA256(canonical JSON sorted relative path -> file SHA256; UTF-8, separators comma/colon)",
+        "files": {
+          "App.css": "7d248a1b31cb1d37c328b479e602786cc792ecdf261aabba8f1ea1ec20274da7",
+          "App.test.tsx": "1e3cbd7a76ef2f18ef8e328ec6e98d99b733123e6925dc9e00729406e3f8b606",
+          "App.tsx": "0229f92711aa61298ae847d89cd165cbc08a39d27d323eca71c0bf9a9d1c4d86",
+          "CampaignViews.tsx": "2dc2184999fc14ea19dbeac10b9a99e909aa473d0a8281140332f2af44bf0361",
+          "FactPanel.test.tsx": "4377b2be0447ca4558b0d299c575eb3f993551cb16d70fed3d06a9eb26f581f0",
+          "FactPanel.tsx": "254ac8778aadfa22ec5a5afdef28dde9528b19c48bfecb93571ff30d42d2abfb",
+          "GraphCanvas.tsx": "4564636780af6844d4c5eb0280a497ddc7fae454dc5e5f5cd65c5a148fb695b0",
+          "Status.tsx": "6437258a3baf1f65c68ab117d49bd709ac59ebfe4e246c18bbd8fe4d9ffaf6a3",
+          "assets/hero.png": "881ffbcaafc212e49addad08846a5b82761355fa20624253af3477ba33262c5c",
+          "assets/react.svg": "35ef61ed53b323ae94a16a8ec659b3d0af3880698791133f23b084085ab1c2e5",
+          "assets/vite.svg": "5be21acd42eb7b896e517f4e0f0f11eb5c5d9e54fbbcebe9453f033008fcca6f",
+          "campaign-fixture.ts": "96bc85524273670119b30c5df79b56fcf90bbd77afc995ff4efd75d62c8daa73",
+          "campaign-validation.ts": "29e455c966db8dbd151b2017f5c798a60a7ae4cb4949b4dd64b015324732361c",
+          "campaign.css": "f2ebf3287c5bda59c481b12ee8dc5178547904ef78d5f9c577cb00e0aadba23b",
+          "campaign.test.tsx": "e02a7e0dc0c9be2a075fcd638746f4b5f0532d14374f3c64fd61281b8648f232",
+          "campaign.ts": "b7ebeb22e37ab8cbeabc02ebaaa549fb1cd5adab227b002a1f5afb353a580ae6",
+          "contract.ts": "fd1022252b5cd068b7896780714ed1f6e311838efd3cc5a741eab257b44b2d36",
+          "explorer-model.test.ts": "9cf4efa61a3151babc10d4268376c8efbec4e8c1043fa271f7babc812a077715",
+          "explorer-model.ts": "978f8aa73b7ca8e35d3b5ca9b03c1593fac75ccc99cd802fe10ebd154c029835",
+          "facts.ts": "53e64bd6dc7eb2a5d4fd36e8be766fd89e5bbe25a0d612c06cb0ada77ef9ea9b",
+          "go-export.integration.test.tsx": "62b3c9be0cd761a59b5d3fd9ebafd2d307d9cafab0f8ee50c5c1c466b74bfb31",
+          "graph-focus.ts": "d813cbe7c78e5d666bc59a834ff8e2a9e76a2afa36e466c6e45b131a747a06b4",
+          "graph-model.ts": "fddf540d180ff8f0a64f6073d5f5286bf286674f896fa7ef62dd25f899c8429b",
+          "index.css": "e7aeebd73588f3974a67882acd25f5b3a03b59180b03c736d19eaca4153b6a42",
+          "json-values.test.ts": "1f65a09f64fc0747833a28569b4567ff709b1f427b32d3458708e17e4d3097bf",
+          "json-values.ts": "55983d6e53b25f48295718241418b5170053d7bac69afc3571dceeecf93feab6",
+          "layout.test.ts": "bb80247164064d4dc60f92879ab237fa04ebbdf2557d23486c84ead5c6c8845a",
+          "layout.ts": "5f78dda03e83d3f798f415e1a8e16463e7a721dc644f37d6f39b2915d4f6b8bb",
+          "main.tsx": "b6c57fca629abf3ad4420c1906f9975cd03a6732af3a577d8ac16350ec81f068",
+          "projection-isolation.test.tsx": "d222e92ab8da76eefe166fc42464ba11f0876e9ca5cbe6f4eddc2405d53b8402",
+          "selection-diagnostics.test.tsx": "0f48e0b7c47df285eeb01e4303fc7fb95c5828b9c04390b3dc76dc377f365e69",
+          "selection.test.ts": "b0df6a7a25d8978e519672ca247d582c387581c69b18c21a42794b2502b87bb9",
+          "selection.ts": "530ebc91b46d92b9d445b126f2ee2d19ff2ec4df8652f7597d0ee898b1dae2cb",
+          "snapshot-evidence.test.tsx": "efc1fba1e187a83f1783fdcf3bdcba95e6ef316cd42edcfdb2b0fba688f9a262",
+          "snapshot.test.ts": "c456d4ae69e42ea47642e39d928c5b02c03954d470412e5a5ba709eecad2131f",
+          "snapshot.ts": "9c7e3540b957a9b52a0c7ea767e68e86be732a79560deaa2c9a3b4afdb151260",
+          "state-graph-fixtures.ts": "de11638c2f12d28c78fc8d213a31fd20148aa943ec5e2cabec87de1635e8eece",
+          "state-graph.test.tsx": "b56f468a6a3a54a046d1f3692bdfd4742ab464562fdf1f80fc97085c4df60f32",
+          "test-fixtures.ts": "5156a313265e99596ee0d2d5b013f6dd3d2540124ffb066e472149ea7b018585",
+          "types.ts": "0bb48dd603f1d0cc537593a2ed8874148abbc5f8856ad71609b2da16c1f494c1",
+          "views.test.ts": "ef004e323994cfef4fce30ba8899d880f10aa35d4e2a86ea78ac8c9d63cbbcd4",
+          "views.ts": "6d0615878eaebfa0db35733065564b27e9624eeeca0b5907a0efe531a39ff8ea"
+        },
+        "unchanged_after_final_integration": true
+      },
+      "dist": {
+        "path": "/workspace/scratch/5b127f988034/arc-rebuild/tools/arc-verify/workbench/dist",
+        "file_count": 5,
+        "sha256": "eb6b60e87de812c52075403df947ebc9c644d922ce08835aacbca5653e9b7eed",
+        "algorithm": "SHA256(canonical JSON sorted relative path -> file SHA256; UTF-8, separators comma/colon)",
+        "files": {
+          "assets/index-B14cfH0Z.js": "1cb74948d2fbd67409efe3df747214d9548a002c0b96855cbf0e1bc7758ebe04",
+          "assets/style-zNCNQtJp.css": "7e0537b393d4fc9c8a526946a545c78544c90edb8e1a418e5a8632a2a2b2517a",
+          "favicon.svg": "61bc9a161de58248288e6905425d7180f0624c2865007b97d763fdac12043a66",
+          "icons.svg": "b45fa506195cfcdef406ba9f0c77b36ddc1a7c224040926ec70abc2fdea7b93a",
+          "index.html": "1622626236f4255c845760c270867e0ed61cd2d6a34c63c274f0b523f2746e0a"
+        },
+        "unchanged_after_final_integration": true
+      }
+    },
+    "browser": "NOT_RUN; prior policy restriction was respected",
+    "raw_authenticity_revalidated_by_frontend": false,
+    "source_report": {
+      "log": "arc-round3-frontend-supplement.json",
+      "bytes": 14981,
+      "sha256": "2f300ba936908ce1b94fbfda83872f5e190257ae9b1fd7fcb22ca837410346a8"
+    }
+  },
+  "red_evidence_note": "The first two invariant fixture-construction attempts are not defect evidence. The listed final valid red log includes four actual nonfinal-participant false PASS cases; healthy/final-participant cases also failed the omitted-assertion check before the fix.",
+  "independent_review": "Separate read-only audits of per-action invariant scope, child-derived campaign stop boundaries and final frontend identity/selection changes; no blocker remained. These audits are not extra execution tests.",
+  "boundaries": {
+    "pay_gateway_product_e2e": {
+      "status": "NOT_RUN",
+      "gate": "BLOCKED",
+      "reason": "No bound owned gateway, isolated PostgreSQL Oracle and caller credentials; no product requests were issued"
+    },
+    "browser_visual_acceptance": {
+      "status": "NOT_RUN",
+      "gate": "BLOCKED",
+      "reason": "Existing browser/local-page policy rejection remains; no alternate route attempted. SSR is not visual acceptance."
+    },
+    "full_business_coverage": false,
+    "evidence_authenticity": "Content, scope, digest and projection checks do not prove authenticity against a party controlling the execution host. Frontend declared identity checks are not browser cryptographic validation.",
+    "history": "Original RAW is preserved. Business FAIL may have EvidenceStatus PASS when its facts are valid. Damaged or semantically inconsistent evidence cannot qualify business PASS.",
+    "migration": "No SQL schema change, no historical fact rewrite, no new public CLI or GitHub Actions.",
+    "remaining_work": "Full payment product branches, generic parameter generation, lifecycle preparation search, equivalence reduction, parallel/async preparation and external formal methods remain outside this repair."
+  }
+}

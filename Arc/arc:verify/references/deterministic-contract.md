@@ -74,6 +74,8 @@ the actual observation and comparison are retained beside the frozen object in
 Every registered Oracle is checked by action index, actor, ID, boundary, principal, role, fixture
 scope and declared observation fields. Consistency assertions select the final action's scoped
 Oracle, never the first matching array entry. Reordering evidence cannot change its verdict.
+Evaluate rule invariants for every action/actor in a batch, using its action-indexed Oracle;
+valid evidence of an invariant violation is business FAIL. Offline qualification does the same.
 
 Preparation reuse and dependencies require observed Ensures **and all declared Effects**. Before
 preparation writes, compare its goal/write subjects with the initial target batch's bindings,
@@ -141,6 +143,8 @@ retain that reservation. Resume reconciles completed child runs against their or
 it never blindly reissues an uncertain dispatch. A failed visit and its first divergence remain
 historical facts. Ordinary `retry` still cannot reopen a passing task; a campaign's next visit
 requires its own durable dispatch authorization.
+A verified failed child fences later dispatches, including resume. Rehashing a stop label cannot
+reopen failure; explicit abort may retain it. Healthy budget stops remain resumable.
 
 The current state budget counts observed candidate contexts and completed child contexts. Keys
 retain actual input tokens, actors, entities, source/environment and history; the scheduler does

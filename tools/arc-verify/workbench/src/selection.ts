@@ -133,8 +133,14 @@ function atStep(state: Selection, step?: SelectionStep, context?: SelectionConte
     ? (step?.actorBranches?.[state.actor] ?? step?.branches)
     : step?.branches;
   const nodes = state.actor ? step?.actorNodes?.[state.actor] : undefined;
-  const branch =
-    branches?.length === 1 ? context?.branches.find((item) => item.id === branches[0]) : undefined;
+  // A partially frozen step stays diagnostic until a selected actor has a
+  // complete recorded association; a known member cannot fill an unknown one.
+  const branchID = branches?.includes("unresolved:records")
+    ? "unresolved:records"
+    : branches?.length === 1
+      ? branches[0]
+      : undefined;
+  const branch = context?.branches.find((item) => item.id === branchID);
   return {
     ...state,
     step: step?.id ?? "",

@@ -255,6 +255,46 @@ UNKNOWN 及预算预留，不盲目重试。正常 `retry` 仍不能重开已 PA
 核对一致。工作台仍有单个离线包超过 500 kB 的体积提示。pay_gateway 产品 E2E 和实际浏览器
 视觉验收继续维持 `NOT_RUN/BLOCKED`，不以工具 HTTP 目标或 SSR 代替。
 
+## 第三轮复审：批次不变量、失败边界与步骤身份（2026-11-17）
+
+本轮从已合并的 `3f5a41d31e111affb5f0fd02689ae1997908083c` 继续检查，按用户要求直接修改
+`main`。新增五项已复现问题；修复仍复用原账本、冻结契约和观察作用域，没有 SQL schema 迁移，
+没有改写历史 RAW，也没有修改业务预期来接受偏离。
+
+| 问题 | 修复与反例证据 |
+|---|---|
+| R3-01：并发批次只判定最后一个动作的不变量 | 对每个动作选取自己的规则，以 actor、action_index、Oracle ID 和 boundary 定位独立观察。真实双账号反例中，前一个账号 `enrolled=3/capacity=2`、末尾账号正常，原实现错误 PASS；typed/legacy 与账号顺序均复现。修复后为业务 FAIL，并保留有效证据。重复同账号的不同 action_index 及自洽哈希历史回放也进入回归 |
+| R3-02：其他前态分支的 flow 缺失错误阻断当前分支 | 先按动作与实际前态排除不适用分支，再检查候选 flow。pending 状态的完整互斥分区不再被 ready-only 分支阻断；当前前态适用的分支缺少必要 flow 仍 BLOCKED，有限域证明不扩大声明范围 |
+| R3-03：改写停止投影能恢复已失败的 campaign | 从真实 child 重算首次偏离后，拒绝后续派发，要求停止状态符合失败事实或显式 ABORTED。反例保留原 child/RAW，只把外层状态改为 BUDGET 并重算事件哈希；原 FAIL、BLOCKED 两例分别多发一次目标请求，修复后均不再派发。健康取消后的预算停止仍可恢复 |
+| R3-04：未冻结步骤借用同运行其他分支 | 有明确 BLOCKED 决策或在前置 Oracle 失败时尚无决策的 typed 动作，均保留诊断身份，不用 run.branch_id 补齐。混合运行同时保留已知分支和诊断入口；步骤、主体与预期面板同步切换。没有 unified step facts 的旧导出保持兼容 |
+| R3-05：RAW 子记录可混入其他运行或步骤 | 生产解析器核对外层 run/phase/step、RAW 内容身份及已声明的 graph/task，拒绝重复证据身份；保留 setup 摘要 step=0 对 RAW step=-1、旧 action 缺 phase 及 error-only 条目。这里验证声明一致性，不声称浏览器重验 RAW 哈希或真实性 |
+
+R3-01 的实际 FAIL 与 `EvidenceStatus=PASS` 分开：后者表示偏离事实可独立重验，不代表业务
+成功。R3-03 反例针对自洽改写后的语义检查，不声称正常执行会自然损坏停止状态。R3-04 另通过
+真实执行器导出连续运行：第一步正常冻结，第二步 before Oracle 返回 404，确认操作没有发出，
+后一步事实确实没有 `business_expectations`；生产 reader、选择上下文与 SSR 共同验证诊断关联。
+
+详细命令、日志与源码指纹、真实工具导出及验收边界见
+[第三轮复审验证记录](evidence/arc-review-round3-2026-11-17.json)。工具 HTTP fixture 和 SSR
+不替代 pay_gateway 产品 E2E 或浏览器视觉验收，两项仍保持 `NOT_RUN/BLOCKED`。
+
+### 本轮整合验证
+
+| 检查 | 实际结果 |
+|---|---|
+| verify 全量 race | 499 个顶层 Test/Fuzz、376 个子测试 PASS，0 FAIL；两项原有 IM-mongo 环境测试 SKIP，577.156s |
+| 公开 CLI / 索引 / vet | CLI 37 个顶层、40 个子测试 race PASS；索引 2 个 race PASS；verify vet PASS |
+| 安装与真实进程 | 三引擎安装、统一 CLI smoke、索引 outbox 和迁移检查通过；全量测试使用本轮安装的 run-chain 与 campaign 二进制 |
+| 工作台 | 123 PASS、0 SKIP、0 FAIL（含真实 Oracle 失败导出）；46 文件格式、37 文件 lint/type、TypeScript 和构建通过 |
+| 最终实际导出 | 准备运行、三次连续 checkpoint campaign、前置 Oracle 失败运行，3 项生产 reader → selection → SSR 集成 PASS；分别验证 2、16、3 个上下文，三套资产均与冻结 dist 一致 |
+| Python / dbqual | Python 214 PASS、1 SKIP、1 个原有 Cloudflare 源包缺失 FAIL；dbqual 160 PASS、139 子例 PASS、1 个外部 SQLFluff SKIP |
+| Skill 校验 | Arc 0 error、0 warning；全仓 52 个原有外部链接错误与基线逐项一致。本轮新增参考文档曾超预算，压缩到 3,418 ≤ 3,500 后复验通过 |
+
+整合前后 86 个 Go 生产文件及最终前端源文件指纹保持一致。全量测试中较早生成的 campaign
+快照保留原样，另用最终 dist 真实执行并导出新 campaign，不手工拼接事实。静态包仍有超过
+500 kB 的非阻断提示。本轮按用户授权直接提交 main；最终代码树与测试冻结树之间只增加
+任务验证汇总和本轮证据记录。
+
 ## 使用与迁移
 
 工具仍由 `bash scripts/install_arc.sh` 安装，公共命令只有 `arc`。升级现有激活库后显式

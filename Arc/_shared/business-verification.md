@@ -66,6 +66,9 @@ The immutable model, frozen expectations, RAW, `step_facts`, `step_assertions` a
 `run_entity_bindings` form the evidence chain. Identity includes run, step, actor, account/entity,
 oracle and observation phase. Two accounts may use the same oracle name without sharing facts.
 Revalidate every registered Oracle, including secondary readers; array order never selects a fact.
+Check each executed action's rule invariants against its own actor and action-index observations,
+including every participant in a concurrent batch. A healthy final participant cannot hide an
+earlier violation. Valid evidence of a business FAIL remains valid evidence, not a successful run.
 An archived RAW fallback is valid only after digest, identity and ledger projection checks.
 
 Finite proofs declare actions, states, attribute domains and budgets. `PROVEN_IN_SCOPE` and
@@ -79,12 +82,16 @@ fresh scoped observations and the same prepare/freeze/execute/compare path. Its 
 candidate eligibility, dispatch reservations, child runs, actual history and stop reasons.
 `COMPLETED_IN_SCOPE` covers the selected variants only; it cannot approve missing rules or prove
 full business reachability. Resume must reconcile original child-run evidence and retain unknown
-dispatches without replay. The legacy `discover` executor remains unavailable to strict models.
+dispatches without replay. A verified failed visit fences subsequent dispatches; changing an outer
+stop label cannot authorize continuation past its first divergence. The legacy `discover` executor
+remains unavailable to strict models.
 
 The native snapshot workbench has capability, dependency/state/run, branch/facts and trace
 regions, with one `model/environment/flow/branch/run/step/actor/entity` selection context.
 Select a branch before showing its unique expected outcome; select a run before showing Actual.
 Never merge account observations or attach a historical run to a branch by guessing its node.
+A typed action fact without its own frozen decision remains diagnostic even if another step has a branch.
+Check nested RAW run/phase/step identity against its enclosing export before rendering facts.
 Static exports are read-only; all writes use the existing CLI.
 
 ## Responsibilities and acceptance

@@ -106,14 +106,14 @@ func selectBusinessBranchIndexed(contract *BusinessContract, action string, befo
 		return result
 	}
 	for _, branch := range contract.Branches {
-		if branch.Action != action {
+		if branch.Action != action || !containsBusinessID(branch.FromStates, before.State) {
 			continue
 		}
 		if branch.Flow != "" && before.Flow == "" {
 			result.Reason, result.Unknown = "business flow identity is unknown", []string{"flow"}
 			return result
 		}
-		if branch.Flow != "" && branch.Flow != before.Flow || !containsBusinessID(branch.FromStates, before.State) {
+		if branch.Flow != "" && branch.Flow != before.Flow {
 			continue
 		}
 		for _, key := range businessPredicateRefs(branch.When) {
