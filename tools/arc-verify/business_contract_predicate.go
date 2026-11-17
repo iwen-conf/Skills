@@ -97,7 +97,7 @@ func parseBusinessValue(kind string, raw json.RawMessage) (businessValue, error)
 		return value, fmt.Errorf("value is unknown")
 	}
 	var decoded any
-	if err := decodeUniqueJSON(trimmed, &decoded); err != nil {
+	if err := validateUniqueJSON(trimmed); err != nil {
 		return value, err
 	}
 	decoder := json.NewDecoder(bytes.NewReader(trimmed))
