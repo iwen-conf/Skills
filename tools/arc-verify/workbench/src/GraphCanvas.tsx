@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Background, BaseEdge, Controls, MarkerType, Position, ReactFlow } from "@xyflow/react";
+import { Background, BaseEdge, Controls, MiniMap, MarkerType, Position, ReactFlow } from "@xyflow/react";
 import type { Edge, EdgeProps, Node } from "@xyflow/react";
 import { analyzeDirected, layoutDirected, neighborhood } from "./layout";
 import type { CanvasEdge, CanvasGraph, CanvasNode } from "./graph-model";
@@ -392,12 +392,12 @@ export default function GraphCanvas({
             fitViewOptions={{
               padding: 0.18,
               maxZoom: 1,
-              minZoom: dependencyGraph ? 0.65 : 0.25,
+              minZoom: dependencyGraph ? 0.18 : 0.25,
               ...(dense && viewportIDs.size
                 ? { nodes: [...viewportIDs].map((id) => ({ id })) }
                 : {}),
             }}
-            minZoom={0.25}
+            minZoom={0.15}
             maxZoom={1.8}
             nodesDraggable={false}
             nodesConnectable={false}
@@ -413,6 +413,7 @@ export default function GraphCanvas({
           >
             <Background gap={24} size={1} />
             <Controls showInteractive={false} />
+            {dependencyGraph && <MiniMap pannable zoomable nodeStrokeWidth={2} />}
           </ReactFlow>
         </div>
       ) : (

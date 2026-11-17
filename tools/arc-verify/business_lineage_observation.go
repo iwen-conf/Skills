@@ -122,7 +122,15 @@ func businessLineageReadNode(node BusinessLineageNode, attributes map[string]bus
 	var truth TruthEvaluation
 	switch node.Kind {
 	case "target":
-		truth = businessTruth(true)
+		if before.State == "" || before.State == "UNKNOWN" {
+			truth = unknownBusiness([]string{"state"}, "target prestate was not independently observed")
+		} else if !containsBusinessID(node.FromStates, before.State) {
+			truth = businessTruth(false)
+		} else if node.Predicate == nil {
+			truth = unknownBusiness(nil, "target has no declared guard")
+		} else {
+			truth = evaluateBusinessPredicate(*node.Predicate, before, attributes)
+		}
 	case "state":
 		reading.ObservedState = before.State
 		if before.State == "" || before.State == "UNKNOWN" {

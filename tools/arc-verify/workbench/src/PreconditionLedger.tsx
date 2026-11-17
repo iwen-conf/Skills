@@ -7,6 +7,7 @@ import type { SelectionAction } from "./selection";
 
 interface Requirement {
   key: string;
+  phase: "before" | "after";
   reference: BusinessLineageReference;
   conditions: BusinessLineageNode[];
   providers: BusinessLineageNode[];
@@ -29,7 +30,7 @@ export function extractPreconditions(lineage: LineageSelection, branch?: Contrac
     if (!["condition", "logic", "target"].includes(node.kind)) continue;
     for (const ref of node.references ?? []) {
       const key = ref.subject + "." + ref.attribute;
-      const entry = result.get(key) ?? { key, reference: ref, conditions: [], providers: [] };
+      const entry = result.get(key) ?? { key, phase: "before" as const, reference: ref, conditions: [], providers: [] };
       if (!entry.conditions.some((item) => item.id === node.id)) entry.conditions.push(node);
       // Never infer providers by matching attribute names across separate actions.
       for (const id of providers.get(node.id) ?? []) {
@@ -47,11 +48,12 @@ export function extractPreconditions(lineage: LineageSelection, branch?: Contrac
       if (!operand?.ref) continue;
       const { subject, attribute } = operand.ref;
       const key = subject + "." + attribute;
-      if (result.has(key)) continue;
+      const afterKey = "after:" + key;
+      if (result.has(afterKey)) continue;
       const declaredSubject = contract?.subjects.find((item) => item.id === subject);
       const declaredAttribute = declaredSubject?.attributes.find((item) => item.name === attribute);
-      result.set(key, {
-        key,
+      result.set(afterKey, {
+        key, phase: "after",
         reference: {
           subject, attribute,
           subject_kind: declaredSubject?.kind ?? "未声明实体",
@@ -70,7 +72,8 @@ export function extractPreconditions(lineage: LineageSelection, branch?: Contrac
     }
     for (const invariant of branch.expected.common_invariants ?? []) addExpected(invariant.predicate);
   }
-  return [...result.values()].sort((a, b) => a.key.localeCompare(b.key));
+  return [...result.values()].sort((a, b) =>
+    a.phase.localeCompare(b.phase) || a.key.localeCompare(b.key));
 }
 
 export default function PreconditionLedger({
@@ -84,7 +87,7 @@ export default function PreconditionLedger({
   const requirements = useMemo(() => extractPreconditions(lineage, branch, contract), [lineage, branch, contract]);
   const [missingOnly, setMissingOnly] = useState(false);
   const annotated = requirements.map((row) => {
-    const observations = row.conditions.flatMap((node) => lineage.readings.get(node.id)?.values ?? [])
+    const observations = row.phase === "after" ? [] : row.conditions.flatMap((node) => lineage.readings.get(node.id)?.values ?? [])
       .filter((value) => value.subject + "." + value.attribute === row.key);
     const blocked = row.conditions.some((node) => lineage.readings.get(node.id)?.status === "BLOCKED");
     const evidenced = observations.filter((value) => value.actual !== undefined && value.sources.length > 0);
@@ -101,7 +104,7 @@ export default function PreconditionLedger({
           <p>候选准备不是执行记录；有字段不代表有可信的实际观察。</p>
         </div>
         <div className="precondition-metrics">
-          <strong>{requirements.length}</strong><small>声明字段</small>
+          <strong>{requirements.length}</strong><small>字段 / 验证义务</small>
           <strong>{missing.length}</strong><small>缺证 / 阻断</small>
         </div>
       </header>
@@ -130,15 +133,16 @@ export default function PreconditionLedger({
       {!requirements.length ? <p className="precondition-missing">未导出属性级前置条件；不能据此认为业务不需要前置数据。</p> :
       <div className="precondition-table-wrap"><table className="precondition-table">
         <thead><tr><th>前置字段 / 实体</th><th>声明条件</th><th>候选准备来源</th><th>实际读取证据</th></tr></thead>
-        <tbody>{visible.map((row) => <tr key={row.key}>
+        <tbody>{visible.map((row) => <tr key={row.phase + "/" + row.key}>
           <td><button type="button" onClick={() => dispatch({ type: "lineage", value: row.conditions[0]?.id ?? lineage.graph?.target ?? "" })}>{row.key}</button>
-            <small>{row.reference.subject_kind} · {row.reference.source_ref || "属性来源未声明"}</small></td>
+            <small>{row.phase === "before" ? "执行前读取" : "执行后验证"} · {row.reference.subject_kind} · {row.reference.source_ref || "属性来源未声明"}</small></td>
           <td>{!row.conditions.length && <span className="precondition-missing">结果断言依赖；未导出 Guard 节点</span>}{row.conditions.filter((node) => node.predicate).map((node) =>
             <button type="button" key={node.id} onClick={() => dispatch({ type: "lineage", value: node.id })}>{predicateText(node.predicate)}</button>)}</td>
           <td>{row.providers.length ? row.providers.map((node) =>
             <button type="button" key={node.id} onClick={() => dispatch({ type: "lineage", value: node.id })}>{node.name}<small>声明候选，未证实执行</small></button>) :
             <span className="precondition-missing">无已声明候选准备</span>}</td>
-          <td>{row.blocked ? <span className="precondition-missing">证据阻断</span> :
+          <td>{row.phase === "after" ? <span className="precondition-missing">后态需要独立 Oracle；不能使用前态读数</span> :
+            row.blocked ? <span className="precondition-missing">证据阻断</span> :
             row.evidenced.length ? row.evidenced.map((value, i) => <div key={i}>
               <code>{displayValue(value.actual)}</code>
               <small>{value.sources.map((source) => source.kind + ":" + source.oracle).join(" / ")}</small>

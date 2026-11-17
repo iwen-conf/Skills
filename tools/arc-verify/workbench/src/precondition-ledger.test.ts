@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { extractPreconditions } from "./PreconditionLedger";
 import type { LineageSelection } from "./lineage";
 
@@ -59,6 +59,20 @@ describe("source-first precondition inventory", () => {
     expect(balance?.reference.source_ref).toBe("db:ledger");
     expect(balance?.conditions).toEqual([]);
     expect(balance?.providers).toEqual([]);
+  });
+  it("keeps after-action expectations separate from before-action data", () => {
+    const branch = {
+      id: "refund-eligible", action: "refund", rule: "R1", from_states: ["ready"],
+      when: { op: "true" },
+      expected: { mode: "deterministic" as const, outcomes: [{
+        id: "accepted", predicate: { op: "eq",
+          left: { ref: { subject: "payment", attribute: "paid" } },
+          right: { literal: { type: "boolean", value: true } } },
+      }] },
+      source: "spec", source_ref: "spec:R1", confirmed: true,
+    };
+    const rows = extractPreconditions(base, branch);
+    expect(rows.filter((r) => r.key === "payment.paid").map((r) => r.phase)).toEqual(["after", "before"]);
   });
   it("does not fabricate prerequisites for an absent lineage", () => {
     expect(extractPreconditions({ candidates: [], readings: new Map(), reason: "missing" })).toEqual([]);

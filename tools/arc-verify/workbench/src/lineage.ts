@@ -119,6 +119,8 @@ export const lineageKindLabel: Record<BusinessLineageNode["kind"], string> = {
   condition: "属性条件",
   logic: "逻辑组合",
   preparation: "准备来源",
+  input_data: "前置数据",
+  expected: "预期结果",
 };
 
 export function lineageStatusLabel(
@@ -130,6 +132,8 @@ export function lineageStatusLabel(
   if (node.kind === "target") return reading.status === "READY" ? "前态已具备" : "前态不满足";
   if (node.kind === "preparation")
     return reading.status === "SATISFIED" ? "效果已观察" : "效果不符合";
+  if (node.kind === "input_data") return reading.status === "SATISFIED" ? "来源已核验" : "缺少可信数据";
+  if (node.kind === "expected") return "仅声明 / 结果见执行证据";
   if (node.kind === "state") return reading.status === "SATISFIED" ? "前态吻合" : "前态不符";
   return reading.status === "SATISFIED" ? "谓词为真" : "谓词为假";
 }
@@ -137,6 +141,11 @@ export function lineageStatusLabel(
 export function lineageNodeDetail(node: BusinessLineageNode): string {
   if (node.kind === "state")
     return (node.from_states ?? []).join(" 或 ") || "未声明具体生命周期状态";
+  if (node.kind === "input_data")
+    return (node.references ?? []).map((ref) =>
+      `${ref.subject}.${ref.attribute} · ${ref.source_ref || "属性无独立来源声明"}`).join(" / ");
+  if (node.kind === "expected")
+    return "契约定义的执行后预期；不能使用执行前证据认定成功";
   if (node.kind === "preparation")
     return node.effects?.length
       ? node.effects
@@ -178,6 +187,10 @@ export function lineageGraphFor(
         label:
           edge.kind === "candidate_provider"
             ? "候选来源 · 可替代"
+            : edge.kind === "reads"
+              ? "读取前置数据"
+              : edge.kind === "expects"
+                ? "声明预期"
             : edge.kind === "depends_on"
               ? "声明先后依赖"
               : edge.kind === "logical_operand"

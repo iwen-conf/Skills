@@ -35,6 +35,10 @@ export default function LineagePanel({
           <small>
             {edge.kind === "candidate_provider"
               ? "候选来源 · 可替代"
+              : edge.kind === "reads"
+                ? "读取前置字段"
+                : edge.kind === "expects"
+                  ? "执行后预期"
               : edge.kind === "depends_on"
                 ? "声明先后依赖"
                 : edge.kind === "logical_operand"

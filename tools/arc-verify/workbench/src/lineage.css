@@ -600,3 +600,8 @@
     line-height: 1.7;
   }
 }
+
+.lineage-node .node-detail{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.lineage-node-input_data strong{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.lineage-node-expected strong{white-space:normal;line-height:1.4}
+.react-flow__minimap{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}

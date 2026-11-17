@@ -268,3 +268,46 @@ func TestBusinessLineageBoundSubjectsHaveDeclaredProviders(t *testing.T) {
 		t.Fatal("same attribute with the opposite effect became a provider")
 	}
 }
+
+// A real field is a first-class dependency, not only an opaque condition label.
+// The post-action expectation is a declaration, never an observed before fact.
+func TestBusinessLineageVersion2ExportsDataAndExpectedWithoutInventingExecution(t *testing.T) {
+    g := preparationModel(t)
+    g.BusinessContract.Coverage = nil
+    branch := lineageTestBranch(t, g, "accept")
+    lineage, err := buildBusinessLineage(g)
+    if err != nil || lineage.Version != 2 {
+        t.Fatalf("expected v2 genealogy: %v, version=%d", err, lineage.Version)
+    }
+    data, expected, reads, expects := 0, 0, 0, 0
+    for _, node := range branch.Nodes {
+        switch node.Kind {
+        case "input_data":
+            data++
+            if len(node.References) != 1 || node.References[0].Attribute == "" {
+                t.Fatalf("input data lacks exact attributed source: %+v", node)
+            }
+        case "expected":
+            expected++
+            if node.Predicate != nil || len(node.References) != 0 {
+                t.Fatalf("post expectation incorrectly reads before-state: %+v", node)
+            }
+        }
+    }
+    for _, edge := range branch.Edges {
+        switch edge.Kind {
+        case "reads":
+            reads++
+        case "expects":
+            expects++
+            if edge.From != branch.Target {
+                t.Fatalf("outcome lost its owning target: %+v", edge)
+            }
+        }
+    }
+    if data == 0 || reads == 0 ||
+       expected != len(g.BusinessContract.Branches[0].Expected.Outcomes) ||
+       expected != expects {
+        t.Fatalf("incomplete v2 source/outcome genealogy: data=%d reads=%d expected=%d expects=%d", data, reads, expected, expects)
+    }
+}

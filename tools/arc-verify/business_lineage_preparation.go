@@ -233,6 +233,16 @@ func preparationLineageReadNode(node BusinessLineageNode, attributes map[string]
 	}
 	var truth TruthEvaluation
 	switch node.Kind {
+	case "expected":
+		reading.Reason = "post-action outcome cannot be proved by preparation readback"
+		return reading
+	case "input_data":
+		key := node.References[0].Subject + "." + node.References[0].Attribute
+		if len(reading.Values) == 1 && len(reading.Values[0].Actual) > 0 && len(reading.Values[0].Sources) > 0 {
+			truth = businessTruth(true)
+		} else {
+			truth = unknownBusiness([]string{key}, "input data or independent source missing in preparation readback")
+		}
 	case "state":
 		reading.ObservedState = observed.State
 		if observed.State == "" || observed.State == "UNKNOWN" {

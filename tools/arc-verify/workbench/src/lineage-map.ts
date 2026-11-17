@@ -248,6 +248,10 @@ function project(
           label:
             edge.kind === "candidate_provider"
               ? "候选来源 · 可替代"
+              : edge.kind === "reads"
+                ? "读取前置数据"
+                : edge.kind === "expects"
+                  ? "声明预期"
               : edge.kind === "depends_on"
                 ? "声明先后依赖"
                 : edge.kind === "logical_operand"

@@ -188,3 +188,12 @@ ARC_WORKBENCH_SNAPSHOT_PATHS='["/absolute/prepared-export","/absolute/campaign-e
 这一步只审阅已有导出，不重新执行目标动作，也不代替 Go 对 RAW 的重验。
 
 静态检查、状态测试、SSR 和构建通过并不等于实际浏览器布局与交互已验收。浏览器环境受限时记录 `BLOCKED`，保留已有验证结果，不绕过环境策略，也不补造截图。
+
+
+## Source-first genealogy (v2)
+
+The exporter now draws independent `input_data` nodes for each typed attribute used by a leaf guard, links them with `reads` edges, and exports every contract outcome as `expected` connected with `expects`. The contract hash still binds the same approved business definition. Version 1 snapshots remain readable; only version 2 snapshots require the complete field/outcome projection. Re-export a snapshot to see new nodes.
+
+The precondition ledger deliberately separates **before** data (frozen independent readings) and **after** assertions (required Oracle checks). No before value is treated as evidence that an outcome occurred. Candidate preparation edges are suggestions backed by declared effects; they are never a preparation receipt. An unknown source is shown as unknown, never PASS.
+
+For verification use `go test ./...` under `tools/arc-verify`, then `./node_modules/.bin/vp test` and `bun run build` under `workbench`. These commands must actually execute before claiming green. Finally inspect a generated business snapshot in a real browser at narrow and wide viewport. Static SSR is not visual acceptance.

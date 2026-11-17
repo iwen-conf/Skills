@@ -58,7 +58,7 @@ func buildBusinessLineage(g Graph) (*BusinessLineage, error) {
 			attributes: attributes, names: names, preparations: preparations, included: map[string]bool{}, budget: budget,
 		}
 		confirmed := branch.Confirmed
-		b.node(BusinessLineageNode{ID: b.graph.Target, Kind: "target", Name: names[branch.Action] + " · " + branch.ID, Action: branch.Action, SourceRef: branch.SourceRef, Confirmed: &confirmed, References: b.references(businessPredicateRefs(branch.When))})
+		b.node(BusinessLineageNode{ID: b.graph.Target, Kind: "target", Name: names[branch.Action] + " · " + branch.ID, Action: branch.Action, SourceRef: branch.SourceRef, Confirmed: &confirmed, FromStates: branch.FromStates, Predicate: &branch.When, References: b.references(businessPredicateRefs(branch.When))})
 		b.node(BusinessLineageNode{ID: prefix + ":state", Kind: "state", Name: "前态 " + strings.Join(branch.FromStates, " / "), FromStates: branch.FromStates, SourceRef: branch.SourceRef})
 		b.edge(prefix+":state", b.graph.Target, "requires", branch.SourceRef, false)
 		conditions := b.predicate(prefix+":when", branch.When, "", branch.SourceRef, true)
