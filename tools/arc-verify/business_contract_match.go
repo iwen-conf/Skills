@@ -278,6 +278,7 @@ func CompareBusinessExpectation(g Graph, frozen FrozenBusinessExpectation, after
 	}
 	invariantResult := businessConjunction(invariants)
 	matched := []BusinessExpectedOutcome{}
+	possible := []BusinessExpectedOutcome{}
 	unknownOutcomes := []string{}
 	for _, outcome := range frozen.Expected.Outcomes {
 		check := BusinessCheckResult{Outcome: outcome.ID, Predicate: EvaluateBusinessPredicate(g.BusinessContract, outcome.Predicate, after)}
@@ -309,6 +310,9 @@ func CompareBusinessExpectation(g Graph, frozen FrozenBusinessExpectation, after
 		if status.Value == businessTrue {
 			matched = append(matched, outcome)
 		}
+		if status.Value != businessFalse {
+			possible = append(possible, outcome)
+		}
 		if status.Value == businessUnknown {
 			unknownOutcomes = append(unknownOutcomes, status.Unknown...)
 		}
@@ -328,16 +332,19 @@ func CompareBusinessExpectation(g Graph, frozen FrozenBusinessExpectation, after
 		return result
 	}
 	result.Status, result.Reason = "PASS", "actual result satisfies the frozen expected outcome and every common invariant"
-	if len(matched) == 1 {
+	if len(possible) == 1 {
 		result.Outcome = matched[0].ID
 	}
-	// If explicit allowed outcomes overlap, report only next actions allowed by
-	// every matching outcome. Actual must never silently widen the next step.
-	for _, outcome := range matched {
+	// A known matching outcome proves acceptance, but an unresolved alternative
+	// can still restrict continuation. Only observed FALSE excludes its policy.
+	for _, outcome := range possible {
 		result.NextAllowed = result.NextAllowed.Intersect(outcome.NextAllowed)
 	}
 	sort.Strings(result.NextAllowed)
-	if len(matched) > 1 {
+	if len(unknownOutcomes) > 0 {
+		result.Unknown = uniqueSortedBusiness(unknownOutcomes)
+		result.Reason = "actual result satisfies a frozen permitted outcome; unresolved alternatives remain possible and constrain next_allowed"
+	} else if len(matched) > 1 {
 		result.Reason = fmt.Sprintf("actual result is within %d explicitly allowed outcomes; next_allowed is their intersection", len(matched))
 	}
 	return result
