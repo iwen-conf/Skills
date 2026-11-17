@@ -89,10 +89,12 @@ func indexedRuleObligations(g Graph, x modelIndex, id string) []ModelObligation 
 			targets = append(targets, x.edges[transition].From, x.edges[transition].To)
 		}
 		if definition.Kind == testSequence {
-			targets = append(targets, definition.Flow, x.flows[definition.Flow].Capability)
+			targets = append(targets, definition.Flow)
+			targets = append(targets, flowCapabilities(x.flows[definition.Flow])...)
 			for _, step := range definition.Steps {
 				contract := x.contracts[step]
 				targets = append(targets, step, x.edges[step].From, x.edges[step].To, contract.Rule, contract.Action)
+				targets = append(targets, x.capsByAction[contract.Action]...)
 			}
 		}
 		definition.DependsOn = uniqueIDs(append(append([]string{}, definition.DependsOn...), x.dependencies[definition.ID]...))

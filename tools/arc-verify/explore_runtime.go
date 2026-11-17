@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -1599,7 +1598,45 @@ func writeExploreRAW(d db, run string, index int, value StepRAW) (string, []byte
 	return path, body, nil
 }
 
+func exploreStepVerdict(step ExploreStep) (string, string) {
+	for _, f := range step.Findings {
+		if f.Kind == "FAIL" {
+			return "FAIL", firstNonEmpty(f.Reason, "exploration observed confirmed rule or invariant failure")
+		}
+	}
+	if step.ClassifyError != "" {
+		return "BLOCKED", step.ClassifyError
+	}
+	for _, f := range step.Findings {
+		if f.Kind == "BLOCKED" {
+			return "BLOCKED", firstNonEmpty(f.Reason, "exploration step blocked")
+		}
+	}
+	for _, f := range step.Findings {
+		if f.Kind == "PARTIAL" {
+			return "PARTIAL", firstNonEmpty(f.Reason, "concurrent group partial result")
+		}
+	}
+	if step.Discovery != nil && len(step.Discovery.Unspecified) > 0 {
+		return "UNSPECIFIED", "behavior outside confirmed model"
+	}
+	for _, f := range step.Findings {
+		if f.Kind == "RISK" {
+			return "RISK", firstNonEmpty(f.Reason, "inferred candidate observation")
+		}
+	}
+	for _, f := range step.Findings {
+		if f.Kind == "PASS" {
+			return "PASS", firstNonEmpty(f.Reason, "confirmed rule matches exploration step")
+		}
+	}
+	return "NOT_RUN", "no finding recorded"
+}
+
 func (d db) persistExploration(report ExploreReport) error {
+	if err := d.ensureFactsSchema(); err != nil {
+		return err
+	}
 	body, err := json.Marshal(report)
 	if err != nil {
 		return err
@@ -1607,6 +1644,8 @@ func (d db) persistExploration(report ExploreReport) error {
 	statements := []string{
 		fmt.Sprintf("DELETE FROM exploration_actions WHERE campaign=%s;", quote(report.Campaign)),
 		fmt.Sprintf("DELETE FROM exploration_frontier WHERE campaign=%s;", quote(report.Campaign)),
+		fmt.Sprintf("DELETE FROM step_facts WHERE source_kind='explore' AND run=%s;", quote(report.Campaign)),
+		fmt.Sprintf("DELETE FROM step_assertions WHERE source_kind='explore' AND run=%s;", quote(report.Campaign)),
 		fmt.Sprintf("INSERT OR REPLACE INTO exploration_campaigns(id,graph,flow,environment,round,stop_reason,body) VALUES(%s,%s,%s,%s,%s,%s,%s);", quote(report.Campaign), quote(report.Graph), quote(report.Flow), quote(report.Environment), quote(report.Round), quote(report.StopReason), quote(string(body))),
 	}
 	for index, step := range report.Steps {
@@ -1614,7 +1653,46 @@ func (d db) persistExploration(report ExploreReport) error {
 		if err != nil {
 			return err
 		}
-		statements = append(statements, fmt.Sprintf("INSERT INTO exploration_actions(campaign,candidate,run,verdict,body) VALUES(%s,%s,%s,%s,%s);", quote(report.Campaign), quote(step.Candidate.ID), quote(report.Campaign), quote(strconv.Itoa(index)), quote(string(stepBody))))
+		verdict, reason := exploreStepVerdict(step)
+		statements = append(statements, fmt.Sprintf("INSERT INTO exploration_actions(campaign,candidate,run,verdict,body) VALUES(%s,%s,%s,%s,%s);", quote(report.Campaign), quote(step.Candidate.ID), quote(report.Campaign), quote(verdict), quote(string(stepBody))))
+		rawJSON := string(stepBody)
+		if step.RAW != "" {
+			if _, diskBytes, readErr := loadEvidence(step.RAW); readErr == nil {
+				rawJSON = string(diskBytes)
+			}
+		}
+		assertions := make([]StepAssertion, 0, len(step.Findings))
+		for _, f := range step.Findings {
+			assertions = append(assertions, StepAssertion{
+				Kind: "explore_finding", Name: firstNonEmpty(f.Rule, string(step.Candidate.Kind)),
+				OracleID: report.Oracle, Subject: step.Candidate.Role,
+				Actual: step.After.State, Verdict: f.Kind, Reason: f.Reason,
+			})
+		}
+		deniedObs := step.Denied
+		fact := UnifiedStepFact{
+			SourceKind: "explore", Run: report.Campaign, Seq: index + 1, Graph: report.Graph,
+			Node: step.Candidate.Action, Transition: step.Candidate.Transition,
+			Actor: step.Candidate.Role, Account: step.Candidate.Account,
+			Principal: firstNonEmpty(step.After.Principal, step.Before.Principal),
+			ObservedState: step.After.State, DeniedObserved: &deniedObs,
+			Verdict: verdict, Reason: reason, Assertions: assertions,
+			Oracles: []OracleObservation{{
+				Actor: step.Candidate.Role, ID: report.Oracle, Boundary: "explore",
+				Before: step.Before, After: step.After,
+			}},
+			EvidencePath: step.RAW, EvidenceSHA256: step.SHA256,
+		}
+		factsBytes, err := json.Marshal(fact)
+		if err != nil {
+			return err
+		}
+		statements = append(statements, fmt.Sprintf("INSERT OR REPLACE INTO step_facts(source_kind,run,seq,graph,task,node,transition,rule_id,actor,account,principal,expected_state,observed_state,verdict,decision,reason,first_divergence,related_run,evidence_path,evidence_sha256,raw_json,facts_json) VALUES('explore',%s,%d,%s,'',%s,%s,'',%s,%s,%s,'',%s,%s,'',%s,0,'',%s,%s,%s,%s);",
+			quote(report.Campaign), index+1, quote(report.Graph), quote(step.Candidate.Action), quote(step.Candidate.Transition), quote(step.Candidate.Role), quote(step.Candidate.Account), quote(fact.Principal), quote(step.After.State), quote(verdict), quote(reason), quote(step.RAW), quote(step.SHA256), quote(rawJSON), quote(string(factsBytes))))
+		for aIdx, a := range assertions {
+			statements = append(statements, fmt.Sprintf("INSERT OR REPLACE INTO step_assertions(source_kind,run,seq,assertion_idx,kind,name,oracle_id,subject,expected_json,actual_json,operator,verdict,reason) VALUES('explore',%s,%d,%d,%s,%s,%s,%s,'',%s,'',%s,%s);",
+				quote(report.Campaign), index+1, aIdx+1, quote(a.Kind), quote(a.Name), quote(a.OracleID), quote(a.Subject), quote(a.Actual), quote(a.Verdict), quote(a.Reason)))
+		}
 	}
 	for _, leftover := range report.Remaining {
 		item, err := json.Marshal(leftover)

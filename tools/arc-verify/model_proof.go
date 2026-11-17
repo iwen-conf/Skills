@@ -59,24 +59,30 @@ func (d db) modelCaptureExists(run string, index int, hash string) error {
 }
 
 func (d db) modelObservationVerdict(contract runContract, raw StepRAW, index int, hash string) (string, error) {
+	verdict, _, _, err := d.evaluateModelObservation(contract, raw, index, hash)
+	return verdict, err
+}
+
+func (d db) evaluateModelObservation(contract runContract, raw StepRAW, index int, hash string) (string, string, []StepAssertion, error) {
+	assertions := []StepAssertion{}
 	if contract.Model == nil || contract.Obligation == nil || contract.Receipt == nil || raw.Model == nil {
-		return "BLOCKED", errors.New("model observation has no frozen execution context")
+		return "BLOCKED", "model observation has no frozen execution context", assertions, errors.New("model observation has no frozen execution context")
 	}
 	if err := d.modelCaptureExists(raw.Run, index, hash); err != nil {
-		return "BLOCKED", err
+		return "BLOCKED", err.Error(), assertions, err
 	}
 	receipt := contract.Receipt
 	observed := raw.Model
 	if observed.Round != receipt.Round || observed.RunnerSHA256 != receipt.RunnerSHA256 || observed.CodeSHA256 != receipt.CodeSHA256 || !reflect.DeepEqual(observed.Participants, receipt.Participants) {
-		return "BLOCKED", errors.New("model RAW round, runner or participants mismatch")
+		return "BLOCKED", "model RAW round, runner or participants mismatch", assertions, errors.New("model RAW round, runner or participants mismatch")
 	}
 	runner, err := d.registeredRunner(receipt.Runner)
 	if err != nil {
-		return "BLOCKED", err
+		return "BLOCKED", err.Error(), assertions, err
 	}
 	batches := runnerBatches(runner.Manifest)
 	if index < 1 || index > len(batches) {
-		return "BLOCKED", errors.New("model step index is outside the registered execution")
+		return "BLOCKED", "model step index is outside the registered execution", assertions, errors.New("model step index is outside the registered execution")
 	}
 	batch := batches[index-1]
 	final := batch[len(batch)-1]
@@ -89,13 +95,17 @@ func (d db) modelObservationVerdict(contract runContract, raw StepRAW, index int
 		denied = x.contracts[final.Transition].Outcome == branchRejection
 	}
 	if observed.Node != final.Node || observed.Transition != final.Transition {
-		return "BLOCKED", errors.New("model node or transition differs from its registered operation")
+		return "BLOCKED", "model node or transition differs from its registered operation", assertions, errors.New("model node or transition differs from its registered operation")
 	}
 	if raw.ExitCode != 0 {
-		return "BLOCKED", nil
+		reason := observed.Error
+		if reason == "" {
+			reason = fmt.Sprintf("step runner exited with code %d", raw.ExitCode)
+		}
+		return "BLOCKED", reason, assertions, nil
 	}
 	if len(observed.Actions) != len(batch) {
-		return "BLOCKED", errors.New("actual operation count differs from the registered batch")
+		return "BLOCKED", "actual operation count differs from the registered batch", assertions, errors.New("actual operation count differs from the registered batch")
 	}
 	participants := map[string]ParticipantBinding{}
 	for _, participant := range receipt.Participants {
@@ -103,17 +113,38 @@ func (d db) modelObservationVerdict(contract runContract, raw StepRAW, index int
 	}
 	for position, action := range observed.Actions {
 		step := batch[position]
+		stepJudged := stepRule(x, *contract.Obligation, step.Transition)
+		stepConds := participantConditions
+		if definition.Kind == testSequence && step.Transition != "" {
+			stepConds = x.contracts[step.Transition].Preconditions
+		}
 		participant, found := participants[step.Actor]
 		if !found || action.Node != step.Node || action.Transition != step.Transition || action.Actor != step.Actor || action.Principal != participant.Principal || action.Started == "" || action.Completed == "" || len(action.RequestSHA256) != 64 || len(action.ResponseSHA256) != 64 {
-			return "BLOCKED", errors.New("actual action identity or capture is incomplete")
+			return "BLOCKED", "actual action identity or capture is incomplete", assertions, errors.New("actual action identity or capture is incomplete")
 		}
-		input, err := json.Marshal(step.Call)
-		if err != nil || digestBytes(input) != action.RequestSHA256 {
-			return "BLOCKED", errors.New("actual action input differs from its frozen adapter")
+		templateBytes, err := json.Marshal(step.Call)
+		if err != nil {
+			return "BLOCKED", "frozen adapter cannot be marshaled", assertions, err
+		}
+		templateDigest := digestBytes(templateBytes)
+		if action.TemplateSHA256 != "" {
+			if action.TemplateSHA256 != templateDigest {
+				return "BLOCKED", "actual action template differs from its frozen adapter", assertions, errors.New("actual action template differs from its frozen adapter")
+			}
+			renderedCall, err := applySubstitutionsToCall(step.Call, action.Substitutions)
+			if err != nil {
+				return "BLOCKED", "actual action substitutions invalid: " + err.Error(), assertions, fmt.Errorf("actual action substitutions invalid: %w", err)
+			}
+			renderedBytes, err := json.Marshal(renderedCall)
+			if err != nil || digestBytes(renderedBytes) != action.RequestSHA256 {
+				return "BLOCKED", "actual rendered action input differs from its frozen adapter", assertions, errors.New("actual rendered action input differs from its frozen adapter")
+			}
+		} else if templateDigest != action.RequestSHA256 {
+			return "BLOCKED", "actual action input differs from its frozen adapter", assertions, errors.New("actual action input differs from its frozen adapter")
 		}
 		if step.Call.Kind == adapterHTTP {
 			known := false
-			denied := false
+			actionDenied := false
 			for _, status := range step.Call.SuccessStatuses {
 				if status == action.StatusCode {
 					known = true
@@ -122,11 +153,11 @@ func (d db) modelObservationVerdict(contract runContract, raw StepRAW, index int
 			for _, status := range step.Call.RejectionStatuses {
 				if status == action.StatusCode {
 					known = true
-					denied = true
+					actionDenied = true
 				}
 			}
-			if !known || denied != action.Denied {
-				return "BLOCKED", errors.New("actual action status contradicts the registered transport contract")
+			if !known || actionDenied != action.Denied {
+				return "BLOCKED", "actual action status contradicts the registered transport contract", assertions, errors.New("actual action status contradicts the registered transport contract")
 			}
 		}
 		if step.Call.Kind == adapterCommand {
@@ -135,20 +166,20 @@ func (d db) modelObservationVerdict(contract runContract, raw StepRAW, index int
 				accepted = accepted || code == action.ExitCode
 			}
 			if !accepted {
-				return "BLOCKED", errors.New("actual command exit differs from its frozen adapter")
+				return "BLOCKED", "actual command exit differs from its frozen adapter", assertions, errors.New("actual command exit differs from its frozen adapter")
 			}
 		}
 		foundOracle := false
 		for _, item := range observed.Oracles {
-			if item.Actor == step.Actor && item.ID == judged.Oracle {
+			if item.Actor == step.Actor && item.ID == stepJudged.Oracle {
 				foundOracle = true
-				if item.Before.Principal != participant.Principal || item.After.Principal != participant.Principal || item.Before.Role != participant.Role || item.After.Role != participant.Role || item.Before.Scope != runner.Manifest.IsolationScope || item.After.Scope != runner.Manifest.IsolationScope || !observedConditions(map[string]bool(item.Before.Conditions), participantConditions, judged.Conditions) {
-					return "BLOCKED", errors.New("participant identity, scope or observed preconditions contradict the frozen contract")
+				if item.Before.Principal != participant.Principal || item.After.Principal != participant.Principal || item.Before.Role != participant.Role || item.After.Role != participant.Role || item.Before.Scope != runner.Manifest.IsolationScope || item.After.Scope != runner.Manifest.IsolationScope || !observedConditions(map[string]bool(item.Before.Conditions), stepConds, stepJudged.Conditions) {
+					return "BLOCKED", "participant identity, scope or observed preconditions contradict the frozen contract", assertions, errors.New("participant identity, scope or observed preconditions contradict the frozen contract")
 				}
 			}
 		}
 		if !foundOracle {
-			return "BLOCKED", errors.New("participant independent oracle is missing")
+			return "BLOCKED", "participant independent oracle is missing", assertions, errors.New("participant independent oracle is missing")
 		}
 	}
 	var oracle *OracleObservation
@@ -160,18 +191,18 @@ func (d db) modelObservationVerdict(contract runContract, raw StepRAW, index int
 		}
 	}
 	if oracle == nil || oracle.Before.Principal != participants[final.Actor].Principal || oracle.After.Principal != participants[final.Actor].Principal {
-		return "BLOCKED", errors.New("independent rule oracle is missing or belongs to another principal")
+		return "BLOCKED", "independent rule oracle is missing or belongs to another principal", assertions, errors.New("independent rule oracle is missing or belongs to another principal")
 	}
 	before, err := factsHash(oracle.Before)
 	if err != nil {
-		return "BLOCKED", err
+		return "BLOCKED", err.Error(), assertions, err
 	}
 	after, err := factsHash(oracle.After)
 	if err != nil {
-		return "BLOCKED", err
+		return "BLOCKED", err.Error(), assertions, err
 	}
 	if before != raw.Before || after != raw.After || !reflect.DeepEqual(map[string]bool(oracle.Before.Conditions), raw.Preconditions) {
-		return "BLOCKED", errors.New("action preconditions or before/after snapshot disagree with the independent oracle")
+		return "BLOCKED", "action preconditions or before/after snapshot disagree with the independent oracle", assertions, errors.New("action preconditions or before/after snapshot disagree with the independent oracle")
 	}
 	expected := definition.Expected
 	conditions := map[string]bool(definition.Preconditions)
@@ -184,61 +215,152 @@ func (d db) modelObservationVerdict(contract runContract, raw StepRAW, index int
 					expected = "UNCHANGED"
 				}
 				if oracle.Before.State != x.edges[transition.Edge].From {
-					return "BLOCKED", nil
+					assertions = append(assertions, StepAssertion{Kind: "precondition_state", Name: final.Transition, OracleID: judged.Oracle, Subject: final.Actor, Expected: x.edges[transition.Edge].From, Actual: oracle.Before.State, Operator: "eq", Verdict: "BLOCKED", Reason: "before-action state differs from transition source"})
+					return "BLOCKED", "before-action state differs from transition source", assertions, nil
 				}
 			}
 		}
 	}
 	if raw.Expected != expected {
-		return "BLOCKED", errors.New("recorded expectation differs from the frozen step contract")
+		return "BLOCKED", "recorded expectation differs from the frozen step contract", assertions, errors.New("recorded expectation differs from the frozen step contract")
+	}
+	for _, cond := range judged.Conditions {
+		actualVal, found := raw.Preconditions[cond]
+		wantVal, hasWant := conditions[cond]
+		ok := found && (!hasWant || actualVal == wantVal)
+		verdict := "PASS"
+		reason := "condition observed as declared"
+		if !ok {
+			verdict = "BLOCKED"
+			reason = "observed condition missing or differs from frozen assignment"
+		}
+		assertions = append(assertions, StepAssertion{Kind: "condition", Name: cond, OracleID: judged.Oracle, Subject: final.Actor, Expected: fmt.Sprintf("%t", wantVal), Actual: fmt.Sprintf("%t (found=%t)", actualVal, found), Operator: "eq", Verdict: verdict, Reason: reason})
 	}
 	if !observedConditions(raw.Preconditions, conditions, judged.Conditions) {
-		return "BLOCKED", nil
+		return "BLOCKED", "observed preconditions do not match the frozen contract", assertions, nil
 	}
 	actual := oracle.After.State
 	if expected == "UNCHANGED" && before == after {
 		actual = "UNCHANGED"
 	}
 	if actual != raw.Observed {
-		return "BLOCKED", errors.New("recorded observed state differs from independent state readback")
+		return "BLOCKED", "recorded observed state differs from independent state readback", assertions, errors.New("recorded observed state differs from independent state readback")
 	}
-	if raw.Observed != expected {
-		return "FAIL", nil
-	}
-	if len(batch) == 1 && (raw.Denied != observed.Actions[0].Denied || denied != raw.Denied) {
-		return "FAIL", nil
-	}
-	if definition.Denied && expected == "UNCHANGED" && before != after {
-		return "FAIL", nil
-	}
-	if definition.Kind == testConsistency && index == len(batches) {
-		if verdict, err := layerVerdict(definition.Layers, observed.Oracles, final.Actor, participants[final.Actor].Principal, expected); verdict != "PASS" {
-			return verdict, err
+	stepVerdict := "PASS"
+	stepReason := "independent state, preconditions and properties verified"
+	setVerdict := func(v, r string) {
+		if v == "BLOCKED" || (v == "FAIL" && stepVerdict != "BLOCKED") {
+			stepVerdict, stepReason = v, r
 		}
 	}
+	// Evaluate declared async wait observations on any step in the batch.
+	for _, step := range batch {
+		if step.AsyncWait == nil {
+			continue
+		}
+		var waitObs *WaitObservation
+		for i := range observed.Waits {
+			if observed.Waits[i].OracleID == step.AsyncWait.OracleID {
+				waitObs = &observed.Waits[i]
+				break
+			}
+		}
+		if waitObs == nil || waitObs.RuleSourceRef != step.AsyncWait.RuleSourceRef || waitObs.MaxWaitMS > step.AsyncWait.MaxWaitMS || waitObs.Attempts < 1 {
+			assertions = append(assertions, StepAssertion{Kind: "async_wait", Name: step.AsyncWait.OracleID, OracleID: step.AsyncWait.OracleID, Subject: step.Actor, Expected: step.AsyncWait.UntilState, Actual: "MISSING", Operator: "async", Verdict: "BLOCKED", Reason: "async_wait observation missing or violates declared bounds"})
+			setVerdict("BLOCKED", "async_wait observation missing or violates declared bounds")
+			continue
+		}
+		if waitObs.ViolatedIntermediate {
+			reason := fmt.Sprintf("async_wait observed illegal intermediate state in %v (rule %s)", waitObs.ObservedStates, waitObs.RuleSourceRef)
+			assertions = append(assertions, StepAssertion{Kind: "async_wait", Name: step.AsyncWait.OracleID, OracleID: step.AsyncWait.OracleID, Subject: step.Actor, Expected: step.AsyncWait.UntilState, Actual: waitObs.FinalState, Operator: "async", Verdict: "FAIL", Reason: reason})
+			setVerdict("FAIL", reason)
+		} else if waitObs.TimedOut {
+			reason := fmt.Sprintf("async_wait timed out after %dms/%d attempts; final state %s (rule %s)", waitObs.MaxWaitMS, waitObs.Attempts, waitObs.FinalState, waitObs.RuleSourceRef)
+			assertions = append(assertions, StepAssertion{Kind: "async_wait", Name: step.AsyncWait.OracleID, OracleID: step.AsyncWait.OracleID, Subject: step.Actor, Expected: step.AsyncWait.UntilState, Actual: waitObs.FinalState, Operator: "async", Verdict: "FAIL", Reason: reason})
+			setVerdict("FAIL", reason)
+		} else {
+			assertions = append(assertions, StepAssertion{Kind: "async_wait", Name: step.AsyncWait.OracleID, OracleID: step.AsyncWait.OracleID, Subject: step.Actor, Expected: step.AsyncWait.UntilState, Actual: waitObs.FinalState, Operator: "async", Verdict: "PASS", Reason: fmt.Sprintf("converged in %d attempts (rule %s)", waitObs.Attempts, waitObs.RuleSourceRef)})
+		}
+	}
+	// Primary state expectation assertion.
+	if raw.Observed != expected {
+		assertions = append(assertions, StepAssertion{Kind: "state", Name: final.Node, OracleID: judged.Oracle, Subject: final.Actor, Expected: expected, Actual: raw.Observed, Operator: "eq", Verdict: "FAIL", Reason: fmt.Sprintf("observed state %s differs from expected %s", raw.Observed, expected)})
+		setVerdict("FAIL", fmt.Sprintf("observed state %s differs from expected %s", raw.Observed, expected))
+	} else {
+		assertions = append(assertions, StepAssertion{Kind: "state", Name: final.Node, OracleID: judged.Oracle, Subject: final.Actor, Expected: expected, Actual: raw.Observed, Operator: "eq", Verdict: "PASS", Reason: "observed state matches expected"})
+	}
+	// Denial assertion.
+	if len(batch) == 1 {
+		if raw.Denied != observed.Actions[0].Denied || denied != raw.Denied {
+			assertions = append(assertions, StepAssertion{Kind: "denial", Name: final.Node, OracleID: judged.Oracle, Subject: final.Actor, Expected: fmt.Sprint(denied), Actual: fmt.Sprint(raw.Denied), Operator: "eq", Verdict: "FAIL", Reason: fmt.Sprintf("action denied=%t contradicted expected denied=%t", raw.Denied, denied)})
+			setVerdict("FAIL", fmt.Sprintf("action denied=%t contradicted expected denied=%t", raw.Denied, denied))
+		} else {
+			assertions = append(assertions, StepAssertion{Kind: "denial", Name: final.Node, OracleID: judged.Oracle, Subject: final.Actor, Expected: fmt.Sprint(denied), Actual: fmt.Sprint(raw.Denied), Operator: "eq", Verdict: "PASS", Reason: "denial observation matches contract"})
+		}
+	}
+	if definition.Denied && expected == "UNCHANGED" && before != after {
+		assertions = append(assertions, StepAssertion{Kind: "forbidden_effect", Name: final.Node, OracleID: judged.Oracle, Subject: final.Actor, Expected: before, Actual: after, Operator: "eq", Verdict: "FAIL", Reason: "rejected action mutated independent state snapshot"})
+		setVerdict("FAIL", "rejected action mutated independent state snapshot")
+	}
+	if definition.Kind == testConsistency && index == len(batches) {
+		layerV, layerAssertions, err := evaluateLayersWithAssertions(definition.Layers, observed.Oracles, final.Actor, participants[final.Actor].Principal, expected)
+		assertions = append(assertions, layerAssertions...)
+		if layerV != "PASS" {
+			reason := "multi-layer consistency check failed"
+			if err != nil {
+				reason = err.Error()
+			}
+			setVerdict(layerV, reason)
+		}
+	}
+	// Step-level property checks.
+	for _, step := range batch {
+		if len(step.Checks) == 0 {
+			continue
+		}
+		mergedValues := map[string]json.RawMessage{}
+		for _, item := range observed.Oracles {
+			if item.Actor == step.Actor {
+				for k, v := range item.After.Values {
+					mergedValues[k] = v
+				}
+			}
+		}
+		for _, outcome := range evaluateProperties(step.Checks, mergedValues) {
+			check := step.Checks[outcome.Index-1]
+			assertions = append(assertions, StepAssertion{Kind: "property", Name: check.Left, Subject: step.Actor, Expected: string(outcome.Right), Actual: string(outcome.Left), Operator: string(check.Operator), Verdict: outcome.Verdict, Reason: outcome.Reason})
+			if outcome.Verdict != "PASS" {
+				setVerdict(outcome.Verdict, outcome.Reason)
+			}
+		}
+	}
+	// Model invariant property checks.
 	for _, invariant := range x.invariants[judged.ID] {
 		found := false
 		for _, item := range observed.Oracles {
 			if item.ID == invariant.Oracle && item.Boundary == invariant.ObservationBoundary {
 				found = true
 				for _, outcome := range evaluateProperties(invariant.Checks, item.After.Values) {
+					check := invariant.Checks[outcome.Index-1]
+					assertions = append(assertions, StepAssertion{Kind: "invariant", Name: invariant.ID + "." + check.Left, OracleID: invariant.Oracle, Subject: item.Actor, Expected: string(outcome.Right), Actual: string(outcome.Left), Operator: string(check.Operator), Verdict: outcome.Verdict, Reason: outcome.Reason})
 					if outcome.Verdict != "PASS" {
-						return outcome.Verdict, nil
+						setVerdict(outcome.Verdict, outcome.Reason)
 					}
 				}
 			}
 		}
 		if !found {
-			return "BLOCKED", nil
+			assertions = append(assertions, StepAssertion{Kind: "invariant", Name: invariant.ID, OracleID: invariant.Oracle, Verdict: "BLOCKED", Reason: "invariant independent oracle observation missing"})
+			setVerdict("BLOCKED", "invariant independent oracle observation missing")
 		}
 	}
-	return "PASS", nil
+	return stepVerdict, stepReason, assertions, nil
 }
 
-// layerVerdict compares every declared observation layer with the frozen
-// expectation: a layer without its own observation blocks, a disagreeing
-// layer fails, and agreement across all layers passes.
-func layerVerdict(layers []ObservationLayer, oracles []OracleObservation, actor, principal, expected string) (string, error) {
+func evaluateLayersWithAssertions(layers []ObservationLayer, oracles []OracleObservation, actor, principal, expected string) (string, []StepAssertion, error) {
+	assertions := make([]StepAssertion, 0, len(layers))
+	verdict := "PASS"
+	var firstErr error
 	for _, layer := range layers {
 		var item *OracleObservation
 		for position := range oracles {
@@ -247,28 +369,45 @@ func layerVerdict(layers []ObservationLayer, oracles []OracleObservation, actor,
 			}
 		}
 		if item == nil {
-			return "BLOCKED", fmt.Errorf("layer %s has no independent observation", layer.Layer)
+			err := fmt.Errorf("layer %s has no independent observation", layer.Layer)
+			assertions = append(assertions, StepAssertion{Kind: "layer", Name: layer.Layer, OracleID: layer.Oracle, Subject: actor, Expected: expected, Actual: "UNOBSERVED", Operator: "eq", Verdict: "BLOCKED", Reason: err.Error()})
+			return "BLOCKED", assertions, err
 		}
 		if item.Before.Principal != principal || item.After.Principal != principal {
-			return "BLOCKED", fmt.Errorf("layer %s observed another principal", layer.Layer)
+			err := fmt.Errorf("layer %s observed another principal", layer.Layer)
+			assertions = append(assertions, StepAssertion{Kind: "layer", Name: layer.Layer, OracleID: layer.Oracle, Subject: actor, Expected: principal, Actual: item.After.Principal, Operator: "eq", Verdict: "BLOCKED", Reason: err.Error()})
+			return "BLOCKED", assertions, err
 		}
 		before, err := factsHash(item.Before)
 		if err != nil {
-			return "BLOCKED", err
+			return "BLOCKED", assertions, err
 		}
 		after, err := factsHash(item.After)
 		if err != nil {
-			return "BLOCKED", err
+			return "BLOCKED", assertions, err
 		}
 		actual := item.After.State
 		if expected == "UNCHANGED" && before == after {
 			actual = "UNCHANGED"
 		}
 		if actual != expected {
-			return "FAIL", nil
+			assertions = append(assertions, StepAssertion{Kind: "layer", Name: layer.Layer, OracleID: layer.Oracle, Subject: actor, Expected: expected, Actual: actual, Operator: "eq", Verdict: "FAIL", Reason: fmt.Sprintf("layer %s observed %s, expected %s", layer.Layer, actual, expected)})
+			if verdict == "PASS" {
+				verdict = "FAIL"
+			}
+		} else {
+			assertions = append(assertions, StepAssertion{Kind: "layer", Name: layer.Layer, OracleID: layer.Oracle, Subject: actor, Expected: expected, Actual: actual, Operator: "eq", Verdict: "PASS", Reason: "layer observation agrees"})
 		}
 	}
-	return "PASS", nil
+	return verdict, assertions, firstErr
+}
+
+// layerVerdict compares every declared observation layer with the frozen
+// expectation: a layer without its own observation blocks, a disagreeing
+// layer fails, and agreement across all layers passes.
+func layerVerdict(layers []ObservationLayer, oracles []OracleObservation, actor, principal, expected string) (string, error) {
+	verdict, _, err := evaluateLayersWithAssertions(layers, oracles, actor, principal, expected)
+	return verdict, err
 }
 
 func (d db) validateModelRecovery(contract runContract) error {
@@ -288,7 +427,7 @@ func (d db) validateModelRecovery(contract runContract) error {
 	if protocol != nil && (protocol.State != fixture.State || protocol.IsolationScope != fixture.Refs["scope"]) {
 		return errors.New("recovery target or isolation differs from the registered fixture")
 	}
-	raw, err := readRecordedRAW(recovery.Evidence, recovery.SHA256, contract.Receipt.Run, fixture.State, fixture.State, 0)
+	raw, _, err := d.readRecordedRAWWithFallback(recovery.Evidence, recovery.SHA256, contract.Receipt.Run, fixture.State, fixture.State, 0)
 	if err != nil {
 		return err
 	}
@@ -334,7 +473,7 @@ func (d db) validateModelRecovery(contract runContract) error {
 }
 
 func (d db) validateModelCompletion(contract runContract) error {
-	raw, err := readRecordedRAW(contract.Receipt.SetupEvidence, contract.Receipt.SetupSHA256, contract.Receipt.Run, "ISOLATED", "ISOLATED", -1)
+	raw, _, err := d.readRecordedRAWWithFallback(contract.Receipt.SetupEvidence, contract.Receipt.SetupSHA256, contract.Receipt.Run, "ISOLATED", "ISOLATED", -1)
 	if err != nil {
 		return fmt.Errorf("fixture preparation capture: %w", err)
 	}
@@ -386,7 +525,7 @@ func (d db) qualifyModelRun(run string) error {
 		if row[0] != fmt.Sprint(index+1) || row[3] != "PASS" {
 			return errors.New("model run contains a failed or missing step")
 		}
-		raw, err := readRecordedRAW(row[4], row[5], run, row[1], row[2], index+1)
+		raw, _, err := d.readRecordedRAWWithFallback(row[4], row[5], run, row[1], row[2], index+1)
 		if err != nil {
 			return err
 		}

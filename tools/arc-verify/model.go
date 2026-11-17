@@ -63,6 +63,7 @@ type Graph struct {
 	History           []HistoryAttribute      `json:"history,omitempty"`
 	Equivalence       *EquivalencePolicy      `json:"equivalence,omitempty"`
 	ReferenceBindings []ReferenceBinding      `json:"reference_bindings,omitempty"`
+	ConditionSubjects []ConditionSubject      `json:"condition_subjects,omitempty"`
 }
 
 func loadGraph(path string) (Graph, error) {
@@ -86,7 +87,7 @@ func loadGraph(path string) (Graph, error) {
 func validateGraph(g Graph) error {
 	switch g.SchemaVersion {
 	case 0, 1:
-		if g.System != "" || g.Previous != "" || len(g.Contracts)+len(g.Guards)+len(g.Constraints)+len(g.Transitions)+len(g.Flows)+len(g.Invariants)+len(g.Tests)+len(g.SharedOwners)+len(g.Applicability)+len(g.History)+len(g.ReferenceBindings) != 0 || g.Equivalence != nil {
+		if g.System != "" || g.Previous != "" || len(g.Contracts)+len(g.Guards)+len(g.Constraints)+len(g.Transitions)+len(g.Flows)+len(g.Invariants)+len(g.Tests)+len(g.SharedOwners)+len(g.Applicability)+len(g.History)+len(g.ReferenceBindings)+len(g.ConditionSubjects) != 0 || g.Equivalence != nil {
 			return errors.New("business model extensions require schema_version 2")
 		}
 		return validateLegacyGraph(g)

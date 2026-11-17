@@ -525,12 +525,34 @@ func (d db) modelGate(g Graph) (map[string]any, error) {
 	passed := analysis.Coverage.Obligations.Passed
 	missing := 0
 	invalid := analysis.InvalidTasks
+	runnerRows, err := d.query("SELECT id,test FROM registered_runners WHERE graph="+quote(g.ID)+" ORDER BY id", 2)
+	if err != nil {
+		return nil, err
+	}
+	runners := map[string][]string{}
+	for _, row := range runnerRows {
+		if _, err := d.registeredRunner(row[0]); err == nil {
+			runners[g.ID+"/"+row[1]] = append(runners[g.ID+"/"+row[1]], row[0])
+		}
+	}
+	missingRunners, blocked, failed, notRun := 0, 0, 0, 0
 	for _, obligation := range analysis.Obligations {
 		if obligation.Excluded {
 			continue
 		}
 		if !obligation.Planned {
 			missing++
+		}
+		if len(runners[obligation.Task.ID]) != 1 {
+			missingRunners++
+		}
+		switch obligation.Status {
+		case "BLOCKED":
+			blocked++
+		case "FAIL":
+			failed++
+		case "NOT_RUN":
+			notRun++
 		}
 		if obligation.Status != "PASS" {
 			invalid++
@@ -540,7 +562,19 @@ func (d db) modelGate(g Graph) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return d.attachExploreEvidence(g.ID, map[string]any{"verdict": analysis.Verdict, "reason": analysis.Reason, "catalog_approved": analysis.CatalogApproved, "confirmed_rules": len(g.Rules) - analysis.UnconfirmedRules, "unconfirmed_rules": analysis.UnconfirmedRules, "required_tasks": analysis.Coverage.Obligations.Total, "actual_tasks": analysis.ActualTasks, "passed_with_valid_raw": passed, "missing_tasks": missing, "invalid_tasks_or_evidence": invalid, "open_risks": openRisks, "proof_scope": "complete_business_model_obligations", "execution_contexts": func() int {
+	completeness := map[string]any{
+		"unconfirmed_rules":     analysis.UnconfirmedRules,
+		"unplanned_obligations": missing,
+		"missing_runners":       missingRunners,
+		"blocked_obligations":   blocked,
+		"failed_obligations":    failed,
+		"not_run_obligations":   notRun,
+		"passed_obligations":    passed,
+		"total_obligations":     analysis.Coverage.Obligations.Total,
+		"complete_business_e2e": analysis.Verdict == "PASS" && analysis.UnconfirmedRules == 0 && missing == 0,
+		"real_e2e_boundary":     "model gate verifies local obligations inside registered execution contexts; unexecuted live endpoints and remote hosts require separate real execution evidence",
+	}
+	return d.attachExploreEvidence(g.ID, map[string]any{"verdict": analysis.Verdict, "reason": analysis.Reason, "catalog_approved": analysis.CatalogApproved, "confirmed_rules": len(g.Rules) - analysis.UnconfirmedRules, "unconfirmed_rules": analysis.UnconfirmedRules, "required_tasks": analysis.Coverage.Obligations.Total, "actual_tasks": analysis.ActualTasks, "passed_with_valid_raw": passed, "missing_tasks": missing, "invalid_tasks_or_evidence": invalid, "open_risks": openRisks, "completeness": completeness, "proof_scope": "complete_business_model_obligations", "execution_contexts": func() int {
 		if analysis.Round != "" {
 			return 1
 		}

@@ -58,17 +58,20 @@ func (d db) workbenchEvidence(run, phase string, index int) (StepRAW, string, er
 		return StepRAW{}, "", errors.New("evidence phase must be action, setup or fixture")
 	}
 	if phase == "setup" {
-		_, body, err := loadEvidence(path)
-		if err != nil {
-			return StepRAW{}, "", err
+		if _, body, err := loadEvidence(path); err == nil {
+			var captured StepRAW
+			if err := decodeStrictJSON(body, &captured); err != nil {
+				return StepRAW{}, "", err
+			}
+			observed = captured.Observed
+		} else if hasFacts, _ := d.tableExists("step_facts"); hasFacts {
+			rows, qErr := d.query(fmt.Sprintf("SELECT observed_state FROM step_facts WHERE run=%s AND seq=-1 AND source_kind='setup' LIMIT 1", quote(run)), 1)
+			if qErr == nil && len(rows) == 1 && rows[0][0] != "" {
+				observed = rows[0][0]
+			}
 		}
-		var captured StepRAW
-		if err := decodeStrictJSON(body, &captured); err != nil {
-			return StepRAW{}, "", err
-		}
-		observed = captured.Observed
 	}
-	raw, err := readRecordedRAW(path, hash, run, expected, observed, index)
+	raw, _, err := d.readRecordedRAWWithFallback(path, hash, run, expected, observed, index)
 	if err != nil {
 		return StepRAW{}, "", err
 	}

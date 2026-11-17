@@ -177,6 +177,9 @@ func loadEvidence(path string) (string, []byte, error) {
 }
 
 func (d db) step(run, expected, observed, evidence string) (map[string]any, error) {
+	if err := d.ensureFactsSchema(); err != nil {
+		return nil, err
+	}
 	contract, e := d.runTaskContract(run)
 	if e != nil {
 		return nil, e
@@ -227,8 +230,10 @@ func (d db) step(run, expected, observed, evidence string) (map[string]any, erro
 	h := sha256.Sum256(raw)
 	sha := hex.EncodeToString(h[:])
 	verdict, decision := "PASS", "CONTINUE"
+	stepReason := "step passed independent verification"
+	assertions := []StepAssertion{}
 	if contract.Model != nil {
-		verdict, e = d.modelObservationVerdict(contract, observation, index, sha)
+		verdict, stepReason, assertions, e = d.evaluateModelObservation(contract, observation, index, sha)
 		if e != nil {
 			return nil, e
 		}
@@ -241,15 +246,20 @@ func (d db) step(run, expected, observed, evidence string) (map[string]any, erro
 	}
 	if observation.ExitCode != 0 {
 		verdict, decision = "BLOCKED", "HALT"
+		if observation.Model != nil && observation.Model.Error != "" {
+			stepReason = observation.Model.Error
+		} else {
+			stepReason = fmt.Sprintf("step exit code %d", observation.ExitCode)
+		}
 	}
 	if verdict == "PASS" && contract.Model == nil && expected == finalExpected {
 		if !conditionsMatch(observation, contract.Task.Kind, contract.Task.Condition, contract.Rule.Conditions) {
-			verdict, decision = "BLOCKED", "RESET"
+			verdict, decision, stepReason = "BLOCKED", "RESET", "observed preconditions do not match the frozen task"
 		}
 	}
 	rejectedMismatch := contract.Model == nil && (expected == finalExpected || expected == "UNCHANGED") && !rejectionMatches(observation, contract.Task.Kind)
 	if verdict == "PASS" && (expected != observed || rejectedMismatch) {
-		verdict, decision = "FAIL", "HALT"
+		verdict, decision, stepReason = "FAIL", "HALT", fmt.Sprintf("observed state %s contradicted expected %s", observed, expected)
 		// Replan only when a known state was independently observed and the
 		// observer explicitly certifies the state is safe for a new branch.
 		if observation.SafeToContinue && observation.ExitCode == 0 {
@@ -262,9 +272,83 @@ func (d db) step(run, expected, observed, evidence string) (map[string]any, erro
 			}
 		}
 	}
+	if contract.Model == nil {
+		assertions = append(assertions, StepAssertion{Kind: "state", Name: contract.Task.Rule, OracleID: observation.Oracle, Subject: observation.Identity.Actor, Expected: expected, Actual: observed, Operator: "eq", Verdict: verdict, Reason: stepReason})
+	}
+	sourceKind := "execute"
+	ruleID := contract.Task.Rule
+	nodeID := ""
+	transitionID := ""
+	actor := observation.Identity.Actor
+	account := observation.Identity.Account
+	principal := observation.Identity.Principal
+	if contract.Model != nil && contract.Obligation != nil {
+		if contract.Obligation.Definition.Kind == testSequence {
+			sourceKind = "sequence"
+		}
+		if observation.Model != nil {
+			nodeID = observation.Model.Node
+			transitionID = observation.Model.Transition
+			x := indexModel(*contract.Model)
+			ruleID = stepRule(x, *contract.Obligation, transitionID).ID
+			for _, a := range observation.Model.Actions {
+				actor = a.Actor
+				principal = a.Principal
+			}
+			for _, p := range observation.Model.Participants {
+				if p.Alias == actor || p.Principal == principal {
+					account = p.Account
+					actor = p.Role
+					break
+				}
+			}
+		}
+	}
+	firstDiv := 0
+	if verdict == "FAIL" {
+		priorFails, qErr := d.query("SELECT COUNT(*) FROM steps WHERE run="+quote(run)+" AND verdict='FAIL';", 1)
+		if qErr == nil && len(priorFails) == 1 && priorFails[0][0] == "0" {
+			firstDiv = 1
+		}
+	}
+	fact := UnifiedStepFact{
+		SourceKind: sourceKind, Run: run, Seq: index, Graph: graph, Task: contract.Task.ID,
+		Node: nodeID, Transition: transitionID, RuleID: ruleID, Actor: actor, Account: account, Principal: principal,
+		ExpectedState: expected, ObservedState: observed, Verdict: verdict, Decision: decision, Reason: stepReason,
+		Assertions: assertions, EvidencePath: path, EvidenceSHA256: sha,
+	}
+	if observation.Model != nil {
+		deniedObs := observation.Denied
+		fact.DeniedObserved = &deniedObs
+		fact.Participants = observation.Model.Participants
+		fact.Entities = observation.Model.Entities
+		fact.Sessions = observation.Model.Sessions
+		fact.Extractions = observation.Model.Extractions
+		fact.Conditions = observation.Model.Conditions
+		fact.Waits = observation.Model.Waits
+		fact.Oracles = observation.Model.Oracles
+		fact.Actions = observation.Model.Actions
+	}
+	factsBytes, err := json.Marshal(fact)
+	if err != nil {
+		return nil, err
+	}
 	stmts := []string{
 		fmt.Sprintf("INSERT INTO steps(run,idx,expected,observed,verdict,decision,evidence_path,evidence_sha256) SELECT %s,%d,%s,%s,%s,%s,%s,%s FROM runs WHERE id=%s AND status='RUNNING' AND EXISTS (SELECT 1 FROM tasks WHERE tasks.id=runs.task AND tasks.status='RUNNING');",
 			quote(run), index, quote(expected), quote(observed), quote(verdict), quote(decision), quote(path), quote(sha), quote(run)),
+		fmt.Sprintf("INSERT OR REPLACE INTO step_facts(source_kind,run,seq,graph,task,node,transition,rule_id,actor,account,principal,expected_state,observed_state,verdict,decision,reason,first_divergence,related_run,evidence_path,evidence_sha256,raw_json,facts_json) VALUES(%s,%s,%d,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%d,'',%s,%s,%s,%s);",
+			quote(sourceKind), quote(run), index, quote(graph), quote(contract.Task.ID), quote(nodeID), quote(transitionID), quote(ruleID), quote(actor), quote(account), quote(principal), quote(expected), quote(observed), quote(verdict), quote(decision), quote(stepReason), firstDiv, quote(path), quote(sha), quote(string(raw)), quote(string(factsBytes))),
+	}
+	for aIdx, a := range assertions {
+		stmts = append(stmts, fmt.Sprintf("INSERT OR REPLACE INTO step_assertions(source_kind,run,seq,assertion_idx,kind,name,oracle_id,subject,expected_json,actual_json,operator,verdict,reason) VALUES(%s,%s,%d,%d,%s,%s,%s,%s,%s,%s,%s,%s,%s);",
+			quote(sourceKind), quote(run), index, aIdx+1, quote(a.Kind), quote(a.Name), quote(a.OracleID), quote(a.Subject), quote(a.Expected), quote(a.Actual), quote(a.Operator), quote(a.Verdict), quote(a.Reason)))
+	}
+	if observation.Model != nil {
+		for _, ent := range observation.Model.Entities {
+			meta, _ := json.Marshal(ent.Metadata)
+			stmts = append(stmts, fmt.Sprintf("INSERT OR REPLACE INTO run_entity_bindings(run,alias,entity_kind,entity_id,owner_actor,owner_principal,channel_account_id,source_step,source_field,metadata_json) VALUES(%s,%s,%s,%s,%s,%s,%s,%d,%s,%s);",
+				quote(run), quote(ent.Alias), quote(ent.Kind), quote(ent.ID), quote(ent.OwnerActor), quote(ent.OwnerPrincipal), quote(ent.ChannelAccountID), ent.SourceStep, quote(ent.SourceField), quote(string(meta))))
+		}
 	}
 	if verdict != "PASS" {
 		stmts = append(stmts, fmt.Sprintf("UPDATE runs SET status=%s WHERE id=%s AND status='RUNNING';", quote(verdict), quote(run)))
@@ -280,7 +364,7 @@ func (d db) step(run, expected, observed, evidence string) (map[string]any, erro
 	if len(check) != 1 || check[0][1] != sha {
 		return nil, errors.New("step not durably recorded")
 	}
-	return map[string]any{"run": run, "step": index, "expected": expected, "observed": observed, "verdict": verdict, "decision": decision, "sha256": sha}, nil
+	return map[string]any{"run": run, "step": index, "expected": expected, "observed": observed, "verdict": verdict, "decision": decision, "reason": stepReason, "sha256": sha}, nil
 }
 
 func (d db) finish(run string) (map[string]any, error) {
@@ -313,7 +397,7 @@ func (d db) finish(run string) (map[string]any, error) {
 		if s[5] != fmt.Sprint(index+1) || s[2] != "PASS" || s[0] != s[1] {
 			return nil, errors.New("a step failed or its sequence changed")
 		}
-		observation, e := readRecordedRAW(s[3], s[4], run, s[0], s[1], index+1)
+		observation, _, e := d.readRecordedRAWWithFallback(s[3], s[4], run, s[0], s[1], index+1)
 		if e != nil {
 			return nil, e
 		}
@@ -370,4 +454,73 @@ func readRecordedRAW(path, hash, run, expected, observed string, index int) (Ste
 		return StepRAW{}, errors.New("RAW changed after being recorded")
 	}
 	return parseStepRAW(raw, run, expected, observed, index)
+}
+
+func (d db) readRecordedRAWWithFallback(path, hash, run, expected, observed string, index int) (StepRAW, string, error) {
+	if path != "" {
+		if _, raw, err := loadEvidence(path); err == nil {
+			sum := sha256.Sum256(raw)
+			if hex.EncodeToString(sum[:]) != hash {
+				return StepRAW{}, "disk_raw", errors.New("RAW changed after being recorded")
+			}
+			parsed, err := parseStepRAW(raw, run, expected, observed, index)
+			return parsed, "disk_raw", err
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return StepRAW{}, "disk_raw", err
+		}
+	}
+	hasFacts, err := d.tableExists("step_facts")
+	if err != nil || !hasFacts {
+		return StepRAW{}, "missing", errors.New("RAW evidence file not found on disk and no step_facts table exists")
+	}
+	rows, err := d.query(fmt.Sprintf("SELECT raw_json,evidence_sha256 FROM step_facts WHERE run=%s AND seq=%d AND source_kind IN ('execute','sequence','setup','recovery') LIMIT 1", quote(run), index), 2)
+	if err != nil {
+		return StepRAW{}, "db_embedded", err
+	}
+	if len(rows) != 1 || rows[0][0] == "" {
+		return StepRAW{}, "missing", errors.New("RAW evidence missing from disk and DB")
+	}
+	rawBytes := []byte(rows[0][0])
+	sum := sha256.Sum256(rawBytes)
+	if hex.EncodeToString(sum[:]) != hash || (rows[0][1] != "" && rows[0][1] != hash) {
+		return StepRAW{}, "db_embedded", errors.New("embedded DB RAW hash mismatch")
+	}
+	parsed, err := parseStepRAW(rawBytes, run, expected, observed, index)
+	return parsed, "db_embedded", err
+}
+
+func (d db) persistLifecycleStepFact(sourceKind string, binding RunBinding, run string, seq int, node, expected, observed, verdict, reason, evidencePath string, rawBytes []byte, modelObs *ModelObservation, assertions []StepAssertion) error {
+	if err := d.ensureFactsSchema(); err != nil {
+		return err
+	}
+	sha := digestBytes(rawBytes)
+	fact := UnifiedStepFact{
+		SourceKind: sourceKind, Run: run, Seq: seq, Graph: binding.Identity.Graph, Task: binding.Identity.Task,
+		Node: node, Actor: binding.Identity.Actor, Account: binding.Identity.Account, Principal: binding.Identity.Principal,
+		ExpectedState: expected, ObservedState: observed, Verdict: verdict, Reason: reason,
+		Assertions: assertions, EvidencePath: evidencePath, EvidenceSHA256: sha,
+	}
+	if modelObs != nil {
+		fact.Participants = modelObs.Participants
+		fact.Entities = modelObs.Entities
+		fact.Sessions = modelObs.Sessions
+		fact.Extractions = modelObs.Extractions
+		fact.Conditions = modelObs.Conditions
+		fact.Waits = modelObs.Waits
+		fact.Oracles = modelObs.Oracles
+		fact.Actions = modelObs.Actions
+	}
+	factsBytes, err := json.Marshal(fact)
+	if err != nil {
+		return err
+	}
+	stmts := []string{
+		fmt.Sprintf("INSERT OR REPLACE INTO step_facts(source_kind,run,seq,graph,task,node,transition,rule_id,actor,account,principal,expected_state,observed_state,verdict,decision,reason,first_divergence,related_run,evidence_path,evidence_sha256,raw_json,facts_json) VALUES(%s,%s,%d,%s,%s,%s,'','',%s,%s,%s,%s,%s,%s,'',%s,0,'',%s,%s,%s,%s);",
+			quote(sourceKind), quote(run), seq, quote(binding.Identity.Graph), quote(binding.Identity.Task), quote(node), quote(binding.Identity.Actor), quote(binding.Identity.Account), quote(binding.Identity.Principal), quote(expected), quote(observed), quote(verdict), quote(reason), quote(evidencePath), quote(sha), quote(string(rawBytes)), quote(string(factsBytes))),
+	}
+	for aIdx, a := range assertions {
+		stmts = append(stmts, fmt.Sprintf("INSERT OR REPLACE INTO step_assertions(source_kind,run,seq,assertion_idx,kind,name,oracle_id,subject,expected_json,actual_json,operator,verdict,reason) VALUES(%s,%s,%d,%d,%s,%s,%s,%s,%s,%s,%s,%s,%s);",
+			quote(sourceKind), quote(run), seq, aIdx+1, quote(a.Kind), quote(a.Name), quote(a.OracleID), quote(a.Subject), quote(a.Expected), quote(a.Actual), quote(a.Operator), quote(a.Verdict), quote(a.Reason)))
+	}
+	return d.transition(stmts)
 }

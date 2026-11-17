@@ -39,7 +39,14 @@ func semanticSubjects(g Graph) (map[string]string, error) {
 		if err := appendValue(flow.ID, flow); err != nil {
 			return nil, err
 		}
-		if err := appendValue(flow.Capability, flow); err != nil {
+		for _, capability := range flowCapabilities(flow) {
+			if err := appendValue(capability, flow); err != nil {
+				return nil, err
+			}
+		}
+	}
+	for _, subject := range g.ConditionSubjects {
+		if err := appendValue(subject.Condition, subject); err != nil {
 			return nil, err
 		}
 	}

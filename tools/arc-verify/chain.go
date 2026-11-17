@@ -162,7 +162,12 @@ func (d db) runChain(ctx context.Context, request ChainRequest) (ChainPacket, er
 			return stop("blocked", chainExitBlocked, result.Reason)
 		}
 	}
-	packet.Task, packet.Stop, packet.Reason = "", "completed", fmt.Sprintf("all %d cards on the known path passed", len(packet.Steps))
+	totalObligations := len(modelObligations(g))
+	if len(unautomated) > 0 || len(packet.Steps) < totalObligations {
+		packet.Task, packet.Stop, packet.Reason = "", "completed", fmt.Sprintf("automated known-path subset passed (%d of %d obligations; %d unautomated ready cards remain — partial subset, not complete business E2E)", len(packet.Steps), totalObligations, len(unautomated))
+		return packet, nil
+	}
+	packet.Task, packet.Stop, packet.Reason = "", "completed", fmt.Sprintf("all %d cards on the known path passed (%d/%d obligations)", len(packet.Steps), len(packet.Steps), totalObligations)
 	return packet, nil
 }
 

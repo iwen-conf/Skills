@@ -100,9 +100,49 @@ type TransitionContract struct {
 }
 
 type BehaviorFlow struct {
-	ID         string `json:"id"`
-	Capability string `json:"capability"`
-	Initial    string `json:"initial"`
+	ID           string   `json:"id"`
+	Capability   string   `json:"capability"`
+	Capabilities []string `json:"capabilities,omitempty"`
+	Initial      string   `json:"initial"`
+}
+
+// ConditionSubject describes which participant, session, account, business
+// entity or relation an observed boolean condition evaluates.
+type ConditionSubject struct {
+	Condition   string `json:"condition"`
+	SubjectKind string `json:"subject_kind"`
+	Subject     string `json:"subject,omitempty"`
+	Attribute   string `json:"attribute"`
+	Operator    string `json:"operator,omitempty"`
+	Expected    string `json:"expected,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+func flowCapabilities(flow BehaviorFlow) []string {
+	seen := map[string]bool{}
+	out := make([]string, 0, 1+len(flow.Capabilities))
+	for _, id := range append([]string{flow.Capability}, flow.Capabilities...) {
+		if id != "" && !seen[id] {
+			seen[id] = true
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+func flowHasCapability(flow BehaviorFlow, capability string) bool {
+	if capability == "" {
+		return false
+	}
+	if flow.Capability == capability {
+		return true
+	}
+	for _, candidate := range flow.Capabilities {
+		if candidate == capability {
+			return true
+		}
+	}
+	return false
 }
 
 type ComparisonOperator string
@@ -417,6 +457,27 @@ func validateBusinessModel(g Graph) error {
 		if ids[flow.Capability] != "capability" || ids[flow.Initial] != "state" {
 			return fmt.Errorf("flow %s has invalid capability or initial state", flow.ID)
 		}
+		for _, capability := range flow.Capabilities {
+			if ids[capability] != "capability" {
+				return fmt.Errorf("flow %s references invalid capability %s", flow.ID, capability)
+			}
+		}
+	}
+	seenSubjects := map[string]bool{}
+	for _, subject := range g.ConditionSubjects {
+		if ids[subject.Condition] != "condition" || strings.TrimSpace(subject.Attribute) == "" {
+			return fmt.Errorf("condition subject %q requires a declared condition and attribute", subject.Condition)
+		}
+		switch subject.SubjectKind {
+		case "actor", "session", "account", "entity", "relation", "environment":
+		default:
+			return fmt.Errorf("condition subject %s has unsupported subject_kind %q", subject.Condition, subject.SubjectKind)
+		}
+		key := subject.Condition + "\x00" + subject.SubjectKind + "\x00" + subject.Subject + "\x00" + subject.Attribute
+		if seenSubjects[key] {
+			return fmt.Errorf("duplicate condition subject for %s", subject.Condition)
+		}
+		seenSubjects[key] = true
 	}
 	seen = map[string]bool{}
 	for _, transition := range g.Transitions {
@@ -669,10 +730,10 @@ func validateSequence(x modelIndex, test TestDefinition) error {
 		}
 		inFlow := false
 		for _, capability := range x.capsByAction[contract.Action] {
-			inFlow = inFlow || capability == flow.Capability
+			inFlow = inFlow || flowHasCapability(flow, capability)
 		}
 		if !inFlow {
-			return fmt.Errorf("SEQUENCE test %s step %d action %s is outside flow capability %s", test.ID, position+1, contract.Action, flow.Capability)
+			return fmt.Errorf("SEQUENCE test %s step %d action %s is outside flow capabilities %v", test.ID, position+1, contract.Action, flowCapabilities(flow))
 		}
 		from = edge.To
 	}

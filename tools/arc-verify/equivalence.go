@@ -116,7 +116,7 @@ func flowAdjacency(x modelIndex, flow BehaviorFlow, transitions []TransitionCont
 	adjacency := map[string][]TransitionContract{}
 	for _, transition := range transitions {
 		for _, capability := range x.capsByAction[transition.Action] {
-			if capability == flow.Capability {
+			if flowHasCapability(flow, capability) {
 				adjacency[x.edges[transition.Edge].From] = append(adjacency[x.edges[transition.Edge].From], transition)
 				break
 			}

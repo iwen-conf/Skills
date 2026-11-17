@@ -231,3 +231,37 @@ var schema = []string{
 	"CREATE TABLE IF NOT EXISTS exploration_boundary (campaign TEXT PRIMARY KEY, body TEXT NOT NULL, created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);",
 	"CREATE INDEX IF NOT EXISTS idx_exploration_boundary ON exploration_boundary(campaign);",
 }
+
+var factsSchema = []string{
+	"CREATE TABLE IF NOT EXISTS step_facts (source_kind TEXT NOT NULL, run TEXT NOT NULL, seq INTEGER NOT NULL, graph TEXT NOT NULL, task TEXT NOT NULL DEFAULT '', node TEXT NOT NULL DEFAULT '', transition TEXT NOT NULL DEFAULT '', rule_id TEXT NOT NULL DEFAULT '', actor TEXT NOT NULL DEFAULT '', account TEXT NOT NULL DEFAULT '', principal TEXT NOT NULL DEFAULT '', expected_state TEXT NOT NULL DEFAULT '', observed_state TEXT NOT NULL DEFAULT '', verdict TEXT NOT NULL, decision TEXT NOT NULL DEFAULT '', reason TEXT NOT NULL DEFAULT '', first_divergence INTEGER NOT NULL DEFAULT 0, related_run TEXT NOT NULL DEFAULT '', evidence_path TEXT NOT NULL DEFAULT '', evidence_sha256 TEXT NOT NULL DEFAULT '', raw_json TEXT NOT NULL, facts_json TEXT NOT NULL, created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (source_kind,run,seq));",
+	"CREATE INDEX IF NOT EXISTS idx_step_facts_graph ON step_facts(graph,node,source_kind,run,seq);",
+	"CREATE INDEX IF NOT EXISTS idx_step_facts_run ON step_facts(run,seq);",
+	"CREATE TABLE IF NOT EXISTS run_entity_bindings (run TEXT NOT NULL, alias TEXT NOT NULL, entity_kind TEXT NOT NULL, entity_id TEXT NOT NULL, owner_actor TEXT NOT NULL DEFAULT '', owner_principal TEXT NOT NULL DEFAULT '', channel_account_id TEXT NOT NULL DEFAULT '', source_step INTEGER NOT NULL DEFAULT 0, source_field TEXT NOT NULL DEFAULT '', metadata_json TEXT NOT NULL DEFAULT '{}', PRIMARY KEY (run,alias));",
+	"CREATE INDEX IF NOT EXISTS idx_run_entities_id ON run_entity_bindings(entity_kind,entity_id,run);",
+	"CREATE TABLE IF NOT EXISTS step_assertions (source_kind TEXT NOT NULL, run TEXT NOT NULL, seq INTEGER NOT NULL, assertion_idx INTEGER NOT NULL, kind TEXT NOT NULL, name TEXT NOT NULL, oracle_id TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL DEFAULT '', expected_json TEXT NOT NULL DEFAULT '', actual_json TEXT NOT NULL DEFAULT '', operator TEXT NOT NULL DEFAULT '', verdict TEXT NOT NULL, reason TEXT NOT NULL DEFAULT '', PRIMARY KEY (source_kind,run,seq,assertion_idx));",
+	"CREATE INDEX IF NOT EXISTS idx_step_assertions_run ON step_assertions(run,seq,verdict);",
+}
+
+func init() {
+	schema = append(schema, factsSchema...)
+}
+
+func (d db) tableExists(name string) (bool, error) {
+	rows, err := d.query("SELECT name FROM sqlite_master WHERE type='table' AND name="+quote(name), 1)
+	if err != nil {
+		return false, err
+	}
+	return len(rows) == 1, nil
+}
+
+func (d db) ensureFactsSchema() error {
+	initialized, err := d.tableExists("graphs")
+	if err != nil || !initialized {
+		return err
+	}
+	hasFacts, err := d.tableExists("step_facts")
+	if err != nil || hasFacts {
+		return err
+	}
+	return d.tx(factsSchema)
+}

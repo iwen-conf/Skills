@@ -740,7 +740,7 @@ func (d db) trace(run string) (TraceReport, error) {
 		if _, err := fmt.Sscan(r[3], &index); err != nil {
 			return out, err
 		}
-		if raw, err := readRecordedRAW(r[8], r[9], run, r[4], r[5], index); err == nil {
+		if raw, _, err := d.readRecordedRAWWithFallback(r[8], r[9], run, r[4], r[5], index); err == nil {
 			step.EvidenceStatus = "PASS"
 			step.Observation = raw.Model
 			if raw.Model != nil {

@@ -287,3 +287,31 @@ func TestArcPrivateFilesAreIgnoredAndSymlinksRejected(t *testing.T) {
 		if err:=ensureArcPrivateFiles(symlinkRoot);err==nil{t.Fatal("symlinked .arc directory was accepted")}
 	}
 }
+
+
+func TestTaskLinkVerifyAndStatus(t *testing.T) {
+	_, db := testArcState(t)
+	if err := executeTask(db, "create", "", "Implement refund business chain", "", 0); err != nil { t.Fatal(err) }
+	var arcTaskID string
+	if err := db.QueryRow("SELECT id FROM arc_tasks LIMIT 1").Scan(&arcTaskID); err != nil { t.Fatal(err) }
+	// Linking before verify tables exist must succeed cleanly (UNPLANNED status).
+	if err := linkTaskVerify(db, arcTaskID, "pay-chain-v3", "T-FLOW-PAY-REFUND", ""); err != nil { t.Fatal(err) }
+	if err := showTaskVerifyStatus(db, arcTaskID); err != nil { t.Fatal(err) }
+	// Seed verify tables + step_facts in the shared DB and verify joined output.
+	for _, ddl := range []string{
+		`CREATE TABLE tasks (id TEXT PRIMARY KEY, graph TEXT NOT NULL, rule TEXT NOT NULL, kind TEXT NOT NULL, condition TEXT NOT NULL, expected TEXT NOT NULL, status TEXT NOT NULL)`,
+		`CREATE TABLE runs (id TEXT PRIMARY KEY, task TEXT NOT NULL, environment TEXT NOT NULL, commit_sha TEXT NOT NULL, status TEXT NOT NULL)`,
+		`CREATE TABLE step_facts (source_kind TEXT NOT NULL, run TEXT NOT NULL, seq INTEGER NOT NULL, graph TEXT NOT NULL, task TEXT NOT NULL DEFAULT '', node TEXT NOT NULL DEFAULT '', transition TEXT NOT NULL DEFAULT '', rule_id TEXT NOT NULL DEFAULT '', actor TEXT NOT NULL DEFAULT '', account TEXT NOT NULL DEFAULT '', principal TEXT NOT NULL DEFAULT '', expected_state TEXT NOT NULL DEFAULT '', observed_state TEXT NOT NULL DEFAULT '', verdict TEXT NOT NULL, decision TEXT NOT NULL DEFAULT '', reason TEXT NOT NULL DEFAULT '', first_divergence INTEGER NOT NULL DEFAULT 0, related_run TEXT NOT NULL DEFAULT '', evidence_path TEXT NOT NULL DEFAULT '', evidence_sha256 TEXT NOT NULL DEFAULT '', raw_json TEXT NOT NULL DEFAULT '{}', facts_json TEXT NOT NULL DEFAULT '{}', PRIMARY KEY(source_kind,run,seq))`,
+	} {
+		if _, err := db.Exec(ddl); err != nil { t.Fatal(err) }
+	}
+	if _, err := db.Exec(`INSERT INTO tasks VALUES('pay-chain-v3/T-FLOW-PAY-REFUND','pay-chain-v3','R-REFUND','SEQUENCE','','S-REFUNDED','FAIL')`); err != nil { t.Fatal(err) }
+	if _, err := db.Exec(`INSERT INTO runs VALUES('R-001','pay-chain-v3/T-FLOW-PAY-REFUND','independent','abc123','FAIL')`); err != nil { t.Fatal(err) }
+	if _, err := db.Exec(`INSERT INTO step_facts(source_kind,run,seq,graph,task,node,verdict,observed_state,reason,first_divergence,evidence_sha256) VALUES('sequence','R-001',3,'pay-chain-v3','pay-chain-v3/T-FLOW-PAY-REFUND','A-NOTIFY-DISPATCH','FAIL','S-DEAD-LETTER','illegal intermediate state',1,'deadbeef')`); err != nil { t.Fatal(err) }
+	if err := linkTaskVerify(db, arcTaskID, "pay-chain-v3", "T-FLOW-PAY-REFUND", ""); err != nil { t.Fatal(err) }
+	var linkedCount int
+	if err := db.QueryRow("SELECT count(*) FROM arc_task_obligations WHERE arc_task_id=?", arcTaskID).Scan(&linkedCount); err != nil { t.Fatal(err) }
+	if linkedCount != 1 { t.Fatalf("expected idempotent 1 obligation link, got %d", linkedCount) }
+	if err := showTaskVerifyStatus(db, arcTaskID); err != nil { t.Fatal(err) }
+	if err := linkTaskVerify(db, "TASK-MISSING", "pay-chain-v3", "T-1", ""); err == nil { t.Fatal("linking missing arc task succeeded") }
+}

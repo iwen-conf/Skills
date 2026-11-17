@@ -40,7 +40,7 @@ func run(args []string) error {
 }
 
 // commands is the complete CLI surface; unknown names fail before any ledger is opened.
-var commands = []string{"init", "selftest", "validate", "import", "approve", "model", "view", "diff", "explore", "plan", "prepare", "next", "runner", "round", "execute", "run-chain", "derive", "discover", "reference-import", "reference-match", "mutation-report", "snapshot", "recover", "context", "start", "step", "finish", "record", "trace", "abort", "retry", "gate", "report", "risk", "accept-risk", "reject-risk", "promote-risk", "scan", "gaps", "fixtures", "fixture", "handoff"}
+var commands = []string{"init", "selftest", "validate", "import", "approve", "model", "view", "diff", "explore", "plan", "prepare", "next", "runner", "round", "execute", "run-chain", "derive", "discover", "reference-import", "reference-match", "mutation-report", "snapshot", "recover", "context", "start", "step", "finish", "record", "trace", "explain", "abort", "retry", "gate", "report", "risk", "accept-risk", "reject-risk", "promote-risk", "scan", "gaps", "fixtures", "fixture", "handoff"}
 
 func runContext(ctx context.Context, args []string) error {
 	if len(args) == 0 {
@@ -72,6 +72,8 @@ func runContext(ctx context.Context, args []string) error {
 	limit := f.Int("limit", 128, "bounded number of task cards to materialize, 1..1024")
 	task := f.String("task", "", "task id")
 	runID := f.String("run", "", "run id")
+	nodeFlag := f.String("node", "", "business node, transition, or rule id for explain")
+	seqFlag := f.Int("seq", explainAllSteps, "optional sequence step filter for explain (-1=setup, 0=recovery, >=1=step)")
 	env := f.String("env", "", "approved environment alias")
 	commit := f.String("commit", "", "source commit")
 	root := f.String("root", ".", "candidate repository root")
@@ -540,6 +542,12 @@ func runContext(ctx context.Context, args []string) error {
 		rows, e := d.trace(*runID)
 		if e == nil {
 			emit(rows)
+		}
+		return e
+	case "explain":
+		v, e := d.explainFacts(*graph, *runID, *nodeFlag, *seqFlag)
+		if e == nil {
+			emit(v)
 		}
 		return e
 	case "gate":

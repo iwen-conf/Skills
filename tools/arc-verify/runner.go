@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -26,14 +28,45 @@ const (
 	adapterCommand AdapterKind = "command"
 )
 
+type ExtractRule struct {
+	Name         string `json:"name"`
+	Source       string `json:"source"`
+	OracleID     string `json:"oracle_id,omitempty"`
+	Path         string `json:"path"`
+	EntityKind   string `json:"entity_kind,omitempty"`
+	EntityAlias  string `json:"entity_alias,omitempty"`
+	OwnerActor   string `json:"owner_actor,omitempty"`
+	SessionScope string `json:"session_scope,omitempty"`
+	Required     bool   `json:"required,omitempty"`
+	Redact       bool   `json:"redact,omitempty"`
+}
+
+type WaitContract struct {
+	OracleID                  string              `json:"oracle_id"`
+	UntilState                string              `json:"until_state,omitempty"`
+	UntilConditions           ConditionAssignment `json:"until_conditions,omitempty"`
+	UntilChecks               []PropertyCheck     `json:"until_checks,omitempty"`
+	AllowedIntermediateStates []string            `json:"allowed_intermediate_states,omitempty"`
+	MaxWaitMS                 int                 `json:"max_wait_ms"`
+	PollIntervalMS            int                 `json:"poll_interval_ms"`
+	StableWindowMS            int                 `json:"stable_window_ms,omitempty"`
+	RuleSourceRef             string              `json:"rule_source_ref"`
+}
+
 type AdapterCall struct {
 	Kind              AdapterKind       `json:"kind"`
 	Method            string            `json:"method,omitempty"`
 	Path              string            `json:"path,omitempty"`
 	Body              json.RawMessage   `json:"body,omitempty"`
+	Headers           map[string]string `json:"headers,omitempty"`
 	HeaderRefs        map[string]string `json:"header_refs,omitempty"`
 	CredentialHeader  string            `json:"credential_header,omitempty"`
 	CredentialPrefix  string            `json:"credential_prefix,omitempty"`
+	SessionScope      string            `json:"session_scope,omitempty"`
+	SessionHeader     string            `json:"session_header,omitempty"`
+	SessionPrefix     string            `json:"session_prefix,omitempty"`
+	RetainSession     bool              `json:"retain_session,omitempty"`
+	Extract           []ExtractRule     `json:"extract,omitempty"`
 	SuccessStatuses   []int             `json:"success_statuses,omitempty"`
 	RejectionStatuses []int             `json:"rejection_statuses,omitempty"`
 	Args              []string          `json:"args,omitempty"`
@@ -61,6 +94,8 @@ type RunnerStep struct {
 	ParallelGroup string          `json:"parallel_group,omitempty"`
 	Call          AdapterCall     `json:"call"`
 	Oracles       []OracleAdapter `json:"oracles"`
+	AsyncWait     *WaitContract   `json:"async_wait,omitempty"`
+	Checks        []PropertyCheck `json:"checks,omitempty"`
 }
 
 type RecoveryStep struct {
@@ -145,6 +180,11 @@ func validateAdapter(call AdapterCall, readOnly bool) error {
 	default:
 		return fmt.Errorf("unsupported adapter kind %q", call.Kind)
 	}
+	for name := range call.Headers {
+		if hasSensitiveKey(map[string]any{name: ""}) {
+			return fmt.Errorf("header %s looks credential-like; use header_refs or session_scope", name)
+		}
+	}
 	for _, ref := range call.HeaderRefs {
 		if !strings.HasPrefix(ref, "env://") {
 			return errors.New("header credentials require env:// references")
@@ -153,6 +193,34 @@ func validateAdapter(call AdapterCall, readOnly bool) error {
 	for _, ref := range call.EnvRefs {
 		if !strings.HasPrefix(ref, "env://") {
 			return errors.New("command environment values require env:// references")
+		}
+	}
+	if len(call.Extract) > 32 {
+		return errors.New("adapter extract rules exceed 32")
+	}
+	seenExtract := map[string]bool{}
+	for _, ext := range call.Extract {
+		if strings.TrimSpace(ext.Name) == "" || seenExtract[ext.Name] {
+			return fmt.Errorf("invalid or duplicate extract name %q", ext.Name)
+		}
+		if hasSensitiveKey(map[string]any{ext.Name: ""}) {
+			return fmt.Errorf("extract name %q contains a credential-like keyword; use a neutral alias such as session_handle and set redact:true", ext.Name)
+		}
+		seenExtract[ext.Name] = true
+		switch ext.Source {
+		case "response_body", "oracle":
+			if !strings.HasPrefix(ext.Path, "/") {
+				return fmt.Errorf("extract %s needs a JSON pointer path", ext.Name)
+			}
+			if ext.Source == "oracle" && strings.TrimSpace(ext.OracleID) == "" {
+				return fmt.Errorf("extract %s from oracle requires oracle_id", ext.Name)
+			}
+		case "response_header", "state_cookie":
+			if strings.TrimSpace(ext.Path) == "" {
+				return fmt.Errorf("extract %s needs a header or cookie name", ext.Name)
+			}
+		default:
+			return fmt.Errorf("extract %s has unsupported source %q", ext.Name, ext.Source)
 		}
 	}
 	return nil
@@ -262,6 +330,41 @@ func validateManifest(g Graph, manifest RunnerManifest) (ModelObligation, error)
 			}
 			if !found {
 				return ModelObligation{}, fmt.Errorf("invariant %s requires its independent oracle and boundary", invariant.ID)
+			}
+		}
+		for _, ext := range step.Call.Extract {
+			if ext.Source == "oracle" && !seen[ext.OracleID] {
+				return ModelObligation{}, fmt.Errorf("extract %s references unknown oracle %s", ext.Name, ext.OracleID)
+			}
+		}
+		for _, check := range step.Checks {
+			if err := validatePropertyCheck(check, step.Oracles, ""); err != nil {
+				return ModelObligation{}, err
+			}
+		}
+		if step.AsyncWait != nil {
+			wait := step.AsyncWait
+			if !seen[wait.OracleID] || strings.TrimSpace(wait.RuleSourceRef) == "" {
+				return ModelObligation{}, errors.New("async_wait requires a step oracle_id and rule_source_ref")
+			}
+			if wait.MaxWaitMS < 50 || wait.MaxWaitMS > 120000 || wait.MaxWaitMS > manifest.StepTimeoutMS || wait.PollIntervalMS < 25 || wait.PollIntervalMS > 10000 || wait.StableWindowMS < 0 || wait.StableWindowMS > wait.MaxWaitMS {
+				return ModelObligation{}, errors.New("async_wait polling bounds exceed step_timeout_ms or allowed limits")
+			}
+			if wait.UntilState != "" && x.kinds[wait.UntilState] != "state" {
+				return ModelObligation{}, fmt.Errorf("async_wait until_state %s is not in model", wait.UntilState)
+			}
+			for _, st := range wait.AllowedIntermediateStates {
+				if x.kinds[st] != "state" {
+					return ModelObligation{}, fmt.Errorf("async_wait allowed_intermediate_states %s is not in model", st)
+				}
+			}
+			if wait.UntilState == "" && len(wait.UntilConditions) == 0 && len(wait.UntilChecks) == 0 {
+				return ModelObligation{}, errors.New("async_wait requires at least one convergence condition")
+			}
+			for _, check := range wait.UntilChecks {
+				if err := validatePropertyCheck(check, step.Oracles, wait.OracleID); err != nil {
+					return ModelObligation{}, err
+				}
 			}
 		}
 	}
@@ -462,29 +565,370 @@ func credential(ref string) (string, error) {
 	return value, nil
 }
 
+func validatePropertyCheck(check PropertyCheck, oracles []OracleAdapter, requiredOracle string) error {
+	if check.Left == "" || (check.Right == "") == (len(check.Value) == 0) {
+		return errors.New("property check requires left and exactly one right/value")
+	}
+	switch check.Operator {
+	case compareEqual, compareNotEqual, compareLess, compareLessEqual, compareGreater, compareGreaterEqual:
+	default:
+		return fmt.Errorf("invalid property operator %q", check.Operator)
+	}
+	if len(check.Value) != 0 && !json.Valid(check.Value) {
+		return errors.New("property check has invalid comparison value")
+	}
+	checkMeasurement := func(name string) bool {
+		if name == "" {
+			return true
+		}
+		for _, oracle := range oracles {
+			if requiredOracle != "" && oracle.ID != requiredOracle {
+				continue
+			}
+			if oracle.Measurements[name] != "" {
+				return true
+			}
+		}
+		return false
+	}
+	if !checkMeasurement(check.Left) || !checkMeasurement(check.Right) {
+		return fmt.Errorf("property check measurement %s/%s is missing from step oracle", check.Left, check.Right)
+	}
+	return nil
+}
+
 type AdapterOutput struct {
 	Body                          []byte
 	StatusCode, ExitCode          int
 	Denied                        bool
 	RequestSHA256, ResponseSHA256 string
+	TemplateSHA256                string
+	ResolvedPath                  string
+	ResolvedInput                 json.RawMessage
+	Substitutions                 map[string]string
 	Started, Completed            string
+	ResponseHeaders               http.Header
+	ResponseCookies               map[string]string
+}
+
+type execSession struct {
+	vars         map[string]ExtractedBinding
+	redactedVals map[string]string
+	cookies      map[string]http.CookieJar
+	entities     map[string]EntityBinding
+	sessions     map[string]SessionBinding
+	actors       map[string]ParticipantBinding
+	runID        string
+	nonce        string
+}
+
+func newExecSession(runID string, participants []ParticipantBinding) *execSession {
+	actors := make(map[string]ParticipantBinding, len(participants))
+	for _, p := range participants {
+		actors[p.Alias] = p
+	}
+	return &execSession{
+		vars:         map[string]ExtractedBinding{},
+		redactedVals: map[string]string{},
+		cookies:      map[string]http.CookieJar{},
+		entities:     map[string]EntityBinding{},
+		sessions:     map[string]SessionBinding{},
+		actors:       actors,
+		runID:        runID,
+		nonce:        digestBytes([]byte(runID))[:12],
+	}
+}
+
+func (s *execSession) cookieJar(scope string) http.CookieJar {
+	if s == nil {
+		return nil
+	}
+	if scope == "" {
+		scope = "primary"
+	}
+	jar, ok := s.cookies[scope]
+	if !ok {
+		jar, _ = cookiejar.New(nil)
+		s.cookies[scope] = jar
+	}
+	return jar
+}
+
+func (s *execSession) entitySlice() []EntityBinding {
+	if s == nil || len(s.entities) == 0 {
+		return nil
+	}
+	keys := make([]string, 0, len(s.entities))
+	for k := range s.entities {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	out := make([]EntityBinding, 0, len(keys))
+	for _, k := range keys {
+		out = append(out, s.entities[k])
+	}
+	return out
+}
+
+func (s *execSession) sessionSlice() []SessionBinding {
+	if s == nil || len(s.sessions) == 0 {
+		return nil
+	}
+	keys := make([]string, 0, len(s.sessions))
+	for k := range s.sessions {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	out := make([]SessionBinding, 0, len(keys))
+	for _, k := range keys {
+		out = append(out, s.sessions[k])
+	}
+	return out
+}
+
+var templatePattern = regexp.MustCompile(`\{\{([a-zA-Z0-9_.-]+)\}\}`)
+
+func (s *execSession) resolvePlaceholder(key string) (actual string, redacted string, isRedacted bool, err error) {
+	if s == nil {
+		return "", "", false, fmt.Errorf("template placeholder {{%s}} requires active execution session", key)
+	}
+	switch {
+	case key == "run.id":
+		return s.runID, s.runID, false, nil
+	case key == "run.nonce":
+		return s.nonce, s.nonce, false, nil
+	case strings.HasPrefix(key, "var."):
+		name := strings.TrimPrefix(key, "var.")
+		binding, found := s.vars[name]
+		if !found {
+			return "", "", false, fmt.Errorf("unbound variable placeholder {{%s}}", key)
+		}
+		if binding.Redacted {
+			val := s.redactedVals["var:"+name]
+			if val == "" {
+				return "", "", true, fmt.Errorf("redacted variable {{%s}} is unavailable in memory", key)
+			}
+			return val, "[REDACTED:" + binding.SHA256[:12] + "]", true, nil
+		}
+		return binding.Value, binding.Value, false, nil
+	case strings.HasPrefix(key, "actor."):
+		parts := strings.Split(strings.TrimPrefix(key, "actor."), ".")
+		if len(parts) != 2 {
+			return "", "", false, fmt.Errorf("invalid actor placeholder {{%s}}", key)
+		}
+		actor, found := s.actors[parts[0]]
+		if !found {
+			return "", "", false, fmt.Errorf("unknown participant alias in {{%s}}", key)
+		}
+		switch parts[1] {
+		case "principal":
+			return actor.Principal, actor.Principal, false, nil
+		case "account":
+			return actor.Account, actor.Account, false, nil
+		case "role":
+			return actor.Role, actor.Role, false, nil
+		default:
+			return "", "", false, fmt.Errorf("unsupported actor attribute in {{%s}}", key)
+		}
+	default:
+		return "", "", false, fmt.Errorf("unknown template placeholder {{%s}}", key)
+	}
+}
+
+func jsonStringEscape(s string) string {
+	encoded, err := json.Marshal(s)
+	if err != nil || len(encoded) < 2 {
+		return s
+	}
+	return string(encoded[1 : len(encoded)-1])
+}
+
+func renderTemplateString(input string, sess *execSession, jsonEscape bool, subs map[string]string) (string, string, error) {
+	if !strings.Contains(input, "{{") {
+		return input, input, nil
+	}
+	matches := templatePattern.FindAllStringSubmatchIndex(input, -1)
+	if len(matches) == 0 {
+		return "", "", fmt.Errorf("malformed template placeholder in %q", input)
+	}
+	var actualBuf, redactedBuf strings.Builder
+	last := 0
+	for _, m := range matches {
+		actualBuf.WriteString(input[last:m[0]])
+		redactedBuf.WriteString(input[last:m[0]])
+		key := input[m[2]:m[3]]
+		actualVal, redactedVal, _, err := sess.resolvePlaceholder(key)
+		if err != nil {
+			return "", "", err
+		}
+		if subs != nil {
+			subs[key] = redactedVal
+		}
+		if jsonEscape {
+			actualVal = jsonStringEscape(actualVal)
+			redactedVal = jsonStringEscape(redactedVal)
+		}
+		actualBuf.WriteString(actualVal)
+		redactedBuf.WriteString(redactedVal)
+		last = m[1]
+	}
+	actualBuf.WriteString(input[last:])
+	redactedBuf.WriteString(input[last:])
+	if strings.Contains(actualBuf.String(), "{{") {
+		return "", "", errors.New("unresolved or malformed template placeholder remains after substitution")
+	}
+	return actualBuf.String(), redactedBuf.String(), nil
+}
+
+func applySubstitutionsToCall(call AdapterCall, subs map[string]string) (AdapterCall, error) {
+	rendered := call
+	replaceStr := func(s string, jsonEscape bool) (string, error) {
+		if !strings.Contains(s, "{{") {
+			return s, nil
+		}
+		matches := templatePattern.FindAllStringSubmatchIndex(s, -1)
+		if len(matches) == 0 {
+			return "", fmt.Errorf("malformed template placeholder in %q", s)
+		}
+		var b strings.Builder
+		last := 0
+		for _, m := range matches {
+			b.WriteString(s[last:m[0]])
+			key := s[m[2]:m[3]]
+			val, ok := subs[key]
+			if !ok {
+				return "", fmt.Errorf("missing recorded substitution for {{%s}}", key)
+			}
+			if jsonEscape {
+				val = jsonStringEscape(val)
+			}
+			b.WriteString(val)
+			last = m[1]
+		}
+		b.WriteString(s[last:])
+		if strings.Contains(b.String(), "{{") {
+			return "", errors.New("unresolved placeholder remains in call")
+		}
+		return b.String(), nil
+	}
+	var err error
+	if rendered.Path, err = replaceStr(call.Path, false); err != nil {
+		return rendered, err
+	}
+	if len(call.Body) > 0 {
+		bodyStr, err := replaceStr(string(call.Body), true)
+		if err != nil {
+			return rendered, err
+		}
+		if !json.Valid([]byte(bodyStr)) {
+			return rendered, errors.New("substituted JSON body is invalid")
+		}
+		rendered.Body = json.RawMessage(bodyStr)
+	}
+	if len(call.Headers) > 0 {
+		rendered.Headers = make(map[string]string, len(call.Headers))
+		for k, v := range call.Headers {
+			rv, err := replaceStr(v, false)
+			if err != nil {
+				return rendered, err
+			}
+			rendered.Headers[k] = rv
+		}
+	}
+	if len(call.Args) > 0 {
+		rendered.Args = make([]string, len(call.Args))
+		for i, arg := range call.Args {
+			ra, err := replaceStr(arg, false)
+			if err != nil {
+				return rendered, err
+			}
+			rendered.Args[i] = ra
+		}
+	}
+	return rendered, nil
+}
+
+func renderCallWithSession(call AdapterCall, sess *execSession) (actual AdapterCall, redacted AdapterCall, templateSHA string, subs map[string]string, err error) {
+	tmplBytes, err := json.Marshal(call)
+	if err != nil {
+		return call, call, "", nil, err
+	}
+	templateSHA = digestBytes(tmplBytes)
+	actual = call
+	redacted = call
+	subs = map[string]string{}
+	actual.Path, redacted.Path, err = renderTemplateString(call.Path, sess, false, subs)
+	if err != nil {
+		return call, call, templateSHA, nil, err
+	}
+	if len(call.Body) > 0 {
+		aBody, rBody, err := renderTemplateString(string(call.Body), sess, true, subs)
+		if err != nil {
+			return call, call, templateSHA, nil, err
+		}
+		if !json.Valid([]byte(aBody)) || !json.Valid([]byte(rBody)) {
+			return call, call, templateSHA, nil, errors.New("rendered adapter JSON body is invalid")
+		}
+		actual.Body = json.RawMessage(aBody)
+		redacted.Body = json.RawMessage(rBody)
+	}
+	if len(call.Headers) > 0 {
+		actual.Headers = make(map[string]string, len(call.Headers))
+		redacted.Headers = make(map[string]string, len(call.Headers))
+		for k, v := range call.Headers {
+			av, rv, err := renderTemplateString(v, sess, false, subs)
+			if err != nil {
+				return call, call, templateSHA, nil, err
+			}
+			actual.Headers[k] = av
+			redacted.Headers[k] = rv
+		}
+	}
+	if len(call.Args) > 0 {
+		actual.Args = make([]string, len(call.Args))
+		redacted.Args = make([]string, len(call.Args))
+		for i, arg := range call.Args {
+			aa, ra, err := renderTemplateString(arg, sess, false, subs)
+			if err != nil {
+				return call, call, templateSHA, nil, err
+			}
+			actual.Args[i] = aa
+			redacted.Args[i] = ra
+		}
+	}
+	if len(subs) == 0 {
+		subs = nil
+	}
+	return actual, redacted, templateSHA, subs, nil
 }
 
 func performCall(ctx context.Context, call AdapterCall, binding RunBinding, account Fixture) (output AdapterOutput, err error) {
+	return performCallWithSession(ctx, call, binding, account, "", nil)
+}
+
+func performCallWithSession(ctx context.Context, call AdapterCall, binding RunBinding, account Fixture, actor string, sess *execSession) (output AdapterOutput, err error) {
 	output = AdapterOutput{Started: time.Now().UTC().Format(time.RFC3339Nano)}
 	defer func() { output.Completed = time.Now().UTC().Format(time.RFC3339Nano) }()
-	input, err := json.Marshal(call)
+	actualCall, redactedCall, templateSHA, subs, err := renderCallWithSession(call, sess)
 	if err != nil {
 		return output, err
 	}
-	output.RequestSHA256 = digestBytes(input)
-	switch call.Kind {
+	redactedBytes, err := json.Marshal(redactedCall)
+	if err != nil {
+		return output, err
+	}
+	output.TemplateSHA256 = templateSHA
+	output.RequestSHA256 = digestBytes(redactedBytes)
+	output.ResolvedPath = redactedCall.Path
+	output.ResolvedInput = redactedCall.Body
+	output.Substitutions = subs
+	switch actualCall.Kind {
 	case adapterHTTP:
 		base, err := url.Parse(binding.Identity.Target)
 		if err != nil {
 			return output, err
 		}
-		ref, err := url.Parse(call.Path)
+		ref, err := url.Parse(actualCall.Path)
 		if err != nil {
 			return output, err
 		}
@@ -492,21 +936,24 @@ func performCall(ctx context.Context, call AdapterCall, binding RunBinding, acco
 		base.Path = strings.TrimRight(base.Path, "/") + ref.Path
 		base.RawPath = encodedPath
 		base.RawQuery = ref.RawQuery
-		request, err := http.NewRequestWithContext(ctx, call.Method, base.String(), bytes.NewReader(call.Body))
+		request, err := http.NewRequestWithContext(ctx, actualCall.Method, base.String(), bytes.NewReader(actualCall.Body))
 		if err != nil {
 			return output, err
 		}
-		if len(call.Body) > 0 {
+		if len(actualCall.Body) > 0 {
 			request.Header.Set("Content-Type", "application/json")
 		}
-		for header, ref := range call.HeaderRefs {
+		for header, value := range actualCall.Headers {
+			request.Header.Set(header, value)
+		}
+		for header, ref := range actualCall.HeaderRefs {
 			value, err := credential(ref)
 			if err != nil {
 				return output, err
 			}
 			request.Header.Set(header, value)
 		}
-		if call.CredentialHeader != "" {
+		if actualCall.CredentialHeader != "" {
 			if account.SecretRef == "" {
 				return output, errors.New("declared account credential is unavailable")
 			}
@@ -514,15 +961,37 @@ func performCall(ctx context.Context, call AdapterCall, binding RunBinding, acco
 			if err != nil {
 				return output, err
 			}
-			request.Header.Set(call.CredentialHeader, call.CredentialPrefix+value)
+			request.Header.Set(actualCall.CredentialHeader, actualCall.CredentialPrefix+value)
+		}
+		if actualCall.SessionScope != "" && sess != nil {
+			if secretVal, ok := sess.redactedVals["session:"+actualCall.SessionScope]; ok && secretVal != "" {
+				headerName := firstNonEmpty(actualCall.SessionHeader, "Authorization")
+				prefix := actualCall.SessionPrefix
+				if actualCall.SessionHeader == "" && prefix == "" {
+					prefix = "Bearer "
+				}
+				request.Header.Set(headerName, prefix+secretVal)
+			} else if !actualCall.RetainSession {
+				return output, fmt.Errorf("session scope %s has no active session credential", actualCall.SessionScope)
+			}
 		}
 		client := http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+		if (actualCall.RetainSession || actualCall.SessionScope != "") && sess != nil {
+			client.Jar = sess.cookieJar(firstNonEmpty(actualCall.SessionScope, actor))
+		}
 		response, err := client.Do(request)
 		if err != nil {
 			return output, fmt.Errorf("HTTP adapter transport: %w", err)
 		}
 		defer response.Body.Close()
 		output.StatusCode = response.StatusCode
+		output.ResponseHeaders = response.Header.Clone()
+		if len(response.Cookies()) > 0 {
+			output.ResponseCookies = map[string]string{}
+			for _, ck := range response.Cookies() {
+				output.ResponseCookies[ck.Name] = ck.Value
+			}
+		}
 		body, err := io.ReadAll(io.LimitReader(response.Body, (4<<20)+1))
 		if err != nil {
 			return output, err
@@ -533,12 +1002,12 @@ func performCall(ctx context.Context, call AdapterCall, binding RunBinding, acco
 		output.Body = body
 		output.ResponseSHA256 = digestBytes(body)
 		accepted := false
-		for _, status := range call.SuccessStatuses {
+		for _, status := range actualCall.SuccessStatuses {
 			if status == response.StatusCode {
 				accepted = true
 			}
 		}
-		for _, status := range call.RejectionStatuses {
+		for _, status := range actualCall.RejectionStatuses {
 			if status == response.StatusCode {
 				accepted = true
 				output.Denied = true
@@ -548,15 +1017,15 @@ func performCall(ctx context.Context, call AdapterCall, binding RunBinding, acco
 			return output, fmt.Errorf("HTTP adapter status %d is outside the declared contract", response.StatusCode)
 		}
 	case adapterCommand:
-		command := exec.CommandContext(ctx, call.Args[0], call.Args[1:]...)
-		command.Dir = call.Directory
+		command := exec.CommandContext(ctx, actualCall.Args[0], actualCall.Args[1:]...)
+		command.Dir = actualCall.Directory
 		if command.Dir == "" {
 			command.Dir = binding.SourceRoot
 		} else if !filepath.IsAbs(command.Dir) {
 			command.Dir = filepath.Join(binding.SourceRoot, command.Dir)
 		}
 		command.Env = []string{"PATH=" + os.Getenv("PATH"), "LANG=C.UTF-8", "ARC_VERIFY_TARGET=" + binding.Identity.Target, "ARC_VERIFY_PRINCIPAL=" + account.Refs["principal"], "ARC_VERIFY_FIXTURE=" + binding.Identity.Fixture}
-		for name, ref := range call.EnvRefs {
+		for name, ref := range actualCall.EnvRefs {
 			value, err := credential(ref)
 			if err != nil {
 				return output, err
@@ -580,7 +1049,7 @@ func performCall(ctx context.Context, call AdapterCall, binding RunBinding, acco
 			output.ExitCode = command.ProcessState.ExitCode()
 		}
 		accepted := false
-		for _, code := range call.SuccessExitCodes {
+		for _, code := range actualCall.SuccessExitCodes {
 			if code == output.ExitCode {
 				accepted = true
 			}
@@ -651,77 +1120,231 @@ func jsonPointer(raw json.RawMessage, pointer string) (json.RawMessage, error) {
 }
 
 func readOracle(ctx context.Context, oracle OracleAdapter, binding RunBinding, account Fixture, scope string) (IndependentFacts, string, error) {
+	facts, hash, _, err := readOracleWithSession(ctx, oracle, binding, account, "", scope, nil)
+	return facts, hash, err
+}
+
+func readOracleWithSession(ctx context.Context, oracle OracleAdapter, binding RunBinding, account Fixture, actor, scope string, sess *execSession) (IndependentFacts, string, json.RawMessage, error) {
 	facts := IndependentFacts{Conditions: ObservedConditions{}, Values: map[string]json.RawMessage{}}
-	output, err := performCall(ctx, oracle.Call, binding, account)
+	output, err := performCallWithSession(ctx, oracle.Call, binding, account, actor, sess)
 	if err != nil {
-		return facts, "", err
+		return facts, "", nil, err
 	}
 	var document json.RawMessage
 	if err := decodeUniqueJSON(output.Body, &document); err != nil {
-		return facts, "", fmt.Errorf("oracle response: %w", err)
+		return facts, "", nil, fmt.Errorf("oracle response: %w", err)
 	}
 	state, err := jsonPointer(document, oracle.StatePath)
 	if err != nil {
-		return facts, "", err
+		return facts, "", document, err
 	}
 	if err = json.Unmarshal(state, &facts.State); err != nil || facts.State == "" {
-		return facts, "", errors.New("oracle state must be a nonempty string")
+		return facts, "", document, errors.New("oracle state must be a nonempty string")
 	}
 	principal, err := jsonPointer(document, oracle.PrincipalPath)
 	if err != nil {
-		return facts, "", err
+		return facts, "", document, err
 	}
 	if err = json.Unmarshal(principal, &facts.Principal); err != nil || facts.Principal != account.Refs["principal"] {
-		return facts, "", errors.New("independent oracle principal differs from the registered execution account")
+		return facts, "", document, errors.New("independent oracle principal differs from the registered execution account")
 	}
 	role, err := jsonPointer(document, oracle.RolePath)
 	if err != nil {
-		return facts, "", err
+		return facts, "", document, err
 	}
 	if err = json.Unmarshal(role, &facts.Role); err != nil || facts.Role != account.Refs["role"] {
-		return facts, "", errors.New("independent oracle role differs from the registered execution account")
+		return facts, "", document, errors.New("independent oracle role differs from the registered execution account")
 	}
 	observedScope, err := jsonPointer(document, oracle.ScopePath)
 	if err != nil {
-		return facts, "", err
+		return facts, "", document, err
 	}
 	if err = json.Unmarshal(observedScope, &facts.Scope); err != nil || facts.Scope != scope {
-		return facts, "", errors.New("independent oracle fixture scope differs from the registered isolated resource")
+		return facts, "", document, errors.New("independent oracle fixture scope differs from the registered isolated resource")
 	}
 	for condition, path := range oracle.Conditions {
 		raw, err := jsonPointer(document, path)
 		if err != nil {
-			return facts, "", err
+			return facts, "", document, err
 		}
 		var value *bool
 		if err = json.Unmarshal(raw, &value); err != nil || value == nil {
-			return facts, "", errors.New("oracle condition must be an observed boolean")
+			return facts, "", document, errors.New("oracle condition must be an observed boolean")
 		}
 		facts.Conditions[condition] = *value
 	}
 	for name, path := range oracle.Measurements {
 		raw, err := jsonPointer(document, path)
 		if err != nil {
-			return facts, "", err
+			return facts, "", document, err
 		}
 		if len(raw) > 65536 {
-			return facts, "", errors.New("oracle measurement exceeds 64 KiB")
+			return facts, "", document, errors.New("oracle measurement exceeds 64 KiB")
 		}
 		facts.Values[name] = append(json.RawMessage(nil), raw...)
 	}
 	body, err := json.Marshal(facts)
 	if err != nil {
-		return facts, "", err
+		return facts, "", document, err
 	}
 	if len(body) > 512<<10 {
-		return facts, "", errors.New("normalized oracle facts exceed 512 KiB")
+		return facts, "", document, errors.New("normalized oracle facts exceed 512 KiB")
 	}
 	var value any
 	if err := decodeUniqueJSON(body, &value); err != nil {
-		return facts, "", err
+		return facts, "", document, err
 	}
 	if hasSensitiveKey(value) {
-		return facts, "", errors.New("oracle facts contain credential-like fields")
+		return facts, "", document, errors.New("oracle facts contain credential-like fields")
 	}
-	return facts, output.ResponseSHA256, nil
+	return facts, output.ResponseSHA256, document, nil
+}
+
+func scalarJSONString(raw json.RawMessage) (string, error) {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || string(trimmed) == "null" {
+		return "", errors.New("extracted value is empty or null")
+	}
+	if trimmed[0] == '"' {
+		var s string
+		if err := json.Unmarshal(trimmed, &s); err != nil {
+			return "", err
+		}
+		if s == "" {
+			return "", errors.New("extracted string is empty")
+		}
+		return s, nil
+	}
+	if trimmed[0] == '{' || trimmed[0] == '[' {
+		return "", errors.New("extracted value must be scalar")
+	}
+	return string(trimmed), nil
+}
+
+func applyExtractions(rules []ExtractRule, stepIdx int, defaultActor string, output *AdapterOutput, oracleDocs map[string]json.RawMessage, sess *execSession) ([]ExtractedBinding, error) {
+	if len(rules) == 0 || sess == nil {
+		return nil, nil
+	}
+	out := make([]ExtractedBinding, 0, len(rules))
+	var responseDoc json.RawMessage
+	responseParsed := false
+	for _, ext := range rules {
+		var rawValue string
+		var extractErr error
+		switch ext.Source {
+		case "response_body":
+			if output == nil {
+				extractErr = errors.New("no action response body for extraction")
+				break
+			}
+			if !responseParsed {
+				if err := decodeUniqueJSON(output.Body, &responseDoc); err != nil {
+					extractErr = fmt.Errorf("extract %s response JSON: %w", ext.Name, err)
+					break
+				}
+				responseParsed = true
+			}
+			sel, err := jsonPointer(responseDoc, ext.Path)
+			if err != nil {
+				extractErr = err
+				break
+			}
+			rawValue, extractErr = scalarJSONString(sel)
+		case "response_header":
+			if output == nil || output.ResponseHeaders == nil {
+				extractErr = errors.New("no response headers for extraction")
+				break
+			}
+			rawValue = strings.TrimSpace(output.ResponseHeaders.Get(ext.Path))
+			if rawValue == "" {
+				extractErr = fmt.Errorf("header %s is missing", ext.Path)
+			}
+		case "state_cookie":
+			if output == nil || output.ResponseCookies == nil {
+				extractErr = errors.New("no response cookies for extraction")
+				break
+			}
+			rawValue = strings.TrimSpace(output.ResponseCookies[ext.Path])
+			if rawValue == "" {
+				extractErr = fmt.Errorf("cookie %s is missing", ext.Path)
+			}
+		case "oracle":
+			doc, ok := oracleDocs[ext.OracleID]
+			if !ok {
+				extractErr = fmt.Errorf("oracle %s response unavailable for extraction", ext.OracleID)
+				break
+			}
+			sel, err := jsonPointer(doc, ext.Path)
+			if err != nil {
+				extractErr = err
+				break
+			}
+			rawValue, extractErr = scalarJSONString(sel)
+		default:
+			extractErr = fmt.Errorf("unsupported extract source %q", ext.Source)
+		}
+		if extractErr != nil {
+			if ext.Required {
+				return out, fmt.Errorf("extract %s: %w", ext.Name, extractErr)
+			}
+			continue
+		}
+		digest := digestBytes([]byte(rawValue))
+		ownerActor := firstNonEmpty(ext.OwnerActor, defaultActor)
+		ownerPrincipal := sess.actors[ownerActor].Principal
+		item := ExtractedBinding{
+			Name:           ext.Name,
+			Source:         ext.Source,
+			Path:           ext.Path,
+			SHA256:         digest,
+			Redacted:       ext.Redact,
+			EntityKind:     ext.EntityKind,
+			EntityAlias:    firstNonEmpty(ext.EntityAlias, ext.Name),
+			OwnerActor:     ownerActor,
+			OwnerPrincipal: ownerPrincipal,
+			Step:           stepIdx,
+		}
+		if ext.Redact {
+			sess.redactedVals["var:"+ext.Name] = rawValue
+			if ext.SessionScope != "" {
+				sess.redactedVals["session:"+ext.SessionScope] = rawValue
+				sess.sessions[ext.SessionScope] = SessionBinding{
+					Scope:        ext.SessionScope,
+					Actor:        ownerActor,
+					Principal:    ownerPrincipal,
+					AcquiredStep: stepIdx,
+					Digest:       digest,
+					Active:       true,
+				}
+			}
+		} else {
+			item.Value = rawValue
+			if ext.SessionScope != "" {
+				sess.redactedVals["session:"+ext.SessionScope] = rawValue
+				sess.sessions[ext.SessionScope] = SessionBinding{
+					Scope:        ext.SessionScope,
+					Actor:        ownerActor,
+					Principal:    ownerPrincipal,
+					AcquiredStep: stepIdx,
+					Digest:       digest,
+					Active:       true,
+				}
+			}
+			if ext.EntityKind != "" {
+				alias := firstNonEmpty(ext.EntityAlias, ext.Name)
+				sess.entities[alias] = EntityBinding{
+					Alias:          alias,
+					Kind:           ext.EntityKind,
+					ID:             rawValue,
+					OwnerActor:     ownerActor,
+					OwnerPrincipal: ownerPrincipal,
+					SourceStep:     stepIdx,
+					SourceField:    ext.Source + ":" + ext.Path,
+				}
+			}
+		}
+		sess.vars[ext.Name] = item
+		out = append(out, item)
+	}
+	return out, nil
 }

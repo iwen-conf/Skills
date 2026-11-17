@@ -59,6 +59,7 @@ export interface Transition {
 export interface Flow {
   id: string;
   capability: string;
+  capabilities?: string[];
   initial: string;
 }
 export interface Actor {
@@ -110,6 +111,7 @@ export interface Model {
   history?: unknown[];
   equivalence?: unknown;
   reference_bindings?: unknown[];
+  condition_subjects?: unknown[];
 }
 
 export interface Readiness {

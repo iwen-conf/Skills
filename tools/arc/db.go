@@ -44,8 +44,10 @@ var arcSchema = []string{
 	`CREATE TABLE IF NOT EXISTS arc_change_files (change_id TEXT NOT NULL, path TEXT NOT NULL, sha256 TEXT NOT NULL, operation TEXT NOT NULL, PRIMARY KEY (change_id,path))`,
 	`CREATE TABLE IF NOT EXISTS arc_events (id TEXT PRIMARY KEY, aggregate TEXT NOT NULL, aggregate_id TEXT NOT NULL, kind TEXT NOT NULL, payload TEXT NOT NULL, created TEXT NOT NULL)`,
 	`CREATE TABLE IF NOT EXISTS arc_outbox (event_id TEXT PRIMARY KEY, status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0)`,
+	`CREATE TABLE IF NOT EXISTS arc_task_obligations (arc_task_id TEXT NOT NULL, graph TEXT NOT NULL, obligation_id TEXT NOT NULL, verify_task_id TEXT NOT NULL DEFAULT '', updated TEXT NOT NULL, PRIMARY KEY(arc_task_id,graph,obligation_id))`,
 	`CREATE INDEX IF NOT EXISTS arc_events_aggregate ON arc_events(aggregate,aggregate_id,created)`,
 	`CREATE INDEX IF NOT EXISTS arc_changes_task ON arc_changes(task,created)`,
+	`CREATE INDEX IF NOT EXISTS arc_task_obligations_verify ON arc_task_obligations(graph,obligation_id,verify_task_id)`,
 }
 
 func repositoryRoot(arg string) (string, error) {

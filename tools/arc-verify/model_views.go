@@ -356,7 +356,9 @@ func modelImpact(g Graph, changed []string) (ImpactReport, error) {
 		}
 	}
 	for _, flow := range g.Flows {
-		propagation[flow.ID] = append(propagation[flow.ID], flow.Capability)
+		for _, capability := range flowCapabilities(flow) {
+			propagation[flow.ID] = append(propagation[flow.ID], capability)
+		}
 	}
 	for _, invariant := range g.Invariants {
 		for _, scope := range invariant.Scope {

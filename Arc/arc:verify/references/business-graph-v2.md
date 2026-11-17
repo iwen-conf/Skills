@@ -55,21 +55,12 @@ arc verify execute --task "$VERIFY_TASK" --runner "$VERIFY_RUNNER" --round "$VER
   --commit "$VERIFY_COMMIT" --account "$VERIFY_ACCOUNT" --fixture "$VERIFY_FIXTURE"
 # Set VERIFY_RUN to response run; inspect verdict and recovery.verdict, even with exit 0.
 arc verify trace --run "$VERIFY_RUN"
+arc verify explain --run "$VERIFY_RUN" # or --graph "$VERIFY_GRAPH" --node "$VERIFY_NODE"
 arc verify gate --graph "$VERIFY_GRAPH"
 ```
 
-Multi-actor cards also need `--accounts` with the card's registered account aliases. A single card
-PASS is not whole-graph PASS: gate remains non-PASS/exit 1 until every required obligation has
-current evidence. Changing fixtures/runners requires a new round; never combine evidence across
-rounds. For a static workbench, export `snapshot --graph "$VERIFY_GRAPH" --round "$VERIFY_ROUND"`
-with built workbench `--assets` after inspecting the verdict.
+Multi-actor cards add `--accounts`. Models support cross-capability `flows[].capabilities` and `condition_subjects[]`; runners support `setup` sessions, `extract` (`{{var.<name>}}`), and bounded `async_wait`. Offline facts (`step_facts`, `step_assertions`, `run_entity_bindings`) persist across execute/setup/recovery/explore; link tasks via `arc task link-verify` / `verify-status`.
 
-The existing isolated CLI check is `go -C tools/arc-verify test -count=1 -run
-'^TestExecuteUsesIndependentOracleAndRestoresFixture$' .`; it creates synthetic requirements,
-fixtures and a local HTTP target, then exercises runner/round/plan/execute and independent recovery.
-It does not approve real product RULEs or prove the target project's E2E.
+Single-card PASS and partial `run-chain` subsets are not whole-graph PASS (`gate` / `completeness` check full obligations). New fixtures/runners require a new round; export static workbench with `snapshot --graph "$VERIFY_GRAPH" --round "$VERIFY_ROUND" --assets ...`.
 
-Switching Agents uses the existing project Markdown progress, not ACP/file handshakes or a model
-service. Business discovery follows graph-start. Keep Campaign/Checkpoint/Frontier, fencing,
-Attempt IDs and independent Oracle for safe test recovery. Adapter declarations never prove an
-observed action. Use heuristic/deterministic; `--mode ai --planner FILE` remains scripted-only.
+Synthetic CLI check: `go -C tools/arc-verify test -count=1 -run '^TestExecuteUsesIndependentOracleAndRestoresFixture$' .` (tool check only, not product E2E). Keep Campaign/Checkpoint/Frontier, Attempt IDs, and independent Oracle; `--mode ai --planner FILE` is scripted-only.

@@ -71,6 +71,9 @@ func resourceCommand(kind string, args []string) error {
 	task := fs.String("task", "", "optional owning task id")
 	worktree := fs.String("worktree", ".", "Git worktree path")
 	changedOnly := fs.Bool("changed-only", false, "collect only Git working tree changes")
+	graphFlag := fs.String("graph", "", "business graph id for link-verify")
+	obligationFlag := fs.String("obligation", "", "verify obligation id for link-verify")
+	verifyTaskFlag := fs.String("verify-task", "", "optional verify task id override for link-verify")
 	if err := fs.Parse(parseArgs); err != nil { return err }
 	// IDs/paths can be positional, but flags must precede any positional args.
 	if len(fs.Args()) > 1 { return fmt.Errorf("too many positional arguments: %v", fs.Args()) }
@@ -102,6 +105,8 @@ func resourceCommand(kind string, args []string) error {
 		case "task":
 			if completion != nil { return commitTaskCompletion(db,root,*idFlag,*expected,*completion) }
 			if action == "show" { return showTaskWithProof(db,root,*idFlag) }
+			if action == "link-verify" { return linkTaskVerify(db, *idFlag, *graphFlag, *obligationFlag, *verifyTaskFlag) }
+			if action == "verify-status" { return showTaskVerifyStatus(db, *idFlag) }
 			return executeTask(db, action, *idFlag, *title, *to, *expected)
 		case "file":
 			switch action {
@@ -208,7 +213,7 @@ func executeTask(db *sql.DB, action, id, title, to string, expected int) error {
 		if err := tx.Commit();err!=nil{return err}
 		return emitJSON(map[string]any{"id":id,"status":to,"version":version+1})
 	default:
-		return fmt.Errorf("unsupported task action %q (create|ensure|show|transition|complete)",action)
+		return fmt.Errorf("unsupported task action %q (create|ensure|show|transition|complete|link-verify|verify-status)",action)
 	}
 }
 
@@ -377,4 +382,159 @@ func showChange(db *sql.DB,id string) error {
 	for rows.Next(){var p,h,op string;if err:=rows.Scan(&p,&h,&op);err!=nil{return err};paths=append(paths,map[string]string{"path":p,"sha256":h,"operation":op})}
 	if err:=rows.Err();err!=nil{return err}
 	return emitJSON(map[string]any{"id":id,"task":task,"status":status,"revision":rev,"created":created,"files":paths})
+}
+
+func arcTableExists(ctx context.Context, db *sql.DB, name string) (bool, error) {
+	var found string
+	err := db.QueryRowContext(ctx, "SELECT name FROM sqlite_master WHERE type='table' AND name=?", name).Scan(&found)
+	if errors.Is(err, sql.ErrNoRows) { return false, nil }
+	if err != nil { return false, err }
+	return found == name, nil
+}
+
+func ensureArcTaskObligations(ctx context.Context, db *sql.DB) error {
+	for _, stmt := range []string{
+		`CREATE TABLE IF NOT EXISTS arc_task_obligations (arc_task_id TEXT NOT NULL, graph TEXT NOT NULL, obligation_id TEXT NOT NULL, verify_task_id TEXT NOT NULL DEFAULT '', updated TEXT NOT NULL, PRIMARY KEY(arc_task_id,graph,obligation_id))`,
+		`CREATE INDEX IF NOT EXISTS arc_task_obligations_verify ON arc_task_obligations(graph,obligation_id,verify_task_id)`,
+	} {
+		if _, err := db.ExecContext(ctx, stmt); err != nil { return err }
+	}
+	return nil
+}
+
+func linkTaskVerify(db *sql.DB, taskID, graph, obligation, verifyTask string) error {
+	if taskID == "" || graph == "" || obligation == "" {
+		return errors.New("task link-verify requires --id, --graph, and --obligation")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	if err := ensureArcTaskObligations(ctx, db); err != nil { return err }
+	var currentStatus string
+	if err := db.QueryRowContext(ctx, "SELECT status FROM arc_tasks WHERE id=?", taskID).Scan(&currentStatus); err != nil {
+		return err
+	}
+	if verifyTask == "" { verifyTask = graph + "/" + obligation }
+	hasVerifyTasks, err := arcTableExists(ctx, db, "tasks")
+	if err != nil { return err }
+	verifyTaskStatus := "UNPLANNED"
+	if hasVerifyTasks {
+		var st string
+		err := db.QueryRowContext(ctx, "SELECT status FROM tasks WHERE id=?", verifyTask).Scan(&st)
+		if err == nil {
+			verifyTaskStatus = st
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+	}
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil { return err }
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx,
+		"INSERT OR REPLACE INTO arc_task_obligations(arc_task_id,graph,obligation_id,verify_task_id,updated) VALUES(?,?,?,?,?)",
+		taskID, graph, obligation, verifyTask, nowUTC()); err != nil { return err }
+	if err := addEvent(ctx, tx, "task", taskID, "task.obligation_linked", map[string]string{
+		"graph": graph, "obligation": obligation, "verify_task": verifyTask,
+	}); err != nil { return err }
+	if err := tx.Commit(); err != nil { return err }
+	return emitJSON(map[string]any{
+		"arc_task_id":        taskID,
+		"arc_task_status":    currentStatus,
+		"graph":              graph,
+		"obligation_id":      obligation,
+		"verify_task_id":     verifyTask,
+		"verify_task_status": verifyTaskStatus,
+	})
+}
+
+func showTaskVerifyStatus(db *sql.DB, taskID string) error {
+	if taskID == "" { return errors.New("task verify-status requires --id") }
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	if err := ensureArcTaskObligations(ctx, db); err != nil { return err }
+	var title, taskStatus, updated string
+	var version int
+	if err := db.QueryRowContext(ctx, "SELECT title,status,version,updated FROM arc_tasks WHERE id=?", taskID).Scan(&title, &taskStatus, &version, &updated); err != nil {
+		return err
+	}
+	type linkedRow struct{ graph, obligation, verifyTask, updated string }
+	rows, err := db.QueryContext(ctx, "SELECT graph,obligation_id,verify_task_id,updated FROM arc_task_obligations WHERE arc_task_id=? ORDER BY graph,obligation_id", taskID)
+	if err != nil { return err }
+	links := []linkedRow{}
+	for rows.Next() {
+		var r linkedRow
+		if err := rows.Scan(&r.graph, &r.obligation, &r.verifyTask, &r.updated); err != nil { rows.Close(); return err }
+		links = append(links, r)
+	}
+	if err := rows.Err(); err != nil { rows.Close(); return err }
+	rows.Close()
+
+	hasTasks, err := arcTableExists(ctx, db, "tasks")
+	if err != nil { return err }
+	hasRuns, err := arcTableExists(ctx, db, "runs")
+	if err != nil { return err }
+	hasStepFacts, err := arcTableExists(ctx, db, "step_facts")
+	if err != nil { return err }
+
+	obligations := make([]map[string]any, 0, len(links))
+	counts := map[string]int{"PASS": 0, "FAIL": 0, "BLOCKED": 0, "NOT_RUN": 0, "UNPLANNED": 0}
+	for _, link := range links {
+		vTask := link.verifyTask
+		if vTask == "" { vTask = link.graph + "/" + link.obligation }
+		entry := map[string]any{
+			"graph": link.graph, "obligation_id": link.obligation,
+			"verify_task_id": vTask, "linked_at": link.updated,
+		}
+		status := "UNPLANNED"
+		if hasTasks {
+			var tStatus, tKind, tExpected string
+			err := db.QueryRowContext(ctx, "SELECT status,kind,expected FROM tasks WHERE id=?", vTask).Scan(&tStatus, &tKind, &tExpected)
+			if err == nil {
+				status = tStatus
+				entry["kind"] = tKind
+				entry["expected"] = tExpected
+			} else if !errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
+		}
+		if hasRuns && status != "UNPLANNED" {
+			var runID, runStatus, env, commitSHA string
+			err := db.QueryRowContext(ctx, "SELECT id,status,environment,commit_sha FROM runs WHERE task=? ORDER BY id DESC LIMIT 1", vTask).Scan(&runID, &runStatus, &env, &commitSHA)
+			if err == nil {
+				entry["latest_run"] = runID
+				entry["latest_run_status"] = runStatus
+				entry["environment"] = env
+				entry["commit_sha"] = commitSHA
+				if hasStepFacts {
+					var node, obsState, verdict, reason, sha string
+					var seq, firstDiv int
+					err := db.QueryRowContext(ctx, "SELECT seq,node,observed_state,verdict,reason,first_divergence,evidence_sha256 FROM step_facts WHERE run=? ORDER BY first_divergence DESC, seq DESC LIMIT 1", runID).Scan(&seq, &node, &obsState, &verdict, &reason, &firstDiv, &sha)
+					if err == nil {
+						entry["fact"] = map[string]any{
+							"seq": seq, "node": node, "observed_state": obsState,
+							"verdict": verdict, "reason": reason,
+							"first_divergence": firstDiv == 1, "evidence_sha256": sha,
+						}
+					} else if !errors.Is(err, sql.ErrNoRows) {
+						return err
+					}
+				}
+			} else if !errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
+		}
+		entry["status"] = status
+		switch status {
+		case "PASS", "FAIL", "BLOCKED", "UNPLANNED":
+			counts[status]++
+		default:
+			counts["NOT_RUN"]++
+		}
+		obligations = append(obligations, entry)
+	}
+	return emitJSON(map[string]any{
+		"arc_task":    map[string]any{"id": taskID, "title": title, "status": taskStatus, "version": version, "updated": updated},
+		"linked":      len(links),
+		"counts":      counts,
+		"obligations": obligations,
+	})
 }
