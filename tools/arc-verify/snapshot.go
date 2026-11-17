@@ -51,19 +51,29 @@ type SnapshotEvidence struct {
 
 // SnapshotRun is a selected run's replay with its evidence.
 type SnapshotRun struct {
-	Trace    TraceReport        `json:"trace"`
-	Evidence []SnapshotEvidence `json:"evidence"`
+	Trace          TraceReport        `json:"trace"`
+	Evidence       []SnapshotEvidence `json:"evidence"`
+	Facts          []UnifiedStepFact  `json:"facts"`
+	EvidenceStatus string             `json:"evidence_status"`
+	EvidenceErrors []string           `json:"evidence_errors"`
+	Environment    string             `json:"environment"`
+	FlowID         string             `json:"flow_id,omitempty"`
+	BranchID       string             `json:"branch_id,omitempty"`
 }
 
 // Snapshot is the read-only document embedded in the static workbench page.
 type Snapshot struct {
-	Meta        SnapshotMeta                        `json:"meta"`
-	Catalog     WorkbenchCatalog                    `json:"catalog"`
-	Model       SnapshotModel                       `json:"model"`
-	Views       map[BusinessView]BusinessProjection `json:"views"`
-	Impact      *ImpactReport                       `json:"impact,omitempty"`
-	Runs        []SnapshotRun                       `json:"runs"`
-	Exploration map[string]ExplorationCoverage      `json:"exploration,omitempty"`
+	Meta              SnapshotMeta                        `json:"meta"`
+	Catalog           WorkbenchCatalog                    `json:"catalog"`
+	Model             SnapshotModel                       `json:"model"`
+	Views             map[BusinessView]BusinessProjection `json:"views"`
+	Impact            *ImpactReport                       `json:"impact,omitempty"`
+	Runs              []SnapshotRun                       `json:"runs"`
+	Exploration       map[string]ExplorationCoverage      `json:"exploration,omitempty"`
+	ContractAnalysis  *BusinessCoverageProof              `json:"contract_analysis,omitempty"`
+	ContractExecution *BusinessExecutionCoverage          `json:"contract_execution,omitempty"`
+	RunsTruncated     bool                                `json:"runs_truncated"`
+	AvailableRuns     int                                 `json:"available_runs"`
 }
 
 // SnapshotRequest selects an existing ledger context to export.
@@ -186,8 +196,17 @@ func (d db) buildSnapshot(request SnapshotRequest) (Snapshot, error) {
 	if err != nil {
 		return Snapshot{}, err
 	}
+	// Revalidate this ledger context once, then project the same facts into every
+	// view. Re-reading all RAW for each tab was both expensive and incoherent if
+	// another run completed between projections.
+	analysis, err := d.analyzeModel(g, request.Environment, request.Round)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	snapshot.ContractAnalysis = analysis.ContractProof
+	snapshot.ContractExecution = analysis.ContractExecution
 	for _, view := range []BusinessView{viewOverview, viewCapabilities, viewBoundaries, viewFlows, viewVerification, viewImpact} {
-		projection, err := d.viewModel(ViewQuery{Graph: g.ID, View: view, Environment: request.Environment, Round: request.Round, Limit: 1024})
+		projection, err := projection(g, analysis, ViewQuery{Graph: g.ID, View: view, Environment: request.Environment, Round: request.Round, Limit: 1024})
 		if err != nil {
 			return Snapshot{}, fmt.Errorf("view %s: %w", view, err)
 		}
@@ -214,14 +233,55 @@ func (d db) buildSnapshot(request SnapshotRequest) (Snapshot, error) {
 	if len(coverage) > 0 {
 		snapshot.Exploration = coverage
 	}
-	for _, run := range request.Runs {
+	selectedRuns := append([]string{}, request.Runs...)
+	where := "t.graph=" + quote(g.ID)
+	if request.Environment != "" {
+		where += " AND r.environment=" + quote(request.Environment)
+	}
+	if request.Round != "" {
+		where += " AND m.round=" + quote(request.Round)
+	}
+	count, err := d.query("SELECT COUNT(*) FROM runs r JOIN tasks t ON t.id=r.task LEFT JOIN model_runs m ON m.run=r.id WHERE "+where, 1)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	if len(count) == 1 {
+		snapshot.AvailableRuns, _ = strconv.Atoi(count[0][0])
+	}
+	if len(selectedRuns) == 0 {
+		rows, err := d.query("SELECT r.id FROM runs r JOIN tasks t ON t.id=r.task LEFT JOIN model_runs m ON m.run=r.id WHERE "+where+" ORDER BY r.rowid DESC LIMIT 32", 1)
+		if err != nil {
+			return Snapshot{}, err
+		}
+		for _, row := range rows {
+			selectedRuns = append(selectedRuns, row[0])
+		}
+	}
+	selectedRuns = uniqueRunIDsInOrder(selectedRuns)
+	snapshot.RunsTruncated = len(selectedRuns) < snapshot.AvailableRuns
+	for _, run := range selectedRuns {
 		exported, err := d.snapshotRun(g.ID, run)
 		if err != nil {
 			return Snapshot{}, err
 		}
+		if request.Environment != "" && exported.Environment != request.Environment || request.Round != "" && exported.Trace.Round != request.Round {
+			return Snapshot{}, fmt.Errorf("run %s is outside selected environment/round", run)
+		}
 		snapshot.Runs = append(snapshot.Runs, exported)
 	}
 	return snapshot, nil
+}
+
+func uniqueRunIDsInOrder(runs []string) []string {
+	result := make([]string, 0, len(runs))
+	seen := make(map[string]bool, len(runs))
+	for _, run := range runs {
+		if !seen[run] {
+			result = append(result, run)
+			seen[run] = true
+		}
+	}
+	return result
 }
 
 func (d db) snapshotModel(g Graph) (SnapshotModel, error) {
@@ -245,7 +305,7 @@ func (d db) snapshotModel(g Graph) (SnapshotModel, error) {
 // snapshotRun re-verifies every recorded RAW of a run; a RAW that fails
 // verification is exported as a failure entry, never dropped or shown as valid.
 func (d db) snapshotRun(graph, run string) (SnapshotRun, error) {
-	rows, err := d.query("SELECT t.graph FROM runs r JOIN tasks t ON t.id=r.task WHERE r.id="+quote(run), 1)
+	rows, err := d.query("SELECT t.graph,r.environment FROM runs r JOIN tasks t ON t.id=r.task WHERE r.id="+quote(run), 2)
 	if err != nil {
 		return SnapshotRun{}, err
 	}
@@ -259,12 +319,50 @@ func (d db) snapshotRun(graph, run string) (SnapshotRun, error) {
 	if err != nil {
 		return SnapshotRun{}, err
 	}
-	result := SnapshotRun{Trace: trace, Evidence: []SnapshotEvidence{}}
+	result := SnapshotRun{Trace: trace, Evidence: []SnapshotEvidence{}, Facts: []UnifiedStepFact{}, EvidenceStatus: "LEGACY", EvidenceErrors: []string{}, Environment: rows[0][1]}
+	verified, factsErr := d.verifiedRunFacts(run)
+	if factsErr != nil {
+		result.EvidenceStatus = "BLOCKED"
+		result.EvidenceErrors = append(result.EvidenceErrors, factsErr.Error())
+	} else {
+		result.Facts = verified.Facts
+		result.EvidenceStatus = verified.EvidenceStatus
+		if result.EvidenceStatus != "PASS" && result.EvidenceStatus != "LEGACY" {
+			result.EvidenceStatus = "BLOCKED"
+		}
+		// A run can contain several branches. Only publish a run-level identity
+		// when the validated frozen facts agree; the UI uses step identities otherwise.
+		branches, flows := map[string]bool{}, map[string]bool{}
+		for _, fact := range result.Facts {
+			for _, item := range fact.BusinessExpectations {
+				if frozen := item.Decision.Frozen; frozen != nil {
+					if frozen.Branch != "" {
+						branches[frozen.Branch] = true
+					}
+					if frozen.Flow != "" {
+						flows[frozen.Flow] = true
+					}
+				}
+			}
+		}
+		if len(branches) == 1 {
+			for branch := range branches {
+				result.BranchID = branch
+			}
+		}
+		if len(flows) == 1 {
+			for flow := range flows {
+				result.FlowID = flow
+			}
+		}
+	}
 	add := func(phase string, step int) {
 		entry := SnapshotEvidence{Run: run, Phase: phase, Step: step}
 		raw, hash, err := d.workbenchEvidence(run, phase, step)
 		if err != nil {
 			entry.Error = err.Error()
+			result.EvidenceStatus = "BLOCKED"
+			result.EvidenceErrors = append(result.EvidenceErrors, fmt.Sprintf("%s step %d: %s", phase, step, err.Error()))
 		} else {
 			entry.Data, entry.SHA256 = &raw, hash
 		}

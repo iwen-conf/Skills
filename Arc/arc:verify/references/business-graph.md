@@ -1,5 +1,10 @@
 # Business graph → task cards → real execution
 
+Follow [deterministic contracts](deterministic-contract.md): match observed prestate/actor/guard
+before execution, freeze one Expected, never select it from Actual. The legacy boolean examples
+below do not establish deterministic business coverage.
+
+
 For requested/configured graph work, follow this lifecycle instead of building a second branch
 ledger. Reuse confirmed FLOW/RULE IDs and existing project progress. Ordinary tests do not need a
 graph. v2 execution/commands: [business-graph-v2](business-graph-v2.md).

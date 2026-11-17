@@ -1,32 +1,90 @@
-# React + TypeScript + Vite
+# Arc 业务验证工作台
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+工作台读取 Go 验证器导出的离线快照，用同一个模型、环境、流程、分支、运行、步骤、主体和实体上下文审阅业务规则与实际证据。模型及账本由 `arc verify` 写入；页面只负责阅读、筛选和定位。
 
-Currently, two official plugins are available:
+## 四个区域
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| 区域                         | 用途                                                                                                             |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| 能力树与分支导航             | 从用户能力定位条件分支，查看还没有运行的声明；历史测试与未解析运行单独标识。                                     |
+| 准备依赖、业务状态、运行画布 | 准备依赖按最长路径分层，提供上下游和关键链；状态图允许循环，可折叠循环组件；运行画布展示实际记录顺序。           |
+| 分支与事实面板               | 查看规则来源、前置条件、冻结预期、请求输入、实际动作响应、独立 DB 回读、条件、实体、会话、等待、断言和恢复记录。 |
+| 执行轨迹                     | 在同一次运行内选择步骤、定位首次偏离，并同步节点与已持久化的分支关联。                                           |
 
-## React Compiler
+先选业务分支，再选运行。切换运行会清空旧主体和实体筛选；同一步多个主体使用各自的动作和冻结分支。筛掉中间步骤后，画布会标明省略的步骤，不将剩余节点伪装成相邻操作。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 构建与前端检查
 
-## Expanding the Oxlint configuration
+在本目录执行。包管理器版本由 `package.json` 的 `devEngines` 固定为 Bun 1.4.4，依赖版本使用 `bun.lock`。
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+bun install --frozen-lockfile
+./node_modules/.bin/vp check
+./node_modules/.bin/vp test
+bun run build
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+`build` 先执行 TypeScript 检查，再生成 `dist/`。生产构建使用相对资源路径和单个经典 IIFE 脚本，以便随快照离线分发。`dist/index.html` 只是构建模板；业务数据由 Go 导出命令嵌入，不能把未嵌入数据的模板当成有效工作台。
+
+前端开发入口在开发模式下使用 `dev/sample-snapshot.json`，测试还使用明确标为 synthetic 的 `src/test-fixtures.ts`。它们用于工具回归，不代表任何接入项目的真实业务验收。
+
+## 从 Go 账本导出快照
+
+需要已安装的统一 `arc` CLI、可用的内置验证引擎，以及目标项目中已经登记的 v2 模型。执行命令时位于目标项目的 Git 根目录；激活统一账本的项目由 `arc` 路由到该项目的 `arc.db`。导出不执行支付或其他目标业务动作。
+
+将下面的 `GRAPH_ID`、`ENVIRONMENT`、`ROUND_ID` 和绝对路径替换为已有记录：
+
+```sh
+arc verify snapshot \
+  --graph GRAPH_ID \
+  --env ENVIRONMENT \
+  --round ROUND_ID \
+  --config .arc/verify/config.jsonc \
+  --assets /absolute/path/to/Skills/tools/arc-verify/workbench/dist \
+  --out /absolute/path/to/review-export
+```
+
+输出目录包含 `index.html`、`snapshot.json` 和本地脚本、样式资源。保留整个目录，在允许打开本地文件的浏览器环境中阅读 `index.html`。输出目录必须不存在或为空，导出器不会覆盖旧快照。
+
+未指定 `--run` 时，导出器读取选中图及显式环境、轮次范围内最近 32 次运行，按照账本插入顺序取最新记录。`available_runs` 和 `runs_truncated` 保留总数与截断边界。只审阅指定运行时追加 `--run RUN_A,RUN_B`；运行不属于所选图、环境或轮次会报错。仅审阅模型时可以省略环境和轮次，页面不会把缺少运行解释为已验证。
+
+Go 在导出时重新校验实际运行的 RAW、冻结上下文及统一步骤事实。证据损坏会保留错误与 `BLOCKED` 状态。`snapshot.json` 与页面中 `#arc-snapshot` 的 JSON 来自同一次导出；前端读取内嵌数据，不请求本地 API。
+
+## 只读和 CSP 边界
+
+导出页面不提供执行、批准、重试或写入账本的按钮。模型修改、规则确认、真实执行和恢复都通过 CLI 完成，然后重新导出快照。快照是导出时刻的记录，不会自动刷新为目标环境的当前状态。
+
+Go 导出器在页面头部插入以下 CSP：
+
+```text
+default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'
+```
+
+脚本和样式仅来自快照目录；网络连接沿用 `default-src 'none'`，表单提交被禁止。CSS 内联样式用于图形定位。JSON 以 `application/json` 嵌入，Go 序列化会转义 HTML 特殊字符。复制资源时拒绝符号链接等非普通文件，以及仍含旧 `/api/` 引用的构建。
+
+## 如何解读证据
+
+| 数据                             | 能说明什么                                            | 边界                                                                                          |
+| -------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `business_contract`              | 已声明的主体、分支条件、来源、预期与准备动作          | 声明本身不是执行记录；缺失、冲突或未知不能补写为允许。                                        |
+| `contract_analysis`              | 明确有限域内的分支分区证明                            | `PROVEN_IN_SCOPE` 不表示真实系统已经执行，也不表示域外条件已覆盖。                            |
+| `contract_execution`             | 按实际冻结分支归属的运行覆盖                          | 同一个测试或节点通过不会自动让其他分支通过。                                                  |
+| `runs[].facts`                   | 本次运行、步骤、账号、实体范围内的持久化事实          | 页面拒绝跨运行或跨模型事实；不根据节点相同推测身份关联。                                      |
+| `verdict` 与 `evidence_status`   | 业务结果与证据可信状态                                | 二者分别展示；记载 PASS 但证据 BLOCKED/LEGACY 不能算强验证通过。                              |
+| `requests`、`actions`、`oracles` | 冻结前的实际请求捕获、动作响应、独立前后回读          | 响应值不能替代独立 DB 事实；缺失值保留未知。                                                  |
+| `preparation`                    | 计划历史、实际准备步骤、独立 readbacks 和目标就绪状态 | `predicted_effects` 是预计效果；实际是否执行和是否满足条件以捕获及回读为准。                  |
+| `recovery.mode=checkpoint`       | 只读确认并保留运行现场                                | 不表示已回滚或恢复；旧记录缺少 mode 时不能推断为 checkpoint。跨运行自动继承变量仍需单独实现。 |
+
+前端只展示 Go 已持久化的匹配与比较结果，不在浏览器重新选择业务分支或重算证据判定。历史数据继续可读，但没有新的冻结身份、独立判据或完整 RAW 时保持 `LEGACY` 或 `BLOCKED`。
+
+## 维护与贯通验证
+
+- `selection.ts`、`explorer-model.ts`：统一选择上下文与显式身份映射。
+- `layout.ts`、`graph-model.ts`、`GraphCanvas.tsx`：准备 DAG、合法状态环和实际运行轨迹。
+- `FactPanel.tsx`、`contract.ts`、`facts.ts`：声明、冻结预期、实际结果与来源。
+- `snapshot.ts`、`types.ts`：导出 DTO 和可见的读取错误边界。
+- `../snapshot.go`、`../facts_integrity.go`：Go 导出与证据重验。
+
+修改 DTO 后，在 `tools/arc-verify` 中运行 `go test -run '^TestSnapshotTypesMatchFrontend$' -count=1`，并把真实 Go 工具测试执行产生的快照交给 `parseSnapshot` 与 React 服务端渲染做贯通检查。前端合成 fixture、Go 的隔离 HTTP 工具测试、接入项目 E2E 必须分别标明范围。
+
+静态检查、状态测试、SSR 和构建通过并不等于实际浏览器布局与交互已验收。浏览器环境受限时记录 `BLOCKED`，保留已有验证结果，不绕过环境策略，也不补造截图。

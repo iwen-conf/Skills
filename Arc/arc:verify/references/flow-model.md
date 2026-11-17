@@ -1,5 +1,10 @@
 # Business Flow Model
 
+Follow [deterministic contracts](deterministic-contract.md): match observed prestate/actor/guard
+before execution, freeze one Expected, never select it from Actual. The legacy boolean examples
+below do not establish deterministic business coverage.
+
+
 Flows come before cases: a suite is designed from the business flows a change reaches, never from
 an endpoint, function or file list. A flow is one business goal from its trigger to every
 business-meaningful end. One flow may span several endpoints, jobs and services; one endpoint may
@@ -66,7 +71,7 @@ written `not found (queries …)`.
 
 ## 3. Chart rules
 
-Review: [arch-diagram](business-diagram.md); retain Mermaid, IDs and branches for ledger checks.
+Review: [native workbench](business-diagram.md); retain Mermaid, IDs and branches for ledger checks.
 
 One or more `flowchart TD` blocks per flow file; node IDs are unique per file. The checker accepts
 this subset:

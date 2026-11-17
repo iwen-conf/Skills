@@ -57,6 +57,9 @@ func (d db) importGraph(g Graph) error {
 			stmts = append(stmts, fmt.Sprintf("INSERT INTO risk_meta(graph,id,origin,reference) VALUES(%s,%s,%s,%s);", quote(g.ID), quote(r.ID), quote(r.Origin), quote(r.Reference)))
 		}
 	}
+	contractStatements, err := businessContractStatements(g)
+	if err != nil { return err }
+	stmts = append(stmts, contractStatements...)
 	return d.tx(stmts)
 }
 func (d db) approve(graph, rule string) error {

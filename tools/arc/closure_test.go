@@ -19,95 +19,146 @@ func initClosureRepo(t *testing.T, root string) {
 		{"config", "user.email", "arc-test@example.invalid"},
 	} {
 		cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
-		if out, err := cmd.CombinedOutput(); err != nil { t.Fatalf("git %v: %v %s",args,err,out) }
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v %s", args, err, out)
+		}
 	}
-	if err := os.WriteFile(filepath.Join(root,"README.txt"), []byte("initial\n"),0600);err!=nil{t.Fatal(err)}
-	for _, args := range [][]string{{"add","README.txt"},{"commit","-qm","initial"}} {
-		cmd:=exec.Command("git",append([]string{"-C",root},args...)...)
-		if out,err:=cmd.CombinedOutput();err!=nil{t.Fatalf("git %v: %v %s",args,err,out)}
+	if err := os.WriteFile(filepath.Join(root, "README.txt"), []byte("initial\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"add", "README.txt"}, {"commit", "-qm", "initial"}} {
+		cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v %s", args, err, out)
+		}
 	}
 }
 
 func TestOutboxFailureRaceAndIdempotentRecovery(t *testing.T) {
 	root, db := testArcState(t)
 	initClosureRepo(t, root)
-	if err:=executeTask(db,"create","","a pending task","",0);err!=nil{t.Fatal(err)}
-	if err:=os.WriteFile(filepath.Join(root,"feature.go"),[]byte("package feature\n"),0600);err!=nil{t.Fatal(err)}
-	if err:=executeFile(db,root,"feature.go","");err!=nil{t.Fatal(err)}
-	if err:=db.Close();err!=nil{t.Fatal(err)}
-	countCalls:=0
-	failBuild:=func(context.Context,string)error{countCalls++;return errors.New("index backend unavailable")}
-	if err:=flushIndexOutboxWith(root,failBuild);err==nil{t.Fatal("failure incorrectly acknowledged events")}
-	check:=func(wantStatus string,wantAttempts int){
+	if err := executeTask(db, "create", "", "a pending task", "", 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "feature.go"), []byte("package feature\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := executeFile(db, root, "feature.go", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	countCalls := 0
+	failBuild := func(context.Context, string) error { countCalls++; return errors.New("index backend unavailable") }
+	if err := flushIndexOutboxWith(root, failBuild); err == nil {
+		t.Fatal("failure incorrectly acknowledged events")
+	}
+	check := func(wantStatus string, wantAttempts int) {
 		t.Helper()
-		d,err:=openActiveArcDB(root);if err!=nil{t.Fatal(err)};defer d.Close()
-		var status string;var attempts int
-		if err:=d.QueryRow("SELECT status, attempts FROM arc_outbox LIMIT 1").Scan(&status,&attempts);err!=nil{t.Fatal(err)}
-		if status!=wantStatus||attempts!=wantAttempts{t.Fatalf("outbox status=%s attempts=%d want=%s/%d",status,attempts,wantStatus,wantAttempts)}
+		d, err := openActiveArcDB(root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer d.Close()
+		var status string
+		var attempts int
+		if err := d.QueryRow("SELECT status, attempts FROM arc_outbox LIMIT 1").Scan(&status, &attempts); err != nil {
+			t.Fatal(err)
+		}
+		if status != wantStatus || attempts != wantAttempts {
+			t.Fatalf("outbox status=%s attempts=%d want=%s/%d", status, attempts, wantStatus, wantAttempts)
+		}
 	}
-	check("pending",1)
-	changeDuringIndex:=func(context.Context,string)error{
+	check("pending", 1)
+	changeDuringIndex := func(context.Context, string) error {
 		countCalls++
-		return os.WriteFile(filepath.Join(root,"README.txt"),[]byte("changed during indexing\n"),0600)
+		return os.WriteFile(filepath.Join(root, "README.txt"), []byte("changed during indexing\n"), 0600)
 	}
-	if err:=flushIndexOutboxWith(root,changeDuringIndex);err==nil{t.Fatal("source race incorrectly acknowledged events")}
-	check("pending",2)
+	if err := flushIndexOutboxWith(root, changeDuringIndex); err == nil {
+		t.Fatal("source race incorrectly acknowledged events")
+	}
+	check("pending", 2)
 	// The edit that raced with indexing must be durably reconciled before
 	// the next retry can acknowledge anything.
-	db2,err:=openActiveArcDB(root)
-	if err!=nil{t.Fatal(err)}
-	if err:=reconcileGit(db2,root,"");err!=nil{db2.Close();t.Fatal(err)}
-	if err:=db2.Close();err!=nil{t.Fatal(err)}
-	okBuild:=func(context.Context,string)error{countCalls++;return nil}
-	if err:=flushIndexOutboxWith(root,okBuild);err!=nil{t.Fatal(err)}
-	check("delivered",3)
-	if err:=flushIndexOutboxWith(root,okBuild);err!=nil{t.Fatal(err)}
-	if countCalls!=3{t.Fatalf("idempotent no-pending flush ran backend: %d",countCalls)}
+	db2, err := openActiveArcDB(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := reconcileGit(db2, root, ""); err != nil {
+		db2.Close()
+		t.Fatal(err)
+	}
+	if err := db2.Close(); err != nil {
+		t.Fatal(err)
+	}
+	okBuild := func(context.Context, string) error { countCalls++; return nil }
+	if err := flushIndexOutboxWith(root, okBuild); err != nil {
+		t.Fatal(err)
+	}
+	check("delivered", 3)
+	if err := flushIndexOutboxWith(root, okBuild); err != nil {
+		t.Fatal(err)
+	}
+	if countCalls != 3 {
+		t.Fatalf("idempotent no-pending flush ran backend: %d", countCalls)
+	}
 }
 
 func testPolicyReceipt(taskID, verdict string) policyTaskStatus {
-	status:=policyTaskStatus{ReceiptOK:true}
-	status.Task.ID=taskID
-	status.Tree.Head="abc"
-	status.Tree.Digest="source-digest"
-	status.Tree.Dirty=[]string{}
-	receipt:=map[string]any{
-		"task_id":taskID,"verdict":verdict,"created_at":"2026-11-09T00:00:00Z",
-		"head":"abc","digest":"source-digest","tree":"git-tree","dirty":[]string{},
-		"checks":[]map[string]any{
-			{"id":"snapshot","verdict":"PASS"},
-			{"id":"cli_receipt","verdict":"PASS"},
-			{"id":"tests","verdict":"PASS"},
+	status := policyTaskStatus{ReceiptOK: true}
+	status.Task.ID = taskID
+	status.Tree.Head = "abc"
+	status.Tree.Digest = "source-digest"
+	status.Tree.Dirty = []string{}
+	receipt := map[string]any{
+		"task_id": taskID, "verdict": verdict, "created_at": "2026-11-09T00:00:00Z",
+		"head": "abc", "digest": "source-digest", "tree": "git-tree", "dirty": []string{},
+		"checks": []map[string]any{
+			{"id": "snapshot", "verdict": "PASS"},
+			{"id": "cli_receipt", "verdict": "PASS"},
+			{"id": "tests", "verdict": "PASS"},
 		},
 	}
-	status.Task.Receipt,_=json.Marshal(receipt)
+	status.Task.Receipt, _ = json.Marshal(receipt)
 	return status
 }
 
 func TestIndexBackendMustReturnRealHealthyDoctor(t *testing.T) {
-	if runtime.GOOS=="windows"{t.Skip("scripted backend is POSIX-only")}
-	bin:=t.TempDir()
-	script:="#!/bin/sh\ncase \"$1\" in\n  index) exit 0 ;;\n  doctor) printf '%s\\n' \"$ARC_INDEX_DOCTOR_JSON\"; exit 0 ;;\nesac\nexit 2\n"
-	if err:=os.WriteFile(filepath.Join(bin,"arc-idx"),[]byte(script),0700);err!=nil{t.Fatal(err)}
-	t.Setenv("PATH",bin+string(os.PathListSeparator)+os.Getenv("PATH"))
-	root:=testRepoRoot(t)
-	for _,tc:=range []struct{name string;healthy,stale,tags,correctRoot,want bool}{
-		{"healthy",true,false,true,true,true},
-		{"unhealthy",false,false,true,true,false},
-		{"stale",true,true,true,true,false},
-		{"missing-tags",true,false,false,true,false},
-		{"wrong-repository",true,false,true,false,false},
+	if runtime.GOOS == "windows" {
+		t.Skip("scripted backend is POSIX-only")
+	}
+	bin := t.TempDir()
+	script := "#!/bin/sh\ncase \"$1\" in\n  index) exit 0 ;;\n  doctor) printf '%s\\n' \"$ARC_INDEX_DOCTOR_JSON\"; exit 0 ;;\nesac\nexit 2\n"
+	if err := os.WriteFile(filepath.Join(bin, "arc-idx"), []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	root := testRepoRoot(t)
+	for _, tc := range []struct {
+		name                                    string
+		healthy, stale, tags, correctRoot, want bool
 	}{
-		t.Run(tc.name,func(t *testing.T){
-			repo:=root
-			if !tc.correctRoot{repo=t.TempDir()}
-			body,_:=json.Marshal(map[string]any{
-				"repo_root":repo,"healthy":tc.healthy,
-				"index_stale":tc.stale,"tags_present":tc.tags,
+		{"healthy", true, false, true, true, true},
+		{"unhealthy", false, false, true, true, false},
+		{"stale", true, true, true, true, false},
+		{"missing-tags", true, false, false, true, false},
+		{"wrong-repository", true, false, true, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := root
+			if !tc.correctRoot {
+				repo = t.TempDir()
+			}
+			body, _ := json.Marshal(map[string]any{
+				"repo_root": repo, "healthy": tc.healthy,
+				"index_stale": tc.stale, "tags_present": tc.tags,
 			})
-			t.Setenv("ARC_INDEX_DOCTOR_JSON",string(body))
-			err:=rebuildIndex(context.Background(),root)
-			if (err==nil)!=tc.want{t.Fatalf("index health acceptance=%v error=%v",tc.want,err)}
+			t.Setenv("ARC_INDEX_DOCTOR_JSON", string(body))
+			err := rebuildIndex(context.Background(), root)
+			if (err == nil) != tc.want {
+				t.Fatalf("index health acceptance=%v error=%v", tc.want, err)
+			}
 		})
 	}
 }
@@ -115,152 +166,290 @@ func TestIndexBackendMustReturnRealHealthyDoctor(t *testing.T) {
 func TestInitialIndexWithEmptyOutboxAndGeneratedMetadata(t *testing.T) {
 	root, db := testArcState(t)
 	initClosureRepo(t, root)
-	if err := db.Close(); err != nil { t.Fatal(err) }
-	before, err := sourceSnapshot(root); if err != nil { t.Fatal(err) }
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	before, err := sourceSnapshot(root)
+	if err != nil {
+		t.Fatal(err)
+	}
 	// Arc index produces tags in .ai-code-index; that generated file
 	// must not become a source event or invalidate its own index snapshot.
-	if err := os.MkdirAll(filepath.Join(root,".ai-code-index"),0700);err!=nil{t.Fatal(err)}
-	if err := os.WriteFile(filepath.Join(root,".ai-code-index","tags.json"),[]byte("{}\n"),0600);err!=nil{t.Fatal(err)}
-	after, err := sourceSnapshot(root); if err != nil { t.Fatal(err) }
-	if before != after {t.Fatal("generated index metadata changed the source fingerprint")}
+	if err := os.MkdirAll(filepath.Join(root, ".ai-code-index"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".ai-code-index", "tags.json"), []byte("{}\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	after, err := sourceSnapshot(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if before != after {
+		t.Fatal("generated index metadata changed the source fingerprint")
+	}
 	calls := 0
-	indexer := func(context.Context,string)error{calls++;return nil}
-	if err := flushIndexOutboxWith(root,indexer);err!=nil{t.Fatal(err)}
-	if err := flushIndexOutboxWith(root,indexer);err!=nil{t.Fatal(err)}
-	if calls!=1{t.Fatalf("expected one initial index build, got %d",calls)}
-	if err:=os.WriteFile(filepath.Join(root,"README.txt"),[]byte("unrecorded edit\n"),0600);err!=nil{t.Fatal(err)}
-	if err:=flushIndexOutboxWith(root,indexer);err==nil{t.Fatal("unobserved Git source drift was silently considered indexed")}
-	if calls!=1{t.Fatal("no-op flush unexpectedly rebuilt without recording source changes")}
+	indexer := func(context.Context, string) error { calls++; return nil }
+	if err := flushIndexOutboxWith(root, indexer); err != nil {
+		t.Fatal(err)
+	}
+	if err := flushIndexOutboxWith(root, indexer); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 1 {
+		t.Fatalf("expected one initial index build, got %d", calls)
+	}
+	if err := os.WriteFile(filepath.Join(root, "README.txt"), []byte("unrecorded edit\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := flushIndexOutboxWith(root, indexer); err == nil {
+		t.Fatal("unobserved Git source drift was silently considered indexed")
+	}
+	if calls != 1 {
+		t.Fatal("no-op flush unexpectedly rebuilt without recording source changes")
+	}
 }
 
 func TestTaskProofRejectsAuthorizationAndStaleness(t *testing.T) {
-	const id="policy-task"
-	for _,tc:=range []struct{ name string; status policyTaskStatus; valid bool }{
-		{"PASS",testPolicyReceipt(id,"PASS"),true},
-		{"waiver-not-test",testPolicyReceipt(id,"AUTHORIZED"),false},
-		{"failed-tests",testPolicyReceipt(id,"FAIL"),false},
-		{"wrong-task",testPolicyReceipt("another-task","PASS"),false},
-		{"stale-tree",func()policyTaskStatus{s:=testPolicyReceipt(id,"PASS");s.ReceiptOK=false;return s}(),false},
-		{"inconsistent-tree",func()policyTaskStatus{s:=testPolicyReceipt(id,"PASS");s.Tree.Digest="different";return s}(),false},
-		{"no-independent-proof",func()policyTaskStatus{
-			s:=testPolicyReceipt(id,"PASS")
-			var receipt map[string]any
-			_ = json.Unmarshal(s.Task.Receipt,&receipt)
-			receipt["checks"]=[]map[string]any{
-				{"id":"snapshot","verdict":"PASS"},
-				{"id":"cli_receipt","verdict":"PASS"},
-				{"id":"tests","verdict":"NOT_RUN"},
-			}
-			s.Task.Receipt,_=json.Marshal(receipt)
-			return s
-		}(),false},
+	const id = "policy-task"
+	for _, tc := range []struct {
+		name   string
+		status policyTaskStatus
+		valid  bool
 	}{
-		t.Run(tc.name,func(t *testing.T){
-			proof,err:=requirePolicyProof(id,tc.status)
-			if (err==nil)!=tc.valid{t.Fatalf("valid=%v error=%v",tc.valid,err)}
-			if tc.valid&&proof.ReceiptSHA256==""{t.Fatal("PASS not fingerprinted")}
+		{"PASS", testPolicyReceipt(id, "PASS"), true},
+		{"waiver-not-test", testPolicyReceipt(id, "AUTHORIZED"), false},
+		{"failed-tests", testPolicyReceipt(id, "FAIL"), false},
+		{"wrong-task", testPolicyReceipt("another-task", "PASS"), false},
+		{"stale-tree", func() policyTaskStatus { s := testPolicyReceipt(id, "PASS"); s.ReceiptOK = false; return s }(), false},
+		{"inconsistent-tree", func() policyTaskStatus { s := testPolicyReceipt(id, "PASS"); s.Tree.Digest = "different"; return s }(), false},
+		{"no-independent-proof", func() policyTaskStatus {
+			s := testPolicyReceipt(id, "PASS")
+			var receipt map[string]any
+			_ = json.Unmarshal(s.Task.Receipt, &receipt)
+			receipt["checks"] = []map[string]any{
+				{"id": "snapshot", "verdict": "PASS"},
+				{"id": "cli_receipt", "verdict": "PASS"},
+				{"id": "tests", "verdict": "NOT_RUN"},
+			}
+			s.Task.Receipt, _ = json.Marshal(receipt)
+			return s
+		}(), false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			proof, err := requirePolicyProof(id, tc.status)
+			if (err == nil) != tc.valid {
+				t.Fatalf("valid=%v error=%v", tc.valid, err)
+			}
+			if tc.valid && proof.ReceiptSHA256 == "" {
+				t.Fatal("PASS not fingerprinted")
+			}
 		})
 	}
 }
 
 func TestPolicyReceiptRevocationBlocksCompletion(t *testing.T) {
 	// Completion always runs with an active arc.db; Policy itself is still in legacy JSON mode here.
-	root,db:=testArcState(t)
-	if err:=db.Close();err!=nil{t.Fatal(err)}
-	dir:=filepath.Join(root,".arc","policy")
-	if err:=os.MkdirAll(dir,0700);err!=nil{t.Fatal(err)}
-	const id="policy-lock-test"
-	status:=testPolicyReceipt(id,"PASS")
-	proof,err:=requirePolicyProof(id,status)
-	if err!=nil{t.Fatal(err)}
-	path:=filepath.Join(dir,"state.json")
-	write:=func(task string,receipt json.RawMessage){
-		t.Helper()
-		body,err:=json.Marshal(map[string]any{"active":map[string]any{"id":task,"receipt":receipt}})
-		if err!=nil{t.Fatal(err)}
-		if err:=os.WriteFile(path,body,0600);err!=nil{t.Fatal(err)}
+	root, db := testArcState(t)
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
 	}
-	write(id,status.Task.Receipt)
-	if err:=validateLivePolicyReceipt(root,proof);err!=nil{t.Fatal(err)}
-	write(id,json.RawMessage("null"))
-	if err:=validateLivePolicyReceipt(root,proof);err==nil{t.Fatal("revoked PASS accepted")}
-	write("other-task",status.Task.Receipt)
-	if err:=validateLivePolicyReceipt(root,proof);err==nil{t.Fatal("changed task identity accepted")}
-	changed:=testPolicyReceipt(id,"PASS")
+	dir := filepath.Join(root, ".arc", "policy")
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	const id = "policy-lock-test"
+	status := testPolicyReceipt(id, "PASS")
+	proof, err := requirePolicyProof(id, status)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "state.json")
+	write := func(task string, receipt json.RawMessage) {
+		t.Helper()
+		body, err := json.Marshal(map[string]any{"active": map[string]any{"id": task, "receipt": receipt}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, body, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(id, status.Task.Receipt)
+	if err := validateLivePolicyReceipt(root, proof); err != nil {
+		t.Fatal(err)
+	}
+	write(id, json.RawMessage("null"))
+	if err := validateLivePolicyReceipt(root, proof); err == nil {
+		t.Fatal("revoked PASS accepted")
+	}
+	write("other-task", status.Task.Receipt)
+	if err := validateLivePolicyReceipt(root, proof); err == nil {
+		t.Fatal("changed task identity accepted")
+	}
+	changed := testPolicyReceipt(id, "PASS")
 	var receipt map[string]any
-	if err:=json.Unmarshal(changed.Task.Receipt,&receipt);err!=nil{t.Fatal(err)}
-	receipt["created_at"]="2026-11-09T01:00:00Z"
-	changed.Task.Receipt,err=json.Marshal(receipt);if err!=nil{t.Fatal(err)}
-	write(id,changed.Task.Receipt)
-	if err:=validateLivePolicyReceipt(root,proof);err==nil{t.Fatal("replaced PASS accepted")}
+	if err := json.Unmarshal(changed.Task.Receipt, &receipt); err != nil {
+		t.Fatal(err)
+	}
+	receipt["created_at"] = "2026-11-09T01:00:00Z"
+	changed.Task.Receipt, err = json.Marshal(receipt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	write(id, changed.Task.Receipt)
+	if err := validateLivePolicyReceipt(root, proof); err == nil {
+		t.Fatal("replaced PASS accepted")
+	}
 }
 
 func TestPolicyCompletionLockExcludesConcurrentTaskOperation(t *testing.T) {
-	if runtime.GOOS=="windows"{t.Skip("Windows policy lock is fail-closed until compatible adapter")}
-	root:=t.TempDir()
-	if err:=os.MkdirAll(filepath.Join(root,".arc","policy"),0700);err!=nil{t.Fatal(err)}
-	err:=withPolicyTaskLock(root,func()error{
-		return withPolicyTaskLock(root,func()error{return nil})
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows policy lock is fail-closed until compatible adapter")
+	}
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, ".arc", "policy"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	err := withPolicyTaskLock(root, func() error {
+		return withPolicyTaskLock(root, func() error { return nil })
 	})
-	if err==nil{t.Fatal("concurrent policy task lock accepted")}
-	if err:=withPolicyTaskLock(root,func()error{return nil});err!=nil{t.Fatal(err)}
+	if err == nil {
+		t.Fatal("concurrent policy task lock accepted")
+	}
+	if err := withPolicyTaskLock(root, func() error { return nil }); err != nil {
+		t.Fatal(err)
+	}
 }
 
-func TestTaskCompletionCLIRequiresPolicyStatus(t *testing.T) {
-	if runtime.GOOS=="windows" {t.Skip("scripted policy CLI is POSIX-only")}
-	root,db:=testArcState(t)
-	initClosureRepo(t,root)
-	const id="policy-cli-final"
-	if err:=executeTask(db,"ensure",id,"verified task (arc-code)","",0);err!=nil{t.Fatal(err)}
-	for _,step:=range []struct{to string;version int}{{"ready",1},{"running",2},{"verifying",3}}{
-		if err:=executeTask(db,"transition",id,"",step.to,step.version);err!=nil{t.Fatal(err)}
+func TestTaskCompletionCLIUsesNativeLinkedProofWithoutPolicy(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("scripted native verifier is POSIX-only")
 	}
-	if err:=db.Close();err!=nil{t.Fatal(err)}
-	if err:=flushIndexOutboxWith(root,func(context.Context,string)error{return nil});err!=nil{t.Fatal(err)}
-	bin:=t.TempDir()
-	status:=testPolicyReceipt(id,"PASS")
-	status.RepoRoot=root
-	policyDir:=filepath.Join(root,".arc","policy")
-	if err:=os.MkdirAll(policyDir,0700);err!=nil{t.Fatal(err)}
-	stateBody,err:=json.Marshal(map[string]any{"active":map[string]any{"id":id,"receipt":json.RawMessage(status.Task.Receipt)}})
-	if err!=nil{t.Fatal(err)}
-	if err:=os.WriteFile(filepath.Join(policyDir,"state.json"),stateBody,0600);err!=nil{t.Fatal(err)}
-	body,err:=json.Marshal(status);if err!=nil{t.Fatal(err)}
-	script:="#!/bin/sh\ncat <<'ARC_JSON'\n"+string(body)+"\nARC_JSON\n"
-	if err:=os.WriteFile(filepath.Join(bin,"arc-policy"),[]byte(script),0700);err!=nil{t.Fatal(err)}
-	t.Setenv("PATH",bin+string(os.PathListSeparator)+os.Getenv("PATH"))
-	if err:=resourceCommand("task",[]string{"complete","--repo",root,"--id",id,"--expected-version","4"});err!=nil{t.Fatal(err)}
-	if err:=resourceCommand("task",[]string{"show","--repo",root,"--id",id});err!=nil{t.Fatal(err)}
-	if err:=resourceCommand("task",[]string{"complete","--repo",root,"--id",id,"--expected-version","4"});err==nil{t.Fatal("same receipt completed task twice")}
+	root, db := testArcState(t)
+	initClosureRepo(t, root)
+	const id = "native-cli-final"
+	if err := executeTask(db, "ensure", id, "native verified task", "", 0); err != nil {
+		t.Fatal(err)
+	}
+	for _, step := range []struct {
+		to      string
+		version int
+	}{{"ready", 1}, {"running", 2}, {"verifying", 3}} {
+		if err := executeTask(db, "transition", id, "", step.to, step.version); err != nil {
+			t.Fatal(err)
+		}
+	}
+	link := insertNativeCompletionLink(t, db, id, "O1")
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := flushIndexOutboxWith(root, func(context.Context, string) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	body, err := json.Marshal(testNativeTaskProof(t, root, link))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bin := t.TempDir()
+	script := "#!/bin/sh\n[ \"$1\" = task-proof ] || exit 2\nprintf '%s\\n' \"$ARC_TEST_NATIVE_PROOF\"\n"
+	if err := os.WriteFile(filepath.Join(bin, "arc-verify"), []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
+	policy := "#!/bin/sh\nprintf called > \"$ARC_TEST_POLICY_MARKER\"\nexit 7\n"
+	if err := os.WriteFile(filepath.Join(bin, "arc-policy"), []byte(policy), 0700); err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(t.TempDir(), "policy-called")
+	t.Setenv("ARC_TEST_POLICY_MARKER", marker)
+	t.Setenv("ARC_TEST_NATIVE_PROOF", string(body))
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	if err := resourceCommand("task", []string{"complete", "--repo", root, "--id", id, "--expected-version", "4"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(marker); !os.IsNotExist(err) {
+		t.Fatal("native completion invoked a policy plugin")
+	}
+	if err := resourceCommand("task", []string{"show", "--repo", root, "--id", id}); err != nil {
+		t.Fatal(err)
+	}
+	if err := resourceCommand("task", []string{"complete", "--repo", root, "--id", id, "--expected-version", "4"}); err == nil {
+		t.Fatal("same proof completed task twice")
+	}
 }
 
 func TestCompletionRequiresConfirmedOutboxAndBoundRevision(t *testing.T) {
-	root,db:=testArcState(t)
-	initClosureRepo(t,root)
-	const id="policy-task-final"
-	if err:=executeTask(db,"ensure",id,"final task (arc-code)","",0);err!=nil{t.Fatal(err)}
-	for _,step:=range []struct{to string;version int}{{"ready",1},{"running",2},{"verifying",3}}{
-		if err:=executeTask(db,"transition",id,"",step.to,step.version);err!=nil{t.Fatal(err)}
+	root, db := testArcState(t)
+	initClosureRepo(t, root)
+	const id = "policy-task-final"
+	if err := executeTask(db, "ensure", id, "final task (arc-code)", "", 0); err != nil {
+		t.Fatal(err)
 	}
-	if err:=os.WriteFile(filepath.Join(root,"feature.go"),[]byte("package feature\n"),0600);err!=nil{t.Fatal(err)}
-	if err:=executeFile(db,root,"feature.go",id);err!=nil{t.Fatal(err)}
-	proof,err:=requirePolicyProof(id,testPolicyReceipt(id,"PASS"));if err!=nil{t.Fatal(err)}
-	proof.SourceSnapshot,err=sourceSnapshot(root);if err!=nil{t.Fatal(err)}
-	if err:=commitTaskCompletion(db,root,id,4,proof);err==nil{t.Fatal("completion with pending events succeeded")}
-	if err:=db.Close();err!=nil{t.Fatal(err)}
-	if err:=flushIndexOutboxWith(root,func(context.Context,string)error{return nil});err!=nil{t.Fatal(err)}
-	db,err=openActiveArcDB(root);if err!=nil{t.Fatal(err)};defer db.Close()
-	changedProof:=proof
-	if err:=os.WriteFile(filepath.Join(root,"README.txt"),[]byte("new changes\n"),0600);err!=nil{t.Fatal(err)}
-	if err:=commitTaskCompletion(db,root,id,4,changedProof);err==nil{t.Fatal("stale revision was accepted")}
+	for _, step := range []struct {
+		to      string
+		version int
+	}{{"ready", 1}, {"running", 2}, {"verifying", 3}} {
+		if err := executeTask(db, "transition", id, "", step.to, step.version); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(root, "feature.go"), []byte("package feature\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := executeFile(db, root, "feature.go", id); err != nil {
+		t.Fatal(err)
+	}
+	insertNativeCompletionLink(t, db, id, "O1")
+	proof, err := loadNativeCompletionProof(root, id, func(_ context.Context, _ string, link nativeTaskLink) ([]byte, error) {
+		return json.Marshal(testNativeTaskProof(t, root, link))
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := commitTaskCompletion(db, root, id, 4, proof); err == nil {
+		t.Fatal("completion with pending events succeeded")
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := flushIndexOutboxWith(root, func(context.Context, string) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	db, err = openActiveArcDB(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	changedProof := proof
+	if err := os.WriteFile(filepath.Join(root, "README.txt"), []byte("new changes\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := commitTaskCompletion(db, root, id, 4, changedProof); err == nil {
+		t.Fatal("stale revision was accepted")
+	}
 	// The pending index batch was confirmed; restore the previously proven source.
-	if err:=os.WriteFile(filepath.Join(root,"README.txt"),[]byte("initial\n"),0600);err!=nil{t.Fatal(err)}
-	if err:=commitTaskCompletion(db,root,id,4,proof);err!=nil{t.Fatal(err)}
-	var state string;var version int
-	if err:=db.QueryRow("SELECT status,version FROM arc_tasks WHERE id=?",id).Scan(&state,&version);err!=nil{t.Fatal(err)}
-	if state!="done"||version!=5{t.Fatalf("completion state=%s version=%d",state,version)}
+	if err := os.WriteFile(filepath.Join(root, "README.txt"), []byte("initial\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := commitTaskCompletion(db, root, id, 4, proof); err != nil {
+		t.Fatal(err)
+	}
+	var state string
+	var version int
+	if err := db.QueryRow("SELECT status,version FROM arc_tasks WHERE id=?", id).Scan(&state, &version); err != nil {
+		t.Fatal(err)
+	}
+	if state != "done" || version != 5 {
+		t.Fatalf("completion state=%s version=%d", state, version)
+	}
 	var completed int
-	if err:=db.QueryRow("SELECT COUNT(*) FROM arc_events WHERE aggregate_id=? AND kind='task.completed'",id).Scan(&completed);err!=nil{t.Fatal(err)}
-	if completed!=1{t.Fatalf("completion events=%d want one",completed)}
-	if err:=commitTaskCompletion(db,root,id,4,proof);err==nil{t.Fatal("CAS allowed duplicate completion")}
+	if err := db.QueryRow("SELECT COUNT(*) FROM arc_events WHERE aggregate_id=? AND kind='task.completed'", id).Scan(&completed); err != nil {
+		t.Fatal(err)
+	}
+	if completed != 1 {
+		t.Fatalf("completion events=%d want one", completed)
+	}
+	if err := commitTaskCompletion(db, root, id, 4, proof); err == nil {
+		t.Fatal("CAS allowed duplicate completion")
+	}
 }

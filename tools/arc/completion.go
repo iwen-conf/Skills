@@ -8,38 +8,39 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os/exec"
 	"os"
 	"path/filepath"
 	"reflect"
 	"time"
 )
 
-// Arc Policy is authoritative for independent test results until its receipt
-// store is physically migrated. This adapter reads/validates an existing PASS,
-// never invokes verification or treats AUTHORIZED as a successful test.
+// Historical policy receipts remain readable for migration and audit. They do
+// not authorize new completion; native linked evidence is mandatory below.
 type policyTaskStatus struct {
 	RepoRoot  string `json:"repo_root"`
 	ReceiptOK bool   `json:"receipt_ok"`
-	Tree struct {
-		Head string `json:"head"`
-		Digest string `json:"digest"`
-		Dirty []string `json:"dirty"`
+	Tree      struct {
+		Head   string   `json:"head"`
+		Digest string   `json:"digest"`
+		Dirty  []string `json:"dirty"`
 	} `json:"tree"`
-	Task      struct {
+	Task struct {
 		ID      string          `json:"id"`
 		Receipt json.RawMessage `json:"receipt"`
 	} `json:"task"`
 }
 type verifiedTaskProof struct {
-	TaskID          string
-	ReceiptSHA256   string
-	ReceiptHead     string
-	ReceiptDigest   string
-	ReceiptTree     string
-	VerifiedAt      string
-	SourceSnapshot  string
-	Checks          []map[string]any
+	TaskID         string
+	ReceiptSHA256  string
+	ReceiptHead    string
+	ReceiptDigest  string
+	ReceiptTree    string
+	VerifiedAt     string
+	SourceSnapshot string
+	Checks         []map[string]any
+	Native         bool
+	LinksSHA256    string
+	NativeProofs   []nativeTaskProof
 }
 
 func requirePolicyProof(taskID string, status policyTaskStatus) (verifiedTaskProof, error) {
@@ -73,7 +74,9 @@ func requirePolicyProof(taskID string, status policyTaskStatus) (verifiedTaskPro
 		case "cli_receipt":
 			receiptOK = check["verdict"] == "PASS"
 		case "tests", "business_graph":
-			if check["verdict"] == "PASS" { independentOK = true }
+			if check["verdict"] == "PASS" {
+				independentOK = true
+			}
 		}
 	}
 	if !snapshotOK || !receiptOK || !independentOK {
@@ -84,7 +87,9 @@ func requirePolicyProof(taskID string, status policyTaskStatus) (verifiedTaskPro
 		return verifiedTaskProof{}, errors.New("policy receipt fingerprint differs from current tree reported by Arc Policy")
 	}
 	sum, err := canonicalPolicyReceiptHash(status.Task.Receipt)
-	if err != nil { return verifiedTaskProof{}, err }
+	if err != nil {
+		return verifiedTaskProof{}, err
+	}
 	return verifiedTaskProof{
 		TaskID: taskID, ReceiptSHA256: sum,
 		ReceiptHead: receipt.Head, ReceiptDigest: receipt.Digest,
@@ -97,10 +102,16 @@ func requirePolicyProof(taskID string, status policyTaskStatus) (verifiedTaskPro
 // separately from the CLI's formatted JSON status output.
 func canonicalPolicyReceiptHash(raw []byte) (string, error) {
 	var data any
-	if err := json.Unmarshal(raw, &data); err != nil { return "", err }
-	if data == nil { return "", errors.New("empty policy receipt") }
+	if err := json.Unmarshal(raw, &data); err != nil {
+		return "", err
+	}
+	if data == nil {
+		return "", errors.New("empty policy receipt")
+	}
 	canonical, err := json.Marshal(data)
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 	sum := sha256.Sum256(canonical)
 	return hex.EncodeToString(sum[:]), nil
 }
@@ -112,93 +123,105 @@ func validateLivePolicyReceipt(root string, proof verifiedTaskProof) error {
 	// The caller holds policy task.lock -> arc.lock. Read the canonical
 	// Turso row after cutover; never accept a stale legacy state.json.
 	db, err := openActiveArcDB(root)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	doc, err := loadPolicyDocument(db)
-	if e := db.Close(); err == nil { err = e }
-	if err != nil { return err }
+	if e := db.Close(); err == nil {
+		err = e
+	}
+	if err != nil {
+		return err
+	}
 	var raw []byte
 	if doc.Mode == "arc.db" {
 		raw = doc.State
 	} else {
 		path := filepath.Join(root, ".arc", "policy", "state.json")
 		st, err := os.Lstat(path)
-		if err != nil { return fmt.Errorf("policy state unavailable: %w", err) }
-		if !st.Mode().IsRegular() { return errors.New("unsafe policy task state file") }
+		if err != nil {
+			return fmt.Errorf("policy state unavailable: %w", err)
+		}
+		if !st.Mode().IsRegular() {
+			return errors.New("unsafe policy task state file")
+		}
 		raw, err = os.ReadFile(path)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 	}
 	var state struct {
 		Active struct {
-			ID string `json:"id"`
+			ID      string          `json:"id"`
 			Receipt json.RawMessage `json:"receipt"`
 		} `json:"active"`
 	}
-	if err := json.Unmarshal(raw, &state); err != nil { return fmt.Errorf("invalid current policy state: %w",err) }
-	if state.Active.ID != proof.TaskID { return errors.New("policy task changed during completion") }
-	hash, err := canonicalPolicyReceiptHash(state.Active.Receipt)
-	if err != nil { return fmt.Errorf("policy receipt revoked: %w",err) }
-	if hash != proof.ReceiptSHA256 { return errors.New("policy receipt changed during completion") }
-	return nil
-}
-
-func policyTaskStatusFromCLI(ctx context.Context, root string) (policyTaskStatus, error) {
-	bin, err := exec.LookPath("arc-policy")
-	if err != nil { return policyTaskStatus{}, errors.New("arc-policy CLI required to verify a task's current receipt") }
-	cmd := exec.CommandContext(ctx, bin, "--cwd", root, "task", "status")
-	output, err := cmd.Output()
-	if err != nil { return policyTaskStatus{}, fmt.Errorf("cannot validate Arc Policy task: %w", err) }
-	var status policyTaskStatus
-	if err := json.Unmarshal(output, &status); err != nil { return status, fmt.Errorf("invalid policy status JSON: %w", err) }
-	resolved, err := filepath.EvalSymlinks(status.RepoRoot)
-	if err != nil || filepath.Clean(resolved) != filepath.Clean(root) {
-		return status, errors.New("Arc Policy receipt belongs to a different repository")
+	if err := json.Unmarshal(raw, &state); err != nil {
+		return fmt.Errorf("invalid current policy state: %w", err)
 	}
-	return status, nil
-}
-
-// Must run BEFORE obtaining withArcLock: Arc Policy status re-checks business
-// graph evidence via arc verify, which itself acquires that same repository lock.
-func loadCompletionProof(root, taskID string) (verifiedTaskProof, error) {
-	before, err := sourceSnapshot(root)
-	if err != nil { return verifiedTaskProof{}, err }
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-	status, err := policyTaskStatusFromCLI(ctx, root)
-	if err != nil { return verifiedTaskProof{}, err }
-	proof, err := requirePolicyProof(taskID, status)
-	if err != nil { return verifiedTaskProof{}, err }
-	after, err := sourceSnapshot(root)
-	if err != nil { return verifiedTaskProof{}, err }
-	if before != after { return verifiedTaskProof{}, errors.New("source changed while checking task evidence") }
-	proof.SourceSnapshot = before
-	return proof, nil
+	if state.Active.ID != proof.TaskID {
+		return errors.New("policy task changed during completion")
+	}
+	hash, err := canonicalPolicyReceiptHash(state.Active.Receipt)
+	if err != nil {
+		return fmt.Errorf("policy receipt revoked: %w", err)
+	}
+	if hash != proof.ReceiptSHA256 {
+		return errors.New("policy receipt changed during completion")
+	}
+	return nil
 }
 
 // Atomic CAS + immutable evidence event; no background tests are run here.
 // Pending outbox records prohibit completion until a real index flush succeeds.
 func commitTaskCompletion(db *sql.DB, root, id string, expected int, proof verifiedTaskProof) error {
-	if id == "" || expected < 1 || proof.TaskID != id || proof.ReceiptSHA256 == "" {
-		return errors.New("task completion requires ID, expected version, matching PASS evidence")
+	if id == "" || expected < 1 || proof.TaskID != id || proof.ReceiptSHA256 == "" || !proof.Native || proof.LinksSHA256 == "" || len(proof.NativeProofs) == 0 {
+		return errors.New("task completion requires ID, expected version, and native linked PASS evidence; historical policy receipts are audit-only")
 	}
 	current, err := sourceSnapshot(root)
-	if err != nil { return err }
-	if proof.SourceSnapshot != current { return errors.New("worktree changed since the verified receipt; retry task completion") }
+	if err != nil {
+		return err
+	}
+	if proof.SourceSnapshot != current {
+		return errors.New("worktree changed since the verified receipt; retry task completion")
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
 	tx, err := db.BeginTx(ctx, nil)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	defer tx.Rollback()
 	var old string
 	var version int
-	if err := tx.QueryRowContext(ctx, "SELECT status,version FROM arc_tasks WHERE id=?", id).Scan(&old,&version); err != nil { return err }
-	if version != expected { return fmt.Errorf("task version conflict: expected %d actual %d", expected, version) }
-	if old != "verifying" { return fmt.Errorf("task must be verifying before done, currently %s", old) }
+	if err := tx.QueryRowContext(ctx, "SELECT status,version FROM arc_tasks WHERE id=?", id).Scan(&old, &version); err != nil {
+		return err
+	}
+	if version != expected {
+		return fmt.Errorf("task version conflict: expected %d actual %d", expected, version)
+	}
+	if old != "verifying" {
+		return fmt.Errorf("task must be verifying before done, currently %s", old)
+	}
+	links, currentLinksHash, err := completionLinks(ctx, tx, id)
+	if err != nil {
+		return err
+	}
+	if currentLinksHash != proof.LinksSHA256 || len(links) != len(proof.NativeProofs) {
+		return errors.New("verification obligations changed during completion; revalidate the current linked scope")
+	}
 	var pending int
-	if err := tx.QueryRowContext(ctx,"SELECT COUNT(*) FROM arc_outbox o JOIN arc_events e ON e.id=o.event_id WHERE o.status='pending' AND e.aggregate IN ('file','change')").Scan(&pending); err != nil { return err }
-	if pending != 0 { return fmt.Errorf("%d outbox events unacknowledged; run arc index flush first", pending) }
+	if err := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM arc_outbox o JOIN arc_events e ON e.id=o.event_id WHERE o.status='pending' AND e.aggregate IN ('file','change')").Scan(&pending); err != nil {
+		return err
+	}
+	if pending != 0 {
+		return fmt.Errorf("%d outbox events unacknowledged; run arc index flush first", pending)
+	}
 	var indexedSnapshot string
 	if err := tx.QueryRowContext(ctx, "SELECT value FROM arc_meta WHERE key='index_last_snapshot'").Scan(&indexedSnapshot); err != nil {
-		if errors.Is(err,sql.ErrNoRows) { return errors.New("no confirmed code index; run arc index flush first") }
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("no confirmed code index; run arc index flush first")
+		}
 		return err
 	}
 	if indexedSnapshot == "" || indexedSnapshot != proof.SourceSnapshot {
@@ -209,54 +232,72 @@ func commitTaskCompletion(db *sql.DB, root, id string, expected int, proof verif
 	res, err := tx.ExecContext(ctx,
 		"UPDATE arc_tasks SET status='done',version=version+1,updated=? WHERE id=? AND version=? AND status='verifying'",
 		nowUTC(), id, expected)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	affected, err := res.RowsAffected()
-	if err != nil || affected != 1 { return errors.New("concurrent task change; completion not committed") }
+	if err != nil || affected != 1 {
+		return errors.New("concurrent task change; completion not committed")
+	}
 	evidence := map[string]any{
 		"task_id": id, "from_version": version,
 		"receipt_sha256": proof.ReceiptSHA256,
-		"head": proof.ReceiptHead, "tree": proof.ReceiptTree,
+		"head":           proof.ReceiptHead, "tree": proof.ReceiptTree,
 		"digest": proof.ReceiptDigest, "verified_at": proof.VerifiedAt,
 		"source_snapshot": proof.SourceSnapshot, "checks": proof.Checks,
+		"proof_kind": "native_linked_task_evidence", "links_sha256": proof.LinksSHA256, "links": links,
 	}
-	if err := addEvent(ctx, tx, "task", id, "task.completed", evidence); err != nil { return err }
-	if err := tx.Commit(); err != nil { return err }
-	return emitJSON(map[string]any{"id":id, "status":"done", "version":expected+1, "receipt_sha256": proof.ReceiptSHA256})
+	if err := addEvent(ctx, tx, "task", id, "task.completed", evidence); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return emitJSON(map[string]any{"id": id, "status": "done", "version": expected + 1, "receipt_sha256": proof.ReceiptSHA256})
 }
-
 
 // Task completion is historical, not a perpetual PASS. Showing a completed
 // task compares the immutable completion event with the current source tree,
 // and explicitly does NOT claim the external business proof was rerun.
-func showTaskWithProof(db *sql.DB,root,id string)error{
-	if id==""{return errors.New("task show requires --id")}
-	ctx,cancel:=context.WithTimeout(context.Background(),15*time.Second)
+func showTaskWithProof(db *sql.DB, root, id string) error {
+	if id == "" {
+		return errors.New("task show requires --id")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	var title,status,updated string
+	var title, status, updated string
 	var version int
-	if err:=db.QueryRowContext(ctx,
-		"SELECT title,status,version,updated FROM arc_tasks WHERE id=?",id).
-		Scan(&title,&status,&version,&updated);err!=nil{return err}
-	out:=map[string]any{"id":id,"title":title,"status":status,"version":version,"updated":updated}
-	if status=="done"{
+	if err := db.QueryRowContext(ctx,
+		"SELECT title,status,version,updated FROM arc_tasks WHERE id=?", id).
+		Scan(&title, &status, &version, &updated); err != nil {
+		return err
+	}
+	out := map[string]any{"id": id, "title": title, "status": status, "version": version, "updated": updated}
+	if status == "done" {
 		var raw string
-		err:=db.QueryRowContext(ctx,
-			"SELECT payload FROM arc_events WHERE aggregate='task' AND aggregate_id=? AND kind='task.completed' ORDER BY created DESC,id DESC LIMIT 1",id).Scan(&raw)
-		if err!=nil && !errors.Is(err,sql.ErrNoRows){return err}
-		var record struct{
-			ReceiptSHA256 string `json:"receipt_sha256"`
-			Head string `json:"head"`
+		err := db.QueryRowContext(ctx,
+			"SELECT payload FROM arc_events WHERE aggregate='task' AND aggregate_id=? AND kind='task.completed' ORDER BY created DESC,id DESC LIMIT 1", id).Scan(&raw)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		var record struct {
+			ReceiptSHA256  string `json:"receipt_sha256"`
+			Head           string `json:"head"`
 			SourceSnapshot string `json:"source_snapshot"`
 		}
-		if err==nil{
-			if jsonErr:=json.Unmarshal([]byte(raw),&record);jsonErr!=nil{return jsonErr}
+		if err == nil {
+			if jsonErr := json.Unmarshal([]byte(raw), &record); jsonErr != nil {
+				return jsonErr
+			}
 		}
-		snapshot,snapshotErr:=sourceSnapshot(root)
-		if snapshotErr!=nil{return snapshotErr}
-		out["completion"]=map[string]any{
-			"receipt_sha256":record.ReceiptSHA256,"head":record.Head,
-			"source_revision_current":record.SourceSnapshot!="" && record.SourceSnapshot==snapshot,
-			"independent_proof_rechecked":false,
+		snapshot, snapshotErr := sourceSnapshot(root)
+		if snapshotErr != nil {
+			return snapshotErr
+		}
+		out["completion"] = map[string]any{
+			"receipt_sha256": record.ReceiptSHA256, "head": record.Head,
+			"source_revision_current":     record.SourceSnapshot != "" && record.SourceSnapshot == snapshot,
+			"independent_proof_rechecked": false,
 		}
 	}
 	return emitJSON(out)

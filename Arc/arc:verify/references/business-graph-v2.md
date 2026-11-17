@@ -1,5 +1,10 @@
 # Business graph v2: model, equivalence and runtime commands
 
+Follow [deterministic contracts](deterministic-contract.md): match observed prestate/actor/guard
+before execution, freeze one Expected, never select it from Actual. The legacy boolean examples
+below do not establish deterministic business coverage.
+
+
 v2 models (`schema_version: 2`) add typed views (system, domain, capability, boundary, role, data,
 contract, deployment) over the legacy action/condition/state core; v1 graphs reject every v2 field.
 Optional v2 fields: `history[]` (path facts that change later behavior; `set_by`/`cleared_by`/`enables`

@@ -1,129 +1,62 @@
-# Verify business diagrams with arch-diagram
+# Business verification workbench
 
-Sections: [Structure](#choose-a-readable-business-structure) · [Naming](#language-and-business-package-names) ·
-[Evidence](#source-and-evidence-boundaries) · [Build and review](#build-and-deliver).
+The native static workbench is the main Arc Verify interface. It is exported from the local
+ledger through `arc verify snapshot`, with versioned model, independently validated facts and
+RAW. No rendering plugin, local API server or Agent lifecycle is required.
 
-Use the [arch-diagram plugin](https://github.com/bassnova42/arch-diagram-skill) for graph/flow review
-visuals. Install it from the host inventory; read that `SKILL.md` and `references/spec.md` only for
-this drawing substep. Carry the selected snapshot, stable IDs, package evidence and scope; release
-unrelated execution references. Never guess a cache path.
-Repository discovery still follows [code-intel](../../_shared/code-intel.md), using `arc`.
+## Four synchronized regions
 
-## Choose a readable business structure
+| Region | Content |
+|---|---|
+| Left | System/domain/capability/scenario tree; branches, missing rules and coverage |
+| Center | Preparation dependency genealogy, cyclic state graph, or actual run overlay |
+| Right | Selected node's branches; then one branch's prestate, typed guards and frozen Expected; then one run's actor/entity, Actual, assertions and evidence |
+| Bottom | Actual steps, waiting, first deviation and linked history |
 
-Choose the diagram's meaning before placing boxes. A capability overview answers what belongs to
-which business domain; a flow answers what happens under which conditions. Do not force both into
-a fixed two-column grid or use process arrows for every relationship.
+The single selection context is `model/environment/flow/branch/run/step/actor/entity`.
+Changing a run clears account/entity selections that do not belong to it. A node can have
+several branches; do not pick a branch because the actual result happens to fit its expectation.
+Old runs without a frozen branch remain visibly unassociated legacy history.
 
-- **Capability tree:** represent a genuine single-parent, acyclic `contains` hierarchy with the
-  official renderer's nested `groups`. Place sibling capabilities together inside the parent;
-  balance the last row (five compact siblings can use 3 + 2). Keep real `serves` or other business
-  relations as arrows. Shared ownership or cycles retain explicit relations; never pick a parent
-  just to make the picture tidy. Preserve every containment edge ID, including parallel edges.
-- **Business flow:** use a direction that follows the actual actions, conditions, states and
-  recovery paths. Put a short meaningful Chinese label on the wire itself. Generic numbered
-  labels and long nearly overlapping outer rails are not adequate branch explanations. Split a
-  dense flow into explicit bounded views instead of compressing its labels or inventing sequence.
-- **Cards:** lead with the Chinese business name, then its complete `【实际业务包名】` on the next
-  line when needed. Show a short business fact and meaningful status. Move source IDs, file/line
-  evidence, full hashes, zero-failure counters and routine explanations into the review details.
-  The overview must still show candidates, missing packages, exact FAIL/BLOCKED/STALE/FLAKY states,
-  nonzero historical FAIL, RAW errors, stale context and omitted scope. A parent becoming a group
-  retains its identity and status in the group label; membership is not evidence of execution.
-- **Spacing:** size cards from the visible text; use compact sibling gaps when no wire needs that
-  space. Center incomplete rows and align connected elements. Do not reserve a large blank routing
-  gutter for a pure containment tree. Keep verdict words and package tokens intact when wrapping.
+## Graph meanings and layout
 
-The main visual and the evidence details use the same snapshot. Compacting the picture never
-removes canonical IDs, RULE logic, packages, evidence or history from the spec/review page.
-The official renderer supports groups but no expandable evidence panel; the Arc companion review
-page embeds its unchanged output and provides native read-only disclosure sections. Do not edit
-the pinned upstream engine or hand-edit generated HTML to add controls.
+- Capability `contains` edges express ownership, not execution order or state transitions.
+- Preparation edges express explicit `depends_on`/condition-producing actions. Use the longest
+  dependency path for depth: A→D and A→B→C→D place D after C. Show upstream prerequisites,
+  downstream impact, missing conditions and independent preparation groups.
+- State edges express guarded transitions; retries/compensation may cycle. Condense strongly
+  connected components for layout without deleting their internal transition edges or branch IDs.
+- Run overlays use recorded step/action/transition identities, frozen branch and evidence status.
+  Candidate edges, predicted preparation effects and model coverage must not look executed.
+- Focus on a selected local subgraph, keep canonical IDs and expose any omitted/truncated scope.
+  Group related nodes and show meaningful Chinese business names; do not flatten every domain
+  into a giant task sequence. Actual package names remain source-backed implementation details.
 
-## Language and business package names
+An allowed outcome set is one explicitly declared contract, never random legal exits inferred
+from repeated executions. A bad layout cannot be fixed by deleting state cycles or merging
+account facts. The UI does not recompute business verdicts or rewrite evidence.
 
-- Set `lang: "zh-CN"`. Titles, business descriptions, conditions, states, edge labels, legends and
-  status explanations are Chinese; keep code identifiers, paths and canonical verdict codes intact.
-- Business node titles use `中文业务名【实际英文业务包名】`. Take the package identifier from the
-  target's actual directory/package declaration or manifest, with traced `file:line` evidence.
-  Do not translate Chinese into an invented English module name or substitute an API/table name.
-- For a capability spanning packages, list the actual mapped packages; keep their declared spelling
-  and namespace. An expected capability with no located implementation uses `中文业务名【业务包待核实】`
-  and retains its candidate/gap status. Package mapping never defines the expected business tree.
+## Build, export and inspect
 
-## Source and evidence boundaries
+Build `tools/arc-verify/workbench` with the versions in its manifest/lockfile. Export using
+`arc verify snapshot --graph GRAPH --assets BUILD --out DIRECTORY`, adding explicit environment,
+round or run filters when needed. Without `--run`, the export includes the latest 32 runs in
+that context, reports total/truncated history, and keeps the catalog for navigation.
 
-- For DB graphs, render the model read back after import, recording graph ID/version and source in
-  the spec/HTML. Retain the target-local DB and the CLI's HTML+JSON snapshot; keep diagram files in
-  a separate artifact directory. Refresh from the current model when it changes.
-- For local flows, render the existing flow catalog and retain its Mermaid blocks and branch/
-  terminal tables for `flow_ledger.py check`. The plugin's Mermaid export can drop raw-point edges
-  and does not replace this ledger. Keep all canonical graph/FLOW/RULE/node/branch IDs and meanings;
-  if renderer anchor IDs differ, record their source-ID mapping in the spec.
-- Keep the view business-oriented: expected capabilities → actions → conditions/states/recovery.
-  Split large graphs into linked bounded views with the same source IDs; report omitted scope.
-  Do not reduce the business graph to a directory/package architecture chart.
-- The HTML is a self-contained read-only view, with no server or execute/approve/retry controls.
-  Omit synthetic live trace logs; animated wires illustrate relationships, never real execution.
-  Candidates remain unverified. Display existing verdicts only with their run/source identity;
-  a clean diagram check never supplies RAW, an oracle, approval or a business PASS.
+The directory contains `index.html`, local assets and `snapshot.json`. It is read-only, has a
+network-denying content security policy, and exposes no execute/approve/retry controls. A new
+export never overwrites a previous nonempty snapshot. Evidence failures appear as BLOCKED
+with the reason; raw-file presence or stored PASS text is not enough.
 
-## Build and deliver
+Run frontend tests and the actual production build. Inspect desktop and narrow layouts plus
+branch/run/step/actor/entity changes. Use a snapshot exported by the Go CLI for integration
+checks. Synthetic tool fixtures must say synthetic; they are not pay_gateway acceptance.
+No screenshot or geometry check proves the business system passed.
 
-For an existing v2 DB snapshot, use the installed arch-diagram skill's file-only
-build path with the original `snapshot.json` (never a freshly invented model).
-`--view capabilities` draws the capability tree. The optional presentation JSON
-supplies Chinese names and package evidence, not rules or verdicts. It is bound
-to the snapshot's `graph` and `graph_sha256`.
-Resolve names from the user's business vocabulary. A package requires a readable source `file`,
-one-based `line` and its actual identifier on that line; otherwise show `业务包待核实`. Select
-`node_ids` for graphs over 16 nodes and report omitted nodes/edges. No hidden truncation.
+## Optional presentation export
 
-Presentation shape (replace IDs/hash with the actual snapshot; `name_zh` excludes package brackets):
-
-```json
-{
-  "graph": "GRAPH-ID",
-  "graph_sha256": "<meta.graph_sha256>",
-  "nodes": {
-    "ACTION-ID": {"name_zh": "提交报名", "packages": []}
-  }
-}
-```
-
-Use `packages: [{"name": "actual.package", "file": "relative/manifest", "line": 1}]` only with
-actual directory/package/manifest evidence. Empty packages keep the explicit pending label.
-
-The bridge checks upstream hashes, builds the spec and HTML, then runs the official layout check.
-Its build/check outcomes are separate from business verdicts recorded at snapshot export time;
-offline rendering cannot revalidate today's DB, source or environment. Keep failed-check output
-for diagnosis. `--no-check` is for drafting and records layout `NOT_RUN`; never call it visual QA.
-
-Deliver `<slug>.review.html` as the primary review page: the business diagram appears first and
-source/evidence details expand below it. Keep the unchanged official `<slug>.html` and the complete
-`<slug>.spec.json` beside it. The companion is also self-contained and offline; on narrow screens it
-preserves readable diagram text with horizontal scrolling instead of shrinking a wide graph to tiny
-type. Groups and wires together count toward displayed relationships. The source-ID mapping records
-which relationships are represented by containment.
-
-Keep `<slug>.spec.json` beside `<slug>.html` in the project's existing graph/flow artifact location
-(default `.arc/verify/diagrams/<graph-id>/` for DB graphs). Use the resolved installed directory:
-
-```bash
-node "$ARCH_DIAGRAM_SKILL/scripts/build.mjs" "$VERIFY_DIAGRAM_SPEC" "$VERIFY_DIAGRAM_HTML"
-node "$ARCH_DIAGRAM_SKILL/scripts/check.mjs" "$VERIFY_DIAGRAM_HTML" "$VERIFY_DIAGRAM_SCREENSHOT"
-```
-
-Inspect the screenshot after the check passes. A zero exit code only checks geometry; it cannot
-judge hierarchy, balance or readability. Reject large unexplained empty areas, equal-level nodes
-that look like a sequence, long redundant rails, tiny or clipped Chinese/package names, broken
-verdict words, evidence-dominated cards and crossing labels. Check the companion page at a desktop
-and a narrow viewport, including its expanded evidence. Rebuild and inspect again after a visible
-layout change. Until that inspection happens, retain `visual_review: NOT_RUN` and describe the
-artifact as awaiting visual review rather than a finished visual design.
-
-Return review/spec/diagram links and the canonical model/ledger paths. PNG/video/GIF exports
-are optional when requested. Missing plugin/browser or a failed render/check makes visualization
-`BLOCKED` with its exact cause; continue independent model/test work without claiming a substitute
-picture is the requested diagram or a successful DB export. Node builds HTML without a browser;
-layout/PNG need Chrome, Chromium or Edge (`CHROME=/actual/path`). No browser download occurs in hooks.
+The existing [arch-diagram plugin](https://github.com/bassnova42/arch-diagram-skill) can still
+export a presentation graphic when requested. Read its installed skill for that substep and
+use the exact imported model/snapshot. Preserve source IDs, graph hash, branch meanings,
+missing evidence and original historical files. It is not the workbench's execution or layout
+engine, and unavailable plugin tooling does not block native snapshots or independent tests.

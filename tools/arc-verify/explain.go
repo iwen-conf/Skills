@@ -28,34 +28,41 @@ type ExplainAssertion struct {
 // ExplainStep answers who ran what business node, under which preconditions and
 // entities, what was expected vs observed, and where first divergence occurred.
 type ExplainStep struct {
-	SourceKind      string               `json:"source_kind"`
-	Run             string               `json:"run"`
-	Seq             int                  `json:"seq"`
-	Graph           string               `json:"graph"`
-	Task            string               `json:"task,omitempty"`
-	Node            string               `json:"node,omitempty"`
-	Transition      string               `json:"transition,omitempty"`
-	RuleID          string               `json:"rule_id,omitempty"`
-	Who             map[string]any       `json:"who"`
-	BusinessObjects map[string]any       `json:"business_objects"`
-	Sessions        []SessionBinding     `json:"sessions,omitempty"`
-	Preconditions   []ConditionReading   `json:"preconditions,omitempty"`
-	Oracles         []OracleObservation  `json:"oracles,omitempty"`
-	Actions         []ActionObservation  `json:"actions,omitempty"`
-	DeniedObserved  *bool                `json:"denied_observed,omitempty"`
-	Waits           []WaitObservation    `json:"waits,omitempty"`
-	ExpectedState   string               `json:"expected_state"`
-	ObservedState   string               `json:"observed_state"`
-	Verdict         string               `json:"verdict"`
-	Decision        string               `json:"decision,omitempty"`
-	Reason          string               `json:"reason,omitempty"`
-	Assertions      []ExplainAssertion   `json:"assertions"`
-	FirstDivergence bool                 `json:"first_divergence"`
-	RelatedRun      string               `json:"related_run,omitempty"`
-	EvidencePath    string               `json:"evidence_path,omitempty"`
-	EvidenceSHA256  string               `json:"evidence_sha256,omitempty"`
-	RawInDB         bool                 `json:"raw_in_db"`
-	Created         string               `json:"created,omitempty"`
+	RecoveryMode         string                           `json:"recovery_mode,omitempty"`
+	EvidenceVersion      int                              `json:"evidence_version,omitempty"`
+	EvidenceStatus       string                           `json:"evidence_status"`
+	EvidenceSource       string                           `json:"evidence_source"`
+	SourceKind           string                           `json:"source_kind"`
+	Run                  string                           `json:"run"`
+	Seq                  int                              `json:"seq"`
+	Graph                string                           `json:"graph"`
+	Task                 string                           `json:"task,omitempty"`
+	Node                 string                           `json:"node,omitempty"`
+	Transition           string                           `json:"transition,omitempty"`
+	RuleID               string                           `json:"rule_id,omitempty"`
+	Who                  map[string]any                   `json:"who"`
+	BusinessObjects      map[string]any                   `json:"business_objects"`
+	Sessions             []SessionBinding                 `json:"sessions,omitempty"`
+	Preconditions        []ConditionReading               `json:"preconditions,omitempty"`
+	Oracles              []OracleObservation              `json:"oracles,omitempty"`
+	Actions              []ActionObservation              `json:"actions,omitempty"`
+	Requests             []RequestObservation             `json:"requests,omitempty"`
+	DeniedObserved       *bool                            `json:"denied_observed,omitempty"`
+	Waits                []WaitObservation                `json:"waits,omitempty"`
+	ExpectedState        string                           `json:"expected_state"`
+	ObservedState        string                           `json:"observed_state"`
+	Verdict              string                           `json:"verdict"`
+	Decision             string                           `json:"decision,omitempty"`
+	Reason               string                           `json:"reason,omitempty"`
+	Assertions           []ExplainAssertion               `json:"assertions"`
+	BusinessExpectations []BusinessExpectationObservation `json:"business_expectations,omitempty"`
+	Preparation          *PreparationExecution            `json:"preparation,omitempty"`
+	FirstDivergence      bool                             `json:"first_divergence"`
+	RelatedRun           string                           `json:"related_run,omitempty"`
+	EvidencePath         string                           `json:"evidence_path,omitempty"`
+	EvidenceSHA256       string                           `json:"evidence_sha256,omitempty"`
+	RawInDB              bool                             `json:"raw_in_db"`
+	Created              string                           `json:"created,omitempty"`
 }
 
 func parseExplainScalar(raw string) any {
@@ -96,9 +103,9 @@ func (d db) explainFacts(graph, run, node string, seq int) (map[string]any, erro
 			"source_kind", "run", "CAST(seq AS TEXT)", "graph", "task", "node", "transition", "rule_id",
 			"actor", "account", "principal", "expected_state", "observed_state", "verdict", "decision", "reason",
 			"CAST(first_divergence AS TEXT)", "related_run", "evidence_path", "evidence_sha256",
-			"CASE WHEN raw_json <> '' THEN '1' ELSE '0' END", "facts_json", "created",
+			"CASE WHEN raw_json <> '' THEN '1' ELSE '0' END", "facts_json", "created", "raw_json",
 		)+" FROM step_facts WHERE "+where+" ORDER BY run ASC, CASE source_kind WHEN 'setup' THEN 0 WHEN 'recovery' THEN 999999 ELSE 1 END ASC, seq ASC, source_kind ASC LIMIT 1000",
-		23,
+		24,
 	)
 	if err != nil {
 		return nil, err
@@ -119,6 +126,7 @@ func (d db) explainFacts(graph, run, node string, seq int) (map[string]any, erro
 	sort.Strings(sortedRuns)
 
 	assertionsByStep := map[string][]ExplainAssertion{}
+	assertionFactsByStep := map[string][]StepAssertion{}
 	entitiesByRun := map[string][]EntityBinding{}
 	allEntities := []EntityBinding{}
 	runSummaries := map[string]map[string]any{}
@@ -141,6 +149,10 @@ func (d db) explainFacts(graph, run, node string, seq int) (map[string]any, erro
 			sNum, _ := strconv.Atoi(a[2])
 			idxNum, _ := strconv.Atoi(a[3])
 			key := fmt.Sprintf("%s|%s|%d", a[0], a[1], sNum)
+			if idxNum != len(assertionFactsByStep[key])+1 {
+				return nil, fmt.Errorf("assertion sequence is incomplete for %s", key)
+			}
+			assertionFactsByStep[key] = append(assertionFactsByStep[key], StepAssertion{Kind: a[4], Name: a[5], OracleID: a[6], Subject: a[7], Expected: a[8], Actual: a[9], Operator: a[10], Verdict: a[11], Reason: a[12]})
 			assertionsByStep[key] = append(assertionsByStep[key], ExplainAssertion{
 				Index:    idxNum,
 				Kind:     a[4],
@@ -235,6 +247,7 @@ func (d db) explainFacts(graph, run, node string, seq int) (map[string]any, erro
 	}
 
 	steps := make([]ExplainStep, 0, len(rows))
+	verifiedFacts := make([]UnifiedStepFact, 0, len(rows))
 	offlineComplete := len(rows) > 0
 	var firstDivStep *ExplainStep
 	for _, r := range rows {
@@ -244,10 +257,23 @@ func (d db) explainFacts(graph, run, node string, seq int) (map[string]any, erro
 			offlineComplete = false
 		}
 		var fact UnifiedStepFact
-		if r[21] != "" {
-			_ = json.Unmarshal([]byte(r[21]), &fact)
+		if err := decodeStrictJSON([]byte(r[21]), &fact); err != nil {
+			return nil, fmt.Errorf("invalid facts JSON for %s/%s/%d: %w", r[0], r[1], sNum, err)
+		}
+		if err := validateFactColumns(fact, r, sNum); err != nil {
+			return nil, fmt.Errorf("invalid fact %s/%s/%d: %w", r[0], r[1], sNum, err)
 		}
 		key := fmt.Sprintf("%s|%s|%d", r[0], r[1], sNum)
+		if !sameFactSlice(fact.Assertions, assertionFactsByStep[key]) {
+			return nil, fmt.Errorf("assertion projection disagrees with facts for %s", key)
+		}
+		if err := d.verifyExplainFact(&fact, r[23]); err != nil {
+			return nil, fmt.Errorf("invalid evidence for %s: %w", key, err)
+		}
+		if fact.EvidenceStatus == "MISSING" {
+			offlineComplete = false
+		}
+		verifiedFacts = append(verifiedFacts, fact)
 		stepAssertions := assertionsByStep[key]
 		if len(stepAssertions) == 0 && len(fact.Assertions) > 0 {
 			for aIdx, a := range fact.Assertions {
@@ -268,19 +294,18 @@ func (d db) explainFacts(graph, run, node string, seq int) (map[string]any, erro
 		if stepAssertions == nil {
 			stepAssertions = []ExplainAssertion{}
 		}
-		stepEntities := fact.Entities
-		if len(stepEntities) == 0 {
-			stepEntities = entitiesByRun[r[1]]
-		}
 		step := ExplainStep{
-			SourceKind: r[0],
-			Run:        r[1],
-			Seq:        sNum,
-			Graph:      r[3],
-			Task:       r[4],
-			Node:       r[5],
-			Transition: r[6],
-			RuleID:     r[7],
+			EvidenceVersion: fact.EvidenceVersion,
+			EvidenceStatus:  fact.EvidenceStatus,
+			EvidenceSource:  fact.EvidenceSource,
+			SourceKind:      r[0],
+			Run:             r[1],
+			Seq:             sNum,
+			Graph:           r[3],
+			Task:            r[4],
+			Node:            r[5],
+			Transition:      r[6],
+			RuleID:          r[7],
 			Who: map[string]any{
 				"actor":        r[8],
 				"account":      r[9],
@@ -288,27 +313,31 @@ func (d db) explainFacts(graph, run, node string, seq int) (map[string]any, erro
 				"participants": fact.Participants,
 			},
 			BusinessObjects: map[string]any{
-				"entities":    stepEntities,
+				"entities":    fact.Entities,
 				"extractions": fact.Extractions,
 			},
-			Sessions:        fact.Sessions,
-			Preconditions:   fact.Conditions,
-			Oracles:         fact.Oracles,
-			Actions:         fact.Actions,
-			DeniedObserved:  fact.DeniedObserved,
-			Waits:           fact.Waits,
-			ExpectedState:   r[11],
-			ObservedState:   r[12],
-			Verdict:         r[13],
-			Decision:        r[14],
-			Reason:          r[15],
-			Assertions:      stepAssertions,
-			FirstDivergence: r[16] == "1",
-			RelatedRun:      r[17],
-			EvidencePath:    r[18],
-			EvidenceSHA256:  r[19],
-			RawInDB:         rawInDB,
-			Created:         r[22],
+			Sessions:             fact.Sessions,
+			Preconditions:        fact.Conditions,
+			Oracles:              fact.Oracles,
+			Actions:              fact.Actions,
+			Requests:             fact.Requests,
+			DeniedObserved:       fact.DeniedObserved,
+			Waits:                fact.Waits,
+			ExpectedState:        r[11],
+			ObservedState:        r[12],
+			Verdict:              r[13],
+			Decision:             r[14],
+			Reason:               r[15],
+			Assertions:           stepAssertions,
+			BusinessExpectations: fact.BusinessExpectations,
+			RecoveryMode:         fact.RecoveryMode,
+			Preparation:          fact.Preparation,
+			FirstDivergence:      r[16] == "1",
+			RelatedRun:           r[17],
+			EvidencePath:         r[18],
+			EvidenceSHA256:       r[19],
+			RawInDB:              rawInDB,
+			Created:              r[22],
 		}
 		steps = append(steps, step)
 		if step.FirstDivergence && firstDivStep == nil {
@@ -336,5 +365,6 @@ func (d db) explainFacts(graph, run, node string, seq int) (map[string]any, erro
 		"entities":            allEntities,
 		"first_divergence":    firstDivStep,
 		"steps":               steps,
+		"facts":               verifiedFacts,
 	}, nil
 }

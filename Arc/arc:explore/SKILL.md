@@ -1,6 +1,6 @@
 ---
 name: arc:explore
-version: 2.3.4
+version: 2.4.0
 description: >-
   Read-only code intelligence for a local repository: find where code lives (代码在哪, 搜代码),
   locate definitions, list callers (谁调用), trace a call chain (调用链) or data flow, list
@@ -52,6 +52,8 @@ First matching row wins.
 | arc.db resource/state, file or change lookup questions | index-ops | [arc.db](../_shared/arc-db.md); use `arc db status` / `arc task show` / `arc change show` only after activation |
 
 ## Workflow
+
+Business graphs follow [shared deterministic semantics](../_shared/business-verification.md).
 
 Graph chain: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills); `arc verify handoff --to arc-explore --graph <id>` is read-only. Supply source facts, not FAIL claims.
 

@@ -1,6 +1,6 @@
 ---
 name: arc:vet
-version: 1.1.1
+version: 1.2.0
 description: >-
   Open-source due diligence before a new dependency or a non-trivial generic component (开源选型,
   技术选型, 引入依赖, 不要重复造轮子, build vs buy): checks existing code and the standard library first,
@@ -53,6 +53,8 @@ First matching row wins.
 | A need without chosen candidates: new dependency, build vs buy, 有没有现成方案 | select | [search-playbook.md](references/search-playbook.md) |
 
 ## Workflow
+
+Business graphs follow [shared deterministic semantics](../_shared/business-verification.md).
 
 Graph runner selection: [workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills), `arc verify handoff --to arc-vet --graph <id>`; prefer existing runners and no new daemon/cloud database.
 

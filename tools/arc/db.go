@@ -228,7 +228,13 @@ func validateGateProof(body []byte, exitCode int, graph string) error {
 	case "PASS":
 		if exitCode != 0 { return fmt.Errorf("graph %q returned PASS with exit %d",graph,exitCode) }
 		scope, valid := proof["proof_scope"].(string)
-		if !valid || (scope!="planned_rule_tasks" && scope!="complete_business_model_obligations") { return fmt.Errorf("graph %q PASS lacks proof scope",graph) }
+		if !valid || (scope!="planned_rule_tasks" && scope!="complete_business_model_obligations" && scope!="legacy_business_model_obligations" && scope!="declared_finite_contract_scope_and_verified_branch_execution") { return fmt.Errorf("graph %q PASS lacks proof scope",graph) }
+		if scope=="declared_finite_contract_scope_and_verified_branch_execution" {
+			partition, ok := proof["contract_proof"].(map[string]any)
+			if !ok || partition["status"]!="PROVEN_IN_SCOPE" || partition["complete_in_scope"]!=true { return fmt.Errorf("graph %q strong PASS lacks finite contract partition proof",graph) }
+			execution, ok := proof["contract_execution"].(map[string]any)
+			if !ok || execution["status"]!="PASS" { return fmt.Errorf("graph %q strong PASS lacks per-branch execution proof",graph) }
+		}
 		if proof["inputs_unchanged"]!=true { return fmt.Errorf("graph %q PASS lacks unchanged-input attestation",graph) }
 		context, valid := proof["context"].(map[string]any)
 		if !valid || context["graph"]!=graph { return fmt.Errorf("graph %q PASS has no matching graph context",graph) }

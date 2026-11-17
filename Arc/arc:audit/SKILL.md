@@ -1,6 +1,6 @@
 ---
 name: arc:audit
-version: 2.7.1
+version: 2.8.0
 description: >-
   Read-only evaluation (只读) that produces ranked, evidence-backed code findings and never edits code:
   review any diff, PR or branch (代码评审, 能不能合), project health, code rot, over-engineering and
@@ -24,7 +24,7 @@ Read-only review producing ranked, evidence-backed findings.
 
 ## Goal
 
-Locate evidenced findings; preserve inputs.
+Evidence first; preserve inputs.
 
 ## Inputs
 
@@ -53,13 +53,15 @@ Locate evidenced findings; preserve inputs.
 
 ## Workflow
 
-Graph review: [workflow §6](../_shared/workflow.md), `arc verify handoff --to arc-audit --graph <id>` (read-only); NOT_FOUND/RISK ≠ defect.
+Business graphs follow [shared deterministic semantics](../_shared/business-verification.md).
 
-Document-only API reviews cite sections/lines; without a repository skip git/index steps.
+Read-only [handoff](../_shared/workflow.md): `arc verify handoff --to arc-audit --graph <id>`. RISK ≠ defect.
+
+Document-only reviews cite sections; skip repository preflight.
 
 1. Read [../_shared/contract.md](../_shared/contract.md) and [../_shared/code-intel.md](../_shared/code-intel.md); run the code-intel preflight. Record the baseline:
    `mkdir -p .arc/artifacts/<slug>/logs && git status --porcelain --untracked-files=all -- . ':(exclude).arc/artifacts' > .arc/artifacts/<slug>/logs/status-before.txt`.
-   IF `.lark.json` exists THEN read its prior risk and audit records. Output: baseline file, mode, scope.
+   IF `.lark.json` exists THEN read its prior risk and audit records. Record mode/scope.
 2. Read the rubric for each stack in scope: [go-backend.md](../_shared/conventions/go-backend.md) + [go-type-safety.md](../_shared/conventions/go-type-safety.md), [frontend.md](../_shared/conventions/frontend.md), [api-contract.md](../_shared/api-contract.md) when routes or DTOs are in scope, [comments.md](../_shared/conventions/comments.md) when comments are reviewed. Output: rubric list in the report.
 3. Run the mode:
    - **review**: [diff-review.md](references/diff-review.md) §1–§8. Output: symbol table, impact rows, verdict.

@@ -227,6 +227,10 @@ func TestMigrationGateProofMustBeStructured(t *testing.T) {
 		{"contradiction",`{"verdict":"BLOCKED"}`,0,false},
 		{"blocked",`{"verdict":"BLOCKED"}`,1,true},
 		{"valid PASS",`{"verdict":"PASS","proof_scope":"planned_rule_tasks","inputs_unchanged":true,"context":{"graph":"graph-v1"}}`,0,true},
+		{"legacy limited PASS",`{"verdict":"PASS","proof_scope":"legacy_business_model_obligations","inputs_unchanged":true,"context":{"graph":"graph-v1"}}`,0,true},
+		{"strong PASS missing branch evidence",`{"verdict":"PASS","proof_scope":"declared_finite_contract_scope_and_verified_branch_execution","inputs_unchanged":true,"context":{"graph":"graph-v1"}}`,0,false},
+		{"strong PASS",`{"verdict":"PASS","proof_scope":"declared_finite_contract_scope_and_verified_branch_execution","contract_proof":{"status":"PROVEN_IN_SCOPE","complete_in_scope":true},"contract_execution":{"status":"PASS"},"inputs_unchanged":true,"context":{"graph":"graph-v1"}}`,0,true},
+		{"task scope is not graph proof",`{"verdict":"PASS","proof_scope":"linked_task_evidence","inputs_unchanged":true,"context":{"graph":"graph-v1"}}`,0,false},
 		{"wrong graph",`{"verdict":"PASS","proof_scope":"planned_rule_tasks","inputs_unchanged":true,"context":{"graph":"other"}}`,0,false},
 	}
 	for _,tc:=range testCases{

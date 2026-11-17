@@ -3,200 +3,131 @@ import { describe, expect, it } from "vite-plus/test";
 import sample from "../dev/sample-snapshot.json";
 import App from "./App";
 import { SnapshotError, parseSnapshot } from "./snapshot";
+import { contractFixture } from "./test-fixtures";
 
-const snapshot = parseSnapshot(JSON.parse(JSON.stringify(sample)));
-
-describe("static workbench", () => {
-  it("makes every workspace and view reachable from the snapshot", () => {
+describe("offline business verification workbench", () => {
+  it("shows four coordinated areas and requires a branch before showing any run facts", () => {
+    const snapshot = contractFixture();
     const html = renderToStaticMarkup(<App state={{ snapshot }} />);
     for (const label of [
-      "业务建模",
-      "业务验证",
-      "业务分析",
-      "系统业务",
-      "业务能力",
-      "业务边界",
-      "业务流程",
-      "测试验证",
-      "业务影响",
-    ]) {
+      "能力树与分支导航",
+      "准备依赖",
+      "业务状态",
+      "运行轨迹",
+      "分支与事实面板",
+      "执行轨迹",
+      "先选择条件与预期",
+      "先选择业务分支",
+    ])
       expect(html).toContain(label);
-    }
     expect(html).toContain(snapshot.meta.graph);
-    expect(html).toContain(snapshot.meta.generated);
+    expect(html).toContain("静态快照");
+    expect(html).not.toContain("principal-A");
+    expect(html).not.toContain("principal-B-private-marker");
+    expect(html).toMatch(/aria-label="运行"[^>]*disabled/);
   });
-  it("offers no write action", () => {
-    const html = [
-      ...(
-        ["overview", "capabilities", "boundaries", "flows", "verification", "impact"] as const
-      ).map((view) => renderToStaticMarkup(<App state={{ snapshot }} initialView={view} />)),
-      renderToStaticMarkup(
-        <App state={{ error: new SnapshotError("snapshot.parse", "broken") }} />,
-      ),
-    ].join("");
-    const buttons = [...html.matchAll(/<button[^>]*>(.*?)<\/button>/g)].map((match) =>
-      match[1].replace(/<[^>]+>/g, ""),
+  it("shows declared predicates and expectations before there is an execution", () => {
+    const html = renderToStaticMarkup(
+      <App state={{ snapshot: contractFixture() }} initialContext={{ branch: "B-CALLBACK" }} />,
     );
-    expect(buttons.length).toBeGreaterThan(0);
-    for (const label of buttons) {
-      expect(label).not.toMatch(/导入|批准|规划|执行|重试|删除|保存|提交/);
-    }
-    for (const markup of ["<form", "<textarea", 'type="submit"']) {
-      expect(html).not.toContain(markup);
-    }
+    expect(html).toContain("merchant.enabled");
+    expect(html).toContain("order.inflight");
+    expect(html).toContain("order.settlements");
+    expect(html).toContain("确定性单一结果");
+    expect(html).toContain("尚未选择运行");
+    expect(html).not.toContain("principal-A");
   });
-  it("shows evidence that failed re-verification as a failure, never as valid", () => {
-    const tampered = parseSnapshot(JSON.parse(JSON.stringify(sample)));
-    tampered.runs[0].evidence = tampered.runs[0].evidence.map((entry) =>
-      entry.phase === "fixture"
-        ? { run: entry.run, phase: entry.phase, step: entry.step, error: "RAW sha256 mismatch" }
-        : entry,
+  it("renders the selected step's frozen expectation, actual result, subject and database evidence without another run's identity", () => {
+    const html = renderToStaticMarkup(
+      <App
+        state={{ snapshot: contractFixture() }}
+        initialContext={{ branch: "B-CALLBACK", run: "synthetic-run-A", step: "3" }}
+      />,
     );
-    const html = renderToStaticMarkup(<App state={{ snapshot: tampered }} />);
-    expect(html).not.toContain("RAW sha256 mismatch");
-    const verification = renderToStaticMarkup(
-      <App state={{ snapshot: tampered }} initialView="verification" />,
-    );
-    expect(verification).toContain("夹具恢复：导出时校验失败");
-    expect(verification).toContain("RAW sha256 mismatch");
+    for (const text of [
+      "principal-A",
+      "order-principal-A",
+      "merchant-enabled",
+      "false",
+      "独立判据与 DB 回读",
+      "会话状态",
+      "失效",
+      "异步等待",
+      "5000",
+      "冻结前置条件与实际结果",
+      "isolated-settlement-count",
+      "synthetic invariant divergence retained",
+      "首次偏离",
+      "B-CALLBACK",
+    ])
+      expect(html).toContain(text);
+    expect(html).not.toContain("principal-B-private-marker");
+    expect(html).not.toContain("order-principal-B-private-marker");
   });
-  it("shows sourced diagnostics with their subjects", () => {
-    const diagnosed = parseSnapshot(JSON.parse(JSON.stringify(sample)));
-    diagnosed.views.boundaries.diagnostics = [
-      {
-        code: "OWNERSHIP_CONFLICT",
-        severity: "error",
-        subjects: ["enrollment.submit", "course.boundary", "audit.boundary"],
-        reason:
-          "multiple boundaries own the same business subject without a sourced sharing declaration",
-      },
-      {
-        code: "DEPENDENCY_CYCLE",
-        severity: "warning",
-        subjects: ["enrollment.submit", "enrollment.review"],
-        reason: "business dependencies are cyclic",
-      },
+  it("keeps failed evidence separate from a recorded business result and preserves errors", () => {
+    const snapshot = contractFixture();
+    snapshot.runs[0].evidence_status = "BLOCKED";
+    snapshot.runs[0].facts![0].evidence_status = "BLOCKED";
+    snapshot.runs[0].evidence_errors = ["synthetic hash mismatch"];
+    snapshot.runs[0].evidence = [
+      { run: "synthetic-run-A", phase: "action", step: 1, error: "synthetic hash mismatch" },
     ];
     const html = renderToStaticMarkup(
-      <App state={{ snapshot: diagnosed }} initialView="boundaries" />,
+      <App
+        state={{ snapshot }}
+        initialContext={{ branch: "B-CREATE", run: "synthetic-run-A", step: "1" }}
+      />,
     );
-    for (const text of [
-      "OWNERSHIP_CONFLICT",
-      "severity-error",
-      "audit.boundary",
-      "DEPENDENCY_CYCLE",
-      "severity-warning",
-      "business dependencies are cyclic",
-    ]) {
-      expect(html).toContain(text);
-    }
+    expect(html).toContain("不能据此点绿业务");
+    expect(html).toContain("导出时校验失败");
+    expect(html).toContain("synthetic hash mismatch");
   });
-  it("shows a contract change with its propagation reasons and tests to rerun", () => {
-    const changed = parseSnapshot(JSON.parse(JSON.stringify(sample)));
-    changed.impact = {
-      graph: "course-v2",
-      previous: "course-v1",
-      changed: ["enrollment.submit"],
-      affected: ["R1"],
-      tests: ["R1/POSITIVE"],
-      reasons: { R1: ["implements enrollment.submit"] },
-      scope: "typed dependency propagation",
-    };
-    const html = renderToStaticMarkup(<App state={{ snapshot: changed }} initialView="impact" />);
-    for (const text of [
-      "course-v1",
-      "enrollment.submit",
-      "R1/POSITIVE",
-      "implements enrollment.submit",
-      "待复验测试",
-    ]) {
-      expect(html).toContain(text);
-    }
-    const unchanged = renderToStaticMarkup(<App state={{ snapshot }} initialView="impact" />);
-    expect(unchanged).toContain("没有可比较的差异");
+  it("keeps legacy traces reviewable without claiming the new business contract", () => {
+    const snapshot = parseSnapshot(structuredClone(sample));
+    const run = snapshot.runs[0];
+    const html = renderToStaticMarkup(
+      <App
+        state={{ snapshot }}
+        initialContext={{ branch: "legacy:R1/POSITIVE", run: run.trace.run }}
+      />,
+    );
+    expect(html).toContain("旧格式测试可回看");
+    expect(html).toContain("未导出统一 step_facts");
+    expect(html).toContain("历史格式或身份不完整");
+    expect(html).toContain(run.trace.run);
   });
-  it("shows ledger exploration coverage without greening a capability by explore count", () => {
-    const explored = parseSnapshot(JSON.parse(JSON.stringify(sample)));
-    explored.exploration = {
-      "enrollment.submit": {
-        explored_branches: ["repeat:enroll"],
-        unexplored_branches: ["skip_precondition:enroll"],
-        unspecified: ["UNDECLARED_TRANSITION:force"],
-        confirmed_fails: ["enrollment.submit historic FAIL"],
-        current_pass: [],
-        tested: true,
-        pending_recovery: ["X-blocked"],
-        stop_reasons: ["budget_actions"],
-        budget_exhausted: true,
-        evidence_missing: "oracle timeout",
-        business_verdict: "FAIL",
-        evidence_trust: "INCOMPLETE",
-        known_facts: ["FACT-rule-R1"],
-        hypothesis_status: ["BH-001:PROPOSED"],
-        explanations: ["EX-last:SUPPORTED:owner+version"],
-        experiments: ["EXP-min-owner"],
-        revisions: ["v2"],
-        needs_decision: ["FACT-unspec-U1"],
-        counterfactual_paths: ["claim:if two subjects act at the same time"],
-        hypothesis_history: ["BH-001:v1:PROPOSED"],
+  it("preserves bounded coverage gaps and sourced model diagnostics", () => {
+    const snapshot = contractFixture();
+    snapshot.views.boundaries.diagnostics = [
+      {
+        code: "DEPENDENCY_CYCLE",
+        severity: "error",
+        subjects: ["P-A", "P-B"],
+        reason: "synthetic preparation cycle",
       },
-    };
-    const html = renderToStaticMarkup(
-      <App
-        state={{ snapshot: explored }}
-        initialView="capabilities"
-        initialSelected="enrollment.submit"
-      />,
-    );
+    ];
+    const html = renderToStaticMarkup(<App state={{ snapshot }} />);
     for (const text of [
-      "探索与验证",
-      "已测试",
-      "尚未完整验证",
-      "repeat:enroll",
-      "skip_precondition:enroll",
-      "UNDECLARED_TRANSITION:force",
-      "enrollment.submit historic FAIL",
-      "X-blocked",
-      "预算耗尽",
-      "oracle timeout",
-      "当前有效 PASS",
-      "尚未完整验证",
-      "结果不稳定",
-      "AI 边界候选",
-      "已执行路径",
-      "未执行 Frontier",
-      "业务验证状态",
-      "FAIL",
-      "证据可信状态",
-      "INCOMPLETE",
-      "证据不足，未点绿",
-      "已确认事实",
-      "假设状态",
-      "竞争性解释",
-      "最小实验",
-      "理解修订",
-      "反事实路径",
-      "假设历史",
-      "待业务确认",
-      "FACT-rule-R1",
-      "BH-001:PROPOSED",
-      "EX-last:SUPPORTED:owner+version",
-      "EXP-min-owner",
-      "FACT-unspec-U1",
-      "claim:if two subjects act at the same time",
-      "BH-001:v1:PROPOSED",
-    ]) {
+      "UNSPECIFIED",
+      "synthetic missing branch retained",
+      "覆盖不完整",
+      "DEPENDENCY_CYCLE",
+      "severity-error",
+      "P-A",
+      "synthetic preparation cycle",
+    ])
       expect(html).toContain(text);
-    }
   });
-  it("shows the failing stage instead of sample data when the snapshot is broken", () => {
-    const html = renderToStaticMarkup(
-      <App
-        state={{ error: new SnapshotError("snapshot.parse", "Unexpected end of JSON input") }}
-      />,
+  it("exposes no target write control and does not render fallback business data on a broken snapshot", () => {
+    const html = renderToStaticMarkup(<App state={{ snapshot: contractFixture() }} />);
+    expect(html).not.toContain("<form");
+    expect(html).not.toContain("<textarea");
+    expect(html).not.toContain('type="submit"');
+    const failure = renderToStaticMarkup(
+      <App state={{ error: new SnapshotError("snapshot.facts", "run identity mismatch") }} />,
     );
-    expect(html).toContain("snapshot.parse");
-    expect(html).toContain("Unexpected end of JSON input");
-    expect(html).not.toContain(snapshot.meta.graph);
+    expect(failure).toContain("run identity mismatch");
+    expect(failure).toContain("snapshot.facts");
+    expect(failure).not.toContain("synthetic-run-A");
   });
 });

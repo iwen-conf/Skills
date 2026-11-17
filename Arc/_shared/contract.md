@@ -42,7 +42,7 @@ Multi-session or multi-person T2 work needs task documents from `arc:plan`.
 When the user or a task document names files, directories, symbols or a token from
 execution-truth §3, edits outside that scope require stopping and reporting first.
 
-## 4. Vocabulary (the only allowed values)
+## 4. Verdict and diagnostic vocabulary
 
 | Kind | Values |
 |---|---|
@@ -53,6 +53,9 @@ execution-truth §3, edits outside that scope require stopping and reporting fir
 | Task priority | Critical→`P0`, High→`P1`, Medium→`P2`, Low/Info→`P3` (no other mapping) |
 
 `NOT_RUN` and `BLOCKED` always carry a reason. Nothing unexecuted is `PASS`.
+Model diagnostics are separate: `MODEL_ERROR`, `SPECIFICATION_GAP`, `LEGACY_UNDECLARED`,
+`BUDGET_EXHAUSTED`, and `PROVEN_IN_SCOPE` (finite model analysis, never product PASS).
+Business work follows [business-verification](business-verification.md).
 
 ## 5. Evidence and artifacts
 

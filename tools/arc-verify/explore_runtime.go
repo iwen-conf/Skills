@@ -280,6 +280,13 @@ func validateExploreAdapter(adapter ExploreAdapter, graph string) error {
 	return nil
 }
 
+func blockTypedOnlineExploration(report ExploreReport) (ExploreReport, error) {
+	reason := "online discovery for business_contract models is not implemented; use arc verify contract check and arc verify contract prepare, then a registered Runner with arc verify execute or arc verify run-chain so the business expectation is frozen before each action"
+	report.StopReason = "blocked"
+	report.Blocked = append(report.Blocked, ExploreFinding{Kind: "BLOCKED", Reason: reason})
+	return report, errors.New(reason)
+}
+
 func (d db) runExploration(parent context.Context, request ExploreRequest) (ExploreReport, error) {
 	request.Mode = decodePlannerMode(request.Mode)
 	if request.Campaign != "" {
@@ -299,6 +306,11 @@ func (d db) runExploration(parent context.Context, request ExploreRequest) (Expl
 	}
 	if g.SchemaVersion != 2 {
 		return report, errors.New("discover run requires a v2 business model")
+	}
+	if g.BusinessContract != nil {
+		// Candidate enumeration and boolean legacy judging do not implement
+		// typed pre-action freezing. Never use them as a fallback interpreter.
+		return blockTypedOnlineExploration(report)
 	}
 	x := indexModel(g)
 	flow, found := x.flows[request.Flow]
@@ -569,6 +581,15 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 	if request.Graph != "" && request.Graph != state.Graph {
 		return report, errors.New("resume graph does not match the checkpoint")
 	}
+	g, err := d.model(state.Graph)
+	if err != nil {
+		return report, err
+	}
+	if g.BusinessContract != nil {
+		// Reject before claiming, reconciling, observing or dispatching. The
+		// saved campaign remains readable and is not rewritten by this check.
+		return blockTypedOnlineExploration(report)
+	}
 	modelSHA, err := d.graphFingerprint(state.Graph)
 	if err != nil {
 		return report, err
@@ -600,10 +621,6 @@ func (d db) resumeExploration(parent context.Context, request ExploreRequest) (E
 	request.Fixture = firstNonEmpty(request.Fixture, state.Fixture)
 	if request.Adapter.Graph == "" {
 		request.Adapter = ExploreAdapter{}
-	}
-	g, err := d.model(request.Graph)
-	if err != nil {
-		return report, err
 	}
 	x := indexModel(g)
 	flow, found := x.flows[request.Flow]
@@ -1674,7 +1691,7 @@ func (d db) persistExploration(report ExploreReport) error {
 			SourceKind: "explore", Run: report.Campaign, Seq: index + 1, Graph: report.Graph,
 			Node: step.Candidate.Action, Transition: step.Candidate.Transition,
 			Actor: step.Candidate.Role, Account: step.Candidate.Account,
-			Principal: firstNonEmpty(step.After.Principal, step.Before.Principal),
+			Principal:     firstNonEmpty(step.After.Principal, step.Before.Principal),
 			ObservedState: step.After.State, DeniedObserved: &deniedObs,
 			Verdict: verdict, Reason: reason, Assertions: assertions,
 			Oracles: []OracleObservation{{

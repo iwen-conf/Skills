@@ -495,13 +495,14 @@ func validateBusinessModel(g Graph) error {
 		default:
 			return fmt.Errorf("invalid transition outcome %q", transition.Outcome)
 		}
-		if transition.Outcome == branchRejection && (rule.Rejected == "UNCHANGED" && edge.From != edge.To || rule.Rejected != "UNCHANGED" && edge.To != rule.Rejected) {
+		typedTransition := hasTypedBusinessTransition(g, transition.Edge)
+		if !typedTransition && transition.Outcome == branchRejection && (rule.Rejected == "UNCHANGED" && edge.From != edge.To || rule.Rejected != "UNCHANGED" && edge.To != rule.Rejected) {
 			return fmt.Errorf("rejection transition %s contradicts rejected state", transition.Edge)
 		}
-		if transition.Outcome == branchSuccess && (!ruleAllows(g, rule, transition.Preconditions) || edge.To != rule.Expected) {
+		if !typedTransition && transition.Outcome == branchSuccess && (!ruleAllows(g, rule, transition.Preconditions) || edge.To != rule.Expected) {
 			return fmt.Errorf("success transition %s contradicts its rule guard or expected state", transition.Edge)
 		}
-		if transition.Outcome == branchRejection && ruleAllows(g, rule, transition.Preconditions) {
+		if !typedTransition && transition.Outcome == branchRejection && ruleAllows(g, rule, transition.Preconditions) {
 			return fmt.Errorf("rejection transition %s has a satisfied rule guard", transition.Edge)
 		}
 		if (transition.Outcome == branchParallel || transition.Outcome == branchJoin) && transition.ParallelGroup == "" {
@@ -702,7 +703,7 @@ func validateBusinessModel(g Graph) error {
 		}
 		generated[obligation.Task.ID] = true
 	}
-	return nil
+	return ValidateBusinessContract(g)
 }
 
 // validateSequence requires a contiguous chain of declared transitions that

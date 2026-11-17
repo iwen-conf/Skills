@@ -1,5 +1,11 @@
 // Mirror of the Go snapshot DTOs (tools/arc-verify/snapshot.go and the types it embeds).
 // TestSnapshotTypesMatchFrontend compares every interface below with the Go JSON fields.
+import type {
+  BusinessContract,
+  BusinessCoverageProof,
+  BusinessExecutionCoverage,
+} from "./contract";
+import type { UnifiedStepFact } from "./facts";
 export type BusinessView =
   | "overview"
   | "capabilities"
@@ -112,6 +118,7 @@ export interface Model {
   equivalence?: unknown;
   reference_bindings?: unknown[];
   condition_subjects?: unknown[];
+  business_contract?: BusinessContract;
 }
 
 export interface Readiness {
@@ -255,6 +262,7 @@ export interface Catalog {
 }
 
 export interface Recovery {
+  mode?: string;
   verdict: string;
   reason: string;
   state?: string;
@@ -342,6 +350,12 @@ export interface SnapshotEvidence {
 export interface SnapshotRun {
   trace: Trace;
   evidence: SnapshotEvidence[];
+  facts?: UnifiedStepFact[];
+  evidence_status?: string;
+  evidence_errors?: string[];
+  flow_id?: string;
+  branch_id?: string;
+  environment?: string;
 }
 export interface ExplorationCoverage {
   explored_branches: string[];
@@ -386,6 +400,10 @@ export interface Snapshot {
   impact?: Impact;
   runs: SnapshotRun[];
   exploration?: Record<string, ExplorationCoverage>;
+  contract_analysis?: BusinessCoverageProof;
+  contract_execution?: BusinessExecutionCoverage;
+  runs_truncated?: boolean;
+  available_runs?: number;
 }
 
 export interface PositionedNode {

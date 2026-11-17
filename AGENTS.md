@@ -38,6 +38,16 @@
 - 采用逐目标操作、确定性断言、失败现场诊断和 Web/移动端执行接口；业务判定继续绑定已确认 RULE、独立回读及任务/轮次/环境/账号。每次执行单独保存报告，缓存与自动修复不覆盖首次 FAIL；退出码 0、跳过或过滤不充当业务 PASS。
 - SDK 模型配置只在被测项目执行器中按已授权配置使用；远程设备兼容、真实产品 E2E 和独立可信 Runner 仍需各自的真实执行证据。
 
+## 2026-11-17：确定性业务状态机与依赖系谱裁决
+
+- 用户已授权根本性重构全部 Arc，当前目标以 [共享业务验证语义](Arc/_shared/business-verification.md) 为准。
+- 完整前态、Guard、Actor、Action 唯一匹配已确认分支；执行前冻结 Expected，Actual 只作独立事实。冲突为 MODEL_ERROR，未匹配为 SPECIFICATION_GAP，缺观察/损坏证据为 BLOCKED。
+- 能力树、准备依赖 DAG、可循环状态图分开。ETA 用于依赖层级/上下游/历史组织，不作为业务 Oracle。
+- 原生四区域静态工作台为主要入口；2026-11-04 的 arch-diagram 默认依赖裁决由本条替代，旧图/历史保留，可选展示导出不成为执行依赖。
+- 首个本轮真实验收对象是 pay_gateway；合同中未确认或仅候选的规则不自动批准。真实隔离环境不可用必须 BLOCKED，合成工具测试不能声称产品 E2E。
+- 在现有模型、RunnerManifest、step_facts、step_assertions、run_entity_bindings 上演进，保留旧版本与首次 FAIL。无 business_contract 的旧模型明确 legacy 覆盖范围。
+- 本轮任务与验收结果：[arc-deterministic-rebuild](docs/03-执行任务/arc-deterministic-rebuild.md)。
+
 ## 本仓验收命令
 
 ```bash

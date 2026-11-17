@@ -258,7 +258,7 @@ func (d db) step(run, expected, observed, evidence string) (map[string]any, erro
 		}
 	}
 	rejectedMismatch := contract.Model == nil && (expected == finalExpected || expected == "UNCHANGED") && !rejectionMatches(observation, contract.Task.Kind)
-	if verdict == "PASS" && (expected != observed || rejectedMismatch) {
+	if verdict == "PASS" && contract.Model == nil && (expected != observed || rejectedMismatch) {
 		verdict, decision, stepReason = "FAIL", "HALT", fmt.Sprintf("observed state %s contradicted expected %s", observed, expected)
 		// Replan only when a known state was independently observed and the
 		// observer explicitly certifies the state is safe for a new branch.
@@ -318,9 +318,13 @@ func (d db) step(run, expected, observed, evidence string) (map[string]any, erro
 		Assertions: assertions, EvidencePath: path, EvidenceSHA256: sha,
 	}
 	if observation.Model != nil {
+		fact.RecoveryMode = observation.Model.RecoveryMode
+		fact.EvidenceVersion = observation.Model.EvidenceVersion
 		deniedObs := observation.Denied
 		fact.DeniedObserved = &deniedObs
 		fact.Participants = observation.Model.Participants
+		fact.BeforeEntities = observation.Model.BeforeEntities
+		fact.BeforeSessions = observation.Model.BeforeSessions
 		fact.Entities = observation.Model.Entities
 		fact.Sessions = observation.Model.Sessions
 		fact.Extractions = observation.Model.Extractions
@@ -328,6 +332,9 @@ func (d db) step(run, expected, observed, evidence string) (map[string]any, erro
 		fact.Waits = observation.Model.Waits
 		fact.Oracles = observation.Model.Oracles
 		fact.Actions = observation.Model.Actions
+		fact.Requests = observation.Model.Requests
+		fact.BusinessExpectations = observation.Model.BusinessExpectations
+		fact.Preparation = observation.Model.Preparation
 	}
 	factsBytes, err := json.Marshal(fact)
 	if err != nil {
@@ -380,7 +387,7 @@ func (d db) finish(run string) (map[string]any, error) {
 	}
 	if contract.Model != nil {
 		if !contract.Receipt.Completed || contract.Receipt.Recovery.Verdict != "PASS" || !contract.Receipt.Recovery.Safe {
-			return nil, errors.New("model run requires completed registered execution and independently verified fixture restoration")
+			return nil, errors.New("model run requires completed registered execution and independently verified fixture finalization")
 		}
 		if e = d.validateModelCompletion(contract); e != nil {
 			return nil, e
@@ -394,7 +401,8 @@ func (d db) finish(run string) (map[string]any, error) {
 		return nil, errors.New("cannot PASS an unexecuted run")
 	}
 	for index, s := range steps {
-		if s[5] != fmt.Sprint(index+1) || s[2] != "PASS" || s[0] != s[1] {
+		typedBusiness := contract.Model != nil && contract.Model.BusinessContract != nil
+		if s[5] != fmt.Sprint(index+1) || s[2] != "PASS" || !typedBusiness && s[0] != s[1] {
 			return nil, errors.New("a step failed or its sequence changed")
 		}
 		observation, _, e := d.readRecordedRAWWithFallback(s[3], s[4], run, s[0], s[1], index+1)
@@ -424,7 +432,8 @@ func (d db) finish(run string) (map[string]any, error) {
 		}
 	}
 	last := steps[len(steps)-1]
-	if last[0] != contract.Task.Expected || last[1] != contract.Task.Expected {
+	typedBusiness := contract.Model != nil && contract.Model.BusinessContract != nil
+	if !typedBusiness && (last[0] != contract.Task.Expected || last[1] != contract.Task.Expected) {
 		return nil, errors.New("final observed step does not match frozen task expectation")
 	}
 	statements := []string{
@@ -501,7 +510,11 @@ func (d db) persistLifecycleStepFact(sourceKind string, binding RunBinding, run 
 		Assertions: assertions, EvidencePath: evidencePath, EvidenceSHA256: sha,
 	}
 	if modelObs != nil {
+		fact.RecoveryMode = modelObs.RecoveryMode
+		fact.EvidenceVersion = modelObs.EvidenceVersion
 		fact.Participants = modelObs.Participants
+		fact.BeforeEntities = modelObs.BeforeEntities
+		fact.BeforeSessions = modelObs.BeforeSessions
 		fact.Entities = modelObs.Entities
 		fact.Sessions = modelObs.Sessions
 		fact.Extractions = modelObs.Extractions
@@ -509,6 +522,9 @@ func (d db) persistLifecycleStepFact(sourceKind string, binding RunBinding, run 
 		fact.Waits = modelObs.Waits
 		fact.Oracles = modelObs.Oracles
 		fact.Actions = modelObs.Actions
+		fact.Requests = modelObs.Requests
+		fact.BusinessExpectations = modelObs.BusinessExpectations
+		fact.Preparation = modelObs.Preparation
 	}
 	factsBytes, err := json.Marshal(fact)
 	if err != nil {
