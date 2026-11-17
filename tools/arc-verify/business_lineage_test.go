@@ -326,3 +326,42 @@ func TestBusinessContractRejectsIdenticalConfirmedGuardsInSameState(t *testing.T
 		t.Fatalf("duplicate confirmed rules must not masquerade as deterministic: %v", err)
 	}
 }
+
+func TestBusinessLineageExportsEveryPostActionOracleWithoutPrestateProvingIt(t *testing.T) {
+	g := preparationModel(t)
+	g.BusinessContract.Coverage = nil
+	branch := &g.BusinessContract.Branches[0]
+	if len(branch.Expected.Outcomes) == 0 {
+		t.Fatal("fixture requires one expected outcome")
+	}
+	post := BusinessExpectedCheck{ID: "post-identity", Kind: "identity",
+		Predicate: businessPredicate("eq", "order", "stored", "boolean", "true"),
+		Oracle: "post-db", SourceRef: "spec:post-identity"}
+	branch.Expected.Outcomes[0].Checks = append(branch.Expected.Outcomes[0].Checks, post)
+	common := BusinessExpectedCheck{ID: "state-invariant", Kind: "invariant",
+		Predicate: businessPredicate("eq", "order", "stored", "boolean", "true"),
+		Oracle: "post-db", SourceRef: "spec:state-invariant"}
+	branch.Expected.CommonInvariants = append(branch.Expected.CommonInvariants, common)
+	projected := lineageTestBranch(t, g, branch.ID)
+	found := map[string]bool{}
+	for _, node := range projected.Nodes {
+		found[node.Kind+":"+node.Name] = true
+		if node.Kind == "assertion" || node.Kind == "invariant" {
+			if len(node.References) != 0 || node.Predicate == nil {
+				t.Fatalf("post-action check must retain rule but not pretend to read before-state: %+v", node)
+			}
+		}
+	}
+	checks := 0
+	for _, edge := range projected.Edges {
+		if edge.Kind == "verifies" {
+			checks++
+			if edge.SourceRef != post.SourceRef && edge.SourceRef != common.SourceRef {
+				t.Fatalf("verification lost its source: %+v", edge)
+			}
+		}
+	}
+	if checks != 2 || len(found) == 0 {
+		t.Fatalf("missing post-action verification genealogy: %d checks", checks)
+	}
+}

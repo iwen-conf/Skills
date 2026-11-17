@@ -84,11 +84,25 @@ func buildBusinessLineage(g Graph) (*BusinessLineage, error) {
 			} else {
 				name += " · 未声明后态"
 			}
-			b.node(BusinessLineageNode{ID: id, Kind: "expected", Name: name, SourceRef: branch.SourceRef})
+			b.node(BusinessLineageNode{ID: id, Kind: "expected", Name: name, Predicate: &outcome.Predicate, SourceRef: branch.SourceRef})
 			b.edge(b.graph.Target, id, "expects", branch.SourceRef, false)
+			for _, check := range outcome.Checks {
+				checkID := id + ":check:" + url.QueryEscape(check.ID)
+				b.node(BusinessLineageNode{ID: checkID, Kind: "assertion",
+					Name: check.Kind + " · " + check.ID + " · Oracle " + check.Oracle,
+					Predicate: &check.Predicate, SourceRef: check.SourceRef})
+				b.edge(id, checkID, "verifies", check.SourceRef, false)
+			}
 			// The exporter intentionally does not make expected-result predicates
 			// into input-data observations: their actual values belong to the
 			// separate after-action oracle comparison.
+		}
+		for _, check := range branch.Expected.CommonInvariants {
+			id := prefix + ":invariant:" + url.QueryEscape(check.ID)
+			b.node(BusinessLineageNode{ID: id, Kind: "invariant",
+				Name: "跨结果不变量 · " + check.ID + " · Oracle " + check.Oracle,
+				Predicate: &check.Predicate, SourceRef: check.SourceRef})
+			b.edge(b.graph.Target, id, "verifies", check.SourceRef, false)
 		}
 		if b.err != nil {
 			return nil, b.err

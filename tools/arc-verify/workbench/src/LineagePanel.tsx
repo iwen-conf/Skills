@@ -39,6 +39,8 @@ export default function LineagePanel({
                 ? "读取前置字段"
                 : edge.kind === "expects"
                   ? "执行后预期"
+                  : edge.kind === "verifies"
+                    ? "执行后核验"
               : edge.kind === "depends_on"
                 ? "声明先后依赖"
                 : edge.kind === "logical_operand"

@@ -171,7 +171,7 @@ function project(
       const identity = key([branch.branch, node.id]);
       const declared = nodeDeclaration(node);
       const semantic =
-        share && node.kind !== "target" && node.kind !== "state"
+        share && !["target", "state", "expected", "assertion", "invariant"].includes(node.kind)
           ? key({
               node: declared,
               preparation:
@@ -252,6 +252,8 @@ function project(
                 ? "读取前置数据"
                 : edge.kind === "expects"
                   ? "声明预期"
+                  : edge.kind === "verifies"
+                    ? "验证义务"
               : edge.kind === "depends_on"
                 ? "声明先后依赖"
                 : edge.kind === "logical_operand"

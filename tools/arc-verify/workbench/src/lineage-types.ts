@@ -1,7 +1,7 @@
 import type { Predicate, Preparation } from "./contract";
 import type { EntityBinding } from "./facts";
 
-export type LineageKind = "target" | "state" | "condition" | "logic" | "preparation" | "input_data" | "expected";
+export type LineageKind = "target" | "state" | "condition" | "logic" | "preparation" | "input_data" | "expected" | "assertion" | "invariant";
 export type LineageStatus = "SATISFIED" | "UNSATISFIED" | "NOT_OBSERVED" | "BLOCKED" | "READY";
 export interface BusinessLineageReference {
   subject: string;
@@ -27,7 +27,7 @@ export interface BusinessLineageEdge {
   id: string;
   from: string;
   to: string;
-  kind: "requires" | "logical_operand" | "depends_on" | "candidate_provider" | "reads" | "expects";
+  kind: "requires" | "logical_operand" | "depends_on" | "candidate_provider" | "reads" | "expects" | "verifies";
   source_ref: string;
   alternative?: boolean;
 }

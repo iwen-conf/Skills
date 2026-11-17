@@ -233,7 +233,7 @@ func preparationLineageReadNode(node BusinessLineageNode, attributes map[string]
 	}
 	var truth TruthEvaluation
 	switch node.Kind {
-	case "expected":
+	case "expected", "assertion", "invariant":
 		reading.Reason = "post-action outcome cannot be proved by preparation readback"
 		return reading
 	case "input_data":

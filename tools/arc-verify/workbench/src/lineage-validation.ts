@@ -4,8 +4,8 @@ import { checkLineageReading } from "./lineage-evidence";
 
 type Fields = Record<string, unknown>;
 type Failure = (stage: string, message: string) => never;
-const kinds = new Set(["target", "state", "condition", "logic", "preparation", "input_data", "expected"]);
-const edgeKinds = new Set(["requires", "logical_operand", "depends_on", "candidate_provider", "reads", "expects"]);
+const kinds = new Set(["target", "state", "condition", "logic", "preparation", "input_data", "expected", "assertion", "invariant"]);
+const edgeKinds = new Set(["requires", "logical_operand", "depends_on", "candidate_provider", "reads", "expects", "verifies"]);
 const statuses = new Set(["SATISFIED", "UNSATISFIED", "NOT_OBSERVED", "BLOCKED", "READY"]);
 
 /** Validate identity and structure; predicates and evidence are evaluated by the Go exporter. */
@@ -65,6 +65,8 @@ export function checkLineage(root: Fields, fail: Failure) {
             ? new Set((Array.isArray(node.references) ? node.references : []).map((item) =>
                 isJSONObject(item) ? String(item.subject) + "." + String(item.attribute) : "",
               ))
+          : ["expected", "assertion", "invariant"].includes(String(node.kind))
+            ? new Set<string>()
           : node.predicate !== undefined
             ? lineagePredicateReferences(node.predicate, bad)
             : new Set<string>();
@@ -115,8 +117,8 @@ export function checkLineage(root: Fields, fail: Failure) {
           node.source_ref !== (attribute.source_ref ?? "")))
           bad(`输入数据节点 ${nodeID} 的来源或身份与声明属性不一致`);
       }
-      if (node.kind === "expected" && (refKeys.size !== 0 || node.predicate !== undefined))
-        bad(`预期结果节点 ${nodeID} 不能伪装为执行前的观测`);
+      if (["expected", "assertion", "invariant"].includes(String(node.kind)) && refKeys.size !== 0)
+        bad(`执行后验证节点 ${nodeID} 不能伪装为执行前的观测`);
       nodes.set(nodeID, node);
       nodeCount++;
     }
@@ -196,11 +198,44 @@ export function checkLineage(root: Fields, fail: Failure) {
         exported.some((edge) => nodes.get(String(edge.to))?.kind !== "expected"))
         bad(`分支 ${id} 没有完整导出预期结果依赖`);
       const identities = new Set(exported.map((edge) => String(edge.to)));
+      let requiredChecks = 0;
+      const hasVerification = (source: string, target: string, sourceRef: string) =>
+        edges.some((edge) => edge.kind === "verifies" && edge.from === source &&
+          edge.to === target && edge.source_ref === sourceRef);
       for (const outcome of outcomes) {
         const declared = object(outcome, "预期结果");
         const expectedID = "branch:" + encodeURIComponent(id) + ":outcome:" + encodeURIComponent(text(declared.id, "结果ID"));
-        if (!identities.has(expectedID)) bad(`分支 ${id} 缺少预期结果 ${String(declared.id)}`);
+        const expected = nodes.get(expectedID);
+        if (!identities.has(expectedID) || !expected ||
+          !sameLineageJSON(expected.predicate, declared.predicate) ||
+          expected.source_ref !== definition!.source_ref)
+          bad(`分支 ${id} 缺少或篡改预期结果 ${String(declared.id)}`);
+        for (const raw of array(declared.checks ?? [], "结果断言")) {
+          const check = object(raw, "结果断言");
+          const checkID = expectedID + ":check:" + encodeURIComponent(text(check.id, "断言ID"));
+          const node = nodes.get(checkID);
+          if (!node || node.kind !== "assertion" ||
+              node.source_ref !== check.source_ref ||
+              !sameLineageJSON(node.predicate, check.predicate) ||
+              !hasVerification(expectedID, checkID, text(check.source_ref, "断言来源")))
+            bad(`分支 ${id} 未完整导出结果 Oracle 断言 ${String(check.id)}`);
+          requiredChecks++;
+        }
       }
+      for (const raw of array(object(definition.expected, "预期契约").common_invariants ?? [], "共同不变量")) {
+        const check = object(raw, "共同不变量");
+        const checkID = "branch:" + encodeURIComponent(id) + ":invariant:" + encodeURIComponent(text(check.id, "不变量ID"));
+        const node = nodes.get(checkID);
+        if (!node || node.kind !== "invariant" ||
+            node.source_ref !== check.source_ref ||
+            !sameLineageJSON(node.predicate, check.predicate) ||
+            !hasVerification(branch.target as string, checkID, text(check.source_ref, "不变量来源")))
+          bad(`分支 ${id} 未完整导出共同不变量 ${String(check.id)}`);
+        requiredChecks++;
+      }
+      if (edges.filter((edge) => edge.kind === "verifies").length !== requiredChecks ||
+          [...nodes.values()].filter((node) => ["assertion", "invariant"].includes(String(node.kind))).length !== requiredChecks)
+        bad(`分支 ${id} 的执行后验证义务数量不一致`);
       for (const edge of edges) {
         if (edge.kind === "reads" &&
           (nodes.get(String(edge.from))?.kind !== "input_data" ||

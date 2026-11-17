@@ -131,7 +131,7 @@ func businessLineageReadNode(node BusinessLineageNode, attributes map[string]bus
 		} else {
 			truth = evaluateBusinessPredicate(*node.Predicate, before, attributes)
 		}
-	case "expected":
+	case "expected", "assertion", "invariant":
 		reading.Reason = "declared post-action outcome; check the separate actual comparison and its independent oracles"
 		return reading
 	case "input_data":
