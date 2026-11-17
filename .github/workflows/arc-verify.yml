@@ -1,0 +1,43 @@
+name: Arc Verify contract and genealogy
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/arc-verify/**"
+      - "Arc/**"
+      - ".github/workflows/arc-verify.yml"
+  pull_request:
+    paths:
+      - "tools/arc-verify/**"
+      - "Arc/**"
+      - ".github/workflows/arc-verify.yml"
+permissions:
+  contents: read
+jobs:
+  go-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: tools/arc-verify/go.mod
+          cache-dependency-path: tools/arc-verify/go.sum
+      - name: Verify Go engine, lineage and business contracts
+        working-directory: tools/arc-verify
+        run: go test ./...
+  frontend-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - name: Install exact workbench dependencies
+        working-directory: tools/arc-verify/workbench
+        run: bun install --frozen-lockfile
+      - name: Typecheck and build standalone workbench
+        working-directory: tools/arc-verify/workbench
+        run: bun run build
+      - name: Business genealogy and snapshot regression suite
+        working-directory: tools/arc-verify/workbench
+        run: ./node_modules/.bin/vp test

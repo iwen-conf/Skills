@@ -77,6 +77,26 @@ export function extractPreconditions(lineage: LineageSelection, branch?: Contrac
     a.phase.localeCompare(b.phase) || a.key.localeCompare(b.key));
 }
 
+/** Use one fully qualified occurrence; multiple matching facts are ambiguous, not PASS. */
+export function selectScopedActual(
+  lineage: LineageSelection,
+  branchID: string | undefined,
+  run?: SnapshotRun,
+) {
+  const overlay = lineage.overlay;
+  if (!overlay || overlay.phase !== "before" || !branchID ||
+      run?.trace.run !== overlay.run || run.evidence_status !== "PASS" ||
+      overlay.evidence_status !== "PASS" || overlay.diagnostic) return {};
+  const facts = (run.facts ?? []).filter((item) =>
+    item.seq === overlay.step && item.evidence_status === "PASS");
+  if (facts.length !== 1) return {};
+  const actions = (facts[0].business_expectations ?? []).filter((item) =>
+    item.actor === overlay.actor && item.action_index === overlay.action_index &&
+    item.decision.frozen?.branch === branchID && item.decision.status === "READY");
+  if (actions.length !== 1) return {};
+  return { after: actions[0].after, comparison: actions[0].comparison };
+}
+
 export default function PreconditionLedger({
   lineage, branch, contract, run, dispatch,
 }: {
@@ -88,19 +108,7 @@ export default function PreconditionLedger({
 }) {
   const requirements = useMemo(() => extractPreconditions(lineage, branch, contract), [lineage, branch, contract]);
   const [missingOnly, setMissingOnly] = useState(false);
-  // Exact occurrence only: never borrow the after-state from another actor,
-  // attempt, run or branch that happens to have the same action name.
-  const overlay = lineage.overlay;
-  const fact = overlay?.phase === "before" && run?.trace.run === overlay.run
-    ? run.facts?.find((item) => item.seq === overlay.step)
-    : undefined;
-  const action = fact?.business_expectations?.find((item) =>
-    item.actor === overlay?.actor && item.action_index === overlay?.action_index &&
-    item.decision.frozen?.branch === branch?.id && item.decision.status === "READY");
-  const qualified = run?.evidence_status === "PASS" && fact?.evidence_status === "PASS" &&
-    overlay?.evidence_status === "PASS" && !overlay.diagnostic;
-  const after = qualified ? action?.after : undefined;
-  const comparison = qualified ? action?.comparison : undefined;
+  const { after, comparison } = selectScopedActual(lineage, branch?.id, run);
   const annotated = requirements.map((row) => {
     const observations = row.phase === "after" ? [] : row.conditions.flatMap((node) => lineage.readings.get(node.id)?.values ?? [])
       .filter((value) => value.subject + "." + value.attribute === row.key);

@@ -311,3 +311,18 @@ func TestBusinessLineageVersion2ExportsDataAndExpectedWithoutInventingExecution(
         t.Fatalf("incomplete v2 source/outcome genealogy: data=%d reads=%d expected=%d expects=%d", data, reads, expected, expects)
     }
 }
+
+func TestBusinessContractRejectsIdenticalConfirmedGuardsInSameState(t *testing.T) {
+	g := preparationModel(t)
+	g.BusinessContract.Coverage = nil
+	if len(g.BusinessContract.Branches) < 2 {
+		t.Fatal("fixture needs two branches")
+	}
+	g.BusinessContract.Branches[0].Confirmed = true
+	g.BusinessContract.Branches[1].Confirmed = true
+	g.BusinessContract.Branches[1].When = g.BusinessContract.Branches[0].When
+	if err := ValidateBusinessContract(g); err == nil ||
+		!strings.Contains(err.Error(), "overlapping identical guards") {
+		t.Fatalf("duplicate confirmed rules must not masquerade as deterministic: %v", err)
+	}
+}

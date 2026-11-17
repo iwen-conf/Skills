@@ -172,3 +172,22 @@ No Agent handshake or model HTTP. New tests require sensitivity proof.
 - [ ] Required sensitivity, meaningful owning tests and logs exist; every BLOCKED/NOT_RUN has a reason.
 - [ ] Production source unchanged; product FAIL has an `arc:code` repair packet.
 - [ ] Applicable mode tail and contract §9 report complete.
+
+
+## Source-first genealogy acceptance
+
+Before any `arc verify snapshot` or complete-business testing claim, enumerate separately:
+1. **Before inputs**: actor, identity/binding, subject attribute, typed value, source,
+   required state and Guard; trace each leaf operand to a source-backed data node.
+2. **Preparation**: provider action, explicit dependencies, required/ensured effects,
+   execution receipt and independent readback; a candidate edge is never a PASS.
+3. **Expected after-state**: each contract outcome, the result predicate, denied or
+   allowed behavior, assertion Oracle, common invariant, forbidden effect and next actions.
+4. **Actual**: the exact verified run/step/actor/action-index evidence chain, including
+   post-action independent observation. Never reuse a before value as an after Oracle.
+5. **Completeness**: missing attributes, unbound identities, branch overlaps, uncovered
+   action/state partitions, source omissions and blocked E2E remain explicitly visible.
+
+A pretty drawing does not satisfy any of the five gates. First generate the typed
+genealogy; then use the workbench for an inspectable focus/expand visualization.
+Inspect the real snapshot and browser layout; preserve evidence and avoid fabricated nodes.

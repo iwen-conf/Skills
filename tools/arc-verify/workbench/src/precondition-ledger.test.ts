@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import { extractPreconditions } from "./PreconditionLedger";
+import { extractPreconditions, selectScopedActual } from "./PreconditionLedger";
+import type { SnapshotRun } from "./types";
 import type { LineageSelection } from "./lineage";
 
 const base: LineageSelection = {
@@ -73,6 +74,30 @@ describe("source-first precondition inventory", () => {
     };
     const rows = extractPreconditions(base, branch);
     expect(rows.filter((r) => r.key === "payment.paid").map((r) => r.phase)).toEqual(["after", "before"]);
+  });
+  it("requires the exact frozen action before reading post-action facts", () => {
+    const observation = {
+      ...base,
+      overlay: { branch: "refund-eligible", run: "run-one", step: 1,
+        action_index: 2, actor: "owner-A", phase: "before" as const,
+        evidence_status: "PASS", nodes: [] },
+    };
+    const expectation = { actor: "owner-A", action_index: 2,
+      decision: { status: "READY", frozen: { branch: "refund-eligible" } },
+      after: { values: { "refund.status": "succeeded" },
+        sources: { "refund.status": ["post-db-oracle"] } },
+      comparison: { status: "PASS", outcome: "accepted", checks: [], reason: "matched" } };
+    const run = { trace: { run: "run-one" }, evidence_status: "PASS",
+      facts: [{ seq: 1, evidence_status: "PASS", business_expectations: [expectation] }] } as unknown as SnapshotRun;
+    expect(selectScopedActual(observation, "refund-eligible", run).comparison?.status).toBe("PASS");
+    expect(selectScopedActual(observation, "refund-other", run).comparison).toBeUndefined();
+    expect(selectScopedActual({ ...observation, overlay: { ...observation.overlay, actor: "owner-B" } },
+      "refund-eligible", run).comparison).toBeUndefined();
+    expect(selectScopedActual(observation, "refund-eligible",
+      { ...run, evidence_status: "BLOCKED" }).comparison).toBeUndefined();
+    const duplicate = { ...run, facts: [{ ...run.facts![0],
+      business_expectations: [expectation, expectation] }] };
+    expect(selectScopedActual(observation, "refund-eligible", duplicate).comparison).toBeUndefined();
   });
   it("does not fabricate prerequisites for an absent lineage", () => {
     expect(extractPreconditions({ candidates: [], readings: new Map(), reason: "missing" })).toEqual([]);

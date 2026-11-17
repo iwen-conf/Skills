@@ -310,6 +310,27 @@ func ValidateBusinessContract(g Graph) error {
 			}
 		}
 	}
+	// Identical confirmed guards in an overlapping action/actor/flow/state
+	// partition are ambiguous by construction. More complex overlaps still
+	// require the explicit bounded domain proof; never invent disjointness.
+	for i, left := range contract.Branches {
+		if !left.Confirmed {
+			continue
+		}
+		for _, right := range contract.Branches[i+1:] {
+			if !right.Confirmed || left.Action != right.Action ||
+				rules[left.Rule].Actor != rules[right.Rule].Actor ||
+				(left.Flow != "" && right.Flow != "" && left.Flow != right.Flow) ||
+				!sameBusinessJSON(left.When, right.When) {
+				continue
+			}
+			for _, state := range left.FromStates {
+				if containsBusinessID(right.FromStates, state) {
+					return fmt.Errorf("confirmed branches %s and %s have overlapping identical guards for action %s state %s", left.ID, right.ID, left.Action, state)
+				}
+			}
+		}
+	}
 	preparations := map[string]PreparationAction{}
 	for _, preparation := range contract.Preparation {
 		if !businessIdentifier(preparation.ID) || preparations[preparation.ID].ID != "" || kinds[preparation.Action] != "action" || !explicitSource(preparation.Source, preparation.SourceRef) || len(preparation.Effects) == 0 || len(preparation.Effects) > 256 {

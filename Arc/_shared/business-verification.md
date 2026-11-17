@@ -126,3 +126,37 @@ Keep documentation for decisions, sources and unresolved judgment. Do not global
 or React effects by copying another product's local framework policy. TLA+, Lean and UI property
 testing can add separate evidence, but are not implemented by naming them in a skill. Expand
 automated exploration only after its ordinary observe/freeze/execute/check loop is trustworthy.
+
+
+## Source-first genealogy protocol (v2)
+
+A graph that merely connects Guard and preparation labels is **not** a complete genealogy.
+Every leaf Guard operand using a typed subject attribute must project a stable `input_data`
+node `(branch, subject, attribute)`, retain its declared `source_ref`, and connect via a
+typed `reads` edge. Repeated operands share their field node inside the branch but cannot
+share observed identities across actors, entities or runs. Candidate producers are connected
+only by explicit effects and typed contracts; matching names do not imply a dependency.
+
+The target is bound to the declared `from_states` **and** the entire Guard. A target only
+evaluates READY in a verified frozen before-state when both are satisfied. A missing binding,
+unknown Guard value, unsupported Oracle, ambiguous occurrence or corrupt evidence cannot
+be promoted to READY. Preparation readbacks never prove the target has executed.
+
+Every expected outcome is an `expected` node joined by `expects`. Its after-action
+predicate, assertions, common invariants, forbidden effects and successor policy belong
+to the **result** phase. The frozen before-state must never satisfy any of them.
+In the workbench, the source ledger must list both before attributes and after-obligation
+attributes, visibly separated. Actual is read only from the selected frozen
+`run/step/actor/action_index/branch` and independently verified after Oracle, never
+from an adjacent run, similarly named action or the prestate.
+
+Static duplicate confirmed guards within the same action/actor/compatible flow/prestate
+are rejected. This is a useful necessary check, **not** a global satisfiability proof
+for different but overlapping predicates. Coverage without a complete declared finite
+domain is BLOCKED; syntactic equality does not establish full partition coverage.
+
+A published graph snapshot must pass the versioned Go export, independent frontend
+structural and provenance checks, model tests, browser interactions at narrow/wide
+viewports, and project-specific full-flow E2E. If any category cannot run, name it
+`NOT_RUN` or `BLOCKED`; do not report a completed refactor or release gate.
+Legacy v1 snapshot imports remain readable but cannot claim the new v2 projection.
