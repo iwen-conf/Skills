@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { etaReadPlan, proofState } from "./eta-read-plan";
+import { etaReadPlan, proofState, type EtaReadPlan } from "./eta-read-plan";
 import type { CanvasEdge, CanvasGraph, CanvasNode } from "./graph-model";
 import { lineageKindLabel, lineageStatusLabel } from "./lineage";
 import "./eta-board.css";
@@ -33,14 +33,15 @@ const kindOf = (node: CanvasNode) =>
 const circle = { OBSERVED:"✓", UNOBSERVED:"○", MISMATCH:"!", BLOCKED:"×" } as const;
 
 function GroupPlan({
-  group, graph, selected, onSelectNode,
+  group, graph, plan, criticalLinks, selected, onSelectNode,
 }: {
   group: Group;
   graph: CanvasGraph;
+  plan: EtaReadPlan;
+  criticalLinks: ReadonlySet<string>;
   selected: ReadonlySet<string>;
   onSelectNode: (node: CanvasNode) => void;
 }) {
-  const plan = etaReadPlan(graph);
   const critical = new Set(plan.critical);
   const byId = new Map(graph.nodes.map((node) => [node.id, node]));
   const memberIds = new Set(group.members.filter((id) => byId.has(id)));
@@ -158,9 +159,7 @@ function GroupPlan({
             {edges.map((edge: CanvasEdge) => {
               const from = boxes.get(edge.from);
               const to = boxes.get(edge.to);
-              const criticalEdge = critical.has(edge.from) && critical.has(edge.to) &&
-                plan.critical.some((id, index) =>
-                  id === edge.from && plan.critical[index + 1] === edge.to);
+              const criticalEdge = criticalLinks.has(JSON.stringify([edge.from, edge.to]));
               const alternative = !!edge.alternative || edge.kind === "candidate_provider";
               const coordinates = from && to
                 ? { x1:from.right, y1:(from.top + from.bottom) / 2,
@@ -268,6 +267,9 @@ export default function EtaPlanBoard({
   selected: ReadonlySet<string>;
   onSelectNode: (node: CanvasNode) => void;
 }) {
+  const plan = etaReadPlan(graph);
+  const criticalLinks = new Set(plan.critical.slice(1).map((id, i) =>
+    JSON.stringify([plan.critical[i], id])));
   if (graph.nodes.length > 800) {
     return (
       <div role="status" className="eta-board-limit">
@@ -288,6 +290,8 @@ export default function EtaPlanBoard({
           key={group.id}
           group={group}
           graph={graph}
+          plan={plan}
+          criticalLinks={criticalLinks}
           selected={selected}
           onSelectNode={onSelectNode}
         />

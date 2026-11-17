@@ -52,3 +52,7 @@
   .eta-board-group-heading { gap:6px; }
   .eta-board-group-heading small { margin-left:0; }
 }
+
+.eta-board-directory { margin:12px 0; border:1px solid var(--line); border-radius:2px; background:var(--surface); }
+.eta-board-directory > summary { padding:10px 14px; cursor:pointer; font-size:12px; font-weight:600; }
+.eta-board-directory[open] > summary { border-bottom:1px solid var(--line); }

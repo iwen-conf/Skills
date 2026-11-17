@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { etaReadPlan, type ProofState } from "./eta-read-plan";
+import EtaPlanBoard from "./EtaPlanBoard";
 import "./eta-plan.css";
 import type { CanvasGraph, CanvasNode } from "./graph-model";
 import { lineageKindLabel, lineageStatusLabel } from "./lineage";
@@ -148,7 +149,19 @@ export default function DependencyPlan({
           )}
         </nav>
       )}
-      <div aria-label="依赖系谱分层目录">
+      <EtaPlanBoard
+        graph={graph}
+        groups={groups}
+        selected={selected}
+        onSelectNode={(node) => {
+          setQuery("");
+          setProofFilter("ALL");
+          onSelectNode(node);
+        }}
+      />
+      <details className="eta-board-directory">
+        <summary>完整分层目录 · 查看条件来源、候选关系及逐项证据</summary>
+        <div aria-label="依赖系谱分层目录">
         {groups.map((group) => {
           const members = group.members.map((id) => byID.get(id)!);
           const levelMembers = new Map<number, CanvasNode[]>();
@@ -302,7 +315,8 @@ export default function DependencyPlan({
             </details>
           );
         })}
-      </div>
+        </div>
+      </details>
       {!groups.length && (
         <p className="eta-plan-empty" role="status">当前筛选没有匹配的依赖节点；可清除搜索或状态筛选。</p>
       )}
