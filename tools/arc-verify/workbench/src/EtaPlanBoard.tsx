@@ -270,6 +270,9 @@ export default function EtaPlanBoard({
   const plan = etaReadPlan(graph);
   const criticalLinks = new Set(plan.critical.slice(1).map((id, i) =>
     JSON.stringify([plan.critical[i], id])));
+  if (!plan.valid) {
+    return <div role="alert" className="eta-board-limit">{plan.reason} 完整分层目录仍保留原始条件与关系。</div>;
+  }
   if (graph.nodes.length > 800) {
     return (
       <div role="status" className="eta-board-limit">

@@ -36,7 +36,9 @@ describe("ETA WidePlan/PhonePlan UI parity", () => {
     expect(html).toContain('data-eta-phone-step="1"');
     expect(html).toContain('data-eta-status="OBSERVED"');
     expect(html).toContain("跨业务组依赖");
-    expect(html).toContain("候选/可替代关系");
+    expect(html).toContain("候选/OR 来源");
+    expect(html).toContain('data-alternative="true"');
+    expect(html).not.toContain('data-handle=');
     expect(html).toContain("业务证据");
     expect(html).not.toContain("业务 PASS · 已完成");
   });
