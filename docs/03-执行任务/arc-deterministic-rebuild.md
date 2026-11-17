@@ -175,6 +175,45 @@ UNKNOWN 及预算预留，不盲目重试。正常 `retry` 仍不能重开已 PA
 `pending → ready`、`ready → pending`、`pending → ready`，三个 child 都使用 checkpoint。
 未映射的 `clear-inactive`、`reject` 分支仍显示未覆盖，不能由这三次通过变绿。
 
+## 复审修复：业务连续性、恢复与工作台语义（2026-11-17）
+
+在已合并的 `9c9fd3ce35c0e7c1f4ce6fc6418ddb5219a9f41d` 上复现八项缺陷后，
+将反例转成正式回归并修复执行、证据重验、准备规划及工作台的语义分歧。原测试通过记录保留，
+不将其解释为已经覆盖本轮新增反例。
+
+| 问题 | 本次修复与验证 |
+|---|---|
+| F1：普通 SEQUENCE 忽略后续动作限制 | 下一批真实操作前检查上一已验证结果；离线逐步链也重验原始前一步。禁止动作零请求；切换账号不能绕过，合法跨账号链仍可通过 |
+| F2：空交集变成无限制 | `BusinessSuccessorPolicy` 统一匹配、执行和重验；省略/null、显式空集合、非空允许集合分别保留。模型冻结、RAW、campaign 入库与 UI 不再丢失空集合 |
+| F3：有限验证宣称完整业务 E2E | gate 与 acceptance report 返回 `complete_in_declared_scope`；`business_e2e_status=NOT_EVALUATED`，兼容字段 `complete_business_e2e=false` |
+| F4：无法建立的前置条件仍被准备 | 提升 PREPARABLE 前检查全部目标条件；失败布尔条件只能通过同主体、同 Oracle、同响应指针的明确属性映射预测修复。无映射反例为零准备、零目标、零恢复 |
+| F5：落账失败污染停止记录 | 在完整独立副本中生成子运行投影，事务成功后才替换当前对象；原 pending 子运行的归账与 UNKNOWN 解除原子提交。PASS/FAIL/BLOCKED 故障恢复均不重发，保留首次偏离 |
+| F6：拒绝条件画在成功边 | 从分支 × 前态 × ExpectedOutcome 生成状态边；UNCHANGED、自环、拒绝、允许结果集合各自保留语义。未声明后态只展示约束占位，旧迁移单独标识 |
+| F7：流程筛选隐藏全局分支 | 可选 flow 与内核一致；未限定流程的分支不消失，实际运行仍按自己的 flow 隔离 |
+| F8：追踪命中同动作其他分支 | 已选分支精确定位，缺失时不回退到其他分支；多个前态/允许结果取全部适用边，无分支身份时才按动作展开 |
+
+历史反证先使 RAW、引擎捕获、事实投影与哈希自洽，确认两步各自局部验证通过，再证明新的跨步
+重验拒绝违规链；没有用错误 SHA 提前失败冒充目标缺陷测试。旧的合法省略/非空后续限制记录仍可
+重验，历史违规记录转为 BLOCKED 而不修改原 RAW。没有 SQL schema 变更；现有 JSON 列保留显式
+`next_allowed: []`，不执行历史数据改写。
+
+整合后的 Go 生产源码共 85 个文件，摘要与全量测试开始时一致。详细命令、日志摘要、红测指纹、
+两个新导出和剩余边界见 [复审修复验证记录](evidence/arc-review-fixes-2026-11-17.json)。
+
+| 整合验证 | 实际结果 |
+|---|---|
+| verify 全量 race | 474 个顶层 Test/Fuzz、301 个子测试 PASS，0 FAIL；两项外部 IM-mongo 配置测试 SKIP，470.479s |
+| 公开 CLI / 索引 / vet | CLI 37 个顶层及 40 个子测试 race PASS；索引 2 PASS；verify vet PASS |
+| 安装与真实进程 | 三引擎安装、统一 CLI smoke、索引 outbox 与旧图/Policy 迁移通过；全量测试实际使用新安装二进制执行 run-chain 与 campaign |
+| 工作台 | 86 PASS；默认导出测试因无路径 SKIP，随后提供本轮真实 Go 导出完成 2 项集成 PASS；43 文件格式、34 文件 lint/type、TypeScript 与构建通过 |
+| 新导出贯通 | 准备运行与三次连续 checkpoint campaign 通过生产解析器、统一选择和 SSR，分别检查 2、16 个选择上下文；资产与最终 dist 一致 |
+| Python / dbqual | Python 214 PASS、1 SKIP、1 个原有 Cloudflare 源包缺失 FAIL，原基线精确复现；dbqual 160 PASS、139 子例 PASS、1 个外部 SQLFluff SKIP |
+| Skill 校验 | Arc 无新增错误或警告、加载预算通过；全仓原有 52 个外部 Cloudflare/Design/ThreeJS 链接错误与基线一致，未放宽门禁 |
+
+新生成图 ID 已逐段编码，不把引号和分隔符直接拼入绘图库选择器。构建仍保留单个离线 IIFE
+超过 500 kB 的体积提示。本轮工具 HTTP、SSR 和源码检查都不计作 pay_gateway 产品 E2E 或浏览器
+视觉验收；这两项仍维持明确的 NOT_RUN/BLOCKED。
+
 ## 使用与迁移
 
 工具仍由 `bash scripts/install_arc.sh` 安装，公共命令只有 `arc`。升级现有激活库后显式
