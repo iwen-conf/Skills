@@ -37,7 +37,7 @@ func TestRuntimeBindingsAmbiguousNamespacesStayUnknown(t *testing.T) {
 			if before.Bindings["primary"] != "" {
 				t.Fatalf("ambiguous default alias selected a different namespace: %+v", before.Bindings)
 			}
-			if decision := freezeRuntimeBusiness(contractModel(t), "flow.enrollment", "db", step, 1, &observed).Decision; decision.Status != "BLOCKED" {
+			if decision := freezeRuntimeBusiness(contractModel(t), "flow.enrollment", Rule{ID: "R1", Oracle: "db"}, step, 1, &observed).Decision; decision.Status != "BLOCKED" {
 				t.Fatalf("unresolved identity was executable: %+v", decision)
 			}
 		})
@@ -54,7 +54,7 @@ func TestRuntimeBindingsExplicitNamespaceResolvesAmbiguity(t *testing.T) {
 				t.Fatalf("explicit source did not resolve its exact identity: %+v %v", before.Bindings, err)
 			}
 			if source == "actor.primary.principal" {
-				if decision := freezeRuntimeBusiness(contractModel(t), "flow.enrollment", "db", step, 1, &observed).Decision; decision.Status != "READY" {
+				if decision := freezeRuntimeBusiness(contractModel(t), "flow.enrollment", Rule{ID: "R1", Oracle: "db"}, step, 1, &observed).Decision; decision.Status != "READY" {
 					t.Fatalf("explicit correct actor binding was blocked: %+v", decision)
 				}
 			}

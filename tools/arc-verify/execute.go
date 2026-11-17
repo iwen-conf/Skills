@@ -511,7 +511,7 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 						}
 						observation.Requests = append(observation.Requests, request)
 					}
-					frozen := freezeRuntimeBusiness(model, obligation.Definition.Flow, stepJudged.Oracle, step, actionIndex+1, &observation)
+					frozen := freezeRuntimeBusiness(model, obligation.Definition.Flow, stepJudged, step, actionIndex+1, &observation)
 					observation.BusinessExpectations = append(observation.BusinessExpectations, frozen)
 					if frozen.Decision.Status != "READY" {
 						raw.ExitCode = 1

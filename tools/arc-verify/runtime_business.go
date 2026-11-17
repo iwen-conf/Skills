@@ -216,7 +216,7 @@ func runtimeBusinessObservation(flow, primaryOracle string, step RunnerStep, act
 	return result, nil
 }
 
-func freezeRuntimeBusiness(g Graph, flow, oracle string, step RunnerStep, actionIndex int, observed *ModelObservation) BusinessExpectationObservation {
+func freezeRuntimeBusiness(g Graph, flow string, rule Rule, step RunnerStep, actionIndex int, observed *ModelObservation) BusinessExpectationObservation {
 	entry := BusinessExpectationObservation{Actor: step.Actor, ActionIndex: actionIndex}
 	if len(step.InputMeasurements) > 0 {
 		request, err := runtimeRequestFor(step, actionIndex, observed)
@@ -227,14 +227,16 @@ func freezeRuntimeBusiness(g Graph, flow, oracle string, step RunnerStep, action
 		copy := *request
 		entry.Request = &copy
 	}
-	before, err := runtimeBusinessObservation(flow, oracle, step, actionIndex, true, observed)
+	before, err := runtimeBusinessObservation(flow, rule.Oracle, step, actionIndex, true, observed)
 	if err != nil {
 		entry.Decision = BusinessDecision{Status: "BLOCKED", Reason: err.Error(), Action: step.Node}
 		return entry
 	}
 	entry.Decision = FreezeBusinessExpectation(g, step.Node, before)
 	if frozen := entry.Decision.Frozen; entry.Decision.Status == "READY" && frozen != nil {
-		if step.BusinessBranch != "" && step.BusinessBranch != frozen.Branch {
+		if frozen.Rule != rule.ID {
+			entry.Decision.Status, entry.Decision.Reason = "BLOCKED", fmt.Sprintf("observed business branch rule %s differs from registered rule %s", frozen.Rule, rule.ID)
+		} else if step.BusinessBranch != "" && step.BusinessBranch != frozen.Branch {
 			entry.Decision.Status, entry.Decision.Reason = "BLOCKED", fmt.Sprintf("observed branch %s differs from planned business branch %s", frozen.Branch, step.BusinessBranch)
 		} else if step.Transition != "" && frozen.Transition != "" && step.Transition != frozen.Transition {
 			entry.Decision.Status, entry.Decision.Reason = "BLOCKED", fmt.Sprintf("observed transition %s differs from planned transition %s", frozen.Transition, step.Transition)
@@ -294,11 +296,12 @@ func verifyRuntimeBusiness(g Graph, obligation ModelObligation, batch []RunnerSt
 		if entry.Actor != step.Actor || entry.ActionIndex != i+1 {
 			assertion.Reason = "business expectation belongs to another actor or action"
 		} else {
-			oracle := stepRule(x, obligation, step.Transition).Oracle
+			rule := stepRule(x, obligation, step.Transition)
+			oracle := rule.Oracle
 			assertion.OracleID = oracle
 			// Rebuild solely from the captured BEFORE facts. Never choose an
 			// expectation using the actual outcome under examination.
-			planned := freezeRuntimeBusiness(g, obligation.Definition.Flow, oracle, step, i+1, observed)
+			planned := freezeRuntimeBusiness(g, obligation.Definition.Flow, rule, step, i+1, observed)
 			expectedDecision, _ := json.Marshal(planned.Decision)
 			capturedDecision, _ := json.Marshal(entry.Decision)
 			expectedRequest, _ := json.Marshal(planned.Request)
