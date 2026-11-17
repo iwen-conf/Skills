@@ -8,6 +8,8 @@ import {
 } from "./explorer-model";
 import { entityKey, factEntities } from "./facts";
 import FactPanel from "./FactPanel";
+import PreconditionLedger from "./PreconditionLedger";
+import "./precondition-ledger.css";
 import { CampaignTrail } from "./CampaignViews";
 import GraphCanvas from "./GraphCanvas";
 import DependencyInspector, { LineageBlockerPanel } from "./DependencyInspector";
@@ -683,6 +685,11 @@ function Workbench({
               focus={() => dispatch({ type: "focus", value: "blocked" })}
             />
           )}
+          {graph.lineage?.graph && <PreconditionLedger
+            lineage={graph.lineage}
+            branch={snapshot.model.data.business_contract?.branches.find((item) => item.id === selection.branch)}
+            dispatch={dispatch}
+          />}
           <GraphCanvas
             graph={graph}
             selection={selection}
