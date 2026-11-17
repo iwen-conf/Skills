@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { etaReadPlan, type ProofState } from "./eta-read-plan";
+import EtaPlanBoard from "./EtaPlanBoard";
 import "./eta-plan.css";
 import type { CanvasGraph, CanvasNode } from "./graph-model";
 import { lineageKindLabel, lineageStatusLabel } from "./lineage";
@@ -85,12 +86,24 @@ export default function DependencyPlan({
   return (
     <section className="dependency-plan" aria-label="业务分组系谱">
       <div className="dependency-plan-heading">
-        <strong>依赖系谱分层目录</strong>
-        <span>按业务分组查看，关系层级在各组间保持一致</span>
+        <strong>业务依赖计划</strong>
+        <span>ETA 风格步骤与连线 · 业务证据只读</span>
       </div>
       <p className="dependency-plan-note">
         点击节点查看条件与证据；展开关系可追到其他业务组。同层表示关系深度，不保证动作可并行。
       </p>
+      <EtaPlanBoard
+        graph={graph}
+        groups={groups}
+        selected={selected}
+        onSelectNode={(node) => {
+          setQuery("");
+          setProofFilter("ALL");
+          onSelectNode(node);
+        }}
+      />
+      <details className="eta-board-analysis">
+        <summary>关键链、观察统计及筛选条件</summary>
       <section className="eta-plan-overview" aria-label="ETA式依赖计划概览">
         <div className="eta-plan-summary" role="status">
           <strong>{graph.nodes.length} 个节点</strong>
@@ -148,7 +161,10 @@ export default function DependencyPlan({
           )}
         </nav>
       )}
-      <div aria-label="依赖系谱分层目录">
+      </details>
+      <details className="eta-board-directory">
+        <summary>完整分层目录 · 查看条件来源、候选关系及逐项证据</summary>
+        <div aria-label="依赖系谱分层目录">
         {groups.map((group) => {
           const members = group.members.map((id) => byID.get(id)!);
           const levelMembers = new Map<number, CanvasNode[]>();
@@ -302,7 +318,8 @@ export default function DependencyPlan({
             </details>
           );
         })}
-      </div>
+        </div>
+      </details>
       {!groups.length && (
         <p className="eta-plan-empty" role="status">当前筛选没有匹配的依赖节点；可清除搜索或状态筛选。</p>
       )}
