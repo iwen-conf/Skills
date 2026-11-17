@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { displayValue, predicateText, successorPolicyText } from "./contract";
-import type { ContractBranch } from "./contract";
+import type { BusinessContract, ContractBranch, Predicate } from "./contract";
 import type { LineageSelection } from "./lineage";
 import type { BusinessLineageNode, BusinessLineageReference } from "./lineage-types";
 import type { SelectionAction } from "./selection";
@@ -13,7 +13,7 @@ interface Requirement {
 }
 
 /** Trace declared operands, not merely nodes with a similar display label. */
-export function extractPreconditions(lineage: LineageSelection): Requirement[] {
+export function extractPreconditions(lineage: LineageSelection, branch?: ContractBranch, contract?: BusinessContract): Requirement[] {
   const graph = lineage.graph;
   if (!graph) return [];
   const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
@@ -40,17 +40,48 @@ export function extractPreconditions(lineage: LineageSelection): Requirement[] {
       result.set(key, entry);
     }
   }
+  // Outcome assertions are prerequisites for verification even when not part of the admission guard.
+  // They have no declared preparation edge unless one is present in the actual lineage.
+  const addExpected = (predicate: Predicate) => {
+    for (const operand of [predicate.left, predicate.right]) {
+      if (!operand?.ref) continue;
+      const { subject, attribute } = operand.ref;
+      const key = subject + "." + attribute;
+      if (result.has(key)) continue;
+      const declaredSubject = contract?.subjects.find((item) => item.id === subject);
+      const declaredAttribute = declaredSubject?.attributes.find((item) => item.name === attribute);
+      result.set(key, {
+        key,
+        reference: {
+          subject, attribute,
+          subject_kind: declaredSubject?.kind ?? "未声明实体",
+          source_ref: declaredAttribute?.source_ref,
+        },
+        conditions: [],
+        providers: [],
+      });
+    }
+    for (const child of predicate.args ?? []) addExpected(child);
+  };
+  if (branch) {
+    for (const outcome of branch.expected.outcomes) {
+      addExpected(outcome.predicate);
+      for (const check of outcome.checks ?? []) addExpected(check.predicate);
+    }
+    for (const invariant of branch.expected.common_invariants ?? []) addExpected(invariant.predicate);
+  }
   return [...result.values()].sort((a, b) => a.key.localeCompare(b.key));
 }
 
 export default function PreconditionLedger({
-  lineage, branch, dispatch,
+  lineage, branch, contract, dispatch,
 }: {
   lineage: LineageSelection;
   branch?: ContractBranch;
+  contract?: BusinessContract;
   dispatch: (action: SelectionAction) => void;
 }) {
-  const requirements = useMemo(() => extractPreconditions(lineage), [lineage]);
+  const requirements = useMemo(() => extractPreconditions(lineage, branch, contract), [lineage, branch, contract]);
   const [missingOnly, setMissingOnly] = useState(false);
   const annotated = requirements.map((row) => {
     const observations = row.conditions.flatMap((node) => lineage.readings.get(node.id)?.values ?? [])
@@ -100,9 +131,9 @@ export default function PreconditionLedger({
       <div className="precondition-table-wrap"><table className="precondition-table">
         <thead><tr><th>前置字段 / 实体</th><th>声明条件</th><th>候选准备来源</th><th>实际读取证据</th></tr></thead>
         <tbody>{visible.map((row) => <tr key={row.key}>
-          <td><button type="button" onClick={() => dispatch({ type: "lineage", value: row.conditions[0].id })}>{row.key}</button>
+          <td><button type="button" onClick={() => dispatch({ type: "lineage", value: row.conditions[0]?.id ?? lineage.graph?.target ?? "" })}>{row.key}</button>
             <small>{row.reference.subject_kind} · {row.reference.source_ref || "属性来源未声明"}</small></td>
-          <td>{row.conditions.filter((node) => node.predicate).map((node) =>
+          <td>{!row.conditions.length && <span className="precondition-missing">结果断言依赖；未导出 Guard 节点</span>}{row.conditions.filter((node) => node.predicate).map((node) =>
             <button type="button" key={node.id} onClick={() => dispatch({ type: "lineage", value: node.id })}>{predicateText(node.predicate)}</button>)}</td>
           <td>{row.providers.length ? row.providers.map((node) =>
             <button type="button" key={node.id} onClick={() => dispatch({ type: "lineage", value: node.id })}>{node.name}<small>声明候选，未证实执行</small></button>) :

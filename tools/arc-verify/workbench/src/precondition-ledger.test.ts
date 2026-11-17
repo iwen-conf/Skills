@@ -38,6 +38,28 @@ describe("source-first precondition inventory", () => {
     expect(rows[0].providers.map((node) => node.id)).toEqual(["prep"]);
     expect(rows[0].providers.some((node) => node.id === "unrelated")).toBe(false);
   });
+  it("includes expected-outcome fields even when they are absent from admission guards", () => {
+    const contract = {
+      version: 1,
+      subjects: [{ id: "ledger", kind: "entity", attributes: [{ name: "balance", type: "integer", source_ref: "db:ledger" }] }],
+      branches: [],
+    };
+    const branch = {
+      id: "refund-eligible", action: "refund", rule: "R1", from_states: ["ready"],
+      when: { op: "true" },
+      expected: { mode: "deterministic" as const, outcomes: [{
+        id: "accepted", state: "submitted",
+        predicate: { op: "eq", left: { ref: { subject: "ledger", attribute: "balance" } },
+          right: { literal: { type: "integer", value: 900 } } },
+      }] },
+      source: "spec", source_ref: "spec:R1", confirmed: true,
+    };
+    const rows = extractPreconditions(base, branch, contract);
+    const balance = rows.find((item) => item.key === "ledger.balance");
+    expect(balance?.reference.source_ref).toBe("db:ledger");
+    expect(balance?.conditions).toEqual([]);
+    expect(balance?.providers).toEqual([]);
+  });
   it("does not fabricate prerequisites for an absent lineage", () => {
     expect(extractPreconditions({ candidates: [], readings: new Map(), reason: "missing" })).toEqual([]);
   });

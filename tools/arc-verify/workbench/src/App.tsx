@@ -687,6 +687,7 @@ function Workbench({
           )}
           {graph.lineage?.graph && <PreconditionLedger
             lineage={graph.lineage}
+            contract={snapshot.model.data.business_contract}
             branch={snapshot.model.data.business_contract?.branches.find((item) => item.id === selection.branch)}
             dispatch={dispatch}
           />}
