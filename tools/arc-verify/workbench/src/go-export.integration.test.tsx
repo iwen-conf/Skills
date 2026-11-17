@@ -9,7 +9,10 @@ import App from "./App";
 import { isCampaignDiagnostic } from "./campaign";
 import { displayValue } from "./contract";
 import type { BusinessObservation } from "./contract";
-import { actorsOf, factsOf, selectionContext } from "./explorer-model";
+import { actorsOf, branchOptions, factsOf, selectionContext } from "./explorer-model";
+import { graphFor } from "./graph-model";
+import { analyzeDirected } from "./layout";
+import { occurrenceKey } from "./lineage";
 import { entityKey } from "./facts";
 import type { UnifiedStepFact } from "./facts";
 import { initialSelection, reduceSelection } from "./selection";
@@ -89,8 +92,10 @@ function validateExport(path: string) {
     const source = readFileSync(path, "utf8");
     const snapshot = readSnapshotText(source);
     expect(
-      snapshot.runs.length + (snapshot.business_campaigns?.length ?? 0),
-      "Provide a CLI export with actual ledger records, not a model-only or synthetic fallback",
+      snapshot.runs.length +
+        (snapshot.business_campaigns?.length ?? 0) +
+        (snapshot.business_lineage?.branches.length ?? 0),
+      "Provide a CLI export with ledger records or a versioned model genealogy",
     ).toBeGreaterThan(0);
     const context = selectionContext(snapshot);
     const reduce = (state: Selection, action: SelectionAction) =>
@@ -108,6 +113,8 @@ function validateExport(path: string) {
     let unexportedChildren = 0;
     const runReports: Record<string, unknown>[] = [];
     const campaignReports: Record<string, unknown>[] = [];
+    const lineageReports: Record<string, unknown>[] = [];
+    const lineageScopeReports: Record<string, unknown>[] = [];
     const render = (selection: Selection, representative?: string) => {
       const html = renderToStaticMarkup(<App state={{ snapshot }} initialContext={selection} />);
       for (const label of ["能力树与分支导航", "分支与事实面板", "执行轨迹", "离线只读快照"])
@@ -135,6 +142,32 @@ function validateExport(path: string) {
       if (actor) expect(selection.actor).toBe(actor);
       return selection;
     };
+
+    for (const lineage of snapshot.business_lineage?.branches ?? []) {
+      let selected = reduce(initialSelection(snapshot.meta.graph), {
+        type: "branch",
+        value: lineage.branch,
+      });
+      selected = reduce(selected, { type: "canvas", value: "dependencies" });
+      const graph = graphFor(snapshot, selected, branchOptions(snapshot));
+      expect(graph.nodes.map((node) => node.id)).toEqual(lineage.nodes.map((node) => node.id));
+      expect(graph.nodes.every((node) => node.status === "NOT_OBSERVED")).toBe(true);
+      const analysis = analyzeDirected(graph.nodes, graph.edges);
+      const html = render(selected, pages.has("Model genealogy") ? undefined : "Model genealogy");
+      visible(html, "依赖系谱分层目录", "complete dependency directory");
+      visible(html, "尚无实际前态观察", "model-only observation boundary");
+      lineageReports.push({
+        branch: lineage.branch,
+        nodes: graph.nodes.length,
+        edges: graph.edges.length,
+        layers: Math.max(0, ...analysis.levels.values()) + 1,
+        cycle_components: analysis.cycles.length,
+        candidate_providers: graph.edges.filter((edge) => edge.kind === "candidate_provider")
+          .length,
+        observed_nodes: 0,
+        dense_directory_default: graph.nodes.length > 16,
+      });
+    }
 
     for (const run of snapshot.runs) {
       const facts = factsOf(snapshot, run);
@@ -230,6 +263,66 @@ function validateExport(path: string) {
           visible(entityHTML, entity.owner_principal, "selected entity owner");
           entitySelections++;
         }
+      }
+      for (const overlay of run.business_lineage ?? []) {
+        const fact = facts.find((item) => item.seq === overlay.step);
+        let selected = selectRun(run.trace.run, fact, overlay.actor);
+        if (selected.branch !== overlay.branch) {
+          selected = reduce(selected, { type: "branch", value: overlay.branch });
+          selected = reduce(selected, { type: "run", value: run.trace.run });
+          selected = reduce(selected, { type: "step", value: String(overlay.step) });
+          selected = reduce(selected, { type: "actor", value: overlay.actor });
+        }
+        selected = reduce(selected, { type: "canvas", value: "dependencies" });
+        selected = reduce(selected, { type: "occurrence", value: occurrenceKey(overlay) });
+        expect(selected).toMatchObject({
+          run: run.trace.run,
+          branch: overlay.branch,
+          step: String(overlay.step),
+          actor: overlay.actor,
+        });
+        const graph = graphFor(snapshot, selected, branchOptions(snapshot), run);
+        expect(graph.lineage?.overlay).toBe(overlay);
+        expect(graph.nodes).toHaveLength(overlay.nodes.length);
+        const qualified =
+          !overlay.diagnostic &&
+          [
+            overlay.evidence_status,
+            run.evidence_status,
+            fact?.evidence_status ?? run.evidence_status,
+          ].every((value) => value === "PASS");
+        for (const reading of overlay.nodes)
+          expect(graph.nodes.find((node) => node.id === reading.node)?.status).toBe(
+            qualified ? reading.status : "BLOCKED",
+          );
+        const reading = overlay.nodes.find((node) => node.values?.length);
+        if (reading) selected = reduce(selected, { type: "lineage", value: reading.node });
+        const html = render(selected, `Genealogy ${run.trace.run} / ${overlay.phase}`);
+        visible(html, overlay.run, "lineage occurrence run");
+        visible(html, overlay.actor, "lineage occurrence actor");
+        for (const value of reading?.values ?? []) {
+          visible(html, `${value.subject}.${value.attribute}`, "selected lineage property");
+          visible(html, displayValue(value.actual), "selected lineage actual value");
+          for (const source of value.sources) {
+            visible(html, source.oracle, "scoped lineage observation source");
+            visible(html, source.sha256, "scoped source digest");
+          }
+        }
+        if (overlay.phase === "preparation")
+          expect(graph.nodes.some((node) => node.status === "READY")).toBe(false);
+        lineageScopeReports.push({
+          run: run.trace.run,
+          branch: overlay.branch,
+          step: overlay.step,
+          action_index: overlay.action_index,
+          actor: overlay.actor,
+          phase: overlay.phase,
+          readback_index: overlay.readback_index,
+          readback_phase: overlay.readback_phase,
+          diagnostic: overlay.diagnostic ?? false,
+          evidence_status: overlay.evidence_status,
+          nodes: overlay.nodes.length,
+        });
       }
       if (run.trace.recovery?.mode === "checkpoint") {
         visible(html, "现场检查点", "checkpoint boundary");
@@ -413,6 +506,12 @@ function validateExport(path: string) {
           rendered_views: renderedViews,
           representative_ssr_views: pages.size,
           assets_match_current_dist: assetsMatch,
+          genealogy: {
+            model_only: snapshot.runs.length === 0,
+            branches: lineageReports,
+            observed_occurrences: lineageScopeReports,
+            business_execution_claim: "NOT_INFERRED_FROM_FRONTEND_VALIDATION",
+          },
           preparation: {
             status: preparationRuns ? "EXERCISED" : "NOT_PRESENT",
             runs: preparationRuns,

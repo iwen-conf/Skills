@@ -7,6 +7,7 @@ import type {
 } from "./contract";
 import type { UnifiedStepFact } from "./facts";
 import type { BusinessCampaign } from "./campaign";
+import type { BusinessLineage, BusinessLineageOverlay } from "./lineage-types";
 export type BusinessView =
   | "overview"
   | "capabilities"
@@ -359,6 +360,7 @@ export interface SnapshotRun {
   environment?: string;
   runner_id?: string;
   runner_sha256?: string;
+  business_lineage?: BusinessLineageOverlay[];
 }
 export interface ExplorationCoverage {
   explored_branches: string[];
@@ -410,6 +412,7 @@ export interface Snapshot {
   business_campaigns?: BusinessCampaign[];
   available_campaigns?: number;
   campaigns_truncated?: boolean;
+  business_lineage?: BusinessLineage;
 }
 
 export interface PositionedNode {

@@ -425,6 +425,135 @@ def test_go_module_vets_and_tests_affected_packages(tmp_path: Path) -> None:
     assert result.returncode == 1
 
 
+def native_web_repo(
+    tmp_path: Path, tools: list[str]
+) -> tuple[Path, Path, dict[str, str]]:
+    repo = make_repo(tmp_path, "web workspace")
+    (repo / ".gitignore").write_text("node_modules/\n", encoding="utf-8")
+    (repo / "package.json").write_text(
+        json.dumps(
+            {
+                "name": "local-web-tools",
+                "devEngines": {
+                    "packageManager": {
+                        "name": "bun",
+                        "version": "1.4.4",
+                        "onFail": "download",
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (repo / "tsconfig.json").write_text("{}\n", encoding="utf-8")
+    (repo / "app.ts").write_text("export const value = 1;\n", encoding="utf-8")
+    commit_all(repo)
+    calls = tmp_path / "native-calls.jsonl"
+    native = repo / "node_modules" / ".bin"
+    native.mkdir(parents=True)
+    script = (
+        f"#!{sys.executable}\n"
+        "import json, os, sys\n"
+        "from pathlib import Path\n"
+        "tool = Path(sys.argv[0]).name\n"
+        "with open(os.environ['GATE_NATIVE_LOG'], 'a') as log:\n"
+        "    log.write(json.dumps({'tool': tool, 'args': sys.argv[1:], 'cwd': os.getcwd()}) + '\\n')\n"
+        "if tool in ('npm', 'npx', 'bun'):\n"
+        "    print('Package-manager dispatch is not a local tool invocation')\n"
+        "    sys.exit(77)\n"
+        "if tool == 'vp' and sys.argv[1] == os.environ.get('GATE_NATIVE_FAIL'):\n"
+        "    print('native check failed')\n"
+        "    sys.exit(19)\n"
+    )
+    for name in tools:
+        path = native / name
+        path.write_text(script, encoding="utf-8")
+        path.chmod(0o755)
+    managers = tmp_path / "managers"
+    managers.mkdir()
+    for name in ("npm", "npx", "bun"):
+        path = managers / name
+        path.write_text(script, encoding="utf-8")
+        path.chmod(0o755)
+    env = {
+        **ENV,
+        "PATH": f"{managers}{os.pathsep}{ENV['PATH']}",
+        "GATE_NATIVE_LOG": str(calls),
+    }
+    assert gate(repo, "start", env=env).returncode == 0
+    (repo / "app.ts").write_text("export const value = 2;\n", encoding="utf-8")
+    return repo, calls, env
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_vite_plus_gate_uses_project_local_tools_without_package_manager(
+    tmp_path: Path, strict: bool
+) -> None:
+    repo, calls, env = native_web_repo(tmp_path, ["vp"])
+    before = tree_state(repo)
+    result = gate(repo, "check", *(["--strict"] if strict else []), env=env)
+    status = checks(result.stdout)
+
+    assert status["format(web)"] == "PASS", result.stdout
+    assert status["lint(ts)"] == "PASS", result.stdout
+    assert status["tests(js)"] == "PASS", result.stdout
+    assert result.returncode == 0, result.stdout
+    invoked = [json.loads(line) for line in calls.read_text().splitlines()]
+    assert [item["tool"] for item in invoked] == ["vp", "vp", "vp"]
+    assert invoked[0]["args"] == ["fmt", "--check", "./app.ts"]
+    assert invoked[1]["args"] == ["check"]
+    assert invoked[2]["args"] == (
+        ["test", "run"]
+        if strict
+        else ["test", "related", "--run", "--passWithNoTests", "./app.ts"]
+    )
+    assert all(item["cwd"] == str(repo) for item in invoked)
+    assert tree_state(repo) == before
+
+
+@pytest.mark.parametrize("runner", ["vitest", "jest"])
+def test_native_node_tools_do_not_require_npx(tmp_path: Path, runner: str) -> None:
+    repo, calls, env = native_web_repo(tmp_path, ["prettier", "tsc", runner])
+    result = gate(repo, "check", "--strict", env=env)
+    status = checks(result.stdout)
+
+    assert status["format(web)"] == "PASS", result.stdout
+    assert status["lint(ts)"] == "PASS", result.stdout
+    assert status["tests(js)"] == "PASS", result.stdout
+    assert result.returncode == 0, result.stdout
+    invoked = [json.loads(line) for line in calls.read_text().splitlines()]
+    assert [item["tool"] for item in invoked] == ["prettier", "tsc", runner]
+    assert invoked[0]["args"] == ["--check", "./app.ts"]
+    assert invoked[1]["args"] == ["--noEmit"]
+    assert invoked[2]["args"] == (["run"] if runner == "vitest" else ["--ci"])
+
+
+@pytest.mark.parametrize(
+    ("failure", "check"),
+    [("fmt", "format(web)"), ("check", "lint(ts)"), ("test", "tests(js)")],
+)
+def test_vite_plus_gate_retains_native_failures(
+    tmp_path: Path, failure: str, check: str
+) -> None:
+    repo, _, env = native_web_repo(tmp_path, ["vp"])
+    result = gate(repo, "check", "--strict", env={**env, "GATE_NATIVE_FAIL": failure})
+
+    assert checks(result.stdout)[check].startswith("FAIL("), result.stdout
+    assert "exit 19" in checks(result.stdout)[check]
+    assert result.returncode == 1
+
+
+def test_vite_plus_gate_does_not_invent_uninstalled_tools(tmp_path: Path) -> None:
+    repo, calls, env = native_web_repo(tmp_path, [])
+    (repo / "node_modules/.bin/vp").write_text("not executable\n", encoding="utf-8")
+    result = gate(repo, "check", "--strict", env=env)
+    status = checks(result.stdout)
+
+    for check in ("format(web)", "lint(ts)", "tests(js)"):
+        assert status[check].startswith("NOT_RUN("), result.stdout
+    assert not calls.exists(), "Missing local tools must not invoke a package manager"
+
+
 @pytest.mark.parametrize("system", ["Darwin", "Linux"])
 def test_rust_clippy_and_tests_never_compile_on_macos(
     tmp_path: Path, system: str

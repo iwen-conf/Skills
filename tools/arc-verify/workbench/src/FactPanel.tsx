@@ -10,6 +10,8 @@ import {
 } from "./explorer-model";
 import type { BranchOption } from "./explorer-model";
 import { entityKey, factEntities } from "./facts";
+import LineagePanel from "./LineagePanel";
+import { lineageSelection } from "./lineage";
 import type {
   ActionObservation,
   PreparationExecution,
@@ -300,8 +302,15 @@ export default function FactPanel({
   campaign?: BusinessCampaign;
   dispatch?: (action: SelectionAction) => void;
 }) {
+  const lineage =
+    selection.canvas === "dependencies" && snapshot.business_lineage
+      ? lineageSelection(snapshot, selection, run)
+      : undefined;
+  const lineageNode =
+    lineage?.graph?.nodes.find((item) => item.id === selection.node) ??
+    lineage?.graph?.nodes.find((item) => item.id === lineage.graph?.target);
   const preparation = snapshot.model.data.business_contract?.preparation?.find(
-    (item) => item.id === selection.node,
+    (item) => item.id === selection.node || item.id === lineageNode?.preparation,
   );
   const node = snapshot.model.data.nodes.find(
     (item) => item.id === selection.node || item.id === preparation?.action,
@@ -317,8 +326,15 @@ export default function FactPanel({
     (item) => item.branch === branch?.id,
   );
   const executionScope = executionCoverageScope(snapshot, selection);
+  const atOccurrence = (item: { actor?: string; action_index?: number }) =>
+    !lineage?.graph ||
+    !selection.run ||
+    (lineage.overlay?.phase === "before" &&
+      item.actor === lineage.overlay.actor &&
+      (item.action_index ?? 0) === lineage.overlay.action_index);
   const decisions = (fact?.business_expectations ?? []).filter(
     (item) =>
+      atOccurrence(item) &&
       (!selection.actor || item.actor === selection.actor) &&
       (!item.decision.frozen ||
         !selection.branch ||
@@ -326,13 +342,16 @@ export default function FactPanel({
         item.decision.frozen.branch === selection.branch),
   );
   const oracles = (fact?.oracles ?? []).filter(
-    (item) => !selection.actor || item.actor === selection.actor,
+    (item) => atOccurrence(item) && (!selection.actor || item.actor === selection.actor),
   );
   const conditions = (fact?.conditions ?? []).filter(
-    (item) => !selection.actor || !item.observer_actor || item.observer_actor === selection.actor,
+    (item) =>
+      !lineage?.graph &&
+      (!selection.actor || !item.observer_actor || item.observer_actor === selection.actor),
   );
   const waits = (fact?.waits ?? []).filter(
-    (item) => !selection.actor || !item.actor || item.actor === selection.actor,
+    (item) =>
+      atOccurrence(item) && (!selection.actor || !item.actor || item.actor === selection.actor),
   );
   const entities = factEntities(fact).filter(
     (item) => !selection.entity || entityKey(item) === selection.entity,
@@ -341,14 +360,16 @@ export default function FactPanel({
     (item) => !selection.actor || item.actor === selection.actor,
   );
   const actions = (fact?.actions ?? []).filter(
-    (item) => !selection.actor || item.actor === selection.actor,
+    (item) => atOccurrence(item) && (!selection.actor || item.actor === selection.actor),
   );
   const requests = (
     fact?.requests ??
     (fact?.business_expectations ?? []).flatMap((item) => (item.request ? [item.request] : []))
-  ).filter((item) => !selection.actor || item.actor === selection.actor);
+  ).filter((item) => atOccurrence(item) && (!selection.actor || item.actor === selection.actor));
   const extractions = (fact?.extractions ?? []).filter(
-    (item) => !selection.actor || !item.source_actor || item.source_actor === selection.actor,
+    (item) =>
+      atOccurrence({ actor: item.source_actor, action_index: item.action_index }) &&
+      (!selection.actor || !item.source_actor || item.source_actor === selection.actor),
   );
   const observedActors = actorsOf(fact);
   const focusedActor =
@@ -369,9 +390,12 @@ export default function FactPanel({
     <aside className="fact-panel" aria-label="分支与事实面板">
       <div className="panel-heading">
         <span className="eyebrow">03 / 分支与事实</span>
-        <h2>{node?.name ?? "选择节点查看业务含义"}</h2>
+        <h2>{lineageNode?.name ?? node?.name ?? "选择节点查看业务含义"}</h2>
         {node && <code>{node.id}</code>}
       </div>
+      {lineage && lineageNode && (
+        <LineagePanel lineage={lineage} node={lineageNode} dispatch={dispatch} />
+      )}
       {campaign && dispatch && (
         <details className="campaign-context" open={!selection.run}>
           <summary>Campaign 当前状态与候选 · {campaign.status}</summary>
@@ -930,7 +954,8 @@ export default function FactPanel({
           </section>
           <section className="detail-section">
             <h3>
-              确定性断言 <small>{fact.assertions?.length ?? 0}</small>
+              {lineage?.graph ? "步骤汇总断言 · 不替代所选发生记录" : "确定性断言"}{" "}
+              <small>{fact.assertions?.length ?? 0}</small>
             </h3>
             {fact.assertions?.length ? (
               fact.assertions.map((assertion, index) => (

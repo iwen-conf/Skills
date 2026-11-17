@@ -51,16 +51,17 @@ type SnapshotEvidence struct {
 
 // SnapshotRun is a selected run's replay with its evidence.
 type SnapshotRun struct {
-	Trace          TraceReport        `json:"trace"`
-	Evidence       []SnapshotEvidence `json:"evidence"`
-	Facts          []UnifiedStepFact  `json:"facts"`
-	EvidenceStatus string             `json:"evidence_status"`
-	EvidenceErrors []string           `json:"evidence_errors"`
-	Environment    string             `json:"environment"`
-	RunnerID       string             `json:"runner_id,omitempty"`
-	RunnerSHA256   string             `json:"runner_sha256,omitempty"`
-	FlowID         string             `json:"flow_id,omitempty"`
-	BranchID       string             `json:"branch_id,omitempty"`
+	Trace           TraceReport              `json:"trace"`
+	Evidence        []SnapshotEvidence       `json:"evidence"`
+	Facts           []UnifiedStepFact        `json:"facts"`
+	EvidenceStatus  string                   `json:"evidence_status"`
+	EvidenceErrors  []string                 `json:"evidence_errors"`
+	Environment     string                   `json:"environment"`
+	RunnerID        string                   `json:"runner_id,omitempty"`
+	RunnerSHA256    string                   `json:"runner_sha256,omitempty"`
+	FlowID          string                   `json:"flow_id,omitempty"`
+	BranchID        string                   `json:"branch_id,omitempty"`
+	BusinessLineage []BusinessLineageOverlay `json:"business_lineage,omitempty"`
 }
 
 // Snapshot is the read-only document embedded in the static workbench page.
@@ -74,6 +75,7 @@ type Snapshot struct {
 	Exploration        map[string]ExplorationCoverage      `json:"exploration,omitempty"`
 	ContractAnalysis   *BusinessCoverageProof              `json:"contract_analysis,omitempty"`
 	ContractExecution  *BusinessExecutionCoverage          `json:"contract_execution,omitempty"`
+	BusinessLineage    *BusinessLineage                    `json:"business_lineage,omitempty"`
 	BusinessCampaigns  []BusinessCampaign                  `json:"business_campaigns,omitempty"`
 	AvailableCampaigns int                                 `json:"available_campaigns"`
 	CampaignsTruncated bool                                `json:"campaigns_truncated"`
@@ -201,6 +203,10 @@ func (d db) buildSnapshot(request SnapshotRequest) (Snapshot, error) {
 	if err != nil {
 		return Snapshot{}, err
 	}
+	snapshot.BusinessLineage, err = buildBusinessLineage(g)
+	if err != nil {
+		return Snapshot{}, err
+	}
 	// Revalidate this ledger context once, then project the same facts into every
 	// view. Re-reading all RAW for each tab was both expensive and incoherent if
 	// another run completed between projections.
@@ -264,6 +270,7 @@ func (d db) buildSnapshot(request SnapshotRequest) (Snapshot, error) {
 	}
 	selectedRuns = uniqueRunIDsInOrder(selectedRuns)
 	snapshot.RunsTruncated = len(selectedRuns) < snapshot.AvailableRuns
+	lineageReadings := 0
 	for _, run := range selectedRuns {
 		exported, err := d.snapshotRun(g.ID, run)
 		if err != nil {
@@ -271,6 +278,40 @@ func (d db) buildSnapshot(request SnapshotRequest) (Snapshot, error) {
 		}
 		if request.Environment != "" && exported.Environment != request.Environment || request.Round != "" && exported.Trace.Round != request.Round {
 			return Snapshot{}, fmt.Errorf("run %s is outside selected environment/round", run)
+		}
+		preparationLineage, preparationErr := d.buildPreparationLineageOverlays(g, snapshot.BusinessLineage, exported)
+		if preparationErr != nil {
+			if errors.Is(preparationErr, errBusinessLineageBudget) {
+				return Snapshot{}, preparationErr
+			}
+			exported.EvidenceStatus = "BLOCKED"
+			exported.EvidenceErrors = append(exported.EvidenceErrors, "preparation lineage: "+preparationErr.Error())
+		}
+		exported.BusinessLineage, err = buildBusinessLineageOverlays(g, snapshot.BusinessLineage, exported)
+		if err != nil {
+			return Snapshot{}, err
+		}
+		if err := d.enrichBusinessLineageEntityReferences(g, &exported); err != nil {
+			exported.EvidenceStatus = "BLOCKED"
+			exported.EvidenceErrors = append(exported.EvidenceErrors, err.Error())
+			for index := range exported.BusinessLineage {
+				overlay := &exported.BusinessLineage[index]
+				overlay.EvidenceStatus, overlay.Reason = "BLOCKED", err.Error()
+				for index := range overlay.Nodes {
+					reading := &overlay.Nodes[index]
+					reading.Status, reading.Reason = "BLOCKED", err.Error()
+					for index := range reading.Values {
+						reading.Values[index].EntityRef = nil
+					}
+				}
+			}
+		}
+		exported.BusinessLineage = append(preparationLineage, exported.BusinessLineage...)
+		for _, overlay := range exported.BusinessLineage {
+			lineageReadings += len(overlay.Nodes)
+		}
+		if lineageReadings > businessLineageMaxEdges {
+			return Snapshot{}, fmt.Errorf("%w: exceeds %d observation readings; select fewer runs", errBusinessLineageBudget, businessLineageMaxEdges)
 		}
 		snapshot.Runs = append(snapshot.Runs, exported)
 	}
@@ -476,7 +517,7 @@ func snapshotSizeError(snapshot Snapshot, total, limit int) error {
 		}
 		return len(body)
 	}
-	parts := []part{{"meta", measure(snapshot.Meta)}, {"catalog", measure(snapshot.Catalog)}, {"model", measure(snapshot.Model)}, {"views", measure(snapshot.Views)}, {"impact", measure(snapshot.Impact)}}
+	parts := []part{{"meta", measure(snapshot.Meta)}, {"catalog", measure(snapshot.Catalog)}, {"model", measure(snapshot.Model)}, {"views", measure(snapshot.Views)}, {"impact", measure(snapshot.Impact)}, {"business_lineage", measure(snapshot.BusinessLineage)}}
 	for _, run := range snapshot.Runs {
 		parts = append(parts, part{"run " + run.Trace.Run, measure(run)})
 	}

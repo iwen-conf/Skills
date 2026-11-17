@@ -222,6 +222,15 @@ page opens from `file://` without network requests and has no write actions. Rul
   is refused.
 - `workbench/src/types.ts` mirrors the Go DTOs; `TestSnapshotTypesMatchFrontend` fails on drift.
 
+Typed models also export `business_lineage`: each branch's allowed prestate, complete logical
+Guard, subject/attribute conditions, declared preparation providers and their explicit ancestors.
+The workbench consumes this projection instead of drawing every preparation as an unrelated task.
+Provider alternatives and OR choices remain alternatives; state-machine cycles never become
+preparation dependencies. Run overlays are scoped by step, actor and action occurrence, with
+sources from the frozen before observation. Missing or damaged evidence never becomes satisfied.
+See the [wire contract](../../docs/02-API记录/arc-verify-snapshot.md) and
+[pay_gateway model-only export](examples/pay-gateway/README.md#0-没有支付环境时先生成可审阅的业务系谱).
+
 ## v2 runtime commands
 
 Details and semantics: `Arc/arc:verify/references/business-graph-v2.md`.

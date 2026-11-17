@@ -13,6 +13,33 @@
 
 先选业务分支，再选运行。切换运行会清空旧主体和实体筛选；同一步多个主体使用各自的动作和冻结分支。筛掉中间步骤后，画布会标明省略的步骤，不将剩余节点伪装成相邻操作。
 
+## 从一个分支解释完整的准备系谱
+
+选择能力和具体分支后，切换“准备依赖”。新导出中的 `business_lineage` 把允许前态、Guard
+逻辑树、属性条件、能够建立条件的声明准备动作及其显式上游连在一起。条件卡片保留主体和
+属性，点击后可查看规则来源、候选准备动作以及当前选定运行的实际值和观察来源。
+按最长路径分层，并提供上下游、关键依赖链和分层目录；局部筛选会保留范围提示。
+密集图首先聚焦所选节点及直接上游，完整分层目录默认展开；从目录选择条件或准备来源时，
+画布同步定位。图例区分必需关系与候选/OR 替代关系，同一层并不保证动作可以并行。
+
+`AND`、`OR`、`NOT` 各自保留语义。候选提供者不是已经选定或已经执行的计划；同一条件的
+多个提供者属于候选路径。`NOT` 的子条件为假、`OR` 的某一子项为假都不自动等于目标被阻断。
+目标是否就绪以整个根条件和准确前态的判定为准。
+
+选定运行、步骤、账号及实体后，只叠加该作用域的 Go 观察结果。同一步同一主体出现多次动作时，
+进一步选择“动作发生记录”；不同动作序号不能合并。目标动作的 `before` 来自执行前冻结记录，
+执行后的状态另见实际事实和运行视图。准备节点显示效果已观察到，也不能代替真实执行 receipt。
+实体按别名、类型、ID、属主和渠道的完整身份匹配；业务主体到实体别名的映射来自冻结 Runner，
+不按同名或相同裸 ID 推测。动作后换属主的实体不会覆盖本次动作的前态身份。
+
+执行轨迹中的“前态准备”是单独的 setup 历史。选择它以后，可以在动作发生记录中逐一查看
+初始、准备动作前、准备动作后的真实回读。准备成功也不会把目标节点标成已执行或业务 PASS；
+准备失败则保留已捕获的条件值和原阻断原因，所有节点保持证据阻断，便于定位未建立的前态。
+
+没有运行的模型也能生成完整声明系谱，显示“未观察”。没有声明提供者的条件仍可由独立观察
+满足，不会自动被判为规则缺口。旧快照没有新系谱字段时继续显示原事实，但需重新导出才能
+获得条件系谱。字段、状态和资源边界见 [共同契约](../../../docs/02-API记录/arc-verify-snapshot.md)。
+
 有界探索记录使用 `campaign → variant → child run` 导航，并与上述八项上下文同步。选择变体先查看
 其候选观察、准备方案与停止原因；只有已经关联且通过证据核验的 child run 才能跳入实际步骤。
 派发意图、预算预留和预测效果不会绘制成已经执行的业务操作。账号选项使用实际参与者别名，
@@ -77,6 +104,8 @@ default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src
 | 数据                             | 能说明什么                                            | 边界                                                                                          |
 | -------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `business_contract`              | 已声明的主体、分支条件、来源、预期与准备动作          | 声明本身不是执行记录；缺失、冲突或未知不能补写为允许。                                        |
+| `business_lineage`               | 分支目标、前态、逻辑树、条件及有依据的准备提供关系    | 派生自合同，不是运行；候选提供者和并列图层不代表已选择的实际调度。                            |
+| `runs[].business_lineage`        | 独立核验的同运行、步骤、主体、动作序号观察            | 目标 before 不混入 after；证据损坏、来源缺失或选择歧义不能显示满足。                          |
 | `contract_analysis`              | 明确有限域内的分支分区证明                            | `PROVEN_IN_SCOPE` 不表示真实系统已经执行，也不表示域外条件已覆盖。                            |
 | `contract_execution`             | 按实际冻结分支归属的运行覆盖                          | 同一个测试或节点通过不会自动让其他分支通过。                                                  |
 | `runs[].facts`                   | 本次运行、步骤、账号、实体范围内的持久化事实          | 页面拒绝跨运行或跨模型事实；不根据节点相同推测身份关联。                                      |
@@ -93,10 +122,12 @@ default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src
 
 - `selection.ts`、`explorer-model.ts`：统一选择上下文与显式身份映射。
 - `layout.ts`、`graph-model.ts`、`GraphCanvas.tsx`：准备 DAG、合法状态环和实际运行轨迹。
+- `lineage-types.ts`、`lineage.ts`、`LineagePanel.tsx`：共同系谱协议、准确观察选择及条件/来源细节。
+- `lineage-validation.ts`、`lineage-schema.ts`、`lineage-evidence.ts`：结构、身份、原始记录与派生观察的一致性；不重新计算业务预期。
 - `FactPanel.tsx`、`contract.ts`、`facts.ts`：声明、冻结预期、实际结果与来源。
 - `CampaignViews.tsx`、`campaign.ts`、`campaign-validation.ts`：有界探索的身份、历史与选择边界。
 - `snapshot.ts`、`types.ts`、`json-values.ts`：导出 DTO、原始数字和可见的读取错误边界。
-- `../snapshot.go`、`../facts_integrity.go`：Go 导出与证据重验。
+- `../snapshot.go`、`../business_lineage*.go`、`../facts_integrity.go`：Go 导出、统一系谱投影与证据重验。
 
 修改 DTO 后，在 `tools/arc-verify` 中运行 `go test -run '^TestSnapshotTypesMatchFrontend$' -count=1`，并把真实 Go 工具测试执行产生的快照交给 `parseSnapshot` 与 React 服务端渲染做贯通检查。前端合成 fixture、Go 的隔离 HTTP 工具测试、接入项目 E2E 必须分别标明范围。
 
@@ -105,14 +136,15 @@ default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src
 ```sh
 ARC_WORKBENCH_EXPORT_DIR=/absolute/prepared-export \
 ARC_CAMPAIGN_EXPORT_DIR=/absolute/campaign-export \
+ARC_PREPARATION_BLOCKED_EXPORT_DIR=/absolute/blocked-preparation-export \
 ARC_WORKBENCH_ASSETS=/absolute/Skills/tools/arc-verify/workbench/dist \
-go test -run '^(TestWorkbenchExportObservedToolRun|TestWorkbenchExportObservedBusinessCampaign)$' -count=1 -v .
+go test -run '^(TestWorkbenchExportObservedToolRun|TestWorkbenchExportObservedBusinessCampaign|TestBusinessLineagePreparationFailureRemainsDiagnosticWithoutTargetFreeze)$' -count=1 -v .
 ```
 
 随后在本目录运行：
 
 ```sh
-ARC_WORKBENCH_SNAPSHOT_PATHS='["/absolute/prepared-export","/absolute/campaign-export"]' \
+ARC_WORKBENCH_SNAPSHOT_PATHS='["/absolute/prepared-export","/absolute/campaign-export","/absolute/blocked-preparation-export"]' \
   ./node_modules/.bin/vp test src/go-export.integration.test.tsx
 ```
 

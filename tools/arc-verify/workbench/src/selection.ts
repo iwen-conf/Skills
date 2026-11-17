@@ -12,6 +12,7 @@ export interface Selection {
   node: string;
   actor: string;
   entity: string;
+  occurrence?: string;
   canvas: CanvasMode;
   focus: FocusMode;
 }
@@ -23,6 +24,7 @@ export interface SelectionStep {
   branches?: string[];
   actorNodes?: Record<string, string[]>;
   actorBranches?: Record<string, string[]>;
+  preparation?: boolean;
 }
 export interface SelectionRun {
   id: string;
@@ -67,6 +69,8 @@ export type SelectionAction =
         | "run"
         | "step"
         | "node"
+        | "lineage"
+        | "occurrence"
         | "actor"
         | "entity";
       value: string;
@@ -87,6 +91,7 @@ export function initialSelection(model: string, environment = "", node = ""): Se
     node,
     actor: "",
     entity: "",
+    occurrence: "",
     canvas: "states",
     focus: "all",
   };
@@ -126,7 +131,7 @@ export function matchingRuns(context: SelectionContext, state: Selection): Selec
   });
 }
 function clearedRun(state: Selection): Selection {
-  return { ...state, run: "", step: "", actor: "", entity: "" };
+  return { ...state, run: "", step: "", actor: "", entity: "", occurrence: "" };
 }
 function atStep(state: Selection, step?: SelectionStep, context?: SelectionContext): Selection {
   const branches = state.actor
@@ -143,6 +148,7 @@ function atStep(state: Selection, step?: SelectionStep, context?: SelectionConte
   const branch = context?.branches.find((item) => item.id === branchID);
   return {
     ...state,
+    occurrence: step?.id === state.step ? state.occurrence : "",
     step: step?.id ?? "",
     node: nodes ? (nodes.length === 1 ? nodes[0] : "") : (step?.node ?? state.node),
     branch: branch?.id ?? state.branch,
@@ -156,6 +162,8 @@ export function reduceSelection(
   action: SelectionAction,
   context: SelectionContext,
 ): Selection {
+  if (action.type === "lineage") return { ...state, node: action.value };
+  if (action.type === "occurrence") return { ...state, occurrence: action.value };
   if (action.type === "model")
     return action.value === context.model
       ? initialSelection(action.value, state.environment)
@@ -280,7 +288,7 @@ export function reduceSelection(
     if (!run) return state;
     const list = action.type === "actor" ? "actors" : "entities";
     if (action.value && !run.steps.some((step) => step[list].includes(action.value))) return state;
-    const next = { ...state, [action.type]: action.value };
+    const next = { ...state, [action.type]: action.value, occurrence: "" };
     const step =
       run.steps.find((item) => item.id === state.step && matchesStep(item, next)) ??
       run.steps.find((item) => matchesStep(item, next));

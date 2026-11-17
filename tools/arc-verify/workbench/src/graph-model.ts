@@ -1,4 +1,7 @@
 import { predicateText } from "./contract";
+import { lineageGraphFor } from "./lineage";
+import type { LineageSelection } from "./lineage";
+import type { BusinessLineageNode, BusinessLineageReading } from "./lineage-types";
 import { branchAppliesToFlow } from "./explorer-model";
 import type { BranchOption } from "./explorer-model";
 import type { Selection, SelectionStep } from "./selection";
@@ -10,6 +13,8 @@ export interface CanvasNode extends BusinessNode {
   step?: string;
   status?: string;
   branch?: string;
+  lineage?: BusinessLineageNode;
+  reading?: BusinessLineageReading;
 }
 export interface CanvasEdge extends Relation {
   label: string;
@@ -20,12 +25,14 @@ export interface CanvasEdge extends Relation {
   expectedState?: string;
   denied?: boolean;
   legacy?: boolean;
+  alternative?: boolean;
 }
 export interface CanvasGraph {
   nodes: CanvasNode[];
   edges: CanvasEdge[];
   empty: string;
   caption: string;
+  lineage?: LineageSelection;
 }
 
 export function graphFor(
@@ -38,6 +45,7 @@ export function graphFor(
   const model = snapshot.model.data;
   const names = new Map(model.nodes.map((node) => [node.id, node.name]));
   if (state.canvas === "dependencies") {
+    if (snapshot.business_lineage) return lineageGraphFor(snapshot, state, run);
     const preparations = model.business_contract?.preparation ?? [];
     return {
       nodes: preparations.map((prep) => ({
@@ -79,8 +87,10 @@ export function graphFor(
         id: `step:${step.id}`,
         subject,
         step: step.id,
-        kind: "step",
-        name: names.get(subject) ?? (subject || `第 ${step.id} 步`),
+        kind: step.preparation ? "preparation_step" : "step",
+        name: step.preparation
+          ? "前态准备 · 目标业务尚未执行"
+          : (names.get(subject) ?? (subject || `第 ${step.id} 步`)),
         detail: `${state.actor || fact?.actor || "参与者见事实"} · ${state.actor && state.actor !== fact?.actor ? "主体观察见事实" : (fact?.observed_state ?? trace?.observed ?? "未观察")} · 记载 ${recorded ?? "NOT_RUN"} / 证据 ${evidence}`,
         status: recorded === "PASS" && evidence !== "PASS" ? evidence : recorded,
       };
@@ -93,9 +103,11 @@ export function graphFor(
         to: node.id,
         kind: "recorded_order",
         label:
-          Number(node.step) - Number(nodes[i].step) > 1
-            ? `省略 ${Number(node.step) - Number(nodes[i].step) - 1} 个筛除步骤`
-            : "记录步骤",
+          nodes[i].step === "-1"
+            ? "准备阶段后"
+            : Number(node.step) - Number(nodes[i].step) > 1
+              ? `省略 ${Number(node.step) - Number(nodes[i].step) - 1} 个筛除步骤`
+              : "记录步骤",
       })),
       empty: run.trace.steps.length
         ? "当前主体与实体筛选下没有步骤。清除筛选可查看本次运行的完整轨迹。"

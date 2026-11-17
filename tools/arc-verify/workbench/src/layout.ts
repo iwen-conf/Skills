@@ -134,7 +134,11 @@ export function neighborhood(
   return result;
 }
 
-export function layoutDirected(nodes: BusinessNode[], edges: Relation[]): PositionedNode[] {
+export function layoutDirected(
+  nodes: BusinessNode[],
+  edges: Relation[],
+  size = { width, height },
+): PositionedNode[] {
   const sorted = [...nodes].sort(byID);
   const { levels } = analyzeDirected(sorted, edges);
   const columns = new Map<number, BusinessNode[]>();
@@ -163,10 +167,10 @@ export function layoutDirected(nodes: BusinessNode[], edges: Relation[]): Positi
   }
   return sorted.map((node) => ({
     id: node.id,
-    x: levels.get(node.id)! * (width + gapX),
-    y: positions.get(node.id)! * (height + gapY),
-    width,
-    height,
+    x: levels.get(node.id)! * (size.width + gapX),
+    y: positions.get(node.id)! * (size.height + gapY),
+    width: size.width,
+    height: size.height,
     container: false,
   }));
 }

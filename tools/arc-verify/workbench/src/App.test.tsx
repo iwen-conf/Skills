@@ -37,6 +37,17 @@ describe("offline business verification workbench", () => {
     expect(html).toContain("尚未选择运行");
     expect(html).not.toContain("principal-A");
   });
+  it("keeps flow-independent branches selectable in the same flow scope as the capability rail", () => {
+    const snapshot = contractFixture();
+    delete snapshot.model.data.business_contract!.branches[2].flow;
+    const html = renderToStaticMarkup(
+      <App state={{ snapshot }} initialContext={{ flow: "F-PAY" }} />,
+    );
+    const options = html.match(/<select aria-label="业务分支"[^>]*>([\s\S]*?)<\/select>/)?.[1];
+    expect(options).toBeDefined();
+    expect(options).toContain('value="B-CALLBACK"');
+    expect(html).toContain("<code>B-CALLBACK</code>");
+  });
   it("renders the selected step's frozen expectation, actual result, subject and database evidence without another run's identity", () => {
     const html = renderToStaticMarkup(
       <App

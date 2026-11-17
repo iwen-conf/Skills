@@ -28,6 +28,12 @@ Old runs without a frozen branch remain visibly unassociated legacy history.
   connected components for layout without deleting their internal transition edges or branch IDs.
 - Run overlays use recorded step/action/transition identities, frozen branch and evidence status.
   Candidate edges, predicted preparation effects and model coverage must not look executed.
+- Read `business_lineage` from a current Go snapshot: branch target, allowed prestate, full
+  AND/OR/NOT tree, subject/attribute conditions and proven declared providers. Do not reconstruct
+  genealogy from `depends_on` alone. Provider alternatives are not all-required execution steps.
+- Select a single run/step/actor/action occurrence before showing observed conditions. A false
+  NOT child or unused OR alternative is not automatically a blocker. Preparation readbacks use
+  their own occurrence and setup RAW provenance; diagnostic failures stay BLOCKED.
 - Focus on a selected local subgraph, keep canonical IDs and expose any omitted/truncated scope.
   Group related nodes and show meaningful Chinese business names; do not flatten every domain
   into a giant task sequence. Actual package names remain source-backed implementation details.
@@ -47,6 +53,9 @@ The directory contains `index.html`, local assets and `snapshot.json`. It is rea
 network-denying content security policy, and exposes no execute/approve/retry controls. A new
 export never overwrites a previous nonempty snapshot. Evidence failures appear as BLOCKED
 with the reason; raw-file presence or stored PASS text is not enough.
+Without an execution environment, import the sourced model and export without run/env/round;
+retain unapproved/NOT_RUN states. The [pay_gateway example](../../../tools/arc-verify/examples/pay-gateway/README.md)
+provides this command sequence. It does not execute or approve payments.
 
 Run frontend tests and the actual production build. Inspect desktop and narrow layouts plus
 branch/run/step/actor/entity changes. Use a snapshot exported by the Go CLI for integration

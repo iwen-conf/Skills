@@ -769,8 +769,12 @@ files_for_root() {
 
 find_node_bin() {
   local d=$1
+  NODE_BIN=
   while :; do
-    if [ -e "$ROOT/$d/node_modules/.bin/$2" ]; then return 0; fi
+    if [ -f "$ROOT/$d/node_modules/.bin/$2" ] && [ -x "$ROOT/$d/node_modules/.bin/$2" ]; then
+      NODE_BIN=$ROOT/$d/node_modules/.bin/$2
+      return 0
+    fi
     if [ "$d" = . ]; then return 1; fi
     case $d in */*) d=${d%/*} ;; *) d=. ;; esac
   done
@@ -876,13 +880,14 @@ check_format() {
     [ ${#R_EXIST[@]} -gt 0 ] || continue
     any=1
     sfx "$r"
-    if ! find_node_bin "$r" prettier; then
-      emit "format(web$SFX)" NOT_RUN "prettier not installed"
-    elif ! have npx; then
-      emit "format(web$SFX)" NOT_RUN "npx not installed"
-    else
-      run_tool "$ROOT/$r" npx --no-install prettier --check "${R_EXIST[@]}"
+    if find_node_bin "$r" vp; then
+      run_tool "$ROOT/$r" "$NODE_BIN" fmt --check "${R_EXIST[@]}"
+      tool_verdict "format(web$SFX)" "vp fmt"
+    elif find_node_bin "$r" prettier; then
+      run_tool "$ROOT/$r" "$NODE_BIN" --check "${R_EXIST[@]}"
       tool_verdict "format(web$SFX)" prettier
+    else
+      emit "format(web$SFX)" NOT_RUN "no local Vite+ or prettier"
     fi
   done
 
@@ -996,13 +1001,14 @@ check_lint() {
     files_for_root "$r"
     if [ ${#R_FILES[@]} -eq 0 ]; then
       emit "lint(ts$SFX)" NOT_RUN "no changed TS/JS files"
-    elif ! find_node_bin "$r" tsc; then
-      emit "lint(ts$SFX)" NOT_RUN "typescript not installed locally"
-    elif ! have npx; then
-      emit "lint(ts$SFX)" NOT_RUN "npx not installed"
-    else
-      run_tool "$ROOT/$r" npx --no-install tsc --noEmit
+    elif find_node_bin "$r" vp; then
+      run_tool "$ROOT/$r" "$NODE_BIN" check
+      tool_verdict "lint(ts$SFX)" "vp check"
+    elif find_node_bin "$r" tsc; then
+      run_tool "$ROOT/$r" "$NODE_BIN" --noEmit
       tool_verdict "lint(ts$SFX)" tsc
+    else
+      emit "lint(ts$SFX)" NOT_RUN "no local Vite+ or typescript"
     fi
   done
 
@@ -1085,27 +1091,36 @@ check_tests() {
     files_for_root "$r"
     if [ "$STRICT" -ne 1 ] && [ ${#R_EXIST[@]} -eq 0 ]; then
       emit "tests(js$SFX)" NOT_RUN "no changed JS/TS files"
-    elif ! have npx; then
-      emit "tests(js$SFX)" NOT_RUN "npx not installed"
+    elif find_node_bin "$r" vp; then
+      if [ "$STRICT" -eq 1 ]; then
+        run_tool "$ROOT/$r" env CI=true "$NODE_BIN" test run
+      else
+        run_tool "$ROOT/$r" env CI=true "$NODE_BIN" test related --run --passWithNoTests "${R_EXIST[@]}"
+      fi
+      js_verdict "vp test"
     elif find_node_bin "$r" vitest; then
       if [ "$STRICT" -eq 1 ]; then
-        run_tool "$ROOT/$r" env CI=true npx --no-install vitest run
+        run_tool "$ROOT/$r" env CI=true "$NODE_BIN" run
       else
-        run_tool "$ROOT/$r" env CI=true npx --no-install vitest related --run --passWithNoTests "${R_EXIST[@]}"
+        run_tool "$ROOT/$r" env CI=true "$NODE_BIN" related --run --passWithNoTests "${R_EXIST[@]}"
       fi
       js_verdict vitest
     elif find_node_bin "$r" jest; then
       if [ "$STRICT" -eq 1 ]; then
-        run_tool "$ROOT/$r" env CI=true npx --no-install jest --ci
+        run_tool "$ROOT/$r" env CI=true "$NODE_BIN" --ci
       else
-        run_tool "$ROOT/$r" env CI=true npx --no-install jest --ci --passWithNoTests --findRelatedTests "${R_EXIST[@]}"
+        run_tool "$ROOT/$r" env CI=true "$NODE_BIN" --ci --passWithNoTests --findRelatedTests "${R_EXIST[@]}"
       fi
       js_verdict jest
     elif [ "$STRICT" -eq 1 ] && grep -q '"test"[[:space:]]*:' "$ROOT/$r/package.json"; then
-      run_tool "$ROOT/$r" env CI=true npm test
-      tool_verdict "tests(js$SFX)" "npm test"
+      if have npm; then
+        run_tool "$ROOT/$r" env CI=true npm test
+        tool_verdict "tests(js$SFX)" "npm test"
+      else
+        emit "tests(js$SFX)" NOT_RUN "npm not installed for package test script"
+      fi
     else
-      emit "tests(js$SFX)" NOT_RUN "no local vitest or jest"
+      emit "tests(js$SFX)" NOT_RUN "no local Vite+, vitest or jest"
     fi
   done
 

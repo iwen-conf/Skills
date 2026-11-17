@@ -1,0 +1,1545 @@
+{
+  "schema_version": 1,
+  "task": "arc-eta-lineage",
+  "recorded_at_utc": "2026-11-17T07:54:58.851098+00:00",
+  "git_base": "ab15f2b2ffe0b55509392d8ff49425f603ef5f98",
+  "branch": "main",
+  "source_identity": {
+    "verify_go": {
+      "manifest": "arc-lineage-tested-go-final.json",
+      "files": 199,
+      "aggregate_sha256": "3a34625f9f5e0fb3a8cc3da92b590e52300bcec4ed2debf0fcbb8f525bac2b72",
+      "algorithm": "SHA256 of compact sorted UTF-8 JSON {repository-relative path: file SHA256}"
+    },
+    "frontend_and_dist": {
+      "manifest": "arc-lineage-tested-frontend.json",
+      "files": 53,
+      "aggregate_sha256": "367cadbc93fdc1850b965b493380d7fcfedb37c7c56bb1a3304599185267500c",
+      "algorithm": "SHA256 of compact sorted UTF-8 JSON {repository-relative path: file SHA256}"
+    },
+    "shared_gate": {
+      "manifest": "arc-lineage-tested-gate-final.json",
+      "files": 2,
+      "aggregate_sha256": "219b1018014e9f4173ba4672d3b95ce78bd018d1f35af104b51711db44a1bee0",
+      "algorithm": "SHA256 of compact sorted UTF-8 JSON {repository-relative path: file SHA256}"
+    },
+    "pay_model_sha256": "af32755881ec08abd9900dcd035cab11bee261224a62224944c43942ab3da482",
+    "installed_binaries": {
+      "bin/arc": "b80b09836ab04bfca78c9721fbf15341cbc56832e51653bf370f7fcc450d448c",
+      "libexec/arc/arc-idx": "ef31bd470b376b8f7aea851486c33697fe6af34a5ceb3c1cf230399a4fd6db9f",
+      "libexec/arc/arc-verify": "1f80ffaede0ba85d5f9cf2969a606ab671d83db06e9537f6a879f691775a2a22"
+    },
+    "note": "Builds ran before commit publication from these exact working-tree bytes; the enclosing Git commit publishes the reviewed source. No dirty-build revision is represented as an independent trusted build attestation."
+  },
+  "checks": [
+    {
+      "name": "verify-race-final",
+      "command": [
+        "go",
+        "-C",
+        "tools/arc-verify",
+        "test",
+        "-race",
+        "-json",
+        "-count=1",
+        "-timeout=20m",
+        "./..."
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+      "explicit_environment": {
+        "ARC_VERIFY_CHAIN_BINARY": "/workspace/scratch/5b127f988034/arc-lineage-installed/libexec/arc/arc-verify",
+        "ARC_CAMPAIGN_BINARY": "/workspace/scratch/5b127f988034/arc-lineage-installed/bin/arc"
+      },
+      "started_utc": "2026-11-17T07:37:23.744514+00:00",
+      "finished_utc": "2026-11-17T07:49:25.989911+00:00",
+      "duration_seconds": 722.245,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/verify-race-final.log",
+      "log_sha256": "a69e4c1a55576dc3be67168d5ac0169bdfa16a86e326b92eb1e1c24362fc5a85",
+      "log_bytes": 1082142,
+      "test_counts": {
+        "pass_top_level": 526,
+        "pass_subtest": 410,
+        "skip_top_level": 4
+      },
+      "skipped_tests": [
+        "TestWorkbenchExportObservedBusinessCampaign",
+        "TestIMMongoFixturesMustBindIsolationNotSharedLan50",
+        "TestIMMongoConfigKeepsSharedStacksUnapproved",
+        "TestWorkbenchExportObservedToolRun"
+      ],
+      "failed_tests": [],
+      "report_sha256": "fef98456c0df9508240e84182b8a8c3c768af9f515ef7bfe91411afe5c87540c"
+    },
+    {
+      "name": "cli-race",
+      "command": [
+        "go",
+        "-C",
+        "tools/arc",
+        "test",
+        "-race",
+        "-json",
+        "-count=1",
+        "./..."
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+      "explicit_environment": {},
+      "started_utc": "2026-11-17T07:25:57.038273+00:00",
+      "finished_utc": "2026-11-17T07:26:00.435477+00:00",
+      "duration_seconds": 3.397,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/cli-race.log",
+      "log_sha256": "e35048bd442c1536780aeba272b90d68fc6b8a6310e931ffa45ff2e450cb807c",
+      "log_bytes": 97936,
+      "test_counts": {
+        "pass_top_level": 37,
+        "pass_subtest": 40
+      },
+      "skipped_tests": [],
+      "failed_tests": [],
+      "report_sha256": "6bf422f5de7d54dc5da58072372ca198e9007ef2e1f05509425371b5a7e848f2"
+    },
+    {
+      "name": "idx-race",
+      "command": [
+        "go",
+        "-C",
+        "tools/arc-idx",
+        "test",
+        "-race",
+        "-json",
+        "-count=1",
+        "./..."
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+      "explicit_environment": {},
+      "started_utc": "2026-11-17T07:25:57.029802+00:00",
+      "finished_utc": "2026-11-17T07:26:03.444832+00:00",
+      "duration_seconds": 6.415,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/idx-race.log",
+      "log_sha256": "e0fd4480a973842977acbee3b527f341d457f8cf962948f15d9d7ea22f6fba60",
+      "log_bytes": 2449,
+      "test_counts": {
+        "pass_top_level": 2
+      },
+      "skipped_tests": [],
+      "failed_tests": [],
+      "report_sha256": "533cafaacc35340a0d0af68dbf5ef9b7059b9c138e31895d22ee64820c2e1398"
+    },
+    {
+      "name": "cli-install-final",
+      "command": [
+        "bash",
+        "scripts/install_arc.sh",
+        "/workspace/scratch/5b127f988034/arc-lineage-installed/bin"
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+      "explicit_environment": {},
+      "started_utc": "2026-11-17T07:36:57.605116+00:00",
+      "finished_utc": "2026-11-17T07:37:04.319205+00:00",
+      "duration_seconds": 6.714,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/cli-install-final.log",
+      "log_sha256": "dc9ef7f42c356ebe52ffbac3bc446ee23838eee69450982049efeb3f406c6db2",
+      "log_bytes": 1433,
+      "report_sha256": "27f5eeddab7111abb8f6c833180a1e588766a5e7a9f8163e65460e4196f5f321"
+    },
+    {
+      "name": "cli-smoke-final",
+      "command": [
+        "bash",
+        "tools/arc/smoke.sh",
+        "/workspace/scratch/5b127f988034/arc-lineage-installed/bin",
+        "/workspace/scratch/5b127f988034/arc-rebuild"
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+      "explicit_environment": {},
+      "started_utc": "2026-11-17T07:37:23.753226+00:00",
+      "finished_utc": "2026-11-17T07:37:25.623160+00:00",
+      "duration_seconds": 1.87,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/cli-smoke-final.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0,
+      "report_sha256": "4acf63b525fb794960832654d863541c49f38d2494c261d3ca4601d8ca1dd31a"
+    },
+    {
+      "name": "observed-tool-exports-final",
+      "command": [
+        "go",
+        "-C",
+        "tools/arc-verify",
+        "test",
+        "-json",
+        "-count=1",
+        "-run",
+        "^(TestWorkbenchExportObservedToolRun|TestWorkbenchExportObservedBusinessCampaign|TestBusinessLineagePreparationFailureRemainsDiagnosticWithoutTargetFreeze)$",
+        "."
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+      "explicit_environment": {
+        "ARC_WORKBENCH_EXPORT_DIR": "/workspace/scratch/5b127f988034/arc-lineage-export-prepared",
+        "ARC_CAMPAIGN_EXPORT_DIR": "/workspace/scratch/5b127f988034/arc-lineage-export-campaign",
+        "ARC_PREPARATION_BLOCKED_EXPORT_DIR": "/workspace/scratch/5b127f988034/arc-lineage-export-blocked",
+        "ARC_WORKBENCH_ASSETS": "/workspace/scratch/5b127f988034/arc-rebuild/tools/arc-verify/workbench/dist"
+      },
+      "started_utc": "2026-11-17T07:37:23.757060+00:00",
+      "finished_utc": "2026-11-17T07:37:53.212229+00:00",
+      "duration_seconds": 29.455,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/observed-tool-exports-final.log",
+      "log_sha256": "5c567939aaa292cdf8aa2b0ed0abbe58dc4b66688dba7fa5c9655f739ce860cd",
+      "log_bytes": 4615,
+      "test_counts": {
+        "pass_top_level": 3
+      },
+      "skipped_tests": [],
+      "failed_tests": [],
+      "report_sha256": "422545c4f4b5965178e57792d2fc4d82166be2688320a989f168a3d063c3c05c"
+    },
+    {
+      "name": "pay-model-cli-export-final",
+      "command": [
+        "python3",
+        "/workspace/scratch/5b127f988034/run_arc_lineage_pay_model_export.py"
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+      "explicit_environment": {},
+      "started_utc": "2026-11-17T07:37:23.860955+00:00",
+      "finished_utc": "2026-11-17T07:37:24.329273+00:00",
+      "duration_seconds": 0.468,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/pay-model-cli-export-final.log",
+      "log_sha256": "ad445bd70badfb7bcece1e4244b1d3bce53c8658b659b06fdff0d2d2bda9a25d",
+      "log_bytes": 4681,
+      "report_sha256": "2d890d71cbe8d8888458960eb2356e490615d444fe8f87f2f7668ebdd247f76a"
+    },
+    {
+      "name": "workbench-typecheck-final",
+      "command": [
+        "./node_modules/.bin/tsc",
+        "-b"
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild/tools/arc-verify/workbench",
+      "explicit_environment": {},
+      "started_utc": "2026-11-17T07:33:25.287286+00:00",
+      "finished_utc": "2026-11-17T07:33:25.805005+00:00",
+      "duration_seconds": 0.518,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/workbench-typecheck-final.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0,
+      "report_sha256": "b52903e82e3889f8292219e1526436546c0027f5116d8b3110b4c2b9d0d80881"
+    },
+    {
+      "name": "workbench-build-final",
+      "command": [
+        "./node_modules/.bin/vp",
+        "build"
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild/tools/arc-verify/workbench",
+      "explicit_environment": {},
+      "started_utc": "2026-11-17T07:33:29.609446+00:00",
+      "finished_utc": "2026-11-17T07:33:30.075587+00:00",
+      "duration_seconds": 0.466,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/workbench-build-final.log",
+      "log_sha256": "b055eac101f9f55578471a313113f4e6e63076d5a5f778b03a321457bd92e92e",
+      "log_bytes": 782,
+      "report_sha256": "078b7800cbaed557ce575102dc6b6c2d7091752d8e09909db8f199b63b563117"
+    },
+    {
+      "name": "workbench-check-final",
+      "command": [
+        "./node_modules/.bin/vp",
+        "check"
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild/tools/arc-verify/workbench",
+      "explicit_environment": {},
+      "started_utc": "2026-11-17T07:33:35.686404+00:00",
+      "finished_utc": "2026-11-17T07:33:37.487361+00:00",
+      "duration_seconds": 1.801,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/workbench-check-final.log",
+      "log_sha256": "62255a54b8287b6001524a5f45b06ec64cc7f8a98aa35e9a3c760ae6d9626799",
+      "log_bytes": 145,
+      "report_sha256": "1e82142a75a8a237bf6646432c868703678382378e0c21cf1457d925825e6f95"
+    },
+    {
+      "name": "workbench-tests-final",
+      "command": [
+        "./node_modules/.bin/vp",
+        "test"
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild/tools/arc-verify/workbench",
+      "explicit_environment": {
+        "ARC_WORKBENCH_SNAPSHOT_PATHS": "[\"/workspace/scratch/5b127f988034/arc-lineage-export-pay-model\",\"/workspace/scratch/5b127f988034/arc-lineage-export-prepared\",\"/workspace/scratch/5b127f988034/arc-lineage-export-campaign\",\"/workspace/scratch/5b127f988034/arc-lineage-export-blocked\"]"
+      },
+      "started_utc": "2026-11-17T07:38:40.487816+00:00",
+      "finished_utc": "2026-11-17T07:38:42.688881+00:00",
+      "duration_seconds": 2.201,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/workbench-tests-final.log",
+      "log_sha256": "7e59684507dc33252abe94685c2f5c666bbd7071c4eeca83cf352fc20a882e39",
+      "log_bytes": 237,
+      "report_sha256": "2f73e0c14a2cb2cecd305ac4ea2f5cfdf76479e8f4226873f52259d17459b67b"
+    },
+    {
+      "name": "dbqual-suite",
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "Arc/arc:verify/scripts/dbqual/tests"
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+      "explicit_environment": {},
+      "started_utc": "2026-11-17T07:23:39.180242+00:00",
+      "finished_utc": "2026-11-17T07:23:55.424889+00:00",
+      "duration_seconds": 16.245,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/dbqual-suite.log",
+      "log_sha256": "7bc58819f56985f81bb16a7cf12bbf476e952c47205cb72c9cd91e31a2655258",
+      "log_bytes": 536,
+      "report_sha256": "0884ee6eb3f1ac0c675c219f691bb8731d86afd5fde7ce73af381247d5b4e89d"
+    },
+    {
+      "name": "skill-load-budget-actual",
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_skill_validation.py",
+        "-k",
+        "load"
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+      "explicit_environment": {},
+      "started_utc": "2026-11-17T07:22:48.437221+00:00",
+      "finished_utc": "2026-11-17T07:22:48.903571+00:00",
+      "duration_seconds": 0.466,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/skill-load-budget-actual.log",
+      "log_sha256": "e024a9c2eb0a11d315a5f3c0ab419fa6ecd4459ff7c824b73210afa7db425701",
+      "log_bytes": 113,
+      "report_sha256": "53f5b71d9109d21b482e967fa8b21c6f4702251a8b0e906173bd463cb76ee68a"
+    },
+    {
+      "name": "gate-native-tools-green",
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_gate_script.py",
+        "-k",
+        "vite_plus or native_node_tools"
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+      "explicit_environment": {},
+      "started_utc": "2026-11-17T07:44:08.294963+00:00",
+      "finished_utc": "2026-11-17T07:44:11.438623+00:00",
+      "duration_seconds": 3.144,
+      "exit_code": 0,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/gate-native-tools-green.log",
+      "log_sha256": "8554987d5c980b782efb0758051fcaeba1b2362c1ca527d0257e76047881122e",
+      "log_bytes": 113,
+      "report_sha256": "6b4387a54d18415116df19612bc5b4e394cefe9ccddf4a80633f32baa4fb5041"
+    },
+    {
+      "name": "strict-gate-native-final",
+      "command": [
+        "bash",
+        "Arc/arc:code/scripts/gate.sh",
+        "check",
+        "--task",
+        "arc-eta-lineage",
+        "--require-red",
+        "--strict",
+        "--max-files",
+        "48",
+        "--scope",
+        ".arc/artifacts/arc-eta-lineage/scope.txt"
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+      "explicit_environment": {
+        "ARC_WORKBENCH_SNAPSHOT_PATHS": "[\"/workspace/scratch/5b127f988034/arc-lineage-export-pay-model\",\"/workspace/scratch/5b127f988034/arc-lineage-export-prepared\",\"/workspace/scratch/5b127f988034/arc-lineage-export-campaign\",\"/workspace/scratch/5b127f988034/arc-lineage-export-blocked\"]"
+      },
+      "started_utc": "2026-11-17T07:46:32.348738+00:00",
+      "finished_utc": "2026-11-17T07:54:47.242245+00:00",
+      "duration_seconds": 494.894,
+      "exit_code": 1,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/strict-gate-native-final.log",
+      "log_sha256": "34f4f3feab1d2fd03db42368f6670d3cd011220da8b93dfe4457e508dd639dec",
+      "log_bytes": 1495,
+      "report_sha256": "6f884eb9d7351d4b5ee597872e7c66a909b41ac929576ad0ebb2a1ba56e88866",
+      "full_report": ".arc/artifacts/arc-eta-lineage/reports/gate-20261117T075447Z.txt",
+      "full_report_sha256": "2a3e4d66e098943e974f228b536e20f2caa0c0997d3db361a8d5aea7e57ffa49",
+      "remaining_failure": "Existing unrelated Cloudflare source cloudflare-platform is absent; no assertion or package rule was weakened.",
+      "red_hygiene_note": "test_gate_script.py has formatter-only line wrapping after red-016; the same eight counterexamples passed again, and all 65 gate tests passed.",
+      "full_python_summary": "1 failed, 246 passed, 1 skipped in 52.74s"
+    },
+    {
+      "name": "skills-validation",
+      "command": [
+        ".venv/bin/python",
+        "scripts/validate_skills.py"
+      ],
+      "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+      "explicit_environment": {},
+      "started_utc": "2026-11-17T07:23:39.178763+00:00",
+      "finished_utc": "2026-11-17T07:23:39.650217+00:00",
+      "duration_seconds": 0.471,
+      "exit_code": 1,
+      "timed_out": false,
+      "log_path": ".arc/artifacts/arc-eta-lineage/logs/skills-validation.log",
+      "log_sha256": "eeebedbaae87ffc7aec65a978f9e1ad2677f148d300f61e360a1ef2d874da577",
+      "log_bytes": 7624,
+      "report_sha256": "560321bfb75a6584fc26d5ff380c7886c75768ee3b1a9952fe71a1fb1be23a11"
+    }
+  ],
+  "red_records": [
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-001.json",
+      "record_sha256": "7a1cf92e036ebd4c2f69035600119bd49375097c717f451fca3b472e9009b201",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "./node_modules/.bin/vp",
+        "test",
+        "src/App.test.tsx"
+      ],
+      "cwd": "tools/arc-verify/workbench",
+      "log_sha256": "8918f54ecae9489f5ed68124b124b1ede44c3f799de8d5189edb41c0b06c4c33",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-002.json",
+      "record_sha256": "1327972df3368bef3c0023680baa55b067a6541bf4b0c35494a04cab968e2314",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "env",
+        "PATH=/workspace/scratch/5b127f988034/toolchains/go/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+        "GOTOOLCHAIN=local",
+        "GOCACHE=/workspace/scratch/5b127f988034/arc-round4-go-build-cache",
+        "GOMODCACHE=/workspace/scratch/5b127f988034/arc-round4-go-mod-cache",
+        "TMPDIR=/tmp",
+        "go",
+        "-C",
+        "tools/arc-verify",
+        "test",
+        "-run",
+        "^TestBusinessLineageSnapshotExportsSemanticDependencies$",
+        "-count=1",
+        "."
+      ],
+      "cwd": ".",
+      "log_sha256": "164878823e0005f22854de4f63ecea3b9d29e957a92a799e3cd78d2d05a14e3f",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-003.json",
+      "record_sha256": "b48e4f2f0d67160f4ea31cf42048ae61cf3ae8d8097b6cfe9d96b7ca438ce5aa",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "./node_modules/.bin/vp",
+        "test",
+        "src/lineage.test.tsx"
+      ],
+      "cwd": "tools/arc-verify/workbench",
+      "log_sha256": "d43351a019f6c15d54c02b6c376fa170ac3fe255a21160a2c85192120461b868",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-004.json",
+      "record_sha256": "af221904760da375b0852db3dddef3bd4c48b081a60d7b5c4cc4c692e3161690",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "env",
+        "PATH=/workspace/scratch/5b127f988034/toolchains/go/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+        "GOTOOLCHAIN=local",
+        "GOCACHE=/workspace/scratch/5b127f988034/arc-round4-go-build-cache",
+        "GOMODCACHE=/workspace/scratch/5b127f988034/arc-round4-go-mod-cache",
+        "TMPDIR=/tmp",
+        "go",
+        "-C",
+        "tools/arc-verify",
+        "test",
+        "-run",
+        "^TestBusinessLineageSnapshotScopesBeforeObservations$",
+        "-count=1",
+        "."
+      ],
+      "cwd": ".",
+      "log_sha256": "e372284497eba0d03b2cf0bd82b26c70f49d14221531e7d44387272a1098d9cb",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-005.json",
+      "record_sha256": "a63f86a1ae1f5b4a117bce6102d5b33cff343ef90337d5542a83598c6467a90e",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "env",
+        "PATH=/workspace/scratch/5b127f988034/toolchains/go/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+        "GOTOOLCHAIN=local",
+        "GOCACHE=/workspace/scratch/5b127f988034/arc-round4-go-build-cache",
+        "GOMODCACHE=/workspace/scratch/5b127f988034/arc-round4-go-mod-cache",
+        "TMPDIR=/tmp",
+        "go",
+        "-C",
+        "tools/arc-verify",
+        "test",
+        "-run",
+        "^TestBusinessLineageBoundSubjectsHaveDeclaredProviders$",
+        "-count=1",
+        "."
+      ],
+      "cwd": ".",
+      "log_sha256": "71e36d80ec8c236c9dae5e191a67104a069e6eb64b04cbf7b2ca4ba7dc9f6af2",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-006.json",
+      "record_sha256": "83ad26880b9ec82d2672dcb949b78b04efb6f1d328e7333ab4b742b176de70e9",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "./node_modules/.bin/vp",
+        "test",
+        "src/lineage.test.tsx"
+      ],
+      "cwd": "tools/arc-verify/workbench",
+      "log_sha256": "906a5f963b17ab8a24a051e623740491ec99c5d0c1f9596546cae4c9abc7a9ff",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-007.json",
+      "record_sha256": "4fee6fc5a1f4c754afbf92ca277d5e83697aa0219e2db3a4f731b3952685bf7f",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "./node_modules/.bin/vp",
+        "test",
+        "src/lineage.test.tsx"
+      ],
+      "cwd": "tools/arc-verify/workbench",
+      "log_sha256": "89ad1bb220b088d9a7793356d31611e8d36f11a1b6d2685894d7fb0226dbb36f",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-008.json",
+      "record_sha256": "6ce49a5011a3bf24141a729b37035ac20ee8a39816cd2029987ae0c65526b5c1",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "env",
+        "PATH=/workspace/scratch/5b127f988034/toolchains/go/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+        "GOTOOLCHAIN=local",
+        "GOCACHE=/workspace/scratch/5b127f988034/arc-round4-go-build-cache",
+        "GOMODCACHE=/workspace/scratch/5b127f988034/arc-round4-go-mod-cache",
+        "TMPDIR=/tmp",
+        "go",
+        "-C",
+        "tools/arc-verify",
+        "test",
+        "-run",
+        "^TestBusinessLineageContradictoryPreparationDoesNotOfferProvider$",
+        "-count=1",
+        "."
+      ],
+      "cwd": ".",
+      "log_sha256": "99b04d9dab27f172b7fa44898202356b15c34c503a3ec36a1fcc9436eae49df5",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-009.json",
+      "record_sha256": "f33c5dfb6afc78427840f5e13ea744691bef9a5cb3ceca97c22f201107cba281",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "./node_modules/.bin/vp",
+        "test",
+        "src/lineage.test.tsx"
+      ],
+      "cwd": "tools/arc-verify/workbench",
+      "log_sha256": "3abb3233343faf036d65187ca46d4082886da3dbd6b13f7de10b2de956ea4f36",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-010.json",
+      "record_sha256": "a3f8031a0c1352779a2cc4e2a9b61602e221330ec21d87948178170d6aeb7d83",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "env",
+        "PATH=/workspace/scratch/5b127f988034/toolchains/go/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+        "GOTOOLCHAIN=local",
+        "GOCACHE=/workspace/scratch/5b127f988034/arc-round4-go-build-cache",
+        "GOMODCACHE=/workspace/scratch/5b127f988034/arc-round4-go-mod-cache",
+        "TMPDIR=/tmp",
+        "go",
+        "-C",
+        "tools/arc-verify",
+        "test",
+        "-run",
+        "^TestBusinessLineageBudgetRefusesOversizedProjection$",
+        "-count=1",
+        "."
+      ],
+      "cwd": ".",
+      "log_sha256": "c79f8a2d9d1148066cc837eac907c90d46de36c128900b40d9919b8004218bcc",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-011.json",
+      "record_sha256": "2f259f0a82df110ad1119363cace03ea9eee1dc717fab167cd6ea01d6c43f73c",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "./node_modules/.bin/vp",
+        "test",
+        "src/lineage.test.tsx"
+      ],
+      "cwd": "tools/arc-verify/workbench",
+      "log_sha256": "a0bbf5913ca1ac6058b135039eb31175b109bffa04b3dc52c6317310d442bba1",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-012.json",
+      "record_sha256": "f19555630dddc7c8e2795938436d28dce4b5198b255c97a1b04312754a541c2d",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "env",
+        "PATH=/workspace/scratch/5b127f988034/toolchains/go/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+        "GOTOOLCHAIN=local",
+        "GOCACHE=/workspace/scratch/5b127f988034/arc-round4-go-build-cache",
+        "GOMODCACHE=/workspace/scratch/5b127f988034/arc-round4-go-mod-cache",
+        "TMPDIR=/tmp",
+        "go",
+        "-C",
+        "tools/arc-verify",
+        "test",
+        "-run",
+        "^TestBusinessLineageEntityReferencesPreserveFrozenMappingAndHistoricalOwner$",
+        "-count=1",
+        "."
+      ],
+      "cwd": ".",
+      "log_sha256": "6437a88d8e2dbea7fd21c474669fc86a16e85602719864d02a93dd2c56a76f16",
+      "counts_as_defect_sensitivity": false,
+      "qualification": "fixture configuration failed before the intended entity assertion"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-013.json",
+      "record_sha256": "1553b59942befa5b099343b2cbff18adc0c22d5d5edddb0d9e736f30a940aafa",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "./node_modules/.bin/vp",
+        "test",
+        "src/lineage.test.tsx"
+      ],
+      "cwd": "tools/arc-verify/workbench",
+      "log_sha256": "ad67ba215182cd88049c34a9d7e283605947218554a90e94c19e283dc9f30785",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-014.json",
+      "record_sha256": "96f1ab4e3291c88f82b1b67b1ded572f41962d711e3df58c4082fcb18da9ed5f",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "env",
+        "PATH=/workspace/scratch/5b127f988034/toolchains/go/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+        "GOTOOLCHAIN=local",
+        "GOCACHE=/workspace/scratch/5b127f988034/arc-round4-go-build-cache",
+        "GOMODCACHE=/workspace/scratch/5b127f988034/arc-round4-go-mod-cache",
+        "TMPDIR=/tmp",
+        "go",
+        "-C",
+        "tools/arc-verify",
+        "test",
+        "-run",
+        "^TestBusinessLineageEntityReferencesPreserveFrozenMappingAndHistoricalOwner$",
+        "-count=1",
+        "."
+      ],
+      "cwd": ".",
+      "log_sha256": "6eb6e7764716000fcad0b98a7ed2253e99087579dbb25ca89155125cd183c4bc",
+      "counts_as_defect_sensitivity": false,
+      "qualification": "fixture configuration failed before the intended entity assertion"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-015.json",
+      "record_sha256": "ad2333cc4705eab8b11405019df239e3c3b1dfad530992b9e83dfdeb183a162e",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        "env",
+        "PATH=/workspace/scratch/5b127f988034/toolchains/go/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/override:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin:/opt/codex/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/agent/.local/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/bin/fallback",
+        "GOTOOLCHAIN=local",
+        "GOCACHE=/workspace/scratch/5b127f988034/arc-round4-go-build-cache",
+        "GOMODCACHE=/workspace/scratch/5b127f988034/arc-round4-go-mod-cache",
+        "TMPDIR=/tmp",
+        "go",
+        "-C",
+        "tools/arc-verify",
+        "test",
+        "-run",
+        "^TestBusinessLineageEntityReferencesPreserveFrozenMappingAndHistoricalOwner$",
+        "-count=1",
+        "."
+      ],
+      "cwd": ".",
+      "log_sha256": "a9a8e8deb8f151bfe8b4c8a8592ea04db45b08191ba5b4a920456bbbaf48c4b6",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    },
+    {
+      "record": ".arc/artifacts/arc-eta-lineage/red/red-016.json",
+      "record_sha256": "ee1958cc91edefb5d678a05436cb5bbff25f1326aefa0f796eb5dfb0dcb48c60",
+      "kind_recorded_by_gate": "assertion",
+      "exit_code": 1,
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_gate_script.py",
+        "-k",
+        "vite_plus or native_node_tools"
+      ],
+      "cwd": ".",
+      "log_sha256": "e7bf8ddd10a808ef7cd278ca9477f3bf61396e984baaa6567e2ce3351ae7194a",
+      "counts_as_defect_sensitivity": true,
+      "qualification": "assertion counterexample; replayed by final gate"
+    }
+  ],
+  "previous_attempts": [
+    {
+      "record": {
+        "name": "verify-race-full",
+        "command": [
+          "go",
+          "-C",
+          "tools/arc-verify",
+          "test",
+          "-race",
+          "-json",
+          "-count=1",
+          "-timeout=20m",
+          "./..."
+        ],
+        "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+        "explicit_environment": {},
+        "started_utc": "2026-11-17T07:25:57.030214+00:00",
+        "finished_utc": "2026-11-17T07:38:27.468937+00:00",
+        "duration_seconds": 750.439,
+        "exit_code": 1,
+        "timed_out": false,
+        "log_path": ".arc/artifacts/arc-eta-lineage/logs/verify-race-full.log",
+        "log_sha256": "6ef8baa554b0a111f2dd5e23179d911cef7fe583b05e04f3fdd4d26f00d811ac",
+        "log_bytes": 1062252,
+        "test_counts": {
+          "pass_top_level": 521,
+          "pass_subtest": 401,
+          "skip_top_level": 6,
+          "fail_top_level": 1
+        },
+        "skipped_tests": [
+          "TestBusinessCampaignInstalledPublicCLIExecutesWithoutReplay",
+          "TestWorkbenchExportObservedBusinessCampaign",
+          "TestRunChainBuiltBinaryExitStatus",
+          "TestIMMongoFixturesMustBindIsolationNotSharedLan50",
+          "TestIMMongoConfigKeepsSharedStacksUnapproved",
+          "TestWorkbenchExportObservedToolRun"
+        ],
+        "failed_tests": [
+          "TestBusinessLineageTypesMatchFrontend"
+        ],
+        "report_sha256": "018dbe5b301ba985aa2cb3a050450bc52cca4ba37e1b1dc7dfc9db3d1e846017"
+      },
+      "qualification": "Pre-entity_ref Go binary; later live TypeScript mirror had entity_ref. Exactly TestBusinessLineageTypesMatchFrontend failed. Replaced by a full frozen-source race run, not counted as final PASS."
+    },
+    {
+      "record": {
+        "name": "strict-gate-final",
+        "command": [
+          "bash",
+          "Arc/arc:code/scripts/gate.sh",
+          "check",
+          "--task",
+          "arc-eta-lineage",
+          "--require-red",
+          "--strict",
+          "--max-files",
+          "48",
+          "--scope",
+          ".arc/artifacts/arc-eta-lineage/scope.txt"
+        ],
+        "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+        "explicit_environment": {},
+        "started_utc": "2026-11-17T07:37:23.757057+00:00",
+        "finished_utc": "2026-11-17T07:45:59.073211+00:00",
+        "duration_seconds": 515.316,
+        "exit_code": 1,
+        "timed_out": false,
+        "log_path": ".arc/artifacts/arc-eta-lineage/logs/strict-gate-final.log",
+        "log_sha256": "1ba727301a646fb068c14f18a81ac8a040d103241c249b9424175845c155fe83",
+        "log_bytes": 2566,
+        "report_sha256": "d62e8c2d0c35ff9e7fd48ede046614e32df3dce4d509643500c9581677008084"
+      },
+      "qualification": "Old npx routing hit full home cache; this attempt is retained as failure."
+    },
+    {
+      "record": {
+        "name": "strict-gate-final-retry",
+        "command": [
+          "bash",
+          "Arc/arc:code/scripts/gate.sh",
+          "check",
+          "--task",
+          "arc-eta-lineage",
+          "--require-red",
+          "--strict",
+          "--max-files",
+          "48",
+          "--scope",
+          ".arc/artifacts/arc-eta-lineage/scope.txt"
+        ],
+        "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+        "explicit_environment": {
+          "npm_config_cache": "/workspace/scratch/5b127f988034/arc-lineage-npm-cache"
+        },
+        "started_utc": "2026-11-17T07:38:11.056967+00:00",
+        "finished_utc": "2026-11-17T07:46:20.457255+00:00",
+        "duration_seconds": 489.4,
+        "exit_code": 1,
+        "timed_out": false,
+        "log_path": ".arc/artifacts/arc-eta-lineage/logs/strict-gate-final-retry.log",
+        "log_sha256": "a94126e2c5f1d8d225d873c0ee79bcd7861f1df019ca81c85da067c51d58a44d",
+        "log_bytes": 3124,
+        "report_sha256": "c33ed8d73cf9935b4e208474168f8a66a00f89609e8f63efc61813e2a5bffb99"
+      },
+      "qualification": "Writable cache exposed npm/Bun EBADDEVENGINES; fixed in gate source, then rerun as strict-gate-native-final."
+    },
+    {
+      "record": {
+        "name": "python-suite",
+        "command": [
+          ".venv/bin/python",
+          "-m",
+          "pytest",
+          "-q"
+        ],
+        "cwd": "/workspace/scratch/5b127f988034/arc-rebuild",
+        "explicit_environment": {},
+        "started_utc": "2026-11-17T07:23:39.178677+00:00",
+        "finished_utc": "2026-11-17T07:24:29.800164+00:00",
+        "duration_seconds": 50.622,
+        "exit_code": 1,
+        "timed_out": false,
+        "log_path": ".arc/artifacts/arc-eta-lineage/logs/python-suite.log",
+        "log_sha256": "bbb6d70ad1f85f28f23c5299bfaf23986a24ef15f4ac5507a322ba3866f41c82",
+        "log_bytes": 2661,
+        "report_sha256": "96bb52f363f1cddc5b5ef082b5a83009478e1adc32b5088aedaf9309c3567a2a"
+      },
+      "qualification": "Earlier full suite before eight new gate regressions: 238 PASS / 1 SKIP / existing Cloudflare failure. Final full suite is recorded in the native gate."
+    }
+  ],
+  "exports": [
+    {
+      "directory": "/workspace/scratch/5b127f988034/arc-lineage-export-pay-model",
+      "scope": "Actual installed CLI model-only export; 4 branches, 0 runs, unapproved model/rules; pay_gateway E2E NOT_RUN/BLOCKED",
+      "files": {
+        "assets/index-CyBfRh-t.js": "9b22f93d96fe788705f837660294a84182a81535fce118b1dc81411adbb4fd0a",
+        "assets/style-wa1u9QPo.css": "afd83a285eeeed24026db644fb6d5c6fee2d992b55d57bedba4d2d9b16356023",
+        "favicon.svg": "61bc9a161de58248288e6905425d7180f0624c2865007b97d763fdac12043a66",
+        "frontend-validation.json": "b15c26ad5d5a9d688ac882da370bf923c42362cab8e83a56951a0f4697206c3d",
+        "icons.svg": "b45fa506195cfcdef406ba9f0c77b36ddc1a7c224040926ec70abc2fdea7b93a",
+        "index.html": "24797f80dae111897822c2954fec57b999bca4ae287f8b4c585706dfeec53a9b",
+        "snapshot.json": "270eaaeb4dbb325ec680664ceb13ce31bf822998ff18169c950f21f8a3004529",
+        "ssr-verified.html": "7f8a1fe70eb3974dbba354fc49a4dd9d9c5aacbc5277f4dfe507a0a5ce99a19f"
+      },
+      "frontend_validation": {
+        "version": 1,
+        "status": "PASS",
+        "scope": "Actual supplied Go export -> production readSnapshotText -> unified selection -> SSR. No target execution, RAW revalidation, product E2E claim or browser acceptance.",
+        "validated_at": "2026-11-17T07:53:34.648Z",
+        "snapshot_sha256": "270eaaeb4dbb325ec680664ceb13ce31bf822998ff18169c950f21f8a3004529",
+        "graph": "pay-gateway-index-fixture-v2",
+        "parser": "PASS",
+        "unified_selection": "PASS",
+        "ssr": "PASS",
+        "browser": "NOT_RUN",
+        "raw_revalidated_by_frontend": false,
+        "rendered_views": 4,
+        "representative_ssr_views": 1,
+        "assets_match_current_dist": true,
+        "genealogy": {
+          "model_only": true,
+          "branches": [
+            {
+              "branch": "BR_CREATE_PAYMENT_INDEX",
+              "nodes": 10,
+              "edges": 9,
+              "layers": 4,
+              "cycle_components": 0,
+              "candidate_providers": 0,
+              "observed_nodes": 0,
+              "dense_directory_default": false
+            },
+            {
+              "branch": "BR_CREATE_REFUND_INDEX",
+              "nodes": 30,
+              "edges": 31,
+              "layers": 10,
+              "cycle_components": 0,
+              "candidate_providers": 3,
+              "observed_nodes": 0,
+              "dense_directory_default": true
+            },
+            {
+              "branch": "BR_DUPLICATE_REFUND",
+              "nodes": 10,
+              "edges": 9,
+              "layers": 4,
+              "cycle_components": 0,
+              "candidate_providers": 0,
+              "observed_nodes": 0,
+              "dense_directory_default": false
+            },
+            {
+              "branch": "BR_MISSING_PARENT",
+              "nodes": 10,
+              "edges": 9,
+              "layers": 4,
+              "cycle_components": 0,
+              "candidate_providers": 0,
+              "observed_nodes": 0,
+              "dense_directory_default": false
+            }
+          ],
+          "observed_occurrences": [],
+          "business_execution_claim": "NOT_INFERRED_FROM_FRONTEND_VALIDATION"
+        },
+        "preparation": {
+          "status": "NOT_PRESENT",
+          "runs": 0,
+          "actual_actions": 0,
+          "independent_readbacks": 0
+        },
+        "expected_actual": {
+          "status": "NOT_PRESENT",
+          "frozen_decisions": 0,
+          "unassociated_step_views": 0,
+          "request_captures": 0
+        },
+        "entity_selection": {
+          "status": "NOT_PRESENT",
+          "selections": 0
+        },
+        "campaign": {
+          "status": "NOT_PRESENT",
+          "linked_children": 0,
+          "unexported_children": 0
+        },
+        "runs": [],
+        "campaigns": []
+      }
+    },
+    {
+      "directory": "/workspace/scratch/5b127f988034/arc-lineage-export-prepared",
+      "scope": "Actual local HTTP tool target: prepare false-to-true, read independently, freeze, execute once; not product E2E",
+      "files": {
+        "assets/index-CyBfRh-t.js": "9b22f93d96fe788705f837660294a84182a81535fce118b1dc81411adbb4fd0a",
+        "assets/style-wa1u9QPo.css": "afd83a285eeeed24026db644fb6d5c6fee2d992b55d57bedba4d2d9b16356023",
+        "favicon.svg": "61bc9a161de58248288e6905425d7180f0624c2865007b97d763fdac12043a66",
+        "frontend-validation.json": "4d9536bdc57e45ff6147ab145b74ab565498642c99c1efbf666a303e8238157b",
+        "icons.svg": "b45fa506195cfcdef406ba9f0c77b36ddc1a7c224040926ec70abc2fdea7b93a",
+        "index.html": "6c4a48ff7614b92811a3652a4c916578ef0c1455775a484cadc3e859a8e400a6",
+        "snapshot.json": "a28cc518c47cbfa26ddf6107438a29fc5e6f45236acf75ac486763a51fa85d3b",
+        "ssr-verified.html": "2a9dc03e005e6e7db3c614530e7b628bdfe21c71af33430040235a080d60ef73"
+      },
+      "frontend_validation": {
+        "version": 1,
+        "status": "PASS",
+        "scope": "Actual supplied Go export -> production readSnapshotText -> unified selection -> SSR. No target execution, RAW revalidation, product E2E claim or browser acceptance.",
+        "validated_at": "2026-11-17T07:53:34.903Z",
+        "snapshot_sha256": "a28cc518c47cbfa26ddf6107438a29fc5e6f45236acf75ac486763a51fa85d3b",
+        "graph": "course-v2",
+        "parser": "PASS",
+        "unified_selection": "PASS",
+        "ssr": "PASS",
+        "browser": "NOT_RUN",
+        "raw_revalidated_by_frontend": false,
+        "rendered_views": 8,
+        "representative_ssr_views": 4,
+        "assets_match_current_dist": true,
+        "genealogy": {
+          "model_only": false,
+          "branches": [
+            {
+              "branch": "accept",
+              "nodes": 8,
+              "edges": 7,
+              "layers": 6,
+              "cycle_components": 0,
+              "candidate_providers": 1,
+              "observed_nodes": 0,
+              "dense_directory_default": false
+            },
+            {
+              "branch": "reject",
+              "nodes": 4,
+              "edges": 3,
+              "layers": 3,
+              "cycle_components": 0,
+              "candidate_providers": 0,
+              "observed_nodes": 0,
+              "dense_directory_default": false
+            }
+          ],
+          "observed_occurrences": [
+            {
+              "run": "R-24f87076b1ca9f60af526637ba86fd7c",
+              "branch": "accept",
+              "step": -1,
+              "action_index": 0,
+              "actor": "primary",
+              "phase": "preparation",
+              "readback_index": 0,
+              "readback_phase": "initial",
+              "diagnostic": false,
+              "evidence_status": "PASS",
+              "nodes": 8
+            },
+            {
+              "run": "R-24f87076b1ca9f60af526637ba86fd7c",
+              "branch": "accept",
+              "step": -1,
+              "action_index": 0,
+              "actor": "primary",
+              "phase": "preparation",
+              "readback_index": 1,
+              "readback_phase": "pre_action",
+              "diagnostic": false,
+              "evidence_status": "PASS",
+              "nodes": 8
+            },
+            {
+              "run": "R-24f87076b1ca9f60af526637ba86fd7c",
+              "branch": "accept",
+              "step": -1,
+              "action_index": 0,
+              "actor": "primary",
+              "phase": "preparation",
+              "readback_index": 2,
+              "readback_phase": "post_action",
+              "diagnostic": false,
+              "evidence_status": "PASS",
+              "nodes": 8
+            },
+            {
+              "run": "R-24f87076b1ca9f60af526637ba86fd7c",
+              "branch": "accept",
+              "step": 1,
+              "action_index": 1,
+              "actor": "primary",
+              "phase": "before",
+              "diagnostic": false,
+              "evidence_status": "PASS",
+              "nodes": 8
+            }
+          ],
+          "business_execution_claim": "NOT_INFERRED_FROM_FRONTEND_VALIDATION"
+        },
+        "preparation": {
+          "status": "EXERCISED",
+          "runs": 1,
+          "actual_actions": 1,
+          "independent_readbacks": 3
+        },
+        "expected_actual": {
+          "status": "EXERCISED",
+          "frozen_decisions": 1,
+          "unassociated_step_views": 0,
+          "request_captures": 1
+        },
+        "entity_selection": {
+          "status": "NOT_PRESENT",
+          "selections": 0
+        },
+        "campaign": {
+          "status": "NOT_PRESENT",
+          "linked_children": 0,
+          "unexported_children": 0
+        },
+        "runs": [
+          {
+            "run": "R-24f87076b1ca9f60af526637ba86fd7c",
+            "environment": "independent",
+            "round": "Q-49de1df237c30aa22dbcb12b46bfb20d",
+            "runner": "typed-business",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 1,
+            "recovery_mode": "checkpoint"
+          }
+        ],
+        "campaigns": []
+      }
+    },
+    {
+      "directory": "/workspace/scratch/5b127f988034/arc-lineage-export-campaign",
+      "scope": "Actual local HTTP tool target: 3 continuous same-entity child runs, state-driven campaign; not product E2E",
+      "files": {
+        "assets/index-CyBfRh-t.js": "9b22f93d96fe788705f837660294a84182a81535fce118b1dc81411adbb4fd0a",
+        "assets/style-wa1u9QPo.css": "afd83a285eeeed24026db644fb6d5c6fee2d992b55d57bedba4d2d9b16356023",
+        "favicon.svg": "61bc9a161de58248288e6905425d7180f0624c2865007b97d763fdac12043a66",
+        "frontend-validation.json": "185c72f2d6a541446ff8abc9cb2bf707eb937c961363277ccdb958501da8f80b",
+        "icons.svg": "b45fa506195cfcdef406ba9f0c77b36ddc1a7c224040926ec70abc2fdea7b93a",
+        "index.html": "8ad0f221120fc71faaf09ad6416674b29d6b51da0495378b30a8fb03d975997d",
+        "snapshot.json": "ea5adfd3ce81d5316df8716218671ab62781dd44672c639ebb5a606bd573c485",
+        "ssr-verified.html": "820f5b1637a4df0134a0f842bd5c762a67ba69c4e7d06f4e28de7711017d8168"
+      },
+      "frontend_validation": {
+        "version": 1,
+        "status": "PASS",
+        "scope": "Actual supplied Go export -> production readSnapshotText -> unified selection -> SSR. No target execution, RAW revalidation, product E2E claim or browser acceptance.",
+        "validated_at": "2026-11-17T07:53:35.202Z",
+        "snapshot_sha256": "ea5adfd3ce81d5316df8716218671ab62781dd44672c639ebb5a606bd573c485",
+        "graph": "course-v2",
+        "parser": "PASS",
+        "unified_selection": "PASS",
+        "ssr": "PASS",
+        "browser": "NOT_RUN",
+        "raw_revalidated_by_frontend": false,
+        "rendered_views": 27,
+        "representative_ssr_views": 13,
+        "assets_match_current_dist": true,
+        "genealogy": {
+          "model_only": false,
+          "branches": [
+            {
+              "branch": "accept",
+              "nodes": 6,
+              "edges": 5,
+              "layers": 5,
+              "cycle_components": 0,
+              "candidate_providers": 1,
+              "observed_nodes": 0,
+              "dense_directory_default": false
+            },
+            {
+              "branch": "reject",
+              "nodes": 4,
+              "edges": 3,
+              "layers": 3,
+              "cycle_components": 0,
+              "candidate_providers": 0,
+              "observed_nodes": 0,
+              "dense_directory_default": false
+            },
+            {
+              "branch": "clear-active",
+              "nodes": 6,
+              "edges": 5,
+              "layers": 5,
+              "cycle_components": 0,
+              "candidate_providers": 1,
+              "observed_nodes": 0,
+              "dense_directory_default": false
+            },
+            {
+              "branch": "clear-inactive",
+              "nodes": 4,
+              "edges": 3,
+              "layers": 3,
+              "cycle_components": 0,
+              "candidate_providers": 0,
+              "observed_nodes": 0,
+              "dense_directory_default": false
+            }
+          ],
+          "observed_occurrences": [
+            {
+              "run": "R-56b04dc58b8cfda892b4ad1f7523998d",
+              "branch": "accept",
+              "step": -1,
+              "action_index": 0,
+              "actor": "primary",
+              "phase": "preparation",
+              "readback_index": 0,
+              "readback_phase": "initial",
+              "diagnostic": false,
+              "evidence_status": "PASS",
+              "nodes": 6
+            },
+            {
+              "run": "R-56b04dc58b8cfda892b4ad1f7523998d",
+              "branch": "accept",
+              "step": 1,
+              "action_index": 1,
+              "actor": "primary",
+              "phase": "before",
+              "diagnostic": false,
+              "evidence_status": "PASS",
+              "nodes": 6
+            },
+            {
+              "run": "R-e71085f019f67e89accb7159f5d89b75",
+              "branch": "clear-active",
+              "step": 1,
+              "action_index": 1,
+              "actor": "primary",
+              "phase": "before",
+              "diagnostic": false,
+              "evidence_status": "PASS",
+              "nodes": 6
+            },
+            {
+              "run": "R-9e8cfa1d46cf70e668e608e53e02c333",
+              "branch": "accept",
+              "step": -1,
+              "action_index": 0,
+              "actor": "primary",
+              "phase": "preparation",
+              "readback_index": 0,
+              "readback_phase": "initial",
+              "diagnostic": false,
+              "evidence_status": "PASS",
+              "nodes": 6
+            },
+            {
+              "run": "R-9e8cfa1d46cf70e668e608e53e02c333",
+              "branch": "accept",
+              "step": -1,
+              "action_index": 0,
+              "actor": "primary",
+              "phase": "preparation",
+              "readback_index": 1,
+              "readback_phase": "pre_action",
+              "diagnostic": false,
+              "evidence_status": "PASS",
+              "nodes": 6
+            },
+            {
+              "run": "R-9e8cfa1d46cf70e668e608e53e02c333",
+              "branch": "accept",
+              "step": -1,
+              "action_index": 0,
+              "actor": "primary",
+              "phase": "preparation",
+              "readback_index": 2,
+              "readback_phase": "post_action",
+              "diagnostic": false,
+              "evidence_status": "PASS",
+              "nodes": 6
+            },
+            {
+              "run": "R-9e8cfa1d46cf70e668e608e53e02c333",
+              "branch": "accept",
+              "step": 1,
+              "action_index": 1,
+              "actor": "primary",
+              "phase": "before",
+              "diagnostic": false,
+              "evidence_status": "PASS",
+              "nodes": 6
+            }
+          ],
+          "business_execution_claim": "NOT_INFERRED_FROM_FRONTEND_VALIDATION"
+        },
+        "preparation": {
+          "status": "EXERCISED",
+          "runs": 2,
+          "actual_actions": 1,
+          "independent_readbacks": 4
+        },
+        "expected_actual": {
+          "status": "EXERCISED",
+          "frozen_decisions": 3,
+          "unassociated_step_views": 0,
+          "request_captures": 3
+        },
+        "entity_selection": {
+          "status": "EXERCISED",
+          "selections": 3
+        },
+        "campaign": {
+          "status": "EXERCISED",
+          "linked_children": 3,
+          "unexported_children": 0
+        },
+        "runs": [
+          {
+            "run": "R-56b04dc58b8cfda892b4ad1f7523998d",
+            "environment": "independent",
+            "round": "Q-9894af994213182ce9d8fc014262a128",
+            "runner": "enroll-b",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 1,
+            "recovery_mode": "checkpoint"
+          },
+          {
+            "run": "R-e71085f019f67e89accb7159f5d89b75",
+            "environment": "independent",
+            "round": "Q-9894af994213182ce9d8fc014262a128",
+            "runner": "clear",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 0,
+            "recovery_mode": "checkpoint"
+          },
+          {
+            "run": "R-9e8cfa1d46cf70e668e608e53e02c333",
+            "environment": "independent",
+            "round": "Q-9894af994213182ce9d8fc014262a128",
+            "runner": "enroll-a",
+            "evidence_status": "PASS",
+            "action_steps": 1,
+            "preparation_records": 1,
+            "recovery_mode": "checkpoint"
+          }
+        ],
+        "campaigns": [
+          {
+            "campaign": "BC-b6ca9059437d861eae4a26e1cc95b971",
+            "environment": "independent",
+            "round": "Q-9894af994213182ce9d8fc014262a128",
+            "status": "COMPLETED_IN_SCOPE",
+            "evidence_status": "PASS",
+            "variants": 3,
+            "child_visits": 3,
+            "pre_action_intents": 3,
+            "selected_variants_covered": true,
+            "full_business_coverage": false
+          }
+        ]
+      }
+    },
+    {
+      "directory": "/workspace/scratch/5b127f988034/arc-lineage-export-blocked",
+      "scope": "Actual local HTTP preparation returns success but readback remains false; 0 target requests, diagnostic BLOCKED; not product E2E",
+      "files": {
+        "assets/index-CyBfRh-t.js": "9b22f93d96fe788705f837660294a84182a81535fce118b1dc81411adbb4fd0a",
+        "assets/style-wa1u9QPo.css": "afd83a285eeeed24026db644fb6d5c6fee2d992b55d57bedba4d2d9b16356023",
+        "favicon.svg": "61bc9a161de58248288e6905425d7180f0624c2865007b97d763fdac12043a66",
+        "frontend-validation.json": "021e0250bda8d214382e0440315d1a32e00ef1b216e83e07b1f68aadfa8e7376",
+        "icons.svg": "b45fa506195cfcdef406ba9f0c77b36ddc1a7c224040926ec70abc2fdea7b93a",
+        "index.html": "d0390ce09b857c0d39779d4727fcd29eb1122977023d55167bb058e5ccb56596",
+        "snapshot.json": "fbe1a593407b44fb7491a983abdd083689e09817d3f7ebd01cc9b926e3ab10a7",
+        "ssr-verified.html": "d3fea9f22a0d292786b406ef265ac68ebf5aaf647a0adafb90bb4b51d81d66d6"
+      },
+      "frontend_validation": {
+        "version": 1,
+        "status": "PASS",
+        "scope": "Actual supplied Go export -> production readSnapshotText -> unified selection -> SSR. No target execution, RAW revalidation, product E2E claim or browser acceptance.",
+        "validated_at": "2026-11-17T07:53:35.232Z",
+        "snapshot_sha256": "fbe1a593407b44fb7491a983abdd083689e09817d3f7ebd01cc9b926e3ab10a7",
+        "graph": "course-v2",
+        "parser": "PASS",
+        "unified_selection": "PASS",
+        "ssr": "PASS",
+        "browser": "NOT_RUN",
+        "raw_revalidated_by_frontend": false,
+        "rendered_views": 6,
+        "representative_ssr_views": 3,
+        "assets_match_current_dist": true,
+        "genealogy": {
+          "model_only": false,
+          "branches": [
+            {
+              "branch": "accept",
+              "nodes": 6,
+              "edges": 5,
+              "layers": 5,
+              "cycle_components": 0,
+              "candidate_providers": 1,
+              "observed_nodes": 0,
+              "dense_directory_default": false
+            },
+            {
+              "branch": "reject",
+              "nodes": 4,
+              "edges": 3,
+              "layers": 3,
+              "cycle_components": 0,
+              "candidate_providers": 0,
+              "observed_nodes": 0,
+              "dense_directory_default": false
+            }
+          ],
+          "observed_occurrences": [
+            {
+              "run": "R-8203b987112c75c227c6df8a8ef102e6",
+              "branch": "accept",
+              "step": -1,
+              "action_index": 0,
+              "actor": "primary",
+              "phase": "preparation",
+              "readback_index": 0,
+              "readback_phase": "initial",
+              "diagnostic": true,
+              "evidence_status": "BLOCKED",
+              "nodes": 6
+            },
+            {
+              "run": "R-8203b987112c75c227c6df8a8ef102e6",
+              "branch": "accept",
+              "step": -1,
+              "action_index": 0,
+              "actor": "primary",
+              "phase": "preparation",
+              "readback_index": 1,
+              "readback_phase": "pre_action",
+              "diagnostic": true,
+              "evidence_status": "BLOCKED",
+              "nodes": 6
+            },
+            {
+              "run": "R-8203b987112c75c227c6df8a8ef102e6",
+              "branch": "accept",
+              "step": -1,
+              "action_index": 0,
+              "actor": "primary",
+              "phase": "preparation",
+              "readback_index": 2,
+              "readback_phase": "post_action",
+              "diagnostic": true,
+              "evidence_status": "BLOCKED",
+              "nodes": 6
+            }
+          ],
+          "business_execution_claim": "NOT_INFERRED_FROM_FRONTEND_VALIDATION"
+        },
+        "preparation": {
+          "status": "EXERCISED",
+          "runs": 1,
+          "actual_actions": 1,
+          "independent_readbacks": 3
+        },
+        "expected_actual": {
+          "status": "NOT_PRESENT",
+          "frozen_decisions": 0,
+          "unassociated_step_views": 0,
+          "request_captures": 0
+        },
+        "entity_selection": {
+          "status": "NOT_PRESENT",
+          "selections": 0
+        },
+        "campaign": {
+          "status": "NOT_PRESENT",
+          "linked_children": 0,
+          "unexported_children": 0
+        },
+        "runs": [
+          {
+            "run": "R-8203b987112c75c227c6df8a8ef102e6",
+            "environment": "independent",
+            "round": "Q-92f833517ca7ab1bbcd951e81a69170a",
+            "runner": "typed-business",
+            "evidence_status": "PASS",
+            "action_steps": 0,
+            "preparation_records": 1,
+            "recovery_mode": "restore"
+          }
+        ],
+        "campaigns": []
+      }
+    }
+  ],
+  "independent_review": {
+    "scope": "Original must-fix repros only; read-only follow-up, no edits",
+    "frontend_probe_count": 20,
+    "frontend_probe_results": {
+      "invalid_payload_rejected": 13,
+      "different_entity_scope_unmatched": 3,
+      "valid_cross_alias_mapping": 1,
+      "unchanged_valid_baselines": 2,
+      "dense_graph_remount_key": 1
+    },
+    "frontend_targeted_tests": {
+      "passed": 39,
+      "files": 3,
+      "duration_seconds": 0.735
+    },
+    "backend_real_http_entity_test": {
+      "exit_code": 0,
+      "duration_seconds": 5.037
+    },
+    "backend_namespace_boundary_test": {
+      "exit_code": 0,
+      "duration_seconds": 0.004
+    },
+    "raw_log_persisted": false,
+    "qualification": "Independent agent stdout is in the collaboration transcript. Persistent owning tests and final race/gate logs provide repeatable repository evidence. Viewport behavior was code-checked, not browser-tested."
+  },
+  "acceptance_boundaries": {
+    "tool_chain": "Implemented and verified in the recorded local test scope; no full-business-coverage claim",
+    "pay_gateway": {
+      "status": "BLOCKED / NOT_RUN",
+      "model_source_commit": "e4f054fc7bb06e091be62d6765bb29b4348ad651",
+      "reviewed_latest_main": "56154994b09af0cc439356ba1fb72916a9c9fc65",
+      "missing": [
+        "complete pinned clean checkout",
+        "Rust and psql",
+        "authorized remote isolated PostgreSQL configuration",
+        "owned running fixture and bound build identity"
+      ],
+      "target_operations_sent": 0
+    },
+    "browser": {
+      "status": "NOT_RUN",
+      "reason": "Existing environment restriction remains unresolved; no browser bypass, screenshot, pixel, or narrow-screen acceptance claim"
+    },
+    "direct_unfrozen_action": "Without preparation and without a frozen branch, Decision/RAW remain in the fact panel; no diagnostic observations are guessed onto another branch lineage.",
+    "external_skill_baseline": {
+      "missing_source": "cloudflare-platform",
+      "broken_links": {
+        "Design": 13,
+        "Cloudflare": 14,
+        "ThreeJS": 25
+      }
+    }
+  }
+}

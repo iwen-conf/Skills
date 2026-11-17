@@ -169,15 +169,23 @@ export function actorsOf(fact?: UnifiedStepFact): string[] {
 }
 export function runSteps(snapshot: Snapshot, run: SnapshotRun): SelectionStep[] {
   const facts = factsOf(snapshot, run);
+  const preparations = (run.business_lineage ?? []).filter(
+    (item) => item.phase === "preparation" && item.run === run.trace.run && item.step === -1,
+  );
   const seqs = unique([
     ...run.trace.steps.map((step) => step.step),
     ...facts.filter((fact) => fact.seq > 0).map((fact) => String(fact.seq)),
+    ...(preparations.length ? ["-1"] : []),
   ]).sort((a, b) => Number(a) - Number(b));
   return seqs.map((id) => {
     const fact = facts.find((item) => String(item.seq) === id);
     const step = run.trace.steps.find((item) => item.step === id);
-    const actors = actorsOf(fact);
-    const recordedBranches = decisionBranches(fact?.business_expectations);
+    const preparation = id === "-1" ? preparations : [];
+    const actors = unique([...actorsOf(fact), ...preparation.map((item) => item.actor)]);
+    const recordedBranches = unique([
+      ...decisionBranches(fact?.business_expectations),
+      ...preparation.map((item) => item.branch),
+    ]);
     // A typed action can fail its independent before-read before freeze runs.
     // Its persisted fact is explicit absence, unlike an old export with no facts.
     const typedFact = Boolean(snapshot.model.data.business_contract && fact && fact.seq > 0);
@@ -190,9 +198,12 @@ export function runSteps(snapshot: Snapshot, run: SnapshotRun): SelectionStep[] 
           !fact.business_expectations?.some((item) => item.decision.action === fact.node)));
     const actorBranches = Object.fromEntries(
       actors.map((actor) => {
-        const branches = decisionBranches(
-          (fact?.business_expectations ?? []).filter((item) => item.actor === actor),
-        );
+        const branches = unique([
+          ...decisionBranches(
+            (fact?.business_expectations ?? []).filter((item) => item.actor === actor),
+          ),
+          ...preparation.filter((item) => item.actor === actor).map((item) => item.branch),
+        ]);
         return [
           actor,
           typedFact && (!branches.length || incompleteBatch)
@@ -208,6 +219,7 @@ export function runSteps(snapshot: Snapshot, run: SnapshotRun): SelectionStep[] 
     ]);
     return {
       id,
+      preparation: preparation.length > 0,
       node: fact?.node ?? step?.node ?? "",
       actors,
       actorNodes: Object.fromEntries(

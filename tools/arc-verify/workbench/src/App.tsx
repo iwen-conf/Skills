@@ -11,6 +11,7 @@ import FactPanel from "./FactPanel";
 import { CampaignTrail } from "./CampaignViews";
 import GraphCanvas from "./GraphCanvas";
 import { graphFor } from "./graph-model";
+import { occurrenceKey, occurrenceLabel } from "./lineage";
 import { initialSelection, matchingRuns, matchesStep, reduceSelection } from "./selection";
 import type { Selection, SelectionAction, SelectionContext } from "./selection";
 import { predicateText } from "./contract";
@@ -19,6 +20,7 @@ import { Status } from "./Status";
 import type { BusinessNode, BusinessView, Snapshot } from "./types";
 import "@xyflow/react/dist/style.css";
 import "./App.css";
+import "./lineage.css";
 
 export type AppState =
   | { snapshot: Snapshot; error?: undefined }
@@ -76,7 +78,11 @@ function initialize(
 ) {
   let state = initialSelection(snapshot.meta.graph, snapshot.meta.environment ?? "", node);
   state.canvas =
-    view === "boundaries" ? "dependencies" : view === "verification" ? "run" : "states";
+    view === "boundaries" || (view === "overview" && snapshot.business_lineage)
+      ? "dependencies"
+      : view === "verification"
+        ? "run"
+        : "states";
   for (const type of [
     "environment",
     "flow",
@@ -87,11 +93,23 @@ function initialize(
     "actor",
     "entity",
     "step",
+    "occurrence",
     "node",
   ] as const) {
     // An absent actor-specific node is not a request to clear a valid step.
-    if (initial[type] !== undefined && !(type === "node" && initial[type] === ""))
-      state = reduceSelection(state, { type, value: initial[type]! }, context);
+    if (initial[type] !== undefined && !(type === "node" && initial[type] === "")) {
+      const lineageNode =
+        type === "node" &&
+        initial.canvas === "dependencies" &&
+        snapshot.business_lineage?.branches
+          .find((item) => item.branch === state.branch)
+          ?.nodes.some((item) => item.id === initial[type]);
+      state = reduceSelection(
+        state,
+        { type: lineageNode ? "lineage" : type, value: initial[type]! },
+        context,
+      );
+    }
   }
   if (initial.canvas) state.canvas = initial.canvas;
   if (initial.focus) state.focus = initial.focus;
@@ -290,7 +308,7 @@ function Workbench({
             <option value="">先选择条件与预期</option>
             <optgroup label="声明业务分支">
               {canonical
-                .filter((item) => !selection.flow || item.flow === selection.flow)
+                .filter((item) => branchAppliesToFlow(item, selection.flow))
                 .map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.label}
@@ -563,6 +581,31 @@ function Workbench({
               </select>
             </label>
           </div>
+          {selection.canvas === "dependencies" && graph.lineage && (
+            <div className="lineage-context-bar">
+              <span>
+                分支 <code>{selection.branch || "未选择"}</code>
+              </span>
+              <label>
+                动作发生记录
+                <select
+                  aria-label="动作发生记录"
+                  disabled={!graph.lineage.candidates.length}
+                  value={graph.lineage.overlay ? occurrenceKey(graph.lineage.overlay) : ""}
+                  onChange={(event) => dispatch({ type: "occurrence", value: event.target.value })}
+                >
+                  <option value="">
+                    {graph.lineage.candidates.length ? "选择独立的观察作用域" : "尚无对应前态观察"}
+                  </option>
+                  {graph.lineage.candidates.map((item) => (
+                    <option key={occurrenceKey(item)} value={occurrenceKey(item)}>
+                      {occurrenceLabel(item)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
           <GraphCanvas graph={graph} selection={selection} dispatch={dispatch} />
           <div className="model-disclosures">
             <details>
@@ -738,12 +781,14 @@ function Workbench({
                         className={step.id === run.trace.first_divergence ? "divergence" : ""}
                         onClick={() => dispatch({ type: "step", value: step.id })}
                       >
-                        <span className="step-number">{step.id}</span>
+                        <span className="step-number">{step.preparation ? "准备" : step.id}</span>
                         <span>
                           <strong>
-                            {snapshot.model.data.nodes.find((node) => node.id === step.node)
-                              ?.name ??
-                              (step.node || "未记录动作")}
+                            {step.preparation
+                              ? "前态准备 · 目标业务尚未执行"
+                              : (snapshot.model.data.nodes.find((node) => node.id === step.node)
+                                  ?.name ??
+                                (step.node || "未记录动作"))}
                           </strong>
                           <small>{step.actors.join(" · ") || "主体身份未导出"}</small>
                           <code>{step.branches?.join(" / ") || "未关联分支"}</code>

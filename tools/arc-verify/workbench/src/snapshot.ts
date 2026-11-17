@@ -1,6 +1,7 @@
 import type { BusinessView, Snapshot, Verdict } from "./types";
 import { isJSONObject, parseSnapshotJSON } from "./json-values";
 import { checkCampaigns } from "./campaign-validation";
+import { checkLineage } from "./lineage-validation";
 
 export const businessViews: BusinessView[] = [
   "overview",
@@ -186,6 +187,7 @@ export function parseSnapshot(value: unknown): Snapshot {
   });
   if (value.business_campaigns !== undefined)
     checkCampaigns(value.business_campaigns, meta.graph, fail);
+  checkLineage(value, fail);
   return value as unknown as Snapshot;
 }
 

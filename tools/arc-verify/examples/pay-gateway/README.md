@@ -32,6 +32,77 @@
 - [受控机构协议](https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs)。这里要求原单先由机构确认，属于本受控环境的准备前提。
 - [真实测试 host](https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/browser_host.rs) 和 [隔离测试约定](https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/README.md)。
 
+## 0. 没有支付环境时，先生成可审阅的业务系谱
+
+模型验证、导入和静态工作台导出只需要 Arc 与已经构建的工作台资源；不需要支付服务、caller
+凭据或 PostgreSQL。以下流程使用一个全新的本地审阅账本，避免把历史运行混入本次模型展示。
+需要已安装的统一 `arc`；工作台依赖已按 [构建说明](../../workbench/README.md#构建与前端检查)
+准备好时，先在 `tools/arc-verify/workbench` 执行 `bun run build`。
+
+```bash
+ARC_PAY_SKILLS=/absolute/Skills
+ARC_PAY_REVIEW=$(mktemp -d "${TMPDIR:-/tmp}/arc-pay-model.XXXXXX")
+git -C "$ARC_PAY_REVIEW" init --initial-branch=main
+arc db init --repo "$ARC_PAY_REVIEW"
+cd "$ARC_PAY_REVIEW"
+arc verify init
+arc verify validate --file "$ARC_PAY_SKILLS/tools/arc-verify/examples/pay-gateway/model.json"
+arc verify contract check --file "$ARC_PAY_SKILLS/tools/arc-verify/examples/pay-gateway/model.json"
+arc verify import --file "$ARC_PAY_SKILLS/tools/arc-verify/examples/pay-gateway/model.json"
+arc verify snapshot \
+  --graph pay-gateway-index-fixture-v2 \
+  --assets "$ARC_PAY_SKILLS/tools/arc-verify/workbench/dist" \
+  --out "$ARC_PAY_REVIEW/workbench"
+```
+
+打开 `$ARC_PAY_REVIEW/workbench/index.html`，保留整个导出目录。这里导出的是实际 CLI 从账本读取
+的模型及来源，没有执行目标业务，也没有执行 `approve`。新账本中的模型/规则批准仍为 false，
+`runs` 为空，`available_runs=0`；省略环境、轮次和运行参数，不创建虚构账号、实体或观测记录。
+有限域检查的 `PROVEN_IN_SCOPE` 与支付 E2E 的 `NOT_RUN/BLOCKED` 可以同时成立。
+
+### 四个分支及其唯一预期
+
+四个分支共同限定：启用 caller、可用的启用 `ca_browser_huiju` 账户、经身份核验的 owned
+controlled 环境，以及实际捕获的请求 `amount=100`、`currency=CNY`、
+`channel_account_id=ca_browser_huiju`。模型只声明这一有限场景；不同有效金额或其他账户不自动
+变成拒绝分支。前态名称表示本实例的引用索引投影。
+
+| 分支 | 独立观察的前态与额外条件 | 唯一预期及关键独立断言 |
+| --- | --- | --- |
+| `BR_CREATE_PAYMENT_INDEX` | `EMPTY` | HTTP 200；`PAYMENT_INDEXED`；返回 ID 与 SQL 支付 ID 一致；支付索引、出站、机构收件各一次；没有退款索引或退款出站 |
+| `BR_CREATE_REFUND_INDEX` | `PAYMENT_INDEXED`，且本受控机构的支付成功已被网关学习并独立回读 | HTTP 200、`processing`；`REFUND_INDEXED`；返回 ID 与 SQL 退款 ID 一致；父支付、caller、账户关系正确；退款出站和机构收件各一次 |
+| `BR_DUPLICATE_REFUND` | `REFUND_INDEXED`，普通重复提交同一退款号 | HTTP 409、`duplicate_order`；保持原退款索引和资源 ID；索引、出站、机构收件仍各一次 |
+| `BR_MISSING_PARENT` | `EMPTY`，原支付不存在 | HTTP 404、`resource_not_found`；仍为 `EMPTY`；没有支付/退款索引和对应出站、机构收件 |
+
+退款普通重复和缺原单是合法拒绝转移，可以在状态图中形成自环；它们不是准备 DAG 的循环。
+成功退款中的机构确认条件仅属于这个 controlled fixture，不能解释为网关通用的资金资格规则。
+
+### 准备依赖和条件来源
+
+| 条件或状态 | 来源 | 系谱中的含义 |
+| --- | --- | --- |
+| caller 与账户可用 | 独立只读 SQL，加当前 caller 的鉴权账户目录响应 | 外部观察条件；模型没有凭空创建账号或授予权限的准备动作 |
+| controlled 环境身份 | `/__qa/identity`、run/revision/binary/数据库指纹比对及 SQL 数据库身份 | 环境准入与观察根；没有观察时不能显示已满足 |
+| 请求金额、币种、账户 | 本次真实 HTTP `resolvedBody` 的 `request-capture` | 待执行动作的输入；不是准备动作产出的业务事实 |
+| `EMPTY` / `PAYMENT_INDEXED` / `REFUND_INDEXED` | 当前 caller、支付号、退款号限定的 SQL 索引行 | 真实前态投影；不是 `paid` 或退款资金终态 |
+| `payment.exists`、`payment.rows`、支付出站与收件次数 | `PREP_CREATE_PAYMENT` 后的独立 SQL 与机构收件观察 | 真实 `POST /api/v1/payments` 能建立的准备效果；模型中的 effects 仍须实际回读 |
+| `provider.payment_confirmed` | `PREP_CONFIRM_PAYMENT` 后独立读取 `p_notify_jobs` / `p_callback_receipts` 的成功事实 | 此属性是网关已学习机构成功事实的投影，不从订单行或准备命令返回值推定 |
+
+`PREP_CONFIRM_PAYMENT` 显式依赖 `PREP_CREATE_PAYMENT`。前者需要原支付存在、退款不存在、
+机构恰好收单一次且尚未观察到成功事实，执行受控 `provider_paid` 事件和正常鉴权查询，之后
+再次读取 SQL。它仍是一个组合准备动作：RAW 保存两次实际请求与响应，模型没有声明两条独立的
+支付状态转移；工作台不能替它编造中间事件、异步等待或已经发生的结果。
+
+准备系谱沿属性条件展示候选建立动作、明确的 `depends_on` 和外部观察根。候选动作有来源和
+预计效果，不代表一定可执行；运行时仍要匹配真实前态、验证身份、执行并独立回读。
+`core` / `refund` 的目标前态由这两个准备动作建立。`core` 随后连续执行退款与同号重复，
+`duplicate` 单独运行则只读重绑定已有退款。当前模型没有“创建退款”的 PreparationAction，
+因此不能声称可以从空实例自动准备任意 duplicate 目标。`create` / `missing-parent` 所需空实例
+来自 owned fixture 的建立和实际观察，不能由修改声明值或清除历史得到。
+
+模型视图中的能力树、条件依赖和有环状态转移可以独立审阅；只有后续真实运行的账本才能填充
+Actual、账号/实体绑定、首次偏离、等待和逐项证据。没有运行时，图中的未观察条件保持未知。
+
 ## 1. 准备原项目已有隔离环境
 
 在固定版本的干净 pay_gateway checkout 中，按其测试说明提供
@@ -149,3 +220,39 @@ go -C tools/arc-verify test -run 'TestPayGateway' -count=1 .
 未绑定真实环境时保留 BLOCKED；不得用 local HTTP 工具夹具的 PASS 冒充 pay_gateway PASS。
 真实机构、真实商户通知、回调验签/乱序、资金竞争、完整权限矩阵、无限金额域与部署环境均需
 各自模型及执行证据。本例不会根据旧接口名或状态文字生成未确认的业务结论。
+
+## 2026-11-17 源码复核与当前验收阻断
+
+本次只读核对的 pay_gateway main 为
+[`56154994b09af0cc439356ba1fb72916a9c9fc65`](https://github.com/iwen-conf/pay_gateway/commit/56154994b09af0cc439356ba1fb72916a9c9fc65)，
+其父提交正是本例固定的 `e4f054fc7bb06e091be62d6765bb29b4348ad651`。
+本节记录版本差异，不更新 `model.json`、适配器中的 `REVISION`、原有规则确认或历史证据。
+
+| 最新变化 | 对本例的具体影响 |
+| --- | --- |
+| 易宝绑卡请求隔离与旧请求归属检查 | 本例没有绑卡动作；不新增或宣称已覆盖绑卡分支 |
+| 首信易支付/退款/出款，以及汇聚出款的机构流水冲突检查 | 本例使用汇聚 Payment/Refund；新增 `provider_transaction_id_error` 对这两类仍返回无额外约束，不能把其他 provider/kind 的拒绝规则套用到本例 |
+| PostgreSQL `merge_refs` 改为锁住当前订单后复核再提交；回调也在提交锁内复核 | 共用持久化与观察路径变了；即使本例预期未发现语义变化，也需要针对新构建重新运行，不继承旧提交的执行资格 |
+| 概览查询的当前/上一时间窗独立加载 | 本例没有管理概览查询；不影响已声明的四分支，也不代表管理概览已验收 |
+
+上述判断依据 [本次提交差异](https://github.com/iwen-conf/pay_gateway/compare/e4f054fc7bb06e091be62d6765bb29b4348ad651...56154994b09af0cc439356ba1fb72916a9c9fc65)、
+[流水检查的 provider/kind 范围](https://github.com/iwen-conf/pay_gateway/blob/56154994b09af0cc439356ba1fb72916a9c9fc65/src/usecase/forwarding/orders.rs#L124-L153)
+和 [当前 PostgreSQL 引用合并](https://github.com/iwen-conf/pay_gateway/blob/56154994b09af0cc439356ba1fb72916a9c9fc65/src/infrastructure/gateways/persistence/postgres/repository/orders.rs)。
+API10、退款 usecase、`browser_host.rs` 和 `ratio_providers.rs` 在这一次提交中没有变化；
+[当前退款入口](https://github.com/iwen-conf/pay_gateway/blob/56154994b09af0cc439356ba1fb72916a9c9fc65/src/usecase/forwarding/refunds.rs#L57-L127)
+仍将资金资格交给机构，普通重复在出站前拒绝；proven-unsent 特殊恢复仍属于本例之外。
+
+本次工作环境的实际检查结果：
+
+| 所需条件 | 2026-11-17 检查结果 | 可解除阻断的材料 |
+| --- | --- | --- |
+| 干净、固定版本的完整 pay_gateway checkout | 可见 pay 源码目录只是局部快照，均非 Git 仓库 | 完整 checkout，HEAD 与本例固定版本一致，tracked source 干净 |
+| Rust 构建工具与候选 fixture 二进制 | PATH 中没有 `cargo` / `rustc`，没有本次绑定的 `browser_fixture` 二进制 | 原项目支持的工具链与从已审阅源码构建的 fixture |
+| 独立 SQL 观察客户端 | PATH 中没有 `psql` | 可用的 PostgreSQL 客户端 |
+| 已授权远程隔离数据库 | 两个可见 pay 源码目录均没有 `tests/fixtures/.isolated-postgres.local.json` | 项目已有、获准用于本次测试的隔离配置与服务端身份核验 |
+| 活的 owned fixture | 没有本次 ready 文件、loopback 地址及与源码/数据库绑定的运行身份 | 按第 1 节启动的目标及 `preflight` 通过结果 |
+
+因此本次 pay_gateway 产品 E2E 保持 **BLOCKED / NOT_RUN**；没有发起支付、退款、建库或 reset。
+[原项目当前隔离约定](https://github.com/iwen-conf/pay_gateway/blob/56154994b09af0cc439356ba1fb72916a9c9fc65/tests/fixtures/README.md#独立数据库配置)
+明确使用远程隔离 PostgreSQL，本机只使用客户端；不能用新建本地数据库、memory 模式或工具自测
+替代这项验收。第 0 节的真实 CLI 导出仍可完成，结果仅证明模型和工作台链路可用。
