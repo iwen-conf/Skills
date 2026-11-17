@@ -56,3 +56,9 @@
 .eta-board-directory { margin:12px 0; border:1px solid var(--line); border-radius:2px; background:var(--surface); }
 .eta-board-directory > summary { padding:10px 14px; cursor:pointer; font-size:12px; font-weight:600; }
 .eta-board-directory[open] > summary { border-bottom:1px solid var(--line); }
+
+.eta-board-analysis { margin:10px 0; border:1px solid var(--line); border-radius:2px; background:var(--surface); }
+.eta-board-analysis > summary { padding:9px 13px; font-size:12px; color:var(--muted); cursor:pointer; }
+.eta-board-analysis[open] > summary { border-bottom:1px solid var(--line); }
+.eta-board-analysis > .eta-plan-overview { margin:10px; }
+.eta-board-analysis > .eta-plan-critical { margin:10px; }

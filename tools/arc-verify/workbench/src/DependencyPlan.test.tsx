@@ -66,6 +66,11 @@ describe("grouped dependency reading through GraphCanvas", () => {
     }
     expect(html.match(/<details[^>]*data-plan-group=/g)).toHaveLength(3);
     expect(html).toContain("关系画布");
+    expect(html).toContain("业务依赖计划");
+    expect(html).toContain('aria-label="ETA式业务依赖计划"');
+    expect(html).toContain('class="eta-board-wide"');
+    expect(html).toContain('class="eta-board-phone"');
+    expect(html).toContain("完整分层目录");
     expect(html).toContain('aria-label="ETA式依赖计划概览"');
     expect(html).toContain('aria-label="当前需关注的声明关键链"');
     expect(html).toContain('aria-label="搜索依赖节点"');
