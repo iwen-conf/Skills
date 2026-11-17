@@ -66,6 +66,11 @@ describe("grouped dependency reading through GraphCanvas", () => {
     }
     expect(html.match(/<details[^>]*data-plan-group=/g)).toHaveLength(3);
     expect(html).toContain("关系画布");
+    expect(html).toContain('aria-label="ETA式依赖计划概览"');
+    expect(html).toContain('aria-label="当前需关注的声明关键链"');
+    expect(html).toContain('aria-label="搜索依赖节点"');
+    expect(html).toContain('aria-label="筛选依赖观察状态"');
+    expect(html).toContain('data-proof-state="UNOBSERVED"');
   });
 
   it("keeps global dependency levels and explicit cross-group or alternative navigation in the narrow plan", () => {

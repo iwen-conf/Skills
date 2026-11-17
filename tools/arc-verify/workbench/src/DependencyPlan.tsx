@@ -28,6 +28,18 @@ export default function DependencyPlan({
         text.toLocaleLowerCase().includes(phrase),
       )) &&
     (proofFilter === "ALL" || plan.state.get(node.id) === proofFilter);
+  const attentionIndex = plan.attention ? plan.critical.indexOf(plan.attention) : 0;
+  const shownCritical = plan.critical.length <= 48
+    ? plan.critical
+    : [...new Set([
+        ...plan.critical.slice(0, 8),
+        ...plan.critical.slice(
+          Math.max(8, attentionIndex - 4),
+          Math.min(plan.critical.length - 4, attentionIndex + 24),
+        ),
+        ...plan.critical.slice(-4),
+      ])];
+  const hiddenCritical = plan.critical.length - shownCritical.length;
   const groupElements = useRef(new Map<string, HTMLDetailsElement>());
   const nodeElements = useRef(new Map<string, HTMLButtonElement>());
   const byID = new Map(graph.nodes.map((node) => [node.id, node]));
@@ -114,7 +126,7 @@ export default function DependencyPlan({
           <h3>ETA 式关键依赖链 · {plan.critical.length} 个节点</h3>
           <p>{plan.reason} {plan.attention ? "本次先关注尚未验证的来源。" : "该链全部具有符合的观察；不代表业务已通过。"}</p>
           <ol>
-            {plan.critical.map((id) => {
+            {shownCritical.map((id) => {
               const node = byID.get(id)!;
               return (
                 <li key={id}>
@@ -130,6 +142,9 @@ export default function DependencyPlan({
               );
             })}
           </ol>
+          {hiddenCritical > 0 && (
+            <p>为保持可读性，仅显示关键链中的 {shownCritical.length} 个节点；其余 {hiddenCritical} 个节点仍保留在完整分层目录中。</p>
+          )}
         </nav>
       )}
       <div aria-label="依赖系谱分层目录">
