@@ -31,6 +31,14 @@ common invariants apply to all permitted outcomes. Named checks explain response
 events, side effects, forbidden effects and invariants independently. Missing observations or
 oracle provenance cannot satisfy a check. Explicit denied=false differs from missing denial data.
 
+Outcome `next_allowed` distinguishes an absent/null field (no declared successor restriction),
+`[]` (no successor permitted), and a nonempty action allowlist. If multiple allowed outcomes
+match the actual facts, intersect their restrictions; an empty intersection must stay empty.
+Ordinary sequences, campaign dispatch and offline replay use the same policy. Changing actors
+does not bypass the policy within a sequence. A later independent run has its own context.
+Old valid omitted/nonempty policies remain readable; historical execution that violated the
+contract is blocked on revalidation, without rewriting its RAW or inventing a new branch.
+
 HTTP runners may declare `input_measurements` JSON pointers into the **resolved request body**.
 These facts come from request capture, not fixture declarations or oracle constants. Requested
 amount, entity and account selection therefore participate in the same pre-action freeze as the
@@ -111,9 +119,12 @@ requires its own durable dispatch authorization.
 The current state budget counts observed candidate contexts and completed child contexts. Keys
 retain actual input tokens, actors, entities, source/environment and history; the scheduler does
 not merge different runs using an unproved equivalence. Automatic preparation feasibility uses
-declared attribute effects. It does not invent a lifecycle-state prediction that those effects
-do not declare. More general parameter generation, lifecycle preparation search and equivalence
-reduction need additional explicit model contracts.
+declared attribute effects and all required runner conditions. A failed boolean condition can
+be predicted as repaired only through its registered same-subject Oracle/measurement mapping;
+failed unmapped conditions cannot become PREPARABLE. All predictions require independent
+readback before the target. No lifecycle-state change is inferred from undeclared effects.
+General parameter generation, lifecycle preparation search and equivalence reduction need
+additional explicit model contracts.
 
 `last_actual` is the most recent **target operation's** observed poststate. A subsequent restore
 may change the fixture; its independently observed recovery state stays separate, and the next
@@ -140,6 +151,11 @@ Unknown/infinite domains are not exhaustively proved. A partition proof does not
 reachability, asynchronous liveness, database durability, concurrency correctness or E2E success.
 Those are separate executed obligations with named oracles and evidence. Read preparation plans
 as plans until actual actions and independent postcondition observations are recorded.
+`gate` and `report --kind acceptance` expose finite proof and branch execution separately.
+`completeness.complete_in_declared_scope` may be true for a fully verified finite model;
+`business_e2e_status` stays `NOT_EVALUATED`. The compatibility field `complete_business_e2e`
+stays false because this gate does not evaluate a complete business journey. Consumers must
+check the declared scope instead of promoting a local PASS into system-wide acceptance.
 The legacy `discover run/resume` scheduler lacks typed pre-action capture and rejects strict
 models. Use declared Runners through `execute`/`run-chain`, or the explicit bounded variants
 supported by `campaign`; none of these operations discovers or approves new business rules.
