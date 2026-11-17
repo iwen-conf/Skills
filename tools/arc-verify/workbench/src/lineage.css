@@ -74,6 +74,9 @@
 .lineage-node .graph-kind {
   font-size: 11px;
 }
+ .lineage-node-input_data{border-color:var(--line);background:var(--canvas)}
+.lineage-node-expected{border-color:var(--accent);background:var(--accent-soft)}
+.lineage-node-input_data .node-detail,.lineage-node-expected .node-detail{font-size:11px}
 .lineage-node-target {
   border: 2px solid var(--accent);
   background: var(--accent-soft);

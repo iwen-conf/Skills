@@ -131,6 +131,16 @@ func businessLineageReadNode(node BusinessLineageNode, attributes map[string]bus
 		} else {
 			truth = evaluateBusinessPredicate(*node.Predicate, before, attributes)
 		}
+	case "expected":
+		reading.Reason = "declared post-action outcome; check the separate actual comparison and its independent oracles"
+		return reading
+	case "input_data":
+		key := node.References[0].Subject + "." + node.References[0].Attribute
+		if len(reading.Values) == 1 && len(reading.Values[0].Actual) > 0 && len(reading.Values[0].Sources) > 0 {
+			truth = businessTruth(true)
+		} else {
+			truth = unknownBusiness([]string{key}, "input data or independent source missing in frozen prestate")
+		}
 	case "state":
 		reading.ObservedState = before.State
 		if before.State == "" || before.State == "UNKNOWN" {

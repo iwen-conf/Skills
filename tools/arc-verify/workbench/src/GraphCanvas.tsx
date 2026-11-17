@@ -54,9 +54,12 @@ export default function GraphCanvas({
   blockerNodes?: readonly string[];
 }) {
   const [cycleMode, setCycleMode] = useState<"auto" | "fold" | "expand">("auto");
-  const [dependencyView, setDependencyView] = useState<"plan" | "graph">("plan");
+  const [dependencyView, setDependencyView] = useState<"plan" | "graph" | null>(null);
   const dependencyGraph = selection.canvas === "dependencies";
-  const drawDiagram = !dependencyGraph || dependencyView === "graph";
+  // Prefer an actual genealogy for a focused branch; large full-model
+  // maps begin with a structured directory to prevent unreadable spaghetti.
+  const effectiveDependencyView = dependencyView ?? (graph.nodes.length > 64 ? "plan" : "graph");
+  const drawDiagram = !dependencyGraph || effectiveDependencyView === "graph";
   const foldCycles =
     cycleMode === "fold" || (cycleMode === "auto" && !graph.stateOverlay?.occurrences.length);
   const analysis = useMemo(() => analyzeDirected(graph.nodes, graph.edges), [graph]);
@@ -234,7 +237,10 @@ export default function GraphCanvas({
           source: edge.from,
           target: edge.to,
           type: edge.actual ? "actual" : "smoothstep",
-          label: edge.label.length > 88 ? `${edge.label.slice(0, 85)}…` : edge.label,
+          // Repeating 'requires' on every edge creates noise. The inspector
+          // retains the full typed relation; label only exceptional semantics.
+          label: dependencyGraph && !edge.alternative && ["requires", "reads", "logical_operand"].includes(edge.kind)
+            ? undefined : edge.label.length > 88 ? `${edge.label.slice(0, 85)}…` : edge.label,
           data: { source: edge, lane },
           markerEnd: { type: MarkerType.ArrowClosed, color: stroke },
           className: edge.actual
@@ -351,14 +357,14 @@ export default function GraphCanvas({
         <div className="dependency-display-switch segmented" role="group" aria-label="依赖阅读方式">
           <button
             type="button"
-            aria-pressed={dependencyView === "plan"}
+            aria-pressed={effectiveDependencyView === "plan"}
             onClick={() => setDependencyView("plan")}
           >
             业务分组
           </button>
           <button
             type="button"
-            aria-pressed={dependencyView === "graph"}
+            aria-pressed={effectiveDependencyView === "graph"}
             onClick={() => setDependencyView("graph")}
           >
             关系画布
@@ -413,7 +419,7 @@ export default function GraphCanvas({
           >
             <Background gap={24} size={1} />
             <Controls showInteractive={false} />
-            {dependencyGraph && <MiniMap pannable zoomable nodeStrokeWidth={2} />}
+            {dependencyGraph && MiniMap && <MiniMap pannable zoomable nodeStrokeWidth={2} />}
           </ReactFlow>
         </div>
       ) : (
@@ -432,7 +438,7 @@ export default function GraphCanvas({
         </span>
         <span>{selection.focus === "all" ? "完整当前范围" : "局部视图 · 未显示节点不计通过"}</span>
       </div>
-      {graph.lineage?.graph && dependencyView === "graph" && (
+      {graph.lineage?.graph && effectiveDependencyView === "graph" && (
         <details className="lineage-directory" open={dense}>
           <summary>依赖系谱分层目录 · {scopeNodes.length} 个节点</summary>
           <ol aria-label="依赖系谱分层目录">

@@ -27,6 +27,7 @@ type businessLineageBuilder struct {
 	preparations map[string]PreparationAction
 	names        map[string]string
 	included     map[string]bool
+	dataNodes    map[string]string
 	budget       *businessLineageBudget
 	err          error
 }
@@ -42,7 +43,7 @@ func buildBusinessLineage(g Graph) (*BusinessLineage, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := &BusinessLineage{Version: 1, ContractSHA256: hash, Branches: []BusinessBranchLineage{}}
+	result := &BusinessLineage{Version: 2, ContractSHA256: hash, Branches: []BusinessBranchLineage{}}
 	attributes, names, preparations := businessAttributeIndex(g.BusinessContract), map[string]string{}, map[string]PreparationAction{}
 	for _, node := range g.Nodes {
 		names[node.ID] = node.Name
@@ -55,7 +56,7 @@ func buildBusinessLineage(g Graph) (*BusinessLineage, error) {
 		prefix := "branch:" + url.QueryEscape(branch.ID)
 		b := businessLineageBuilder{
 			graph:      BusinessBranchLineage{Branch: branch.ID, Action: branch.Action, Flow: branch.Flow, Target: prefix + ":target", Nodes: []BusinessLineageNode{}, Edges: []BusinessLineageEdge{}},
-			attributes: attributes, names: names, preparations: preparations, included: map[string]bool{}, budget: budget,
+			attributes: attributes, names: names, preparations: preparations, included: map[string]bool{}, dataNodes: map[string]string{}, budget: budget,
 		}
 		confirmed := branch.Confirmed
 		b.node(BusinessLineageNode{ID: b.graph.Target, Kind: "target", Name: names[branch.Action] + " · " + branch.ID, Action: branch.Action, SourceRef: branch.SourceRef, Confirmed: &confirmed, FromStates: branch.FromStates, Predicate: &branch.When, References: b.references(businessPredicateRefs(branch.When))})
@@ -70,6 +71,24 @@ func buildBusinessLineage(g Graph) (*BusinessLineage, error) {
 					b.edge(lineagePreparationID(preparation.ID), condition.id, "candidate_provider", preparation.SourceRef, true)
 				}
 			}
+		}
+		// A declared expected result is not a precondition. In particular,
+		// never read an after-action assertion from the frozen before-state.
+		for _, outcome := range branch.Expected.Outcomes {
+			id := prefix + ":outcome:" + url.QueryEscape(outcome.ID)
+			name := "预期 " + outcome.ID
+			if outcome.State == "UNCHANGED" {
+				name += " · 保持前态"
+			} else if outcome.State != "" {
+				name += " · " + outcome.State
+			} else {
+				name += " · 未声明后态"
+			}
+			b.node(BusinessLineageNode{ID: id, Kind: "expected", Name: name, SourceRef: branch.SourceRef})
+			b.edge(b.graph.Target, id, "expects", branch.SourceRef, false)
+			// The exporter intentionally does not make expected-result predicates
+			// into input-data observations: their actual values belong to the
+			// separate after-action oracle comparison.
 		}
 		if b.err != nil {
 			return nil, b.err
@@ -115,6 +134,22 @@ func (b *businessLineageBuilder) references(keys []string) []BusinessLineageRefe
 	return result
 }
 
+// dataNode draws one source-backed input field per branch, even when multiple
+// guards read the same attribute. This does not claim that any producer ran.
+func (b *businessLineageBuilder) dataNode(ref BusinessLineageReference, consumer string) {
+	key := ref.Subject + "." + ref.Attribute
+	id, found := b.dataNodes[key]
+	if !found {
+		id = "data:" + url.QueryEscape(b.graph.Branch) + ":" + url.QueryEscape(key)
+		b.dataNodes[key] = id
+		b.node(BusinessLineageNode{
+			ID: id, Kind: "input_data", Name: key, SourceRef: ref.SourceRef,
+			References: []BusinessLineageReference{ref},
+		})
+	}
+	b.edge(id, consumer, "reads", ref.SourceRef, false)
+}
+
 func (b *businessLineageBuilder) predicate(id string, predicate BusinessPredicate, preparation, source string, providers bool) []businessLineageCondition {
 	if b.err != nil {
 		return nil
@@ -123,7 +158,15 @@ func (b *businessLineageBuilder) predicate(id string, predicate BusinessPredicat
 	if predicate.Op == "and" || predicate.Op == "or" || predicate.Op == "not" {
 		kind = "logic"
 	}
-	b.node(BusinessLineageNode{ID: id, Kind: kind, Name: strings.ToUpper(predicate.Op), Predicate: &predicate, Preparation: preparation, References: b.references(businessPredicateRefs(predicate)), SourceRef: source})
+	refs := b.references(businessPredicateRefs(predicate))
+	b.node(BusinessLineageNode{ID: id, Kind: kind, Name: strings.ToUpper(predicate.Op), Predicate: &predicate, Preparation: preparation, References: refs, SourceRef: source})
+	// Only leaf comparisons read data. Logical operators retain AND/OR/NOT
+	// topology without claiming an independent observation at every level.
+	if kind == "condition" {
+		for _, ref := range refs {
+			b.dataNode(ref, id)
+		}
+	}
 	conditions := []businessLineageCondition{}
 	if providers && predicate.Op != "and" && predicate.Op != "or" && len(businessPredicateRefs(predicate)) > 0 {
 		conditions = append(conditions, businessLineageCondition{id: id, predicate: predicate})

@@ -4,8 +4,8 @@ import { checkLineageReading } from "./lineage-evidence";
 
 type Fields = Record<string, unknown>;
 type Failure = (stage: string, message: string) => never;
-const kinds = new Set(["target", "state", "condition", "logic", "preparation"]);
-const edgeKinds = new Set(["requires", "logical_operand", "depends_on", "candidate_provider"]);
+const kinds = new Set(["target", "state", "condition", "logic", "preparation", "input_data", "expected"]);
+const edgeKinds = new Set(["requires", "logical_operand", "depends_on", "candidate_provider", "reads", "expects"]);
 const statuses = new Set(["SATISFIED", "UNSATISFIED", "NOT_OBSERVED", "BLOCKED", "READY"]);
 
 /** Validate identity and structure; predicates and evidence are evaluated by the Go exporter. */
@@ -30,7 +30,7 @@ export function checkLineage(root: Fields, fail: Failure) {
     return;
   }
   const lineage = object(root.business_lineage, "模型系谱");
-  if (lineage.version !== 1) bad("不支持的系谱版本");
+  if (lineage.version !== 1 && lineage.version !== 2) bad("不支持的系谱版本");
   const hash = text(lineage.contract_sha256, "契约指纹");
   const model = object(object(root.model, "模型").data, "模型数据");
   const contract = object(model.business_contract, "业务契约");
@@ -61,6 +61,10 @@ export function checkLineage(root: Fields, fail: Failure) {
       const expectedReferences =
         node.kind === "target"
           ? lineagePredicateReferences(definition!.when, bad)
+          : node.kind === "input_data"
+            ? new Set((Array.isArray(node.references) ? node.references : []).map((item) =>
+                isJSONObject(item) ? String(item.subject) + "." + String(item.attribute) : "",
+              ))
           : node.predicate !== undefined
             ? lineagePredicateReferences(node.predicate, bad)
             : new Set<string>();
@@ -98,6 +102,21 @@ export function checkLineage(root: Fields, fail: Failure) {
       }
       if (refKeys.size !== expectedReferences.size)
         bad(`节点 ${nodeID} 丢失完整条件所引用的主体属性`);
+      if (node.kind === "input_data") {
+        if (refKeys.size !== 1) bad(`输入数据节点 ${nodeID} 必须定位单一属性`);
+        const attributeKey = [...refKeys][0];
+        const expectedID = "data:" + encodeURIComponent(id) + ":" + encodeURIComponent(attributeKey);
+        const [owner, field] = attributeKey.split(".");
+        const subject = subjects.find((item) => item.id === owner);
+        const attribute = (Array.isArray(subject?.attributes) ? subject.attributes : [])
+          .find((item: unknown) => isJSONObject(item) && item.name === field) as Fields | undefined;
+        if (lineage.version === 2 && (nodeID !== expectedID || !attribute ||
+          (node.references as Fields[])[0].source_ref !== attribute.source_ref ||
+          node.source_ref !== (attribute.source_ref ?? "")))
+          bad(`输入数据节点 ${nodeID} 的来源或身份与声明属性不一致`);
+      }
+      if (node.kind === "expected" && (refKeys.size !== 0 || node.predicate !== undefined))
+        bad(`预期结果节点 ${nodeID} 不能伪装为执行前的观测`);
       nodes.set(nodeID, node);
       nodeCount++;
     }
@@ -155,6 +174,41 @@ export function checkLineage(root: Fields, fail: Failure) {
         children.splice(index, 1);
       }
       if (children.length) bad("系谱包含不属于当前逻辑组合的子条件");
+    }
+    if (lineage.version === 2) {
+      // Reject partial lineage projections: every leaf operand must have
+      // an explicit, typed data origin, and every expected outcome its node.
+      for (const node of nodes.values()) {
+        if (node.kind !== "condition") continue;
+        for (const reference of Array.isArray(node.references) ? node.references : []) {
+          const incoming = edges.filter((edge) => edge.kind === "reads" && edge.to === node.id)
+            .map((edge) => nodes.get(String(edge.from)));
+          if (!incoming.some((origin) => origin?.kind === "input_data" &&
+            Array.isArray(origin.references) &&
+            origin.references.some((ref: unknown) => isJSONObject(ref) &&
+              ref.subject === reference.subject && ref.attribute === reference.attribute)))
+            bad(`节点 ${String(node.id)} 丢失属性数据来源`);
+        }
+      }
+      const outcomes = array(object(definition.expected, "预期契约").outcomes, "预期结果");
+      const exported = edges.filter((edge) => edge.kind === "expects" && edge.from === branch.target);
+      if (exported.length !== outcomes.length ||
+        exported.some((edge) => nodes.get(String(edge.to))?.kind !== "expected"))
+        bad(`分支 ${id} 没有完整导出预期结果依赖`);
+      const identities = new Set(exported.map((edge) => String(edge.to)));
+      for (const outcome of outcomes) {
+        const declared = object(outcome, "预期结果");
+        const expectedID = "branch:" + encodeURIComponent(id) + ":outcome:" + encodeURIComponent(text(declared.id, "结果ID"));
+        if (!identities.has(expectedID)) bad(`分支 ${id} 缺少预期结果 ${String(declared.id)}`);
+      }
+      for (const edge of edges) {
+        if (edge.kind === "reads" &&
+          (nodes.get(String(edge.from))?.kind !== "input_data" ||
+           nodes.get(String(edge.to))?.kind !== "condition") ||
+          edge.kind === "expects" &&
+          (edge.from !== branch.target || nodes.get(String(edge.to))?.kind !== "expected"))
+          bad(`分支 ${id} 含不合法的资料或预期结果关系`);
+      }
     }
     branches.set(id, nodes);
   }
