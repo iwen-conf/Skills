@@ -24,3 +24,5 @@
 .precondition-table td small{display:block;color:var(--muted);font-size:11px;overflow-wrap:anywhere}
 .precondition-missing{color:var(--warning)!important;font-size:11px}
 @media(max-width:900px){.precondition-ledger{padding:12px}.precondition-expectation{grid-template-columns:1fr}.precondition-toolbar,.precondition-ledger-header{flex-wrap:wrap}}
+
+.precondition-obligations,.precondition-result{grid-column:1/-1;display:flex;flex-direction:column;gap:5px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--canvas);overflow-wrap:anywhere}.precondition-obligations span,.precondition-result span{font-size:12px;line-height:1.6}.precondition-result strong{font-variant:small-caps}
