@@ -220,6 +220,10 @@ func (d db) probeBusinessCampaign(ctx context.Context, c BusinessCampaign, g Gra
 		}
 		return result
 	}
+	if err := businessCampaignPreparedPreconditions(g, runtime.Obligation, step, obs, before, predicted); err != nil {
+		result.Eligibility, result.Reason = "BLOCKED", err.Error()
+		return result
+	}
 	result.Eligibility, result.Reason = "PREPARABLE", "explicit preparation plan may enable the selected branch; target still requires fresh readback and an exact pre-action freeze"
 	return result
 }

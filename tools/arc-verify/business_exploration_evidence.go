@@ -324,13 +324,30 @@ func (d db) recordBusinessCampaignChild(c *BusinessCampaign, g Graph, intent bus
 	if err != nil {
 		return err
 	}
-	if err := appendBusinessCampaignVisit(c, visit, spent, intent); err != nil {
+	// A failed write must leave the caller's pending projection unchanged. A
+	// shallow copy still aliases Variants and nested facts, so detach the whole
+	// campaign before applying its verified child or releasing its reservation.
+	next, err := cloneBusinessJSON(*c)
+	if err != nil {
 		return err
 	}
-	c.Coverage = businessCampaignCoverage(g, c.Variants, c.Flow)
-	c.Spent.ElapsedMS = businessCampaignElapsed(*c)
+	if err := appendBusinessCampaignVisit(&next, visit, spent, intent); err != nil {
+		return err
+	}
+	if len(c.Visits) < c.Spent.Dispatches && len(next.Visits) == next.Spent.Dispatches {
+		next.EvidenceStatus = "PASS"
+		if c.Status == "UNKNOWN" && visit.Status == "PASS" && next.FirstDivergence == "" {
+			next.Status, next.Reason = "RUNNING", "original pending child independently verified and reconciled without replay"
+		}
+	}
+	next.Coverage = businessCampaignCoverage(g, next.Variants, next.Flow)
+	next.Spent.ElapsedMS = businessCampaignElapsed(next)
 	update := fmt.Sprintf("UPDATE business_campaign_dispatches SET status='RECORDED',updated=%s WHERE campaign_id=%s AND seq=%d AND run_id=%s AND intent_sha256=%s AND status='STARTED'", quote(time.Now().UTC().Format(time.RFC3339Nano)), quote(c.ID), intent.Sequence, quote(intent.Run), quote(hash))
-	return d.saveBusinessCampaign(c, lease, "CHILD_RECORDED", update)
+	if err := d.saveBusinessCampaign(&next, lease, "CHILD_RECORDED", update); err != nil {
+		return err
+	}
+	*c = next
+	return nil
 }
 
 func (d db) reconcileBusinessCampaign(c *BusinessCampaign, g Graph, lease businessCampaignLease) error {
@@ -589,6 +606,11 @@ func (d db) verifyBusinessCampaignCandidate(c BusinessCampaign, g Graph, candida
 	if candidate.Eligibility == "READY" && (decision.Status != "READY" || decision.Frozen == nil || decision.Frozen.Branch != candidate.Branch) {
 		return errors.New("candidate READY is not justified by its actual branch")
 	}
+	if candidate.Eligibility == "READY" {
+		if err := businessCampaignPreparedPreconditions(g, obligation, step, *obs, before, before); err != nil {
+			return fmt.Errorf("candidate READY preconditions: %w", err)
+		}
+	}
 	if candidate.Preparation != nil {
 		p := runner.Manifest.Preparation
 		if p == nil || candidate.PreparationBefore == nil || candidate.PreparationObservation == nil {
@@ -621,6 +643,9 @@ func (d db) verifyBusinessCampaignCandidate(c BusinessCampaign, g Graph, candida
 			prepared := FreezeBusinessExpectation(g, step.Node, predicted)
 			if prepared.Status != "READY" || prepared.Frozen == nil || prepared.Frozen.Branch != candidate.Branch {
 				return errors.New("preparation predictions do not enable selected branch")
+			}
+			if err := businessCampaignPreparedPreconditions(g, obligation, step, *obs, before, predicted); err != nil {
+				return fmt.Errorf("candidate preparation preconditions: %w", err)
 			}
 		}
 	} else if candidate.Eligibility == "PREPARABLE" {
