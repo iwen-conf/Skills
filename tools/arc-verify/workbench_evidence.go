@@ -50,6 +50,13 @@ func (d db) workbenchEvidence(run, phase string, index int) (StepRAW, string, er
 				return StepRAW{}, "", err
 			}
 			path, hash, expected, observed = record.Recovery.Evidence, record.Recovery.SHA256, fixture.State, record.Recovery.State
+			if record.Recovery.Mode == recoveryCheckpoint {
+				runner, err := d.registeredRunner(record.Runner)
+				if err != nil || fixtureRecoveryMode(runner.Manifest.Recovery) != recoveryCheckpoint {
+					return StepRAW{}, "", errors.New("checkpoint has no matching frozen runner protocol")
+				}
+				expected = fixtureRecoveryTarget(runner.Manifest.Recovery, fixture)
+			}
 			if observed == "" {
 				observed = "UNKNOWN"
 			}

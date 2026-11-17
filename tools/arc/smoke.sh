@@ -51,8 +51,8 @@ git config user.email "arc@example.invalid"
 echo "baseline" > README.txt
 git add README.txt
 git commit -qm baseline
-"$bin_dir/arc-verify" init >/dev/null
-"$bin_dir/arc-verify" import --file "$skills_root/tools/arc-verify/examples/academic-v1.json" >/dev/null
+"$bin_dir/arc" verify init >/dev/null
+"$bin_dir/arc" verify import --file "$skills_root/tools/arc-verify/examples/academic-v1.json" >/dev/null
 "$bin_dir/arc" db migrate --confirm-offline > .arc/migrated.json
 python3 -c 'import json; x=json.load(open(".arc/migrated.json")); assert x["active"] and x["migrated_graphs"]==1'
 "$bin_dir/arc" db status > .arc/status.json

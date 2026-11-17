@@ -185,3 +185,11 @@ additional recovery, cross-role, concurrency and E2E claims need their own RAW.
 CLI Campaign, Checkpoint, Frontier and fencing recover a crashed test run, not an Agent
 session or cross-Agent takeover. A handoff/model operation does not prove runner
 authenticity or fixture restoration.
+
+
+## 7. Deterministic branch handoff
+
+Follow [business-verification](business-verification.md). Carry
+`model/environment/flow/branch/run/step/actor/entity`, sourced rules, expected/observed prestate,
+preparation dependencies, frozen Expected, independent Actual, assertions and evidence identity.
+Capability ownership, preparation DAG and cyclic state transitions remain distinct.

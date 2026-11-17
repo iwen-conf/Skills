@@ -1,17 +1,14 @@
 ---
 name: arc:verify
-version: 3.9.0
+version: 4.0.0
 description: >-
-  Whole-system testing with project-local DB business graphs (完整测试, 测试整个系统, 所有交互,
-  完整业务测试, 业务树图, 业务图), including AI candidate modeling.
-  Tests business expectations: flows (业务流), test plans,
-  write tests, TDD (测试先行), test-value review (测试价值), web/mobile E2E (网页实测, tester-army/e2e), coverage, fuzz,
-  property tests, SQL lint, transaction design, reliability (concurrency, idempotency, faults),
-  PostgreSQL G0-G31, flaky triage, load tests, release go/no-go. Verdicts PASS/FAIL/BLOCKED/NOT_RUN/FLAKY
-  with independent oracles. Triggers: 写测试, 测试方案, 用例设计, 测试范围, 覆盖率, 可靠性, 业务不变量,
-  事务并发, 幂等, 压测, 发布验收, 发布证据, 模糊测试, SQL 语法检查, 事务设计, 端到端业务流, 分支覆盖, 属性测试, 模型一致性,
-  业务能力, 业务边界.
-  Not for product repair (arc:code) or static review (arc:audit).
+  Independent business verification: deterministic state/guard/actor/action branches, preparation,
+  dependency genealogy, E2E, TDD, unit/integration/property/fuzz, web/mobile, tester-army/e2e,
+  PostgreSQL G0-G31, SQL, reliability, concurrency, async, recovery, load, flaky and release evidence.
+  Triggers: 完整测试, 完整业务测试, 测试整个系统, 所有交互, 业务图, 业务树图, 写测试, 测试方案, 用例设计, 测试范围,
+  覆盖率, 可靠性, 业务不变量, 事务并发, 幂等, 压测, 发布验收, 发布证据, 测试先行, 测试价值,
+  网页实测, 模糊测试, SQL 语法检查, 事务设计, 业务流, 端到端业务流, 分支覆盖, 属性测试, 模型一致性,
+  业务能力, 业务边界. Not for product repair (use arc:code) or static review (use arc:audit).
 ---
 
 # arc:verify
@@ -26,7 +23,7 @@ Verify confirmed expectations through real entries and independent oracles; reta
 
 ## Goal
 
-Confirmed claims have IDs, source, oracle, verdict and sensitivity record; candidate graphs stay unverified.
+Freeze a unique sourced branch from observed prestate; verify independent Actual and preserve history.
 
 ## Inputs
 
@@ -68,48 +65,37 @@ Load contract and code-intel, then ≤3 topical references for the current card.
 Scope overrides mode: plan-only creates no DB unless requested; read-only never mutates the ledger.
 DB graph-only requests stop after modeling/snapshot. Load workflow for handoff/closure work.
 Existing-tests-only uses selected commands; skip flow creation, test writes and sensitivity mutations.
-HTTP/JSON/upload claims use
-[API cases](references/api-contract-tests.md).
+HTTP/JSON/upload: [API cases](references/api-contract-tests.md).
 
 ## Workflow
 
-The unified `arc verify` command keeps the existing graph/evidence engine.
-An [opt-in arc.db migration](../_shared/arc-db.md) now exists; require a
-matching gate proof, never treat migration or task-state events as PASS.
+Business graphs follow [shared deterministic semantics](../_shared/business-verification.md).
 
-Graph mode follows [business-graph](references/business-graph.md), replacing steps 2–10.
-Draw via [arch-diagram](references/business-diagram.md); inspect screenshots; release execution refs.
-Without a confirmed graph, [first start](references/business-graph-start.md) has the Agent draft,
-import and export a candidate for review, then continue authorized tests after confirmation;
-never ask users to write graph JSON or end a full test request at a plan.
-Execute [v2](references/business-graph-v2.md); handoffs:
-[workflow §6](../_shared/workflow.md#6-graph-based-business-chain-verification-across-arc-skills).
-`arc verify handoff --to arc-verify --graph <id>` expands bounded local context.
-UI cards load their runner. New tests still require sensitivity proof. No Agent handshake or model HTTP.
+Use `arc verify` and the [project ledger](../_shared/arc-db.md); migration and task status are not PASS.
 
-1. Read [contract](../_shared/contract.md) and existing progress; record tier, scope, mode,
-   environment and git baseline.
-2. Confirm capabilities from contracts; trace UI/API/RPC → usecase → writes/async for candidates.
-   Routes/CRUD/HTTP 200 prove no capability. Unconfirmed items stay `CANDIDATE`/`UNSPECIFIED`/`NOT_RUN`;
-   missing/stale flows → flow mode. Output: catalog, IDs, gaps; T0/pure logic may give `n/a: <reason>`.
-3. Claims table: `EXPECTED`/`FORBIDDEN`, confirmed source, required yes/no, oracle per branch/RULE.
-   AI inference stays `RISK`; undefined semantics are `SPECIFICATION GAP`.
-4. Map impact: [code-intel](../_shared/code-intel.md) §4 and flow-matrix §7.
-5. Design cases per case-design and flow-matrix §2–§4; name the independent oracle and defect.
-6. Bind existing runner, fixtures, CI job and test DSN, in order; record environment or
-   `BLOCKED: <missing item>` per claim.
-7. Flow/design finish `NOT_RUN (plan only)` with ledger check. Red runs step 8 before implementation;
-   hand assertion failures to `arc:code` (test-first §5).
-8. Run SQL checks per sql-static without rewriting SQL; otherwise write/run owning-package tests
-   per test-value §1. Save command, exit and per-claim output to `.arc/artifacts/<task-slug>/logs/`.
-9. Save sensitivity: targeted assertion fails on pre-fix code, known-bad input or a disposable
-   worktree mutation, then passes. A red record counts.
-10. Retain first divergence/original FAIL. Resume only from independently observed safe state
-    after reconstruction in a new run, or linked new task for a changed branch. Recheck the ledger.
-11. Run the mode tail: flaky protocol, db gates or release GO/NO-GO.
-12. Hand off: each `FAIL` → repair packet ([execution-truth](../../docs/execution-truth.md) §6) for
-    `arc:code`; each `SPECIFICATION GAP` → user; gaps and uncovered branches per flow-matrix §8.
-    Report per contract §9. Output: report.
+Graph mode uses [business-graph](references/business-graph.md), [v2 execution](references/business-graph-v2.md)
+and the [native workbench](references/business-diagram.md). For new models, the Agent drafts/imports
+and exports a [candidate](references/business-graph-start.md), then continues authorized tests.
+Never require user-written JSON or end full testing at a plan. Strong coverage requires the
+[executable contract](references/deterministic-contract.md); legacy PASS keeps its limited scope.
+Use [handoffs](../_shared/workflow.md): `arc verify handoff --to arc-verify --graph <id>`.
+No Agent handshake or model HTTP. New tests require sensitivity proof.
+
+1. Read [contract](../_shared/contract.md) and existing progress; record tier, scope, mode, environment and baseline.
+2. Derive capabilities from confirmed contracts; independently trace UI/API/RPC → usecase → writes/events.
+   Unconfirmed semantics remain `RISK`/`SPECIFICATION GAP`; routes and HTTP 200 do not prove business coverage.
+3. Bind each EXPECTED/FORBIDDEN claim to a branch/RULE, source, independent oracle and impact
+   ([code-intel](../_shared/code-intel.md) §4; flow-matrix §7). Design meaningful cases per the router.
+4. Reuse authorized runners, accounts and isolation. Observe prestate; prepare missing conditions
+   through real actions and independent readback. Missing prerequisites are `BLOCKED`.
+5. Freeze the uniquely matched branch, execute, independently observe Actual, compare each obligation
+   and save command/exit/output under `.arc/artifacts/<task-slug>/logs/`. SQL checks never rewrite SQL.
+6. Prove sensitivity: the targeted assertion fails on pre-fix/known-bad input or a disposable mutation,
+   then passes. Test-first runs before implementation; hand product defects to `arc:code`.
+7. Preserve the first deviation. Resume in a linked run only from independently observed safe state;
+   a changed branch requires new frozen expectations. Never adopt Actual as Expected.
+8. Run applicable flaky/db/release tails. Plan-only remains NOT_RUN. Report per contract §9 with
+   gaps, scope and [repair packets](../../docs/execution-truth.md) §6; continue independent authorized work.
 
 ## Tool Strategy
 

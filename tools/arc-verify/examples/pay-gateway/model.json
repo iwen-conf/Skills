@@ -1,0 +1,3574 @@
+{
+  "schema_version": 2,
+  "id": "pay-gateway-index-fixture-v2",
+  "system": "pay-gateway",
+  "scope": "仅固定提交 e4f054fc7bb06e091be62d6765bb29b4348ad651 的启用caller、启用ca_browser_huiju、CNY、合法JSON整数词法100分、owned PostgreSQL/controlled provider场景。三个状态只表示本case付款/退款引用索引。退款成功样例先由明确受控机构事件和正常查询完成环境准备；不把它升级为网关通用paid前置。不覆盖非法参数、其他账户/币种/金额/供应商、普通重复之外的proven-unsent恢复、资金终态、通知、查询或项目全业务。 request.amount显式使用有来源的json_i64编码：从真实捕获的JSON token拒绝小数/指数/字符串/超i64；金额业务范围仍只声明合法100分，未声明其他范围的产品拒绝分支。",
+  "nodes": [
+    {
+      "id": "pay-gateway",
+      "kind": "system",
+      "name": "支付转发网关受限样例【pay-gateway】"
+    },
+    {
+      "id": "DOMAIN_GATEWAY_REFERENCE",
+      "kind": "domain",
+      "name": "付款与退款引用索引【pay-gateway】"
+    },
+    {
+      "id": "CAP_PAYMENT_REFERENCE",
+      "kind": "capability",
+      "name": "创建付款引用索引【pay-gateway】"
+    },
+    {
+      "id": "CAP_REFUND_REFERENCE",
+      "kind": "capability",
+      "name": "关联退款与普通重复拒绝【pay-gateway】"
+    },
+    {
+      "id": "BOUNDARY_GATEWAY_API",
+      "kind": "boundary",
+      "name": "业务方接入接口边界【pay-gateway】"
+    },
+    {
+      "id": "BOUNDARY_REFERENCE_STORE",
+      "kind": "boundary",
+      "name": "持久引用索引边界【pay-gateway】"
+    },
+    {
+      "id": "CALLER",
+      "kind": "role",
+      "name": "启用业务方【pay-gateway】"
+    },
+    {
+      "id": "CREATE_PAYMENT",
+      "kind": "action",
+      "name": "POST payments 创建付款引用【pay-gateway】"
+    },
+    {
+      "id": "SUBMIT_REFUND",
+      "kind": "action",
+      "name": "POST refunds 关联原付款提交退款【pay-gateway】"
+    },
+    {
+      "id": "PREP_CREATE_PAYMENT_ACTION",
+      "kind": "action",
+      "name": "准备真实付款引用【pay-gateway】"
+    },
+    {
+      "id": "PREP_CONFIRM_PAYMENT_ACTION",
+      "kind": "action",
+      "name": "受控机构付款事件并经正常查询学习【pay-gateway】"
+    },
+    {
+      "id": "C_FIXTURE_SCOPE",
+      "kind": "condition",
+      "name": "真实隔离 fixture 身份核验通过【pay-gateway】"
+    },
+    {
+      "id": "EMPTY",
+      "kind": "state",
+      "name": "本样例付款与退款引用均不存在【pay-gateway】"
+    },
+    {
+      "id": "PAYMENT_INDEXED",
+      "kind": "state",
+      "name": "付款引用已存在且退款引用不存在【pay-gateway】"
+    },
+    {
+      "id": "REFUND_INDEXED",
+      "kind": "state",
+      "name": "退款引用已关联原付款存在【pay-gateway】"
+    },
+    {
+      "id": "P_ORDERS",
+      "kind": "data",
+      "name": "p_orders 引用索引（非资金终态）【pay-gateway】"
+    }
+  ],
+  "edges": [
+    {
+      "id": "CONTAINS_REFERENCE_DOMAIN",
+      "from": "pay-gateway",
+      "to": "DOMAIN_GATEWAY_REFERENCE",
+      "kind": "contains"
+    },
+    {
+      "id": "CONTAINS_CAP_PAYMENT_REFERENCE",
+      "from": "DOMAIN_GATEWAY_REFERENCE",
+      "to": "CAP_PAYMENT_REFERENCE",
+      "kind": "contains"
+    },
+    {
+      "id": "OWNS_CAP_PAYMENT_REFERENCE",
+      "from": "BOUNDARY_GATEWAY_API",
+      "to": "CAP_PAYMENT_REFERENCE",
+      "kind": "owns"
+    },
+    {
+      "id": "CONTAINS_CAP_REFUND_REFERENCE",
+      "from": "DOMAIN_GATEWAY_REFERENCE",
+      "to": "CAP_REFUND_REFERENCE",
+      "kind": "contains"
+    },
+    {
+      "id": "OWNS_CAP_REFUND_REFERENCE",
+      "from": "BOUNDARY_GATEWAY_API",
+      "to": "CAP_REFUND_REFERENCE",
+      "kind": "owns"
+    },
+    {
+      "id": "IMPLEMENTS_CREATE_PAYMENT",
+      "from": "CAP_PAYMENT_REFERENCE",
+      "to": "CREATE_PAYMENT",
+      "kind": "implements"
+    },
+    {
+      "id": "IMPLEMENTS_PREP_CREATE_PAYMENT_ACTION",
+      "from": "CAP_PAYMENT_REFERENCE",
+      "to": "PREP_CREATE_PAYMENT_ACTION",
+      "kind": "implements"
+    },
+    {
+      "id": "IMPLEMENTS_PREP_CONFIRM_PAYMENT_ACTION",
+      "from": "CAP_PAYMENT_REFERENCE",
+      "to": "PREP_CONFIRM_PAYMENT_ACTION",
+      "kind": "implements"
+    },
+    {
+      "id": "IMPLEMENTS_SUBMIT_REFUND",
+      "from": "CAP_REFUND_REFERENCE",
+      "to": "SUBMIT_REFUND",
+      "kind": "implements"
+    },
+    {
+      "id": "OWNS_P_ORDERS",
+      "from": "BOUNDARY_REFERENCE_STORE",
+      "to": "P_ORDERS",
+      "kind": "owns"
+    },
+    {
+      "id": "SERVES_CALLER",
+      "from": "CALLER",
+      "to": "DOMAIN_GATEWAY_REFERENCE",
+      "kind": "serves"
+    },
+    {
+      "id": "REQUIRES_SCOPE_CREATE_PAYMENT",
+      "from": "C_FIXTURE_SCOPE",
+      "to": "CREATE_PAYMENT",
+      "kind": "requires"
+    },
+    {
+      "id": "REQUIRES_SCOPE_SUBMIT_REFUND",
+      "from": "C_FIXTURE_SCOPE",
+      "to": "SUBMIT_REFUND",
+      "kind": "requires"
+    },
+    {
+      "id": "CREATES_PAYMENT_REFERENCE",
+      "from": "CREATE_PAYMENT",
+      "to": "PAYMENT_INDEXED",
+      "kind": "transitions"
+    },
+    {
+      "id": "CREATES_REFUND_REFERENCE",
+      "from": "SUBMIT_REFUND",
+      "to": "REFUND_INDEXED",
+      "kind": "transitions"
+    },
+    {
+      "id": "TR_CREATE_PAYMENT_INDEX",
+      "from": "EMPTY",
+      "to": "PAYMENT_INDEXED",
+      "kind": "transitions_to"
+    },
+    {
+      "id": "TR_CREATE_REFUND_INDEX",
+      "from": "PAYMENT_INDEXED",
+      "to": "REFUND_INDEXED",
+      "kind": "transitions_to"
+    },
+    {
+      "id": "TR_DUPLICATE_REFUND",
+      "from": "REFUND_INDEXED",
+      "to": "REFUND_INDEXED",
+      "kind": "transitions_to"
+    },
+    {
+      "id": "TR_MISSING_PARENT",
+      "from": "EMPTY",
+      "to": "EMPTY",
+      "kind": "transitions_to"
+    },
+    {
+      "id": "VERIFIES_TEST_CREATE_PAYMENT_INDEX",
+      "from": "TEST_CREATE_PAYMENT_INDEX",
+      "to": "CAP_PAYMENT_REFERENCE",
+      "kind": "verifies"
+    },
+    {
+      "id": "VERIFIES_TEST_REFUND_WITH_AUTOPREPARATION",
+      "from": "TEST_REFUND_WITH_AUTOPREPARATION",
+      "to": "CAP_REFUND_REFERENCE",
+      "kind": "verifies"
+    },
+    {
+      "id": "VERIFIES_TEST_MISSING_PARENT",
+      "from": "TEST_MISSING_PARENT",
+      "to": "CAP_REFUND_REFERENCE",
+      "kind": "verifies"
+    },
+    {
+      "id": "VERIFIES_TEST_REFUND_DUPLICATE_CHAIN",
+      "from": "TEST_REFUND_DUPLICATE_CHAIN",
+      "to": "CAP_REFUND_REFERENCE",
+      "kind": "verifies"
+    },
+    {
+      "id": "VERIFIES_TEST_DUPLICATE_REFUND",
+      "from": "TEST_DUPLICATE_REFUND",
+      "to": "CAP_REFUND_REFERENCE",
+      "kind": "verifies"
+    },
+    {
+      "id": "VERIFIES_DUPLICATE_TRANSITION",
+      "from": "TEST_DUPLICATE_REFUND",
+      "to": "TR_DUPLICATE_REFUND",
+      "kind": "verifies"
+    }
+  ],
+  "rules": [
+    {
+      "id": "RULE_CREATE_PAYMENT_INDEX",
+      "action": "CREATE_PAYMENT",
+      "actor": "CALLER",
+      "entry": "/api/v1/payments",
+      "oracle": "pay-store",
+      "conditions": [
+        "C_FIXTURE_SCOPE"
+      ],
+      "expected": "PAYMENT_INDEXED",
+      "rejected": "UNCHANGED",
+      "source": "document",
+      "description": "固定启用业务方/ca_browser_huiju/CNY/合法整数100分/controlled provider 样例：创建付款引用并核验一次出站。HTTP 200 与 p_orders 索引都不表示资金成功。"
+    },
+    {
+      "id": "RULE_REFUND_INDEX",
+      "action": "SUBMIT_REFUND",
+      "actor": "CALLER",
+      "entry": "/api/v1/refunds",
+      "oracle": "pay-store",
+      "conditions": [
+        "C_FIXTURE_SCOPE"
+      ],
+      "expected": "REFUND_INDEXED",
+      "rejected": "UNCHANGED",
+      "source": "document",
+      "description": "原付款、caller、原账户绑定的退款引用；普通重复退款号409且不再出站；缺原单404。网关没有本样例臆造的paid或累计退款余额守卫；controlled机构已付款要求仅用于成功场景环境准备。"
+    }
+  ],
+  "contracts": [
+    {
+      "subject": "CAP_PAYMENT_REFERENCE",
+      "description": "本能力只验证引用创建与派发；p_orders 不是 paid/failed 等资金状态账本。",
+      "source": "document",
+      "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+    },
+    {
+      "subject": "CAP_REFUND_REFERENCE",
+      "description": "只覆盖明确fixture下成功引用创建、普通重复409、缺原单404；不声称退款资金最终成功或全业务覆盖。",
+      "source": "document",
+      "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+    },
+    {
+      "subject": "RULE_CREATE_PAYMENT_INDEX",
+      "description": "按固定合法请求创建付款引用；请求属性来自实际resolvedBody，响应字段来自真实HTTP capture，SQL独立读回。",
+      "source": "document",
+      "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+    },
+    {
+      "subject": "RULE_REFUND_INDEX",
+      "description": "网关退款通过父单/caller/account绑定；不得添加网关通用paid或累计余额前置。controlled供应商的paid要求是环境前提。",
+      "source": "document",
+      "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md ; https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682"
+    },
+    {
+      "subject": "PREP_CREATE_PAYMENT_ACTION",
+      "description": "通过真实 /api/v1/payments 创建原付款；金额100、CNY、指定启用ca_browser_huiju属于本fixture输入，回读SQL与机构收单确认。",
+      "source": "document",
+      "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+    },
+    {
+      "subject": "PREP_CONFIRM_PAYMENT_ACTION",
+      "description": "组合准备动作：/__qa/provider_paid仅改变受控机构，然后正常鉴权 /api/v1/payments/query 学习；独立读取p_notify_jobs/p_callback_receipts succeeded，不从p_orders猜资金状态。",
+      "source": "document",
+      "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682 ; https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/browser_host.rs#L1345-L1374"
+    },
+    {
+      "subject": "P_ORDERS",
+      "description": "p_orders保存支付/退款引用索引与父单/caller/account关系；EMPTY/PAYMENT_INDEXED/REFUND_INDEXED均为本样例索引投影。",
+      "source": "document",
+      "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+    }
+  ],
+  "transitions": [
+    {
+      "edge": "TR_CREATE_PAYMENT_INDEX",
+      "action": "CREATE_PAYMENT",
+      "rule": "RULE_CREATE_PAYMENT_INDEX",
+      "preconditions": {
+        "C_FIXTURE_SCOPE": true
+      },
+      "outcome": "success"
+    },
+    {
+      "edge": "TR_CREATE_REFUND_INDEX",
+      "action": "SUBMIT_REFUND",
+      "rule": "RULE_REFUND_INDEX",
+      "preconditions": {
+        "C_FIXTURE_SCOPE": true
+      },
+      "outcome": "success"
+    },
+    {
+      "edge": "TR_DUPLICATE_REFUND",
+      "action": "SUBMIT_REFUND",
+      "rule": "RULE_REFUND_INDEX",
+      "preconditions": {
+        "C_FIXTURE_SCOPE": true
+      },
+      "outcome": "rejection"
+    },
+    {
+      "edge": "TR_MISSING_PARENT",
+      "action": "SUBMIT_REFUND",
+      "rule": "RULE_REFUND_INDEX",
+      "preconditions": {
+        "C_FIXTURE_SCOPE": true
+      },
+      "outcome": "rejection"
+    }
+  ],
+  "flows": [
+    {
+      "id": "FLOW_PAYMENT_REFERENCE",
+      "capability": "CAP_PAYMENT_REFERENCE",
+      "initial": "EMPTY"
+    },
+    {
+      "id": "FLOW_REFUND_DUPLICATE",
+      "capability": "CAP_REFUND_REFERENCE",
+      "initial": "PAYMENT_INDEXED"
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST_CREATE_PAYMENT_INDEX",
+      "name": "真实创建付款引用并核对SQL与机构收单",
+      "rule": "RULE_CREATE_PAYMENT_INDEX",
+      "kind": "POSITIVE",
+      "preconditions": {
+        "C_FIXTURE_SCOPE": true
+      },
+      "expected": "PAYMENT_INDEXED",
+      "denied": false,
+      "actors": [
+        {
+          "alias": "primary",
+          "role": "CALLER"
+        }
+      ],
+      "source": "document",
+      "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+    },
+    {
+      "id": "TEST_REFUND_WITH_AUTOPREPARATION",
+      "name": "从空引用自动准备后真实提交退款",
+      "rule": "RULE_REFUND_INDEX",
+      "kind": "POSITIVE",
+      "preconditions": {
+        "C_FIXTURE_SCOPE": true
+      },
+      "expected": "REFUND_INDEXED",
+      "denied": false,
+      "actors": [
+        {
+          "alias": "primary",
+          "role": "CALLER"
+        }
+      ],
+      "source": "document",
+      "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md ; controlled preparation: https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682"
+    },
+    {
+      "id": "TEST_MISSING_PARENT",
+      "name": "不存在原付款时拒绝且无退款出站",
+      "rule": "RULE_REFUND_INDEX",
+      "kind": "NEGATIVE",
+      "preconditions": {
+        "C_FIXTURE_SCOPE": true
+      },
+      "expected": "UNCHANGED",
+      "denied": true,
+      "actors": [
+        {
+          "alias": "primary",
+          "role": "CALLER"
+        }
+      ],
+      "source": "document",
+      "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+    },
+    {
+      "id": "TEST_REFUND_DUPLICATE_CHAIN",
+      "name": "同一账号原付款与退款实体连续提交后重复拒绝",
+      "rule": "RULE_REFUND_INDEX",
+      "kind": "SEQUENCE",
+      "flow": "FLOW_REFUND_DUPLICATE",
+      "steps": [
+        "TR_CREATE_REFUND_INDEX",
+        "TR_DUPLICATE_REFUND"
+      ],
+      "expected": "UNCHANGED",
+      "denied": true,
+      "actors": [
+        {
+          "alias": "primary",
+          "role": "CALLER"
+        }
+      ],
+      "source": "document",
+      "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md ; controlled success environment: https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682"
+    },
+    {
+      "id": "TEST_DUPLICATE_REFUND",
+      "name": "checkpoint后同caller真实回读重绑定已有付款退款再重复拒绝",
+      "rule": "RULE_REFUND_INDEX",
+      "kind": "TRANSITION",
+      "preconditions": {
+        "C_FIXTURE_SCOPE": true
+      },
+      "expected": "UNCHANGED",
+      "denied": true,
+      "actors": [
+        {
+          "alias": "primary",
+          "role": "CALLER"
+        }
+      ],
+      "source": "document",
+      "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK_PAYMENT_FUNDING_UNVERIFIED",
+      "action": "CREATE_PAYMENT",
+      "description": "未验证完整支付确认/异常资金状态；引用索引创建、HTTP 200或本fixture准备成功不等于实际机构资金终态。"
+    },
+    {
+      "id": "RISK_CALLBACK_NOTIFY_QUERY_UNVERIFIED",
+      "action": "SUBMIT_REFUND",
+      "description": "回调、通知、一般查询、超时、乱序及退款最终成功/失败仍未验证；准备中的一次明确正常查询不充当这些路径的完整覆盖。"
+    },
+    {
+      "id": "RISK_RESUME_UNVERIFIED",
+      "action": "SUBMIT_REFUND",
+      "description": "普通重复不得恢复。本样例未验证仅有耐久proven-unsent证明且发送归属已释放时的特殊原号恢复协议。"
+    },
+    {
+      "id": "RISK_SCOPE_BOUNDARIES_UNVERIFIED",
+      "action": "SUBMIT_REFUND",
+      "description": "跨caller/account、停用户、其他金额/币种、非法JSON金额词法、路由切换和并发等范围之外条件未执行，有限域证明不提供这些条件或物理可达性的完整性证明。"
+    }
+  ],
+  "business_contract": {
+    "version": 1,
+    "subjects": [
+      {
+        "id": "actor",
+        "kind": "actor",
+        "attributes": [
+          {
+            "name": "enabled",
+            "type": "boolean"
+          }
+        ],
+        "requires_binding": true
+      },
+      {
+        "id": "account",
+        "kind": "account",
+        "attributes": [
+          {
+            "name": "enabled",
+            "type": "boolean"
+          }
+        ]
+      },
+      {
+        "id": "payment",
+        "kind": "entity",
+        "attributes": [
+          {
+            "name": "exists",
+            "type": "boolean"
+          },
+          {
+            "name": "rows",
+            "type": "integer"
+          },
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "integer"
+          },
+          {
+            "name": "currency",
+            "type": "string"
+          },
+          {
+            "name": "channel_account_id",
+            "type": "string"
+          },
+          {
+            "name": "provider",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "id": "refund",
+        "kind": "entity",
+        "attributes": [
+          {
+            "name": "exists",
+            "type": "boolean"
+          },
+          {
+            "name": "rows",
+            "type": "integer"
+          },
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "notifications",
+            "type": "integer"
+          },
+          {
+            "name": "callbacks",
+            "type": "integer"
+          },
+          {
+            "name": "amount",
+            "type": "integer"
+          },
+          {
+            "name": "currency",
+            "type": "string"
+          },
+          {
+            "name": "channel_account_id",
+            "type": "string"
+          },
+          {
+            "name": "provider",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "id": "provider",
+        "kind": "environment",
+        "attributes": [
+          {
+            "name": "payment_dispatches",
+            "type": "integer"
+          },
+          {
+            "name": "refund_dispatches",
+            "type": "integer"
+          },
+          {
+            "name": "payment_received",
+            "type": "integer"
+          },
+          {
+            "name": "refund_received",
+            "type": "integer"
+          },
+          {
+            "name": "payment_confirmed",
+            "type": "boolean"
+          },
+          {
+            "name": "unexpected_receipts",
+            "type": "integer"
+          }
+        ]
+      },
+      {
+        "id": "relation",
+        "kind": "relation",
+        "attributes": [
+          {
+            "name": "parent_valid",
+            "type": "boolean"
+          },
+          {
+            "name": "same_caller",
+            "type": "boolean"
+          },
+          {
+            "name": "same_account",
+            "type": "boolean"
+          }
+        ]
+      },
+      {
+        "id": "environment",
+        "kind": "environment",
+        "attributes": [
+          {
+            "name": "controlled",
+            "type": "boolean"
+          }
+        ]
+      },
+      {
+        "id": "request",
+        "kind": "environment",
+        "attributes": [
+          {
+            "name": "amount",
+            "type": "integer",
+            "encoding": "json_i64",
+            "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/src/interface/restful/dto/parse.rs#L100-L159 ; https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md#L440-L454"
+          },
+          {
+            "name": "currency",
+            "type": "string"
+          },
+          {
+            "name": "channel_account_id",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "id": "transport",
+        "kind": "environment",
+        "attributes": [
+          {
+            "name": "status_code",
+            "type": "integer"
+          }
+        ]
+      },
+      {
+        "id": "reply",
+        "kind": "environment",
+        "attributes": [
+          {
+            "name": "status",
+            "type": "string"
+          },
+          {
+            "name": "order_id",
+            "type": "string"
+          },
+          {
+            "name": "code",
+            "type": "string"
+          },
+          {
+            "name": "resource_id",
+            "type": "string"
+          }
+        ]
+      }
+    ],
+    "branches": [
+      {
+        "id": "BR_CREATE_PAYMENT_INDEX",
+        "action": "CREATE_PAYMENT",
+        "rule": "RULE_CREATE_PAYMENT_INDEX",
+        "from_states": [
+          "EMPTY"
+        ],
+        "transition": "TR_CREATE_PAYMENT_INDEX",
+        "capability": "CAP_PAYMENT_REFERENCE",
+        "obligations": [
+          "TEST_CREATE_PAYMENT_INDEX"
+        ],
+        "when": {
+          "op": "and",
+          "args": [
+            {
+              "op": "and",
+              "args": [
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "actor",
+                      "attribute": "enabled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                },
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "account",
+                      "attribute": "enabled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                },
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "environment",
+                      "attribute": "controlled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "request",
+                  "attribute": "amount"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "integer",
+                  "value": 100
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "request",
+                  "attribute": "currency"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "string",
+                  "value": "CNY"
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "request",
+                  "attribute": "channel_account_id"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "string",
+                  "value": "ca_browser_huiju"
+                }
+              }
+            }
+          ]
+        },
+        "expected": {
+          "mode": "deterministic",
+          "outcomes": [
+            {
+              "id": "PAYMENT_REFERENCE_CREATED",
+              "state": "PAYMENT_INDEXED",
+              "denied": false,
+              "predicate": {
+                "op": "eq",
+                "left": {
+                  "ref": {
+                    "subject": "reply",
+                    "attribute": "order_id"
+                  }
+                },
+                "right": {
+                  "ref": {
+                    "subject": "payment",
+                    "attribute": "id"
+                  }
+                }
+              },
+              "checks": [
+                {
+                  "id": "HTTP_200",
+                  "kind": "response",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "transport",
+                        "attribute": "status_code"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 200
+                      }
+                    }
+                  },
+                  "oracle": "response-capture",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_ROWS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "rows"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_ROWS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "rows"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 0
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_EXISTS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "exists"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_EXISTS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "exists"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": false
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_DISPATCH_COUNT",
+                  "kind": "forbidden_side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "payment_dispatches"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_DISPATCH_COUNT",
+                  "kind": "forbidden_side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "refund_dispatches"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 0
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_PEER_RECEIPTS",
+                  "kind": "side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "payment_received"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682"
+                },
+                {
+                  "id": "REFUND_PEER_RECEIPTS",
+                  "kind": "side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "refund_received"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 0
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682"
+                },
+                {
+                  "id": "PAYMENT_AMOUNT",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "amount"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 100
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_CURRENCY",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "currency"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "CNY"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_CHANNEL_ACCOUNT_ID",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "channel_account_id"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "ca_browser_huiju"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_PROVIDER",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "provider"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "huiju"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_ID_PRESENT",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "ne",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "id"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": ""
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REPLY_ORDER_ID_PRESENT",
+                  "kind": "response",
+                  "predicate": {
+                    "op": "ne",
+                    "left": {
+                      "ref": {
+                        "subject": "reply",
+                        "attribute": "order_id"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": ""
+                      }
+                    }
+                  },
+                  "oracle": "response-capture",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "NO_UNEXPECTED_CREATION_RECEIPTS",
+                  "kind": "forbidden_side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "unexpected_receipts"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 0
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L105-L119 ; owned reset: https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/browser_host.rs#L998-L1003"
+                }
+              ],
+              "next_allowed": [
+                "SUBMIT_REFUND"
+              ]
+            }
+          ],
+          "common_invariants": [
+            {
+              "id": "FIXTURE_IDENTITY_STABLE",
+              "kind": "invariant",
+              "predicate": {
+                "op": "and",
+                "args": [
+                  {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "actor",
+                        "attribute": "enabled"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "account",
+                        "attribute": "enabled"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "environment",
+                        "attribute": "controlled"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  }
+                ]
+              },
+              "oracle": "pay-store",
+              "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/browser_host.rs#L1345-L1374"
+            }
+          ]
+        },
+        "source": "document",
+        "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md",
+        "confirmed": true
+      },
+      {
+        "id": "BR_CREATE_REFUND_INDEX",
+        "action": "SUBMIT_REFUND",
+        "rule": "RULE_REFUND_INDEX",
+        "from_states": [
+          "PAYMENT_INDEXED"
+        ],
+        "transition": "TR_CREATE_REFUND_INDEX",
+        "capability": "CAP_REFUND_REFERENCE",
+        "obligations": [
+          "TEST_REFUND_WITH_AUTOPREPARATION",
+          "TEST_REFUND_DUPLICATE_CHAIN"
+        ],
+        "when": {
+          "op": "and",
+          "args": [
+            {
+              "op": "and",
+              "args": [
+                {
+                  "op": "and",
+                  "args": [
+                    {
+                      "op": "eq",
+                      "left": {
+                        "ref": {
+                          "subject": "actor",
+                          "attribute": "enabled"
+                        }
+                      },
+                      "right": {
+                        "literal": {
+                          "type": "boolean",
+                          "value": true
+                        }
+                      }
+                    },
+                    {
+                      "op": "eq",
+                      "left": {
+                        "ref": {
+                          "subject": "account",
+                          "attribute": "enabled"
+                        }
+                      },
+                      "right": {
+                        "literal": {
+                          "type": "boolean",
+                          "value": true
+                        }
+                      }
+                    },
+                    {
+                      "op": "eq",
+                      "left": {
+                        "ref": {
+                          "subject": "environment",
+                          "attribute": "controlled"
+                        }
+                      },
+                      "right": {
+                        "literal": {
+                          "type": "boolean",
+                          "value": true
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "request",
+                      "attribute": "amount"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "integer",
+                      "value": 100
+                    }
+                  }
+                },
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "request",
+                      "attribute": "currency"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "string",
+                      "value": "CNY"
+                    }
+                  }
+                },
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "request",
+                      "attribute": "channel_account_id"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "string",
+                      "value": "ca_browser_huiju"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "provider",
+                  "attribute": "payment_confirmed"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "boolean",
+                  "value": true
+                }
+              }
+            }
+          ]
+        },
+        "expected": {
+          "mode": "deterministic",
+          "outcomes": [
+            {
+              "id": "REFUND_REFERENCE_CREATED",
+              "state": "REFUND_INDEXED",
+              "denied": false,
+              "predicate": {
+                "op": "eq",
+                "left": {
+                  "ref": {
+                    "subject": "reply",
+                    "attribute": "order_id"
+                  }
+                },
+                "right": {
+                  "ref": {
+                    "subject": "refund",
+                    "attribute": "id"
+                  }
+                }
+              },
+              "checks": [
+                {
+                  "id": "HTTP_200",
+                  "kind": "response",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "transport",
+                        "attribute": "status_code"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 200
+                      }
+                    }
+                  },
+                  "oracle": "response-capture",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "CONTROLLED_REFUND_PROCESSING",
+                  "kind": "response",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "reply",
+                        "attribute": "status"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "processing"
+                      }
+                    }
+                  },
+                  "oracle": "response-capture",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682"
+                },
+                {
+                  "id": "PAYMENT_ROWS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "rows"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_ROWS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "rows"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_EXISTS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "exists"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_EXISTS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "exists"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_DISPATCH_COUNT",
+                  "kind": "forbidden_side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "payment_dispatches"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_DISPATCH_COUNT",
+                  "kind": "forbidden_side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "refund_dispatches"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_PEER_RECEIPTS",
+                  "kind": "side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "payment_received"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682"
+                },
+                {
+                  "id": "REFUND_PEER_RECEIPTS",
+                  "kind": "side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "refund_received"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682"
+                },
+                {
+                  "id": "ORIGINAL_PAYMENT_LINK",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "relation",
+                        "attribute": "parent_valid"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "SAME_CALLER",
+                  "kind": "identity",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "relation",
+                        "attribute": "same_caller"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "SAME_ACCOUNT",
+                  "kind": "identity",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "relation",
+                        "attribute": "same_account"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "CONTROLLED_ORIGINAL_CONFIRMED",
+                  "kind": "invariant",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "payment_confirmed"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682 ; https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/browser_host.rs#L1345-L1374"
+                },
+                {
+                  "id": "PAYMENT_AMOUNT",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "amount"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 100
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_CURRENCY",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "currency"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "CNY"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_CHANNEL_ACCOUNT_ID",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "channel_account_id"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "ca_browser_huiju"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_PROVIDER",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "provider"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "huiju"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_AMOUNT",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "amount"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 100
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_CURRENCY",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "currency"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "CNY"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_CHANNEL_ACCOUNT_ID",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "channel_account_id"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "ca_browser_huiju"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_PROVIDER",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "provider"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "huiju"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_ID_PRESENT",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "ne",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "id"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": ""
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_ID_PRESENT",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "ne",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "id"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": ""
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REPLY_ORDER_ID_PRESENT",
+                  "kind": "response",
+                  "predicate": {
+                    "op": "ne",
+                    "left": {
+                      "ref": {
+                        "subject": "reply",
+                        "attribute": "order_id"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": ""
+                      }
+                    }
+                  },
+                  "oracle": "response-capture",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "NO_UNEXPECTED_CREATION_RECEIPTS",
+                  "kind": "forbidden_side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "unexpected_receipts"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 0
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L105-L119 ; owned reset: https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/browser_host.rs#L998-L1003"
+                }
+              ],
+              "next_allowed": [
+                "SUBMIT_REFUND"
+              ]
+            }
+          ],
+          "common_invariants": [
+            {
+              "id": "FIXTURE_IDENTITY_STABLE",
+              "kind": "invariant",
+              "predicate": {
+                "op": "and",
+                "args": [
+                  {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "actor",
+                        "attribute": "enabled"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "account",
+                        "attribute": "enabled"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "environment",
+                        "attribute": "controlled"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  }
+                ]
+              },
+              "oracle": "pay-store",
+              "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/browser_host.rs#L1345-L1374"
+            }
+          ]
+        },
+        "source": "document",
+        "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md ; controlled institution environment only: https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682",
+        "confirmed": true
+      },
+      {
+        "id": "BR_DUPLICATE_REFUND",
+        "action": "SUBMIT_REFUND",
+        "rule": "RULE_REFUND_INDEX",
+        "from_states": [
+          "REFUND_INDEXED"
+        ],
+        "transition": "TR_DUPLICATE_REFUND",
+        "capability": "CAP_REFUND_REFERENCE",
+        "obligations": [
+          "TEST_REFUND_DUPLICATE_CHAIN",
+          "TEST_DUPLICATE_REFUND"
+        ],
+        "when": {
+          "op": "and",
+          "args": [
+            {
+              "op": "and",
+              "args": [
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "actor",
+                      "attribute": "enabled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                },
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "account",
+                      "attribute": "enabled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                },
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "environment",
+                      "attribute": "controlled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "request",
+                  "attribute": "amount"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "integer",
+                  "value": 100
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "request",
+                  "attribute": "currency"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "string",
+                  "value": "CNY"
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "request",
+                  "attribute": "channel_account_id"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "string",
+                  "value": "ca_browser_huiju"
+                }
+              }
+            }
+          ]
+        },
+        "expected": {
+          "mode": "deterministic",
+          "outcomes": [
+            {
+              "id": "DUPLICATE_REFUND_REJECTED",
+              "state": "REFUND_INDEXED",
+              "denied": true,
+              "predicate": {
+                "op": "eq",
+                "left": {
+                  "ref": {
+                    "subject": "reply",
+                    "attribute": "resource_id"
+                  }
+                },
+                "right": {
+                  "ref": {
+                    "subject": "refund",
+                    "attribute": "id"
+                  }
+                }
+              },
+              "checks": [
+                {
+                  "id": "HTTP_409",
+                  "kind": "response",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "transport",
+                        "attribute": "status_code"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 409
+                      }
+                    }
+                  },
+                  "oracle": "response-capture",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "DUPLICATE_ORDER_CODE",
+                  "kind": "response",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "reply",
+                        "attribute": "code"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "duplicate_order"
+                      }
+                    }
+                  },
+                  "oracle": "response-capture",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_ROWS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "rows"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_ROWS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "rows"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_EXISTS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "exists"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_EXISTS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "exists"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_DISPATCH_COUNT",
+                  "kind": "forbidden_side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "payment_dispatches"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_DISPATCH_COUNT",
+                  "kind": "forbidden_side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "refund_dispatches"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_PEER_RECEIPTS",
+                  "kind": "side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "payment_received"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682"
+                },
+                {
+                  "id": "REFUND_PEER_RECEIPTS",
+                  "kind": "side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "refund_received"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 1
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682"
+                },
+                {
+                  "id": "ORIGINAL_PAYMENT_LINK",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "relation",
+                        "attribute": "parent_valid"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "SAME_CALLER",
+                  "kind": "identity",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "relation",
+                        "attribute": "same_caller"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "SAME_ACCOUNT",
+                  "kind": "identity",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "relation",
+                        "attribute": "same_account"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_AMOUNT",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "amount"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 100
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_CURRENCY",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "currency"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "CNY"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_CHANNEL_ACCOUNT_ID",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "channel_account_id"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "ca_browser_huiju"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_PROVIDER",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "provider"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "huiju"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_AMOUNT",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "amount"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 100
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_CURRENCY",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "currency"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "CNY"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_CHANNEL_ACCOUNT_ID",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "channel_account_id"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "ca_browser_huiju"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_PROVIDER",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "provider"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "huiju"
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_ID_PRESENT",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "ne",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "id"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": ""
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_ID_PRESENT",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "ne",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "id"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": ""
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REPLY_RESOURCE_ID_PRESENT",
+                  "kind": "response",
+                  "predicate": {
+                    "op": "ne",
+                    "left": {
+                      "ref": {
+                        "subject": "reply",
+                        "attribute": "resource_id"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": ""
+                      }
+                    }
+                  },
+                  "oracle": "response-capture",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "NO_UNEXPECTED_CREATION_RECEIPTS",
+                  "kind": "forbidden_side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "unexpected_receipts"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 0
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L105-L119 ; owned reset: https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/browser_host.rs#L998-L1003"
+                }
+              ]
+            }
+          ],
+          "common_invariants": [
+            {
+              "id": "FIXTURE_IDENTITY_STABLE",
+              "kind": "invariant",
+              "predicate": {
+                "op": "and",
+                "args": [
+                  {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "actor",
+                        "attribute": "enabled"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "account",
+                        "attribute": "enabled"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "environment",
+                        "attribute": "controlled"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  }
+                ]
+              },
+              "oracle": "pay-store",
+              "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/browser_host.rs#L1345-L1374"
+            }
+          ]
+        },
+        "source": "document",
+        "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md",
+        "confirmed": true
+      },
+      {
+        "id": "BR_MISSING_PARENT",
+        "action": "SUBMIT_REFUND",
+        "rule": "RULE_REFUND_INDEX",
+        "from_states": [
+          "EMPTY"
+        ],
+        "transition": "TR_MISSING_PARENT",
+        "capability": "CAP_REFUND_REFERENCE",
+        "obligations": [
+          "TEST_MISSING_PARENT"
+        ],
+        "when": {
+          "op": "and",
+          "args": [
+            {
+              "op": "and",
+              "args": [
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "actor",
+                      "attribute": "enabled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                },
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "account",
+                      "attribute": "enabled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                },
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "environment",
+                      "attribute": "controlled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "request",
+                  "attribute": "amount"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "integer",
+                  "value": 100
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "request",
+                  "attribute": "currency"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "string",
+                  "value": "CNY"
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "request",
+                  "attribute": "channel_account_id"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "string",
+                  "value": "ca_browser_huiju"
+                }
+              }
+            }
+          ]
+        },
+        "expected": {
+          "mode": "deterministic",
+          "outcomes": [
+            {
+              "id": "MISSING_PARENT_REJECTED",
+              "state": "EMPTY",
+              "denied": true,
+              "predicate": {
+                "op": "true"
+              },
+              "checks": [
+                {
+                  "id": "HTTP_404",
+                  "kind": "response",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "transport",
+                        "attribute": "status_code"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 404
+                      }
+                    }
+                  },
+                  "oracle": "response-capture",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "MISSING_RESOURCE_CODE",
+                  "kind": "response",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "reply",
+                        "attribute": "code"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "string",
+                        "value": "resource_not_found"
+                      }
+                    }
+                  },
+                  "oracle": "response-capture",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_ROWS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "rows"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 0
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_ROWS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "rows"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 0
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_EXISTS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "payment",
+                        "attribute": "exists"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": false
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_EXISTS",
+                  "kind": "persistence",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "refund",
+                        "attribute": "exists"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": false
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_DISPATCH_COUNT",
+                  "kind": "forbidden_side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "payment_dispatches"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 0
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "REFUND_DISPATCH_COUNT",
+                  "kind": "forbidden_side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "refund_dispatches"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 0
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+                },
+                {
+                  "id": "PAYMENT_PEER_RECEIPTS",
+                  "kind": "side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "payment_received"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 0
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682"
+                },
+                {
+                  "id": "REFUND_PEER_RECEIPTS",
+                  "kind": "side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "refund_received"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 0
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682"
+                },
+                {
+                  "id": "NO_UNEXPECTED_CREATION_RECEIPTS",
+                  "kind": "forbidden_side_effect",
+                  "predicate": {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "provider",
+                        "attribute": "unexpected_receipts"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "integer",
+                        "value": 0
+                      }
+                    }
+                  },
+                  "oracle": "pay-store",
+                  "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L105-L119 ; owned reset: https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/browser_host.rs#L998-L1003"
+                }
+              ]
+            }
+          ],
+          "common_invariants": [
+            {
+              "id": "FIXTURE_IDENTITY_STABLE",
+              "kind": "invariant",
+              "predicate": {
+                "op": "and",
+                "args": [
+                  {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "actor",
+                        "attribute": "enabled"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "account",
+                        "attribute": "enabled"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  },
+                  {
+                    "op": "eq",
+                    "left": {
+                      "ref": {
+                        "subject": "environment",
+                        "attribute": "controlled"
+                      }
+                    },
+                    "right": {
+                      "literal": {
+                        "type": "boolean",
+                        "value": true
+                      }
+                    }
+                  }
+                ]
+              },
+              "oracle": "pay-store",
+              "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/browser_host.rs#L1345-L1374"
+            }
+          ]
+        },
+        "source": "document",
+        "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md",
+        "confirmed": true
+      }
+    ],
+    "preparation": [
+      {
+        "id": "PREP_CREATE_PAYMENT",
+        "action": "PREP_CREATE_PAYMENT_ACTION",
+        "requires": {
+          "op": "and",
+          "args": [
+            {
+              "op": "and",
+              "args": [
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "actor",
+                      "attribute": "enabled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                },
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "account",
+                      "attribute": "enabled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                },
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "environment",
+                      "attribute": "controlled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "payment",
+                  "attribute": "exists"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "boolean",
+                  "value": false
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "refund",
+                  "attribute": "exists"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "boolean",
+                  "value": false
+                }
+              }
+            }
+          ]
+        },
+        "ensures": {
+          "op": "and",
+          "args": [
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "payment",
+                  "attribute": "exists"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "boolean",
+                  "value": true
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "payment",
+                  "attribute": "rows"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "integer",
+                  "value": 1
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "provider",
+                  "attribute": "payment_dispatches"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "integer",
+                  "value": 1
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "provider",
+                  "attribute": "payment_received"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "integer",
+                  "value": 1
+                }
+              }
+            }
+          ]
+        },
+        "effects": [
+          {
+            "subject": "payment",
+            "attribute": "exists",
+            "value": true
+          },
+          {
+            "subject": "payment",
+            "attribute": "rows",
+            "value": 1
+          },
+          {
+            "subject": "provider",
+            "attribute": "payment_dispatches",
+            "value": 1
+          },
+          {
+            "subject": "provider",
+            "attribute": "payment_received",
+            "value": 1
+          }
+        ],
+        "source": "document",
+        "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md ; controlled fixture: https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/browser_host.rs#L1345-L1374"
+      },
+      {
+        "id": "PREP_CONFIRM_PAYMENT",
+        "action": "PREP_CONFIRM_PAYMENT_ACTION",
+        "requires": {
+          "op": "and",
+          "args": [
+            {
+              "op": "and",
+              "args": [
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "actor",
+                      "attribute": "enabled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                },
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "account",
+                      "attribute": "enabled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                },
+                {
+                  "op": "eq",
+                  "left": {
+                    "ref": {
+                      "subject": "environment",
+                      "attribute": "controlled"
+                    }
+                  },
+                  "right": {
+                    "literal": {
+                      "type": "boolean",
+                      "value": true
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "payment",
+                  "attribute": "exists"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "boolean",
+                  "value": true
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "refund",
+                  "attribute": "exists"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "boolean",
+                  "value": false
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "provider",
+                  "attribute": "payment_received"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "integer",
+                  "value": 1
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "provider",
+                  "attribute": "payment_confirmed"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "boolean",
+                  "value": false
+                }
+              }
+            }
+          ]
+        },
+        "ensures": {
+          "op": "and",
+          "args": [
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "payment",
+                  "attribute": "exists"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "boolean",
+                  "value": true
+                }
+              }
+            },
+            {
+              "op": "eq",
+              "left": {
+                "ref": {
+                  "subject": "provider",
+                  "attribute": "payment_confirmed"
+                }
+              },
+              "right": {
+                "literal": {
+                  "type": "boolean",
+                  "value": true
+                }
+              }
+            }
+          ]
+        },
+        "depends_on": [
+          "PREP_CREATE_PAYMENT"
+        ],
+        "effects": [
+          {
+            "subject": "provider",
+            "attribute": "payment_confirmed",
+            "value": true
+          }
+        ],
+        "source": "document",
+        "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/ratio_providers.rs#L641-L682 ; https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/tests/fixtures/browser_host.rs#L1345-L1374 ; normal authenticated payments/query: https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md"
+      }
+    ],
+    "coverage": {
+      "scope": "四个显式action/prestate场景；仅启用caller+ca_browser_huiju，真实controlled环境，实际合法100分/CNY固定账户请求；成功退款额外限定受控机构已确认环境。只证明这组有限输入的分支唯一，不证明系统全业务或路径可达性。",
+      "domains": [
+        {
+          "subject": "actor",
+          "attribute": "enabled",
+          "values": [
+            true
+          ]
+        },
+        {
+          "subject": "account",
+          "attribute": "enabled",
+          "values": [
+            true
+          ]
+        },
+        {
+          "subject": "environment",
+          "attribute": "controlled",
+          "values": [
+            true
+          ]
+        },
+        {
+          "subject": "request",
+          "attribute": "amount",
+          "values": [
+            100
+          ]
+        },
+        {
+          "subject": "request",
+          "attribute": "currency",
+          "values": [
+            "CNY"
+          ]
+        },
+        {
+          "subject": "request",
+          "attribute": "channel_account_id",
+          "values": [
+            "ca_browser_huiju"
+          ]
+        },
+        {
+          "subject": "provider",
+          "attribute": "payment_confirmed",
+          "values": [
+            true
+          ]
+        }
+      ],
+      "max_cases": 16,
+      "scopes": [
+        {
+          "action": "CREATE_PAYMENT",
+          "states": [
+            "EMPTY"
+          ]
+        },
+        {
+          "action": "SUBMIT_REFUND",
+          "states": [
+            "PAYMENT_INDEXED",
+            "REFUND_INDEXED",
+            "EMPTY"
+          ]
+        }
+      ]
+    }
+  }
+}

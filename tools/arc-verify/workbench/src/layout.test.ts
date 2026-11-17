@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { layoutNodes } from "./layout";
+import { analyzeDirected, layoutDirected, layoutNodes, neighborhood } from "./layout";
 import type { BusinessNode, Relation } from "./types";
 
 describe("typed visual projection", () => {
@@ -46,5 +46,45 @@ describe("typed visual projection", () => {
         (n) => Number.isFinite(n.x) && Number.isFinite(n.y),
       ),
     ).toBe(true);
+  });
+  it("puts a shared dependency after its longest path, regardless of a shortcut", () => {
+    const dag = ["A", "B", "C", "D"].map((id) => ({ id, kind: "action", name: id }));
+    const links = [
+      ["A", "D"],
+      ["A", "B"],
+      ["B", "C"],
+      ["C", "D"],
+    ].map(([from, to]) => ({ id: from + to, kind: "prepares", from, to }));
+    const result = layoutDirected(dag, links);
+    const x = new Map(result.map((node) => [node.id, node.x]));
+    for (const edge of links) expect(x.get(edge.from)!).toBeLessThan(x.get(edge.to)!);
+    expect([...analyzeDirected(dag, links).criticalEdges].sort()).toEqual(["AB", "BC", "CD"]);
+    expect(layoutDirected([...dag].reverse(), [...links].reverse())).toEqual(result);
+  });
+  it("condenses legal state loops without losing a downstream exit or self-loop", () => {
+    const states = ["pending", "retry", "success", "terminal"].map((id) => ({
+      id,
+      kind: "state",
+      name: id,
+    }));
+    const links = [
+      ["pending", "retry"],
+      ["retry", "pending"],
+      ["retry", "success"],
+      ["terminal", "terminal"],
+    ].map(([from, to]) => ({ id: from + to, kind: "transitions_to", from, to }));
+    const analysis = analyzeDirected(states, links);
+    expect(analysis.cycles).toEqual([["pending", "retry"], ["terminal"]]);
+    expect(analysis.levels.get("success")).toBeGreaterThan(analysis.levels.get("retry")!);
+    expect([...neighborhood(links, "success", "upstream")].sort()).toEqual([
+      "pending",
+      "retry",
+      "success",
+    ]);
+    expect([...neighborhood(links, "pending", "downstream")].sort()).toEqual([
+      "pending",
+      "retry",
+      "success",
+    ]);
   });
 });

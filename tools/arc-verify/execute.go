@@ -7,12 +7,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 )
 
 type ExecuteRequest struct {
+	campaign *businessCampaignExecution
+
 	Task        string            `json:"task"`
 	Runner      string            `json:"runner"`
 	Round       string            `json:"round"`
@@ -83,11 +86,9 @@ func actionRecord(step RunnerStep, participant ParticipantBinding, output Adapte
 }
 
 func buildConditionReadings(model Graph, actor, oracleID string, oracle OracleAdapter, expected map[string]bool, actual map[string]bool, required []string) []ConditionReading {
-	subjectsByCond := map[string]ConditionSubject{}
+	subjectsByCond := map[string][]ConditionSubject{}
 	for _, s := range model.ConditionSubjects {
-		if _, exists := subjectsByCond[s.Condition]; !exists {
-			subjectsByCond[s.Condition] = s
-		}
+		subjectsByCond[s.Condition] = append(subjectsByCond[s.Condition], s)
 	}
 	seen := map[string]bool{}
 	keys := make([]string, 0, len(required)+len(expected))
@@ -97,12 +98,15 @@ func buildConditionReadings(model Graph, actor, oracleID string, oracle OracleAd
 			keys = append(keys, id)
 		}
 	}
+	extraKeys := make([]string, 0, len(expected))
 	for id := range expected {
 		if !seen[id] {
 			seen[id] = true
-			keys = append(keys, id)
+			extraKeys = append(extraKeys, id)
 		}
 	}
+	sort.Strings(extraKeys)
+	keys = append(keys, extraKeys...)
 	readings := make([]ConditionReading, 0, len(keys))
 	for _, id := range keys {
 		want, hasWant := expected[id]
@@ -115,18 +119,27 @@ func buildConditionReadings(model Graph, actor, oracleID string, oracle OracleAd
 			v := got
 			gotPtr = &v
 		}
-		subj := subjectsByCond[id]
-		readings = append(readings, ConditionReading{
-			Condition:    id,
-			SubjectKind:  subj.SubjectKind,
-			Subject:      firstNonEmpty(subj.Subject, actor),
-			Attribute:    subj.Attribute,
-			ExpectedBool: want,
-			ActualBool:   gotPtr,
-			OracleID:     oracleID,
-			Path:         oracle.Conditions[id],
-			Passed:       found && got == want,
-		})
+		subjects := subjectsByCond[id]
+		if len(subjects) == 0 {
+			subjects = []ConditionSubject{{}}
+		}
+		for _, subj := range subjects {
+			readings = append(readings, ConditionReading{
+				Condition:      id,
+				ObserverActor:  actor,
+				SubjectKind:    subj.SubjectKind,
+				Subject:        firstNonEmpty(subj.Subject, actor),
+				Attribute:      subj.Attribute,
+				Operator:       subj.Operator,
+				Expected:       subj.Expected,
+				AnnotationOnly: subj.Condition != "",
+				ExpectedBool:   want,
+				ActualBool:     gotPtr,
+				OracleID:       oracleID,
+				Path:           oracle.Conditions[id],
+				Passed:         found && got == want,
+			})
+		}
 	}
 	return readings
 }
@@ -148,9 +161,12 @@ func asyncWaitConverged(wait *WaitContract, facts IndependentFacts) bool {
 	return true
 }
 
-func runStepAsyncWait(ctx context.Context, step RunnerStep, oracle OracleAdapter, binding RunBinding, account Fixture, scope string, sess *execSession) (IndependentFacts, string, json.RawMessage, WaitObservation, error) {
+func runStepAsyncWait(ctx context.Context, step RunnerStep, oracle OracleAdapter, binding RunBinding, account Fixture, scope string, sess *execSession) (resultFacts IndependentFacts, resultHash string, resultDoc json.RawMessage, obs WaitObservation, resultErr error) {
 	wait := step.AsyncWait
-	obs := WaitObservation{
+	obs = WaitObservation{
+		Actor:          step.Actor,
+		Node:           step.Node,
+		Transition:     step.Transition,
 		OracleID:       wait.OracleID,
 		RuleSourceRef:  wait.RuleSourceRef,
 		Started:        time.Now().UTC().Format(time.RFC3339Nano),
@@ -186,6 +202,13 @@ func runStepAsyncWait(ctx context.Context, step RunnerStep, oracle OracleAdapter
 		cancelPoll()
 		if err != nil {
 			obs.TimedOut = waitCtx.Err() != nil
+			// A declared business window can expire during the next poll as
+			// well as between polls. Preserve the last valid independent read
+			// and classify both paths consistently. With no valid read, or a
+			// parent cancellation, the observation itself remains BLOCKED.
+			if errors.Is(waitCtx.Err(), context.DeadlineExceeded) && ctx.Err() == nil && len(lastDoc) > 0 {
+				return lastFacts, lastHash, lastDoc, obs, nil
+			}
 			return lastFacts, lastHash, lastDoc, obs, err
 		}
 		lastFacts, lastHash, lastDoc = facts, hash, doc
@@ -200,12 +223,14 @@ func runStepAsyncWait(ctx context.Context, step RunnerStep, oracle OracleAdapter
 			now := time.Now()
 			if stableSince.IsZero() {
 				stableSince = now
+				obs.StableSince = now.UTC().Format(time.RFC3339Nano)
 			}
 			if now.Sub(stableSince) >= time.Duration(wait.StableWindowMS)*time.Millisecond {
 				return lastFacts, lastHash, lastDoc, obs, nil
 			}
 		} else {
 			stableSince = time.Time{}
+			obs.StableSince = ""
 			if len(allowed) > 0 && facts.State != wait.UntilState && !allowed[facts.State] {
 				obs.ViolatedIntermediate = true
 				return lastFacts, lastHash, lastDoc, obs, nil
@@ -258,7 +283,7 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 	if err != nil {
 		return result, err
 	}
-	if fixture.Refs["scope"] != runner.Manifest.IsolationScope || runner.Manifest.Recovery != nil && runner.Manifest.Recovery.State != fixture.State {
+	if fixture.Refs["scope"] != runner.Manifest.IsolationScope || runner.Manifest.Recovery != nil && fixtureRecoveryMode(runner.Manifest.Recovery) == recoveryRestore && runner.Manifest.Recovery.State != fixture.State {
 		return result, errors.New("runner isolation or recovery target does not match the registered fixture")
 	}
 	record := ModelRunRecord{Round: request.Round, Runner: request.Runner, RunnerSHA256: runner.SHA256, CodeSHA256: runner.CodeSHA256, Participants: participants, Recovery: result.Recovery}
@@ -272,16 +297,30 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 		accounts[participant.Alias] = account
 		actors[participant.Alias] = participant
 	}
-	run, err := d.start(request.Task, binding, record)
+	run, err := d.startBoundRun(request.Task, binding, request.campaign, record)
 	if err != nil {
 		return result, err
 	}
 	result.Run = run
+	if request.campaign != nil {
+		obligation.Definition.Flow = request.campaign.Intent.Flow
+	}
 	record.Run = run
 	sess := newExecSession(run, participants)
+	if request.campaign != nil {
+		sess.campaignGuard = func() error {
+			return d.validateBusinessCampaignLease(request.campaign.Intent.Campaign, request.campaign.Lease)
+		}
+	}
 	manifest := runner.Manifest
+	campaignBound := request.campaign != nil
 	total := time.Duration(manifest.TimeoutMS) * time.Millisecond
 	deadline := time.Now().Add(total)
+	if request.campaign != nil {
+		if limit, ok := parent.Deadline(); ok && limit.Before(deadline) {
+			deadline = limit
+		}
+	}
 	actionCtx, cancelAction := context.WithTimeout(parent, total*2/3)
 	defer cancelAction()
 	call := func(ctx context.Context, operation AdapterCall, alias string) (AdapterOutput, error) {
@@ -290,13 +329,17 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 		return performCallWithSession(single, operation, binding, accounts[alias], alias, sess)
 	}
 	baseline := []OracleObservation{}
-	setupObservation := ModelObservation{Node: "fixture.prepare", Round: record.Round, RunnerSHA256: runner.SHA256, CodeSHA256: runner.CodeSHA256, Input: json.RawMessage(`{}`), Participants: participants, Oracles: []OracleObservation{}, Actions: []ActionObservation{}}
+	setupObservation := ModelObservation{EvidenceVersion: runtimeEvidenceVersion, Node: "fixture.prepare", Round: record.Round, RunnerSHA256: runner.SHA256, CodeSHA256: runner.CodeSHA256, Input: json.RawMessage(`{}`), Participants: participants, Oracles: []OracleObservation{}, Actions: []ActionObservation{}}
 	setupFailed := false
 	for _, participant := range participants {
 		oracle := manifest.Steps[0].Oracles[0]
 		foundPlain := false
 		foundAny := false
-		for _, step := range manifest.Steps {
+		baselineSteps := append([]RunnerStep(nil), manifest.Steps...)
+		if manifest.Preparation != nil {
+			baselineSteps = append([]RunnerStep{manifest.Preparation.Observer}, baselineSteps...)
+		}
+		for _, step := range baselineSteps {
 			if step.Actor == participant.Alias {
 				if !foundAny {
 					oracle = step.Oracles[0]
@@ -327,9 +370,11 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 	isolationVerified := !setupFailed
 	setupObservation.Oracles = baseline
 	if isolationVerified {
-		for _, operation := range manifest.Setup {
+		for operationIndex, operation := range manifest.Setup {
 			output, callErr := call(actionCtx, operation.Call, operation.Actor)
-			setupObservation.Actions = append(setupObservation.Actions, actionRecord(RunnerStep{Node: "fixture.prepare", Actor: operation.Actor}, actors[operation.Actor], output))
+			action := actionRecord(RunnerStep{Node: "fixture.prepare", Actor: operation.Actor}, actors[operation.Actor], output)
+			action.ActionIndex = operationIndex + 1
+			setupObservation.Actions = append(setupObservation.Actions, action)
 			if callErr != nil || output.Denied {
 				result.Reason = "fixture preparation was rejected"
 				if callErr != nil {
@@ -338,13 +383,21 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 				setupFailed = true
 				break
 			}
-			extracted, extErr := applyExtractions(operation.Call.Extract, -1, operation.Actor, &output, nil, sess)
+			extracted, extErr := applyExtractions(operation.Call.Extract, -1, operationIndex+1, operation.Actor, &output, nil, sess)
 			setupObservation.Extractions = append(setupObservation.Extractions, extracted...)
 			if extErr != nil {
 				result.Reason = "fixture preparation: " + extErr.Error()
 				setupFailed = true
 				break
 			}
+		}
+	}
+	if !setupFailed && manifest.Preparation != nil {
+		preparation := runRuntimePreparation(actionCtx, model, obligation.Definition.Flow, manifest, binding, accounts, actors, sess, &setupObservation)
+		setupObservation.Preparation = &preparation
+		if !preparation.TargetReady {
+			setupFailed = true
+			result.Reason = "automatic preparation: " + preparation.Status + ": " + preparation.Reason
 		}
 	}
 	setupObservation.Entities = sess.entitySlice()
@@ -384,12 +437,13 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 					}
 				}
 			}
-			observation := ModelObservation{Node: last.Node, Transition: last.Transition, Round: record.Round, RunnerSHA256: runner.SHA256, CodeSHA256: runner.CodeSHA256, Input: json.RawMessage(`{}`), Participants: participants, Oracles: []OracleObservation{}, Actions: []ActionObservation{}}
+			observation := ModelObservation{EvidenceVersion: runtimeEvidenceVersion, Node: last.Node, Transition: last.Transition, Round: record.Round, RunnerSHA256: runner.SHA256, CodeSHA256: runner.CodeSHA256, Input: json.RawMessage(`{}`), Participants: participants, Oracles: []OracleObservation{}, Actions: []ActionObservation{}}
+			observation.BeforeEntities, observation.BeforeSessions = sess.entitySlice(), sess.sessionSlice()
 			if len(last.Call.Body) > 0 {
 				observation.Input = last.Call.Body
 			}
 			raw := StepRAW{Identity: binding.Identity, Run: run, Step: index + 1, Expected: expected, Observed: "UNKNOWN", Preconditions: map[string]bool{}, Before: "UNOBSERVED", After: "UNOBSERVED", Oracle: binding.Oracle, Runner: request.Runner, ExitCode: 0, Model: &observation}
-			for _, step := range batch {
+			for actionIndex, step := range batch {
 				stepJudged := stepRule(x, obligation, step.Transition)
 				stepValues := values
 				if step.Transition != "" {
@@ -399,16 +453,18 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 				}
 				var stepFacts *IndependentFacts
 				var stepOracle OracleAdapter
+				beforeDocs := map[oracleIdentity]json.RawMessage{}
 				for _, oracle := range step.Oracles {
 					ctx, cancel := context.WithTimeout(actionCtx, time.Duration(manifest.StepTimeoutMS)*time.Millisecond)
-					facts, hash, _, readErr := readOracleWithSession(ctx, oracle, binding, accounts[step.Actor], step.Actor, manifest.IsolationScope, sess)
+					facts, hash, beforeDoc, readErr := readOracleWithSession(ctx, oracle, binding, accounts[step.Actor], step.Actor, manifest.IsolationScope, sess)
 					cancel()
 					if readErr != nil {
 						observation.Error = "before action: " + readErr.Error()
 						raw.ExitCode = 1
 						break
 					}
-					observation.Oracles = append(observation.Oracles, OracleObservation{Actor: step.Actor, ID: oracle.ID, Boundary: oracle.Boundary, Before: facts, BeforeSHA256: hash})
+					beforeDocs[oracleIdentity{ActionIndex: actionIndex + 1, Actor: step.Actor, ID: oracle.ID}] = beforeDoc
+					observation.Oracles = append(observation.Oracles, OracleObservation{ActionIndex: actionIndex + 1, Actor: step.Actor, ID: oracle.ID, Boundary: oracle.Boundary, Before: facts, BeforeSHA256: hash})
 					if oracle.ID == stepJudged.Oracle {
 						copy := facts
 						stepFacts = &copy
@@ -421,6 +477,15 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 				}
 				if raw.ExitCode != 0 {
 					break
+				}
+				if request.campaign != nil {
+					extracted, err := rebindBusinessCampaignEntities(step, beforeDocs, sess)
+					if err != nil {
+						raw.ExitCode, observation.Error = 1, "campaign fresh entity rebinding: "+err.Error()
+						break
+					}
+					observation.Extractions = append(observation.Extractions, extracted...)
+					observation.BeforeEntities, observation.BeforeSessions = sess.entitySlice(), sess.sessionSlice()
 				}
 				if stepFacts != nil {
 					observation.Conditions = append(observation.Conditions, buildConditionReadings(model, step.Actor, stepOracle.ID, stepOracle, stepValues, map[string]bool(stepFacts.Conditions), stepJudged.Conditions)...)
@@ -435,6 +500,24 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 					observation.Error = "participant state differs from its transition source; no batch action was attempted"
 					break
 				}
+				if model.BusinessContract != nil {
+					if len(step.InputMeasurements) > 0 || campaignBound {
+						request, err := captureRuntimeRequest(step, actionIndex+1, sess)
+						if err != nil {
+							raw.ExitCode, observation.Error = 1, "request capture: "+err.Error()+"; no batch action was attempted"
+							observation.BusinessExpectations = append(observation.BusinessExpectations, BusinessExpectationObservation{Actor: step.Actor, ActionIndex: actionIndex + 1, Decision: BusinessDecision{Status: "BLOCKED", Action: step.Node, Reason: observation.Error}})
+							break
+						}
+						observation.Requests = append(observation.Requests, request)
+					}
+					frozen := freezeRuntimeBusiness(model, obligation.Definition.Flow, stepJudged.Oracle, step, actionIndex+1, &observation)
+					observation.BusinessExpectations = append(observation.BusinessExpectations, frozen)
+					if frozen.Decision.Status != "READY" {
+						raw.ExitCode = 1
+						observation.Error = frozen.Decision.Status + ": " + frozen.Decision.Reason + "; no batch action was attempted"
+						break
+					}
+				}
 			}
 			if raw.ExitCode == 0 && !observedConditions(raw.Preconditions, values, judged.Conditions) {
 				raw.ExitCode = 1
@@ -446,6 +529,17 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 						raw.ExitCode = 1
 						observation.Error = "actual state differs from the declared transition source"
 					}
+				}
+			}
+			if raw.ExitCode == 0 && request.campaign != nil {
+				if err := validateBusinessCampaignTarget(request.campaign, last, &observation); err != nil {
+					raw.ExitCode, observation.Error = 1, "campaign target changed after selection: "+err.Error()+"; no target request was sent"
+				}
+			}
+			if model.BusinessContract != nil && len(observation.BusinessExpectations) > 0 {
+				if err := d.persistBusinessExpectationCaptures(model.ID, run, index+1, observation.BusinessExpectations); err != nil {
+					raw.ExitCode = 1
+					observation.Error = "persist pre-action business expectation: " + err.Error() + "; no batch action was attempted"
 				}
 			}
 			if raw.ExitCode == 0 {
@@ -467,12 +561,32 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 							outputs[position].err = actionCtx.Err()
 							return
 						}
-						outputs[position].output, outputs[position].err = call(actionCtx, step.Call, step.Actor)
+						var request *RequestObservation
+						if len(step.InputMeasurements) > 0 || campaignBound {
+							var err error
+							request, err = runtimeRequestFor(step, position+1, &observation)
+							if err != nil {
+								outputs[position].err = err
+								return
+							}
+						}
+						single, cancel := context.WithTimeout(actionCtx, time.Duration(manifest.StepTimeoutMS)*time.Millisecond)
+						defer cancel()
+						outputs[position].output, outputs[position].err = performCallWithRequestCapture(single, step.Call, binding, accounts[step.Actor], step.Actor, sess, request)
 					}(position, step)
 				}
 				workers.Wait()
 				for position, item := range outputs {
-					observation.Actions = append(observation.Actions, actionRecord(batch[position], actors[batch[position].Actor], item.output))
+					action := actionRecord(batch[position], actors[batch[position].Actor], item.output)
+					action.ActionIndex = position + 1
+					if item.err == nil {
+						values, captureErr := captureResponseMeasurements(batch[position], item.output)
+						action.ResponseValues = values
+						if captureErr != nil {
+							item.err = captureErr
+						}
+					}
+					observation.Actions = append(observation.Actions, action)
 					if item.err != nil {
 						raw.ExitCode = 1
 						observation.Error = "action: " + item.err.Error()
@@ -485,7 +599,7 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 								nonOracleRules = append(nonOracleRules, ext)
 							}
 						}
-						extracted, extErr := applyExtractions(nonOracleRules, index+1, batch[position].Actor, &item.output, nil, sess)
+						extracted, extErr := applyExtractions(nonOracleRules, index+1, position+1, batch[position].Actor, &item.output, nil, sess)
 						observation.Extractions = append(observation.Extractions, extracted...)
 						if extErr != nil {
 							raw.ExitCode = 1
@@ -496,13 +610,13 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 				if len(outputs) == 1 {
 					raw.Denied = outputs[0].output.Denied
 				}
-				waitReadings := map[string]struct {
+				waitReadings := map[oracleIdentity]struct {
 					facts IndependentFacts
 					hash  string
 					doc   json.RawMessage
 				}{}
 				if raw.ExitCode == 0 {
-					for _, step := range batch {
+					for actionIndex, step := range batch {
 						if step.AsyncWait == nil {
 							continue
 						}
@@ -514,25 +628,27 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 							}
 						}
 						facts, hash, doc, waitObs, waitErr := runStepAsyncWait(actionCtx, step, waitOracle, binding, accounts[step.Actor], manifest.IsolationScope, sess)
+						waitObs.Step, waitObs.ActionIndex = index+1, actionIndex+1
 						observation.Waits = append(observation.Waits, waitObs)
 						if waitErr != nil {
 							raw.ExitCode = 1
 							observation.Error = "async wait: " + waitErr.Error()
 							break
 						}
-						waitReadings[step.Actor+"\x00"+waitOracle.ID] = struct {
+						waitReadings[oracleIdentity{ActionIndex: actionIndex + 1, Actor: step.Actor, ID: waitOracle.ID}] = struct {
 							facts IndependentFacts
 							hash  string
 							doc   json.RawMessage
 						}{facts: facts, hash: hash, doc: doc}
 					}
 				}
-				oracleDocs := map[string]json.RawMessage{}
+				oracleDocs := map[oracleIdentity]json.RawMessage{}
 				for position := range observation.Oracles {
 					item := &observation.Oracles[position]
-					if cached, ok := waitReadings[item.Actor+"\x00"+item.ID]; ok {
+					key := oracleIdentity{ActionIndex: item.ActionIndex, Actor: item.Actor, ID: item.ID}
+					if cached, ok := waitReadings[key]; ok {
 						item.After, item.AfterSHA256 = cached.facts, cached.hash
-						oracleDocs[item.ID] = cached.doc
+						oracleDocs[key] = cached.doc
 						if item.ID == judged.Oracle && item.Actor == last.Actor {
 							raw.After, _ = factsHash(cached.facts)
 							raw.Observed = cached.facts.State
@@ -543,8 +659,8 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 						continue
 					}
 					var adapter OracleAdapter
-					for _, step := range batch {
-						if step.Actor == item.Actor {
+					for actionIndex, step := range batch {
+						if actionIndex+1 == item.ActionIndex && step.Actor == item.Actor {
 							for _, candidate := range step.Oracles {
 								if candidate.ID == item.ID {
 									adapter = candidate
@@ -561,7 +677,7 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 						observation.Error = "after action: " + readErr.Error()
 						continue
 					}
-					oracleDocs[item.ID] = doc
+					oracleDocs[key] = doc
 					item.After, item.AfterSHA256 = facts, hash
 					if item.ID == judged.Oracle && item.Actor == last.Actor {
 						raw.After, _ = factsHash(facts)
@@ -572,7 +688,7 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 					}
 				}
 				if raw.ExitCode == 0 {
-					for _, step := range batch {
+					for actionIndex, step := range batch {
 						oracleRules := []ExtractRule{}
 						for _, ext := range step.Call.Extract {
 							if ext.Source == "oracle" {
@@ -580,7 +696,7 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 							}
 						}
 						if len(oracleRules) > 0 {
-							extracted, extErr := applyExtractions(oracleRules, index+1, step.Actor, nil, oracleDocs, sess)
+							extracted, extErr := applyExtractions(oracleRules, index+1, actionIndex+1, step.Actor, nil, oracleDocs, sess)
 							observation.Extractions = append(observation.Extractions, extracted...)
 							if extErr != nil {
 								raw.ExitCode = 1
@@ -592,6 +708,11 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 			}
 			observation.Entities = sess.entitySlice()
 			observation.Sessions = sess.sessionSlice()
+			if raw.ExitCode == 0 && model.BusinessContract != nil {
+				if err := recordRuntimeBusinessComparisons(model, obligation, batch, &observation); err != nil {
+					raw.ExitCode, observation.Error = 1, "business observation: "+err.Error()
+				}
+			}
 			path, _, err := writeRunnerRAW(d, run, index+1, raw)
 			if err != nil {
 				result.Reason = err.Error()
@@ -659,6 +780,9 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 				}
 			} else {
 				result.Reason = "registered operations, independent properties and external fixture restoration verified"
+				if result.Recovery.Mode == recoveryCheckpoint {
+					result.Reason = "registered operations and independent properties verified; isolated instance retained at its verified checkpoint"
+				}
 			}
 		}
 	} else if result.Recovery.Verdict == "PASS" {
@@ -682,9 +806,15 @@ func (d db) restoreFixture(ctx context.Context, binding RunBinding, record Model
 }
 
 func (d db) restoreFixtureWithSession(ctx context.Context, binding RunBinding, record ModelRunRecord, manifest RunnerManifest, accounts map[string]Fixture, actors map[string]ParticipantBinding, fixture Fixture, baseline []OracleObservation, isolationVerified bool, sess *execSession) (result RecoveryOutcome) {
-	result = RecoveryOutcome{Verdict: "BLOCKED", Reason: "fixture recovery has not been observed", Actions: []ActionObservation{}}
-	model := ModelObservation{Node: "fixture.restore", Round: record.Round, RunnerSHA256: record.RunnerSHA256, CodeSHA256: record.CodeSHA256, Input: json.RawMessage(`{}`), Participants: record.Participants, Actions: []ActionObservation{}, Oracles: []OracleObservation{}}
-	raw := StepRAW{Identity: binding.Identity, Phase: "fixture", Run: record.Run, Step: 0, Expected: fixture.State, Observed: "UNKNOWN", Preconditions: map[string]bool{}, Oracle: binding.Oracle, Runner: record.Runner, ExitCode: 1, Model: &model}
+	mode, expected := fixtureRecoveryMode(manifest.Recovery), fixtureRecoveryTarget(manifest.Recovery, fixture)
+	node := "fixture.restore"
+	if mode == recoveryCheckpoint {
+		node = "fixture.checkpoint"
+	}
+	result = RecoveryOutcome{Mode: mode, Verdict: "BLOCKED", Reason: "fixture recovery has not been observed", Actions: []ActionObservation{}}
+	model := ModelObservation{RecoveryMode: mode, EvidenceVersion: runtimeEvidenceVersion, Node: node, Round: record.Round, RunnerSHA256: record.RunnerSHA256, CodeSHA256: record.CodeSHA256, Input: json.RawMessage(`{}`), Participants: record.Participants, Actions: []ActionObservation{}, Oracles: []OracleObservation{}}
+	model.Entities, model.Sessions = sess.entitySlice(), sess.sessionSlice()
+	raw := StepRAW{Identity: binding.Identity, Phase: "fixture", Run: record.Run, Step: 0, Expected: expected, Observed: "UNKNOWN", Preconditions: map[string]bool{}, Oracle: binding.Oracle, Runner: record.Runner, ExitCode: 1, Model: &model}
 	defer func() {
 		model.Actions = result.Actions
 		if result.Verdict != "PASS" {
@@ -697,13 +827,13 @@ func (d db) restoreFixtureWithSession(ctx context.Context, binding RunBinding, r
 			return
 		}
 		result.Evidence, result.SHA256 = path, digestBytes(body)
-		if err := d.persistLifecycleStepFact("recovery", binding, record.Run, 0, "fixture.restore", fixture.State, raw.Observed, result.Verdict, result.Reason, path, body, &model, nil); err != nil {
+		if err := d.persistLifecycleStepFact("recovery", binding, record.Run, 0, node, expected, raw.Observed, result.Verdict, result.Reason, path, body, &model, nil); err != nil {
 			result.Verdict, result.Safe = "BLOCKED", false
 			result.Reason += "; persist recovery step fact: " + err.Error()
 		}
 	}()
 	if !isolationVerified {
-		result.Reason = "recovery writes refused because participant identity or fixture isolation was not verified"
+		result.Reason = "fixture finalization refused because participant identity or fixture isolation was not verified"
 		return result
 	}
 	protocol := manifest.Recovery
@@ -743,11 +873,17 @@ func (d db) restoreFixtureWithSession(ctx context.Context, binding RunBinding, r
 		result.Verdict, result.Reason, result.Safe, result.State = "PASS", "read-only fixture unchanged under independent before/after observation", true, fixture.State
 		return result
 	}
-	for _, step := range protocol.Steps {
+	if mode == recoveryCheckpoint && len(protocol.Steps) != 0 {
+		result.Reason = "checkpoint cannot execute restoration operations"
+		return result
+	}
+	for index, step := range protocol.Steps {
 		callCtx, cancel := context.WithTimeout(ctx, time.Duration(manifest.StepTimeoutMS)*time.Millisecond)
 		output, err := performCallWithSession(callCtx, step.Call, binding, accounts[step.Actor], step.Actor, sess)
 		cancel()
-		result.Actions = append(result.Actions, actionRecord(RunnerStep{Node: "fixture.restore", Actor: step.Actor}, actors[step.Actor], output))
+		action := actionRecord(RunnerStep{Node: node, Actor: step.Actor}, actors[step.Actor], output)
+		action.ActionIndex = index + 1
+		result.Actions = append(result.Actions, action)
 		if err != nil || output.Denied {
 			if err != nil {
 				result.Reason = "recovery operation: " + err.Error()
@@ -767,8 +903,8 @@ func (d db) restoreFixtureWithSession(ctx context.Context, binding RunBinding, r
 	result.State = facts.State
 	model.Oracles = append(model.Oracles, OracleObservation{Actor: "primary", ID: protocol.Oracle.ID, Boundary: protocol.Oracle.Boundary, Before: facts, After: facts, BeforeSHA256: hash, AfterSHA256: hash})
 	raw.Observed, raw.Preconditions = facts.State, map[string]bool(facts.Conditions)
-	if facts.State != fixture.State || !observedConditions(facts.Conditions, protocol.Conditions, nil) {
-		result.Reason = "fixture state or conditions were not restored"
+	if facts.State != expected || !observedConditions(facts.Conditions, protocol.Conditions, nil) {
+		result.Reason = "fixture state or conditions do not match the declared " + mode + " target"
 		return result
 	}
 	for _, outcome := range evaluateProperties(protocol.Checks, facts.Values) {
@@ -779,5 +915,8 @@ func (d db) restoreFixtureWithSession(ctx context.Context, binding RunBinding, r
 	}
 	raw.SafeToContinue, raw.ExitCode = true, 0
 	result.Verdict, result.Reason, result.Safe = "PASS", "isolated fixture restored and independently read back", true
+	if mode == recoveryCheckpoint {
+		result.Reason = "isolated instance retained at an independently verified checkpoint"
+	}
 	return result
 }

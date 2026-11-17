@@ -1,5 +1,8 @@
 # First business graph: discover → persist → review → verify
 
+Use [deterministic contracts](deterministic-contract.md); legacy examples do not prove strong coverage.
+
+
 Use for whole-system/all-business/all-interaction tests or DB business trees, even without a model.
 The current Agent discovers business and writes JSON; the user confirms decisions.
 [Business-graph](business-graph.md) owns execution/card/RAW rules.

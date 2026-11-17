@@ -9,6 +9,10 @@ import (
 	"reflect"
 )
 
+// Version 2 binds observations to an action within a batch. Version 0 remains
+// readable as historical evidence, but is never relabeled as identity-complete.
+const runtimeEvidenceVersion = 2
+
 type ParticipantBinding struct {
 	Alias     string `json:"alias"`
 	Role      string `json:"role"`
@@ -54,6 +58,7 @@ func (conditions *ObservedConditions) UnmarshalJSON(raw []byte) error {
 }
 
 type OracleObservation struct {
+	ActionIndex  int              `json:"action_index,omitempty"`
 	Actor        string           `json:"actor"`
 	ID           string           `json:"id"`
 	Boundary     string           `json:"boundary"`
@@ -76,6 +81,9 @@ type ExtractedBinding struct {
 	OwnerPrincipal   string `json:"owner_principal,omitempty"`
 	ChannelAccountID string `json:"channel_account_id,omitempty"`
 	Step             int    `json:"step"`
+	ActionIndex      int    `json:"action_index,omitempty"`
+	SourceActor      string `json:"source_actor,omitempty"`
+	OracleID         string `json:"oracle_id,omitempty"`
 }
 
 type EntityBinding struct {
@@ -100,6 +108,11 @@ type SessionBinding struct {
 }
 
 type WaitObservation struct {
+	Actor                string   `json:"actor,omitempty"`
+	Step                 int      `json:"step,omitempty"`
+	ActionIndex          int      `json:"action_index,omitempty"`
+	Node                 string   `json:"node,omitempty"`
+	Transition           string   `json:"transition,omitempty"`
 	OracleID             string   `json:"oracle_id"`
 	RuleSourceRef        string   `json:"rule_source_ref"`
 	Started              string   `json:"started"`
@@ -108,6 +121,7 @@ type WaitObservation struct {
 	MaxWaitMS            int      `json:"max_wait_ms"`
 	PollIntervalMS       int      `json:"poll_interval_ms"`
 	StableWindowMS       int      `json:"stable_window_ms,omitempty"`
+	StableSince          string   `json:"stable_since,omitempty"`
 	TimedOut             bool     `json:"timed_out"`
 	ViolatedIntermediate bool     `json:"violated_intermediate,omitempty"`
 	FinalState           string   `json:"final_state"`
@@ -115,15 +129,19 @@ type WaitObservation struct {
 }
 
 type ConditionReading struct {
-	Condition    string `json:"condition"`
-	SubjectKind  string `json:"subject_kind,omitempty"`
-	Subject      string `json:"subject,omitempty"`
-	Attribute    string `json:"attribute,omitempty"`
-	ExpectedBool bool   `json:"expected_bool"`
-	ActualBool   *bool  `json:"actual_bool,omitempty"`
-	OracleID     string `json:"oracle_id,omitempty"`
-	Path         string `json:"path,omitempty"`
-	Passed       bool   `json:"passed"`
+	Condition      string `json:"condition"`
+	ObserverActor  string `json:"observer_actor,omitempty"`
+	SubjectKind    string `json:"subject_kind,omitempty"`
+	Subject        string `json:"subject,omitempty"`
+	Attribute      string `json:"attribute,omitempty"`
+	Operator       string `json:"operator,omitempty"`
+	Expected       string `json:"expected,omitempty"`
+	AnnotationOnly bool   `json:"annotation_only,omitempty"`
+	ExpectedBool   bool   `json:"expected_bool"`
+	ActualBool     *bool  `json:"actual_bool,omitempty"`
+	OracleID       string `json:"oracle_id,omitempty"`
+	Path           string `json:"path,omitempty"`
+	Passed         bool   `json:"passed"`
 }
 
 type StepAssertion struct {
@@ -139,75 +157,105 @@ type StepAssertion struct {
 }
 
 type UnifiedStepFact struct {
-	SourceKind     string               `json:"source_kind"`
-	Run            string               `json:"run"`
-	Seq            int                  `json:"seq"`
-	Graph          string               `json:"graph"`
-	Task           string               `json:"task,omitempty"`
-	Node           string               `json:"node,omitempty"`
-	Transition     string               `json:"transition,omitempty"`
-	RuleID         string               `json:"rule_id,omitempty"`
-	Actor          string               `json:"actor,omitempty"`
-	Account        string               `json:"account,omitempty"`
-	Principal      string               `json:"principal,omitempty"`
-	ExpectedState  string               `json:"expected_state,omitempty"`
-	ObservedState  string               `json:"observed_state,omitempty"`
-	DeniedExpected *bool                `json:"denied_expected,omitempty"`
-	DeniedObserved *bool                `json:"denied_observed,omitempty"`
-	Verdict        string               `json:"verdict"`
-	Decision       string               `json:"decision,omitempty"`
-	Reason         string               `json:"reason,omitempty"`
-	Participants   []ParticipantBinding `json:"participants,omitempty"`
-	Entities       []EntityBinding      `json:"entities,omitempty"`
-	Sessions       []SessionBinding     `json:"sessions,omitempty"`
-	Extractions    []ExtractedBinding   `json:"extractions,omitempty"`
-	Conditions     []ConditionReading   `json:"conditions,omitempty"`
-	Waits          []WaitObservation    `json:"waits,omitempty"`
-	Oracles        []OracleObservation  `json:"oracles,omitempty"`
-	Actions        []ActionObservation  `json:"actions,omitempty"`
-	Assertions     []StepAssertion      `json:"assertions,omitempty"`
-	EvidencePath   string               `json:"evidence_path,omitempty"`
-	EvidenceSHA256 string               `json:"evidence_sha256,omitempty"`
+	RecoveryMode         string                           `json:"recovery_mode,omitempty"`
+	EvidenceVersion      int                              `json:"evidence_version,omitempty"`
+	EvidenceStatus       string                           `json:"evidence_status,omitempty"`
+	EvidenceSource       string                           `json:"evidence_source,omitempty"`
+	SourceKind           string                           `json:"source_kind"`
+	Run                  string                           `json:"run"`
+	Seq                  int                              `json:"seq"`
+	Graph                string                           `json:"graph"`
+	Task                 string                           `json:"task,omitempty"`
+	Node                 string                           `json:"node,omitempty"`
+	Transition           string                           `json:"transition,omitempty"`
+	RuleID               string                           `json:"rule_id,omitempty"`
+	Actor                string                           `json:"actor,omitempty"`
+	Account              string                           `json:"account,omitempty"`
+	Principal            string                           `json:"principal,omitempty"`
+	ExpectedState        string                           `json:"expected_state,omitempty"`
+	ObservedState        string                           `json:"observed_state,omitempty"`
+	DeniedExpected       *bool                            `json:"denied_expected,omitempty"`
+	DeniedObserved       *bool                            `json:"denied_observed,omitempty"`
+	Verdict              string                           `json:"verdict"`
+	Decision             string                           `json:"decision,omitempty"`
+	Reason               string                           `json:"reason,omitempty"`
+	Participants         []ParticipantBinding             `json:"participants,omitempty"`
+	BeforeEntities       []EntityBinding                  `json:"before_entities,omitempty"`
+	BeforeSessions       []SessionBinding                 `json:"before_sessions,omitempty"`
+	Entities             []EntityBinding                  `json:"entities,omitempty"`
+	Sessions             []SessionBinding                 `json:"sessions,omitempty"`
+	Extractions          []ExtractedBinding               `json:"extractions,omitempty"`
+	Conditions           []ConditionReading               `json:"conditions,omitempty"`
+	Waits                []WaitObservation                `json:"waits,omitempty"`
+	Oracles              []OracleObservation              `json:"oracles,omitempty"`
+	Actions              []ActionObservation              `json:"actions,omitempty"`
+	Requests             []RequestObservation             `json:"requests,omitempty"`
+	Assertions           []StepAssertion                  `json:"assertions,omitempty"`
+	BusinessExpectations []BusinessExpectationObservation `json:"business_expectations,omitempty"`
+	Preparation          *PreparationExecution            `json:"preparation,omitempty"`
+	EvidencePath         string                           `json:"evidence_path,omitempty"`
+	EvidenceSHA256       string                           `json:"evidence_sha256,omitempty"`
 }
 
 type ActionObservation struct {
-	Node           string            `json:"node"`
-	Transition     string            `json:"transition,omitempty"`
-	Actor          string            `json:"actor"`
-	Principal      string            `json:"principal"`
-	TemplateSHA256 string            `json:"template_sha256,omitempty"`
-	ResolvedPath   string            `json:"resolved_path,omitempty"`
-	ResolvedInput  json.RawMessage   `json:"resolved_input,omitempty"`
-	Substitutions  map[string]string `json:"substitutions,omitempty"`
-	RequestSHA256  string            `json:"request_sha256"`
-	ResponseSHA256 string            `json:"response_sha256"`
-	StatusCode     int               `json:"status_code,omitempty"`
-	ExitCode       int               `json:"exit_code"`
-	Denied         bool              `json:"denied"`
-	Started        string            `json:"started"`
-	Completed      string            `json:"completed"`
+	ActionIndex    int                        `json:"action_index,omitempty"`
+	Node           string                     `json:"node"`
+	Transition     string                     `json:"transition,omitempty"`
+	Actor          string                     `json:"actor"`
+	Principal      string                     `json:"principal"`
+	TemplateSHA256 string                     `json:"template_sha256,omitempty"`
+	ResolvedPath   string                     `json:"resolved_path,omitempty"`
+	ResolvedInput  json.RawMessage            `json:"resolved_input,omitempty"`
+	Substitutions  map[string]string          `json:"substitutions,omitempty"`
+	RequestSHA256  string                     `json:"request_sha256"`
+	ResponseSHA256 string                     `json:"response_sha256"`
+	ResponseValues map[string]json.RawMessage `json:"response_values,omitempty"`
+	StatusCode     int                        `json:"status_code,omitempty"`
+	ExitCode       int                        `json:"exit_code"`
+	Denied         bool                       `json:"denied"`
+	Started        string                     `json:"started"`
+	Completed      string                     `json:"completed"`
 }
 
 type ModelObservation struct {
-	Node         string               `json:"node"`
-	Transition   string               `json:"transition,omitempty"`
-	Round        string               `json:"round"`
-	RunnerSHA256 string               `json:"runner_sha256"`
-	CodeSHA256   string               `json:"code_sha256"`
-	Input        json.RawMessage      `json:"input"`
-	Participants []ParticipantBinding `json:"participants"`
-	Oracles      []OracleObservation  `json:"oracles"`
-	Actions      []ActionObservation  `json:"actions"`
-	Extractions  []ExtractedBinding   `json:"extractions,omitempty"`
-	Entities     []EntityBinding      `json:"entities,omitempty"`
-	Sessions     []SessionBinding     `json:"sessions,omitempty"`
-	Waits        []WaitObservation    `json:"waits,omitempty"`
-	Conditions   []ConditionReading   `json:"conditions,omitempty"`
-	Assertions   []StepAssertion      `json:"assertions,omitempty"`
-	Error        string               `json:"error,omitempty"`
+	RecoveryMode         string                           `json:"recovery_mode,omitempty"`
+	EvidenceVersion      int                              `json:"evidence_version,omitempty"`
+	Node                 string                           `json:"node"`
+	Transition           string                           `json:"transition,omitempty"`
+	Round                string                           `json:"round"`
+	RunnerSHA256         string                           `json:"runner_sha256"`
+	CodeSHA256           string                           `json:"code_sha256"`
+	Input                json.RawMessage                  `json:"input"`
+	Participants         []ParticipantBinding             `json:"participants"`
+	BeforeEntities       []EntityBinding                  `json:"before_entities,omitempty"`
+	BeforeSessions       []SessionBinding                 `json:"before_sessions,omitempty"`
+	Oracles              []OracleObservation              `json:"oracles"`
+	Actions              []ActionObservation              `json:"actions"`
+	Requests             []RequestObservation             `json:"requests,omitempty"`
+	Extractions          []ExtractedBinding               `json:"extractions,omitempty"`
+	Entities             []EntityBinding                  `json:"entities,omitempty"`
+	Sessions             []SessionBinding                 `json:"sessions,omitempty"`
+	Waits                []WaitObservation                `json:"waits,omitempty"`
+	Conditions           []ConditionReading               `json:"conditions,omitempty"`
+	Assertions           []StepAssertion                  `json:"assertions,omitempty"`
+	BusinessExpectations []BusinessExpectationObservation `json:"business_expectations,omitempty"`
+	Preparation          *PreparationExecution            `json:"preparation,omitempty"`
+	Error                string                           `json:"error,omitempty"`
+}
+
+// A decision is frozen from independent pre-action readings. The after state
+// and comparison are recorded by the runner, then rechecked by the verifier.
+type BusinessExpectationObservation struct {
+	Request     *RequestObservation  `json:"request,omitempty"`
+	Actor       string               `json:"actor"`
+	ActionIndex int                  `json:"action_index"`
+	Decision    BusinessDecision     `json:"decision"`
+	After       *BusinessObservation `json:"after,omitempty"`
+	Comparison  *BusinessComparison  `json:"comparison,omitempty"`
 }
 
 type RecoveryOutcome struct {
+	Mode     string              `json:"mode,omitempty"`
 	Verdict  string              `json:"verdict"`
 	Reason   string              `json:"reason"`
 	State    string              `json:"state,omitempty"`

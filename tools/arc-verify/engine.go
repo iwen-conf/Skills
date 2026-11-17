@@ -57,6 +57,11 @@ func (d db) importGraph(g Graph) error {
 			stmts = append(stmts, fmt.Sprintf("INSERT INTO risk_meta(graph,id,origin,reference) VALUES(%s,%s,%s,%s);", quote(g.ID), quote(r.ID), quote(r.Origin), quote(r.Reference)))
 		}
 	}
+	contractStatements, err := businessContractStatements(g)
+	if err != nil {
+		return err
+	}
+	stmts = append(stmts, contractStatements...)
 	return d.tx(stmts)
 }
 func (d db) approve(graph, rule string) error {
@@ -317,6 +322,13 @@ func (d db) runTaskContract(run string) (runContract, error) {
 			return runContract{}, e
 		}
 		contract.Receipt = &record
+		flow, err := d.businessCampaignRunFlow(run, contract.Binding, record)
+		if err != nil {
+			return runContract{}, err
+		}
+		if flow != "" {
+			contract.Obligation.Definition.Flow = flow
+		}
 	}
 	return contract, nil
 }
@@ -385,12 +397,16 @@ func newID(prefix string) string {
 	return prefix + "-" + hex.EncodeToString(b)
 }
 func (d db) start(task string, binding RunBinding, receipts ...ModelRunRecord) (string, error) {
+	return d.startBoundRun(task, binding, nil, receipts...)
+}
+
+func (d db) startBoundRun(task string, binding RunBinding, campaign *businessCampaignExecution, receipts ...ModelRunRecord) (string, error) {
 	rows, e := d.query("SELECT t.status,t.graph,q.actor,q.oracle,q.approved,g.approved,t.kind FROM tasks t JOIN rules q ON q.graph=t.graph AND q.id=t.rule JOIN graphs g ON g.id=t.graph WHERE t.id="+quote(task)+";", 7)
 	if e != nil {
 		return "", e
 	}
-	if len(rows) != 1 || rows[0][0] != "READY" {
-		return "", errors.New("task not READY")
+	if len(rows) != 1 || (rows[0][0] != "READY" && (campaign == nil || rows[0][0] != "PASS")) {
+		return "", errors.New("task not READY (campaign attempts may append only after a verified PASS)")
 	}
 	if binding.Identity.Task != task || binding.Identity.Graph != rows[0][1] || binding.Identity.Actor != rows[0][2] || binding.Oracle != rows[0][3] || rows[0][4] != "1" || rows[0][5] != "1" {
 		return "", errors.New("start requires an approved task and its exact execution binding")
@@ -406,6 +422,15 @@ func (d db) start(task string, binding RunBinding, receipts ...ModelRunRecord) (
 		return "", e
 	}
 	id := newID("R")
+	if campaign != nil {
+		if len(receipts) != 1 {
+			return "", errors.New("campaign dispatch requires a registered model receipt")
+		}
+		if err := d.validateBusinessCampaignDispatch(task, binding, receipts[0], campaign); err != nil {
+			return "", err
+		}
+		id = campaign.Intent.Run
+	}
 	var modelRecord *ModelRunRecord
 	if rows[0][6] == "MODEL" {
 		if len(receipts) != 1 {
@@ -442,6 +467,17 @@ func (d db) start(task string, binding RunBinding, receipts ...ModelRunRecord) (
 		fmt.Sprintf("INSERT INTO runs(id,task,environment,commit_sha) SELECT %s,id,%s,%s FROM tasks WHERE id=%s AND status='READY';", quote(id), quote(binding.Identity.Environment), quote(binding.Identity.SourceCommit), quote(task)),
 		fmt.Sprintf("UPDATE tasks SET status='RUNNING' WHERE id=%s AND status='READY';", quote(task)),
 		fmt.Sprintf("INSERT INTO run_bindings(run,body) VALUES(%s,%s);", quote(id), quote(string(body))),
+	}
+	if campaign != nil {
+		// The reserved run identity, task claim and one-shot intent are bound in
+		// the same transaction. A failed fence/status predicate inserts NULL into
+		// the NOT NULL task field and rolls the entire start back.
+		guard := d.businessCampaignDispatchGuard(campaign)
+		statements[0] = fmt.Sprintf("INSERT INTO runs(id,task,environment,commit_sha) VALUES(%s,(SELECT id FROM tasks WHERE id=%s AND status=%s AND %s),%s,%s)", quote(id), quote(task), quote(rows[0][0]), guard, quote(binding.Identity.Environment), quote(binding.Identity.SourceCommit))
+		statements[1] = fmt.Sprintf("UPDATE tasks SET status='RUNNING' WHERE id=%s AND status=%s", quote(task), quote(rows[0][0]))
+		statements = append(statements,
+			fmt.Sprintf("UPDATE business_campaign_dispatches SET status='STARTED',updated=%s WHERE run_id=%s AND status='INTENT'", quote(time.Now().UTC().Format(time.RFC3339Nano)), quote(id)),
+			fmt.Sprintf("INSERT INTO task_events(task,run,event,reason) VALUES(%s,%s,'CAMPAIGN_ATTEMPT',%s)", quote(task), quote(id), quote("new immutable attempt for "+campaign.Intent.Campaign+"/"+campaign.Intent.VariantID)))
 	}
 	fixtures := bindingFixtureIDs(binding)
 	if modelRecord != nil {

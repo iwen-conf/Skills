@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const version = "0.4.3"
+const version = "0.5.0"
 
 const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"Usage:\n" +
@@ -26,9 +26,12 @@ const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"  arc idx doctor [flags]          Diagnose index health\n" +
 	"  arc idx daemon <action> [flags] Manage code indexer\n" +
 	"  arc index flush [--repo DIR]    Acknowledge outbox only after healthy index\n" +
-	"  arc verify <action> [flags]     Existing business graph/evidence engine\n" +
+	"  arc verify <action> [flags]     Business model, execution and evidence\n" +
+	"  arc verify contract <check|match|compare|prepare>  Deterministic branch contracts\n" +
+	"  arc verify campaign <run|resume|status|list|abort>  Bounded observed-state exploration\n" +
 	"  arc db <status|init|migrate>     Explicit local database lifecycle\n" +
 	"  arc task <create|ensure|show|transition|complete> [flags]  Versioned task state\n" +
+	"  arc task <link-verify|verify-status> [flags]  Link and inspect verification obligations\n" +
 	"  arc file <update|show> --path FILE  Write or inspect file observation\n" +
 	"  arc change <collect|show>       Collect changed source files\n" +
 	"  arc update --changed-only       Collect Git changes idempotently\n" +
@@ -38,7 +41,7 @@ const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"  arc capabilities --json        Detect supported backends and capabilities\n" +
 	"  arc version                    Print the unified entrypoint version\n\n" +
 	"Resource writes require an explicitly initialized/migrated .arc/arc.db.\n" +
-	"Task done requires an existing, current Arc Policy PASS receipt and drained index outbox.\n"
+	"Task done requires current linked verification evidence and a drained, current index outbox.\n"
 
 var indexCommands = map[string]bool{
 	"index": true, "reindex": true, "search": true, "symbol": true,
@@ -124,10 +127,13 @@ func capabilities() map[string]any {
 		"name": "arc", "protocol_version": 1, "version": version,
 		"mode": "local_state_and_legacy_backends",
 		"code_index": supported["arc-idx"], "business_verify": supported["arc-verify"],
+		"business_contract_version": 1, "business_contract_proof_scope": "explicit-finite-domains",
+		"business_campaign_version": 1, "business_campaign_scope": "registered-input-variants",
+		"verification_views": []string{"capabilities", "dependencies", "states", "run"},
 		"arc_db_resources": true, "unified_database": active,
 		"arc_db_active": active, "arc_db_schema_version": arcSchemaVersion,
-		"resource_commands": []string{"db", "file update", "file show", "task create", "task ensure", "task show", "task transition", "task complete", "change collect", "change show", "update", "sync reconcile", "event list", "index flush", "policy state get", "policy state put", "policy state status", "policy state migrate"},
-		"outbox_consumer": "arc-idx-full-rebuild", "completion_proof": "arc-policy-current-PASS",
+		"resource_commands": []string{"db", "file update", "file show", "task create", "task ensure", "task show", "task transition", "task complete", "task link-verify", "task verify-status", "change collect", "change show", "update", "sync reconcile", "event list", "index flush", "policy state get", "policy state put", "policy state status", "policy state migrate"},
+		"outbox_consumer": "arc-idx-full-rebuild", "completion_proof": "arc-verify-linked-current-evidence",
 		"policy_storage": "arc policy state (opt-in migration)",
 		"engines": engines,
 	}
@@ -197,7 +203,7 @@ func run(args []string) int {
 		m, err := readManifest(root)
 		if err != nil { fmt.Fprintln(os.Stderr, "arc verify:", err); return 2 }
 		if m != nil && !isArcDBArgument(selected.argv) {
-			selected.argv = append(selected.argv[:1], append([]string{"--db",statePath(root)},selected.argv[1:]...)...)
+			selected.argv = withVerifyDatabase(selected.argv, statePath(root))
 		}
 		if m != nil {
 			code := 2
@@ -208,6 +214,18 @@ func run(args []string) int {
 		}
 	}
 	return forward()
+}
+
+// Subcommands consume their name before flags. Inserting --db before that
+// name breaks nested verifier commands in an activated unified ledger.
+func withVerifyDatabase(args []string, database string) []string {
+	at := 1
+	if len(args) > 1 && (args[0] == "contract" || args[0] == "campaign" || args[0] == "discover" || args[0] == "risk" && args[1] == "refute") {
+		at = 2
+	}
+	result := append([]string{}, args[:at]...)
+	result = append(result, "--db", database)
+	return append(result, args[at:]...)
 }
 
 func main() { os.Exit(run(os.Args[1:])) }

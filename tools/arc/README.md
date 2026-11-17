@@ -108,25 +108,28 @@ results or run tests. `git commit` and `git push` remain free of per-commit
 verification.
 
 An unavailable or broken DB backend must fail rather than revert to the old
-JSON. Windows Policy migration and completion remain fail-closed until the Go
-lock matches the existing locking protocol.
+JSON. Windows legacy Policy migration remains fail-closed until the Go
+lock matches the historical locking protocol.
 
 ### Guarantees and deliberate limits
 
 Resource writes use short SQL transactions and append-only events/outbox rows.
-Task completion now rechecks the *live* policy receipt while holding the same
-`.arc/policy/task.lock`, then acquires the `arc.db` lock
-(policy lock first, database lock second) and commits the CAS transition.
-Revoked/replaced receipts and concurrent policy task changes cannot silently
-produce `done`. This completion path currently fails closed on Windows until
-its policy lock adapter matches Python's `msvcrt` locking protocol.
+Task completion revalidates every explicitly linked verification obligation through
+the built-in verifier under the single `arc.db` lock. It checks the current source,
+round, model, account-scoped facts and original RAW evidence. It then rechecks the
+link digest, source and index snapshot before the atomic CAS transition. Missing,
+stale or damaged evidence cannot produce `done`; no external `arc-policy` process
+or historical receipt fallback is used.
 
 Task transitions use expected-version CAS. `done` is now available only through
-`arc task complete --id <policy-task-id> --expected-version N` (or `arc task
-transition --to done`), which checks an **existing current PASS** from
-the live Policy receipt. An `AUTHORIZED` waiver is not a PASS. The completion
+`arc task complete --id <task-id> --expected-version N` (or `arc task
+transition --to done`), which checks **existing current PASS evidence** for
+every `arc task link-verify` binding. An `AUTHORIZED` waiver is not a PASS. The completion
 and evidence fingerprint commit atomically, and tests are not re-run by `complete`.
 Index shards remain independently rebuildable and are not part of `arc.db`.
+Use `arc task verify-status --id TASK-ID` to inspect links. This is scoped task
+completion, not a claim that the complete business graph has passed. Old completion
+events and migrated Policy receipts remain readable as history.
 
 `arc update` observes the dirty worktree; `arc sync reconcile` additionally
 replays missed Git **commits** using `arc_meta.sync_head`. Only file/change events enter the index Outbox; task lifecycle events remain

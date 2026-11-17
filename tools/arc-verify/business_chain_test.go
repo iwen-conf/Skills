@@ -15,23 +15,23 @@ import (
 )
 
 type businessChainServer struct {
-	mu                     sync.Mutex
-	orderSeq               int
-	refundSeq              int
-	currentOrder           string
-	currentRefund          string
-	state                  string
-	notifyPolls            int
-	notifyAfterPolls       int
-	illegalAsyncState      string
-	neverConvergeAsync     bool
-	omitOrderExtract       bool
-	corruptRefundAccount   bool
-	providerActionsCalled  int
-	refundActionsCalled    int
-	observedCallbackOrder  string
-	observedRefundOrder    string
-	sessionCookieAccepted  bool
+	mu                    sync.Mutex
+	orderSeq              int
+	refundSeq             int
+	currentOrder          string
+	currentRefund         string
+	state                 string
+	notifyPolls           int
+	notifyAfterPolls      int
+	illegalAsyncState     string
+	neverConvergeAsync    bool
+	omitOrderExtract      bool
+	corruptRefundAccount  bool
+	providerActionsCalled int
+	refundActionsCalled   int
+	observedCallbackOrder string
+	observedRefundOrder   string
+	sessionCookieAccepted bool
 }
 
 func newBusinessChainServer(t *testing.T) (*businessChainServer, *httptest.Server) {
@@ -645,12 +645,18 @@ func TestBusinessChainNegativeSensitivity(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_ = hash4
+		verdict, reason, _, err := fixture.d.evaluateModelObservation(contract, step4, 4, hash4)
+		if err != nil || verdict != "PASS" {
+			t.Fatalf("unchanged RAW must pass before testing display tampering: verdict=%s reason=%s err=%v", verdict, reason, err)
+		}
 		// Mutate ResolvedPath without changing TemplateSHA256 or RequestSHA256: verifier must catch mismatch
 		step4.Model.Actions[0].ResolvedPath = "/api/v1/payments/P-9999/refunds"
-		verdict, reason, _, err := fixture.d.evaluateModelObservation(contract, step4, 4, step4.Model.Actions[0].RequestSHA256)
+		verdict, reason, _, err = fixture.d.evaluateModelObservation(contract, step4, 4, hash4)
 		if err == nil && verdict == "PASS" {
 			t.Fatalf("tampered ResolvedPath was not rejected: verdict=%s reason=%s", verdict, reason)
+		}
+		if !strings.Contains(reason, "resolved") {
+			t.Fatalf("tampered path was rejected for an unrelated reason: verdict=%s reason=%s err=%v", verdict, reason, err)
 		}
 	})
 

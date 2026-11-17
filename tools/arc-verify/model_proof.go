@@ -102,10 +102,18 @@ func (d db) evaluateModelObservation(contract runContract, raw StepRAW, index in
 		if reason == "" {
 			reason = fmt.Sprintf("step runner exited with code %d", raw.ExitCode)
 		}
+		for _, entry := range observed.BusinessExpectations {
+			assertions = append(assertions, StepAssertion{Kind: "business_precondition", Name: entry.Decision.Action, Subject: entry.Actor, Verdict: "BLOCKED", Reason: entry.Decision.Status + ": " + entry.Decision.Reason})
+		}
 		return "BLOCKED", reason, assertions, nil
 	}
 	if len(observed.Actions) != len(batch) {
 		return "BLOCKED", "actual operation count differs from the registered batch", assertions, errors.New("actual operation count differs from the registered batch")
+	}
+	if contract.Model.BusinessContract != nil {
+		if err := d.verifyBusinessExpectationCaptures(contract.Graph, raw.Run, index, observed.BusinessExpectations); err != nil {
+			return "BLOCKED", err.Error(), []StepAssertion{{Kind: "business_expectation", Name: "pre_action_receipt", Verdict: "BLOCKED", Reason: err.Error()}}, nil
+		}
 	}
 	participants := map[string]ParticipantBinding{}
 	for _, participant := range receipt.Participants {
@@ -119,6 +127,9 @@ func (d db) evaluateModelObservation(contract runContract, raw StepRAW, index in
 			stepConds = x.contracts[step.Transition].Preconditions
 		}
 		participant, found := participants[step.Actor]
+		if observed.EvidenceVersion >= runtimeEvidenceVersion && action.ActionIndex != position+1 {
+			return "BLOCKED", "actual action index differs from its frozen batch position", assertions, errors.New("actual action index differs from its frozen batch position")
+		}
 		if !found || action.Node != step.Node || action.Transition != step.Transition || action.Actor != step.Actor || action.Principal != participant.Principal || action.Started == "" || action.Completed == "" || len(action.RequestSHA256) != 64 || len(action.ResponseSHA256) != 64 {
 			return "BLOCKED", "actual action identity or capture is incomplete", assertions, errors.New("actual action identity or capture is incomplete")
 		}
@@ -138,6 +149,9 @@ func (d db) evaluateModelObservation(contract runContract, raw StepRAW, index in
 			renderedBytes, err := json.Marshal(renderedCall)
 			if err != nil || digestBytes(renderedBytes) != action.RequestSHA256 {
 				return "BLOCKED", "actual rendered action input differs from its frozen adapter", assertions, errors.New("actual rendered action input differs from its frozen adapter")
+			}
+			if action.ResolvedPath != renderedCall.Path || !sameJSONValue(action.ResolvedInput, renderedCall.Body) {
+				return "BLOCKED", "resolved action display differs from the verified request", assertions, errors.New("resolved action display differs from the verified request")
 			}
 		} else if templateDigest != action.RequestSHA256 {
 			return "BLOCKED", "actual action input differs from its frozen adapter", assertions, errors.New("actual action input differs from its frozen adapter")
@@ -160,6 +174,22 @@ func (d db) evaluateModelObservation(contract runContract, raw StepRAW, index in
 				return "BLOCKED", "actual action status contradicts the registered transport contract", assertions, errors.New("actual action status contradicts the registered transport contract")
 			}
 		}
+		if observed.EvidenceVersion >= runtimeEvidenceVersion {
+			if len(step.InputMeasurements) > 0 {
+				request, err := runtimeRequestFor(step, position+1, observed)
+				if err != nil || !requestMatchesAction(*request, action) {
+					return "BLOCKED", "actual request differs from the pre-action frozen input", assertions, errors.New("actual request differs from the pre-action frozen input")
+				}
+			}
+			if len(action.ResponseValues) != len(step.ResponseMeasurements) {
+				return "BLOCKED", "actual response measurements differ from the registered capture fields", assertions, errors.New("actual response measurements differ from the registered capture fields")
+			}
+			for key := range step.ResponseMeasurements {
+				if value, found := action.ResponseValues[key]; !found || !json.Valid(value) {
+					return "BLOCKED", "actual response measurement is missing or invalid", assertions, errors.New("actual response measurement is missing or invalid")
+				}
+			}
+		}
 		if step.Call.Kind == adapterCommand {
 			accepted := false
 			for _, code := range step.Call.SuccessExitCodes {
@@ -171,7 +201,7 @@ func (d db) evaluateModelObservation(contract runContract, raw StepRAW, index in
 		}
 		foundOracle := false
 		for _, item := range observed.Oracles {
-			if item.Actor == step.Actor && item.ID == stepJudged.Oracle {
+			if oracleForAction(item, step.Actor, position+1, observed.EvidenceVersion) && item.ID == stepJudged.Oracle {
 				foundOracle = true
 				if item.Before.Principal != participant.Principal || item.After.Principal != participant.Principal || item.Before.Role != participant.Role || item.After.Role != participant.Role || item.Before.Scope != runner.Manifest.IsolationScope || item.After.Scope != runner.Manifest.IsolationScope || !observedConditions(map[string]bool(item.Before.Conditions), stepConds, stepJudged.Conditions) {
 					return "BLOCKED", "participant identity, scope or observed preconditions contradict the frozen contract", assertions, errors.New("participant identity, scope or observed preconditions contradict the frozen contract")
@@ -184,7 +214,7 @@ func (d db) evaluateModelObservation(contract runContract, raw StepRAW, index in
 	}
 	var oracle *OracleObservation
 	for _, item := range observed.Oracles {
-		if item.ID == judged.Oracle && item.Actor == final.Actor {
+		if item.ID == judged.Oracle && oracleForAction(item, final.Actor, len(batch), observed.EvidenceVersion) {
 			copy := item
 			oracle = &copy
 			break
@@ -254,43 +284,31 @@ func (d db) evaluateModelObservation(contract runContract, raw StepRAW, index in
 		}
 	}
 	// Evaluate declared async wait observations on any step in the batch.
-	for _, step := range batch {
+	for position, step := range batch {
 		if step.AsyncWait == nil {
 			continue
 		}
-		var waitObs *WaitObservation
-		for i := range observed.Waits {
-			if observed.Waits[i].OracleID == step.AsyncWait.OracleID {
-				waitObs = &observed.Waits[i]
-				break
-			}
-		}
-		if waitObs == nil || waitObs.RuleSourceRef != step.AsyncWait.RuleSourceRef || waitObs.MaxWaitMS > step.AsyncWait.MaxWaitMS || waitObs.Attempts < 1 {
-			assertions = append(assertions, StepAssertion{Kind: "async_wait", Name: step.AsyncWait.OracleID, OracleID: step.AsyncWait.OracleID, Subject: step.Actor, Expected: step.AsyncWait.UntilState, Actual: "MISSING", Operator: "async", Verdict: "BLOCKED", Reason: "async_wait observation missing or violates declared bounds"})
-			setVerdict("BLOCKED", "async_wait observation missing or violates declared bounds")
-			continue
-		}
-		if waitObs.ViolatedIntermediate {
-			reason := fmt.Sprintf("async_wait observed illegal intermediate state in %v (rule %s)", waitObs.ObservedStates, waitObs.RuleSourceRef)
-			assertions = append(assertions, StepAssertion{Kind: "async_wait", Name: step.AsyncWait.OracleID, OracleID: step.AsyncWait.OracleID, Subject: step.Actor, Expected: step.AsyncWait.UntilState, Actual: waitObs.FinalState, Operator: "async", Verdict: "FAIL", Reason: reason})
-			setVerdict("FAIL", reason)
-		} else if waitObs.TimedOut {
-			reason := fmt.Sprintf("async_wait timed out after %dms/%d attempts; final state %s (rule %s)", waitObs.MaxWaitMS, waitObs.Attempts, waitObs.FinalState, waitObs.RuleSourceRef)
-			assertions = append(assertions, StepAssertion{Kind: "async_wait", Name: step.AsyncWait.OracleID, OracleID: step.AsyncWait.OracleID, Subject: step.Actor, Expected: step.AsyncWait.UntilState, Actual: waitObs.FinalState, Operator: "async", Verdict: "FAIL", Reason: reason})
-			setVerdict("FAIL", reason)
-		} else {
-			assertions = append(assertions, StepAssertion{Kind: "async_wait", Name: step.AsyncWait.OracleID, OracleID: step.AsyncWait.OracleID, Subject: step.Actor, Expected: step.AsyncWait.UntilState, Actual: waitObs.FinalState, Operator: "async", Verdict: "PASS", Reason: fmt.Sprintf("converged in %d attempts (rule %s)", waitObs.Attempts, waitObs.RuleSourceRef)})
+		assertion := verifyStepWait(step, index, position+1, observed)
+		assertions = append(assertions, assertion)
+		if assertion.Verdict != "PASS" {
+			setVerdict(assertion.Verdict, assertion.Reason)
 		}
 	}
 	// Primary state expectation assertion.
-	if raw.Observed != expected {
+	if contract.Model.BusinessContract != nil {
+		businessVerdict, businessReason, businessAssertions := verifyRuntimeBusiness(*contract.Model, *contract.Obligation, batch, observed)
+		assertions = append(assertions, businessAssertions...)
+		if businessVerdict != "PASS" {
+			setVerdict(businessVerdict, businessReason)
+		}
+	} else if raw.Observed != expected {
 		assertions = append(assertions, StepAssertion{Kind: "state", Name: final.Node, OracleID: judged.Oracle, Subject: final.Actor, Expected: expected, Actual: raw.Observed, Operator: "eq", Verdict: "FAIL", Reason: fmt.Sprintf("observed state %s differs from expected %s", raw.Observed, expected)})
 		setVerdict("FAIL", fmt.Sprintf("observed state %s differs from expected %s", raw.Observed, expected))
 	} else {
 		assertions = append(assertions, StepAssertion{Kind: "state", Name: final.Node, OracleID: judged.Oracle, Subject: final.Actor, Expected: expected, Actual: raw.Observed, Operator: "eq", Verdict: "PASS", Reason: "observed state matches expected"})
 	}
 	// Denial assertion.
-	if len(batch) == 1 {
+	if len(batch) == 1 && contract.Model.BusinessContract == nil {
 		if raw.Denied != observed.Actions[0].Denied || denied != raw.Denied {
 			assertions = append(assertions, StepAssertion{Kind: "denial", Name: final.Node, OracleID: judged.Oracle, Subject: final.Actor, Expected: fmt.Sprint(denied), Actual: fmt.Sprint(raw.Denied), Operator: "eq", Verdict: "FAIL", Reason: fmt.Sprintf("action denied=%t contradicted expected denied=%t", raw.Denied, denied)})
 			setVerdict("FAIL", fmt.Sprintf("action denied=%t contradicted expected denied=%t", raw.Denied, denied))
@@ -298,7 +316,7 @@ func (d db) evaluateModelObservation(contract runContract, raw StepRAW, index in
 			assertions = append(assertions, StepAssertion{Kind: "denial", Name: final.Node, OracleID: judged.Oracle, Subject: final.Actor, Expected: fmt.Sprint(denied), Actual: fmt.Sprint(raw.Denied), Operator: "eq", Verdict: "PASS", Reason: "denial observation matches contract"})
 		}
 	}
-	if definition.Denied && expected == "UNCHANGED" && before != after {
+	if contract.Model.BusinessContract == nil && definition.Denied && expected == "UNCHANGED" && before != after {
 		assertions = append(assertions, StepAssertion{Kind: "forbidden_effect", Name: final.Node, OracleID: judged.Oracle, Subject: final.Actor, Expected: before, Actual: after, Operator: "eq", Verdict: "FAIL", Reason: "rejected action mutated independent state snapshot"})
 		setVerdict("FAIL", "rejected action mutated independent state snapshot")
 	}
@@ -314,14 +332,19 @@ func (d db) evaluateModelObservation(contract runContract, raw StepRAW, index in
 		}
 	}
 	// Step-level property checks.
-	for _, step := range batch {
+	for position, step := range batch {
 		if len(step.Checks) == 0 {
 			continue
 		}
 		mergedValues := map[string]json.RawMessage{}
 		for _, item := range observed.Oracles {
-			if item.Actor == step.Actor {
+			if oracleForAction(item, step.Actor, position+1, observed.EvidenceVersion) {
 				for k, v := range item.After.Values {
+					if prior, exists := mergedValues[k]; exists && !sameJSONValue(prior, v) {
+						assertions = append(assertions, StepAssertion{Kind: "property", Name: k, OracleID: item.ID, Subject: step.Actor, Actual: string(v), Verdict: "BLOCKED", Reason: "independent oracles disagree on a property measurement"})
+						setVerdict("BLOCKED", "independent oracles disagree on a property measurement")
+						continue
+					}
 					mergedValues[k] = v
 				}
 			}
@@ -338,7 +361,7 @@ func (d db) evaluateModelObservation(contract runContract, raw StepRAW, index in
 	for _, invariant := range x.invariants[judged.ID] {
 		found := false
 		for _, item := range observed.Oracles {
-			if item.ID == invariant.Oracle && item.Boundary == invariant.ObservationBoundary {
+			if item.ID == invariant.Oracle && item.Boundary == invariant.ObservationBoundary && oracleForAction(item, final.Actor, len(batch), observed.EvidenceVersion) {
 				found = true
 				for _, outcome := range evaluateProperties(invariant.Checks, item.After.Values) {
 					check := invariant.Checks[outcome.Index-1]
@@ -424,10 +447,14 @@ func (d db) validateModelRecovery(contract runContract) error {
 		return err
 	}
 	protocol := runner.Manifest.Recovery
-	if protocol != nil && (protocol.State != fixture.State || protocol.IsolationScope != fixture.Refs["scope"]) {
+	mode, expected := fixtureRecoveryMode(protocol), fixtureRecoveryTarget(protocol, fixture)
+	if protocol != nil && (mode == recoveryRestore && protocol.State != fixture.State || protocol.IsolationScope != fixture.Refs["scope"]) {
 		return errors.New("recovery target or isolation differs from the registered fixture")
 	}
-	raw, _, err := d.readRecordedRAWWithFallback(recovery.Evidence, recovery.SHA256, contract.Receipt.Run, fixture.State, fixture.State, 0)
+	if mode != recoveryRestore && mode != recoveryCheckpoint || recovery.Mode != "" && recovery.Mode != mode || mode == recoveryCheckpoint && (recovery.Mode != mode || len(protocol.Steps) != 0) {
+		return errors.New("fixture finalization mode differs from its frozen protocol")
+	}
+	raw, _, err := d.readRecordedRAWWithFallback(recovery.Evidence, recovery.SHA256, contract.Receipt.Run, expected, expected, 0)
 	if err != nil {
 		return err
 	}
@@ -439,6 +466,15 @@ func (d db) validateModelRecovery(contract runContract) error {
 	}
 	if raw.ExitCode != 0 || !raw.SafeToContinue || raw.Model == nil || raw.Model.Round != contract.Receipt.Round || raw.Model.RunnerSHA256 != contract.Receipt.RunnerSHA256 || raw.Model.CodeSHA256 != contract.Receipt.CodeSHA256 || !reflect.DeepEqual(raw.Model.Participants, contract.Receipt.Participants) {
 		return errors.New("recovery observer is incomplete or unsafe")
+	}
+	if raw.Model.EvidenceVersion >= runtimeEvidenceVersion || mode == recoveryCheckpoint {
+		node := "fixture.restore"
+		if mode == recoveryCheckpoint {
+			node = "fixture.checkpoint"
+		}
+		if raw.Model.EvidenceVersion < runtimeEvidenceVersion || recovery.Mode != mode || raw.Model.RecoveryMode != mode || raw.Model.Node != node || recovery.State != expected || !sameFactSlice(raw.Model.Actions, recovery.Actions) {
+			return errors.New("fixture finalization identity, mode or action capture is incomplete")
+		}
 	}
 	if protocol == nil {
 		if !contract.Obligation.Definition.ReadOnly || len(raw.Model.Oracles) != len(contract.Receipt.Participants) || len(raw.Model.Actions) != 0 {
@@ -461,12 +497,12 @@ func (d db) validateModelRecovery(contract runContract) error {
 		return errors.New("recovery operations or oracle are incomplete")
 	}
 	facts := raw.Model.Oracles[0].After
-	if raw.Model.Oracles[0].ID != protocol.Oracle.ID || raw.Model.Oracles[0].Boundary != protocol.Oracle.Boundary || facts.State != fixture.State || facts.Principal != contract.Binding.Identity.Principal || facts.Role != contract.Binding.Identity.Actor || facts.Scope != fixture.Refs["scope"] || !observedConditions(facts.Conditions, protocol.Conditions, nil) {
-		return errors.New("fixture state or conditions were not independently restored")
+	if raw.Model.Oracles[0].Actor != "primary" || raw.Model.Oracles[0].ID != protocol.Oracle.ID || raw.Model.Oracles[0].Boundary != protocol.Oracle.Boundary || facts.State != expected || facts.Principal != contract.Binding.Identity.Principal || facts.Role != contract.Binding.Identity.Actor || facts.Scope != fixture.Refs["scope"] || !observedConditions(facts.Conditions, protocol.Conditions, nil) {
+		return errors.New("fixture state, identity or conditions do not satisfy the independent " + mode + " proof")
 	}
 	for _, outcome := range evaluateProperties(protocol.Checks, facts.Values) {
 		if outcome.Verdict != "PASS" {
-			return errors.New("fixture restoration property failed: " + outcome.Reason)
+			return errors.New("fixture " + mode + " property failed: " + outcome.Reason)
 		}
 	}
 	return nil
@@ -492,6 +528,37 @@ func (d db) validateModelCompletion(contract runContract) error {
 	runner, err := d.registeredRunner(contract.Receipt.Runner)
 	if err != nil {
 		return err
+	}
+	if runner.Manifest.Preparation != nil {
+		if raw.Model.Preparation == nil {
+			return errors.New("automatic preparation has no captured execution and readback")
+		}
+		preparation := runner.Manifest.Preparation
+		request := PreparationRequest{Goal: preparation.Goal, MaxSteps: preparation.MaxSteps, MaxStates: preparation.MaxStates}
+		if err := ValidatePreparationExecution(*contract.Model, request, *raw.Model.Preparation); err != nil {
+			return fmt.Errorf("automatic preparation evidence: %w", err)
+		}
+		if len(raw.Model.Actions) != len(runner.Manifest.Setup)+len(raw.Model.Preparation.Steps) {
+			return errors.New("automatic preparation action captures are incomplete")
+		}
+		for i, actual := range raw.Model.Preparation.Steps {
+			adapter, found := preparation.Adapters[actual.Planned.ID]
+			if !found || adapter.Node != actual.Planned.Action {
+				return errors.New("automatic preparation used an unregistered adapter")
+			}
+			action := raw.Model.Actions[len(runner.Manifest.Setup)+i]
+			if !sameFactSlice([]ActionObservation{action}, []ActionObservation{actual.Receipt.Action}) || action.Actor != adapter.Actor {
+				return errors.New("automatic preparation receipt differs from the captured operation")
+			}
+			template, _ := json.Marshal(adapter.Call)
+			rendered, renderErr := applySubstitutionsToCall(adapter.Call, action.Substitutions)
+			input, marshalErr := json.Marshal(rendered)
+			if renderErr != nil || marshalErr != nil || action.TemplateSHA256 != digestBytes(template) || action.RequestSHA256 != digestBytes(input) || action.ResolvedPath != rendered.Path || !sameJSONValue(action.ResolvedInput, rendered.Body) {
+				return errors.New("automatic preparation request differs from its frozen adapter")
+			}
+		}
+	} else if raw.Model.Preparation != nil {
+		return errors.New("setup claims automatic preparation absent from the registered manifest")
 	}
 	rows, err := d.query("SELECT COUNT(*) FROM steps WHERE run="+quote(contract.Receipt.Run), 1)
 	if err != nil {

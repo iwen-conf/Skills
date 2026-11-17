@@ -1,0 +1,4384 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-17",
+  "timezone": "Asia/Shanghai",
+  "scope": "Arc tool verification and actual isolated HTTP tool targets; not pay_gateway product E2E or browser visual acceptance",
+  "execution_receipt": false,
+  "source_parent_commit": "34094b969f8c26ac79b4884fc2a8244aa14434e4",
+  "baselines": {
+    "Skills": "3690d125f3ebd7923e2d4d3e1888a0c8b8b47446",
+    "pay_gateway": "e4f054fc7bb06e091be62d6765bb29b4348ad651",
+    "eta": "03197d88a54b3b2015f38d425d76baf95216cf27"
+  },
+  "source_fingerprints": {
+    "verify_production_files": 82,
+    "aggregation": "sorted basename + NUL + file bytes + NUL; top-level non-test Go files",
+    "sha256": "0b1d4e34aed8f15b23226dc4d147f5d668c9b064d20413900b9dc90f420cb84d",
+    "final_evidence_file": {
+      "path": "tools/arc-verify/business_exploration_evidence.go",
+      "sha256": "77cef32531bd80ce560b4c9beabd9bac23193b3fe142d89616b69208ec41ea9e"
+    }
+  },
+  "commands": {
+    "verify_full": "go -C tools/arc-verify test -race -json -count=1 ./...",
+    "cli_full": "go -C tools/arc test -race -count=1 ./...",
+    "index": "go -C tools/arc-idx test -count=1 ./...",
+    "vet": "go -C tools/arc-verify vet ./...",
+    "installed_public_cli_and_exit_codes": "ARC_CAMPAIGN_BINARY=/absolute/install/bin/arc ARC_VERIFY_CHAIN_BINARY=/absolute/install/libexec/arc/arc-verify go -C tools/arc-verify test -race -json -run '^(TestBusinessCampaignInstalledPublicCLIExecutesWithoutReplay|TestRunChainBuiltBinaryExitStatus)$' -count=1 .",
+    "actual_exports": "ARC_WORKBENCH_EXPORT_DIR=/absolute/prepared-release ARC_CAMPAIGN_EXPORT_DIR=/absolute/campaign-release ARC_WORKBENCH_ASSETS=/absolute/Skills/tools/arc-verify/workbench/dist go -C tools/arc-verify test -run '^(TestWorkbenchExportObservedToolRun|TestWorkbenchExportObservedBusinessCampaign)$' -count=1 -v .",
+    "pay_python": "python3 -m unittest discover -s tools/arc-verify/examples/pay-gateway -p test_*.py",
+    "python_full": ".venv/bin/python -m pytest -q",
+    "dbqual": ".venv/bin/python -m pytest -q Arc/arc:verify/scripts/dbqual/tests",
+    "install": "bash scripts/install_arc.sh /absolute/install/bin",
+    "smoke": "bash tools/arc/smoke.sh /absolute/install/bin /absolute/Skills"
+  },
+  "verify_full_before_final_probe_identity_patch": {
+    "log": "arc-continue-verify-full.jsonl",
+    "bytes": 834476,
+    "sha256": "e5dda2cafa94f223237f6993bad8b2d15cfb3cbf538aeac2131ddbdad453b004",
+    "top_level_counts": {
+      "PASS": 455,
+      "SKIP": 5
+    },
+    "subtest_counts": {
+      "PASS": 265
+    },
+    "packages": [
+      {
+        "package": "github.com/iwen-conf/Skills/tools/arc-verify/workbench/node_modules/flatted/golang/pkg/flatted",
+        "status": "SKIP",
+        "seconds": 0
+      },
+      {
+        "package": "github.com/iwen-conf/Skills/tools/arc-verify",
+        "status": "PASS",
+        "seconds": 382.288
+      }
+    ],
+    "tests": [
+      {
+        "test": "TestExplorationMergesEquivalentStates",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestExplorationKeepsHistoryDistinctWorlds",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestExplorationWithoutHistoryMergesByStateOnly",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestExplorationBudgetStillTruncates",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestEquivalenceKeySeparatesBehaviorRelevantConditions",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestHistoryDeclarationValidated/unknown_flow",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestHistoryDeclarationValidated/not_a_transition",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestHistoryDeclarationValidated/no_set_by_and_no_measurement",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestHistoryDeclarationValidated/missing_source",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestHistoryDeclarationValidated/set_and_cleared_by_the_same_edge",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestHistoryDeclarationValidated/duplicated_identity",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestHistoryDeclarationValidated",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestAnalysisOwnershipConflictNeedsSharedDeclaration",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestAnalysisDependencyCycleIsDiagnosed",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestAnalysisStalePassIsNotGreen",
+        "status": "PASS",
+        "seconds": 1.27
+      },
+      {
+        "test": "TestAnalysisSeparateRoundsAreNotCombined",
+        "status": "PASS",
+        "seconds": 1.25
+      },
+      {
+        "test": "TestAnalysisChangedEvidenceIsNotGreen",
+        "status": "PASS",
+        "seconds": 1.88
+      },
+      {
+        "test": "TestAnalysisConditionProofThroughCLI",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestAnalysisSixViewsKeepCanonicalIdentity",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestAnalysisPlanningAndFilteringDoNotShrinkObligations",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestAnalysisImpactUsesBusinessDependencies",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestAnalysisFlowExplorationIsBoundedAndModelOnly",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestAnalysisScenarioApplicabilityHasExplicitSource",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestAnalysisBoundaryRootKeepsOwnedSubjects",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestAnalysisFlowChangeReachesCapabilityAndTests",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestAnalysisRoleFilterKeepsServedDomainCapabilities",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestAnalysisFlowRootsKeepUntestedBehaviors",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessKernelHasNoAmbientIO",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestBusinessCampaignStoreEventChainCASAndFencedOwnership",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestBusinessCampaignStoreIntentAndProjectionCommitAtomically",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedScopeReplacementIsBlocked/principal",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedScopeReplacementIsBlocked/account",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedScopeReplacementIsBlocked/fixture",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedScopeReplacementIsBlocked/round",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedScopeReplacementIsBlocked/variant-runner",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedScopeReplacementIsBlocked/input-variant",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedScopeReplacementIsBlocked/budget",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedScopeReplacementIsBlocked/flow",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedScopeReplacementIsBlocked",
+        "status": "PASS",
+        "seconds": 0.32
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedSpentResetCannotRestoreBudgets/states",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedSpentResetCannotRestoreBudgets/observations",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedSpentResetCannotRestoreBudgets/elapsed",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedSpentResetCannotRestoreBudgets/dispatches",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedSpentResetCannotRestoreBudgets/actions",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedSpentResetCannotRestoreBudgets/target",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedSpentResetCannotRestoreBudgets/preparation",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedSpentResetCannotRestoreBudgets/recovery",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestBusinessCampaignStoreRehashedSpentResetCannotRestoreBudgets",
+        "status": "PASS",
+        "seconds": 0.36
+      },
+      {
+        "test": "TestBusinessCampaignStoreRejectsDeletedOrDuplicatedEventHistory/delete-first",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestBusinessCampaignStoreRejectsDeletedOrDuplicatedEventHistory/revision-gap",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestBusinessCampaignStoreRejectsDeletedOrDuplicatedEventHistory/duplicate-create",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestBusinessCampaignStoreRejectsDeletedOrDuplicatedEventHistory/unknown-field",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestBusinessCampaignStoreRejectsDeletedOrDuplicatedEventHistory",
+        "status": "PASS",
+        "seconds": 0.12
+      },
+      {
+        "test": "TestBusinessCampaignStoreAbortFencesWorkerButRetainsUnknownIntentAndLocks",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestBusinessCampaignStoreCorruptAbortRevokesLeaseWithoutInventingHistory",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestBusinessCampaignStoreExpiredLeaseAndConcurrentClaim",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestBusinessCampaignResumeReplaysActualActionBudgetBeforeAnyNewDispatch",
+        "status": "PASS",
+        "seconds": 5.78
+      },
+      {
+        "test": "TestBusinessCampaignCannotTransplantAnEarlierOrdinaryVerifiedPass",
+        "status": "PASS",
+        "seconds": 5.11
+      },
+      {
+        "test": "TestBusinessCampaignDeadlineAlsoBoundsRecoveryDispatch",
+        "status": "PASS",
+        "seconds": 2.29
+      },
+      {
+        "test": "TestBusinessCampaignCLIRejectsImplicitScopeBeforeOpeningLedger",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessCampaignCLIExecutesScopedVariantsAndReadsTheirOwnHistory",
+        "status": "PASS",
+        "seconds": 21.51
+      },
+      {
+        "test": "TestBusinessCampaignRequestRejectsUnknownFieldsAndMismatchedResume",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessCampaignExitCodesDoNotTurnStopsIntoBusinessPass",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessChainMultiActorExtractSessionAsyncAndExplain",
+        "status": "PASS",
+        "seconds": 7.88
+      },
+      {
+        "test": "TestBusinessChainNegativeSensitivity/missing_required_extract",
+        "status": "PASS",
+        "seconds": 0.65
+      },
+      {
+        "test": "TestBusinessChainNegativeSensitivity/async_wait_illegal_intermediate_state",
+        "status": "PASS",
+        "seconds": 1.72
+      },
+      {
+        "test": "TestBusinessChainNegativeSensitivity/async_wait_timeout",
+        "status": "PASS",
+        "seconds": 1.21
+      },
+      {
+        "test": "TestBusinessChainNegativeSensitivity/tampered_entity_identity_after_step",
+        "status": "PASS",
+        "seconds": 1.58
+      },
+      {
+        "test": "TestBusinessChainNegativeSensitivity/tampered_resolved_path_fails_verification",
+        "status": "PASS",
+        "seconds": 2.13
+      },
+      {
+        "test": "TestBusinessChainNegativeSensitivity/explore_unifies_into_step_facts",
+        "status": "PASS",
+        "seconds": 0.33
+      },
+      {
+        "test": "TestBusinessChainNegativeSensitivity",
+        "status": "PASS",
+        "seconds": 7.62
+      },
+      {
+        "test": "TestBusinessContractExecutionCoverageDoesNotSpreadOneTestPassToOtherBranches",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessContractExecutionCoveragePreservesVerifiedFailureAcrossLaterPass",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessContractExecutionCoverageRejectsIncompleteForgedOrMisboundProjection/legacy",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractExecutionCoverageRejectsIncompleteForgedOrMisboundProjection/wrong-graph",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractExecutionCoverageRejectsIncompleteForgedOrMisboundProjection/no-freeze",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractExecutionCoverageRejectsIncompleteForgedOrMisboundProjection/tampered-before",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractExecutionCoverageRejectsIncompleteForgedOrMisboundProjection/missing-action",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractExecutionCoverageRejectsIncompleteForgedOrMisboundProjection/ambiguous-action",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractExecutionCoverageRejectsIncompleteForgedOrMisboundProjection",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestBusinessContractGatePublishesProofAndUnexecutedBranchGap",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestBusinessContractLegacyGateCannotClaimDeterministicCompleteness",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestBusinessContractD01SameCompleteInputCannotSelectDifferentExpectations",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractD02SameActionDifferentPrestateSelectsDifferentUniqueBranch",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractD03PartialOverlapProducesFiniteCounterexample",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractD04FiniteGapCannotDefaultToSuccess",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractD05ObservedPrestateCannotBeReplacedByPlannedTarget",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractD06ActualCannotReselectExpectedBranch",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractD07ObservedEventStateControlsNextTransition",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractMultiSubjectANDORNOTAndRelations",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractTypedRangesSetsAndExactNumbers/inclusive-range",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractTypedRangesSetsAndExactNumbers/outside-range",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractTypedRangesSetsAndExactNumbers/membership",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractTypedRangesSetsAndExactNumbers/subset",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractTypedRangesSetsAndExactNumbers/intersection",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractTypedRangesSetsAndExactNumbers/set-order-equality",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractTypedRangesSetsAndExactNumbers",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessContractUnknownCompetingGuardBlocksUniqueness",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractExpectedIsDetachedAndTamperingRejected",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessContractAllowedOutcomeSetStillRequiresCommonInvariantAndOracle",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessContractNamedResponsePersistenceEventAndForbiddenSideEffects",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessContractBoundIdentityCannotDisappearOrChange",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessContractFiniteProofUsesRelevantDomainsAndStatesBudget",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractMissingDomainsLegacyAndWrongTypesCannotClaimProof",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractValidationRejectsUndeclaredUnsourcedAndImplicitNondeterminism/unknown-ref",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractValidationRejectsUndeclaredUnsourcedAndImplicitNondeterminism/unsourced",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractValidationRejectsUndeclaredUnsourcedAndImplicitNondeterminism/missing-prestate",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractValidationRejectsUndeclaredUnsourcedAndImplicitNondeterminism/two-deterministic-outcomes",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractValidationRejectsUndeclaredUnsourcedAndImplicitNondeterminism/implicit-allowed-set",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractValidationRejectsUndeclaredUnsourcedAndImplicitNondeterminism/cross-type",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractValidationRejectsUndeclaredUnsourcedAndImplicitNondeterminism",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessContractStrictJSONRoundTripAndNoV1Silencing",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessContractD02ExistingGraphAcceptsExplicitPerPrestateTargets",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractUnknownPrestateAndFlowCannotBecomeSpecificationGap",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestWorkbenchExportObservedBusinessCampaign",
+        "status": "SKIP",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessCampaignFreshEntityRebindingAndChangedInputIsBlockedBeforeTarget/false",
+        "status": "PASS",
+        "seconds": 3.86
+      },
+      {
+        "test": "TestBusinessCampaignFreshEntityRebindingAndChangedInputIsBlockedBeforeTarget/true",
+        "status": "PASS",
+        "seconds": 1.58
+      },
+      {
+        "test": "TestBusinessCampaignFreshEntityRebindingAndChangedInputIsBlockedBeforeTarget",
+        "status": "PASS",
+        "seconds": 5.44
+      },
+      {
+        "test": "TestBusinessCampaignContextFingerprintNeverCollapsesNumericLexemesOrIdentity",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessCampaignCrashAfterIntentNeverReplaysUnknownDispatch",
+        "status": "PASS",
+        "seconds": 1.8
+      },
+      {
+        "test": "TestBusinessCampaignCrashAfterCompletedChildReconcilesWithoutReplay",
+        "status": "PASS",
+        "seconds": 4.6
+      },
+      {
+        "test": "TestBusinessCampaignAbortFencesAlreadySelectedTargetAndRetainsIntent",
+        "status": "PASS",
+        "seconds": 0.85
+      },
+      {
+        "test": "TestBusinessCampaignRefusesExternalComputedCoverage",
+        "status": "PASS",
+        "seconds": 0.16
+      },
+      {
+        "test": "TestBusinessCampaignExploresActualStateCycleAcrossCheckpointChildren",
+        "status": "PASS",
+        "seconds": 21.52
+      },
+      {
+        "test": "TestBusinessCampaignExternalEventReprobesConditionsAtSameState",
+        "status": "PASS",
+        "seconds": 7.6
+      },
+      {
+        "test": "TestBusinessCampaignCyclesConsumeGlobalActionAndStateBudgets/actions",
+        "status": "PASS",
+        "seconds": 7.18
+      },
+      {
+        "test": "TestBusinessCampaignCyclesConsumeGlobalActionAndStateBudgets/states",
+        "status": "PASS",
+        "seconds": 7.32
+      },
+      {
+        "test": "TestBusinessCampaignCyclesConsumeGlobalActionAndStateBudgets",
+        "status": "PASS",
+        "seconds": 14.5
+      },
+      {
+        "test": "TestBusinessCampaignMultipleRegisteredVariantsAndRealPreparation",
+        "status": "PASS",
+        "seconds": 12.76
+      },
+      {
+        "test": "TestBusinessCampaignWrongInputOverlapAndMissingAccountIssueZeroTargetRequests/overlap",
+        "status": "PASS",
+        "seconds": 0.36
+      },
+      {
+        "test": "TestBusinessCampaignWrongInputOverlapAndMissingAccountIssueZeroTargetRequests/wrong_input",
+        "status": "PASS",
+        "seconds": 0.36
+      },
+      {
+        "test": "TestBusinessCampaignWrongInputOverlapAndMissingAccountIssueZeroTargetRequests/principal",
+        "status": "PASS",
+        "seconds": 0.44
+      },
+      {
+        "test": "TestBusinessCampaignWrongInputOverlapAndMissingAccountIssueZeroTargetRequests",
+        "status": "PASS",
+        "seconds": 1.16
+      },
+      {
+        "test": "TestBusinessCampaignPreparationPredictionCannotAuthorizeTarget",
+        "status": "PASS",
+        "seconds": 1.28
+      },
+      {
+        "test": "TestBusinessCampaignBudgetReservesPreparationAndRecoveryBeforeAnyWrite",
+        "status": "PASS",
+        "seconds": 0.38
+      },
+      {
+        "test": "TestSnapshotRunSelectionPreservesHistoryAndExplicitReplayOrder",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessCampaignSnapshotTypesMatchFrontend",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessCampaignSnapshotKeepsDamagedHistoryVisibleAndScopesItsBound",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestBusinessSnapshotIncludesValidatedBranchFactsWithoutManualRunSelection",
+        "status": "PASS",
+        "seconds": 3.76
+      },
+      {
+        "test": "TestBusinessAdditiveSchemaKeepsExistingExecutionHistory",
+        "status": "PASS",
+        "seconds": 0.83
+      },
+      {
+        "test": "TestCapabilityScanMapsOnlyDeclaredBusinessCapability",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestCapabilityScanDoesNotGuessAmbiguousOwnership",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRunChainRunsKnownPathAndWritesRAWPerStep",
+        "status": "PASS",
+        "seconds": 2.56
+      },
+      {
+        "test": "TestRunChainStopsOnDivergence",
+        "status": "PASS",
+        "seconds": 1.3
+      },
+      {
+        "test": "TestRunChainStopsOnUnknownState",
+        "status": "PASS",
+        "seconds": 1.01
+      },
+      {
+        "test": "TestRunChainStopsOnUnmetPrecondition",
+        "status": "PASS",
+        "seconds": 1.23
+      },
+      {
+        "test": "TestRunChainDeadlineStopsActionAndKeepsRAW",
+        "status": "PASS",
+        "seconds": 5.74
+      },
+      {
+        "test": "TestRunChainContextPacketMinimal",
+        "status": "PASS",
+        "seconds": 1.04
+      },
+      {
+        "test": "TestRunChainCLIExitCodeNamesStop",
+        "status": "PASS",
+        "seconds": 1.02
+      },
+      {
+        "test": "TestRunChainStepBudgetStopsAndNamesRemainingCards",
+        "status": "PASS",
+        "seconds": 1.39
+      },
+      {
+        "test": "TestRunChainExitCodes",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRunChainWithoutRunnableCardsIsBlocked",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestRunChainBuiltBinaryExitStatus",
+        "status": "SKIP",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessContractStoredAtomicallyAndProjectionTamperingBlocksRead",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestBusinessContractImportRollbackPreservesPreviousModel",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestBusinessContractCLIMatchesAndComparesFrozenContract",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestBusinessContractCLIFiniteGapAndLegacyExitNonzero",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestDerivedObligationLinksSourceStep",
+        "status": "PASS",
+        "seconds": 1.69
+      },
+      {
+        "test": "TestDerivedObligationDedupByEquivalenceKey",
+        "status": "PASS",
+        "seconds": 3.09
+      },
+      {
+        "test": "TestDerivedObligationBudgetTruncates",
+        "status": "PASS",
+        "seconds": 1.41
+      },
+      {
+        "test": "TestDerivedObligationSatisfiedByMatchingStart",
+        "status": "PASS",
+        "seconds": 3.1
+      },
+      {
+        "test": "TestInferredDerivationStaysRisk",
+        "status": "PASS",
+        "seconds": 1.29
+      },
+      {
+        "test": "TestOriginalFailUnchangedAfterDerivation",
+        "status": "PASS",
+        "seconds": 1.79
+      },
+      {
+        "test": "TestDerivationNeedsObservedFailure",
+        "status": "PASS",
+        "seconds": 1
+      },
+      {
+        "test": "TestDerivedObligationStaleWhenBaseEvidenceChanges",
+        "status": "PASS",
+        "seconds": 2.95
+      },
+      {
+        "test": "TestDerivationSkipsUnapprovedRules",
+        "status": "PASS",
+        "seconds": 1.04
+      },
+      {
+        "test": "TestDerivedObligationNeedsEquivalentStart",
+        "status": "PASS",
+        "seconds": 2.39
+      },
+      {
+        "test": "TestEquivalenceIgnoreValidatedAndApplied",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestDiscoveryOutsideContractIsUnspecified",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestDiscoveryNeverPassOrFail",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestDiscoveryDedupByEquivalenceKey",
+        "status": "PASS",
+        "seconds": 0.07
+      },
+      {
+        "test": "TestTriageRequiresInteractiveConfirmation",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestTriageMissingRequirementBecomesCandidate",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestIndependentEnrollProcessBusinessChain",
+        "status": "PASS",
+        "seconds": 10.17
+      },
+      {
+        "test": "TestIndependentEnrollPersistenceAndFailedRecovery",
+        "status": "PASS",
+        "seconds": 2.2
+      },
+      {
+        "test": "TestIndependentEnrollFaultIsBlockedNotPass",
+        "status": "PASS",
+        "seconds": 1.49
+      },
+      {
+        "test": "TestIndependentEnrollRetestKeepsHistoricFail",
+        "status": "PASS",
+        "seconds": 2.48
+      },
+      {
+        "test": "TestIndependentEnrollExploreModeContrast",
+        "status": "PASS",
+        "seconds": 2.68
+      },
+      {
+        "test": "TestExecuteModelRejectionNeedsUnchangedState/rejected_and_unchanged",
+        "status": "PASS",
+        "seconds": 1.12
+      },
+      {
+        "test": "TestExecuteModelRejectionNeedsUnchangedState/accepted_despite_failed_condition",
+        "status": "PASS",
+        "seconds": 0.72
+      },
+      {
+        "test": "TestExecuteModelRejectionNeedsUnchangedState",
+        "status": "PASS",
+        "seconds": 1.83
+      },
+      {
+        "test": "TestRunnerRejectsActionResponseAsOracle",
+        "status": "PASS",
+        "seconds": 0.07
+      },
+      {
+        "test": "TestExecuteRefusesStaleRound",
+        "status": "PASS",
+        "seconds": 0.33
+      },
+      {
+        "test": "TestExecutePreconditionMismatchRecordsRAW",
+        "status": "PASS",
+        "seconds": 0.61
+      },
+      {
+        "test": "TestExecuteUsesIndependentOracleAndRestoresFixture",
+        "status": "PASS",
+        "seconds": 1.02
+      },
+      {
+        "test": "TestExecutePropertyCounterexampleCannotPassAndFailedRecoveryKeepsLocks",
+        "status": "PASS",
+        "seconds": 0.6
+      },
+      {
+        "test": "TestExecuteWrongPrincipalBlocksBeforeAction",
+        "status": "PASS",
+        "seconds": 0.4
+      },
+      {
+        "test": "TestExecuteDeadlineStopsActionAndRecordsRestoration",
+        "status": "PASS",
+        "seconds": 0.89
+      },
+      {
+        "test": "TestAbortUnresolvedSideEffectIsFencedAndRemainsBlocked",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestAgentPlannerImplementationRemoved",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestPlannerFromFlagsRejectsAgentMode",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestDecodePlannerModeDoesNotKeepAgent",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestShouldAskPlannerIgnoresAgentMode",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestDiscoverRejectsAgentHandshakeCommands",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestDiscoverRunRejectsAgentMode",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestLegacyBlindStringMatchMisattributesHealthyRecords",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBlindEvaluatorRejectsStringMatchAttribution",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBlindEvaluatorLinksFailToOneActivatedFault",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBlindFaultCombinationsAndSeeds/state-only",
+        "status": "PASS",
+        "seconds": 0.62
+      },
+      {
+        "test": "TestBlindFaultCombinationsAndSeeds/auth-only",
+        "status": "PASS",
+        "seconds": 0.63
+      },
+      {
+        "test": "TestBlindFaultCombinationsAndSeeds/idem-only",
+        "status": "PASS",
+        "seconds": 0.89
+      },
+      {
+        "test": "TestBlindFaultCombinationsAndSeeds",
+        "status": "PASS",
+        "seconds": 2.14
+      },
+      {
+        "test": "TestAutonomousExploreBlindSeat",
+        "status": "PASS",
+        "seconds": 2.48
+      },
+      {
+        "test": "TestDiscoveryRefreshDoesNotInventBusinessConclusions",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestDiscoveryRefreshPreservesRecordedHistory",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestEvidenceFirstDoesNotAskKnownFacts",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestEvidenceFirstDoesNotInventRULE",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestCounterfactualsAreBusinessBound",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestCompetingExplanationsNeedOracleNotHTTP",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestUnderstandingRevisionKeepsHistory",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestHypothesisNeverBecomesApprovedRule",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestMinimalExperimentBeatsSpray",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestPreferDiscoveryPicksOtherRoleAfterFirstClaim",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestPlannerContextCarriesEvidenceAndHypotheses",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBoundaryBlindContrastRecordsHonestABC",
+        "status": "PASS",
+        "seconds": 0.47
+      },
+      {
+        "test": "TestBoundaryDiscoveryPersistsWithoutApprovingRules",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestHiddenOwnerHTTP200IsNotBusinessIdentity",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestSourceEntryIsNotVerifiedBusinessOutcome",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestExploreConcurrentClaimOnlyOneWinner",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestExploreStaleWorkerCannotCommit",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestExploreWorkerCrashAndSafeTakeover",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestExploreClaimTransactionRollback",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestExploreWorkerOwnershipAfterRestart",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestPerformExploreKeepsBothConcurrentResults",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestEntryScanDoesNotMistakeOutgoingClientCallForRoute",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestEntryScannerHonorsMethodAuthorization",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestOpenAPIEntryScanKeepsRealMethodsAndIgnoresMetadata",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestDiscoverIgnoresBareStrings",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestVersionedEvidenceBecomesStaleWhenCurrentGraphChanges",
+        "status": "PASS",
+        "seconds": 0.27
+      },
+      {
+        "test": "TestJudgeExplorationAllowedRequestRejectedIsFail",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestJudgeExplorationCorrectAllowIsPass",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestJudgeExplorationCorrectRejectIsPass",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestJudgeExplorationRejectWithSideEffectIsFail",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestJudgeExplorationAdminForceDoesNotUseStudentDenyRule",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestInvariantFindingsKeepsBlockedWhenOracleMissing",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestPerformExploreSourceKeepsBothResults",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestExploreOnceSourceSurfacesDiscoveryError",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestDiscoverResumeAndStatusCommandsExist",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestUnownedCheckpointCannotOverwriteNewWorker",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestExpiredLeaseRejectsOwnedCheckpointBeforeTakeover",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestExpiredLeaseCannotDispatchAnotherAction",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestAbortPreventsRunningWorkerCheckpoint",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestResumeWithStaleFenceCannotRewrite",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestTwoConnectionsCannotDoubleClaim",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestIndependentProcessesClaimOnlyOnce",
+        "status": "PASS",
+        "seconds": 1.14
+      },
+      {
+        "test": "TestSameRequestIDKeepsSeparateAttempts",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestObservedCrashWindowIsReconciledWithoutReplay",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestEvidenceGateEmptyReportIsNotPass",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestOfficialGateRejectsBrokenExploreEvidence",
+        "status": "PASS",
+        "seconds": 0.32
+      },
+      {
+        "test": "TestCoverageDoesNotTrustRAWPresenceAlone",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestPlannerAuditIsPersisted",
+        "status": "PASS",
+        "seconds": 0.15
+      },
+      {
+        "test": "TestBudgetFieldsStopExpansion",
+        "status": "PASS",
+        "seconds": 0.17
+      },
+      {
+        "test": "TestExploreCheckpointErrorsAreNotDiscarded",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestExploreActionLifecycleRejectsBlindReplay",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestExploreCrashWindowsKeepSideEffectingSafe",
+        "status": "PASS",
+        "seconds": 1.28
+      },
+      {
+        "test": "TestPlannerSuggestionMustPassAllowList",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestScriptedPlannerDoesNotDecideVerdicts",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestExploreModeContrastRecordsPlannerSource",
+        "status": "PASS",
+        "seconds": 0.63
+      },
+      {
+        "test": "TestExploreBudgetExhaustionKeepsFrontier",
+        "status": "PASS",
+        "seconds": 0.17
+      },
+      {
+        "test": "TestExploreGroupPartialIsNotSingleSuccess",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestDiscoverUndeclaredSourceEntries",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestEvidenceGateRejectsTamperAndMissingRAW",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestOracleSyntheticCannotPass",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestPlannerUsesOnlyExplicitScriptedFile",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestIMMongoBusinessChainsStayAuthorized",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestGateRejectsMissingModernRAWIdentityEvenAfterRehash/campaign",
+        "status": "PASS",
+        "seconds": 0.27
+      },
+      {
+        "test": "TestGateRejectsMissingModernRAWIdentityEvenAfterRehash/task",
+        "status": "PASS",
+        "seconds": 0.27
+      },
+      {
+        "test": "TestGateRejectsMissingModernRAWIdentityEvenAfterRehash/fixture",
+        "status": "PASS",
+        "seconds": 0.56
+      },
+      {
+        "test": "TestGateRejectsMissingModernRAWIdentityEvenAfterRehash/actor",
+        "status": "PASS",
+        "seconds": 0.27
+      },
+      {
+        "test": "TestGateRejectsMissingModernRAWIdentityEvenAfterRehash/oracle",
+        "status": "PASS",
+        "seconds": 0.26
+      },
+      {
+        "test": "TestGateRejectsMissingModernRAWIdentityEvenAfterRehash",
+        "status": "PASS",
+        "seconds": 1.64
+      },
+      {
+        "test": "TestRemainEvidenceRanOnHost60",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestHost60LockRefusesLan50",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestSIGKILLDuringAcceptedClaimCountsOnce",
+        "status": "PASS",
+        "seconds": 45.19
+      },
+      {
+        "test": "TestSIGKILLAfterCommandObservedCountsOnce",
+        "status": "PASS",
+        "seconds": 0.4
+      },
+      {
+        "test": "TestEntryDiscoverAuthorizeExecuteOracle",
+        "status": "PASS",
+        "seconds": 0.48
+      },
+      {
+        "test": "TestThreeModeBlindCompareReportsHonestStats",
+        "status": "PASS",
+        "seconds": 0.54
+      },
+      {
+        "test": "TestIndependentRunnerProcessStampsPID",
+        "status": "PASS",
+        "seconds": 2.38
+      },
+      {
+        "test": "TestResumeObservedWithTamperedRAWBlocksSideEffects/digest_mismatch",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestResumeObservedWithTamperedRAWBlocksSideEffects/identity_mismatch",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestResumeObservedWithTamperedRAWBlocksSideEffects/foreign_campaign",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestResumeObservedWithTamperedRAWBlocksSideEffects/missing_campaign",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestResumeObservedWithTamperedRAWBlocksSideEffects",
+        "status": "PASS",
+        "seconds": 0.23
+      },
+      {
+        "test": "TestSourceEntryMethodMismatchNeverConfirmed",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestExploreResumeContinuesFrontierWithoutReplay",
+        "status": "PASS",
+        "seconds": 0.28
+      },
+      {
+        "test": "TestExploreResumeRejectsStaleModel",
+        "status": "PASS",
+        "seconds": 0.17
+      },
+      {
+        "test": "TestExploreResumeRefusesFailedRecovery",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestExploreClaimRejectsDuplicateWorker",
+        "status": "PASS",
+        "seconds": 0.13
+      },
+      {
+        "test": "TestUnknownSideEffectingActionIsNotReplayed",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestDiscoverResumeCLIUsesCampaignID",
+        "status": "PASS",
+        "seconds": 0.33
+      },
+      {
+        "test": "TestSecondPlannerSeesFirstObservations",
+        "status": "PASS",
+        "seconds": 0.2
+      },
+      {
+        "test": "TestPlannerAuditOmitsRawModelOutput",
+        "status": "PASS",
+        "seconds": 0.15
+      },
+      {
+        "test": "TestInconclusiveWhenExperimentCannotDiscriminate",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestHypothesisIdentityDedupesParaphrases",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestScriptedComparisonIsNotAgentReasoning",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestValidEvidenceCanBecomeVerified",
+        "status": "PASS",
+        "seconds": 0.26
+      },
+      {
+        "test": "TestInvalidEvidenceCannotBecomeVerified",
+        "status": "PASS",
+        "seconds": 0.26
+      },
+      {
+        "test": "TestBusinessFailWithTrustedEvidence",
+        "status": "PASS",
+        "seconds": 0.24
+      },
+      {
+        "test": "TestEvidenceTrustMatchesOfficialGate",
+        "status": "PASS",
+        "seconds": 0.28
+      },
+      {
+        "test": "TestWorkbenchCannotInferTrustFromRAWPresence",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestEvidenceBecomesStaleAfterDeploymentChange",
+        "status": "PASS",
+        "seconds": 0.37
+      },
+      {
+        "test": "TestGateRejectsMissingTargetIdentity",
+        "status": "PASS",
+        "seconds": 0.26
+      },
+      {
+        "test": "TestGateRejectsMissingFixtureIdentity",
+        "status": "PASS",
+        "seconds": 0.26
+      },
+      {
+        "test": "TestGateRejectsMissingActorIdentity",
+        "status": "PASS",
+        "seconds": 0.25
+      },
+      {
+        "test": "TestGateRejectsMissingOracleEvidence",
+        "status": "PASS",
+        "seconds": 0.26
+      },
+      {
+        "test": "TestGateRejectsForeignCampaignEvidence",
+        "status": "PASS",
+        "seconds": 0.25
+      },
+      {
+        "test": "TestGateRejectsForeignStepEvidence",
+        "status": "PASS",
+        "seconds": 0.26
+      },
+      {
+        "test": "TestGateRejectsSyntheticOnlyOracle",
+        "status": "PASS",
+        "seconds": 0.26
+      },
+      {
+        "test": "TestGateRejectsDeploymentMismatch",
+        "status": "PASS",
+        "seconds": 0.37
+      },
+      {
+        "test": "TestLegacyEvidenceIsNotAutomaticallyTrusted",
+        "status": "PASS",
+        "seconds": 0.25
+      },
+      {
+        "test": "TestObservedWithoutRAWCannotReturnToFrontier",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestObservedWithoutRAWBlocksCampaignResume",
+        "status": "PASS",
+        "seconds": 0.11
+      },
+      {
+        "test": "TestObservedMissingRAWKeepsFixtureLocked",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestRecordedAttemptSurvivesRepeatedRequestID",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestObservedCrashDoesNotDuplicateSideEffects",
+        "status": "PASS",
+        "seconds": 0.3
+      },
+      {
+        "test": "TestResumeAfterSIGKILLDoesNotRedispatchClaim",
+        "status": "PASS",
+        "seconds": 0.26
+      },
+      {
+        "test": "TestDiscoverRunSubcommandExists",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestExploreRunSelectsAndExecutesWithoutHandwrittenPath",
+        "status": "PASS",
+        "seconds": 0.44
+      },
+      {
+        "test": "TestExploreRunKeepsInferenceOffTheRuleTable",
+        "status": "PASS",
+        "seconds": 0.32
+      },
+      {
+        "test": "TestExploreRunCLIUsesAdapterNotHandwrittenRecord",
+        "status": "PASS",
+        "seconds": 0.67
+      },
+      {
+        "test": "TestExplorerSourceDoesNotContainSealedDefects",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestFixtureSecrets",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestIncompleteRAWCannotPass/missing_exit",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestIncompleteRAWCannotPass/null_exit",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestIncompleteRAWCannotPass/null_precondition",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestIncompleteRAWCannotPass/blank_oracle",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestIncompleteRAWCannotPass/blank_runner",
+        "status": "PASS",
+        "seconds": 0.11
+      },
+      {
+        "test": "TestIncompleteRAWCannotPass",
+        "status": "PASS",
+        "seconds": 0.51
+      },
+      {
+        "test": "TestEveryRejectedOutcomeNeedsDenialAndReadback/NEGATIVE",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestEveryRejectedOutcomeNeedsDenialAndReadback/FORCED",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestEveryRejectedOutcomeNeedsDenialAndReadback",
+        "status": "PASS",
+        "seconds": 0.17
+      },
+      {
+        "test": "TestRejectedOperationWithChangedStateKeepsFailure",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestRuleCannotOmitGraphPrerequisite",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestAmbiguousJSONCannotDefineEvidenceOrApproval",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestCaseAliasesCannotOverrideEvidenceOrApproval/,\"Exit_Code\":0",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestCaseAliasesCannotOverrideEvidenceOrApproval/,\"Denied\":true",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestCaseAliasesCannotOverrideEvidenceOrApproval/,\"obſerved\":\"ready\"",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestCaseAliasesCannotOverrideEvidenceOrApproval",
+        "status": "PASS",
+        "seconds": 0.24
+      },
+      {
+        "test": "TestRunnerFailureCannotBecomeProductDefect",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestTaskIdentitiesCannotCollapseRuleObligations",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestGateReconstructsFrozenTaskMeaning/expected",
+        "status": "PASS",
+        "seconds": 0.29
+      },
+      {
+        "test": "TestGateReconstructsFrozenTaskMeaning/kind",
+        "status": "PASS",
+        "seconds": 0.36
+      },
+      {
+        "test": "TestGateReconstructsFrozenTaskMeaning",
+        "status": "PASS",
+        "seconds": 0.66
+      },
+      {
+        "test": "TestFinishRevalidatesRecordedRAW",
+        "status": "PASS",
+        "seconds": 0.12
+      },
+      {
+        "test": "TestRepairHandoffRequiresFailedRun",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestRepairHandoffRequiresUnchangedFailedRAW",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestHandoffTargetRejectsInventedSkill",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestHandoffModelPreconditionsFollowObligation",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestHandoffFirstFailureIsImmutable",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestHandoffTruncatesContext",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestIMMongoIsolatedKnownRuleExploreAndContrast",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestIMISOOracleReadsLiveServiceState",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestIMMongoFixturesMustBindIsolationNotSharedLan50",
+        "status": "SKIP",
+        "seconds": 0
+      },
+      {
+        "test": "TestRefuseSharedIMWriteTarget",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestParseFirstPositiveIDIgnoresPSQLTag",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestIsolationSessionIsFreshRejectsExistingCycle",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestIMMongoConfigKeepsSharedStacksUnapproved",
+        "status": "SKIP",
+        "seconds": 0
+      },
+      {
+        "test": "TestTursoLocalBusinessChain",
+        "status": "PASS",
+        "seconds": 0.33
+      },
+      {
+        "test": "TestTursoLazyPlannerHonorsBoundedFrontier",
+        "status": "PASS",
+        "seconds": 0.11
+      },
+      {
+        "test": "TestRecoveryReadsOnlyRelevantApprovedGraphSlice",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestPlannerCursorRewindsAfterLateUserApproval",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestInitFreshAndRepeated",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestInitUpgradesExistingLedger",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestNativeDriverSelftest",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestIsolatedSeatMutationRecoveryBranchIsNotVacuous",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestIsolatedSeatRaceInjectionHasNoSleep",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestClassifyRecoveryDoesNotTreatDetectionAsRestored",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestSeatModelIsAValidIsolatedContract",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestIsolatedSeatBusinessChain",
+        "status": "PASS",
+        "seconds": 16.25
+      },
+      {
+        "test": "TestIsolatedSeatTimeoutAndNetworkStayBlocked",
+        "status": "PASS",
+        "seconds": 2.45
+      },
+      {
+        "test": "TestIsolatedSeatMutationDetectsFiveDefects",
+        "status": "PASS",
+        "seconds": 6.59
+      },
+      {
+        "test": "TestIsolatedSeatExploreDeriveAndDiscover",
+        "status": "PASS",
+        "seconds": 0.99
+      },
+      {
+        "test": "TestDerivationRefusesStaleRound",
+        "status": "PASS",
+        "seconds": 0.86
+      },
+      {
+        "test": "TestIsolatedSeatSnapshotBindsRealRuns",
+        "status": "PASS",
+        "seconds": 5.79
+      },
+      {
+        "test": "TestIsolatedSeatFailedRecoveryKeepsLocksAfterPass",
+        "status": "PASS",
+        "seconds": 0.6
+      },
+      {
+        "test": "TestIsolatedSeatRunChainStopsOnFirstFail",
+        "status": "PASS",
+        "seconds": 0.76
+      },
+      {
+        "test": "TestIsolatedSeatHandoffKeepsFirstFail",
+        "status": "PASS",
+        "seconds": 2.2
+      },
+      {
+        "test": "TestIsolatedSeatBarrierReproducesOversell",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestIsolatedSeatConcurrencyScenarios",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestLifecycleReasonRequired",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestGraphAndRules",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRiskCannotBeRule",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestQuoteAndJSONC",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestConfigPreflight",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNativeSQLProjectionDoesNotHexEncode",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestModelV2ThroughCLI",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestModelV2KeepsNewContractsOnRoundTrip",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestModelUnknownFieldsAreNotSilentlyIgnored",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestModelV2PlannerRetainsDeclaredObligations",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestModelV2ForwardVerificationReferenceIsOrderIndependent",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestModelV2RejectsWeakenedDerivedObligations",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestModelV2RejectsContradictorySuccessTransition",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestModelV2RejectsDuplicateSharedOwners",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestModelV2StoredContractMustMatchCoreLedger",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestModelV2NextUsesDeclaredContract",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestModelV2GateCountsAllDeclaredObligations",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestModelV2ORGuardHasARealRejectionObligation",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestModelV2UnknownConditionIsNotFalse",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestModelV2OldClientGuardExistsBeforePlanning",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestModelV1FingerprintMatchesPreV2Golden",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestModelV2ImportReadBackThroughCLI",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestModelV2RejectsIllegalStructure/unknown_endpoint",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestModelV2RejectsIllegalStructure/capability_with_two_parents",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestModelV2RejectsIllegalStructure/contains_cycle_detached_from_system",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestModelV2RejectsIllegalStructure/reversed_implements_endpoints",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestModelV2RejectsIllegalStructure/test_dependency_cycle",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestModelV2RejectsIllegalStructure/duplicate_node_id",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestModelV2RejectsIllegalStructure/unknown_nested_field",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestModelV2RejectsIllegalStructure/duplicate_json_key",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestModelV2RejectsIllegalStructure",
+        "status": "PASS",
+        "seconds": 0.24
+      },
+      {
+        "test": "TestMutationReportDetectsExpectedFailure",
+        "status": "PASS",
+        "seconds": 1.66
+      },
+      {
+        "test": "TestMutationReportListsSurvivors",
+        "status": "PASS",
+        "seconds": 1.97
+      },
+      {
+        "test": "TestMutationReportRejectsUnknownObligation",
+        "status": "PASS",
+        "seconds": 1.6
+      },
+      {
+        "test": "TestExistenceObligationNeedsScanEvidence",
+        "status": "PASS",
+        "seconds": 0.2
+      },
+      {
+        "test": "TestExistenceNotFoundStaysCandidate",
+        "status": "PASS",
+        "seconds": 0.15
+      },
+      {
+        "test": "TestSequenceObligationKeepsFirstDivergence/confirm_leaves_state_unchanged",
+        "status": "PASS",
+        "seconds": 1.05
+      },
+      {
+        "test": "TestSequenceObligationKeepsFirstDivergence/enroll_leaves_state_unchanged",
+        "status": "PASS",
+        "seconds": 0.7
+      },
+      {
+        "test": "TestSequenceObligationKeepsFirstDivergence",
+        "status": "PASS",
+        "seconds": 1.75
+      },
+      {
+        "test": "TestSequenceObligationPassesStepByStep",
+        "status": "PASS",
+        "seconds": 1.53
+      },
+      {
+        "test": "TestConsistencyMissingLayerBlocked",
+        "status": "PASS",
+        "seconds": 0.73
+      },
+      {
+        "test": "TestConsistencyLayersMustAgree/layers_agree",
+        "status": "PASS",
+        "seconds": 1.27
+      },
+      {
+        "test": "TestConsistencyLayersMustAgree/database_layer_disagrees",
+        "status": "PASS",
+        "seconds": 0.68
+      },
+      {
+        "test": "TestConsistencyLayersMustAgree",
+        "status": "PASS",
+        "seconds": 1.95
+      },
+      {
+        "test": "TestNewKindsCountedInDenominator",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestV1HashUnchangedWithNewKinds",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/existence_with_preconditions",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/existence_with_expected_state",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/existence_declared_twice",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/sequence_with_one_step",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/sequence_out_of_order",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/sequence_unknown_flow",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/sequence_rule_is_not_the_final_step",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/sequence_expected_differs_from_final_step",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/sequence_with_preconditions",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/steps_on_another_kind",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/consistency_with_one_layer",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/consistency_duplicate_layer",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/consistency_unknown_layer",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/consistency_duplicate_oracle",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations/layers_on_another_kind",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestNewKindsRejectIllegalDeclarations",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestSequenceNeedsEveryStepRuleApproved",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestPayGatewayBundleAcceptedByRunnerProtocol/core",
+        "status": "PASS",
+        "seconds": 0.11
+      },
+      {
+        "test": "TestPayGatewayBundleAcceptedByRunnerProtocol/refund",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestPayGatewayBundleAcceptedByRunnerProtocol/create",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestPayGatewayBundleAcceptedByRunnerProtocol/missing-parent",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestPayGatewayBundleAcceptedByRunnerProtocol/duplicate",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestPayGatewayBundleAcceptedByRunnerProtocol",
+        "status": "PASS",
+        "seconds": 0.44
+      },
+      {
+        "test": "TestPayGatewayModelFiniteProofIsFourExplicitFixtureCases",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestPayGatewayModelSourcesStayPinnedAndPaidPreparationIsFixtureSpecific",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/create",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/refund",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/duplicate",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/missing_parent",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/unconfirmed_fixture_has_no_success_claim",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/confirmation_unknown",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/duplicate_does_not_invent_paid_guard",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/different_actual_amount",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/different_actual_currency",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/different_actual_account",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/request_not_observed",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/json_string_is_not_integer",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/json_decimal_is_not_legal_amount",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest/json_exponent_is_not_legal_amount",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestPayGatewayModelSelectsActualPrestateAndCapturedRequest",
+        "status": "PASS",
+        "seconds": 0.14
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/BR_CREATE_PAYMENT_INDEX",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/BR_CREATE_REFUND_INDEX",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/BR_DUPLICATE_REFUND",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/BR_MISSING_PARENT",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/payment_wrong_amount",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/payment_wrong_currency",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/payment_wrong_account",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/payment_wrong_provider",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/refund_wrong_amount",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/refund_wrong_currency",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/refund_wrong_account",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/refund_wrong_provider",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/refund_unrelated_parent",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/refund_cross_caller",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/refund_wrong_response_id",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/refund_not_processing",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/duplicate_wrong_resource_id",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/duplicate_wrong_code",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/duplicate_redispatched",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/duplicate_double_received",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/duplicate_inserted_second_row",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/missing_parent_dispatched",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/missing_parent_inserted_row",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/create_wrong_institution_or_request",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/refund_wrong_institution_or_request",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/duplicate_unbound_creation_receipt",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch/missing_parent_unindexed_outbound",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelResponseAndIndependentPersistenceMustBothMatch",
+        "status": "PASS",
+        "seconds": 0.77
+      },
+      {
+        "test": "TestPayGatewayModelPreparationUsesObservedStoreWithoutAssumingRequestOrIDs",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestPayGatewayModelOffersContinuousSequenceAndExplicitCheckpointDuplicate",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelJSONI64EncodingMatchesRawRustContractWithoutChangingInteger",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelEncodingCannotBeUnsourcedOrBypassedByCoverageAndPreparation/unsupported_encoding",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelEncodingCannotBeUnsourcedOrBypassedByCoverageAndPreparation/wrong_type",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestPayGatewayModelEncodingCannotBeUnsourcedOrBypassedByCoverageAndPreparation/missing_source",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPayGatewayModelEncodingCannotBeUnsourcedOrBypassedByCoverageAndPreparation/domain_decimal",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestPayGatewayModelEncodingCannotBeUnsourcedOrBypassedByCoverageAndPreparation/effect_exponent",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestPayGatewayModelEncodingCannotBeUnsourcedOrBypassedByCoverageAndPreparation",
+        "status": "PASS",
+        "seconds": 0.21
+      },
+      {
+        "test": "TestPayGatewayModelJSONI64ChecksRealRunnerCaptureBeforeAnyTargetRequest/100",
+        "status": "PASS",
+        "seconds": 0.89
+      },
+      {
+        "test": "TestPayGatewayModelJSONI64ChecksRealRunnerCaptureBeforeAnyTargetRequest/100.0",
+        "status": "PASS",
+        "seconds": 0.57
+      },
+      {
+        "test": "TestPayGatewayModelJSONI64ChecksRealRunnerCaptureBeforeAnyTargetRequest/1e2",
+        "status": "PASS",
+        "seconds": 0.66
+      },
+      {
+        "test": "TestPayGatewayModelJSONI64ChecksRealRunnerCaptureBeforeAnyTargetRequest/\"100\"",
+        "status": "PASS",
+        "seconds": 0.59
+      },
+      {
+        "test": "TestPayGatewayModelJSONI64ChecksRealRunnerCaptureBeforeAnyTargetRequest/null",
+        "status": "PASS",
+        "seconds": 0.58
+      },
+      {
+        "test": "TestPayGatewayModelJSONI64ChecksRealRunnerCaptureBeforeAnyTargetRequest/9223372036854775808",
+        "status": "PASS",
+        "seconds": 0.7
+      },
+      {
+        "test": "TestPayGatewayModelJSONI64ChecksRealRunnerCaptureBeforeAnyTargetRequest",
+        "status": "PASS",
+        "seconds": 4.04
+      },
+      {
+        "test": "TestPayGatewayModelContractHashChangesWithEncodingSourceAndVersion/old_encoding",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelContractHashChangesWithEncodingSourceAndVersion/changed_source",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestPayGatewayModelContractHashChangesWithEncodingSourceAndVersion/changed_version",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestPayGatewayModelContractHashChangesWithEncodingSourceAndVersion",
+        "status": "PASS",
+        "seconds": 0.11
+      },
+      {
+        "test": "TestBusinessPreparationExecutesAutomaticallyAndReReadsEachRealEffect",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestBusinessPreparationActualViolationStopsTargetAndKeepsFirstEvidence",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationUncertainSentActionIsNotRetriedEvenIfStateChanged",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationAsyncPrestateChangeReplansWithoutWrongAction",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationMissingReadbackIdentityAndReceiptBlock/unknown-post",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationMissingReadbackIdentityAndReceiptBlock/changed-identity",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationMissingReadbackIdentityAndReceiptBlock/missing-capture",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationMissingReadbackIdentityAndReceiptBlock",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestBusinessPreparationCancellationCannotRunAnyAdapter",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessPreparationOfflineVerifierRejectsMarkersAndAlteredExpectedActual/marker-only",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationOfflineVerifierRejectsMarkersAndAlteredExpectedActual/changed-model",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessPreparationOfflineVerifierRejectsMarkersAndAlteredExpectedActual/missing-receipt",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationOfflineVerifierRejectsMarkersAndAlteredExpectedActual/rewritten-expectation",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationOfflineVerifierRejectsMarkersAndAlteredExpectedActual/invented-after",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationOfflineVerifierRejectsMarkersAndAlteredExpectedActual/changed-final",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationOfflineVerifierRejectsMarkersAndAlteredExpectedActual/omitted-dependency",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationOfflineVerifierRejectsMarkersAndAlteredExpectedActual/forged-budget",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationOfflineVerifierRejectsMarkersAndAlteredExpectedActual/skipped-actual-action",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationOfflineVerifierRejectsMarkersAndAlteredExpectedActual/fake-parallel",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessPreparationOfflineVerifierRejectsMarkersAndAlteredExpectedActual",
+        "status": "PASS",
+        "seconds": 0.11
+      },
+      {
+        "test": "TestBusinessContractD10PreparationStartsAtObservedStateAndExplainsParallelLayers",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessContractD10StateRetryCycleIsLegalButPreparationCycleIsNot",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationUnknownRequirementsBlockedAndKnownUnreachableGoalIsGap",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationBudgetAndContradictoryEffectsNeverProduceSuccess",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestBusinessPreparationParallelLayersRespectReadWriteConflicts",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestBusinessPreparationDoesNotTreatAssumedEffectsAsRealObservations",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/graph",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/task",
+        "status": "PASS",
+        "seconds": 0.07
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/environment",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/target",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/source_commit",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/source_sha256",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/config_sha256",
+        "status": "PASS",
+        "seconds": 0.07
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/graph_sha256",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/actor",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/account",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/principal",
+        "status": "PASS",
+        "seconds": 0.07
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/account_sha256",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/fixture",
+        "status": "PASS",
+        "seconds": 0.07
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch/fixture_sha256",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestProductionRAWIdentityFieldsMustMatch",
+        "status": "PASS",
+        "seconds": 1.14
+      },
+      {
+        "test": "TestProductionRetryRequiresCheckpoint",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestProductionRetryRestoresLocksAndKeepsFailure",
+        "status": "PASS",
+        "seconds": 0.15
+      },
+      {
+        "test": "TestProductionRetryRejectsUnverifiedOrChangedCheckpoint/state",
+        "status": "PASS",
+        "seconds": 0.11
+      },
+      {
+        "test": "TestProductionRetryRejectsUnverifiedOrChangedCheckpoint/conditions",
+        "status": "PASS",
+        "seconds": 0.22
+      },
+      {
+        "test": "TestProductionRetryRejectsUnverifiedOrChangedCheckpoint/identity",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestProductionRetryRejectsUnverifiedOrChangedCheckpoint/exit",
+        "status": "PASS",
+        "seconds": 0.11
+      },
+      {
+        "test": "TestProductionRetryRejectsUnverifiedOrChangedCheckpoint/unsafe",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestProductionRetryRejectsUnverifiedOrChangedCheckpoint/phase",
+        "status": "PASS",
+        "seconds": 0.11
+      },
+      {
+        "test": "TestProductionRetryRejectsUnverifiedOrChangedCheckpoint/after-retry",
+        "status": "PASS",
+        "seconds": 0.12
+      },
+      {
+        "test": "TestProductionRetryRejectsUnverifiedOrChangedCheckpoint",
+        "status": "PASS",
+        "seconds": 0.87
+      },
+      {
+        "test": "TestProductionRequalifyChangedCandidatePreservesHistory",
+        "status": "PASS",
+        "seconds": 0.24
+      },
+      {
+        "test": "TestProductionFixtureImportCollisionIsAtomic",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestProductionGateRejectsLateFixtureRegistryChange",
+        "status": "PASS",
+        "seconds": 0.25
+      },
+      {
+        "test": "TestProductionRunEvidenceBindingsAbsent/environment",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestProductionRunEvidenceBindingsAbsent/source_commit",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestProductionRunEvidenceBindingsAbsent/account",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestProductionRunEvidenceBindingsAbsent/actor",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestProductionRunEvidenceBindingsAbsent/fixture",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestProductionRunEvidenceBindingsAbsent/oracle",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestProductionRunEvidenceBindingsAbsent",
+        "status": "PASS",
+        "seconds": 0.48
+      },
+      {
+        "test": "TestProductionGraphCannotMixCandidates",
+        "status": "PASS",
+        "seconds": 0.24
+      },
+      {
+        "test": "TestProductionFinishAfterConcurrentAbortDoesNotPass",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestRecoveryGraphShowsUnapprovedAction",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRecoveryGraphFindsMultiStepDependenciesAndCycles",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestReferenceImportRejectsUnsourcedEntry",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestReferenceMatchUniqueBindingCreatesPeerRisk",
+        "status": "PASS",
+        "seconds": 0.11
+      },
+      {
+        "test": "TestReferenceNoBindingNamesSlot",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestReferenceAmbiguousGivesOneDiagnostic",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestReferenceSuppressedByCoversAndBindings",
+        "status": "PASS",
+        "seconds": 0.12
+      },
+      {
+        "test": "TestReferenceRiskNeverEntersAcceptanceGate",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestReferenceMatchIsCapped",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestExampleReferenceCatalogsAreValid",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestUnrefutedRiskShownAsNotAttempted",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestRefutationNeedsEvidenceHash",
+        "status": "PASS",
+        "seconds": 0.07
+      },
+      {
+        "test": "TestRefutedRiskStaysOpen",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestRefutationEvidenceTamperDetected",
+        "status": "PASS",
+        "seconds": 0.07
+      },
+      {
+        "test": "TestReferenceRiskCanBeRefuted",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestRiskOriginValidated",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestLegacyRiskOriginMarkedUndeclared",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestRiskOriginStoredAndReported",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestAcceptRiskRequiresScopeAndQuote",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestAcceptRiskRequiresInteractiveTerminal",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestPromoteRiskNeedsApprovedRule",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestRiskReportListsEvidenceAndDecisions",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestOpenRiskCountExcludesDecided",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestAcceptanceReportExcludesRisks",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestRiskReviewGateOnlyWhenConfigured",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRisksMigrationIdempotent",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestHandoffShowsEffectiveRiskStatus",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestAcceptanceReportGapsFollowScanObservations",
+        "status": "PASS",
+        "seconds": 0.05
+      },
+      {
+        "test": "TestCommandCaptureFailureCannotPass",
+        "status": "PASS",
+        "seconds": 0.49
+      },
+      {
+        "test": "TestExecuteVerifiesIsolationBeforeAnyFixtureWrite",
+        "status": "PASS",
+        "seconds": 0.41
+      },
+      {
+        "test": "TestExecuteFailedRecoveryHasDurableRAW",
+        "status": "PASS",
+        "seconds": 0.54
+      },
+      {
+        "test": "TestExecuteReadOnlyCheckpointUsesIndependentBeforeAfter",
+        "status": "PASS",
+        "seconds": 0.83
+      },
+      {
+        "test": "TestCommandScriptMustBeInFrozenInputs",
+        "status": "PASS",
+        "seconds": 0.14
+      },
+      {
+        "test": "TestModelRetryUsesCapturedRecoveryAndKeepsFailure",
+        "status": "PASS",
+        "seconds": 1.7
+      },
+      {
+        "test": "TestExecuteConcurrentParticipantPreconditionsAndOracleIdentity/false",
+        "status": "PASS",
+        "seconds": 0.57
+      },
+      {
+        "test": "TestExecuteConcurrentParticipantPreconditionsAndOracleIdentity/true",
+        "status": "PASS",
+        "seconds": 0.93
+      },
+      {
+        "test": "TestExecuteConcurrentParticipantPreconditionsAndOracleIdentity",
+        "status": "PASS",
+        "seconds": 1.5
+      },
+      {
+        "test": "TestRuntimeBusinessFreezesBeforeRequestAndPersistsActual",
+        "status": "PASS",
+        "seconds": 1.3
+      },
+      {
+        "test": "TestRuntimeBusinessWrongActualCannotChooseAnotherExpected",
+        "status": "PASS",
+        "seconds": 0.64
+      },
+      {
+        "test": "TestRuntimeBusinessTransportRejectionMustMatchExactStatus/false",
+        "status": "PASS",
+        "seconds": 0.91
+      },
+      {
+        "test": "TestRuntimeBusinessTransportRejectionMustMatchExactStatus/true",
+        "status": "PASS",
+        "seconds": 0.59
+      },
+      {
+        "test": "TestRuntimeBusinessTransportRejectionMustMatchExactStatus",
+        "status": "PASS",
+        "seconds": 1.5
+      },
+      {
+        "test": "TestRuntimeBusinessNoRequestOnUnknownGapOverlapOrWrongPlannedBranch/unknown",
+        "status": "PASS",
+        "seconds": 0.61
+      },
+      {
+        "test": "TestRuntimeBusinessNoRequestOnUnknownGapOverlapOrWrongPlannedBranch/gap",
+        "status": "PASS",
+        "seconds": 0.59
+      },
+      {
+        "test": "TestRuntimeBusinessNoRequestOnUnknownGapOverlapOrWrongPlannedBranch/overlap",
+        "status": "PASS",
+        "seconds": 0.63
+      },
+      {
+        "test": "TestRuntimeBusinessNoRequestOnUnknownGapOverlapOrWrongPlannedBranch/wrong_planned_branch",
+        "status": "PASS",
+        "seconds": 0.62
+      },
+      {
+        "test": "TestRuntimeBusinessNoRequestOnUnknownGapOverlapOrWrongPlannedBranch",
+        "status": "PASS",
+        "seconds": 2.45
+      },
+      {
+        "test": "TestRuntimeBusinessExplicitAllowedOutcomeIsNotRejectedByLegacySummary",
+        "status": "PASS",
+        "seconds": 0.89
+      },
+      {
+        "test": "TestRuntimeBusinessAutomaticPreparationUsesIndependentActual/prepared",
+        "status": "PASS",
+        "seconds": 0.92
+      },
+      {
+        "test": "TestRuntimeBusinessAutomaticPreparationUsesIndependentActual/lying_adapter",
+        "status": "PASS",
+        "seconds": 0.45
+      },
+      {
+        "test": "TestRuntimeBusinessAutomaticPreparationUsesIndependentActual/missing_adapter",
+        "status": "PASS",
+        "seconds": 0.48
+      },
+      {
+        "test": "TestRuntimeBusinessAutomaticPreparationUsesIndependentActual",
+        "status": "PASS",
+        "seconds": 1.85
+      },
+      {
+        "test": "TestRuntimeBusinessMissingPreActionReceiptCannotQualify",
+        "status": "PASS",
+        "seconds": 1.5
+      },
+      {
+        "test": "TestRuntimeCheckpointPreservesActualAndVerifiesOffline",
+        "status": "PASS",
+        "seconds": 1.82
+      },
+      {
+        "test": "TestRuntimeCheckpointCannotRetainAnotherPrincipal",
+        "status": "PASS",
+        "seconds": 0.66
+      },
+      {
+        "test": "TestRuntimeCheckpointRejectsWritesAndUndeclaredTargets/write",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeCheckpointRejectsWritesAndUndeclaredTargets/state",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeCheckpointRejectsWritesAndUndeclaredTargets/mode",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeCheckpointRejectsWritesAndUndeclaredTargets/checks",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeCheckpointRejectsWritesAndUndeclaredTargets/implicit",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeCheckpointRejectsWritesAndUndeclaredTargets",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestRuntimeCheckpointWrongFinalStateOrPropertiesBlocks/state",
+        "status": "PASS",
+        "seconds": 0.66
+      },
+      {
+        "test": "TestRuntimeCheckpointWrongFinalStateOrPropertiesBlocks/property",
+        "status": "PASS",
+        "seconds": 0.62
+      },
+      {
+        "test": "TestRuntimeCheckpointWrongFinalStateOrPropertiesBlocks",
+        "status": "PASS",
+        "seconds": 1.29
+      },
+      {
+        "test": "TestRuntimeFactsPreserveAllConditionSubjects",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeFactsParallelOracleExtractionsStayWithActor",
+        "status": "PASS",
+        "seconds": 1.03
+      },
+      {
+        "test": "TestRuntimeFactsParallelWaitsCannotReuseAnotherActorSuccess",
+        "status": "PASS",
+        "seconds": 0.71
+      },
+      {
+        "test": "TestRuntimeFactsWaitHasCompletionAndActorIdentity",
+        "status": "PASS",
+        "seconds": 2
+      },
+      {
+        "test": "TestRuntimeFactsExplainRejectsCorruptEvidence/invalid_facts_json",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestRuntimeFactsExplainRejectsCorruptEvidence/embedded_raw_hash_mismatch",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestRuntimeFactsExplainRejectsCorruptEvidence/valid_json_disagrees_with_raw",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestRuntimeFactsExplainRejectsCorruptEvidence/assertion_projection_disagrees",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestRuntimeFactsExplainRejectsCorruptEvidence/disk_raw_hash_mismatch",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestRuntimeFactsExplainRejectsCorruptEvidence",
+        "status": "PASS",
+        "seconds": 2.17
+      },
+      {
+        "test": "TestRuntimeFactsExplainDoesNotMoveFutureEntitiesIntoSetup",
+        "status": "PASS",
+        "seconds": 0.94
+      },
+      {
+        "test": "TestRuntimeFactsConcurrentCookieScopes",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeFactsLegacyWaitReadableButCannotClaimNewIdentityProof",
+        "status": "PASS",
+        "seconds": 2.41
+      },
+      {
+        "test": "TestRuntimeFactsDeletedStepCannotLeaveVerifiedRunComplete",
+        "status": "PASS",
+        "seconds": 1.01
+      },
+      {
+        "test": "TestRuntimeBindingsAmbiguousNamespacesStayUnknown/actor_entity",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeBindingsAmbiguousNamespacesStayUnknown/actor_session",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestRuntimeBindingsAmbiguousNamespacesStayUnknown/entity_session",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeBindingsAmbiguousNamespacesStayUnknown/all",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeBindingsAmbiguousNamespacesStayUnknown",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestRuntimeBindingsExplicitNamespaceResolvesAmbiguity/actor.primary.account",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeBindingsExplicitNamespaceResolvesAmbiguity/entity.primary.id",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeBindingsExplicitNamespaceResolvesAmbiguity/session.primary.digest",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeBindingsExplicitNamespaceResolvesAmbiguity/actor.primary.principal",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeBindingsExplicitNamespaceResolvesAmbiguity",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeInputUsesResolvedRequestBeforeFreezing",
+        "status": "PASS",
+        "seconds": 1.39
+      },
+      {
+        "test": "TestRuntimeInputInvalidActualBlocksBeforeRequest/{\"amount\":99}",
+        "status": "PASS",
+        "seconds": 0.61
+      },
+      {
+        "test": "TestRuntimeInputInvalidActualBlocksBeforeRequest/{\"currency\":\"USD\"}",
+        "status": "PASS",
+        "seconds": 0.59
+      },
+      {
+        "test": "TestRuntimeInputInvalidActualBlocksBeforeRequest/{\"amount\":\"100\"}",
+        "status": "PASS",
+        "seconds": 0.66
+      },
+      {
+        "test": "TestRuntimeInputInvalidActualBlocksBeforeRequest",
+        "status": "PASS",
+        "seconds": 1.86
+      },
+      {
+        "test": "TestRuntimeInputMutationAfterFreezeCannotDispatch",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeInputReplayRejectsTamperedOrOtherActorValues/value",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeInputReplayRejectsTamperedOrOtherActorValues/actor",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeInputReplayRejectsTamperedOrOtherActorValues/resolved_body",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeInputReplayRejectsTamperedOrOtherActorValues/request_hash",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeInputReplayRejectsTamperedOrOtherActorValues",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRuntimeInputOracleCannotSupplyInventedRequest",
+        "status": "PASS",
+        "seconds": 0.72
+      },
+      {
+        "test": "TestSnapshotExportsSixViewsAndContext",
+        "status": "PASS",
+        "seconds": 2.14
+      },
+      {
+        "test": "TestSnapshotCandidateTreeBeforeApprovalOrEnvironment",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestSnapshotUnknownContextErrors/unknown_graph",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestSnapshotUnknownContextErrors/unknown_environment",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestSnapshotUnknownContextErrors/unknown_round",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestSnapshotUnknownContextErrors/round_of_another_environment",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "TestSnapshotUnknownContextErrors/unknown_run",
+        "status": "PASS",
+        "seconds": 0.79
+      },
+      {
+        "test": "TestSnapshotUnknownContextErrors/run_of_another_graph",
+        "status": "PASS",
+        "seconds": 0.13
+      },
+      {
+        "test": "TestSnapshotUnknownContextErrors/legacy_graph",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestSnapshotUnknownContextErrors",
+        "status": "PASS",
+        "seconds": 1.79
+      },
+      {
+        "test": "TestSnapshotRefusesNonEmptyOut",
+        "status": "PASS",
+        "seconds": 0.81
+      },
+      {
+        "test": "TestSnapshotTamperedEvidenceWrittenAsFailure",
+        "status": "PASS",
+        "seconds": 1.75
+      },
+      {
+        "test": "TestSnapshotSizeLimitFails",
+        "status": "PASS",
+        "seconds": 2.02
+      },
+      {
+        "test": "TestSnapshotHasNoAPIReferences",
+        "status": "PASS",
+        "seconds": 2.16
+      },
+      {
+        "test": "TestSnapshotRefusesBuildCallingRemovedAPI",
+        "status": "PASS",
+        "seconds": 2.33
+      },
+      {
+        "test": "TestWorkbenchCommandRemoved",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestSnapshotExplorationCoverageFromLedger",
+        "status": "PASS",
+        "seconds": 2.36
+      },
+      {
+        "test": "TestSnapshotTypesMatchFrontend",
+        "status": "PASS",
+        "seconds": 0.02
+      },
+      {
+        "test": "TestSnapshotSampleForWorkbench",
+        "status": "PASS",
+        "seconds": 3.6
+      },
+      {
+        "test": "TestWorkbenchSourceHasNoNetworkLayer",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestTaskProofRevalidatesOneLinkedObligationWithoutFullGraphClaim",
+        "status": "PASS",
+        "seconds": 1.7
+      },
+      {
+        "test": "TestTaskProofNeverSkipsLatestUnfinishedAttempt",
+        "status": "PASS",
+        "seconds": 0.89
+      },
+      {
+        "test": "TestThreeWayReportKeepsSourcesApart",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestImplementationEvidenceNeverBecomesRule",
+        "status": "PASS",
+        "seconds": 0.11
+      },
+      {
+        "test": "TestPeerReferenceOnlyYieldsRisk",
+        "status": "PASS",
+        "seconds": 0.12
+      },
+      {
+        "test": "TestStepRAWMatchingIdentity",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRejectionRequiresBeforeAfter",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestRawRejectsEmbeddedCredentialFields",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestExactPreconditionsAreMandatory",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "TestTriageLedgerGroupsByOrigin",
+        "status": "PASS",
+        "seconds": 0.25
+      },
+      {
+        "test": "TestTriageLedgerShowsSampleSize",
+        "status": "PASS",
+        "seconds": 0.17
+      },
+      {
+        "test": "TestTriageLedgerNotAGate",
+        "status": "PASS",
+        "seconds": 0.04
+      },
+      {
+        "test": "TestRejectedReferenceIsSuppressed",
+        "status": "PASS",
+        "seconds": 0.07
+      },
+      {
+        "test": "TestRejectRiskRequiresInteractiveTerminal",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestTypedExplorationRunBlocksBeforeRequestsOrActions/heuristic",
+        "status": "PASS",
+        "seconds": 0.09
+      },
+      {
+        "test": "TestTypedExplorationRunBlocksBeforeRequestsOrActions/deterministic",
+        "status": "PASS",
+        "seconds": 0.08
+      },
+      {
+        "test": "TestTypedExplorationRunBlocksBeforeRequestsOrActions",
+        "status": "PASS",
+        "seconds": 0.17
+      },
+      {
+        "test": "TestTypedExplorationResumeBlocksBeforeClaimOrRequests/dispatcher",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestTypedExplorationResumeBlocksBeforeClaimOrRequests/direct_resume",
+        "status": "PASS",
+        "seconds": 0.1
+      },
+      {
+        "test": "TestTypedExplorationResumeBlocksBeforeClaimOrRequests",
+        "status": "PASS",
+        "seconds": 0.2
+      },
+      {
+        "test": "TestCommandsLeaveNoUncheckpointedWAL",
+        "status": "PASS",
+        "seconds": 0.03
+      },
+      {
+        "test": "TestWorkbenchExportObservedToolRun",
+        "status": "SKIP",
+        "seconds": 0
+      },
+      {
+        "test": "FuzzBusinessContractUniqueFreezeDoesNotFollowActual/seed#0",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "FuzzBusinessContractUniqueFreezeDoesNotFollowActual/seed#1",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "FuzzBusinessContractUniqueFreezeDoesNotFollowActual/seed#2",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "FuzzBusinessContractUniqueFreezeDoesNotFollowActual/seed#3",
+        "status": "PASS",
+        "seconds": 0.01
+      },
+      {
+        "test": "FuzzBusinessContractUniqueFreezeDoesNotFollowActual/seed#4",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "FuzzBusinessContractUniqueFreezeDoesNotFollowActual/seed#5",
+        "status": "PASS",
+        "seconds": 0
+      },
+      {
+        "test": "FuzzBusinessContractUniqueFreezeDoesNotFollowActual",
+        "status": "PASS",
+        "seconds": 0.03
+      }
+    ]
+  },
+  "full_stderr": {
+    "log": "arc-continue-verify-full.stderr",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "final_delta_race": {
+    "log": "campaign-final-evidence-delta-race.txt",
+    "bytes": 3137,
+    "sha256": "e531bab717320076a447aa2db53e59e0919619cde908a116ccbd9be07cadfb82",
+    "top_level_counts": {
+      "PASS": 8
+    },
+    "subtest_counts": {
+      "PASS": 9
+    },
+    "seconds": 60.004,
+    "tests": [
+      {
+        "test": "TestBusinessCampaignResumeReplaysActualActionBudgetBeforeAnyNewDispatch",
+        "status": "PASS",
+        "seconds": 5.23
+      },
+      {
+        "test": "TestBusinessCampaignCannotTransplantAnEarlierOrdinaryVerifiedPass",
+        "status": "PASS",
+        "seconds": 4.53
+      },
+      {
+        "test": "TestBusinessCampaignFreshEntityRebindingAndChangedInputIsBlockedBeforeTarget",
+        "status": "PASS",
+        "seconds": 5.88
+      },
+      {
+        "test": "TestBusinessCampaignFreshEntityRebindingAndChangedInputIsBlockedBeforeTarget/false",
+        "status": "PASS",
+        "seconds": 4.16
+      },
+      {
+        "test": "TestBusinessCampaignFreshEntityRebindingAndChangedInputIsBlockedBeforeTarget/true",
+        "status": "PASS",
+        "seconds": 1.72
+      },
+      {
+        "test": "TestBusinessCampaignPreparationProbeCannotBorrowAnotherPrincipalOrRunner",
+        "status": "PASS",
+        "seconds": 3.24
+      },
+      {
+        "test": "TestBusinessCampaignPreparationProbeCannotBorrowAnotherPrincipalOrRunner/principal",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestBusinessCampaignPreparationProbeCannotBorrowAnotherPrincipalOrRunner/role",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestBusinessCampaignPreparationProbeCannotBorrowAnotherPrincipalOrRunner/scope",
+        "status": "PASS",
+        "seconds": 0.07
+      },
+      {
+        "test": "TestBusinessCampaignPreparationProbeCannotBorrowAnotherPrincipalOrRunner/round",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestBusinessCampaignPreparationProbeCannotBorrowAnotherPrincipalOrRunner/runner",
+        "status": "PASS",
+        "seconds": 0.06
+      },
+      {
+        "test": "TestBusinessCampaignPreparationProbeCannotBorrowAnotherPrincipalOrRunner/oracle",
+        "status": "PASS",
+        "seconds": 0.07
+      },
+      {
+        "test": "TestBusinessCampaignPreparationProbeCannotBorrowAnotherPrincipalOrRunner/boundary",
+        "status": "PASS",
+        "seconds": 0.07
+      },
+      {
+        "test": "TestBusinessCampaignCrashAfterIntentNeverReplaysUnknownDispatch",
+        "status": "PASS",
+        "seconds": 2.05
+      },
+      {
+        "test": "TestBusinessCampaignCrashAfterCompletedChildReconcilesWithoutReplay",
+        "status": "PASS",
+        "seconds": 4.59
+      },
+      {
+        "test": "TestBusinessCampaignExploresActualStateCycleAcrossCheckpointChildren",
+        "status": "PASS",
+        "seconds": 20.82
+      },
+      {
+        "test": "TestBusinessCampaignMultipleRegisteredVariantsAndRealPreparation",
+        "status": "PASS",
+        "seconds": 12.63
+      }
+    ]
+  },
+  "final_next_allowed_race": {
+    "log": "campaign-nextallowed-race.txt",
+    "bytes": 228,
+    "sha256": "5577c44f4dbf8615631da4c422a28f16bac29e8046417d66e7704f85188f2f1a",
+    "top_level_counts": {
+      "PASS": 1
+    },
+    "subtest_counts": {},
+    "seconds": 6.444,
+    "tests": [
+      {
+        "test": "TestBusinessCampaignVerifiedNextAllowedRestrictsOtherwiseReadyBranch",
+        "status": "PASS",
+        "seconds": 5.42
+      }
+    ]
+  },
+  "compilation_boundary": "Full test binary compiled before the final uniform target/preparation probe identity check. The only later production Go change is business_exploration_evidence.go; final_delta_race verifies it. Later test-only additions are listed in current_entrypoint_union. This record does not pretend the full run used the final file.",
+  "current_entrypoint_union": {
+    "entries": 463,
+    "top_level_counts": {
+      "PASS": 461,
+      "SKIP": 2
+    },
+    "subtest_counts": {
+      "PASS": 272
+    },
+    "still_skipped": [
+      "TestIMMongoFixturesMustBindIsolationNotSharedLan50",
+      "TestIMMongoConfigKeepsSharedStacksUnapproved"
+    ],
+    "new_entries_after_full": [
+      "TestBusinessCampaignInstalledPublicCLIExecutesWithoutReplay",
+      "TestBusinessCampaignPreparationProbeCannotBorrowAnotherPrincipalOrRunner",
+      "TestBusinessCampaignVerifiedNextAllowedRestrictsOtherwiseReadyBranch"
+    ],
+    "meaning": "Union of actual executed results from the full race run, final delta/NextAllowed races, installed-binary integration and final export tests; not one full-run result"
+  },
+  "installed_cli_integration": {
+    "log": "arc-continue-installed-cli.jsonl",
+    "bytes": 11188,
+    "sha256": "a43eaebff5a188be19a436967c13e239029afdc5affd9c19750fc7e8f6215ac0",
+    "top_level_counts": {
+      "PASS": 2
+    },
+    "subtest_counts": {},
+    "packages": [
+      {
+        "package": "github.com/iwen-conf/Skills/tools/arc-verify",
+        "status": "PASS",
+        "seconds": 4.304
+      }
+    ],
+    "tests": [
+      {
+        "test": "TestBusinessCampaignInstalledPublicCLIExecutesWithoutReplay",
+        "status": "PASS",
+        "seconds": 2.61
+      },
+      {
+        "test": "TestRunChainBuiltBinaryExitStatus",
+        "status": "PASS",
+        "seconds": 0.66
+      }
+    ]
+  },
+  "actual_tool_exports": {
+    "log": "arc-continue-release-export.log",
+    "bytes": 729,
+    "sha256": "6c52ae3fa4a8691bfb9841d676802c64168ccb388b8607b267509197d22a6ccb",
+    "top_level_counts": {
+      "PASS": 2
+    },
+    "subtest_counts": {},
+    "seconds": 22.492,
+    "tests": [
+      {
+        "test": "TestWorkbenchExportObservedBusinessCampaign",
+        "status": "PASS",
+        "seconds": 19.37
+      },
+      {
+        "test": "TestWorkbenchExportObservedToolRun",
+        "status": "PASS",
+        "seconds": 3.12
+      }
+    ]
+  },
+  "frontend_actual_exports": {
+    "test_log": "arc-ui-validation/final-release-integration.log",
+    "test_log_sha256": "336728a9c0b83a39efecb92390fe21fb0fc00b937c9de4dab9a8c06351fcea11",
+    "exports": [
+      {
+        "report_sha256": "b13192c32768ba4f73bab964cfe06041cb214a9358f68a07ecd525b2442bc164",
+        "snapshot_sha256": "164e759d5eaef5dc01fd2d6120918d2a9f15861601a35552de4144c4ae978a0b",
+        "ssr_sha256": "f16248213227f9ef92e61b06f07c59543fcc634dd739920443dc2a87f7c42dff",
+        "validated_at": "2026-11-17T03:12:16.896Z",
+        "status": "PASS",
+        "assets_match_current_dist": true,
+        "run_ids": [
+          "R-1313254e24c8e45713d15bf0f3fa705f"
+        ],
+        "campaign_ids": [],
+        "rendered_views": 2,
+        "representative_ssr_views": 1,
+        "preparation": {
+          "status": "EXERCISED",
+          "runs": 1,
+          "actual_actions": 1,
+          "independent_readbacks": 3
+        },
+        "expected_actual": {
+          "status": "EXERCISED",
+          "frozen_decisions": 1,
+          "request_captures": 1
+        },
+        "entity_selection": {
+          "status": "NOT_PRESENT",
+          "selections": 0
+        },
+        "campaign": {
+          "status": "NOT_PRESENT",
+          "linked_children": 0,
+          "unexported_children": 0
+        },
+        "assets": [
+          {
+            "file": "index-C1axlBAO.js",
+            "sha256": "cfa72b54ead53347f61fc21626b85ed36e941144276d9026e8348167d5fca2b0"
+          },
+          {
+            "file": "style-zNCNQtJp.css",
+            "sha256": "7e0537b393d4fc9c8a526946a545c78544c90edb8e1a418e5a8632a2a2b2517a"
+          }
+        ],
+        "directory_name": "arc-native-workbench-prepared-release",
+        "report": {
+          "version": 1,
+          "status": "PASS",
+          "scope": "Actual supplied Go export -> production readSnapshotText -> unified selection -> SSR. No target execution, RAW revalidation, product E2E claim or browser acceptance.",
+          "validated_at": "2026-11-17T03:12:16.896Z",
+          "snapshot_sha256": "164e759d5eaef5dc01fd2d6120918d2a9f15861601a35552de4144c4ae978a0b",
+          "graph": "course-v2",
+          "parser": "PASS",
+          "unified_selection": "PASS",
+          "ssr": "PASS",
+          "browser": "NOT_RUN",
+          "raw_revalidated_by_frontend": false,
+          "rendered_views": 2,
+          "representative_ssr_views": 1,
+          "assets_match_current_dist": true,
+          "preparation": {
+            "status": "EXERCISED",
+            "runs": 1,
+            "actual_actions": 1,
+            "independent_readbacks": 3
+          },
+          "expected_actual": {
+            "status": "EXERCISED",
+            "frozen_decisions": 1,
+            "request_captures": 1
+          },
+          "entity_selection": {
+            "status": "NOT_PRESENT",
+            "selections": 0
+          },
+          "campaign": {
+            "status": "NOT_PRESENT",
+            "linked_children": 0,
+            "unexported_children": 0
+          },
+          "runs": [
+            {
+              "run": "R-1313254e24c8e45713d15bf0f3fa705f",
+              "environment": "independent",
+              "round": "Q-67043295d23178e35f411dc5cb741a01",
+              "runner": "typed-business",
+              "evidence_status": "PASS",
+              "action_steps": 1,
+              "preparation_records": 1,
+              "recovery_mode": "checkpoint"
+            }
+          ],
+          "campaigns": []
+        }
+      },
+      {
+        "report_sha256": "b9d460024364279c2bef054c2f8fa27782f9d0f3e0c8171b4d0c9a18529f05ca",
+        "snapshot_sha256": "1ef1cff7916317dc0499e3b98095ec2c50993759e2b4d5f3726bf42253061208",
+        "ssr_sha256": "9ab78cbea403659a80ef3450a3b80e7868ca7bbee3175af6057bc6fe0cff199b",
+        "validated_at": "2026-11-17T03:12:17.101Z",
+        "status": "PASS",
+        "assets_match_current_dist": true,
+        "run_ids": [
+          "R-2b5d0c540ef8269a2f0649624bd2656a",
+          "R-db76d572daf674e2a375e11a4667c01b",
+          "R-4c9e820455bd49c5bc4cd1b8ad99228b"
+        ],
+        "campaign_ids": [
+          "BC-e4fda5a92842029917c30a13dbb9a6fb"
+        ],
+        "rendered_views": 16,
+        "representative_ssr_views": 7,
+        "preparation": {
+          "status": "EXERCISED",
+          "runs": 2,
+          "actual_actions": 1,
+          "independent_readbacks": 4
+        },
+        "expected_actual": {
+          "status": "EXERCISED",
+          "frozen_decisions": 3,
+          "request_captures": 3
+        },
+        "entity_selection": {
+          "status": "EXERCISED",
+          "selections": 3
+        },
+        "campaign": {
+          "status": "EXERCISED",
+          "linked_children": 3,
+          "unexported_children": 0
+        },
+        "assets": [
+          {
+            "file": "index-C1axlBAO.js",
+            "sha256": "cfa72b54ead53347f61fc21626b85ed36e941144276d9026e8348167d5fca2b0"
+          },
+          {
+            "file": "style-zNCNQtJp.css",
+            "sha256": "7e0537b393d4fc9c8a526946a545c78544c90edb8e1a418e5a8632a2a2b2517a"
+          }
+        ],
+        "directory_name": "arc-native-workbench-campaign-release",
+        "report": {
+          "version": 1,
+          "status": "PASS",
+          "scope": "Actual supplied Go export -> production readSnapshotText -> unified selection -> SSR. No target execution, RAW revalidation, product E2E claim or browser acceptance.",
+          "validated_at": "2026-11-17T03:12:17.101Z",
+          "snapshot_sha256": "1ef1cff7916317dc0499e3b98095ec2c50993759e2b4d5f3726bf42253061208",
+          "graph": "course-v2",
+          "parser": "PASS",
+          "unified_selection": "PASS",
+          "ssr": "PASS",
+          "browser": "NOT_RUN",
+          "raw_revalidated_by_frontend": false,
+          "rendered_views": 16,
+          "representative_ssr_views": 7,
+          "assets_match_current_dist": true,
+          "preparation": {
+            "status": "EXERCISED",
+            "runs": 2,
+            "actual_actions": 1,
+            "independent_readbacks": 4
+          },
+          "expected_actual": {
+            "status": "EXERCISED",
+            "frozen_decisions": 3,
+            "request_captures": 3
+          },
+          "entity_selection": {
+            "status": "EXERCISED",
+            "selections": 3
+          },
+          "campaign": {
+            "status": "EXERCISED",
+            "linked_children": 3,
+            "unexported_children": 0
+          },
+          "runs": [
+            {
+              "run": "R-2b5d0c540ef8269a2f0649624bd2656a",
+              "environment": "independent",
+              "round": "Q-4ed395094f9af5562745a12562438bd0",
+              "runner": "enroll-b",
+              "evidence_status": "PASS",
+              "action_steps": 1,
+              "preparation_records": 1,
+              "recovery_mode": "checkpoint"
+            },
+            {
+              "run": "R-db76d572daf674e2a375e11a4667c01b",
+              "environment": "independent",
+              "round": "Q-4ed395094f9af5562745a12562438bd0",
+              "runner": "clear",
+              "evidence_status": "PASS",
+              "action_steps": 1,
+              "preparation_records": 0,
+              "recovery_mode": "checkpoint"
+            },
+            {
+              "run": "R-4c9e820455bd49c5bc4cd1b8ad99228b",
+              "environment": "independent",
+              "round": "Q-4ed395094f9af5562745a12562438bd0",
+              "runner": "enroll-a",
+              "evidence_status": "PASS",
+              "action_steps": 1,
+              "preparation_records": 1,
+              "recovery_mode": "checkpoint"
+            }
+          ],
+          "campaigns": [
+            {
+              "campaign": "BC-e4fda5a92842029917c30a13dbb9a6fb",
+              "environment": "independent",
+              "round": "Q-4ed395094f9af5562745a12562438bd0",
+              "status": "COMPLETED_IN_SCOPE",
+              "evidence_status": "PASS",
+              "variants": 3,
+              "child_visits": 3,
+              "pre_action_intents": 3,
+              "selected_variants_covered": true,
+              "full_business_coverage": false
+            }
+          ]
+        }
+      }
+    ],
+    "dist_assets": [
+      {
+        "file": "index-C1axlBAO.js",
+        "sha256": "cfa72b54ead53347f61fc21626b85ed36e941144276d9026e8348167d5fca2b0"
+      },
+      {
+        "file": "style-zNCNQtJp.css",
+        "sha256": "7e0537b393d4fc9c8a526946a545c78544c90edb8e1a418e5a8632a2a2b2517a"
+      }
+    ],
+    "test_result": {
+      "exit_code": 0,
+      "files_passed": 1,
+      "tests_passed": 2,
+      "milliseconds": 670
+    },
+    "command": "ARC_WORKBENCH_SNAPSHOT_PATHS='[\"/absolute/prepared-release/snapshot.json\",\"/absolute/campaign-release/snapshot.json\"]' ./node_modules/.bin/vp test src/go-export.integration.test.tsx"
+  },
+  "frontend_default": {
+    "recorded_from": "successful command outputs in this work session",
+    "check": {
+      "command": "./node_modules/.bin/vp check",
+      "files": 31,
+      "warnings": 0,
+      "errors": 0
+    },
+    "tests": {
+      "command": "./node_modules/.bin/vp test run",
+      "pass": 61,
+      "skip": 1,
+      "files": 10,
+      "skip_reason": "No supplied Go snapshot path; permanent integration explicitly skips synthetic substitution"
+    },
+    "typescript": {
+      "command": "./node_modules/.bin/tsc -b",
+      "exit_code": 0
+    },
+    "build": {
+      "command": "./node_modules/.bin/vp build",
+      "exit_code": 0,
+      "advisory": "500.91 kB single IIFE exceeds existing 500 kB advisory; threshold and offline loading architecture unchanged"
+    }
+  },
+  "other_checks": {
+    "cli_full_race": {
+      "recorded_from": "successful command output in this work session",
+      "exit_code": 0,
+      "top_level_passed": 37,
+      "seconds": 1.735
+    },
+    "index": {
+      "log": "arc-continue-idx.log",
+      "bytes": 51,
+      "sha256": "4a2110fbb15fdb85260c549eaef9d7acd1fedd3ef9a151e2b7b144d4d1c4b9dd",
+      "exit_code": 0,
+      "seconds": 0.485
+    },
+    "vet": {
+      "log": "arc-continue-vet.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    "final_delta_vet": {
+      "log": "campaign-final-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    "pay_python": {
+      "log": "arc-continue-pay-adapter.log",
+      "bytes": 117,
+      "sha256": "23062775cedb84eafd2b59f4a04fbd2439da2f59d6cbf1dcb0ad436bebc67cfe",
+      "exit_code": 0,
+      "passed": 18,
+      "seconds": 0.015
+    },
+    "python_full": {
+      "log": "arc-continue-python-final.log",
+      "bytes": 2580,
+      "sha256": "fc503060aa7a61838a437b6aaafa37e6c532360dbfb6dffa4676c80c66067857",
+      "exit_code": 1,
+      "passed": 214,
+      "skipped": 1,
+      "failed": 1,
+      "seconds": 45.43,
+      "failure": "Pre-existing missing cloudflare-platform source in test_all_runtime_families_have_a_complete_package, reproduced against baseline during initial delivery",
+      "skip": "R8_PROTO_PYTHON interpreter with protobuf >= 6.33.4 not supplied"
+    },
+    "dbqual": {
+      "log": "arc-continue-dbqual.log",
+      "bytes": 536,
+      "sha256": "2ed336c0f34fa4474a93d2ef5d59359578446e35aa4892ac29c191bbee983b35",
+      "exit_code": 0,
+      "passed": 160,
+      "skipped": 1,
+      "subtests_passed": 139,
+      "seconds": 15.98,
+      "skip": "SQLVERIFY_SQLFLUFF_CMD not provided"
+    },
+    "install": {
+      "log": "arc-continue-install.log",
+      "bytes": 1409,
+      "sha256": "192a1ca7991caeb51f3e60621a49880e8e998abc74d967404e23a8fc6e6a59ce",
+      "exit_code": 0
+    },
+    "smoke": {
+      "log": "arc-continue-smoke.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0,
+      "script_sha256": "2359d3c807f67cbeca14227f03363f184ffc7e3da5d952a20268be7fc64c8df2",
+      "checks": [
+        "disposable repository unified DB/task/file events",
+        "real index outbox flush",
+        "legacy graph database migration",
+        "Policy state migration and idempotency"
+      ]
+    },
+    "skills_final": {
+      "arc_entrypoints": 6,
+      "arc_errors": [],
+      "warnings": [],
+      "load_scenarios": {
+        "go-repair": {
+          "estimated_tokens": 15443,
+          "ceiling": 15500
+        },
+        "go-feature": {
+          "estimated_tokens": 11653,
+          "ceiling": 12000
+        },
+        "fullstack-api": {
+          "estimated_tokens": 17749,
+          "ceiling": 18000
+        },
+        "pr-review": {
+          "estimated_tokens": 9286,
+          "ceiling": 9500
+        },
+        "pr-re-review": {
+          "estimated_tokens": 9827,
+          "ceiling": 10500
+        },
+        "appsec-campaign": {
+          "estimated_tokens": 18399,
+          "ceiling": 19000
+        },
+        "pg-reliability": {
+          "estimated_tokens": 15273,
+          "ceiling": 15500
+        },
+        "verify-flow": {
+          "estimated_tokens": 13987,
+          "ceiling": 14000
+        },
+        "verify-graph": {
+          "estimated_tokens": 13966,
+          "ceiling": 14000
+        },
+        "verify-graph-start": {
+          "estimated_tokens": 13985,
+          "ceiling": 14000
+        },
+        "verify-diagram": {
+          "estimated_tokens": 4312,
+          "ceiling": 11000
+        },
+        "plan-model": {
+          "estimated_tokens": 12657,
+          "ceiling": 13000
+        },
+        "plan-tasks": {
+          "estimated_tokens": 15094,
+          "ceiling": 15500
+        },
+        "vet-select": {
+          "estimated_tokens": 8242,
+          "ceiling": 9000
+        }
+      },
+      "source": "final validation after reducing duplicated v2 guidance; no threshold change",
+      "full_validation_log": "arc-continue-skills-final.log",
+      "full_validation_sha256": "eeebedbaae87ffc7aec65a978f9e1ad2677f148d300f61e360a1ef2d874da577",
+      "full_validation_exit_code": 1,
+      "baseline_external_errors": 52,
+      "baseline_external_roots": [
+        "Cloudflare",
+        "Design",
+        "ThreeJS"
+      ],
+      "corrected_load_gate": {
+        "red_log": "arc-continue-skills-loading-red.log",
+        "red_log_sha256": "27c7aa5a954897a85df5261c5402c1f3af492d379efd9bae1d1ae35b10189a91",
+        "before": 14132,
+        "ceiling": 14000,
+        "after": 13966,
+        "fix": "Clarify strict versus legacy scope and shorten duplicated v2 guidance without increasing the ceiling; keep the full JSON request example in the tool README"
+      }
+    }
+  },
+  "regressions": [
+    {
+      "risk": "Fresh request/entity differs from candidate before dispatch",
+      "tests": [
+        "TestBusinessCampaignFreshEntityRebindingAndChangedInputIsBlockedBeforeTarget"
+      ],
+      "result": "Zero target requests for probe X followed by actual entity Y"
+    },
+    {
+      "risk": "Self-consistent rewritten budget/history enables extra actions",
+      "tests": [
+        "TestBusinessCampaignResumeReplaysActualActionBudgetBeforeAnyNewDispatch"
+      ],
+      "result": "Derive action spending from original checked child evidence; no new dispatch"
+    },
+    {
+      "risk": "Borrowing a real older ordinary PASS with rewritten hashes and references",
+      "tests": [
+        "TestBusinessCampaignCannotTransplantAnEarlierOrdinaryVerifiedPass"
+      ],
+      "result": "Atomic original CAMPAIGN_ATTEMPT provenance is required"
+    },
+    {
+      "risk": "Preparation probe borrowed from another identity or Oracle",
+      "tests": [
+        "TestBusinessCampaignPreparationProbeCannotBorrowAnotherPrincipalOrRunner"
+      ],
+      "result": "Seven identity dimensions independently reject; target and preparation share the same evidence validation"
+    },
+    {
+      "risk": "Crash leads to duplicate operation",
+      "tests": [
+        "TestBusinessCampaignCrashAfterIntentNeverReplaysUnknownDispatch",
+        "TestBusinessCampaignCrashAfterCompletedChildReconcilesWithoutReplay"
+      ],
+      "result": "Uncertain dispatch stops; verifiable completed child is reconciled without reissuing action"
+    },
+    {
+      "risk": "Allowed-next-operation restriction ignored",
+      "tests": [
+        "TestBusinessCampaignVerifiedNextAllowedRestrictsOtherwiseReadyBranch"
+      ],
+      "result": "A merely READY alternative cannot override the preceding verified outcome restriction"
+    },
+    {
+      "risk": "Cycles lose entity identity or inherit expected state",
+      "tests": [
+        "TestBusinessCampaignExploresActualStateCycleAcrossCheckpointChildren"
+      ],
+      "result": "Three real HTTP children reuse the same independently observed entity; first preparation only; checkpoint at each boundary"
+    },
+    {
+      "risk": "JSON normalization makes pay invalid token appear legal",
+      "result": "Sourced json_i64 and raw-number frontend representation preserve integer syntax; request amount is checked in all four selected pay guards; this is a pre-dispatch tool blocker, not product negative-response acceptance"
+    }
+  ],
+  "boundaries": {
+    "campaign": "1..64 registered variants, one target per Runner, no static setup or parallel batch, bounded serial preparation; no arbitrary parameter generation or unproved cross-run state merging",
+    "action_budget": "Registered target/preparation/recovery attempts, conservatively reserved; not a quota for every HTTP request internal to a command adapter",
+    "state_budget": "Observed candidate and completed-child contexts, not a completeness proof of semantic state equivalence",
+    "last_actual": "Latest target poststate; restoration state is separate and every next candidate is reobserved",
+    "continuation": "Independent fresh non-secret entity bindings, no cross-run cookie/session/variable inheritance",
+    "full_business_coverage": false,
+    "pay_gateway_product_e2e": {
+      "status": "NOT_RUN",
+      "gate": "BLOCKED",
+      "reason": "No explicitly bound owned gateway target, isolated PostgreSQL Oracle configuration and caller fixture/session are available; no pay project requests were issued"
+    },
+    "browser_visual_acceptance": {
+      "status": "NOT_RUN",
+      "gate": "BLOCKED",
+      "reason": "Existing environment policy refused browser/local-page route; no alternate route attempted; SSR is not visual acceptance"
+    },
+    "trust": "Local integrity checks do not prove authenticity against a host controller. Independently trusted runner, external signature/build provenance and TLA+/Lean/Bombadil are not delivered."
+  }
+}

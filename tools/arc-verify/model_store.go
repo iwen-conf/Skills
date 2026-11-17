@@ -58,6 +58,7 @@ func (d db) extendedModel(graph string) (*Graph, error) {
 	if want != actual {
 		return nil, errors.New("immutable business model contradicts the core ledger")
 	}
+	if err := d.validateBusinessContractProjection(g); err != nil { return nil, err }
 	return &g, validateGraph(g)
 }
 

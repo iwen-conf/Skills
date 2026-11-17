@@ -88,14 +88,18 @@ type OracleAdapter struct {
 }
 
 type RunnerStep struct {
-	Node          string          `json:"node"`
-	Transition    string          `json:"transition,omitempty"`
-	Actor         string          `json:"actor"`
-	ParallelGroup string          `json:"parallel_group,omitempty"`
-	Call          AdapterCall     `json:"call"`
-	Oracles       []OracleAdapter `json:"oracles"`
-	AsyncWait     *WaitContract   `json:"async_wait,omitempty"`
-	Checks        []PropertyCheck `json:"checks,omitempty"`
+	InputMeasurements    map[string]string `json:"input_measurements,omitempty"`
+	BusinessBranch       string            `json:"business_branch,omitempty"`
+	SubjectBindings      map[string]string `json:"subject_bindings,omitempty"`
+	ResponseMeasurements map[string]string `json:"response_measurements,omitempty"`
+	Node                 string            `json:"node"`
+	Transition           string            `json:"transition,omitempty"`
+	Actor                string            `json:"actor"`
+	ParallelGroup        string            `json:"parallel_group,omitempty"`
+	Call                 AdapterCall       `json:"call"`
+	Oracles              []OracleAdapter   `json:"oracles"`
+	AsyncWait            *WaitContract     `json:"async_wait,omitempty"`
+	Checks               []PropertyCheck   `json:"checks,omitempty"`
 }
 
 type RecoveryStep struct {
@@ -104,6 +108,7 @@ type RecoveryStep struct {
 }
 
 type FixtureRecovery struct {
+	Mode           string              `json:"mode,omitempty"`
 	IsolationScope string              `json:"isolation_scope"`
 	Steps          []RecoveryStep      `json:"steps"`
 	Oracle         OracleAdapter       `json:"oracle"`
@@ -113,18 +118,19 @@ type FixtureRecovery struct {
 }
 
 type RunnerManifest struct {
-	SchemaVersion  int              `json:"schema_version"`
-	ID             string           `json:"id"`
-	Graph          string           `json:"graph"`
-	Test           string           `json:"test"`
-	IsolationScope string           `json:"isolation_scope"`
-	TimeoutMS      int              `json:"timeout_ms"`
-	StepTimeoutMS  int              `json:"step_timeout_ms"`
-	Parallelism    int              `json:"parallelism"`
-	InputFiles     []string         `json:"input_files,omitempty"`
-	Setup          []RecoveryStep   `json:"setup,omitempty"`
-	Steps          []RunnerStep     `json:"steps"`
-	Recovery       *FixtureRecovery `json:"recovery,omitempty"`
+	SchemaVersion  int                `json:"schema_version"`
+	ID             string             `json:"id"`
+	Graph          string             `json:"graph"`
+	Test           string             `json:"test"`
+	IsolationScope string             `json:"isolation_scope"`
+	TimeoutMS      int                `json:"timeout_ms"`
+	StepTimeoutMS  int                `json:"step_timeout_ms"`
+	Parallelism    int                `json:"parallelism"`
+	InputFiles     []string           `json:"input_files,omitempty"`
+	Setup          []RecoveryStep     `json:"setup,omitempty"`
+	Preparation    *RunnerPreparation `json:"preparation,omitempty"`
+	Steps          []RunnerStep       `json:"steps"`
+	Recovery       *FixtureRecovery   `json:"recovery,omitempty"`
 }
 
 func validateAdapter(call AdapterCall, readOnly bool) error {
@@ -227,6 +233,9 @@ func validateAdapter(call AdapterCall, readOnly bool) error {
 }
 
 func validateOracle(oracle OracleAdapter) error {
+	if oracle.ID == "request-capture" || oracle.ID == "response-capture" {
+		return errors.New("oracle identity cannot impersonate a runtime request or response capture")
+	}
 	if oracle.ID == "" || oracle.Boundary == "" || !strings.HasPrefix(oracle.StatePath, "/") || !strings.HasPrefix(oracle.PrincipalPath, "/") || !strings.HasPrefix(oracle.RolePath, "/") || !strings.HasPrefix(oracle.ScopePath, "/") || len(oracle.Conditions) > 64 || len(oracle.Measurements) > 64 {
 		return errors.New("oracle needs identity, boundary, state/principal/role/scope paths and bounded measurements")
 	}
@@ -282,6 +291,15 @@ func validateManifest(g Graph, manifest RunnerManifest) (ModelObligation, error)
 		}
 	}
 	for _, step := range manifest.Steps {
+		if err := validateInputMeasurements(step); err != nil {
+			return ModelObligation{}, err
+		}
+		if err := validateResponseMeasurements(step); err != nil {
+			return ModelObligation{}, err
+		}
+		if err := validateRunnerBusinessBindings(g, step, actors); err != nil {
+			return ModelObligation{}, err
+		}
 		if x.kinds[step.Node] != "action" || !actors[step.Actor] || len(step.Oracles) == 0 || len(step.Oracles) > 8 {
 			return ModelObligation{}, errors.New("runner step needs a declared action, participant and independent oracle")
 		}
@@ -368,6 +386,9 @@ func validateManifest(g Graph, manifest RunnerManifest) (ModelObligation, error)
 			}
 		}
 	}
+	if err := validateRunnerPreparation(g, manifest, actors, obligation.Definition.ReadOnly); err != nil {
+		return ModelObligation{}, err
+	}
 	if obligation.Definition.Kind == testSequence {
 		batches := runnerBatches(manifest)
 		if len(batches) != len(obligation.Definition.Steps) {
@@ -402,11 +423,25 @@ func validateManifest(g Graph, manifest RunnerManifest) (ModelObligation, error)
 	}
 	if manifest.Recovery != nil {
 		recovery := manifest.Recovery
-		if recovery.IsolationScope != manifest.IsolationScope || recovery.State == "" || !obligation.Definition.ReadOnly && len(recovery.Steps) == 0 || len(recovery.Steps) > 16 || len(recovery.Checks) == 0 {
+		mode := fixtureRecoveryMode(recovery)
+		if mode != recoveryRestore && mode != recoveryCheckpoint {
+			return ModelObligation{}, errors.New("recovery mode must be restore or checkpoint")
+		}
+		if recovery.IsolationScope != manifest.IsolationScope || recovery.State == "" || mode == recoveryRestore && !obligation.Definition.ReadOnly && len(recovery.Steps) == 0 || len(recovery.Steps) > 16 || len(recovery.Checks) == 0 {
 			return ModelObligation{}, errors.New("recovery needs matching isolation, operations, target state and independent checks")
+		}
+		if mode == recoveryCheckpoint && (len(recovery.Steps) != 0 || x.kinds[recovery.State] != "state") {
+			return ModelObligation{}, errors.New("checkpoint requires no recovery writes and an explicit declared final state")
 		}
 		if err := validateOracle(recovery.Oracle); err != nil {
 			return ModelObligation{}, err
+		}
+		if mode == recoveryCheckpoint {
+			for _, check := range recovery.Checks {
+				if err := validatePropertyCheck(check, []OracleAdapter{recovery.Oracle}, recovery.Oracle.ID); err != nil {
+					return ModelObligation{}, fmt.Errorf("checkpoint property: %w", err)
+				}
+			}
 		}
 		for _, step := range recovery.Steps {
 			if !actors[step.Actor] {
@@ -492,6 +527,23 @@ func runnerCodeFingerprint(manifest RunnerManifest) (string, error) {
 		for _, oracle := range step.Oracles {
 			if err := collect(oracle.Call); err != nil {
 				return "", err
+			}
+		}
+	}
+	if manifest.Preparation != nil {
+		for _, oracle := range manifest.Preparation.Observer.Oracles {
+			if err := collect(oracle.Call); err != nil {
+				return "", err
+			}
+		}
+		for _, step := range manifest.Preparation.Adapters {
+			if err := collect(step.Call); err != nil {
+				return "", err
+			}
+			for _, oracle := range step.Oracles {
+				if err := collect(oracle.Call); err != nil {
+					return "", err
+				}
 			}
 		}
 	}
@@ -612,6 +664,10 @@ type AdapterOutput struct {
 }
 
 type execSession struct {
+	// A typed campaign fences every external call, including preparation and recovery.
+	campaignGuard func() error
+
+	cookieMu     sync.Mutex
 	vars         map[string]ExtractedBinding
 	redactedVals map[string]string
 	cookies      map[string]http.CookieJar
@@ -646,6 +702,8 @@ func (s *execSession) cookieJar(scope string) http.CookieJar {
 	if scope == "" {
 		scope = "primary"
 	}
+	s.cookieMu.Lock()
+	defer s.cookieMu.Unlock()
 	jar, ok := s.cookies[scope]
 	if !ok {
 		jar, _ = cookiejar.New(nil)
@@ -907,8 +965,17 @@ func performCall(ctx context.Context, call AdapterCall, binding RunBinding, acco
 }
 
 func performCallWithSession(ctx context.Context, call AdapterCall, binding RunBinding, account Fixture, actor string, sess *execSession) (output AdapterOutput, err error) {
+	return performCallWithRequestCapture(ctx, call, binding, account, actor, sess, nil)
+}
+
+func performCallWithRequestCapture(ctx context.Context, call AdapterCall, binding RunBinding, account Fixture, actor string, sess *execSession, captured *RequestObservation) (output AdapterOutput, err error) {
 	output = AdapterOutput{Started: time.Now().UTC().Format(time.RFC3339Nano)}
 	defer func() { output.Completed = time.Now().UTC().Format(time.RFC3339Nano) }()
+	if sess != nil && sess.campaignGuard != nil {
+		if err := sess.campaignGuard(); err != nil {
+			return output, fmt.Errorf("campaign ownership lost; call was not sent: %w", err)
+		}
+	}
 	actualCall, redactedCall, templateSHA, subs, err := renderCallWithSession(call, sess)
 	if err != nil {
 		return output, err
@@ -922,6 +989,9 @@ func performCallWithSession(ctx context.Context, call AdapterCall, binding RunBi
 	output.ResolvedPath = redactedCall.Path
 	output.ResolvedInput = redactedCall.Body
 	output.Substitutions = subs
+	if captured != nil && (captured.Actor != actor || captured.TemplateSHA256 != output.TemplateSHA256 || captured.RequestSHA256 != output.RequestSHA256 || captured.ResolvedPath != output.ResolvedPath || !sameJSONValue(captured.ResolvedInput, output.ResolvedInput)) {
+		return output, errors.New("resolved request changed after the business expectation was frozen; request was not sent")
+	}
 	switch actualCall.Kind {
 	case adapterHTTP:
 		base, err := url.Parse(binding.Identity.Target)
@@ -1221,7 +1291,15 @@ func scalarJSONString(raw json.RawMessage) (string, error) {
 	return string(trimmed), nil
 }
 
-func applyExtractions(rules []ExtractRule, stepIdx int, defaultActor string, output *AdapterOutput, oracleDocs map[string]json.RawMessage, sess *execSession) ([]ExtractedBinding, error) {
+// An oracle ID identifies the reader, not the account or operation being read.
+// Every batch-local lookup must retain both of those execution coordinates.
+type oracleIdentity struct {
+	ActionIndex int
+	Actor       string
+	ID          string
+}
+
+func applyExtractions(rules []ExtractRule, stepIdx, actionIndex int, defaultActor string, output *AdapterOutput, oracleDocs map[oracleIdentity]json.RawMessage, sess *execSession) ([]ExtractedBinding, error) {
 	if len(rules) == 0 || sess == nil {
 		return nil, nil
 	}
@@ -1269,7 +1347,7 @@ func applyExtractions(rules []ExtractRule, stepIdx int, defaultActor string, out
 				extractErr = fmt.Errorf("cookie %s is missing", ext.Path)
 			}
 		case "oracle":
-			doc, ok := oracleDocs[ext.OracleID]
+			doc, ok := oracleDocs[oracleIdentity{ActionIndex: actionIndex, Actor: defaultActor, ID: ext.OracleID}]
 			if !ok {
 				extractErr = fmt.Errorf("oracle %s response unavailable for extraction", ext.OracleID)
 				break
@@ -1303,6 +1381,9 @@ func applyExtractions(rules []ExtractRule, stepIdx int, defaultActor string, out
 			OwnerActor:     ownerActor,
 			OwnerPrincipal: ownerPrincipal,
 			Step:           stepIdx,
+			ActionIndex:    actionIndex,
+			SourceActor:    defaultActor,
+			OracleID:       ext.OracleID,
 		}
 		if ext.Redact {
 			sess.redactedVals["var:"+ext.Name] = rawValue

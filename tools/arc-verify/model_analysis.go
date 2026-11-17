@@ -53,21 +53,23 @@ type BusinessNodeStatus struct {
 	Readiness       NodeReadiness `json:"readiness"`
 }
 type ModelAnalysis struct {
-	Graph            string                        `json:"graph"`
-	Environment      string                        `json:"environment,omitempty"`
-	Round            string                        `json:"round,omitempty"`
-	Verdict          string                        `json:"verdict"`
-	Reason           string                        `json:"reason"`
-	Coverage         BusinessCoverage              `json:"coverage"`
-	Obligations      []ObligationStatus            `json:"obligations"`
-	Nodes            map[string]BusinessNodeStatus `json:"node_status"`
-	Diagnostics      []BusinessDiagnostic          `json:"diagnostics"`
-	Context          ProofContext                  `json:"context"`
-	CatalogApproved  bool                          `json:"catalog_approved"`
-	UnconfirmedRules int                           `json:"unconfirmed_rules"`
-	ActualTasks      int                           `json:"actual_tasks"`
-	InvalidTasks     int                           `json:"invalid_tasks"`
-	HistoryFailures  int                           `json:"history_failures"`
+	Graph             string                        `json:"graph"`
+	Environment       string                        `json:"environment,omitempty"`
+	Round             string                        `json:"round,omitempty"`
+	Verdict           string                        `json:"verdict"`
+	Reason            string                        `json:"reason"`
+	Coverage          BusinessCoverage              `json:"coverage"`
+	Obligations       []ObligationStatus            `json:"obligations"`
+	Nodes             map[string]BusinessNodeStatus `json:"node_status"`
+	Diagnostics       []BusinessDiagnostic          `json:"diagnostics"`
+	Context           ProofContext                  `json:"context"`
+	CatalogApproved   bool                          `json:"catalog_approved"`
+	UnconfirmedRules  int                           `json:"unconfirmed_rules"`
+	ActualTasks       int                           `json:"actual_tasks"`
+	InvalidTasks      int                           `json:"invalid_tasks"`
+	HistoryFailures   int                           `json:"history_failures"`
+	ContractProof     *BusinessCoverageProof        `json:"contract_proof,omitempty"`
+	ContractExecution *BusinessExecutionCoverage    `json:"contract_execution,omitempty"`
 }
 
 func aggregatedStatus(statuses []string) (string, string) {
@@ -106,6 +108,13 @@ func coveragePercent(measure *CoverageMeasure) {
 
 func (d db) analyzeModel(g Graph, environment, roundID string) (ModelAnalysis, error) {
 	result := ModelAnalysis{Graph: g.ID, Environment: environment, Round: roundID, Nodes: map[string]BusinessNodeStatus{}, Obligations: []ObligationStatus{}, Diagnostics: modelDiagnostics(g)}
+	contractProof := ProveBusinessCoverage(g)
+	result.ContractProof = &contractProof
+	if contractProof.Status == "LEGACY_UNDECLARED" {
+		result.Diagnostics = append(result.Diagnostics, BusinessDiagnostic{Code: "LEGACY_UNDECLARED", Severity: "warning", Subjects: []string{g.ID}, Reason: "legacy rule obligations retain their original scope; no deterministic branch completeness is declared"})
+	} else if contractProof.Status != "PROVEN_IN_SCOPE" {
+		result.Diagnostics = append(result.Diagnostics, BusinessDiagnostic{Code: "BUSINESS_CONTRACT_" + contractProof.Status, Severity: "error", Subjects: []string{g.ID}, Reason: contractProof.Reason})
+	}
 	if g.SchemaVersion != 2 {
 		return result, errors.New("multi-view business analysis requires a v2 model; retain legacy evidence as its original scope")
 	}
@@ -404,6 +413,18 @@ func (d db) analyzeModel(g Graph, environment, roundID string) (ModelAnalysis, e
 			result.Verdict, result.Reason = "BLOCKED", diagnostic.Reason
 		}
 	}
+	contractExecution, err := d.businessExecutionCoverage(g, result.Round)
+	if err != nil {
+		return result, err
+	}
+	result.ContractExecution = &contractExecution
+	if g.BusinessContract != nil {
+		if contractExecution.Status == "FAIL" {
+			result.Verdict, result.Reason = "FAIL", contractExecution.Reason
+		} else if contractExecution.Status != "PASS" && result.Verdict != "FAIL" {
+			result.Verdict, result.Reason = "BLOCKED", contractExecution.Reason
+		}
+	}
 	return result, nil
 }
 
@@ -562,19 +583,26 @@ func (d db) modelGate(g Graph) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	completeness := map[string]any{
-		"unconfirmed_rules":     analysis.UnconfirmedRules,
-		"unplanned_obligations": missing,
-		"missing_runners":       missingRunners,
-		"blocked_obligations":   blocked,
-		"failed_obligations":    failed,
-		"not_run_obligations":   notRun,
-		"passed_obligations":    passed,
-		"total_obligations":     analysis.Coverage.Obligations.Total,
-		"complete_business_e2e": analysis.Verdict == "PASS" && analysis.UnconfirmedRules == 0 && missing == 0,
-		"real_e2e_boundary":     "model gate verifies local obligations inside registered execution contexts; unexecuted live endpoints and remote hosts require separate real execution evidence",
+	strongContract := analysis.ContractProof != nil && analysis.ContractProof.Status == "PROVEN_IN_SCOPE" && analysis.ContractExecution != nil && analysis.ContractExecution.Status == "PASS"
+	proofScope := "legacy_business_model_obligations"
+	if g.BusinessContract != nil {
+		proofScope = "declared_finite_contract_scope_and_verified_branch_execution"
 	}
-	return d.attachExploreEvidence(g.ID, map[string]any{"verdict": analysis.Verdict, "reason": analysis.Reason, "catalog_approved": analysis.CatalogApproved, "confirmed_rules": len(g.Rules) - analysis.UnconfirmedRules, "unconfirmed_rules": analysis.UnconfirmedRules, "required_tasks": analysis.Coverage.Obligations.Total, "actual_tasks": analysis.ActualTasks, "passed_with_valid_raw": passed, "missing_tasks": missing, "invalid_tasks_or_evidence": invalid, "open_risks": openRisks, "completeness": completeness, "proof_scope": "complete_business_model_obligations", "execution_contexts": func() int {
+	completeness := map[string]any{
+		"unconfirmed_rules":          analysis.UnconfirmedRules,
+		"unplanned_obligations":      missing,
+		"missing_runners":            missingRunners,
+		"blocked_obligations":        blocked,
+		"failed_obligations":         failed,
+		"not_run_obligations":        notRun,
+		"passed_obligations":         passed,
+		"total_obligations":          analysis.Coverage.Obligations.Total,
+		"complete_business_e2e":      strongContract && analysis.Verdict == "PASS" && analysis.UnconfirmedRules == 0 && missing == 0,
+		"contract_partition_proven":  analysis.ContractProof != nil && analysis.ContractProof.Status == "PROVEN_IN_SCOPE",
+		"contract_branches_executed": analysis.ContractExecution != nil && analysis.ContractExecution.Status == "PASS",
+		"real_e2e_boundary":          "model gate verifies local obligations inside registered execution contexts; unexecuted live endpoints and remote hosts require separate real execution evidence",
+	}
+	return d.attachExploreEvidence(g.ID, map[string]any{"verdict": analysis.Verdict, "reason": analysis.Reason, "catalog_approved": analysis.CatalogApproved, "confirmed_rules": len(g.Rules) - analysis.UnconfirmedRules, "unconfirmed_rules": analysis.UnconfirmedRules, "required_tasks": analysis.Coverage.Obligations.Total, "actual_tasks": analysis.ActualTasks, "passed_with_valid_raw": passed, "missing_tasks": missing, "invalid_tasks_or_evidence": invalid, "open_risks": openRisks, "completeness": completeness, "proof_scope": proofScope, "contract_proof": analysis.ContractProof, "contract_execution": analysis.ContractExecution, "execution_contexts": func() int {
 		if analysis.Round != "" {
 			return 1
 		}

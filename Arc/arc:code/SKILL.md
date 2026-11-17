@@ -1,6 +1,6 @@
 ---
 name: arc:code
-version: 2.7.3
+version: 2.8.0
 description: >-
   Every task that changes source code: write code to implement (写代码, 实现, 开发功能, 落地改动)
   a feature, endpoint or page (前端, 落地页, 要好看, shadcn, 小程序) on the project's stack; fix (修复) a bug,
@@ -57,6 +57,8 @@ Implement behavior through the real HTTP/CLI/UI/job entry, update affected sibli
 | Change touches behavior modeled in a closure spec | adds to mode | [workflow.md](../_shared/workflow.md) §4: run the plan model gate first |
 
 ## Workflow
+
+Business graphs follow [shared deterministic semantics](../_shared/business-verification.md).
 
 Graph repairs: [workflow §6](../_shared/workflow.md); `arc verify handoff --to arc-code --run <id>`. Preserve prior FAIL, RAW and rules; verify reruns E2E.
 

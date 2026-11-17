@@ -172,6 +172,12 @@ func (d db) transition(statements []string) error {
 var schema = []string{
 	"CREATE TABLE IF NOT EXISTS graphs (id TEXT PRIMARY KEY, scope TEXT NOT NULL, approved INTEGER NOT NULL DEFAULT 0);",
 	"CREATE TABLE IF NOT EXISTS business_models (graph TEXT PRIMARY KEY, schema_version INTEGER NOT NULL, body TEXT NOT NULL);",
+	"CREATE TABLE IF NOT EXISTS business_contracts (graph TEXT PRIMARY KEY, version INTEGER NOT NULL, sha256 TEXT NOT NULL, body TEXT NOT NULL);",
+	"CREATE TABLE IF NOT EXISTS business_branches (graph TEXT NOT NULL, id TEXT NOT NULL, flow TEXT NOT NULL, action TEXT NOT NULL, transition_id TEXT NOT NULL, rule_id TEXT NOT NULL, capability TEXT NOT NULL, confirmed INTEGER NOT NULL, source_ref TEXT NOT NULL, guard_json TEXT NOT NULL, expected_json TEXT NOT NULL, body TEXT NOT NULL, PRIMARY KEY(graph,id));",
+	"CREATE INDEX IF NOT EXISTS idx_business_branches_action ON business_branches(graph,action,flow,confirmed);",
+	"CREATE TABLE IF NOT EXISTS preparation_actions (graph TEXT NOT NULL, id TEXT NOT NULL, action TEXT NOT NULL, source_ref TEXT NOT NULL, dependencies_json TEXT NOT NULL, body TEXT NOT NULL, PRIMARY KEY(graph,id));",
+	"CREATE TABLE IF NOT EXISTS business_expectation_captures (run TEXT NOT NULL, seq INTEGER NOT NULL, action_index INTEGER NOT NULL, actor TEXT NOT NULL, graph TEXT NOT NULL, branch TEXT NOT NULL, status TEXT NOT NULL, expectation_sha256 TEXT NOT NULL, body_json TEXT NOT NULL, created TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(run,seq,action_index));",
+	"CREATE INDEX IF NOT EXISTS idx_business_expectation_branch ON business_expectation_captures(graph,branch,run,seq);",
 	"CREATE TABLE IF NOT EXISTS nodes (graph TEXT NOT NULL, id TEXT NOT NULL, kind TEXT NOT NULL, name TEXT NOT NULL, PRIMARY KEY(graph,id));",
 	"CREATE TABLE IF NOT EXISTS edges (graph TEXT NOT NULL, id TEXT NOT NULL, source TEXT NOT NULL, target TEXT NOT NULL, kind TEXT NOT NULL, PRIMARY KEY(graph,id));",
 	"CREATE TABLE IF NOT EXISTS rules (graph TEXT NOT NULL, id TEXT NOT NULL, action TEXT NOT NULL, actor TEXT NOT NULL, entry TEXT NOT NULL, oracle TEXT NOT NULL, conditions TEXT NOT NULL, expected TEXT NOT NULL, rejected TEXT NOT NULL, source TEXT NOT NULL, description TEXT NOT NULL, approved INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(graph,id));",
@@ -244,6 +250,7 @@ var factsSchema = []string{
 
 func init() {
 	schema = append(schema, factsSchema...)
+	schema = append(schema, businessCampaignSchema...)
 }
 
 func (d db) tableExists(name string) (bool, error) {

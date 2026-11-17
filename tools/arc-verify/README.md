@@ -4,7 +4,7 @@ Short-lived Go CLI using the **official in-process `tursogo` driver** as its dat
 
 The public command is now `arc verify ...` via the [unified Arc entrypoint](../arc/README.md).
 The original `arc-verify` binary remains an installed backend. The public
-`arc` CLI v0.2.0 can explicitly initialize `.arc/arc.db` or migrate the legacy
+`arc` CLI can explicitly initialize `.arc/arc.db` or migrate the legacy
 `.arc/verify/data.db` with an offline assertion and graph-gate parity. Until
 `.arc/arc.json` activates the new DB, legacy defaults remain unchanged; an
 explicit `--db` still wins.
@@ -16,10 +16,69 @@ Build from this Skills repository:
 
 ```bash
 go -C tools/arc-verify test ./...
-go -C tools/arc-verify build -o ~/.local/bin/arc-verify .
+bash scripts/install_arc.sh ~/.local/bin
 ```
-The same binary runs from the **target project** root. Keep the target project's `.arc/verify/` private and gitignored.
+Run `arc verify` from the **target project** root. The installer keeps the backend private.
+Keep the target project's `.arc/verify/` private and gitignored.
 The official `tursodb` shell is optional and intended only for manually inspecting the local database.
+
+## Deterministic business verification
+
+V2 models can declare a versioned `business_contract`: identified actors and entities, typed
+preconditions, mutually exclusive sourced branches, frozen expected outcomes and independently
+observed actual results. The capability tree, preparation dependency DAG and cyclic business
+state graph have distinct meanings. Read the
+[executable contract guide](../../Arc/arc:verify/references/deterministic-contract.md) for the
+schema and execution lifecycle, and the [workbench guide](workbench/README.md) for the static
+four-region review interface.
+
+`execute` runs a registered adapter through observation, automatic preparation when declared,
+pre-action expectation capture, real operation, independent comparison and recovery/checkpoint.
+`campaign run --file REQUEST.json` explores an explicitly selected, bounded set of registered
+input variants from observed state through that same execution protocol. `campaign resume`
+reconciles durable child-run history before proceeding; uncertain actions are never blindly
+replayed. `COMPLETED_IN_SCOPE` covers the selected variants only. Missing rules, overlapping
+guards, unavailable preparation and damaged evidence remain explicit non-success results.
+
+Campaign requests declare `{id, branch, runner}` variants and action/state/time budgets along
+with the full model/environment/round/account/fixture/source context. Registered Runner manifests
+own actual parameters. The scheduler does not invent request values or approve rules. Its first
+protocol supports one target action per Runner and no static setup actions; declared bounded
+preparation is executed and independently checked. The action budget includes preparation and
+restoration, with conservative reservation before dispatch.
+
+```bash
+arc verify campaign run --file campaign.json
+arc verify campaign status --id CAMPAIGN
+arc verify campaign list --graph MODEL --env ENV --round ROUND
+arc verify campaign resume --id CAMPAIGN
+arc verify campaign abort --id CAMPAIGN --reason "named interruption"
+```
+
+Example `campaign.json`; replace every identifier with a confirmed, registered object. Register
+fixtures and Runners before creating the bound round. This request does not approve rules or
+establish actual fixture state:
+
+```json
+{
+  "graph": "MODEL_ID",
+  "flow": "FLOW_ID",
+  "environment": "OWNED_ENVIRONMENT",
+  "round": "ROUND_ID",
+  "commit": "CANDIDATE_COMMIT",
+  "root": "/absolute/target-project",
+  "config": "/absolute/target-project/.arc/verify/config.jsonc",
+  "account": "ACCOUNT_ID",
+  "fixture": "FIXTURE_ID",
+  "variants": [{"id": "input-100", "branch": "BRANCH_ID", "runner": "RUNNER_ID"}],
+  "budget": {"max_actions": 16, "max_states": 64, "deadline_ms": 600000}
+}
+```
+
+Run/resume return nonzero for a non-completed campaign. Exit 10 denotes observed divergence,
+13 a specification gap/model error, 14 a budget stop, and 15 a blocker or unknown result.
+Status/list success means the history was read, not that a business operation passed.
+`arc verify init` adds the campaign tables to an existing ledger without rewriting prior facts.
 
 ## Manual v1 ledger example
 
@@ -60,15 +119,11 @@ A minimal `.arc/verify/config.jsonc`:
     }
 
 Do not store passwords/tokens in config, graph, committed evidence, or RAW.
-Evidence hash alone is not proof of an independent observer; use a separate trusted
-runner/CI for strong authenticity. This CLI does not implement browser automation
-or automatic database snapshot restoration yet; those are separate guarded adapters.
-
-Current implementation is a **core test ledger**, not a full E2E runner. It does not
-discover hidden UI features, execute browsers or restore target-system state automatically;
-those adapters are tracked in `docs/03-执行任务/arc-verify-graph-runtime.md`.
-Native Go tests exercise the official embedded Turso driver as well as model/JSONC checks.
-Remote-system E2E needs its own executed client journey and independent business evidence.
+Evidence hash alone is not proof of an independent observer. The registered execution engine
+provides scoped capture and integrity checks; a separate trusted Runner and provenance boundary
+remain additional work. Browser automation and database snapshot restoration need explicit
+adapters. Native Go tests exercise the embedded Turso driver and actual HTTP tool targets;
+project E2E needs its own isolated environment, client journey and independent business evidence.
 
 Fixture/implementation evidence commands (status is never inferred from missing UI alone):
 
@@ -79,7 +134,8 @@ Fixture/implementation evidence commands (status is never inferred from missing 
 
 Fixtures retain logical IDs, intended states, role metadata and only secret references
 (e.g. `env://TEST_STUDENT_PASSWORD`), not passwords. An imported fixture is a
-recipe/reference; no automatic server-side restoration is claimed. Implementation
+recipe/reference; only executed preparation and independent readback establish actual state.
+Implementation
 observations require an evidence file and are append-only; a `NOT_FOUND` observation
 remains a **candidate missing-functionality risk**, never an automatic product FAIL.
 

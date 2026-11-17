@@ -1,6 +1,6 @@
 ---
 name: arc:plan
-version: 2.6.2
+version: 2.7.0
 description: >-
   Turns intent into written specs and checkable models without touching source code: PRD or
   blueprint (写PRD, 立项, 需求文档), clarify a vague request into a brief with acceptance criteria (需求澄清,
@@ -60,9 +60,10 @@ Checker findings: [closure-rules.md](references/closure-rules.md). HTTP specs us
 
 ## Workflow
 
+Business graphs follow [shared deterministic semantics](../_shared/business-verification.md).
+
 Use [graph handoffs](../_shared/workflow.md) and read-only `arc verify handoff --to arc-plan --graph <id>`.
-Only user-approved rules are normative; document changes remain docs-only.
-Keep requirement/transition/scenario IDs; model PASS is not runtime PASS.
+Keep approved rule IDs and docs-only authority; model PASS is not runtime proof.
 
 1. Read [contract.md](../_shared/contract.md) and [execution-truth.md](../../docs/execution-truth.md)
    §2, §3. Record the tier, scope tokens and a `git status --porcelain` baseline. Output: three

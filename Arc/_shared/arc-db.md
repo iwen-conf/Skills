@@ -61,7 +61,7 @@ affected files and symbols, execution run, tests, evidence and decisions.
 Avoid relying on ambiguous file paths alone: use repository and worktree IDs,
 canonical relative path, Git identity and content hash.
 
-## 3. Implemented CLI (0.4.0) vs future features
+## 3. Implemented CLI (0.5.0) vs future features
 
 ```bash
 arc capabilities --json
@@ -74,7 +74,9 @@ arc task create --title "修复支付并发"
 arc task ensure --id POLICY-TASK-ID --title "修复支付并发 (arc-code)"
 arc task show --id TASK-ID
 arc task transition --id TASK-ID --to ready --expected-version 1
-arc task complete --id POLICY-TASK-ID --expected-version N
+arc task link-verify --id TASK-ID --graph GRAPH-ID --obligation OBLIGATION-ID
+arc task verify-status --id TASK-ID
+arc task complete --id TASK-ID --expected-version N
 arc policy state status --repo .
 arc policy state migrate --repo . --confirm-offline
 arc file update --path internal/payment/service.go
@@ -115,7 +117,7 @@ per-file index writing. The index daemon retains its own watcher.
 
 - **Task:** `draft → ready → running → verifying → done`, with guarded
   blocked/reopened branches. The current implementation enforces CAS and allows `done` only when the
-  matching Arc Policy task has a live PASS receipt, the code-index snapshot
+  every linked verify obligation has current, independently revalidated PASS evidence, the code-index snapshot
   matches that source and the relevant outbox is drained. A completion event
   stores the receipt fingerprint and independent check results. Edits alone
   never complete tasks; `arc task show` labels historical source freshness.

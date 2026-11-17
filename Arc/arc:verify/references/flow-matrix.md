@@ -1,5 +1,10 @@
 # Flow Test Matrix and Ledger
 
+Follow [deterministic contracts](deterministic-contract.md): match observed prestate/actor/guard
+before execution, freeze one Expected, never select it from Actual. The legacy boolean examples
+below do not establish deterministic business coverage.
+
+
 Turns modeled flows ([flow-model.md](flow-model.md)) into cases, verdicts and a coverage ledger.
 Case fields and oracles: [case-design.md](case-design.md) §3 and §5; concurrency and faults:
 [txn-faults.md](txn-faults.md).
