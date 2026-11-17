@@ -24,6 +24,19 @@ func hasTypedBusinessTransition(g Graph, edge string) bool {
 	return false
 }
 
+func validateBusinessAttributeEncoding(attribute BusinessAttribute) error {
+	if attribute.Encoding == "" {
+		return nil
+	}
+	if attribute.Encoding != "json_i64" || attribute.Type != "integer" {
+		return fmt.Errorf("attribute encoding %q requires supported integer/json_i64", attribute.Encoding)
+	}
+	if strings.TrimSpace(attribute.SourceRef) == "" {
+		return fmt.Errorf("encoded attribute requires an explicit source_ref")
+	}
+	return nil
+}
+
 func businessOperandType(operand *BusinessOperand, attributes map[string]businessAttributeInfo) (string, error) {
 	if operand == nil || (operand.Ref == nil) == (operand.Literal == nil) {
 		return "", fmt.Errorf("operand requires exactly one ref or typed literal")
@@ -32,6 +45,9 @@ func businessOperandType(operand *BusinessOperand, attributes map[string]busines
 		attribute, exists := attributes[operand.Ref.Key()]
 		if !exists {
 			return "", fmt.Errorf("undeclared attribute %s", operand.Ref.Key())
+		}
+		if err := validateBusinessAttributeEncoding(attribute.attribute); err != nil {
+			return "", fmt.Errorf("attribute %s: %w", operand.Ref.Key(), err)
 		}
 		return attribute.attribute.Type, nil
 	}
@@ -159,6 +175,9 @@ func ValidateBusinessContract(g Graph) error {
 			key := subject.ID + "." + attribute.Name
 			if !businessIdentifier(attribute.Name) || strings.Contains(attribute.Name, ".") || !businessKnownType(attribute.Type) || attributes[key].attribute.Name != "" {
 				return fmt.Errorf("invalid or duplicate typed attribute %s", key)
+			}
+			if err := validateBusinessAttributeEncoding(attribute); err != nil {
+				return fmt.Errorf("attribute %s: %w", key, err)
 			}
 			attributes[key] = businessAttributeInfo{subject, attribute}
 		}
@@ -311,7 +330,7 @@ func ValidateBusinessContract(g Graph) error {
 				return fmt.Errorf("preparation %s has unknown or duplicate effect %s", preparation.ID, key)
 			}
 			written[key] = true
-			if _, err := parseBusinessValue(info.attribute.Type, effect.Value); err != nil {
+			if _, err := parseBusinessAttributeValue(info.attribute, effect.Value); err != nil {
 				return fmt.Errorf("preparation %s effect %s: %w", preparation.ID, key, err)
 			}
 		}
@@ -344,7 +363,7 @@ func ValidateBusinessContract(g Graph) error {
 			seen[key] = true
 			values := map[string]bool{}
 			for _, raw := range domain.Values {
-				value, err := parseBusinessValue(info.attribute.Type, raw)
+				value, err := parseBusinessAttributeValue(info.attribute, raw)
 				if err != nil || values[value.key()] {
 					return fmt.Errorf("coverage domain %s has ill-typed or duplicate values", key)
 				}

@@ -1,7 +1,8 @@
 import { useMemo, useReducer, useState } from "react";
-import { branchOptions, factsOf, selectionContext } from "./explorer-model";
+import { branchOptions, executionCoverageScope, factsOf, selectionContext } from "./explorer-model";
 import { entityKey } from "./facts";
 import FactPanel from "./FactPanel";
+import { CampaignTrail } from "./CampaignViews";
 import GraphCanvas from "./GraphCanvas";
 import { graphFor } from "./graph-model";
 import { initialSelection, matchingRuns, matchesStep, reduceSelection } from "./selection";
@@ -73,7 +74,9 @@ function initialize(
   for (const type of [
     "environment",
     "flow",
+    "campaign",
     "branch",
+    "variant",
     "run",
     "actor",
     "entity",
@@ -110,6 +113,12 @@ function Workbench({
   const [search, setSearch] = useState("");
   const [showLegacy, setShowLegacy] = useState(!snapshot.model.data.business_contract);
   const availableRuns = matchingRuns(context, selection);
+  const campaigns = (snapshot.business_campaigns ?? []).filter(
+    (item) =>
+      (!selection.environment || item.environment === selection.environment) &&
+      (!selection.flow || item.flow === selection.flow),
+  );
+  const campaign = campaigns.find((item) => item.id === selection.campaign);
   const run = snapshot.runs.find(
     (item) =>
       item.trace.run === selection.run &&
@@ -177,6 +186,7 @@ function Workbench({
     ).values(),
   ];
   const proof = snapshot.contract_analysis;
+  const executionScope = executionCoverageScope(snapshot, selection);
   return (
     <div className="workbench">
       <header className="masthead">
@@ -195,7 +205,10 @@ function Workbench({
           <time dateTime={snapshot.meta.generated}>{snapshot.meta.generated}</time>
         </div>
       </header>
-      <section className="global-context" aria-label="统一业务上下文">
+      <section
+        className={`global-context${snapshot.business_campaigns?.length ? " has-campaigns" : ""}`}
+        aria-label="统一业务上下文"
+      >
         <label>
           模型
           <select
@@ -241,6 +254,23 @@ function Workbench({
             ))}
           </select>
         </label>
+        {!!snapshot.business_campaigns?.length && (
+          <label className="campaign-select">
+            有界探索 / Campaign
+            <select
+              aria-label="Campaign"
+              value={selection.campaign}
+              onChange={(event) => dispatch({ type: "campaign", value: event.target.value })}
+            >
+              <option value="">查看全部独立运行</option>
+              {campaigns.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.id} · {item.status} · {item.round}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="branch-select">
           <span>
             <b>1</b> 业务分支
@@ -296,7 +326,9 @@ function Workbench({
             {availableRuns.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.id} · {item.environment || "环境未绑定"} ·{" "}
-                {snapshot.runs.find((entry) => entry.trace.run === item.id)?.trace.status}
+                {snapshot.runs.find((entry) => entry.trace.run === item.id)?.runner_id ||
+                  "Runner 未记录"}{" "}
+                · {snapshot.runs.find((entry) => entry.trace.run === item.id)?.trace.status}
               </option>
             ))}
           </select>
@@ -319,6 +351,17 @@ function Workbench({
         </span>
         {snapshot.runs_truncated && (
           <span className="warning">历史被截断；未导出的运行不计为通过</span>
+        )}
+        {campaign && (
+          <span>
+            Campaign <code>{campaign.id}</code> · {selection.variant || "尚未选择输入变体"}
+          </span>
+        )}
+        {snapshot.campaigns_truncated && (
+          <span className="warning">
+            Campaign 导出 {snapshot.business_campaigns?.length ?? 0} /{" "}
+            {snapshot.available_campaigns ?? "未知"}；其余历史未包含
+          </span>
         )}
       </div>
       <div className="workspace">
@@ -375,9 +418,11 @@ function Workbench({
                 <code>{item.id}</code>
                 {item.contract && (
                   <span className="branch-execution">
-                    {snapshot.contract_execution?.branches.find(
-                      (entry) => entry.branch === item.id,
-                    ) ? (
+                    {!executionScope.appliesToSelection ? (
+                      "当前选择无适用覆盖汇总"
+                    ) : snapshot.contract_execution?.branches.find(
+                        (entry) => entry.branch === item.id,
+                      ) ? (
                       <Status
                         value={
                           snapshot.contract_execution.branches.find(
@@ -539,10 +584,19 @@ function Workbench({
             </details>
             <details>
               <summary>
-                分支实际覆盖 <Status value={snapshot.contract_execution?.status ?? "UNKNOWN"} raw />
+                导出范围的分支实际覆盖{" "}
+                <Status value={snapshot.contract_execution?.status ?? "UNKNOWN"} raw />
               </summary>
               {snapshot.contract_execution ? (
                 <>
+                  <p>
+                    <strong>{executionScope.label}</strong>
+                  </p>
+                  {!executionScope.appliesToSelection && (
+                    <p className="notice">
+                      {executionScope.reason}；以下保留原导出范围，不代表当前筛选已通过。
+                    </p>
+                  )}
                   <p>{snapshot.contract_execution.reason}</p>
                   <p>
                     已验证 {snapshot.contract_execution.passed} /{" "}
@@ -550,7 +604,10 @@ function Workbench({
                     · 阻塞 {snapshot.contract_execution.blocked} · 未运行{" "}
                     {snapshot.contract_execution.not_run}
                   </p>
-                  <p>仅依据当前导出轮次中每个冻结分支的独立证据；规则空间证明不替代真实执行。</p>
+                  <p>
+                    仅汇总该轮次每个冻结分支的独立证据，不代表所选运行、账号或全部 Runner
+                    输入变体通过；规则空间证明不替代真实执行。
+                  </p>
                   {snapshot.contract_execution.evidence_errors?.map((entry, index) => (
                     <p className="warning" key={index}>
                       <code>{entry.run}</code> {entry.reason}
@@ -602,8 +659,19 @@ function Workbench({
           run={run}
           fact={fact}
           trace={trace}
+          campaign={campaign}
+          dispatch={dispatch}
         />
         <section className="trace-panel" aria-label="执行轨迹">
+          {campaign && (
+            <CampaignTrail
+              campaign={campaign}
+              snapshot={snapshot}
+              selection={selection}
+              context={context}
+              dispatch={dispatch}
+            />
+          )}
           <div className="trace-heading">
             <div>
               <span className="eyebrow">04 / 执行轨迹</span>
@@ -611,7 +679,10 @@ function Workbench({
             </div>
             {run && (
               <div className="trace-verdict">
+                <small>运行记载</small>
                 <Status value={run.trace.status} />
+                <small>证据</small>
+                <Status value={run.evidence_status ?? "LEGACY"} raw />
                 {run.trace.first_divergence && (
                   <button
                     type="button"
@@ -639,7 +710,9 @@ function Workbench({
             <>
               <p className="trace-scope">
                 <code>{run.trace.run}</code> ·{" "}
-                {run.environment || selection.environment || "环境未绑定"} · {run.trace.task}
+                {run.environment || selection.environment || "环境未绑定"} · {run.trace.task} ·
+                Runner <code>{run.runner_id || "历史未记录"}</code> · 轮次{" "}
+                {run.trace.round || "未绑定"}
               </p>
               <ol className="trace-steps">
                 {stepContexts.map((step) => {

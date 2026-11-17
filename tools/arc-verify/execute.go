@@ -14,6 +14,8 @@ import (
 )
 
 type ExecuteRequest struct {
+	campaign *businessCampaignExecution
+
 	Task        string            `json:"task"`
 	Runner      string            `json:"runner"`
 	Round       string            `json:"round"`
@@ -295,16 +297,30 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 		accounts[participant.Alias] = account
 		actors[participant.Alias] = participant
 	}
-	run, err := d.start(request.Task, binding, record)
+	run, err := d.startBoundRun(request.Task, binding, request.campaign, record)
 	if err != nil {
 		return result, err
 	}
 	result.Run = run
+	if request.campaign != nil {
+		obligation.Definition.Flow = request.campaign.Intent.Flow
+	}
 	record.Run = run
 	sess := newExecSession(run, participants)
+	if request.campaign != nil {
+		sess.campaignGuard = func() error {
+			return d.validateBusinessCampaignLease(request.campaign.Intent.Campaign, request.campaign.Lease)
+		}
+	}
 	manifest := runner.Manifest
+	campaignBound := request.campaign != nil
 	total := time.Duration(manifest.TimeoutMS) * time.Millisecond
 	deadline := time.Now().Add(total)
+	if request.campaign != nil {
+		if limit, ok := parent.Deadline(); ok && limit.Before(deadline) {
+			deadline = limit
+		}
+	}
 	actionCtx, cancelAction := context.WithTimeout(parent, total*2/3)
 	defer cancelAction()
 	call := func(ctx context.Context, operation AdapterCall, alias string) (AdapterOutput, error) {
@@ -437,15 +453,17 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 				}
 				var stepFacts *IndependentFacts
 				var stepOracle OracleAdapter
+				beforeDocs := map[oracleIdentity]json.RawMessage{}
 				for _, oracle := range step.Oracles {
 					ctx, cancel := context.WithTimeout(actionCtx, time.Duration(manifest.StepTimeoutMS)*time.Millisecond)
-					facts, hash, _, readErr := readOracleWithSession(ctx, oracle, binding, accounts[step.Actor], step.Actor, manifest.IsolationScope, sess)
+					facts, hash, beforeDoc, readErr := readOracleWithSession(ctx, oracle, binding, accounts[step.Actor], step.Actor, manifest.IsolationScope, sess)
 					cancel()
 					if readErr != nil {
 						observation.Error = "before action: " + readErr.Error()
 						raw.ExitCode = 1
 						break
 					}
+					beforeDocs[oracleIdentity{ActionIndex: actionIndex + 1, Actor: step.Actor, ID: oracle.ID}] = beforeDoc
 					observation.Oracles = append(observation.Oracles, OracleObservation{ActionIndex: actionIndex + 1, Actor: step.Actor, ID: oracle.ID, Boundary: oracle.Boundary, Before: facts, BeforeSHA256: hash})
 					if oracle.ID == stepJudged.Oracle {
 						copy := facts
@@ -459,6 +477,15 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 				}
 				if raw.ExitCode != 0 {
 					break
+				}
+				if request.campaign != nil {
+					extracted, err := rebindBusinessCampaignEntities(step, beforeDocs, sess)
+					if err != nil {
+						raw.ExitCode, observation.Error = 1, "campaign fresh entity rebinding: "+err.Error()
+						break
+					}
+					observation.Extractions = append(observation.Extractions, extracted...)
+					observation.BeforeEntities, observation.BeforeSessions = sess.entitySlice(), sess.sessionSlice()
 				}
 				if stepFacts != nil {
 					observation.Conditions = append(observation.Conditions, buildConditionReadings(model, step.Actor, stepOracle.ID, stepOracle, stepValues, map[string]bool(stepFacts.Conditions), stepJudged.Conditions)...)
@@ -474,7 +501,7 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 					break
 				}
 				if model.BusinessContract != nil {
-					if len(step.InputMeasurements) > 0 {
+					if len(step.InputMeasurements) > 0 || campaignBound {
 						request, err := captureRuntimeRequest(step, actionIndex+1, sess)
 						if err != nil {
 							raw.ExitCode, observation.Error = 1, "request capture: "+err.Error()+"; no batch action was attempted"
@@ -504,6 +531,11 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 					}
 				}
 			}
+			if raw.ExitCode == 0 && request.campaign != nil {
+				if err := validateBusinessCampaignTarget(request.campaign, last, &observation); err != nil {
+					raw.ExitCode, observation.Error = 1, "campaign target changed after selection: "+err.Error()+"; no target request was sent"
+				}
+			}
 			if model.BusinessContract != nil && len(observation.BusinessExpectations) > 0 {
 				if err := d.persistBusinessExpectationCaptures(model.ID, run, index+1, observation.BusinessExpectations); err != nil {
 					raw.ExitCode = 1
@@ -530,7 +562,7 @@ func (d db) execute(parent context.Context, request ExecuteRequest) (ExecuteResu
 							return
 						}
 						var request *RequestObservation
-						if len(step.InputMeasurements) > 0 {
+						if len(step.InputMeasurements) > 0 || campaignBound {
 							var err error
 							request, err = runtimeRequestFor(step, position+1, &observation)
 							if err != nil {

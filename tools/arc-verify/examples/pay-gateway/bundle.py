@@ -12,7 +12,7 @@ import sys
 import adapter
 
 
-GRAPH = "pay-gateway-index-fixture-v1"
+GRAPH = "pay-gateway-index-fixture-v2"
 
 
 def eq(subject, attribute, kind, value):

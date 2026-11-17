@@ -6,6 +6,7 @@ import type {
   BusinessExecutionCoverage,
 } from "./contract";
 import type { UnifiedStepFact } from "./facts";
+import type { BusinessCampaign } from "./campaign";
 export type BusinessView =
   | "overview"
   | "capabilities"
@@ -356,6 +357,8 @@ export interface SnapshotRun {
   flow_id?: string;
   branch_id?: string;
   environment?: string;
+  runner_id?: string;
+  runner_sha256?: string;
 }
 export interface ExplorationCoverage {
   explored_branches: string[];
@@ -404,6 +407,9 @@ export interface Snapshot {
   contract_execution?: BusinessExecutionCoverage;
   runs_truncated?: boolean;
   available_runs?: number;
+  business_campaigns?: BusinessCampaign[];
+  available_campaigns?: number;
+  campaigns_truncated?: boolean;
 }
 
 export interface PositionedNode {

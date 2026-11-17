@@ -250,6 +250,7 @@ var factsSchema = []string{
 
 func init() {
 	schema = append(schema, factsSchema...)
+	schema = append(schema, businessCampaignSchema...)
 }
 
 func (d db) tableExists(name string) (bool, error) {

@@ -1,5 +1,8 @@
 import { displayValue, predicateText } from "./contract";
+import { CampaignPanel } from "./CampaignViews";
+import type { BusinessCampaign } from "./campaign";
 import type { BusinessAssertionResult, BusinessExpectedCheck } from "./contract";
+import { actorsOf, executionCoverageScope } from "./explorer-model";
 import type { BranchOption } from "./explorer-model";
 import { entityKey } from "./facts";
 import type {
@@ -8,7 +11,7 @@ import type {
   RequestObservation,
   UnifiedStepFact,
 } from "./facts";
-import type { Selection } from "./selection";
+import type { Selection, SelectionAction } from "./selection";
 import { Status } from "./Status";
 import type { Snapshot, SnapshotRun, TraceStep } from "./types";
 
@@ -280,6 +283,8 @@ export default function FactPanel({
   run,
   fact,
   trace,
+  campaign,
+  dispatch,
 }: {
   snapshot: Snapshot;
   selection: Selection;
@@ -287,6 +292,8 @@ export default function FactPanel({
   run?: SnapshotRun;
   fact?: UnifiedStepFact;
   trace?: TraceStep;
+  campaign?: BusinessCampaign;
+  dispatch?: (action: SelectionAction) => void;
 }) {
   const preparation = snapshot.model.data.business_contract?.preparation?.find(
     (item) => item.id === selection.node,
@@ -302,6 +309,7 @@ export default function FactPanel({
   const branchExecution = snapshot.contract_execution?.branches.find(
     (item) => item.branch === branch?.id,
   );
+  const executionScope = executionCoverageScope(snapshot, selection);
   const decisions = (fact?.business_expectations ?? []).filter(
     (item) =>
       (!selection.actor || item.actor === selection.actor) &&
@@ -335,7 +343,9 @@ export default function FactPanel({
   const extractions = (fact?.extractions ?? []).filter(
     (item) => !selection.actor || !item.source_actor || item.source_actor === selection.actor,
   );
-  const focusedActor = selection.actor || fact?.actor;
+  const observedActors = actorsOf(fact);
+  const focusedActor =
+    selection.actor || (observedActors.length === 1 ? observedActors[0] : undefined);
   const identity = fact?.participants?.find((item) => item.alias === focusedActor);
   const account = identity?.account ?? (focusedActor === fact?.actor ? fact?.account : undefined);
   const principal =
@@ -355,6 +365,12 @@ export default function FactPanel({
         <h2>{node?.name ?? "选择节点查看业务含义"}</h2>
         {node && <code>{node.id}</code>}
       </div>
+      {campaign && dispatch && (
+        <details className="campaign-context" open={!selection.run}>
+          <summary>Campaign 当前状态与候选 · {campaign.status}</summary>
+          <CampaignPanel campaign={campaign} selection={selection} dispatch={dispatch} />
+        </details>
+      )}
       {readiness && (
         <p className="panel-status">
           <small>节点汇总</small>
@@ -373,9 +389,18 @@ export default function FactPanel({
           </h3>
           <code>{branch.id}</code>
           {branchExecution && (
-            <p className="panel-status">
-              分支实际覆盖 <Status value={branchExecution.status} raw /> {branchExecution.reason}
-            </p>
+            <div>
+              <p className="muted">分支汇总范围：{executionScope.label}</p>
+              {executionScope.appliesToSelection ? (
+                <p className="panel-status">
+                  分支实际覆盖 <Status value={branchExecution.status} raw />{" "}
+                  {branchExecution.reason}
+                </p>
+              ) : (
+                <p className="notice">{executionScope.reason}；此汇总不作为当前选择的判定。</p>
+              )}
+              <p className="muted">分支汇总不证明每个 Runner 输入变体均已执行。</p>
+            </div>
           )}
           {contract ? (
             <>
@@ -419,6 +444,29 @@ export default function FactPanel({
               <p className="source-line">
                 来源 {contract.source} · <code>{contract.source_ref}</code>
               </p>
+              <details>
+                <summary>主体属性类型与来源</summary>
+                {snapshot.model.data.business_contract?.subjects.map((subject) => (
+                  <div className="binding" key={subject.id}>
+                    <strong>
+                      {subject.id} · {subject.kind}
+                    </strong>
+                    {subject.attributes.map((attribute) => (
+                      <p key={attribute.name}>
+                        <code>
+                          {subject.id}.{attribute.name}
+                        </code>{" "}
+                        · {attribute.type}
+                        {attribute.encoding ? ` / ${attribute.encoding}` : ""}
+                        {attribute.encoding === "json_i64" && (
+                          <small>保留 JSON 整数原始词法；不是字符串编码，判定由 Go 执行。</small>
+                        )}
+                        {attribute.source_ref && <small>来源 {attribute.source_ref}</small>}
+                      </p>
+                    ))}
+                  </div>
+                ))}
+              </details>
             </>
           ) : (
             <>
@@ -473,6 +521,14 @@ export default function FactPanel({
                 {run.trace.run} / 第 {selection.step} 步
               </code>
               <span>环境 {run.environment || selection.environment || "未绑定"}</span>
+              <span>
+                轮次 {run.trace.round || "未绑定"} · Runner {run.runner_id || "历史未记录"}
+              </span>
+              {run.runner_sha256 && (
+                <small>
+                  Runner 指纹 <code>{run.runner_sha256}</code>
+                </small>
+              )}
               {focusedActor && <span>动作主体 {focusedActor}</span>}
               {account && <span>账号 {account}</span>}
               {principal && (
@@ -624,7 +680,8 @@ export default function FactPanel({
                 </>
               ) : null}
               <p>
-                确定性允许的下一步 {item.comparison.next_allowed?.join("、") || "无已声明允许动作"}
+                确定性允许的下一步{" "}
+                {item.comparison.next_allowed?.join("、") || "未记录额外后续限制"}
               </p>
             </>
           )}
@@ -903,7 +960,9 @@ export default function FactPanel({
           </p>
           {run.trace.recovery.mode === "checkpoint" && (
             <p className="notice">
-              只读确认并保留本次运行现场，不表示环境已恢复。跨运行自动继承变量尚未完成；后续运行仍须显式绑定并重新观测。
+              只读确认并保留本次运行现场，不表示环境已恢复。跨运行不继承变量、Cookie
+              或会话。Campaign
+              仅允许从已注册独立判据的同一测量字段路径重新读取并绑定非敏感实体；缺少新鲜回读时阻断。
             </p>
           )}
           <small>
@@ -950,7 +1009,7 @@ export default function FactPanel({
           </p>
           <p>证据可信状态 {exploration.evidence_trust ?? "UNVERIFIED"}</p>
           <p>
-            {readiness?.readiness.verified ? "已完整验证" : "尚未完整验证"} ·{" "}
+            节点义务 {readiness?.readiness.verified ? "已验证" : "尚未验证"} ·{" "}
             {exploration.tested ? "已测试" : "尚未测试"}
           </p>
           {Object.entries(exploration)

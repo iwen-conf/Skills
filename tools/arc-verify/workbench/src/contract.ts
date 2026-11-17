@@ -1,3 +1,5 @@
+import { jsonValueText } from "./json-values";
+
 export interface ValueRef {
   subject: string;
   attribute: string;
@@ -71,7 +73,7 @@ export interface BusinessContract {
     id: string;
     kind: string;
     requires_binding?: boolean;
-    attributes: { name: string; type: string }[];
+    attributes: { name: string; type: string; encoding?: string; source_ref?: string }[];
   }[];
   branches: ContractBranch[];
   preparation?: Preparation[];
@@ -182,10 +184,7 @@ const operators: Record<string, string> = {
 };
 export function displayValue(value: unknown): string {
   if (value === undefined) return "未观察";
-  if (value === null) return "null";
-  if (value === true) return "true";
-  if (value === false) return "false";
-  return typeof value === "string" ? value : JSON.stringify(value);
+  return jsonValueText(value);
 }
 function operandText(operand?: Operand): string {
   if (operand?.ref) return `${operand.ref.subject}.${operand.ref.attribute}`;

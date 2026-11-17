@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "id": "pay-gateway-index-fixture-v1",
+  "id": "pay-gateway-index-fixture-v2",
   "system": "pay-gateway",
-  "scope": "仅固定提交 e4f054fc7bb06e091be62d6765bb29b4348ad651 的启用caller、启用ca_browser_huiju、CNY、合法JSON整数词法100分、owned PostgreSQL/controlled provider场景。三个状态只表示本case付款/退款引用索引。退款成功样例先由明确受控机构事件和正常查询完成环境准备；不把它升级为网关通用paid前置。不覆盖非法参数、其他账户/币种/金额/供应商、普通重复之外的proven-unsent恢复、资金终态、通知、查询或项目全业务。 金额词法范围由示例请求模板固定为literal 100；typed integer的数值比较本身不证明JSON词法约束。",
+  "scope": "仅固定提交 e4f054fc7bb06e091be62d6765bb29b4348ad651 的启用caller、启用ca_browser_huiju、CNY、合法JSON整数词法100分、owned PostgreSQL/controlled provider场景。三个状态只表示本case付款/退款引用索引。退款成功样例先由明确受控机构事件和正常查询完成环境准备；不把它升级为网关通用paid前置。不覆盖非法参数、其他账户/币种/金额/供应商、普通重复之外的proven-unsent恢复、资金终态、通知、查询或项目全业务。 request.amount显式使用有来源的json_i64编码：从真实捕获的JSON token拒绝小数/指数/字符串/超i64；金额业务范围仍只声明合法100分，未声明其他范围的产品拒绝分支。",
   "nodes": [
     {
       "id": "pay-gateway",
@@ -646,7 +646,9 @@
         "attributes": [
           {
             "name": "amount",
-            "type": "integer"
+            "type": "integer",
+            "encoding": "json_i64",
+            "source_ref": "https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/src/interface/restful/dto/parse.rs#L100-L159 ; https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/docs/02-API记录/10-业务方接入接口.md#L440-L454"
           },
           {
             "name": "currency",

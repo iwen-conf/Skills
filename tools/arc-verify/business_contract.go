@@ -25,6 +25,12 @@ type BusinessAttribute struct {
 	Name string `json:"name"`
 	// boolean, string, integer, number, string_set, integer_set, number_set.
 	Type string `json:"type"`
+	// Encoding is an optional source-backed transport constraint. json_i64
+	// requires a JSON integer token in the signed 64-bit range, without decimal
+	// or exponent notation. An unqualified integer retains mathematical value
+	// semantics, so existing contracts do not silently change meaning.
+	Encoding  string `json:"encoding,omitempty"`
+	SourceRef string `json:"source_ref,omitempty"`
 }
 
 type BusinessAttributeRef struct {

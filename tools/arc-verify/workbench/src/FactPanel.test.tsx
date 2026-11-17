@@ -74,6 +74,18 @@ const preparation: PreparationExecution = {
 };
 
 describe("new execution facts remain inspectable", () => {
+  it("shows the actual single participant alias when a legacy aggregate actor field contains a role", () => {
+    const snapshot = contractFixture();
+    snapshot.runs[0].facts![0].actor = "MERCHANT_ROLE";
+    const html = renderToStaticMarkup(
+      <App
+        state={{ snapshot }}
+        initialContext={{ branch: "B-CREATE", run: snapshot.runs[0].trace.run, step: "1" }}
+      />,
+    );
+    expect(html).toContain("动作主体 merchant");
+    expect(html).not.toContain("动作主体 MERCHANT_ROLE");
+  });
   it("renders captured action values, setup preparation readbacks and checkpoint semantics", () => {
     const snapshot = contractFixture();
     const run = snapshot.runs[0];
@@ -130,7 +142,8 @@ describe("new execution facts remain inspectable", () => {
       "准备独立回读记录",
       "现场检查点",
       "不表示环境已恢复",
-      "跨运行自动继承变量尚未完成",
+      "跨运行不继承变量、Cookie 或会话",
+      "缺少新鲜回读时阻断",
     ])
       expect(html).toContain(text);
     expect(html).not.toContain("principal-B-private-marker");

@@ -57,23 +57,28 @@ type SnapshotRun struct {
 	EvidenceStatus string             `json:"evidence_status"`
 	EvidenceErrors []string           `json:"evidence_errors"`
 	Environment    string             `json:"environment"`
+	RunnerID       string             `json:"runner_id,omitempty"`
+	RunnerSHA256   string             `json:"runner_sha256,omitempty"`
 	FlowID         string             `json:"flow_id,omitempty"`
 	BranchID       string             `json:"branch_id,omitempty"`
 }
 
 // Snapshot is the read-only document embedded in the static workbench page.
 type Snapshot struct {
-	Meta              SnapshotMeta                        `json:"meta"`
-	Catalog           WorkbenchCatalog                    `json:"catalog"`
-	Model             SnapshotModel                       `json:"model"`
-	Views             map[BusinessView]BusinessProjection `json:"views"`
-	Impact            *ImpactReport                       `json:"impact,omitempty"`
-	Runs              []SnapshotRun                       `json:"runs"`
-	Exploration       map[string]ExplorationCoverage      `json:"exploration,omitempty"`
-	ContractAnalysis  *BusinessCoverageProof              `json:"contract_analysis,omitempty"`
-	ContractExecution *BusinessExecutionCoverage          `json:"contract_execution,omitempty"`
-	RunsTruncated     bool                                `json:"runs_truncated"`
-	AvailableRuns     int                                 `json:"available_runs"`
+	Meta               SnapshotMeta                        `json:"meta"`
+	Catalog            WorkbenchCatalog                    `json:"catalog"`
+	Model              SnapshotModel                       `json:"model"`
+	Views              map[BusinessView]BusinessProjection `json:"views"`
+	Impact             *ImpactReport                       `json:"impact,omitempty"`
+	Runs               []SnapshotRun                       `json:"runs"`
+	Exploration        map[string]ExplorationCoverage      `json:"exploration,omitempty"`
+	ContractAnalysis   *BusinessCoverageProof              `json:"contract_analysis,omitempty"`
+	ContractExecution  *BusinessExecutionCoverage          `json:"contract_execution,omitempty"`
+	BusinessCampaigns  []BusinessCampaign                  `json:"business_campaigns,omitempty"`
+	AvailableCampaigns int                                 `json:"available_campaigns"`
+	CampaignsTruncated bool                                `json:"campaigns_truncated"`
+	RunsTruncated      bool                                `json:"runs_truncated"`
+	AvailableRuns      int                                 `json:"available_runs"`
 }
 
 // SnapshotRequest selects an existing ledger context to export.
@@ -269,7 +274,47 @@ func (d db) buildSnapshot(request SnapshotRequest) (Snapshot, error) {
 		}
 		snapshot.Runs = append(snapshot.Runs, exported)
 	}
+	snapshot.BusinessCampaigns, snapshot.AvailableCampaigns, err = d.snapshotBusinessCampaigns(g.ID, request.Environment, request.Round)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	snapshot.CampaignsTruncated = len(snapshot.BusinessCampaigns) < snapshot.AvailableCampaigns
 	return snapshot, nil
+}
+
+func (d db) snapshotBusinessCampaigns(graph, environment, round string) ([]BusinessCampaign, int, error) {
+	result := []BusinessCampaign{}
+	exists, err := d.tableExists("business_campaigns")
+	if err != nil || !exists {
+		return result, 0, err
+	}
+	where := "graph=" + quote(graph)
+	if environment != "" {
+		where += " AND environment=" + quote(environment)
+	}
+	if round != "" {
+		where += " AND round=" + quote(round)
+	}
+	rows, err := d.query("SELECT COUNT(*) FROM business_campaigns WHERE "+where, 1)
+	if err != nil {
+		return nil, 0, err
+	}
+	count, err := strconv.Atoi(rows[0][0])
+	if err != nil {
+		return nil, 0, err
+	}
+	rows, err = d.query("SELECT id FROM business_campaigns WHERE "+where+" ORDER BY rowid DESC LIMIT 32", 1)
+	if err != nil {
+		return nil, count, err
+	}
+	for _, row := range rows {
+		campaign, err := d.loadBusinessCampaign(row[0])
+		if err != nil {
+			return nil, count, err
+		}
+		result = append(result, campaign)
+	}
+	return result, count, nil
 }
 
 func uniqueRunIDsInOrder(runs []string) []string {
@@ -380,6 +425,15 @@ func (d db) snapshotRun(graph, run string) (SnapshotRun, error) {
 	}
 	if trace.Round != "" {
 		add("fixture", 0)
+	}
+	if trace.Round != "" && result.EvidenceStatus == "PASS" {
+		record, err := d.modelRun(run)
+		if err != nil {
+			result.EvidenceStatus = "BLOCKED"
+			result.EvidenceErrors = append(result.EvidenceErrors, err.Error())
+		} else {
+			result.RunnerID, result.RunnerSHA256 = record.Runner, record.RunnerSHA256
+		}
 	}
 	return result, nil
 }

@@ -323,15 +323,23 @@ func TestWorkbenchCommandRemoved(t *testing.T) {
 }
 
 // tsInterfaces reads `export interface Name [extends Base] { field?: type; ... }` declarations.
-func tsInterfaces(t *testing.T) map[string][]string {
+func tsInterfaces(t *testing.T, paths ...string) map[string][]string {
 	t.Helper()
-	body, err := os.ReadFile("workbench/src/types.ts")
-	if err != nil {
-		t.Fatal(err)
+	if len(paths) == 0 {
+		paths = []string{"workbench/src/types.ts"}
+	}
+	var text strings.Builder
+	for _, path := range paths {
+		body, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		text.Write(body)
+		text.WriteByte('\n')
 	}
 	declared := map[string][]string{}
 	bases := map[string][]string{}
-	for _, match := range regexp.MustCompile(`(?s)export interface (\w+)(?: extends ([\w, ]+))? \{(.*?)\}\n`).FindAllStringSubmatch(string(body), -1) {
+	for _, match := range regexp.MustCompile(`(?s)export interface (\w+)(?: extends ([\w, ]+))? \{(.*?)\}\n`).FindAllStringSubmatch(text.String(), -1) {
 		fields := []string{}
 		for _, field := range regexp.MustCompile(`(\w+)\??:`).FindAllStringSubmatch(match[3], -1) {
 			fields = append(fields, field[1])

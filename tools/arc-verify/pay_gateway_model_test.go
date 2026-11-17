@@ -114,6 +114,9 @@ func payGatewayExampleFreeze(t *testing.T, graph Graph, branch string) FrozenBus
 
 func TestPayGatewayModelFiniteProofIsFourExplicitFixtureCases(t *testing.T) {
 	graph := payGatewayExampleModel(t)
+	if graph.ID != "pay-gateway-index-fixture-v2" || graph.Previous != "" {
+		t.Fatalf("encoded contract must be an explicit independently importable model version: id=%s previous=%s", graph.ID, graph.Previous)
+	}
 	proof := ProveBusinessCoverage(graph)
 	if proof.Status != "PROVEN_IN_SCOPE" || !proof.CompleteInScope || !proof.EnumerationComplete || proof.CheckedCases != 4 || proof.RequiredCases != 4 {
 		t.Fatalf("fixture partition was not proven in the declared four-case scope: %+v", proof)
@@ -217,6 +220,8 @@ func TestPayGatewayModelSelectsActualPrestateAndCapturedRequest(t *testing.T) {
 		}},
 		{"request_not_observed", "EMPTY", "CREATE_PAYMENT", "BLOCKED", "", func(o *BusinessObservation) { delete(o.Values, "request.amount") }},
 		{"json_string_is_not_integer", "EMPTY", "CREATE_PAYMENT", "BLOCKED", "", func(o *BusinessObservation) { o.Values["request.amount"] = json.RawMessage(`"100"`) }},
+		{"json_decimal_is_not_legal_amount", "EMPTY", "CREATE_PAYMENT", "BLOCKED", "", func(o *BusinessObservation) { o.Values["request.amount"] = json.RawMessage(`100.0`) }},
+		{"json_exponent_is_not_legal_amount", "PAYMENT_INDEXED", "SUBMIT_REFUND", "BLOCKED", "", func(o *BusinessObservation) { o.Values["request.amount"] = json.RawMessage(`1e2`) }},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -366,5 +371,193 @@ func TestPayGatewayModelOffersContinuousSequenceAndExplicitCheckpointDuplicate(t
 		if branch.ID == "BR_DUPLICATE_REFUND" && (!containsBusinessID(branch.Obligations, chain.ID) || !containsBusinessID(branch.Obligations, duplicate.ID)) {
 			t.Fatal("duplicate branch lost one of its two explicitly scoped test obligations")
 		}
+	}
+}
+
+func payGatewayStrictAmountAttribute(t *testing.T) BusinessAttribute {
+	t.Helper()
+	for _, subject := range payGatewayExampleModel(t).BusinessContract.Subjects {
+		if subject.ID == "request" {
+			for _, attribute := range subject.Attributes {
+				if attribute.Name == "amount" {
+					return attribute
+				}
+			}
+		}
+	}
+	t.Fatal("pay example has no declared request.amount")
+	return BusinessAttribute{}
+}
+
+func TestPayGatewayModelJSONI64EncodingMatchesRawRustContractWithoutChangingInteger(t *testing.T) {
+	attribute := payGatewayStrictAmountAttribute(t)
+	if attribute.Type != "integer" || attribute.Encoding != "json_i64" || !strings.Contains(attribute.SourceRef, "/src/interface/restful/dto/parse.rs#L100-L159") {
+		t.Fatalf("amount lost its explicit source-backed JSON encoding: %+v", attribute)
+	}
+	for _, test := range []struct{ raw, integer string }{
+		{"100", "100"}, {" \n100\t", "100"}, {"0", "0"}, {"-0", "0"}, {"-1", "-1"},
+		{"9007199254740993", "9007199254740993"}, {"9223372036854775807", "9223372036854775807"},
+		{"-9223372036854775808", "-9223372036854775808"},
+	} {
+		value, err := parseBusinessAttributeValue(attribute, json.RawMessage(test.raw))
+		if err != nil || value.key() != test.integer {
+			t.Errorf("raw i64 %q lost its exact value: %+v %v", test.raw, value, err)
+		}
+	}
+	for _, raw := range []string{"", "100.0", "1e2", "1E+2", "-0.0", `"100"`, "null", "true", "[100]", `{"amount":100}`, "+100", "0100", "-01", "0x64", "9223372036854775808", "-9223372036854775809", "\u00a0100"} {
+		if value, err := parseBusinessAttributeValue(attribute, json.RawMessage(raw)); err == nil {
+			t.Errorf("invalid encoded token %q became a business amount: %+v", raw, value)
+		}
+	}
+	// The opt-in encoding must not change old mathematical integer contracts.
+	for _, raw := range []string{"100.0", "1e2"} {
+		value, err := parseBusinessAttributeValue(BusinessAttribute{Name: "legacy", Type: "integer"}, json.RawMessage(raw))
+		if err != nil || value.key() != "100" {
+			t.Fatalf("legacy mathematical integer semantics changed for %s: %+v %v", raw, value, err)
+		}
+	}
+}
+
+func TestPayGatewayModelEncodingCannotBeUnsourcedOrBypassedByCoverageAndPreparation(t *testing.T) {
+	for _, defect := range []string{"unsupported_encoding", "wrong_type", "missing_source", "domain_decimal", "effect_exponent"} {
+		t.Run(defect, func(t *testing.T) {
+			graph := payGatewayExampleModel(t)
+			for subject := range graph.BusinessContract.Subjects {
+				if graph.BusinessContract.Subjects[subject].ID != "request" {
+					continue
+				}
+				for index := range graph.BusinessContract.Subjects[subject].Attributes {
+					attribute := &graph.BusinessContract.Subjects[subject].Attributes[index]
+					if attribute.Name != "amount" {
+						continue
+					}
+					switch defect {
+					case "unsupported_encoding":
+						attribute.Encoding = "json_float"
+					case "wrong_type":
+						attribute.Type = "number"
+					case "missing_source":
+						attribute.SourceRef = ""
+					}
+				}
+			}
+			if defect == "domain_decimal" {
+				for index := range graph.BusinessContract.Coverage.Domains {
+					domain := &graph.BusinessContract.Coverage.Domains[index]
+					if domain.Subject == "request" && domain.Attribute == "amount" {
+						domain.Values = []json.RawMessage{json.RawMessage("100.0")}
+					}
+				}
+			}
+			if defect == "effect_exponent" {
+				// This mutated declaration is a kernel counterexample, not a new
+				// pay preparation: predicted writes must obey the same encoding.
+				graph.BusinessContract.Preparation[0].Effects = append(graph.BusinessContract.Preparation[0].Effects,
+					PreparationEffect{Subject: "request", Attribute: "amount", Value: json.RawMessage("1e2")})
+			}
+			if err := ValidateBusinessContract(graph); err == nil {
+				t.Fatal("malformed or unsourced encoded contract was executable")
+			}
+			if proof := ProveBusinessCoverage(graph); proof.Status != "MODEL_ERROR" || proof.CompleteInScope {
+				t.Fatalf("malformed encoding/domain acquired a finite proof: %+v", proof)
+			}
+		})
+	}
+	graph := payGatewayExampleModel(t)
+	before := payGatewayExampleObservation("EMPTY")
+	before.Values["request.amount"] = json.RawMessage("1e2")
+	graph.BusinessContract.Preparation[0].Requires = BusinessPredicate{Op: "and", Args: []BusinessPredicate{
+		graph.BusinessContract.Preparation[0].Requires,
+		businessPredicate("eq", "request", "amount", "integer", "100"),
+	}}
+	plan := PlanPreparation(graph, PreparationRequest{Observed: before,
+		Goal: businessPredicate("eq", "payment", "exists", "boolean", "true"), MaxSteps: 4, MaxStates: 16})
+	if plan.Status != "BLOCKED" || len(plan.Layers) != 0 {
+		t.Fatalf("preparation treated an encoded invalid observation as known amount: %+v", plan)
+	}
+}
+
+func TestPayGatewayModelJSONI64ChecksRealRunnerCaptureBeforeAnyTargetRequest(t *testing.T) {
+	attribute := payGatewayStrictAmountAttribute(t)
+	for _, test := range []struct {
+		raw, verdict string
+		requests     int
+	}{
+		{"100", "PASS", 1}, {"100.0", "BLOCKED", 0}, {"1e2", "BLOCKED", 0},
+		{`"100"`, "BLOCKED", 0}, {"null", "BLOCKED", 0}, {"9223372036854775808", "BLOCKED", 0},
+	} {
+		t.Run(test.raw, func(t *testing.T) {
+			// Exercise the actual runner and HTTP adapter against the internal
+			// synthetic target. This is not a pay_gateway environment receipt.
+			target, server := newRuntimeBusinessTarget(t, true)
+			graph := runtimeInputGraph(t, "100")
+			for subject := range graph.BusinessContract.Subjects {
+				if graph.BusinessContract.Subjects[subject].ID == "request" {
+					graph.BusinessContract.Subjects[subject].Attributes[0] = attribute
+				}
+			}
+			fixture := setupRuntimeBusiness(t, graph, target, server, "accept", func(manifest *RunnerManifest) {
+				manifest.Steps[0].Call.Body = json.RawMessage(`{"amount":` + test.raw + `}`)
+				configureInputMeasurements(t, &manifest.Steps[0], map[string]string{"request.amount": "/amount"})
+			})
+			result := executeRuntimeBusiness(t, fixture)
+			if result.Verdict != test.verdict || target.requests != test.requests {
+				t.Fatalf("encoded request was normalized into another input or dispatched before matching: %+v requests=%d", result, target.requests)
+			}
+			raw, _, err := fixture.d.workbenchEvidence(result.Run, "action", 1)
+			if err != nil || len(raw.Model.Requests) != 1 || string(raw.Model.Requests[0].Values["request.amount"]) != test.raw {
+				t.Fatalf("original amount token was lost from the request receipt: %+v %v", raw, err)
+			}
+			if test.requests == 0 && (len(raw.Model.Actions) != 0 || len(raw.Model.BusinessExpectations) != 1 || raw.Model.BusinessExpectations[0].Decision.Status != "BLOCKED") {
+				t.Fatalf("blocked pre-action decision did not retain non-dispatch evidence: %+v", raw.Model)
+			}
+		})
+	}
+}
+
+func TestPayGatewayModelContractHashChangesWithEncodingSourceAndVersion(t *testing.T) {
+	graph := payGatewayExampleModel(t)
+	original := ProveBusinessCoverage(graph)
+	if original.Status != "PROVEN_IN_SCOPE" || len(original.ContractSHA256) != 64 {
+		t.Fatal(original)
+	}
+	clone, err := cloneBusinessJSON(graph)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if same := ProveBusinessCoverage(clone); same.ContractSHA256 != original.ContractSHA256 {
+		t.Fatal("an identical declared contract cannot resume under its original hash")
+	}
+	for _, defect := range []string{"old_encoding", "changed_source", "changed_version"} {
+		t.Run(defect, func(t *testing.T) {
+			changed, _ := cloneBusinessJSON(graph)
+			if defect == "changed_version" {
+				changed.BusinessContract.Version++
+			} else {
+				for i := range changed.BusinessContract.Subjects {
+					if changed.BusinessContract.Subjects[i].ID != "request" {
+						continue
+					}
+					for j := range changed.BusinessContract.Subjects[i].Attributes {
+						attribute := &changed.BusinessContract.Subjects[i].Attributes[j]
+						if attribute.Name != "amount" {
+							continue
+						}
+						if defect == "old_encoding" {
+							attribute.Encoding, attribute.SourceRef = "", ""
+						} else {
+							attribute.SourceRef += " ; different reviewed contract"
+						}
+					}
+				}
+			}
+			proof := ProveBusinessCoverage(changed)
+			if proof.ContractSHA256 == original.ContractSHA256 {
+				t.Fatal("a different same-ID business contract reused the accepted proof hash")
+			}
+			if defect == "changed_version" && proof.Status != "MODEL_ERROR" {
+				t.Fatalf("unsupported contract version was executable: %+v", proof)
+			}
+		})
 	}
 }

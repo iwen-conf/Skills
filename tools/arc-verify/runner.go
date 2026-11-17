@@ -664,6 +664,9 @@ type AdapterOutput struct {
 }
 
 type execSession struct {
+	// A typed campaign fences every external call, including preparation and recovery.
+	campaignGuard func() error
+
 	cookieMu     sync.Mutex
 	vars         map[string]ExtractedBinding
 	redactedVals map[string]string
@@ -968,6 +971,11 @@ func performCallWithSession(ctx context.Context, call AdapterCall, binding RunBi
 func performCallWithRequestCapture(ctx context.Context, call AdapterCall, binding RunBinding, account Fixture, actor string, sess *execSession, captured *RequestObservation) (output AdapterOutput, err error) {
 	output = AdapterOutput{Started: time.Now().UTC().Format(time.RFC3339Nano)}
 	defer func() { output.Completed = time.Now().UTC().Format(time.RFC3339Nano) }()
+	if sess != nil && sess.campaignGuard != nil {
+		if err := sess.campaignGuard(); err != nil {
+			return output, fmt.Errorf("campaign ownership lost; call was not sent: %w", err)
+		}
+	}
 	actualCall, redactedCall, templateSHA, subs, err := renderCallWithSession(call, sess)
 	if err != nil {
 		return output, err

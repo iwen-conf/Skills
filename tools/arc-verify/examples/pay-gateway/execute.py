@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import uuid
 
@@ -19,6 +20,20 @@ def verify_source_binding(session):
         adapter.require(current["identity"].get(key) == session["identity"].get(key),
                         "source/runtime identity changed since the owned fixture was bound")
     adapter.require(current["psql_path"] == session["psql_path"], "independent SQL executable changed since binding")
+
+
+def verify_contract_proofs(expected, registered):
+    # Both hashes come from the same Go kernel, including RawMessage numeric
+    # tokens. Python must not erase 100/100.0/1e2 differences by re-encoding a
+    # parsed contract, nor silently reuse an old contract with the same graph ID.
+    valid = all(isinstance(proof, dict) and proof.get("status") == "PROVEN_IN_SCOPE"
+                and proof.get("complete_in_scope") is True
+                and isinstance(proof.get("contract_sha256"), str)
+                and re.fullmatch(r"[0-9a-f]{64}", proof.get("contract_sha256", ""))
+                for proof in (expected, registered))
+    adapter.require(valid and expected["contract_sha256"] == registered["contract_sha256"],
+                    "registered business contract differs from this version or lacks its proof; "
+                    "import and confirm the explicit new model version, preserving earlier models and evidence")
 
 
 def main():
@@ -59,6 +74,10 @@ def main():
         adapter.require(status.get("active"), "activate the project ledger explicitly with arc db init or arc db migrate first")
         cli("schema", "verify", "init")
         cli("model", "verify", "model", "--graph", bundle.GRAPH)
+        expected_contract, _ = cli("contract-file", "verify", "contract", "check", "--file",
+                                   str(Path(__file__).with_name("model.json").resolve()))
+        registered_contract, _ = cli("contract-registered", "verify", "contract", "check", "--graph", bundle.GRAPH)
+        verify_contract_proofs(expected_contract, registered_contract)
         cli("fixtures", "verify", "fixtures", "--file", str(directory / "fixtures.json"))
         cli("runner", "verify", "runner", "--file", str(directory / "runner.json"))
         cli("plan", "verify", "plan", "--graph", bundle.GRAPH)

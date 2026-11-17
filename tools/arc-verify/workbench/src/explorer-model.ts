@@ -1,7 +1,7 @@
 import type { ContractBranch } from "./contract";
 import { entityKey } from "./facts";
 import type { UnifiedStepFact } from "./facts";
-import type { SelectionContext, SelectionRun, SelectionStep } from "./selection";
+import type { Selection, SelectionContext, SelectionRun, SelectionStep } from "./selection";
 import type { Snapshot, SnapshotRun, TestDefinition } from "./types";
 
 export interface BranchOption {
@@ -16,6 +16,31 @@ export interface BranchOption {
 const unique = (items: (string | undefined)[]) => [
   ...new Set(items.filter((value): value is string => Boolean(value))),
 ];
+
+export function executionCoverageScope(snapshot: Snapshot, selection: Selection) {
+  const round = snapshot.contract_execution?.round ?? "";
+  const environment =
+    snapshot.catalog.rounds.find((item) => item.id === round && item.graph === snapshot.meta.graph)
+      ?.environment ??
+    snapshot.meta.environment ??
+    "";
+  const run = snapshot.runs.find((item) => item.trace.run === selection.run);
+  const campaign = snapshot.business_campaigns?.find((item) => item.id === selection.campaign);
+  const reasons: string[] = [];
+  if (!round) reasons.push("分支覆盖未绑定已验证轮次");
+  if (selection.environment && selection.environment !== environment)
+    reasons.push("所选环境不属于此覆盖汇总");
+  if (run && run.trace.round !== round) reasons.push("所选运行不属于此覆盖轮次");
+  if (campaign && campaign.round !== round) reasons.push("所选 Campaign 不属于此覆盖轮次");
+  if (selection.variant) reasons.push("轮次分支汇总不能作为所选输入变体的判定");
+  return {
+    round,
+    environment,
+    label: `环境 ${environment || "未声明"} / 轮次 ${round || "未指定"}`,
+    appliesToSelection: reasons.length === 0,
+    reason: reasons.join("；"),
+  };
+}
 
 export function branchOptions(snapshot: Snapshot): BranchOption[] {
   const names = new Map(snapshot.model.data.nodes.map((node) => [node.id, node.name]));
@@ -86,8 +111,7 @@ export function factBranches(fact?: UnifiedStepFact): string[] {
   );
 }
 export function actorsOf(fact?: UnifiedStepFact): string[] {
-  return unique([
-    fact?.actor,
+  const observed = unique([
     ...(fact?.actions ?? []).map((action) =>
       typeof action.actor === "string" ? action.actor : undefined,
     ),
@@ -95,6 +119,9 @@ export function actorsOf(fact?: UnifiedStepFact): string[] {
     ...(fact?.oracles ?? []).map((item) => item.actor),
     ...(fact?.requests ?? []).map((item) => item.actor),
   ]);
+  if (observed.length) return observed;
+  const participants = unique((fact?.participants ?? []).map((item) => item.alias));
+  return participants.length ? participants : unique([fact?.actor]);
 }
 export function runSteps(snapshot: Snapshot, run: SnapshotRun): SelectionStep[] {
   const facts = factsOf(snapshot, run);
@@ -172,6 +199,8 @@ export function selectionContext(
       branches: attached,
       flow: run.flow_id ?? (legacy?.flow || ""),
       environment: run.environment ?? catalog?.environment ?? round?.environment ?? "",
+      round: run.trace.round,
+      runner: run.runner_id,
       steps: steps.map((step) => ({
         ...step,
         branches: step.branches?.length
@@ -184,12 +213,24 @@ export function selectionContext(
   });
   return {
     model: snapshot.meta.graph,
-    environments: unique([snapshot.meta.environment, ...runs.map((run) => run.environment)]),
+    environments: unique([
+      snapshot.meta.environment,
+      ...runs.map((run) => run.environment),
+      ...(snapshot.business_campaigns ?? []).map((campaign) => campaign.environment),
+    ]),
     branches: branches.map((branch) => ({
       id: branch.id,
       flow: branch.flow,
       action: branch.action,
     })),
     runs,
+    campaigns: (snapshot.business_campaigns ?? []).map((campaign) => ({
+      id: campaign.id,
+      environment: campaign.environment,
+      flow: campaign.flow,
+      round: campaign.round,
+      variants: campaign.variants ?? [],
+      visits: campaign.visits ?? [],
+    })),
   };
 }

@@ -1,10 +1,41 @@
 import { describe, expect, it } from "vite-plus/test";
-import { branchOptions, selectionContext } from "./explorer-model";
+import { branchOptions, executionCoverageScope, selectionContext } from "./explorer-model";
 import { graphFor } from "./graph-model";
 import { initialSelection, matchingRuns, reduceSelection } from "./selection";
 import { contractFixture } from "./test-fixtures";
 
 describe("snapshot-to-workbench identity", () => {
+  it("uses captured participant aliases instead of exposing the aggregate role as another account", () => {
+    const snapshot = contractFixture();
+    snapshot.runs[0].facts![0].actor = "MERCHANT_ROLE";
+    const context = selectionContext(snapshot);
+    expect(context.runs[0].steps[0].actors).toEqual(["merchant"]);
+  });
+  it("keeps aggregate branch coverage bound to its recorded environment and round", () => {
+    const snapshot = contractFixture();
+    snapshot.contract_execution = {
+      status: "PASS",
+      round: "synthetic-round",
+      total: 1,
+      passed: 1,
+      failed: 0,
+      blocked: 0,
+      not_run: 0,
+      branches: [],
+      reason: "synthetic branch-only coverage",
+    };
+    const state = {
+      ...initialSelection(snapshot.meta.graph, "isolated-ui-fixture"),
+      run: "synthetic-run-A",
+    };
+    expect(executionCoverageScope(snapshot, state).appliesToSelection).toBe(true);
+    expect(
+      executionCoverageScope(snapshot, { ...state, environment: "different-environment" })
+        .appliesToSelection,
+    ).toBe(false);
+    snapshot.runs[0].trace.round = "older-round";
+    expect(executionCoverageScope(snapshot, state).reason).toContain("所选运行不属于此覆盖轮次");
+  });
   it("attaches a continuous run only through persisted branch decisions", () => {
     const snapshot = contractFixture();
     const context = selectionContext(snapshot);

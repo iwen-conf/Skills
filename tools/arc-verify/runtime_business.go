@@ -270,14 +270,20 @@ func verifyRuntimeBusiness(g Graph, obligation ModelObligation, batch []RunnerSt
 	if observed.EvidenceVersion < runtimeEvidenceVersion || len(observed.BusinessExpectations) != len(batch) {
 		return "BLOCKED", "business contract requires a frozen pre-action expectation for every action", nil
 	}
-	requests := 0
-	for _, step := range batch {
-		if len(step.InputMeasurements) > 0 {
-			requests++
+	// Campaigns capture every selected request, including operations with no
+	// projected input fields. Every optional capture must still match the
+	// registered operation and its actual request. Required measurements are
+	// checked again by freezeRuntimeBusiness below.
+	seenRequests := map[int]bool{}
+	for _, request := range observed.Requests {
+		position := request.ActionIndex - 1
+		if position < 0 || position >= len(batch) || position >= len(observed.Actions) || seenRequests[position] {
+			return "BLOCKED", "pre-action request capture count or identity differs from the frozen manifest", nil
 		}
-	}
-	if len(observed.Requests) != requests {
-		return "BLOCKED", "pre-action request capture count differs from the frozen manifest", nil
+		seenRequests[position] = true
+		if err := validateRuntimeRequest(batch[position], position+1, request); err != nil || !requestMatchesAction(request, observed.Actions[position]) {
+			return "BLOCKED", "pre-action request capture differs from the actual registered operation", nil
+		}
 	}
 	verdict, reason := "PASS", "independent observations satisfy the frozen business expectation"
 	assertions := make([]StepAssertion, 0, len(batch))

@@ -91,14 +91,19 @@ arc verify init
 arc verify validate --file /absolute/Skills/tools/arc-verify/examples/pay-gateway/model.json
 arc verify contract check --file /absolute/Skills/tools/arc-verify/examples/pay-gateway/model.json
 arc verify import --file /absolute/Skills/tools/arc-verify/examples/pay-gateway/model.json
-arc verify approve --graph pay-gateway-index-fixture-v1
-arc verify approve --graph pay-gateway-index-fixture-v1 --rule RULE_CREATE_PAYMENT_INDEX
-arc verify approve --graph pay-gateway-index-fixture-v1 --rule RULE_REFUND_INDEX
+arc verify approve --graph pay-gateway-index-fixture-v2
+arc verify approve --graph pay-gateway-index-fixture-v2 --rule RULE_CREATE_PAYMENT_INDEX
+arc verify approve --graph pay-gateway-index-fixture-v2 --rule RULE_REFUND_INDEX
 ```
 
 `approve` 是现有 CLI 的交互式模型确认门禁；脚本不代填人工确认、不从产品实际输出批准规则。
 已有同版本目录与规则确认可复用，不重复导入或批准。`PROVEN_IN_SCOPE` 只证明声明的有限输入
 分区，没有证明全部可达路径或整个支付系统。
+
+本次示例为 `pay-gateway-index-fixture-v2`，新增有来源的 `json_i64` 金额编码；旧 v1 模型和
+执行证据保持原样。v2 可以独立导入，不要求先有 v1。执行脚本分别用 Go 内核检查随包模型和
+账本模型，并比较规范合同 SHA-256；即使 ID 相同，只要规则、编码、来源或版本不同，也会在
+目标执行前 BLOCKED。模型已有不同内容时，应显式建立新版本并正常确认，不覆盖或自动批准。
 
 ## 4. 执行、独立回读、导出原生工作台
 
@@ -118,6 +123,13 @@ python3 /absolute/Skills/tools/arc-verify/examples/pay-gateway/execute.py \
 `delivery_status=BLOCKED` 并返回非零，不覆盖已记录的实际结果。
 HTTP 请求参数从实际解析后的 body 冻结，响应字段从 response capture 获取，数据库和机构收件
 通过独立 Oracle 验证。完成后 `checkpoint` 保存合法后态，不删除支付退款历史。
+
+`request.amount` 显式声明 `type: integer, encoding: json_i64`，依据固定源码
+[严格整数解析器](https://github.com/iwen-conf/pay_gateway/blob/e4f054fc7bb06e091be62d6765bb29b4348ad651/src/interface/restful/dto/parse.rs#L100-L159)。
+Arc 直接检查实际请求中的 JSON token，接受本例的 `100`，拒绝将 `100.0`、`1e2`、`"100"`
+或超出 i64 的数值冻结为合法 100 分请求。其他未限定编码的 `integer` 属性仍使用原有数学整数语义。
+词法不合要求或缺值时，本例在目标动作前 BLOCKED；合法整数但超出已声明 100 分场景时是
+SPECIFICATION_GAP。这些是 Arc 契约检查，不代表已执行并验收支付 API 的 400/422 拒绝路径。
 
 接着生成 `--scenario duplicate` 的新 bundle，在同一 session 上执行即可检查重复操作。
 需要全新空实例时新建 owned fixture；之前的快照/数据库/RAW 必须先保留，不能把 reset 当作恢复证明。

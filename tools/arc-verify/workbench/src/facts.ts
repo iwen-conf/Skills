@@ -112,6 +112,39 @@ export interface ExtractedBinding {
   oracle_id?: string;
   action_index?: number;
 }
+export interface BusinessExpectationObservation {
+  actor: string;
+  action_index: number;
+  decision: BusinessDecision;
+  after?: BusinessObservation;
+  comparison?: BusinessComparison;
+  request?: RequestObservation;
+}
+export interface ModelObservation {
+  recovery_mode?: string;
+  evidence_version?: number;
+  node: string;
+  transition?: string;
+  round: string;
+  runner_sha256: string;
+  code_sha256: string;
+  input: unknown;
+  participants: ParticipantBinding[];
+  before_entities?: EntityBinding[];
+  before_sessions?: SessionBinding[];
+  oracles: OracleObservation[];
+  actions: ActionObservation[];
+  requests?: RequestObservation[];
+  extractions?: ExtractedBinding[];
+  entities?: EntityBinding[];
+  sessions?: SessionBinding[];
+  waits?: WaitObservation[];
+  conditions?: ConditionReading[];
+  assertions?: StepAssertion[];
+  business_expectations?: BusinessExpectationObservation[];
+  preparation?: PreparationExecution;
+  error?: string;
+}
 export interface UnifiedStepFact {
   recovery_mode?: string;
   source_kind: string;
@@ -144,14 +177,7 @@ export interface UnifiedStepFact {
   actions?: ActionObservation[];
   requests?: RequestObservation[];
   assertions?: StepAssertion[];
-  business_expectations?: {
-    actor: string;
-    action_index: number;
-    decision: BusinessDecision;
-    after?: BusinessObservation;
-    comparison?: BusinessComparison;
-    request?: RequestObservation;
-  }[];
+  business_expectations?: BusinessExpectationObservation[];
   evidence_path?: string;
   evidence_sha256?: string;
   evidence_version?: number;

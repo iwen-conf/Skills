@@ -68,6 +68,13 @@ partition only. Unbounded values, omitted states, unconfirmed rules and exhauste
 visible. Endpoint coverage, node count and a green diagram never prove business completeness.
 Old models without `business_contract` remain `LEGACY_UNDECLARED` for this stronger contract.
 
+Bounded online exploration uses `arc verify campaign` with explicit registered input variants,
+fresh scoped observations and the same prepare/freeze/execute/compare path. Its ledger retains
+candidate eligibility, dispatch reservations, child runs, actual history and stop reasons.
+`COMPLETED_IN_SCOPE` covers the selected variants only; it cannot approve missing rules or prove
+full business reachability. Resume must reconcile original child-run evidence and retain unknown
+dispatches without replay. The legacy `discover` executor remains unavailable to strict models.
+
 The native snapshot workbench has capability, dependency/state/run, branch/facts and trace
 regions, with one `model/environment/flow/branch/run/step/actor/entity` selection context.
 Select a branch before showing its unique expected outcome; select a run before showing Actual.

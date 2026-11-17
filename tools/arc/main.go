@@ -28,6 +28,7 @@ const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"  arc index flush [--repo DIR]    Acknowledge outbox only after healthy index\n" +
 	"  arc verify <action> [flags]     Business model, execution and evidence\n" +
 	"  arc verify contract <check|match|compare|prepare>  Deterministic branch contracts\n" +
+	"  arc verify campaign <run|resume|status|list|abort>  Bounded observed-state exploration\n" +
 	"  arc db <status|init|migrate>     Explicit local database lifecycle\n" +
 	"  arc task <create|ensure|show|transition|complete> [flags]  Versioned task state\n" +
 	"  arc task <link-verify|verify-status> [flags]  Link and inspect verification obligations\n" +
@@ -127,6 +128,7 @@ func capabilities() map[string]any {
 		"mode": "local_state_and_legacy_backends",
 		"code_index": supported["arc-idx"], "business_verify": supported["arc-verify"],
 		"business_contract_version": 1, "business_contract_proof_scope": "explicit-finite-domains",
+		"business_campaign_version": 1, "business_campaign_scope": "registered-input-variants",
 		"verification_views": []string{"capabilities", "dependencies", "states", "run"},
 		"arc_db_resources": true, "unified_database": active,
 		"arc_db_active": active, "arc_db_schema_version": arcSchemaVersion,
@@ -215,10 +217,10 @@ func run(args []string) int {
 }
 
 // Subcommands consume their name before flags. Inserting --db before that
-// name breaks contract/discover/risk refute in an activated unified ledger.
+// name breaks nested verifier commands in an activated unified ledger.
 func withVerifyDatabase(args []string, database string) []string {
 	at := 1
-	if len(args) > 1 && (args[0] == "contract" || args[0] == "discover" || args[0] == "risk" && args[1] == "refute") {
+	if len(args) > 1 && (args[0] == "contract" || args[0] == "campaign" || args[0] == "discover" || args[0] == "risk" && args[1] == "refute") {
 		at = 2
 	}
 	result := append([]string{}, args[:at]...)

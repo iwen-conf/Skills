@@ -29,6 +29,10 @@ func main() {
 
 // exitCode lets a caller tell why run-chain stopped without parsing output.
 func exitCode(err error) int {
+	var campaign businessCampaignStop
+	if errors.As(err, &campaign) {
+		return campaign.code
+	}
 	var stop chainStop
 	if errors.As(err, &stop) {
 		return stop.code
@@ -40,7 +44,7 @@ func run(args []string) error {
 }
 
 // commands is the complete CLI surface; unknown names fail before any ledger is opened.
-var commands = []string{"init", "selftest", "validate", "contract", "task-proof", "import", "approve", "model", "view", "diff", "explore", "plan", "prepare", "next", "runner", "round", "execute", "run-chain", "derive", "discover", "reference-import", "reference-match", "mutation-report", "snapshot", "recover", "context", "start", "step", "finish", "record", "trace", "explain", "abort", "retry", "gate", "report", "risk", "accept-risk", "reject-risk", "promote-risk", "scan", "gaps", "fixtures", "fixture", "handoff"}
+var commands = []string{"init", "selftest", "validate", "contract", "campaign", "task-proof", "import", "approve", "model", "view", "diff", "explore", "plan", "prepare", "next", "runner", "round", "execute", "run-chain", "derive", "discover", "reference-import", "reference-match", "mutation-report", "snapshot", "recover", "context", "start", "step", "finish", "record", "trace", "explain", "abort", "retry", "gate", "report", "risk", "accept-risk", "reject-risk", "promote-risk", "scan", "gaps", "fixtures", "fixture", "handoff"}
 
 func runContext(ctx context.Context, args []string) error {
 	if len(args) == 0 {
@@ -49,6 +53,9 @@ func runContext(ctx context.Context, args []string) error {
 	name := args[0]
 	if name == "contract" {
 		return businessContractCommand(args[1:])
+	}
+	if name == "campaign" {
+		return businessCampaignCommand(ctx, args[1:])
 	}
 	subcommand := ""
 	if name == "risk" && len(args) > 1 && args[1] == "refute" {

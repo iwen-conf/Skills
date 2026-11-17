@@ -1,4 +1,6 @@
 import type { BusinessView, Snapshot, Verdict } from "./types";
+import { isJSONObject, parseSnapshotJSON } from "./json-values";
+import { checkCampaigns } from "./campaign-validation";
 
 export const businessViews: BusinessView[] = [
   "overview",
@@ -31,7 +33,7 @@ export class SnapshotError extends Error {
 type Fields = Record<string, unknown>;
 
 function fields(value: unknown): value is Fields {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return isJSONObject(value);
 }
 
 function fail(stage: string, message: string): never {
@@ -48,7 +50,7 @@ export function readSnapshotText(text: string | null): Snapshot {
   }
   let value: unknown;
   try {
-    value = JSON.parse(text);
+    value = parseSnapshotJSON(text);
   } catch (error) {
     fail("snapshot.parse", error instanceof Error ? error.message : String(error));
   }
@@ -141,6 +143,7 @@ export function parseSnapshot(value: unknown): Snapshot {
           )
             fail("snapshot.facts", `步骤 ${String(fact.seq)} 缺少确定性决策身份`);
           if (item.request !== undefined) checkRequest(item.request);
+          if (item.after !== undefined) checkObservation(item.after);
           if (item.decision.frozen !== undefined) {
             if (
               !fields(item.decision.frozen) ||
@@ -150,6 +153,16 @@ export function parseSnapshot(value: unknown): Snapshot {
             )
               fail("snapshot.facts", `步骤 ${String(fact.seq)} 的冻结期望不完整`);
             checkExpectation(item.decision.frozen.expected, "snapshot.facts");
+            checkObservation(item.decision.frozen.before);
+          }
+        }
+        for (const oracle of (fact.oracles ?? []) as unknown[]) {
+          if (!fields(oracle)) fail("snapshot.facts", "独立判据不是对象");
+          for (const key of ["before", "after"]) {
+            checkObservation(oracle[key]);
+            const reading = oracle[key] as Fields;
+            if (reading.conditions !== null && !fields(reading.conditions))
+              fail("snapshot.facts", "独立判据的条件不是字段对象");
           }
         }
         for (const action of (fact.actions ?? []) as unknown[]) {
@@ -164,6 +177,8 @@ export function parseSnapshot(value: unknown): Snapshot {
       }
     }
   });
+  if (value.business_campaigns !== undefined)
+    checkCampaigns(value.business_campaigns, meta.graph, fail);
   return value as unknown as Snapshot;
 }
 
@@ -179,6 +194,25 @@ function checkRequest(value: unknown) {
     fail("snapshot.facts", "请求捕获缺少动作身份或输入字段对象");
 }
 
+function checkObservation(value: unknown) {
+  if (!fields(value) || (value.values !== null && !fields(value.values)))
+    fail("snapshot.facts", "业务观察缺少属性字段对象");
+  if (
+    value.bindings !== undefined &&
+    (!fields(value.bindings) ||
+      Object.values(value.bindings).some((item) => typeof item !== "string"))
+  )
+    fail("snapshot.facts", "业务观察的主体绑定非法");
+  if (
+    value.sources !== undefined &&
+    (!fields(value.sources) ||
+      Object.values(value.sources).some(
+        (item) => !Array.isArray(item) || item.some((source) => typeof source !== "string"),
+      ))
+  )
+    fail("snapshot.facts", "业务观察的属性来源非法");
+}
+
 function checkPreparation(value: unknown) {
   if (
     !fields(value) ||
@@ -188,6 +222,8 @@ function checkPreparation(value: unknown) {
     !Array.isArray(value.readbacks)
   )
     fail("snapshot.facts", "准备记录缺少计划、执行步骤或独立回读");
+  checkObservation(value.initial_observed);
+  checkObservation(value.final_observed);
   for (const plan of value.plans) {
     if (!fields(plan) || !Array.isArray(plan.layers)) fail("snapshot.facts", "准备计划缺少依赖层");
     for (const layer of plan.layers) {
@@ -198,7 +234,7 @@ function checkPreparation(value: unknown) {
           fail("snapshot.facts", "准备计划缺少预计效果");
     }
   }
-  for (const step of value.steps)
+  for (const step of value.steps) {
     if (
       !fields(step) ||
       !fields(step.planned) ||
@@ -208,9 +244,14 @@ function checkPreparation(value: unknown) {
       !fields(step.ensures)
     )
       fail("snapshot.facts", "实际准备步骤缺少动作捕获或前后判据");
-  for (const readback of value.readbacks)
+    checkObservation(step.before);
+    if (step.after !== undefined) checkObservation(step.after);
+  }
+  for (const readback of value.readbacks) {
     if (!fields(readback) || typeof readback.phase !== "string")
       fail("snapshot.facts", "准备回读缺少阶段身份");
+    if (readback.observation !== undefined) checkObservation(readback.observation);
+  }
 }
 
 function checkPredicate(value: unknown, depth = 0) {

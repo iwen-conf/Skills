@@ -36,7 +36,8 @@ class PayExecutionContracts(unittest.TestCase):
                 }
                 def cli(argv, **_kwargs):
                     value = {"active": True, "id": "round", "run": "observed-run", "verdict": "PASS",
-                             "graph": execute.bundle.GRAPH, "offline_db_complete": defect != "incomplete_evidence"}
+                             "graph": execute.bundle.GRAPH, "offline_db_complete": defect != "incomplete_evidence",
+                             "status": "PROVEN_IN_SCOPE", "complete_in_scope": True, "contract_sha256": "a" * 64}
                     code = 2 if defect in {"explain", "snapshot"} and defect in argv else 0
                     return execute.subprocess.CompletedProcess(argv, code, json.dumps(value), "")
                 source_results = [None, execute.adapter.Blocked("source changed")] if defect == "source_binding" else [None, None]
@@ -52,6 +53,49 @@ class PayExecutionContracts(unittest.TestCase):
                 self.assertEqual(result["delivery_status"], "COMPLETE" if defect == "none" else "BLOCKED")
                 if defect != "none":
                     self.assertIn("BLOCKED", result["exports"].values())
+
+    def test_old_same_id_or_changed_contract_cannot_reach_any_target_execution(self):
+        for defect in ("old_encoding", "changed_source", "changed_version"):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                output_bundle = root / "bundle"
+                output_bundle.mkdir()
+                documents = {
+                    "session.json": {"scope": "owned-case", "pay_repo": str(root), "caller_id": "caller-one"},
+                    "caller-private.json": {"value": "private-placeholder-for-tool-test"},
+                    "runner.json": {"graph": execute.bundle.GRAPH, "isolation_scope": "owned-case", "test": "TEST_REFUND_DUPLICATE_CHAIN", "id": "runner"},
+                    "fixtures.json": {"fixtures": [{"id": "caller", "refs": {"principal": "caller-one"}}, {"id": "case"}]},
+                }
+                calls = []
+                def cli(argv, **_kwargs):
+                    calls.append(argv)
+                    value = {"active": True, "id": execute.bundle.GRAPH, "status": "PROVEN_IN_SCOPE",
+                             "complete_in_scope": True, "contract_sha256": "a" * 64}
+                    if "contract" in argv and "--graph" in argv:
+                        value["contract_sha256"] = "b" * 64
+                        if defect == "changed_version":
+                            value.update(status="MODEL_ERROR", complete_in_scope=False)
+                    return execute.subprocess.CompletedProcess(argv, 0, json.dumps(value), "")
+                with patch.object(execute.adapter, "read_json", side_effect=lambda path: documents[Path(path).name]), \
+                     patch.object(execute, "verify_source_binding"), \
+                     patch.object(execute.subprocess, "run", side_effect=cli), \
+                     patch("sys.argv", ["execute.py", "--session", str(root / "session.json"), "--bundle", str(output_bundle)]), \
+                     contextlib.redirect_stdout(io.StringIO()) as output:
+                    self.assertEqual(execute.main(), 2)
+                result = json.loads(output.getvalue())
+                self.assertEqual(result["verdict"], "BLOCKED")
+                self.assertIn("new model version", result["reason"])
+                self.assertTrue(any("contract" in call and "--file" in call for call in calls))
+                self.assertTrue(any("contract" in call and "--graph" in call for call in calls))
+                self.assertFalse(any("execute" in call or "fixtures" in call or "runner" in call or "round" in call for call in calls))
+
+    def test_contract_proof_comparison_requires_real_complete_hashes(self):
+        valid = {"status": "PROVEN_IN_SCOPE", "complete_in_scope": True, "contract_sha256": "c" * 64}
+        execute.verify_contract_proofs(valid, dict(valid))
+        for invalid in ({}, None, {**valid, "contract_sha256": None}, {**valid, "complete_in_scope": False},
+                        {**valid, "status": "BUDGET_EXHAUSTED"}, {**valid, "contract_sha256": "not-a-hash"}):
+            with self.subTest(invalid=invalid), self.assertRaises(execute.adapter.Blocked):
+                execute.verify_contract_proofs(valid, invalid)
 
 
 if __name__ == "__main__":

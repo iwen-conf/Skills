@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -51,6 +52,39 @@ func businessCompatible(left, right string) bool {
 		return true
 	}
 	return businessSetType(left) && businessSetType(right) && businessNumeric(businessBaseType(left)) && businessNumeric(businessBaseType(right))
+}
+
+// parseBusinessAttributeValue retains the captured JSON token until an explicit
+// transport encoding has been checked. In particular, converting 100.0 or 1e2
+// to an integer first would erase the distinction this contract promises.
+func parseBusinessAttributeValue(attribute BusinessAttribute, raw json.RawMessage) (businessValue, error) {
+	if err := validateBusinessAttributeEncoding(attribute); err != nil {
+		return businessValue{}, err
+	}
+	if attribute.Encoding == "" {
+		return parseBusinessValue(attribute.Type, raw)
+	}
+	// json_i64 allows only JSON whitespace around a token. The minus sign is
+	// optional; -0 is legal. Decimal/exponent forms, leading zeros, strings,
+	// null, composite values and signed overflow are not an encoded integer.
+	token := bytes.Trim(raw, " \t\r\n")
+	digits := token
+	if len(digits) > 0 && digits[0] == '-' {
+		digits = digits[1:]
+	}
+	if len(digits) == 0 || len(digits) > 19 || len(digits) > 1 && digits[0] == '0' {
+		return businessValue{}, fmt.Errorf("expected json_i64 integer token")
+	}
+	for _, digit := range digits {
+		if digit < '0' || digit > '9' {
+			return businessValue{}, fmt.Errorf("expected json_i64 integer token")
+		}
+	}
+	integer, err := strconv.ParseInt(string(token), 10, 64)
+	if err != nil {
+		return businessValue{}, fmt.Errorf("json_i64 integer token is outside signed 64-bit range")
+	}
+	return businessValue{kind: attribute.Type, scalar: new(big.Rat).SetInt64(integer)}, nil
 }
 
 func parseBusinessValue(kind string, raw json.RawMessage) (businessValue, error) {
@@ -301,7 +335,7 @@ func resolveBusinessOperand(operand BusinessOperand, observed BusinessObservatio
 	if info.subject.RequiresBinding && strings.TrimSpace(observed.Bindings[info.subject.ID]) == "" {
 		return businessValue{}, []string{"binding:" + info.subject.ID}
 	}
-	value, err := parseBusinessValue(info.attribute.Type, observed.Values[key])
+	value, err := parseBusinessAttributeValue(info.attribute, observed.Values[key])
 	if err != nil {
 		return businessValue{}, []string{key}
 	}

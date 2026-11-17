@@ -13,6 +13,11 @@
 
 先选业务分支，再选运行。切换运行会清空旧主体和实体筛选；同一步多个主体使用各自的动作和冻结分支。筛掉中间步骤后，画布会标明省略的步骤，不将剩余节点伪装成相邻操作。
 
+有界探索记录使用 `campaign → variant → child run` 导航，并与上述八项上下文同步。选择变体先查看
+其候选观察、准备方案与停止原因；只有已经关联且通过证据核验的 child run 才能跳入实际步骤。
+派发意图、预算预留和预测效果不会绘制成已经执行的业务操作。账号选项使用实际参与者别名，
+不会把 `STUDENT` 等角色摘要误当作另一个账号。
+
 ## 构建与前端检查
 
 在本目录执行。包管理器版本由 `package.json` 的 `devEngines` 固定为 Bun 1.4.4，依赖版本使用 `bun.lock`。
@@ -50,6 +55,11 @@ arc verify snapshot \
 
 Go 在导出时重新校验实际运行的 RAW、冻结上下文及统一步骤事实。证据损坏会保留错误与 `BLOCKED` 状态。`snapshot.json` 与页面中 `#arc-snapshot` 的 JSON 来自同一次导出；前端读取内嵌数据，不请求本地 API。
 
+探索记录同样限定图、环境与轮次，最多导出最近 32 个 campaign，并保留 `available_campaigns` 和
+`campaigns_truncated`。child run 不在本次导出时明确标缺失，不根据其他运行补齐。损坏 campaign
+只显示可核实的索引身份和阻断原因，不补造零预算或成功覆盖。生产读取入口保留 JSON 数字原文，
+避免把 `100.0`、`1e2`、`-0` 或 64 位整数静默改写成另一种业务输入。
+
 ## 只读和 CSP 边界
 
 导出页面不提供执行、批准、重试或写入账本的按钮。模型修改、规则确认、真实执行和恢复都通过 CLI 完成，然后重新导出快照。快照是导出时刻的记录，不会自动刷新为目标环境的当前状态。
@@ -74,6 +84,8 @@ default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src
 | `requests`、`actions`、`oracles` | 冻结前的实际请求捕获、动作响应、独立前后回读          | 响应值不能替代独立 DB 事实；缺失值保留未知。                                                  |
 | `preparation`                    | 计划历史、实际准备步骤、独立 readbacks 和目标就绪状态 | `predicted_effects` 是预计效果；实际是否执行和是否满足条件以捕获及回读为准。                  |
 | `recovery.mode=checkpoint`       | 只读确认并保留运行现场                                | 不表示已回滚或恢复；旧记录缺少 mode 时不能推断为 checkpoint。跨运行自动继承变量仍需单独实现。 |
+| `business_campaigns`             | 指定输入变体的观察、派发、child run、预算和恢复历史   | `COMPLETED_IN_SCOPE` 仅表示所选变体通过，`full_business_coverage` 仍为 false。                 |
+| `campaign.last_actual`           | 最近目标动作的实际后态                               | 后续 restore 可能改变现场；恢复观察单独展示，下次候选必须重新读取实际状态。                    |
 
 前端只展示 Go 已持久化的匹配与比较结果，不在浏览器重新选择业务分支或重算证据判定。历史数据继续可读，但没有新的冻结身份、独立判据或完整 RAW 时保持 `LEGACY` 或 `BLOCKED`。
 
@@ -82,9 +94,32 @@ default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src
 - `selection.ts`、`explorer-model.ts`：统一选择上下文与显式身份映射。
 - `layout.ts`、`graph-model.ts`、`GraphCanvas.tsx`：准备 DAG、合法状态环和实际运行轨迹。
 - `FactPanel.tsx`、`contract.ts`、`facts.ts`：声明、冻结预期、实际结果与来源。
-- `snapshot.ts`、`types.ts`：导出 DTO 和可见的读取错误边界。
+- `CampaignViews.tsx`、`campaign.ts`、`campaign-validation.ts`：有界探索的身份、历史与选择边界。
+- `snapshot.ts`、`types.ts`、`json-values.ts`：导出 DTO、原始数字和可见的读取错误边界。
 - `../snapshot.go`、`../facts_integrity.go`：Go 导出与证据重验。
 
 修改 DTO 后，在 `tools/arc-verify` 中运行 `go test -run '^TestSnapshotTypesMatchFrontend$' -count=1`，并把真实 Go 工具测试执行产生的快照交给 `parseSnapshot` 与 React 服务端渲染做贯通检查。前端合成 fixture、Go 的隔离 HTTP 工具测试、接入项目 E2E 必须分别标明范围。
+
+永久集成测试可以直接读取实际导出。先在 `tools/arc-verify` 中运行以下可选工具测试，目录应为全新的绝对路径：
+
+```sh
+ARC_WORKBENCH_EXPORT_DIR=/absolute/prepared-export \
+ARC_CAMPAIGN_EXPORT_DIR=/absolute/campaign-export \
+ARC_WORKBENCH_ASSETS=/absolute/Skills/tools/arc-verify/workbench/dist \
+go test -run '^(TestWorkbenchExportObservedToolRun|TestWorkbenchExportObservedBusinessCampaign)$' -count=1 -v .
+```
+
+随后在本目录运行：
+
+```sh
+ARC_WORKBENCH_SNAPSHOT_PATHS='["/absolute/prepared-export","/absolute/campaign-export"]' \
+  ./node_modules/.bin/vp test src/go-export.integration.test.tsx
+```
+
+单个导出也可使用 `ARC_WORKBENCH_SNAPSHOT_PATH=/absolute/export/snapshot.json`；两种变量不要同时设置。
+未设置时明确 SKIP，不用合成数据替代。测试使用生产 JSON 解析器与 SSR 检查实际前态、准备、
+冻结预期、请求捕获、账号实体选择和 child 关联，每个目录写入 `frontend-validation.json` 与
+`ssr-verified.html`，并核对导出资源与当前 dist 是否一致。测试失败会覆盖旧成功报告。
+这一步只审阅已有导出，不重新执行目标动作，也不代替 Go 对 RAW 的重验。
 
 静态检查、状态测试、SSR 和构建通过并不等于实际浏览器布局与交互已验收。浏览器环境受限时记录 `BLOCKED`，保留已有验证结果，不绕过环境策略，也不补造截图。
