@@ -1,0 +1,54 @@
+/* ETA plan visual parity layer. ETA upstream source: MIT, 0xfe-project/eta.
+   The review UI retains Arc's strict, read-only business evidence semantics. */
+.eta-board { color:var(--text); font-size:12px; }
+.eta-board-readonly { padding:6px 12px; color:var(--muted); font-size:11px; line-height:1.55; }
+.eta-board-group { border:1px solid var(--line); background:var(--canvas); margin:14px 0; border-radius:2px; overflow:hidden; }
+.eta-board-group-heading { display:flex; flex-wrap:wrap; align-items:center; gap:8px; border-bottom:1px solid var(--line); padding:9px 14px; font-size:12px; background:var(--surface); }
+.eta-board-group-heading strong { font-size:13px; font-weight:600; overflow-wrap:anywhere; }
+.eta-board-group-heading span:not(.eta-board-group-dot), .eta-board-group-heading small { color:var(--muted); font-variant-numeric:tabular-nums; }
+.eta-board-group-heading small { margin-left:auto; }
+.eta-board-group-dot { font-size:14px; color:var(--accent); }
+.eta-board-wide { max-width:100%; overflow-x:auto; overscroll-behavior-x:contain; }
+.eta-board-wide-inner { position:relative; min-width:max-content; padding:14px; }
+.eta-board-columns { pointer-events:none; position:relative; z-index:2; display:grid; grid-auto-flow:column; grid-auto-columns:minmax(208px,256px); column-gap:40px; margin:0; padding:0; list-style:none; }
+.eta-board-step { min-width:0; }
+.eta-board-step > h3 { display:flex; justify-content:space-between; gap:8px; font-size:12px; font-weight:400; color:var(--muted); margin:0 0 9px; }
+.eta-board-step > h3 > span:first-child { color:var(--text); }
+.eta-board-step-cards { display:grid; gap:10px; }
+.eta-board-card { pointer-events:auto; padding:9px 10px; background:var(--surface); border:1px solid var(--line); border-radius:0; min-height:65px; overflow:hidden; }
+.eta-board-card[data-critical="true"] { border-width:1.5px; border-color:var(--text); }
+.eta-board-card.eta-board-selected { outline:2px solid var(--accent); outline-offset:1px; }
+.eta-board-node-button { display:flex; width:100%; align-items:center; gap:7px; min-height:25px; text-align:left; border:0; border-radius:0; background:transparent; color:var(--text); padding:0; font-size:13px; }
+.eta-board-node-button:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.eta-board-title { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-weight:500; }
+.eta-board-status-symbol { display:inline-grid; place-items:center; flex:0 0 15px; width:15px; height:15px; border:1px solid var(--line); border-radius:50%; color:var(--muted); font-size:11px; line-height:1; }
+.eta-board-symbol-observed { border-color:var(--pass); color:var(--pass); }
+.eta-board-symbol-mismatch { border-color:var(--warning); color:var(--warning); }
+.eta-board-symbol-blocked { border-color:var(--fail); color:var(--fail); }
+.eta-board-meta { display:flex; align-items:center; flex-wrap:wrap; gap:3px 6px; margin:3px 0 0 21px; font-size:11px; line-height:1.4; color:var(--muted); }
+.eta-board-meta code { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit; font:inherit; font-size:11px; }
+.eta-board-meta small { font-size:11px; white-space:nowrap; }
+.eta-board-wires { pointer-events:none; position:absolute; inset:0; height:100%; width:100%; overflow:visible; color:var(--muted); }
+.eta-board-wire { pointer-events:auto; outline:none; color:var(--muted); cursor:pointer; }
+.eta-board-wire[data-critical="true"], .eta-board-wire-active { color:var(--text); }
+.eta-board-wire-alternative { color:var(--warning); }
+.eta-board-wire:focus-visible { outline:2px solid var(--accent); }
+.eta-board-cross-group { border-top:1px solid var(--line); background:var(--surface); padding:9px 14px; font-size:11px; }
+.eta-board-cross-group summary { color:var(--muted); cursor:pointer; }
+.eta-board-cross-group ol { list-style:none; padding:6px 0 0; margin:0; display:grid; gap:6px; }
+.eta-board-cross-group li { display:flex; flex-wrap:wrap; gap:7px; }
+.eta-board-cross-group button { border:0; padding:0; background:transparent; color:var(--accent); font-size:11px; text-align:left; }
+.eta-board-phone { display:none; }
+.eta-board-empty,.eta-board-limit { border:1px dashed var(--line); padding:14px; font-size:12px; color:var(--muted); }
+@media (max-width:760px) {
+  .eta-board-wide { display:none; }
+  .eta-board-phone { display:grid; gap:13px; padding:12px; margin:0; list-style:none; }
+  .eta-board-phone-step { display:grid; gap:6px; }
+  .eta-board-phone-step h3 { font-size:11px; font-weight:400; color:var(--muted); margin:0; }
+  .eta-board-phone-cards { display:grid; gap:6px; }
+  .eta-board-card { min-height:58px; }
+  .eta-board-node-button { min-height:35px; }
+  .eta-board-title { white-space:normal; overflow-wrap:anywhere; }
+  .eta-board-group-heading { gap:6px; }
+  .eta-board-group-heading small { margin-left:0; }
+}
