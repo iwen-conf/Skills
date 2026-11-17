@@ -1,4 +1,6 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { etaReadPlan, type ProofState } from "./eta-read-plan";
+import "./eta-plan.css";
 import type { CanvasGraph, CanvasNode } from "./graph-model";
 import { lineageKindLabel, lineageStatusLabel } from "./lineage";
 
@@ -16,6 +18,16 @@ export default function DependencyPlan({
   selected,
   onSelectNode,
 }: DependencyPlanProps) {
+  const [query, setQuery] = useState("");
+  const [proofFilter, setProofFilter] = useState<"ALL" | ProofState>("ALL");
+  const plan = etaReadPlan(graph);
+  const phrase = query.trim().toLocaleLowerCase();
+  const include = (node: CanvasNode) =>
+    (!phrase ||
+      [node.name, node.id, node.detail ?? ""].some((text) =>
+        text.toLocaleLowerCase().includes(phrase),
+      )) &&
+    (proofFilter === "ALL" || plan.state.get(node.id) === proofFilter);
   const groupElements = useRef(new Map<string, HTMLDetailsElement>());
   const nodeElements = useRef(new Map<string, HTMLButtonElement>());
   const byID = new Map(graph.nodes.map((node) => [node.id, node]));
@@ -23,9 +35,10 @@ export default function DependencyPlan({
   const groups = (graph.groups ?? []).flatMap((group) => {
     const members = [...new Set(group.members)].filter((id) => byID.has(id));
     members.forEach((id) => assigned.add(id));
-    return members.length ? [{ ...group, members }] : [];
+    const shown = members.filter((id) => include(byID.get(id)!));
+    return shown.length ? [{ ...group, members: shown }] : [];
   });
-  const ungrouped = graph.nodes.filter((node) => !assigned.has(node.id));
+  const ungrouped = graph.nodes.filter((node) => !assigned.has(node.id) && include(node));
   if (ungrouped.length)
     groups.push({
       id: "arc:ungrouped",
@@ -65,6 +78,60 @@ export default function DependencyPlan({
       <p className="dependency-plan-note">
         点击节点查看条件与证据；展开关系可追到其他业务组。同层表示关系深度，不保证动作可并行。
       </p>
+      <section className="eta-plan-overview" aria-label="ETA式依赖计划概览">
+        <div className="eta-plan-summary" role="status">
+          <strong>{graph.nodes.length} 个节点</strong>
+          <span>{graph.edges.length} 条声明关系</span>
+          <span>{plan.counts.OBSERVED} 项独立观察符合</span>
+          <span>{plan.counts.UNOBSERVED} 项待观察</span>
+          <span>{plan.counts.MISMATCH + plan.counts.BLOCKED} 项不符合或证据阻断</span>
+        </div>
+        <p>观察符合不等于任务完成、已执行准备动作或业务 PASS。同一依赖层不证明可以并行。</p>
+        <div className="eta-plan-controls">
+          <input
+            type="search"
+            aria-label="搜索依赖节点"
+            placeholder="搜索条件、准备动作、业务节点"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <select
+            aria-label="筛选依赖观察状态"
+            value={proofFilter}
+            onChange={(event) => setProofFilter(event.target.value as "ALL" | ProofState)}
+          >
+            <option value="ALL">全部观察状态</option>
+            <option value="UNOBSERVED">尚未独立观察</option>
+            <option value="MISMATCH">观察结果不符合</option>
+            <option value="BLOCKED">证据阻断</option>
+            <option value="OBSERVED">独立观察符合</option>
+          </select>
+        </div>
+      </section>
+      {!plan.valid && <p className="notice error-notice" role="alert">{plan.reason}</p>}
+      {plan.valid && plan.critical.length > 1 && (
+        <nav className="eta-plan-critical" aria-label="当前需关注的声明关键链">
+          <h3>ETA 式关键依赖链 · {plan.critical.length} 个节点</h3>
+          <p>{plan.reason} {plan.attention ? "本次先关注尚未验证的来源。" : "该链全部具有符合的观察；不代表业务已通过。"}</p>
+          <ol>
+            {plan.critical.map((id) => {
+              const node = byID.get(id)!;
+              return (
+                <li key={id}>
+                  <button
+                    type="button"
+                    data-attention={id === plan.attention ? "true" : undefined}
+                    onClick={() => choose(node)}
+                    title={node.detail}
+                  >
+                    {node.name}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      )}
       <div aria-label="依赖系谱分层目录">
         {groups.map((group) => {
           const members = group.members.map((id) => byID.get(id)!);
@@ -91,6 +158,18 @@ export default function DependencyPlan({
                 <strong>{group.label}</strong>
                 <span>{members.length} 个节点</span>
               </summary>
+              <div className="eta-plan-group-progress">
+                <progress
+                  max={members.length}
+                  value={members.filter((node) => plan.state.get(node.id) === "OBSERVED").length}
+                  aria-label={group.label + "独立观察符合的节点比例"}
+                />
+                <span>
+                  {members.filter((node) => plan.state.get(node.id) === "OBSERVED").length}
+                  / {members.length} 项观察符合
+                </span>
+                <span>不是任务完成进度</span>
+              </div>
               <ol className="dependency-plan-levels" aria-label={`${group.label}依赖层级`}>
                 {groupLevels.map((level) => (
                   <li key={level} className="dependency-plan-level" data-plan-level={level + 1}>
@@ -103,6 +182,8 @@ export default function DependencyPlan({
                           key={node.id}
                           data-plan-node={node.id}
                           className={`dependency-plan-node${selected.has(node.id) ? " is-selected" : ""}`}
+                          data-proof-state={plan.state.get(node.id)}
+                          data-plan-critical={plan.critical.includes(node.id) ? "true" : "false"}
                         >
                           <button
                             type="button"
@@ -132,6 +213,16 @@ export default function DependencyPlan({
                               </span>
                             )}
                           </button>
+                          {!!plan.waiting.get(node.id)?.length && (
+                            <small className="eta-plan-waits">
+                              待核对的必要来源 · {plan.waiting.get(node.id)!.map((id) => byID.get(id)?.name ?? id).join("、")}
+                            </small>
+                          )}
+                          {!!plan.releases.get(node.id)?.length && (
+                            <small className="eta-plan-releases">
+                              直接影响 {plan.releases.get(node.id)!.length} 个下游节点
+                            </small>
+                          )}
                           <details
                             className="dependency-plan-relations"
                             open={selected.has(node.id)}
@@ -196,6 +287,9 @@ export default function DependencyPlan({
           );
         })}
       </div>
+      {!groups.length && (
+        <p className="eta-plan-empty" role="status">当前筛选没有匹配的依赖节点；可清除搜索或状态筛选。</p>
+      )}
     </section>
   );
 }
