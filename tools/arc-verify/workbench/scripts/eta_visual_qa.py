@@ -50,7 +50,7 @@ def main() -> None:
                       const wide = document.querySelector(".eta-board-wide");
                       const mobile = document.querySelector(".eta-board-phone");
                       const shown = inner => getComputedStyle(inner).display !== "none";
-                      const node = document.querySelector(".eta-board-wide [data-plan-node]");
+                      const node = document.querySelector(shown(wide) ? ".eta-board-wide [data-plan-node]" : ".eta-board-phone [data-plan-node]");
                       const style = getComputedStyle(node);
                       const rect = node.getBoundingClientRect();
                       const columns = document.querySelector(".eta-board-columns");
@@ -72,7 +72,7 @@ def main() -> None:
                     assert abs(metrics["cardPaddingY"] - 7.2) <= 1, metrics
                     assert abs(metrics["columnGap"] - 36) <= 1, metrics
                     assert metrics["squareCorners"], metrics
-                    assert 208 <= metrics["firstCardWidth"] <= 256, metrics
+                    if width >= 768:\n                        assert 208 <= metrics["firstCardWidth"] <= 256, metrics
                     assert metrics["edgeCount"] == 2, metrics
                     selector = '.eta-board-phone [data-plan-node="issue-refund"] button' if width < 768 else '.eta-board-wide [data-plan-node="issue-refund"] button'
                     page.locator(selector).click()

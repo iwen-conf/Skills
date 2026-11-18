@@ -32,3 +32,15 @@ jobs:
       - run: ./node_modules/.bin/vp check
       - run: ./node_modules/.bin/vp test run
       - run: bun run build
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install playwright==1.56.0
+      - run: python -m playwright install --with-deps chromium
+      - run: python scripts/eta_visual_qa.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: arc-eta-browser-geometry
+          path: tools/arc-verify/workbench/.arc-visual-qa/
+          if-no-files-found: warn
