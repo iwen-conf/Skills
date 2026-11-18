@@ -1,7 +1,6 @@
 """Browser verification for the actual Arc React plan; ETA app itself is not rendered here."""
 from __future__ import annotations
 import json
-import os
 import subprocess
 import time
 import urllib.request
@@ -44,8 +43,15 @@ def main() -> None:
             try:
                 for width, height in VIEWPORTS:
                     page = browser.new_page(viewport={"width": width, "height": height}, device_scale_factor=1)
+                    page_errors: list[str] = []
+                    page.on("pageerror", lambda error: page_errors.append(str(error)))
                     page.goto(URL, wait_until="networkidle")
                     page.locator('[data-eta-group="refund-plan"]').wait_for()
+                    if width >= 768:
+                        page.wait_for_function("""() =>
+                            [...document.querySelectorAll('.eta-board-wide [data-eta-edge]')]
+                              .every((edge) => !!edge.querySelector('path[d]'))
+                        """)
                     metrics = page.evaluate("""() => {
                       const wide = document.querySelector(".eta-board-wide");
                       const mobile = document.querySelector(".eta-board-phone");
@@ -64,6 +70,9 @@ def main() -> None:
                         columnGap: parseFloat(getComputedStyle(columns).columnGap),
                         squareCorners: getComputedStyle(node).borderRadius === "0px",
                         edgeCount: document.querySelectorAll(".eta-board-wire").length,
+                        drawnEdgeCount: [...document.querySelectorAll('.eta-board-wide [data-eta-edge]')]
+                          .filter((edge) => !!edge.querySelector('path[d]')).length,
+                        horizontalOverflow: document.documentElement.scrollWidth > innerWidth + 1,
                       };
                     }""")
                     assert metrics["wideVisible"] == (width >= 768), metrics
@@ -72,11 +81,20 @@ def main() -> None:
                     assert abs(metrics["cardPaddingY"] - 7.2) <= 1, metrics
                     assert abs(metrics["columnGap"] - 36) <= 1, metrics
                     assert metrics["squareCorners"], metrics
-                    if width >= 768:\n                        assert 208 <= metrics["firstCardWidth"] <= 256, metrics
+                    if width >= 768:
+                        assert 208 <= metrics["firstCardWidth"] <= 256, metrics
                     assert metrics["edgeCount"] == 2, metrics
+                    if width >= 768:
+                        assert metrics["drawnEdgeCount"] == 2, metrics
+                    else:
+                        assert not metrics["horizontalOverflow"], metrics
                     selector = '.eta-board-phone [data-plan-node="issue-refund"] button' if width < 768 else '.eta-board-wide [data-plan-node="issue-refund"] button'
                     page.locator(selector).click()
                     assert page.locator("#eta-selected-node").text_content() == "issue-refund"
+                    page.locator(selector).focus()
+                    page.locator(selector).press("Enter")
+                    assert page.locator("#eta-selected-node").text_content() == "issue-refund"
+                    assert not page_errors, "Browser runtime errors: " + "; ".join(page_errors)
                     page.screenshot(path=str(ARTIFACTS / f"arc-{width}x{height}.png"), full_page=True)
                     measurements.append({"viewport": [width, height], **metrics, "selection": "PASS"})
                     page.close()
@@ -93,6 +111,8 @@ def main() -> None:
         "scope": "Rendered Arc fixture in Chromium; actual running ETA visual diff NOT_EVALUATED",
         "eta_reference": "0xfe-project/eta@6b62da886b225391a157c7486e93b85aef73a17c",
         "measurements": measurements,
+        "pixel_parity_against_running_eta": "NOT_EVALUATED",
+        "reason": "No independently captured matched-font, matched-fixture ETA application screenshot",
     }, ensure_ascii=False, indent=2) + "\n")
 
 

@@ -31,3 +31,21 @@ ETA's `THIRD_PARTY_NOTICES.md` explicitly states the `Eta Sans` bundled font is 
 
 ## Test status
 Source-derived geometry fixture was rendered in Chromium (not the live ETA application). Component full-suite build, live browser comparison and exact pixel difference against the ETA application remain `NOT_EVALUATED` in this environment. No real pay_gateway E2E was performed.
+
+
+## Screenshot comparator (2026-11-18)
+The previous Chromium smoke script accidentally contained a literal \\n after `if width >= 768:`; it failed before launching a browser. The script now passes Python syntax compilation before the browser job and tests actual drawn SVG edges, responsive breakpoints, mouse click and keyboard Enter, and browser script errors.
+
+Strict screenshot comparison is a **separate gate** that requires screenshots from independently running ETA and Arc at the same viewport, OS rendering, font and task fixture; the pixel compare script deliberately does not generate an ETA baseline or treat a source-derived screenshot as an authentic ETA application screenshot.
+
+```sh
+python -m pip install Pillow==12.0.0
+python tools/arc-verify/workbench/scripts/eta_pixel_compare.py \
+  --reference /absolute/path/to/eta-real-1440x900.png \
+  --actual /absolute/path/to/arc-real-1440x900.png \
+  --out /absolute/path/to/compare-1440
+```
+
+Default acceptance is **zero changed pixels**, with no hidden masks or cropping. Pixel mismatch or changed viewport dimensions fail and produce a diagnostic JSON and red mismatch mask. Passing the comparator alone does **not** attest the provenance of the screenshots or interaction parity; source identities, task fixtures and font licenses must also be verified.
+
+At the time of this commit, real running ETA screenshots with licensed matched typography remain unavailable and `STRICT_1_TO_1=NOT_RUN`.
