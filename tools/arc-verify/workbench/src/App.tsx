@@ -141,6 +141,7 @@ function Workbench({
     () => initialize(snapshot, context, initialContext, initialView, initialSelected),
   );
   const [treeRoot, setTreeRoot] = useState("");
+  const [etaPlanWide, setEtaPlanWide] = useState(true);
   const [search, setSearch] = useState("");
   const [showLegacy, setShowLegacy] = useState(!snapshot.model.data.business_contract);
   const availableRuns = matchingRuns(context, selection);
@@ -423,7 +424,7 @@ function Workbench({
           </span>
         )}
       </div>
-      <div className="workspace">
+      <div className={etaPlanWide && selection.canvas === "dependencies" ? "workspace eta-plan-workspace" : "workspace"}>
         <nav className="capability-rail" aria-label="能力树与分支导航">
           <div className="panel-heading">
             <span className="eyebrow">01 / 业务导航</span>
@@ -549,17 +550,30 @@ function Workbench({
                   : "业务运行地图"}
               </h1>
             </div>
-            <div className="segmented" role="group" aria-label="画布视图">
-              {(["dependencies", "states", "run"] as const).map((mode) => (
+            <div className="eta-plan-title-actions">
+              <div className="segmented" role="group" aria-label="画布视图">
+                {(["dependencies", "states", "run"] as const).map((mode) => (
+                  <button
+                    type="button"
+                    key={mode}
+                    aria-pressed={selection.canvas === mode}
+                    onClick={() => dispatch({ type: "canvas", value: mode })}
+                  >
+                    {{ dependencies: "准备依赖", states: "业务状态", run: "运行轨迹" }[mode]}
+                  </button>
+                ))}
+              </div>
+              {selection.canvas === "dependencies" && (
                 <button
                   type="button"
-                  key={mode}
-                  aria-pressed={selection.canvas === mode}
-                  onClick={() => dispatch({ type: "canvas", value: mode })}
+                  className="eta-plan-wide-toggle"
+                  aria-label={etaPlanWide ? "返回包含事实面板的四区工作台" : "展开 ETA 全宽计划"}
+                  aria-pressed={etaPlanWide}
+                  onClick={() => setEtaPlanWide((value) => !value)}
                 >
-                  {{ dependencies: "准备依赖", states: "业务状态", run: "运行轨迹" }[mode]}
+                  {etaPlanWide ? "显示事实面板" : "ETA 全宽计划"}
                 </button>
-              ))}
+              )}
             </div>
           </div>
           <div className="canvas-toolbar">
