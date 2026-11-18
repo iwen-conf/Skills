@@ -1085,3 +1085,36 @@ td small {
     gap: 5px;
   }
 }
+
+/* ETA-plan focus mode: ETA's plan fills its content pane, not Arc's narrow middle column.
+   The entire four-area workbench is one click away, retaining the same read-only context. */
+.eta-plan-title-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.eta-plan-wide-toggle { border:1px solid var(--line); background:var(--surface); padding:6px 10px; color:var(--text); border-radius:2px; font-size:11px; white-space:nowrap; min-height:30px; }
+.eta-plan-wide-toggle[aria-pressed="true"] { border-color:var(--accent); font-weight:600; }
+.workspace.eta-plan-workspace {
+  grid-template-columns:minmax(0,1fr);
+  grid-template-areas:"canvas";
+}
+.workspace.eta-plan-workspace .capability-rail,
+.workspace.eta-plan-workspace > .fact-panel,
+.workspace.eta-plan-workspace > .trace-panel,
+.workspace.eta-plan-workspace .model-disclosures { display:none; }
+.workspace.eta-plan-workspace .canvas-panel {
+  grid-column:1;
+  width:100%;
+  min-width:0;
+  height:auto;
+  max-height:none;
+  min-height:calc(100vh - 280px);
+  overflow:visible;
+  padding:14.4px 21.6px;
+  background:oklch(1 0 0);
+}
+.workspace.eta-plan-workspace .dependency-plan-heading,
+.workspace.eta-plan-workspace .dependency-plan-note { display:none; }
+.workspace.eta-plan-workspace .eta-board-group { margin:14.4px 0; }
+@media (max-width:767px) {
+  .workspace.eta-plan-workspace .canvas-panel { padding:10.8px; min-height:0; }
+  .eta-plan-title-actions { width:100%; }
+  .eta-plan-wide-toggle { min-height:36px; }
+}

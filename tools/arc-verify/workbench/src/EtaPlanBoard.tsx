@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { etaReadPlan, proofState, type EtaReadPlan } from "./eta-read-plan";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { etaReadPlan, proofState, type ProofState } from "./eta-read-plan";
 import type { CanvasEdge, CanvasGraph, CanvasNode } from "./graph-model";
 import { lineageKindLabel, lineageStatusLabel } from "./lineage";
 import "./eta-board.css";
@@ -30,31 +30,59 @@ const kindOf = (node: CanvasNode) =>
   node.lineage
     ? lineageKindLabel[node.lineage.kind]
     : lineageKindLabel[node.kind as keyof typeof lineageKindLabel] ?? node.kind;
-const circle = { OBSERVED:"✓", UNOBSERVED:"○", MISMATCH:"!", BLOCKED:"×" } as const;
+/** Ported ETA StatusIcon geometry (MIT); never confuses business verdict with proof state. */
+function EtaEvidenceIcon({ status }: { status: ProofState }) {
+  const maskId = "eta-observation-" + useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  if (status === "UNOBSERVED" || status === "MISMATCH") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 16 16"
+        className={"eta-board-status-symbol eta-board-symbol-" + status.toLowerCase()}>
+        <circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        {status === "MISMATCH" && <path d="M8 3.3A4.7 4.7 0 0 1 8 12.7Z" fill="currentColor" />}
+      </svg>
+    );
+  }
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16"
+      className={"eta-board-status-symbol eta-board-symbol-" + status.toLowerCase()}>
+      <mask id={maskId}>
+        <rect width="16" height="16" fill="white" />
+        {status === "OBSERVED"
+          ? <path d="M4.8 8.2 7 10.3 11.3 5.9"
+              fill="none" stroke="black" strokeWidth="1.8" strokeLinecap="square" />
+          : <rect x="4.3" y="7" width="7.4" height="2" fill="black" />}
+      </mask>
+      <circle cx="8" cy="8" r="7" fill="currentColor" mask={"url(#" + maskId + ")"} />
+    </svg>
+  );
+}
 
 function GroupPlan({
-  group, graph, plan, criticalLinks, selected, onSelectNode,
+  group, graph, selected, onSelectNode,
 }: {
   group: Group;
   graph: CanvasGraph;
-  plan: EtaReadPlan;
-  criticalLinks: ReadonlySet<string>;
   selected: ReadonlySet<string>;
   onSelectNode: (node: CanvasNode) => void;
 }) {
-  const critical = new Set(plan.critical);
   const byId = new Map(graph.nodes.map((node) => [node.id, node]));
   const memberIds = new Set(group.members.filter((id) => byId.has(id)));
   const members = group.members.filter((id) => memberIds.has(id)).map((id) => byId.get(id)!);
+  const edges = graph.edges.filter((edge) => memberIds.has(edge.from) && memberIds.has(edge.to));
+  // ETA planOf computes the steps and critical chain among each parent's children,
+  // while Arc retains cross-group graph membership and evidence independently.
+  const localPlan = etaReadPlan({ ...graph, nodes: members, edges });
+  const critical = new Set(localPlan.critical);
+  const criticalLinks = new Set(localPlan.critical.slice(1).map((id, i) =>
+    JSON.stringify([localPlan.critical[i], id])));
   const columns = new Map<number, CanvasNode[]>();
   for (const node of members) {
-    const level = plan.levels.get(node.id) ?? 0;
+    const level = localPlan.levels.get(node.id) ?? 0;
     const column = columns.get(level) ?? [];
     column.push(node);
     columns.set(level, column);
   }
   const steps = [...columns.keys()].sort((a, b) => a - b);
-  const edges = graph.edges.filter((edge) => memberIds.has(edge.from) && memberIds.has(edge.to));
   const crossEdges = graph.edges.filter((edge) =>
     memberIds.has(edge.from) !== memberIds.has(edge.to) &&
     (memberIds.has(edge.from) || memberIds.has(edge.to)));
@@ -89,7 +117,7 @@ function GroupPlan({
     });
   }, []);
   const layoutKey = members.map((node) => node.id + ":" + node.name + ":" +
-    (plan.levels.get(node.id) ?? 0)).join("|") +
+    (localPlan.levels.get(node.id) ?? 0)).join("|") +
     edges.map((edge) => edge.from + ">" + edge.to).join("|");
   useLayoutEffect(measure, [measure, layoutKey]);
   useEffect(() => {
@@ -124,8 +152,7 @@ function GroupPlan({
           onClick={() => select(node.id)}
           className="eta-board-node-button"
         >
-          <span aria-hidden="true" className={"eta-board-status-symbol eta-board-symbol-" +
-            state.toLowerCase()}>{circle[state]}</span>
+          <EtaEvidenceIcon status={state} />
           <strong className="eta-board-title">{node.name}</strong>
         </button>
         <div className="eta-board-meta">
@@ -268,8 +295,6 @@ export default function EtaPlanBoard({
   onSelectNode: (node: CanvasNode) => void;
 }) {
   const plan = etaReadPlan(graph);
-  const criticalLinks = new Set(plan.critical.slice(1).map((id, i) =>
-    JSON.stringify([plan.critical[i], id])));
   if (!plan.valid) {
     return <div role="alert" className="eta-board-limit">{plan.reason} 完整分层目录仍保留原始条件与关系。</div>;
   }
@@ -293,8 +318,6 @@ export default function EtaPlanBoard({
           key={group.id}
           group={group}
           graph={graph}
-          plan={plan}
-          criticalLinks={criticalLinks}
           selected={selected}
           onSelectNode={onSelectNode}
         />
