@@ -27,6 +27,6 @@ describe("ETA source-derived visual geometry baseline", () => {
   });
   it("does not silently import ETA's proprietary mixed font into Arc", () => {
     expect(stylesheet).toContain('"Eta Sans"');
-    expect(stylesheet).not.toMatch(/url\\(.*\\.woff2/i);
+    expect(stylesheet).not.toMatch(/url\(.*\.woff2/i);
   });
 });

@@ -26,6 +26,14 @@ describe("offline business verification workbench", () => {
     expect(html).not.toContain("principal-B-private-marker");
     expect(html).toMatch(/aria-label="运行"[^>]*disabled/);
   });
+  it("opens a full-width ETA plan by default and leaves the evidence workbench accessible", () => {
+    const html = renderToStaticMarkup(<App state={{ snapshot: contractFixture() }} />);
+    expect(html).toContain('class="workspace eta-plan-workspace"');
+    expect(html).toContain('aria-label="返回包含事实面板的四区工作台"');
+    expect(html).toContain("显示事实面板");
+    expect(html).toContain('aria-label="画布视图"');
+  });
+
   it("shows declared predicates and expectations before there is an execution", () => {
     const html = renderToStaticMarkup(
       <App state={{ snapshot: contractFixture() }} initialContext={{ branch: "B-CALLBACK" }} />,

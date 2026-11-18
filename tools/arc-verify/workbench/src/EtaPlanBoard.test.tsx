@@ -40,6 +40,9 @@ describe("ETA WidePlan/PhonePlan UI parity", () => {
     expect(html).toContain('data-alternative="true"');
     expect(html).not.toContain('data-handle=');
     expect(html).toContain("业务证据");
+    expect(html).toContain('viewBox="0 0 16 16"');
+    expect(html).toContain('data-eta-group="prepare"');
+    expect(html).not.toContain('class="eta-board-status-symbol">✓</span>');
     expect(html).not.toContain("业务 PASS · 已完成");
   });
   it("preserves a true dependent depth, ignoring candidate provider as required work", () => {
