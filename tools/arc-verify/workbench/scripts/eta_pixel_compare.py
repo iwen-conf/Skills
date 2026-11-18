@@ -45,12 +45,12 @@ def compare(reference: Path, actual: Path, out: Path, tolerance: int = 0) -> dic
         if not same_size:
             report["reason"] = "Screenshots have different sizes; refuse crop/stretch"
         else:
-            diffs = ImageChops.difference(source_rgba.convert("RGB"), result_rgba.convert("RGB"))
+            diffs = ImageChops.difference(source_rgba, result_rgba)
             raw = diffs.tobytes()
             # Detect one-channel, one-value differences without RGB→L rounding.
             mismatches = [
-                any(channel > tolerance for channel in raw[i : i + 3])
-                for i in range(0, len(raw), 3)
+                any(channel > tolerance for channel in raw[i : i + 4])
+                for i in range(0, len(raw), 4)
             ]
             count = sum(mismatches)
             report["mismatched_pixels"] = count

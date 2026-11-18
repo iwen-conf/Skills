@@ -33,6 +33,16 @@ class PixelCompareTest(unittest.TestCase):
             self.assertEqual(report["mismatched_pixels"], 1)
             self.assertTrue((d / "diff" / "mismatch-map.png").exists())
 
+    def test_one_alpha_channel_difference_also_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            d = Path(directory)
+            a, b = d / "eta.png", d / "arc.png"
+            Image.new("RGBA", (8, 8), (15, 25, 35, 255)).save(a)
+            image = Image.new("RGBA", (8, 8), (15, 25, 35, 255))
+            image.putpixel((0, 0), (15, 25, 35, 254))
+            image.save(b)
+            self.assertEqual(compare(a, b, d / "diff")["mismatched_pixels"], 1)
+
     def test_size_mismatch_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
             d = Path(directory)
