@@ -62,3 +62,56 @@
 .eta-board-analysis[open] > summary { border-bottom:1px solid var(--line); }
 .eta-board-analysis > .eta-plan-overview { margin:10px; }
 .eta-board-analysis > .eta-plan-critical { margin:10px; }
+
+/* ETA exact geometry, from eta@6b62da8: --spacing=.225rem (3.6px).
+   The original mixed proprietary Eta Sans font is NOT bundled or redistributed. */
+.eta-board {
+  --eta-gap:36px;
+  --eta-pad:12.6px;
+  --eta-row-gap:9px;
+  --eta-card-px:9px;
+  --eta-card-py:7.2px;
+  --eta-card-color:oklch(1 0 0);
+  --eta-sidebar-color:oklch(.985 0 0);
+  --eta-text:oklch(.145 0 0);
+  --eta-subtext:oklch(.54 0 0);
+  --eta-border:oklch(.922 0 0);
+  --eta-success:oklch(.527 .154 150.069);
+  --eta-warning:oklch(.62 .18 75);
+  --eta-error:oklch(.577 .245 27.325);
+  color:var(--eta-text);
+  font-family:"Eta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC","PingFang SC",sans-serif;
+}
+.eta-board :is(.eta-board-group,.eta-board-card,.eta-board-group-heading,.eta-board-node-button,.eta-board-cross-group) { border-radius:0; }
+.eta-board-group { border-color:var(--eta-border); background:var(--eta-sidebar-color); margin:14.4px 0; }
+.eta-board-group-heading { background:var(--eta-card-color); border-color:var(--eta-border); padding:7.2px 12.6px; gap:5.4px; font-size:12px; line-height:1.6; }
+.eta-board-group-heading strong { font-size:13px; font-weight:500; }
+.eta-board-wide-inner { padding:var(--eta-pad); }
+.eta-board-columns { grid-auto-columns:minmax(208px,256px); column-gap:var(--eta-gap); }
+.eta-board-step > h3 { margin-bottom:7.2px; font-size:12px; }
+.eta-board-step-cards { gap:var(--eta-row-gap); }
+.eta-board-card { min-height:0; padding:var(--eta-card-py) var(--eta-card-px); background:var(--eta-card-color); border-color:var(--eta-border); }
+.eta-board-card[data-critical="true"] { border:1.5px solid var(--eta-text); }
+.eta-board-node-button { min-height:0; font-size:13px; gap:5.4px; line-height:1.5; color:var(--eta-text); }
+.eta-board-title { font-weight:500; }
+.eta-board-status-symbol { flex:0 0 12.6px; width:12.6px; height:12.6px; border:0; border-radius:0; color:var(--eta-subtext); }
+.eta-board-symbol-observed { color:var(--eta-success); }
+.eta-board-symbol-mismatch { color:var(--eta-warning); }
+.eta-board-symbol-blocked { color:var(--eta-error); }
+.eta-board-meta { margin:1.8px 0 0 18px; gap:3.6px; line-height:1.5; color:var(--eta-subtext); font-size:12px; }
+.eta-board-meta code,.eta-board-meta small { font-size:12px; }
+.eta-board-wire { color:var(--eta-subtext); }
+.eta-board-wire[data-critical="true"],.eta-board-wire-active { color:var(--eta-text); }
+.eta-board-readonly { color:var(--eta-subtext); }
+@media (max-width:767px) {
+  .eta-board-wide { display:none; }
+  .eta-board-phone { display:grid; padding:10.8px; gap:10.8px; }
+  .eta-board-phone-step { gap:5.4px; }
+  .eta-board-phone-cards { gap:9px; }
+  .eta-board-card { min-height:0; }
+  .eta-board-node-button { min-height:0; }
+}
+@media (min-width:768px) {
+  .eta-board-wide { display:block; }
+  .eta-board-phone { display:none; }
+}

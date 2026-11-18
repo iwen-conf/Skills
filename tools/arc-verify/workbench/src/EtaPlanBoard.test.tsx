@@ -49,6 +49,32 @@ describe("ETA WidePlan/PhonePlan UI parity", () => {
     expect(plan.levels.get("refund")).toBe(1);
     expect(plan.critical).toEqual(["ready", "refund"]);
   });
+  it("restarts ETA plan steps at 1 within each business parent group", () => {
+    const groupGraph: CanvasGraph = {
+      ...graph,
+      nodes: [
+        { id: "root", subject: "root", kind: "condition", name: "共享前置条件" },
+        ...graph.nodes,
+      ],
+      edges: [
+        ...graph.edges,
+        { id: "external", from: "root", to: "ready", kind: "requires", label: "跨组必要条件" },
+      ],
+    };
+    const html = renderToStaticMarkup(<EtaPlanBoard
+      graph={groupGraph}
+      groups={[
+        { id: "root-group", label: "共享条件", members: ["root"] },
+        { id: "payment", label: "支付场景", members: ["ready", "refund"] },
+      ]}
+      selected={new Set()} onSelectNode={() => {}} />);
+    expect(html).toContain('data-eta-step="1"');
+    expect(html).toContain('data-eta-step="2"');
+    expect(html).toContain('data-eta-group="payment"');
+    expect(html).not.toContain('data-eta-step="3"');
+    expect(html).toContain("跨业务组依赖");
+  });
+
   it("refuses to silently truncate giant graphs", () => {
     const many: CanvasGraph = {
       ...graph,
