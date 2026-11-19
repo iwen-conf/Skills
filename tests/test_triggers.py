@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 )
 def test_whole_system_and_database_graph_vocabulary(utterance: str) -> None:
     """Description vocabulary only; host intent and authority remain separate."""
-    assert winner(utterance, load_trigger_corpus(ROOT)) == "arc:verify"
+    assert winner(utterance, load_trigger_corpus(ROOT)) == "arc-verify"
 
 
 def test_trigger_corpus_covers_every_skill() -> None:
@@ -71,24 +71,24 @@ def test_lifecycle_phases_cover_the_full_engineering_cycle() -> None:
 def test_retired_skill_phrases_still_route_to_their_new_owner() -> None:
     corpus = load_trigger_corpus(ROOT)
     owners = {
-        "帮我写PRD": "arc:plan",
-        "需求不清，先澄清一下": "arc:plan",
-        "先拆任务": "arc:plan",
-        "按方案写代码": "arc:code",
-        "线上报错了": "arc:code",
-        "做前端页面": "arc:code",
-        "给控制器加注释": "arc:code",
-        "给 Gin SSR 加计时": "arc:code",
-        "按 DIP 分层": "arc:code",
-        "用 arc-idx 搜代码": "arc:explore",
-        "补测试，写测试": "arc:verify",
-        "给支付流程做可靠性验证": "arc:verify",
-        "给项目做个体检": "arc:audit",
-        "检查订单的业务闭环": "arc:plan",
-        "修改状态机后重新闭环检查": "arc:plan",
-        "跑一次安全扫描": "arc:audit",
-        "引入依赖前先做开源选型": "arc:vet",
-        "这个库停更三年了还能用吗": "arc:vet",
+        "帮我写PRD": "arc-plan",
+        "需求不清，先澄清一下": "arc-plan",
+        "先拆任务": "arc-plan",
+        "按方案写代码": "arc-code",
+        "线上报错了": "arc-code",
+        "做前端页面": "arc-code",
+        "给控制器加注释": "arc-code",
+        "给 Gin SSR 加计时": "arc-code",
+        "按 DIP 分层": "arc-code",
+        "用 arc-idx 搜代码": "arc-explore",
+        "补测试，写测试": "arc-verify",
+        "给支付流程做可靠性验证": "arc-verify",
+        "给项目做个体检": "arc-audit",
+        "检查订单的业务闭环": "arc-plan",
+        "修改状态机后重新闭环检查": "arc-plan",
+        "跑一次安全扫描": "arc-audit",
+        "引入依赖前先做开源选型": "arc-vet",
+        "这个库停更三年了还能用吗": "arc-vet",
     }
     for utterance, owner in owners.items():
         assert winner(utterance, corpus) == owner, utterance

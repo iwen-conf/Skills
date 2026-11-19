@@ -1,0 +1,108 @@
+story_id: ecommerce_account_cancellation
+focal_entity: users.id
+frozen_readonly:
+  - api/openapi.yaml
+  - db/migrations/004_account_cancel.sql
+blind_mask:
+  - internal/account/cancel_impl.go
+  - internal/wallet/ledger_impl.go
+
+world_flags:
+  wallet_available: wallet_accounts.available_cents
+  wallet_in_transit: settlement_orders.pending_cents
+  unreceived_goods: fulfillment_orders.delivery_status
+  merchant_snapshots: merchant_orders.buyer_display_state
+
+checkpoints:
+  - save_id: save_01_clean_veteran
+    parent: root
+    engine: dir
+    setup_steps:
+      - call: order.create_and_complete
+        with: { amount_cents: 5000 }
+      - call: wallet.withdraw_all
+    assert_flags:
+      wallet_available: 0
+      wallet_in_transit: 0
+      unreceived_goods: 0
+
+  - save_id: save_02_in_transit_crossroad
+    parent: save_01_clean_veteran
+    engine: dir
+    setup_steps:
+      - call: refund.trigger_channel_async_settlement
+        with: { pending_cents: 3200 }
+    assert_flags:
+      wallet_available: 0
+      wallet_in_transit: 3200
+
+routes:
+  - route_id: route_happy_cancel
+    load_save: save_01_clean_veteran
+    runner_type: grok_e2e
+    write_scope: [tests/e2e/specs/account-cancel-clean.spec.ts]
+    runtime_ns: ns_e2e_clean_cancel
+    verify_cmd: "echo \"[$SHARD_NS] clean cancel verified\""
+    sequence:
+      - step: 1
+        choice: account.apply_cancel
+        expect_status: CANCELLED
+        butterfly_probes:
+          merchant_snapshots: ANONYMIZED_KEEP_RECORD
+    unlocks_ending: END_01_CLEAN_EXIT
+
+  - route_id: route_hard_blocked
+    load_save: save_01_clean_veteran
+    runner_type: codex_integration
+    write_scope: [tests/unit/cancel_hard_block_test.go]
+    runtime_ns: ns_unit_hard_block
+    verify_cmd: "echo \"[$SHARD_NS] hard block verified\""
+    sequence:
+      - step: 1
+        choice: account.apply_cancel_with_balance
+        expect_status: BLOCKED_BY_BALANCE
+        butterfly_probes:
+          wallet_available: UNCHANGED
+    unlocks_ending: END_02_HARD_BLOCKED
+
+  - route_id: route_in_transit_softlock_guard
+    load_save: save_02_in_transit_crossroad
+    runner_type: claude_surface
+    write_scope: [tests/surfaces/account_cancel/softlock_test.go]
+    runtime_ns: ns_surf_in_transit
+    verify_cmd: "echo \"[$SHARD_NS] cooling revert verified without softlock\""
+    sequence:
+      - step: 1
+        choice: account.apply_cancel
+        expect_status: COOLING_SUSPENSE
+      - step: 2
+        choice: payment.webhook_settle_arrived
+        with: { settled_cents: 3200 }
+        expect_status: CANCEL_ABORTED_WITHDRAW_UNLOCKED
+        anti_softlock: "account.can_withdraw == true || account.status == CANCELLED"
+        butterfly_probes:
+          wallet_available: 3200
+          wallet_in_transit: 0
+    unlocks_ending: END_03_COOLING_REVERTED
+
+  - route_id: route_admin_force_purge
+    load_save: save_02_in_transit_crossroad
+    runner_type: codex_integration
+    write_scope: [tests/surfaces/account_cancel/force_purge_test.go]
+    runtime_ns: ns_surf_force_purge
+    verify_cmd: "echo \"[$SHARD_NS] force purge cascade verified\""
+    sequence:
+      - step: 1
+        choice: admin.force_purge_account
+        with: { reason: compliance_violation }
+        expect_status: PURGED
+        butterfly_probes:
+          merchant_snapshots: ANONYMIZED_NO_NULL_FK
+          suspense_ledger: CREDITED_3200_BALANCED
+    unlocks_ending: END_04_FORCE_CASCADE
+
+required_endings:
+  - END_01_CLEAN_EXIT
+  - END_02_HARD_BLOCKED
+  - END_03_COOLING_REVERTED
+  - END_04_FORCE_CASCADE

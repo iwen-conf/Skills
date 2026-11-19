@@ -39,16 +39,16 @@ def test_malformed_arc_entrypoint_is_counted_and_rejected(tmp_path: Path, text: 
 
 DESCRIPTION = (
     "Implements scoped code changes and verifies them when the scheme is already clear enough "
-    "to start. Not for read-only review (use arc:audit)."
+    "to start. Not for read-only review (use arc-audit)."
 )
 
 ARC_SECTIONS = [
-    ("Non-trigger", "- read-only review → arc:audit"),
+    ("Non-trigger", "- read-only review → arc-audit"),
     ("Goal", "The requested behavior exists and its checks pass."),
     ("Inputs", "- request (required)"),
     (
         "Intent Router",
-        "| When | Load |\n|---|---|\n| matching work | this SKILL.md |\n| unclear scope | `arc:plan` |",
+        "| When | Load |\n|---|---|\n| matching work | this SKILL.md |\n| unclear scope | `arc-plan` |",
     ),
     ("Workflow", "1. Read the contract."),
     ("Tool Strategy", "- Preferred: arc-idx."),
@@ -75,7 +75,7 @@ description: "{description}"
 
 def test_parse_frontmatter_extracts_core_fields() -> None:
     text = """---
-name: "arc:code"
+name: "arc-code"
 version: "1.0.0"
 description: "Code delivery."
 ---
@@ -83,14 +83,14 @@ description: "Code delivery."
 """
     frontmatter, error = parse_frontmatter(text)
     assert error is None
-    assert frontmatter["name"] == "arc:code"
+    assert frontmatter["name"] == "arc-code"
     assert frontmatter["description"] == "Code delivery."
     assert frontmatter["version"] == "1.0.0"
 
 
 def test_validate_text_reports_missing_intent_router() -> None:
     text = _router_skill_text(
-        "arc:code",
+        "arc-code",
         DESCRIPTION,
         _arc_body([item for item in ARC_SECTIONS if item[0] != "Intent Router"]),
     )
@@ -101,11 +101,11 @@ def test_validate_text_reports_missing_intent_router() -> None:
 
 def test_validate_text_rejects_out_of_order_and_empty_sections() -> None:
     swapped = [ARC_SECTIONS[1], ARC_SECTIONS[0], *ARC_SECTIONS[2:]]
-    errors, _warnings = validate_text(_router_skill_text("arc:code", DESCRIPTION, _arc_body(swapped)), "virtual/SKILL.md")
+    errors, _warnings = validate_text(_router_skill_text("arc-code", DESCRIPTION, _arc_body(swapped)), "virtual/SKILL.md")
     assert any("headings out of order" in item for item in errors)
 
     emptied = [(title, "" if title == "Goal" else body) for title, body in ARC_SECTIONS]
-    errors, _warnings = validate_text(_router_skill_text("arc:code", DESCRIPTION, _arc_body(emptied)), "virtual/SKILL.md")
+    errors, _warnings = validate_text(_router_skill_text("arc-code", DESCRIPTION, _arc_body(emptied)), "virtual/SKILL.md")
     assert "virtual/SKILL.md: ## Goal must not be empty" in errors
 
 
@@ -114,41 +114,41 @@ def test_validate_text_ignores_headings_inside_code_fences() -> None:
         (title, body + "\n```markdown\n## Not A Section\n```" if title == "Workflow" else body)
         for title, body in ARC_SECTIONS
     ]
-    errors, _warnings = validate_text(_router_skill_text("arc:code", DESCRIPTION, _arc_body(fenced)), "virtual/SKILL.md")
+    errors, _warnings = validate_text(_router_skill_text("arc-code", DESCRIPTION, _arc_body(fenced)), "virtual/SKILL.md")
     assert errors == []
 
 
 def test_validate_text_requires_not_for_clause() -> None:
     description = "Implements scoped code changes and verifies them when the scheme is already clear enough to start."
-    errors, _warnings = validate_text(_router_skill_text("arc:code", description), "virtual/SKILL.md")
+    errors, _warnings = validate_text(_router_skill_text("arc-code", description), "virtual/SKILL.md")
     assert any("'Not for … (use X)' clause" in item for item in errors)
 
 
 def test_validate_text_rejects_retired_skill_names_and_token_overflow() -> None:
     body = _arc_body([(title, body + " Hand off to arc:fix." if title == "Workflow" else body) for title, body in ARC_SECTIONS])
-    errors, _warnings = validate_text(_router_skill_text("arc:code", DESCRIPTION, body), "virtual/SKILL.md")
+    errors, _warnings = validate_text(_router_skill_text("arc-code", DESCRIPTION, body), "virtual/SKILL.md")
     assert any("retired Arc skills: arc:fix" in item for item in errors)
 
     padded = _arc_body([(title, body + "\n" + "word " * 3000 if title == "Workflow" else body) for title, body in ARC_SECTIONS])
-    errors, _warnings = validate_text(_router_skill_text("arc:code", DESCRIPTION, padded), "virtual/SKILL.md")
+    errors, _warnings = validate_text(_router_skill_text("arc-code", DESCRIPTION, padded), "virtual/SKILL.md")
     assert any("exceeds 3500 estimated tokens" in item for item in errors)
 
 
 def test_validate_text_warns_on_vague_wording() -> None:
     body = _arc_body([(title, body + " Add checks as needed." if title == "Workflow" else body) for title, body in ARC_SECTIONS])
-    errors, warnings = validate_text(_router_skill_text("arc:code", DESCRIPTION, body), "virtual/SKILL.md")
+    errors, warnings = validate_text(_router_skill_text("arc-code", DESCRIPTION, body), "virtual/SKILL.md")
     assert errors == []
     assert any("vague wording (as needed)" in item for item in warnings)
 
 
 def test_validate_text_rejects_short_or_first_person_description() -> None:
-    text = _router_skill_text("arc:code", "I can help you write code.")
+    text = _router_skill_text("arc-code", "I can help you write code.")
     errors, _warnings = validate_text(text, "virtual/SKILL.md")
     assert any("third person" in item or "at least 80" in item for item in errors)
 
 
 def test_validate_text_rejects_retired_frontmatter_keys() -> None:
-    text = _router_skill_text("arc:code", DESCRIPTION).replace(
+    text = _router_skill_text("arc-code", DESCRIPTION).replace(
         "version: 1.0.0\n", "version: 1.0.0\nenforce_arc_profile: true\n"
     )
     errors, _warnings = validate_text(text, "virtual/SKILL.md")
@@ -156,17 +156,17 @@ def test_validate_text_rejects_retired_frontmatter_keys() -> None:
 
 
 def test_build_skill_document_extracts_intent_router() -> None:
-    document = build_skill_document(_router_skill_text("arc:code", DESCRIPTION))
-    assert document["frontmatter"]["name"] == "arc:code"
+    document = build_skill_document(_router_skill_text("arc-code", DESCRIPTION))
+    assert document["frontmatter"]["name"] == "arc-code"
     assert document["intent_router"][0]["When"] == "matching work"
 
 
 def test_intent_router_preserves_multiple_inline_code_spans() -> None:
-    text = _router_skill_text("arc:code", DESCRIPTION).replace(
-        "| matching work | this SKILL.md |", "| matching work | `arc:code` / `arc:verify` |"
+    text = _router_skill_text("arc-code", DESCRIPTION).replace(
+        "| matching work | this SKILL.md |", "| matching work | `arc-code` / `arc-verify` |"
     )
     document = build_skill_document(text)
-    assert document["intent_router"][0]["Load"] == "`arc:code` / `arc:verify`"
+    assert document["intent_router"][0]["Load"] == "`arc-code` / `arc-verify`"
 
 
 def test_relative_link_extraction_ignores_inline_code_examples() -> None:
@@ -175,36 +175,36 @@ def test_relative_link_extraction_ignores_inline_code_examples() -> None:
 
 
 def test_validate_skill_schema_accepts_router_document() -> None:
-    document = build_skill_document(_router_skill_text("arc:code", DESCRIPTION))
+    document = build_skill_document(_router_skill_text("arc-code", DESCRIPTION))
     assert validate_skill_schema(document, "virtual/SKILL.md", ROOT) == []
 
 
 def test_validate_text_accepts_router_arc_skills() -> None:
-    errors, warnings = validate_text(_router_skill_text("arc:code", DESCRIPTION), "virtual/SKILL.md")
+    errors, warnings = validate_text(_router_skill_text("arc-code", DESCRIPTION), "virtual/SKILL.md")
     assert errors == []
     assert warnings == []
 
 
 def test_validate_text_rejects_non_arc_skill_name() -> None:
     errors, _warnings = validate_text(_router_skill_text("plain-skill", DESCRIPTION), "virtual/SKILL.md")
-    assert "virtual/SKILL.md: skill name must use arc:xxx namespace" in errors
+    assert "virtual/SKILL.md: skill name must use arc-xxx namespace" in errors
 
 
 def test_repo_validation_requires_root_cause_gate_for_repair_capable_skill(tmp_path: Path) -> None:
-    skill_dir = tmp_path / "Arc" / "arc:code"
+    skill_dir = tmp_path / "Arc" / "arc-code"
     skill_dir.mkdir(parents=True)
     description = (
         "Diagnoses a reproduced failure and repairs the confirmed cause with focused verification "
-        "when logs, failing tests, or incident evidence are available. Not for review (use arc:audit)."
+        "when logs, failing tests, or incident evidence are available. Not for review (use arc-audit)."
     )
-    (skill_dir / "SKILL.md").write_text(_router_skill_text("arc:code", description), encoding="utf-8")
+    (skill_dir / "SKILL.md").write_text(_router_skill_text("arc-code", description), encoding="utf-8")
     (tmp_path / "schemas").mkdir()
     (tmp_path / "schemas" / "skill.schema.json").write_text(
         (ROOT / "schemas" / "skill.schema.json").read_text(encoding="utf-8"),
         encoding="utf-8",
     )
     (tmp_path / "schemas" / "trigger_corpus.yaml").write_text(
-        "skills:\n  arc:code:\n    must_contain: [Diagnoses, failure, repairs]\n    positive: [a, b, c, d, e, f, g, h]\n    negative: [i, j, k]\n",
+        "skills:\n  arc-code:\n    must_contain: [Diagnoses, failure, repairs]\n    positive: [a, b, c, d, e, f, g, h]\n    negative: [i, j, k]\n",
         encoding="utf-8",
     )
 
@@ -219,7 +219,7 @@ def test_repo_validation_requires_root_cause_gate_for_repair_capable_skill(tmp_p
 
 
 def test_validate_text_accepts_every_arc_skill_name() -> None:
-    for name in ("arc:explore", "arc:plan", "arc:code", "arc:verify", "arc:audit", "arc:vet"):
+    for name in ("arc-explore", "arc-plan", "arc-code", "arc-verify", "arc-audit", "arc-vet"):
         errors, warnings = validate_text(_router_skill_text(name, DESCRIPTION), "virtual/SKILL.md")
         assert errors == []
         assert warnings == []
@@ -250,13 +250,13 @@ def test_all_skill_names_use_arc_namespace() -> None:
         frontmatter, error = parse_frontmatter(text)
         if error:
             continue
-        assert frontmatter.get("name", "").startswith("arc:"), path
+        assert frontmatter.get("name", "").startswith("arc-"), path
 
 
 def test_skill_packages_keep_lifecycle_invariants() -> None:
     cases = {
-        "arc:explore": ["_shared/code-intel.md", "impact"],
-        "arc:plan": [
+        "arc-explore": ["_shared/code-intel.md", "impact"],
+        "arc-plan": [
             "进度跟踪表.md",
             "00-前置约束.md",
             "_shared/finding-campaign.md",
@@ -265,7 +265,7 @@ def test_skill_packages_keep_lifecycle_invariants() -> None:
             "scripts/closure/init_docs.py",
             "scripts/closure/check_closure.py",
         ],
-        "arc:code": [
+        "arc-code": [
             "execution-truth.md",
             "_shared/code-intel.md",
             "scripts/gate.sh",
@@ -274,12 +274,12 @@ def test_skill_packages_keep_lifecycle_invariants() -> None:
             "_shared/conventions/comments.md",
             "_shared/api-contract.md",
         ],
-        "arc:verify": ["execution-truth.md", "references/db.md", "FLAKY", "BLOCKED", "NOT_RUN"],
-        "arc:audit": [
+        "arc-verify": ["execution-truth.md", "references/db.md", "FLAKY", "BLOCKED", "NOT_RUN"],
+        "arc-audit": [
             "execution-truth.md", "git status --porcelain", "_shared/code-rot.md", "`cnb` (review mode)",
             "references/attack-classes.md", "security-audit-skill", "Candidate gate", "Fingerprint",
         ],
-        "arc:vet": ["_shared/code-intel.md", "未核实", "36 months", "scripts/github_health.py", "docs/10-复盘决策/"],
+        "arc-vet": ["_shared/code-intel.md", "未核实", "36 months", "scripts/github_health.py", "docs/10-复盘决策/"],
     }
     for name, phrases in cases.items():
         folder = ROOT / "Arc" / name

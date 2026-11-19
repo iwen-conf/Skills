@@ -1,6 +1,6 @@
 # Code Comment Conventions
 
-Applied by arc:code in comment mode and whenever it writes code comments; checked by arc:audit.
+Applied by arc-code in comment mode and whenever it writes code comments; checked by arc-audit.
 
 ## 1. Rules
 

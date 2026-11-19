@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arc Plan"
+  short_description: "PRDs, briefs, closure models, task documents and progress"
+  default_prompt: "Use $arc-plan to produce frozen contracts, closure checks or a write-set isolated plan-dag.yaml before any code changes."

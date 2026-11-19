@@ -3,7 +3,7 @@
 # the skill that now owns the behavior; prewalk and Lark workspace phrases must select no Arc
 # skill. Runtime routing, scope and authorization live in behavior_corpus.yaml.
 skills:
-  arc:explore:
+  arc-explore:
     must_contain:
     - arc-idx
     - 搜代码
@@ -35,7 +35,7 @@ skills:
     - 只读体检这个仓库
     - 给函数加注释
     - 创建飞书项目空间
-  arc:plan:
+  arc-plan:
     must_contain:
     - PRD
     - 立项
@@ -116,7 +116,7 @@ skills:
     - 实现登录接口
     - 查调用链与影响面
     - 核对 PostgreSQL 发布证据
-  arc:code:
+  arc-code:
     must_contain:
     - 写代码
     - 开发功能
@@ -206,7 +206,7 @@ skills:
     - 写PRD立项
     - 拆任务写任务文档
     - 创建飞书项目空间
-  arc:verify:
+  arc-verify:
     must_contain:
     - 完整测试
     - 测试整个
@@ -295,7 +295,7 @@ skills:
     - 安全扫描依赖漏洞
     - 报错堆栈查根因
     - 按方案写代码落地改动
-  arc:audit:
+  arc-audit:
     must_contain:
     - HTTP API
     - 接口设计
@@ -345,7 +345,7 @@ skills:
     - 给支付流程做可靠性验证
     - 这个函数在哪定义
     - 核对候选库的许可证是否兼容
-  arc:vet:
+  arc-vet:
     must_contain:
     - 开源选型
     - 技术选型

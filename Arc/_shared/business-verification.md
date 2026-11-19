@@ -1,128 +1,44 @@
-# Deterministic business verification
+# Storyline Verification & Domain Invariants
 
-This is the shared semantic contract for all six Arc skills. Read it when modeling,
-changing, executing or reviewing business behavior. Local unrelated tests do not require a graph.
+Shared verification semantics across all six Arc skills. Replaces legacy multi-version business graphs and flat task cards with one machine-checkable **Branching Storyline Model** (`*.story.yaml`).
 
-## Three separate models
+## 1. Core Model: World Flags → Checkpoints → Concurrent Routes → Multi-Endings
 
-| Model | Meaning | Permitted structure |
-|---|---|---|
-| Capability tree | System → domain → capability → scenario | Acyclic ownership hierarchy; never a transition oracle |
-| Preparation dependency genealogy | Which actions or independent observations establish each required condition | DAG with explicit dependencies, longest dependency depth, independent preparation layers, blockers and upstream/downstream tracing |
-| Business state machine | Legal behavior of identified actors and entities under confirmed conditions | Cycles, retries, compensation, external events, concurrent interleavings and recovery |
+1. **World Flags (`world_flags`)**: Reverse-extracted cross-domain state variables referencing the focal entity (e.g. `users.id` → `wallet_accounts.available_cents`, `settlement_orders.pending_cents`, `fulfillment_orders.delivery_status`, `merchant_orders.buyer_display_state`, async topics).
+   - Never guess preconditions from memory or read implementation `if` branches to pick cases.
+   - Run `arc verify scan-world <focal_entity>` (or `arc idx impact <focal_entity>`) first; every coupled entity must bind into `world_flags` or fail `arc verify lint-story --world-scan`.
+2. **Checkpoints (`checkpoints`)**: Ordered, read-only state snapshots at business crossroads (e.g. `save_01_clean_veteran` → `save_02_in_transit_crossroad`).
+   - Built once in topological DAG order (`arc verify checkpoint build`), then cloned in milliseconds per route (`SHARD_NS` / isolated DB template / SQLite copy / dir copy) so sequential prerequisite history never blocks parallel execution.
+3. **Branching Routes (`routes`)**: Parallel trajectories loaded from a checkpoint (`load_save`), executing real sequential steps (`sequence`), checking adjacent domain side effects via **`butterfly_probes`**, and unlocking a declared **`unlocks_ending`**.
+   - Routes cover the 3 verification tracks + hard endings:
+     - **Clean exit** (`END_CLEAN`)
+     - **Hard block** (`BLOCKS` — nonzero balance, active goods, open disputes rejected with zero mutation)
+     - **Cooling / async suspense + safe escape** (`MUTATES` — in-transit settlement enters cooling state and safely settles or reverts without trapping the user)
+     - **Forced cascade / anonymization** (`CASCADES` — admin/compliance purge anonymizes counterparty snapshots, preserves non-null FKs, transfers residual funds to suspense ledger with double-entry conservation)
+4. **Anti-Softlock Invariant (`anti_softlock`)**: Every intermediate suspended/cooling/frozen/pending status MUST define an escape transition or explicit `anti_softlock` invariant (e.g. `account.can_withdraw == true || account.status == CANCELLED`). A state where the user can neither progress nor recover is a fatal business softlock.
+5. **Blind-Test Sharding & Namespace Isolation**:
+   - `arc verify plan-shards` splits routes into `regular_unit`, `spiderweb_surface`, and `fullstack_e2e` shards with **disjoint `write_scope`**, unique **`runtime_ns` (`SHARD_NS`)**, and **`blind_mask`** (hiding private business implementation files while writing tests from contracts + schema + storyline).
+   - E2E browser journeys reuse checkpoint seeders instead of clicking through 30-second UI prerequisites.
 
-ETA informs dependency organization, layers, focus and history. Its task completion status does
-not prove business correctness. A state-machine retry loop is not a dependency cycle.
+## 2. Hard Completion Gate & Immutable Failure History
 
-## Branch identity and meaning
+- `arc verify play <story.yaml> --parallel --blind` executes routes and appends immutable receipts into `.arc/arc.db` (or `.arc/verify/story.db`).
+- **First FAIL is never erased**: a later PASS appends a new receipt and preserves `historical_fail_count`.
+- **Anti-theater**: dry-runs or routes without real executable commands stay `BLOCKED`, never `PASS`.
+- `arc verify completion <story.yaml>` exits `0` **only** when all 4 metrics hit **100%** with `softlock_count == 0` and `unresolved_fail_count == 0`:
+  1. `world_flag_binding_pct == 100`
+  2. `route_coverage_pct == 100`
+  3. `butterfly_probe_hit_pct == 100`
+  4. `ending_unlock_pct == 100`
+- Static read-only visualization: `arc verify snapshot --file <story.yaml> --out <dir>` exports a self-contained UTF-8 HTML+JSON Storyline Workbench.
 
-`(complete relevant PreState, Guard, Actor, Action) -> ExpectedOutcome`.
+## 3. Cross-Skill Responsibilities
 
-Bind each branch to model/version, flow, action, transition, RULE/source, capability and obligations.
-Conditions retain subjects, typed attributes, operators and values, including boolean composition,
-ranges, sets and relations. Bind aliases to observed account/entity identities; retain each subject.
-
-For a complete input, confirmed guards must yield exactly one branch. Overlap, even when two
-rules happen to produce the same output, is an explicit ambiguity; reject it as `MODEL_ERROR`.
-No match is `SPECIFICATION_GAP`. Unknown observations, missing binding or unconfirmed semantics
-are `BLOCKED`. None of these outcomes is product PASS. Priority is not an implicit tie breaker.
-
-One branch freezes its response, resulting state, persistence, events, side effects, prohibited
-effects, invariants and permitted next actions before the real operation. Source-backed
-`allowed_outcomes` may express true contract-permitted nondeterminism, with common invariants;
-ordinary exceptions and external events belong to their own conditioned transitions.
-`next_allowed` absent/null is unrestricted; `[]` permits no successor. Intersect allowlists from
-every outcome not disproven by Actual, including UNKNOWN alternatives. One proven outcome can
-establish acceptance without proving a unique outcome identity; preserve remaining uncertainty.
-Enforce the safe intersection before dispatch and during offline replay, including ordinary sequences.
-
-The runtime must never use an actual response to rewrite Expected or pick a different branch.
-Unknown or out-of-model actual states remain observations, not newly approved expectations.
-
-## Preparation and execution
-
-1. Observe the actor, bound entities, state, relevant history and external conditions.
-2. Compare `ObservedPreState` with the required `ExpectedPreState` at attribute level.
-3. Plan all missing conditions through declared preparations. Effects are predictions; failed
-   unmapped prerequisites remain blockers. Skip a preparation or satisfy its dependencies only
-   when both its Ensures and declared Effects are observed. Bind preparation to the target subject.
-4. Execute authorized preparation through real entries, preserve its evidence, and independently
-   read back each postcondition. Preparation failure blocks the target action.
-5. Match exactly one branch from the observed prestate, require its rule to match the registered
-   operation's rule, and freeze its contract/version/hash.
-6. Execute the real action, retain request occurrence and actor/entity/session references.
-7. Independently observe actual response, poststate, writes, messages and external effects.
-8. Compare each frozen obligation, retain the first deviation and continue only from observed
-   state. Missing/damaged evidence is `BLOCKED`; an observed contract violation is `FAIL`.
-
-An async acceptance ends in its documented pending state. Success/failure events and timeout
-observations are later inputs. Concurrent tests record actors, observed versions and controlled
-or permitted interleavings; do not claim an order that the oracle cannot observe.
-
-## Facts, coverage and workbench
-
-Use one project ledger: `.arc/arc.db` after activation; preserve legacy history during migration.
-The immutable model, frozen expectations, RAW, `step_facts`, `step_assertions` and
-`run_entity_bindings` form the evidence chain. Identity includes run, step, actor, account/entity,
-oracle and observation phase. Two accounts may use the same oracle name without sharing facts.
-Revalidate every registered Oracle, including secondary readers; array order never selects a fact.
-Check each executed action's rule invariants against its own actor and action-index observations,
-including every participant in a concurrent batch. A healthy final participant cannot hide an
-earlier violation. Valid evidence of a business FAIL remains valid evidence, not a successful run.
-An archived RAW fallback is valid only after digest, identity and ledger projection checks.
-
-Finite proofs declare actions, states, attribute domains and budgets. `PROVEN_IN_SCOPE` and
-gate `complete_in_declared_scope` cover that partition and its executed obligations only;
-`business_e2e_status=NOT_EVALUATED` requires separate journey acceptance. Keep omitted states,
-unknown rules and exhausted budgets visible. Endpoint/node counts do not prove completeness.
-Models without `business_contract` remain `LEGACY_UNDECLARED` for this stronger contract.
-
-Bounded online exploration uses `arc verify campaign` with explicit registered input variants,
-fresh scoped observations and the same prepare/freeze/execute/compare path. Its ledger retains
-candidate eligibility, dispatch reservations, child runs, actual history and stop reasons.
-`COMPLETED_IN_SCOPE` covers the selected variants only; it cannot approve missing rules or prove
-full business reachability. Resume must reconcile original child-run evidence and retain unknown
-dispatches without replay. A verified failed visit fences subsequent dispatches; changing an outer
-stop label cannot authorize continuation past its first divergence. The legacy `discover` executor
-remains unavailable to strict models.
-
-The native snapshot workbench has capability, dependency/state/run, branch/facts and trace
-regions, with one `model/environment/flow/branch/run/step/actor/entity` selection context.
-Select a branch before showing its unique expected outcome; select a run before showing Actual.
-Never merge account observations or attach a historical run to a branch by guessing its node.
-A typed action fact without its own frozen decision remains diagnostic even if another step has a branch.
-Check nested RAW run/phase/step identity against its enclosing export before rendering facts.
-Static exports are read-only; all writes use the existing CLI.
-
-## Responsibilities and acceptance
-
-| Skill | Required output |
+| Skill | Role in Storyline & DAG Pipeline |
 |---|---|
-| explore | Independently traced entries, state attributes, entities, writes, events and sources; observations do not approve rules |
-| plan | Confirmed branch semantics, coverage scope and explicit missing decisions; reuse existing user confirmation |
-| code | Kernel, adapters, persistence and UI implementing the frozen contract; preserve old evidence |
-| verify | Independent pre/post observations, executed preparation, per-branch verdicts and counterexamples |
-| audit | Check overlap, gaps, incorrect expected/actual coupling, isolation, freshness and evidence integrity |
-| vet | Assess tools against dependency DAG versus cyclic state-machine needs; no mandatory rendering plugin |
-
-D01–D10 cover conflicting rules, state-dependent branches, overlapping guards, uncovered
-combinations, wrong actual prestate, frozen-expectation deviation, async event inputs, entity
-continuity, multi-account isolation and separation of preparation DAGs from state cycles.
-Tool tests or synthetic fixtures do not qualify pay_gateway; real project acceptance also needs
-its isolated environment, authorized accounts, actual entries and independent persistence/
-external-effect observations. Unavailable dependencies are named blockers, never simulated PASS.
-
-## Make repeated corrections executable
-
-Following [Lauren Tan's engineering argument](https://ai.engineer/code/2026/talks/lauren-tan),
-enforce corrections through APIs, boundaries, types and regressions. Arc checks branch uniqueness,
-pre-action capture, oracle identity and evidence. `TestBusinessKernelHasNoAmbientIO` checks direct
-kernel imports; `FuzzBusinessContractUniqueFreezeDoesNotFollowActual` exercises integer partitions,
-branch order and frozen Expected. Neither proves whole-program correctness.
-
-The capability tree is the shared user-facing feature vocabulary; registered CLI adapters are
-reusable drivers. Reviewers inspect their scoped model, actual assertions and reproducible traces.
-Keep documentation for decisions, sources and unresolved judgment. Do not globally ban comments
-or React effects by copying another product's local framework policy. TLA+, Lean and UI property
-testing can add separate evidence, but are not implemented by naming them in a skill. Expand
-automated exploration only after its ordinary observe/freeze/execute/check loop is trustworthy.
+| `arc-explore` | `arc idx skeleton` + `arc idx impact` to locate symbols and extract cross-layer entity couplings |
+| `arc-plan` | Freeze contracts, validate closure & compile write-set isolated `plan-dag.yaml` (`dag_check.py`) |
+| `arc-code` | Implement inside `.arc-task.json` `write_scope` and pass `gate.sh scope/hygiene/test/check` |
+| `arc-verify` | `scan-world` → author `*.story.yaml` → `lint-story` → `plan-shards` → `play --parallel --blind` → `completion` |
+| `arc-audit` | Read-only review of diff, security, race windows, permission boundaries and ledger invariants |
+| `arc-vet` | Evaluate third-party libraries/tools with dated evidence before adoption |

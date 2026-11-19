@@ -1,7 +1,7 @@
 # Finding Campaign
 
-Turns `arc:audit` findings into detailed task batches before any fix. `arc:audit` reads it to write
-the handoff package; `arc:plan` reads it to write the tasks. Vocabulary and the severity→priority
+Turns `arc-audit` findings into detailed task batches before any fix. `arc-audit` reads it to write
+the handoff package; `arc-plan` reads it to write the tasks. Vocabulary and the severity→priority
 mapping: [contract.md](contract.md) §4. Code queries: [code-intel.md](code-intel.md). Completion and
 root-cause repair: [execution-truth.md](../../docs/execution-truth.md) §2, §6.
 
@@ -11,11 +11,11 @@ Scope: findings → constraints → leaves → fix → re-verification. No red-t
 
 | Role | Name | Owner | Produces | Never |
 |---|---|---|---|---|
-| `R-recon` | 侦察审计员 | `arc:audit` appsec | Asset table, data map, finding cards, manual gaps | Code edits; active DAST |
-| `R-scan` | 扫描操作员 | `arc:audit` scan | Scanner reports under `.arc/artifacts/<task-slug>/security/`, triaged findings | Claiming AuthZ coverage from scanners alone |
-| `R-task` | 任务作者 | `arc:plan` | `00-前置约束.md` with 定位/口径/角色, task groups, detailed leaves, tracker | Production code |
-| `R-fix` | 修复实施员 | `arc:code` | Code and tests for one leaf at a time | Rewriting the plan mid-fix without updating the task docs |
-| `R-verify` | 验证员 | `arc:verify`, plus `arc:audit` re-scan | Verification evidence in the tracker | `[x]` without evidence |
+| `R-recon` | 侦察审计员 | `arc-audit` appsec | Asset table, data map, finding cards, manual gaps | Code edits; active DAST |
+| `R-scan` | 扫描操作员 | `arc-audit` scan | Scanner reports under `.arc/artifacts/<task-slug>/security/`, triaged findings | Claiming AuthZ coverage from scanners alone |
+| `R-task` | 任务作者 | `arc-plan` | `00-前置约束.md` with 定位/口径/角色, task groups, detailed leaves, tracker | Production code |
+| `R-fix` | 修复实施员 | `arc-code` | Code and tests for one leaf at a time | Rewriting the plan mid-fix without updating the task docs |
+| `R-verify` | 验证员 | `arc-verify`, plus `arc-audit` re-scan | Verification evidence in the tracker | `[x]` without evidence |
 
 1. Documents name the active role; one agent may hold several.
 2. `R-recon`/`R-scan` finish the handoff package (§2) before `R-task` starts. `R-task` passes the
@@ -24,10 +24,10 @@ Scope: findings → constraints → leaves → fix → re-verification. No red-t
    README, AGENTS, PRD and architecture docs, or marks the dependent leaves `[!]`. It never invents
    files or facts.
 
-## 2. Handoff package (written by arc:audit)
+## 2. Handoff package (written by arc-audit)
 
-Path: `.arc/artifacts/<task-slug>/security/handoff/` (arc:audit writes nowhere else). When the
-user wants it tracked in the repository, `arc:plan` campaign mode copies it unchanged to
+Path: `.arc/artifacts/<task-slug>/security/handoff/` (arc-audit writes nowhere else). When the
+user wants it tracked in the repository, `arc-plan` campaign mode copies it unchanged to
 `docs/08-安全审计/NN-<主题>/handoff/` and links the copy from the campaign README.
 
 ```text
@@ -125,7 +125,7 @@ set difficulty; each leaf is rated from its own contracts, sides, data risk and 
 
 1. Priority is the contract §4 mapping of the card's severity, with no ranges and no re-ranking
    during planning. A card whose data yield contradicts its severity, or that has no severity or no
-   data-yield justification, goes back to `arc:audit` for rating; its leaves stay `[!]` meanwhile.
+   data-yield justification, goes back to `arc-audit` for rating; its leaves stay `[!]` meanwhile.
 2. One finding reported by several tools or passes → one Finding 索引 row carrying all evidence.
 3. Findings sharing one root cause and owning boundary → one fix leaf per side listing every ID;
    the root-cause fix boundary (execution-truth §6) is written once and linked from each leaf.
@@ -256,7 +256,7 @@ A finding-sourced leaf becomes `[x]` only when all hold on the intended surface:
    the named rejection).
 2. The legitimate path for the original role still succeeds.
 3. Sibling paths sharing the boundary are checked, or listed as residual risk.
-4. A scanner-sourced finding shows no recurrence in an `arc:audit` re-scan of the fixed paths.
+4. A scanner-sourced finding shows no recurrence in an `arc-audit` re-scan of the fixed paths.
 5. The tracker records commands and results; the Finding 索引 row shows the closing evidence.
 
 Evidence from before the fix or from another surface does not count. A `false-positive` close needs
@@ -264,10 +264,10 @@ the disproving evidence in the same form.
 
 ## 9. Sequences
 
-- **Audit only:** `arc:audit` appsec → handoff → `arc:plan` (`R-task`) → `arc:code` per leaf →
-  `arc:verify` (`R-verify`).
-- **Scan assisted:** `arc:audit` appsec Phase 1–2 → `arc:audit` scan → triage merged into the
-  handoff → `arc:plan` → `arc:code` → `arc:verify` → `arc:audit` re-scan of the fixed paths.
+- **Audit only:** `arc-audit` appsec → handoff → `arc-plan` (`R-task`) → `arc-code` per leaf →
+  `arc-verify` (`R-verify`).
+- **Scan assisted:** `arc-audit` appsec Phase 1–2 → `arc-audit` scan → triage merged into the
+  handoff → `arc-plan` → `arc-code` → `arc-verify` → `arc-audit` re-scan of the fixed paths.
 - **Single confirmed finding named by the user:** short 定位 and 口径 in 前置约束, one group, finding
   card fields still required.
 

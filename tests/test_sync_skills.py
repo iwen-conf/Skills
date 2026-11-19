@@ -201,7 +201,7 @@ def test_real_arc_packages_are_portable(tmp_path: Path) -> None:
     names = [mod.read_metadata(p / "SKILL.md")["name"] for p in mod.list_skill_dirs() if p.parent.name == "Arc"]
     included = mod.build_installation(ROOT, tmp_path / "stage", names)
     assert included == sorted(names)
-    assert set(included) == {"arc:explore", "arc:plan", "arc:code", "arc:verify", "arc:audit", "arc:vet"}
+    assert set(included) == {"arc-explore", "arc-plan", "arc-code", "arc-verify", "arc-audit", "arc-vet"}
     assert mod.validate_installation(tmp_path / "stage") == []
     verify = tmp_path / "stage" / "arc-verify"
     assert (verify / "scripts" / "dbqual" / "scripts" / "run_suite.py").is_file()
@@ -213,9 +213,9 @@ def test_real_arc_packages_are_portable(tmp_path: Path) -> None:
 def test_closure_package_runs_after_installation(tmp_path: Path, naming: str) -> None:
     mod = _load_sync_module()
     stage, project = tmp_path / "installed", tmp_path / "project"
-    included = mod.build_installation(ROOT, stage, ["arc:plan"], naming)
-    assert "arc:plan" in included
-    tools = stage / mod.published_name("arc:plan", naming) / "scripts" / "closure"
+    included = mod.build_installation(ROOT, stage, ["arc-plan"], naming)
+    assert "arc-plan" in included
+    tools = stage / mod.published_name("arc-plan", naming) / "scripts" / "closure"
     initialized = subprocess.run(
         [sys.executable, str(tools / "init_docs.py"), str(project)],
         capture_output=True, text=True, check=False,

@@ -1,4 +1,4 @@
-"""arc:vet github_health.py signal rules. Offline: assess() is fed synthetic API documents."""
+"""arc-vet github_health.py signal rules. Offline: assess() is fed synthetic API documents."""
 from __future__ import annotations
 
 import datetime as dt
@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "Arc" / "arc:vet" / "scripts" / "github_health.py"
+SCRIPT = ROOT / "Arc" / "arc-vet" / "scripts" / "github_health.py"
 NOW = dt.datetime(2026, 10, 24, 23, 59, 59, tzinfo=dt.timezone.utc)
 
 

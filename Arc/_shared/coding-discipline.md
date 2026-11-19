@@ -1,7 +1,7 @@
 # Coding Discipline
 
-Arc rules for every implementation or repair edit; `arc:code` reads this file on every task and
-`arc:audit` uses it as a review rubric. Evidence-first root-cause repair stays in
+Arc rules for every implementation or repair edit; `arc-code` reads this file on every task and
+`arc-audit` uses it as a review rubric. Evidence-first root-cause repair stays in
 [execution-truth.md](../../docs/execution-truth.md) §6.
 
 ## 1. Think before coding

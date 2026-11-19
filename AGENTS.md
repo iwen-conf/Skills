@@ -30,11 +30,11 @@
 ## 2026-11-04：verify 业务图绘制裁决
 
 - verify 的业务图、业务树和流程图统一用 [arch-diagram 插件](https://github.com/bassnova42/arch-diagram-skill) 绘制，业务用中文表述，节点命名为 `中文业务名【实际英文业务包名】`。包名以被测项目目录、包声明和配置为依据，不自行翻译或编造；未定位实现时标明业务包待核实。
-- 插件只负责只读可视化；本地 DB、CLI 快照、流程台账和真实 RAW 继续保留。具体绘图约定见 [business-diagram](Arc/arc:verify/references/business-diagram.md)。
+- 插件只负责只读可视化；本地 DB、CLI 快照、流程台账和真实 RAW 继续保留。具体绘图约定见 [storyline-verification](Arc/arc-verify/references/storyline-verification.md)（原 business-diagram 已合并）。
 
 ## 2026-11-07：E2E 技能强化裁决
 
-- 用户指定 [tester-army/e2e](https://github.com/tester-army/e2e) 强化现有 `arc:verify`；按需执行指引见 [tester-army-e2e](Arc/arc:verify/references/tester-army-e2e.md)，源码核对固定到 `232ce75ab4b68ded93525162e1121bf973792ea8`。
+- 用户指定 [tester-army/e2e](https://github.com/tester-army/e2e) 强化现有 `arc-verify`；按需执行指引见 [tester-army-e2e](Arc/arc-verify/references/tester-army-e2e.md)，源码核对固定到 `232ce75ab4b68ded93525162e1121bf973792ea8`。
 - 采用逐目标操作、确定性断言、失败现场诊断和 Web/移动端执行接口；业务判定继续绑定已确认 RULE、独立回读及任务/轮次/环境/账号。每次执行单独保存报告，缓存与自动修复不覆盖首次 FAIL；退出码 0、跳过或过滤不充当业务 PASS。
 - SDK 模型配置只在被测项目执行器中按已授权配置使用；远程设备兼容、真实产品 E2E 和独立可信 Runner 仍需各自的真实执行证据。
 
@@ -48,6 +48,15 @@
 - 在现有模型、RunnerManifest、step_facts、step_assertions、run_entity_bindings 上演进，保留旧版本与首次 FAIL。无 business_contract 的旧模型明确 legacy 覆盖范围。
 - 本轮任务与验收结果：[arc-deterministic-rebuild](docs/03-执行任务/arc-deterministic-rebuild.md)。
 
+## 2026-11-19：Arc 全栈重构（无冒号命名、写集隔离 DAG、语义索引与分支剧情验证）
+
+- 清理 `.magi/` 与 `.arc/init/` 历史脏追踪文件；将全部六个 Arc 子目录与名称统一改为连字符命名（`Arc/arc-explore`、`Arc/arc-plan`、`Arc/arc-code`、`Arc/arc-verify`、`Arc/arc-audit`、`Arc/arc-vet`），全部 `SKILL.md` 压缩至 ~80–87 行。
+- 收敛 `Arc/_shared/` 冗余契约文档为单一 [api-contract.md](Arc/_shared/api-contract.md)；清剿 `Arc/arc-verify/references/` 下四代旧业务图文档，合一为 [storyline-verification.md](Arc/arc-verify/references/storyline-verification.md)。
+- `arc-plan` 引入写集隔离并发 DAG（[plan-dag.md](Arc/arc-plan/references/plan-dag.md)、`dag_check.py`、`dag_dispatch.py`），并将 `check_closure.py` 拆分为 `core_model.py` / `core_engine.py` / `core_render.py` + 紧凑错误截断 CLI。
+- `arc-code` 拆分 `gate.sh` 原子门禁（`gates/scope.sh`、`gates/hygiene.sh`、`gates/test.sh`），强制校验 `.arc-task.json` 的 `write_scope` 与 `frozen_contracts`。
+- `tools/arc-idx` 升级：Git blob 哈希增量缓存（存 `IndexDir/manifest.json` 不污染仓库）、权威分层排序（`prod > contract > test > doc` + `--prod-only`）、`arc idx skeleton`（AST 签名与行号区间）、`arc idx impact`（跨层 SQL/ORM/路由/异步 Topic 逆向耦合扫描）。
+- `tools/arc-verify` 重写为分支剧情验证引擎（Storyline Engine），完全替代旧 `business_contract` 与任务卡模型：提供 `scan-world`、`lint-story`（含 `--world-scan`、`anti_softlock` 防死档、`write_scope`/`runtime_ns` 并发隔离校验）、`plan-shards`、`checkpoint build/clone/list`、`play --parallel --blind`（保留首次 FAIL 不可抹除）、`completion`（100% 四维通关门禁）与 UTF-8 只读静态 `snapshot` 工作台。
+
 ## 本仓验收命令
 
 ```bash
@@ -57,6 +66,6 @@ go -C tools/arc-verify test -race -count=1 ./...
 go -C tools/arc-verify vet ./...
 bin="$(mktemp -d)" && bash scripts/install_arc.sh "$bin" && bash tools/arc/smoke.sh "$bin" "$PWD"
 .venv/bin/python -m pytest -q
-.venv/bin/python -m pytest -q Arc/arc:verify/scripts/dbqual/tests
+.venv/bin/python -m pytest -q Arc/arc-verify/scripts/dbqual/tests
 .venv/bin/python scripts/validate_skills.py
 ```

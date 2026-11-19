@@ -1,8 +1,8 @@
 # Test First (red before code)
 
 A test states the business expectation before the code exists; watching it fail proves it can
-catch the missing behavior. `arc:code` follows this in implement and repair modes; `arc:verify`
-red mode writes acceptance tests for `arc:code` to turn green (§5).
+catch the missing behavior. `arc-code` follows this in implement and repair modes; `arc-verify`
+red mode writes acceptance tests for `arc-code` to turn green (§5).
 
 ## 1. Iron law
 
@@ -16,7 +16,7 @@ current code and failed on the assertion that names the missing behavior.
 - Exceptions need the user's explicit approval, stated in the report: a throwaway spike (deleted
   before test-first work starts), generated code (test the generator or the generated contract),
   configuration or docs only, comment mode, a pure refactor (characterization tests green before
-  and after instead, [refactor.md](../arc:code/references/refactor.md)).
+  and after instead, [refactor.md](../arc-code/references/refactor.md)).
 
 ## 2. Cycle
 
@@ -42,7 +42,7 @@ about a stub larger than a signature or a test edited after its red. Prefer a fo
 - Real collaborators by default; a double only for a boundary outside the claim (clock, third
   party). Mocking the unit under test makes the test invalid.
 - One behavior per test, named for it (`cancel releases the hold exactly once`).
-- A bug's reproducer from [repair.md](../arc:code/references/repair.md) §2 is its red.
+- A bug's reproducer from [repair.md](../arc-code/references/repair.md) §2 is its red.
 
 ## 4. Rationalizations
 
@@ -55,14 +55,14 @@ Each of these means: stop and write the red.
 | "I already checked it by hand" | A manual check is neither recorded nor re-runnable. |
 | "Hours of work would be thrown away" | Unverified code is the cost; rewriting from a test is cheaper than debugging later. |
 | "I need to explore first" | Explore in a spike, discard it, then start with the red. |
-| "The test is hard to write" | Hard to test means hard to use; add a seam ([case-design](../arc:verify/references/case-design.md) §8) or ask. |
+| "The test is hard to write" | Hard to test means hard to use; add a seam ([case-design](../arc-verify/references/case-design.md) §8) or ask. |
 | "This case is different" | It is not. |
 
-## 5. Acceptance first (arc:verify red mode)
+## 5. Acceptance first (arc-verify red mode)
 
 When claims exist before the implementation (requirement, closure model, bug report),
-`arc:verify` writes acceptance tests at the real entry point from the claims table, runs them on
-the current code and keeps each failure on its targeted assertion. It hands `arc:code` the tests,
-the claims table and the red logs. `arc:code` re-runs them through `gate.sh red` in its own task,
-adds unit-level reds for internal rules, and implements. `arc:verify` then re-runs the same tests
+`arc-verify` writes acceptance tests at the real entry point from the claims table, runs them on
+the current code and keeps each failure on its targeted assertion. It hands `arc-code` the tests,
+the claims table and the red logs. `arc-code` re-runs them through `gate.sh red` in its own task,
+adds unit-level reds for internal rules, and implements. `arc-verify` then re-runs the same tests
 unchanged on the candidate; red-before plus green-after on the same test is its sensitivity record.

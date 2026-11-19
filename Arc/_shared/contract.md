@@ -9,12 +9,12 @@ discipline (think first, simplicity, surgical edits, paper-overs) lives in
 
 | Skill | May change | Never changes |
 |---|---|---|
-| `arc:explore` | nothing (index files only) | source, tests, docs |
-| `arc:audit` | nothing (reports under `.arc/artifacts/`) | source, tests, configs |
-| `arc:plan` | `docs/`, task documents, closure specs; model review: `.arc/artifacts/` only | source, tests, configs; model review never changes canonical docs or spec |
-| `arc:code` | source, tests, configs, docs the change touches | deploy targets, remote data |
-| `arc:vet` | the selection record (project ADR location or `docs/10-复盘决策/`); `.arc/artifacts/` | source, manifests, lockfiles |
-| `arc:verify` | tests, fixtures, test configs, evidence, the business-flow catalog (`docs/07-测试质量/业务流/`); a disposable `git worktree` for sensitivity proof, removed after use | production source in the working tree (report defects to `arc:code`) |
+| `arc-explore` | nothing (index files only) | source, tests, docs |
+| `arc-audit` | nothing (reports under `.arc/artifacts/`) | source, tests, configs |
+| `arc-plan` | `docs/`, task documents, closure specs; model review: `.arc/artifacts/` only | source, tests, configs; model review never changes canonical docs or spec |
+| `arc-code` | source, tests, configs, docs the change touches | deploy targets, remote data |
+| `arc-vet` | the selection record (project ADR location or `docs/10-复盘决策/`); `.arc/artifacts/` | source, manifests, lockfiles |
+| `arc-verify` | tests, fixtures, test configs, evidence, the business-flow catalog (`docs/07-测试质量/业务流/`); a disposable `git worktree` for sensitivity proof, removed after use | production source in the working tree (report defects to `arc-code`) |
 
 Cross-phase handoff, artifact ownership and return paths: [workflow.md](workflow.md), read when a
 phase hands off or a closure spec exists.
@@ -34,8 +34,8 @@ development, not cross-platform UI reuse; existing-product maintenance retains i
   ≥3 packages, data migration, new dependency.
 
 T2 needs a written brief (goal, scope, non-goals, acceptance commands) before the first edit.
-A new third-party dependency needs an `arc:vet` record first.
-Multi-session or multi-person T2 work needs task documents from `arc:plan`.
+A new third-party dependency needs an `arc-vet` record first.
+Multi-session or multi-person T2 work needs task documents from `arc-plan`.
 
 ## 3. Scope lock
 

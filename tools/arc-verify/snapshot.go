@@ -2,709 +2,144 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io/fs"
+	"html"
 	"os"
 	"path/filepath"
-	"runtime/debug"
-	"sort"
-	"strconv"
 	"strings"
-	"time"
 )
 
-const snapshotDefaultMaxBytes = 64 << 20
+const snapshotCSP = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:;">`
 
-// snapshotCSP forbids every network request; scripts and styles come only from
-// the snapshot directory, and the embedded JSON is data, not script.
-const snapshotCSP = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'">`
+// exportSnapshot writes a self-contained, read-only static HTML + snapshot.json
+// Storyline Flowchart Workbench with UTF-8 charset in the first 1024 bytes.
+func exportSnapshot(ledger *StoryLedger, s *Storyline, outDir string) error {
+	if outDir == "" {
+		return fmt.Errorf("--out directory is required")
+	}
+	if entries, err := os.ReadDir(outDir); err == nil && len(entries) > 0 {
+		return fmt.Errorf("snapshot output directory %s must be absent or empty", outDir)
+	}
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		return err
+	}
 
-// SnapshotMeta records when and from which ledger context a snapshot was exported.
-type SnapshotMeta struct {
-	Generated   string   `json:"generated"`
-	Version     string   `json:"version"`
-	Argv        []string `json:"argv"`
-	Graph       string   `json:"graph"`
-	GraphSHA256 string   `json:"graph_sha256"`
-	Environment string   `json:"environment,omitempty"`
-	Round       string   `json:"round,omitempty"`
-}
-
-// SnapshotModel is the versioned model with its approval state.
-type SnapshotModel struct {
-	Data     Graph           `json:"data"`
-	Approved bool            `json:"approved"`
-	Rules    map[string]bool `json:"rules"`
-	SHA256   string          `json:"sha256"`
-}
-
-// SnapshotEvidence is one re-verified RAW, or the reason it failed verification.
-type SnapshotEvidence struct {
-	Run    string   `json:"run"`
-	Phase  string   `json:"phase"`
-	Step   int      `json:"step"`
-	SHA256 string   `json:"sha256,omitempty"`
-	Data   *StepRAW `json:"data,omitempty"`
-	Error  string   `json:"error,omitempty"`
-}
-
-// SnapshotRun is a selected run's replay with its evidence.
-type SnapshotRun struct {
-	Trace           TraceReport              `json:"trace"`
-	Evidence        []SnapshotEvidence       `json:"evidence"`
-	Facts           []UnifiedStepFact        `json:"facts"`
-	EvidenceStatus  string                   `json:"evidence_status"`
-	EvidenceErrors  []string                 `json:"evidence_errors"`
-	Environment     string                   `json:"environment"`
-	RunnerID        string                   `json:"runner_id,omitempty"`
-	RunnerSHA256    string                   `json:"runner_sha256,omitempty"`
-	FlowID          string                   `json:"flow_id,omitempty"`
-	BranchID        string                   `json:"branch_id,omitempty"`
-	BusinessLineage []BusinessLineageOverlay `json:"business_lineage,omitempty"`
-}
-
-// Snapshot is the read-only document embedded in the static workbench page.
-type Snapshot struct {
-	Meta               SnapshotMeta                        `json:"meta"`
-	Catalog            WorkbenchCatalog                    `json:"catalog"`
-	Model              SnapshotModel                       `json:"model"`
-	Views              map[BusinessView]BusinessProjection `json:"views"`
-	Impact             *ImpactReport                       `json:"impact,omitempty"`
-	Runs               []SnapshotRun                       `json:"runs"`
-	Exploration        map[string]ExplorationCoverage      `json:"exploration,omitempty"`
-	ContractAnalysis   *BusinessCoverageProof              `json:"contract_analysis,omitempty"`
-	ContractExecution  *BusinessExecutionCoverage          `json:"contract_execution,omitempty"`
-	BusinessLineage    *BusinessLineage                    `json:"business_lineage,omitempty"`
-	BusinessCampaigns  []BusinessCampaign                  `json:"business_campaigns,omitempty"`
-	AvailableCampaigns int                                 `json:"available_campaigns"`
-	CampaignsTruncated bool                                `json:"campaigns_truncated"`
-	RunsTruncated      bool                                `json:"runs_truncated"`
-	AvailableRuns      int                                 `json:"available_runs"`
-}
-
-// SnapshotRequest selects an existing ledger context to export.
-type SnapshotRequest struct {
-	Graph, Environment, Round, Config, Assets, Out string
-	Runs                                           []string
-	Argv                                           []string
-	MaxBytes                                       int
-}
-
-// writeSnapshot exports one ledger context as snapshot.json plus a static page
-// that embeds the same JSON. Nothing is written unless every check passes.
-func (d db) writeSnapshot(request SnapshotRequest) (string, error) {
-	if request.Graph == "" || request.Assets == "" {
-		return "", errors.New("snapshot requires --graph and --assets (the built static workbench)")
-	}
-	limit := request.MaxBytes
-	if limit == 0 {
-		limit = snapshotDefaultMaxBytes
-	}
-	out := request.Out
-	if out == "" {
-		out = filepath.Join(filepath.Dir(d.file), "snapshots", request.Graph, time.Now().UTC().Format("20060102T150405Z"))
-	}
-	if err := requireEmptyOutput(out); err != nil {
-		return "", err
-	}
-	snapshot, err := d.buildSnapshot(request)
-	if err != nil {
-		return "", err
-	}
-	body, err := json.Marshal(snapshot)
-	if err != nil {
-		return "", err
-	}
-	if len(body) > limit {
-		return "", snapshotSizeError(snapshot, len(body), limit)
-	}
-	page, err := snapshotPage(request.Assets, body)
-	if err != nil {
-		return "", err
-	}
-	parent := filepath.Dir(out)
-	if err := os.MkdirAll(parent, 0o700); err != nil {
-		return "", err
-	}
-	staging, err := os.MkdirTemp(parent, ".snapshot-")
-	if err != nil {
-		return "", err
-	}
-	defer os.RemoveAll(staging)
-	if err := copySnapshotAssets(request.Assets, staging); err != nil {
-		return "", err
-	}
-	for name, content := range map[string][]byte{"snapshot.json": body, "index.html": page} {
-		if err := os.WriteFile(filepath.Join(staging, name), content, 0o600); err != nil {
-			return "", err
-		}
-	}
-	if err := requireEmptyOutput(out); err != nil {
-		return "", err
-	}
-	if err := os.Remove(out); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return "", err
-	}
-	if err := os.Rename(staging, out); err != nil {
-		return "", err
-	}
-	return out, nil
-}
-
-func requireEmptyOutput(out string) error {
-	info, err := os.Lstat(out)
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil
-	}
+	checkpoints, err := ledger.ListCheckpoints(s.StoryID)
 	if err != nil {
 		return err
 	}
-	if !info.IsDir() {
-		return fmt.Errorf("snapshot output %s must not exist or be an empty directory", out)
-	}
-	entries, err := os.ReadDir(out)
+	results, err := ledger.ListRouteResults(s.StoryID)
 	if err != nil {
 		return err
 	}
-	if len(entries) != 0 {
-		return fmt.Errorf("snapshot output %s must not exist or be an empty directory; snapshots are never overwritten", out)
-	}
-	return nil
-}
-
-func (d db) buildSnapshot(request SnapshotRequest) (Snapshot, error) {
-	g, err := d.model(request.Graph)
-	if err != nil {
-		return Snapshot{}, fmt.Errorf("graph %s: %w", request.Graph, err)
-	}
-	if g.SchemaVersion != 2 {
-		return Snapshot{}, fmt.Errorf("snapshot requires a v2 business model; %s has schema version %d", g.ID, g.SchemaVersion)
-	}
-	if request.Round != "" {
-		round, err := d.verificationRound(request.Round)
-		if err != nil {
-			return Snapshot{}, fmt.Errorf("round %s: %w", request.Round, err)
-		}
-		if round.Context.Graph != g.ID || request.Environment != "" && round.Context.Environment != request.Environment {
-			return Snapshot{}, fmt.Errorf("round %s belongs to graph %s and environment %s", round.ID, round.Context.Graph, round.Context.Environment)
-		}
-	} else if request.Environment != "" {
-		rows, err := d.query("SELECT id FROM verification_rounds WHERE graph="+quote(g.ID)+" AND environment="+quote(request.Environment)+" LIMIT 1", 1)
-		if err != nil {
-			return Snapshot{}, err
-		}
-		if len(rows) == 0 {
-			return Snapshot{}, fmt.Errorf("environment %s has no verification round for %s", request.Environment, g.ID)
-		}
-	}
-	snapshot := Snapshot{Views: map[BusinessView]BusinessProjection{}, Runs: []SnapshotRun{}}
-	snapshot.Model, err = d.snapshotModel(g)
-	if err != nil {
-		return Snapshot{}, err
-	}
-	snapshot.BusinessLineage, err = buildBusinessLineage(g)
-	if err != nil {
-		return Snapshot{}, err
-	}
-	// Revalidate this ledger context once, then project the same facts into every
-	// view. Re-reading all RAW for each tab was both expensive and incoherent if
-	// another run completed between projections.
-	analysis, err := d.analyzeModel(g, request.Environment, request.Round)
-	if err != nil {
-		return Snapshot{}, err
-	}
-	snapshot.ContractAnalysis = analysis.ContractProof
-	snapshot.ContractExecution = analysis.ContractExecution
-	for _, view := range []BusinessView{viewOverview, viewCapabilities, viewBoundaries, viewFlows, viewVerification, viewImpact} {
-		projection, err := projection(g, analysis, ViewQuery{Graph: g.ID, View: view, Environment: request.Environment, Round: request.Round, Limit: 1024})
-		if err != nil {
-			return Snapshot{}, fmt.Errorf("view %s: %w", view, err)
-		}
-		snapshot.Views[view] = projection
-	}
-	overview := snapshot.Views[viewOverview]
-	snapshot.Meta = SnapshotMeta{Generated: time.Now().UTC().Format(time.RFC3339), Version: cliVersion(), Argv: append([]string{}, request.Argv...), Graph: g.ID, GraphSHA256: snapshot.Model.SHA256, Environment: overview.Environment, Round: overview.Round}
-	if g.Previous != "" {
-		impact, err := d.diffModel(g.ID, g.Previous, nil)
-		if err != nil {
-			return Snapshot{}, fmt.Errorf("difference from %s: %w", g.Previous, err)
-		}
-		snapshot.Impact = &impact
-	}
-	catalog, err := d.workbenchCatalog(request.Config)
-	if err != nil {
-		return Snapshot{}, err
-	}
-	snapshot.Catalog = catalogForGraph(catalog, g)
-	coverage, err := d.explorationCoverage(g.ID)
-	if err != nil {
-		return Snapshot{}, err
-	}
-	if len(coverage) > 0 {
-		snapshot.Exploration = coverage
-	}
-	selectedRuns := append([]string{}, request.Runs...)
-	where := "t.graph=" + quote(g.ID)
-	if request.Environment != "" {
-		where += " AND r.environment=" + quote(request.Environment)
-	}
-	if request.Round != "" {
-		where += " AND m.round=" + quote(request.Round)
-	}
-	count, err := d.query("SELECT COUNT(*) FROM runs r JOIN tasks t ON t.id=r.task LEFT JOIN model_runs m ON m.run=r.id WHERE "+where, 1)
-	if err != nil {
-		return Snapshot{}, err
-	}
-	if len(count) == 1 {
-		snapshot.AvailableRuns, _ = strconv.Atoi(count[0][0])
-	}
-	if len(selectedRuns) == 0 {
-		rows, err := d.query("SELECT r.id FROM runs r JOIN tasks t ON t.id=r.task LEFT JOIN model_runs m ON m.run=r.id WHERE "+where+" ORDER BY r.rowid DESC LIMIT 32", 1)
-		if err != nil {
-			return Snapshot{}, err
-		}
-		for _, row := range rows {
-			selectedRuns = append(selectedRuns, row[0])
-		}
-	}
-	selectedRuns = uniqueRunIDsInOrder(selectedRuns)
-	snapshot.RunsTruncated = len(selectedRuns) < snapshot.AvailableRuns
-	lineageReadings := 0
-	for _, run := range selectedRuns {
-		exported, err := d.snapshotRun(g.ID, run)
-		if err != nil {
-			return Snapshot{}, err
-		}
-		if request.Environment != "" && exported.Environment != request.Environment || request.Round != "" && exported.Trace.Round != request.Round {
-			return Snapshot{}, fmt.Errorf("run %s is outside selected environment/round", run)
-		}
-		preparationLineage, preparationErr := d.buildPreparationLineageOverlays(g, snapshot.BusinessLineage, exported)
-		if preparationErr != nil {
-			if errors.Is(preparationErr, errBusinessLineageBudget) {
-				return Snapshot{}, preparationErr
-			}
-			exported.EvidenceStatus = "BLOCKED"
-			exported.EvidenceErrors = append(exported.EvidenceErrors, "preparation lineage: "+preparationErr.Error())
-		}
-		exported.BusinessLineage, err = buildBusinessLineageOverlays(g, snapshot.BusinessLineage, exported)
-		if err != nil {
-			return Snapshot{}, err
-		}
-		if err := d.enrichBusinessLineageEntityReferences(g, &exported); err != nil {
-			exported.EvidenceStatus = "BLOCKED"
-			exported.EvidenceErrors = append(exported.EvidenceErrors, err.Error())
-			for index := range exported.BusinessLineage {
-				overlay := &exported.BusinessLineage[index]
-				overlay.EvidenceStatus, overlay.Reason = "BLOCKED", err.Error()
-				for index := range overlay.Nodes {
-					reading := &overlay.Nodes[index]
-					reading.Status, reading.Reason = "BLOCKED", err.Error()
-					for index := range reading.Values {
-						reading.Values[index].EntityRef = nil
-					}
-				}
-			}
-		}
-		exported.BusinessLineage = append(preparationLineage, exported.BusinessLineage...)
-		for _, overlay := range exported.BusinessLineage {
-			lineageReadings += len(overlay.Nodes)
-		}
-		if lineageReadings > businessLineageMaxEdges {
-			return Snapshot{}, fmt.Errorf("%w: exceeds %d observation readings; select fewer runs", errBusinessLineageBudget, businessLineageMaxEdges)
-		}
-		snapshot.Runs = append(snapshot.Runs, exported)
-	}
-	snapshot.BusinessCampaigns, snapshot.AvailableCampaigns, err = d.snapshotBusinessCampaigns(g.ID, request.Environment, request.Round)
-	if err != nil {
-		return Snapshot{}, err
-	}
-	snapshot.CampaignsTruncated = len(snapshot.BusinessCampaigns) < snapshot.AvailableCampaigns
-	return snapshot, nil
-}
-
-func (d db) snapshotBusinessCampaigns(graph, environment, round string) ([]BusinessCampaign, int, error) {
-	result := []BusinessCampaign{}
-	exists, err := d.tableExists("business_campaigns")
-	if err != nil || !exists {
-		return result, 0, err
-	}
-	where := "graph=" + quote(graph)
-	if environment != "" {
-		where += " AND environment=" + quote(environment)
-	}
-	if round != "" {
-		where += " AND round=" + quote(round)
-	}
-	rows, err := d.query("SELECT COUNT(*) FROM business_campaigns WHERE "+where, 1)
-	if err != nil {
-		return nil, 0, err
-	}
-	count, err := strconv.Atoi(rows[0][0])
-	if err != nil {
-		return nil, 0, err
-	}
-	rows, err = d.query("SELECT id FROM business_campaigns WHERE "+where+" ORDER BY rowid DESC LIMIT 32", 1)
-	if err != nil {
-		return nil, count, err
-	}
-	for _, row := range rows {
-		campaign, err := d.loadBusinessCampaign(row[0])
-		if err != nil {
-			return nil, count, err
-		}
-		result = append(result, campaign)
-	}
-	return result, count, nil
-}
-
-func uniqueRunIDsInOrder(runs []string) []string {
-	result := make([]string, 0, len(runs))
-	seen := make(map[string]bool, len(runs))
-	for _, run := range runs {
-		if !seen[run] {
-			result = append(result, run)
-			seen[run] = true
-		}
-	}
-	return result
-}
-
-func (d db) snapshotModel(g Graph) (SnapshotModel, error) {
-	result := SnapshotModel{Data: g, Rules: map[string]bool{}}
-	rows, err := d.query("SELECT id,approved FROM rules WHERE graph="+quote(g.ID), 2)
-	if err != nil {
-		return result, err
-	}
-	for _, row := range rows {
-		result.Rules[row[0]] = row[1] == "1"
-	}
-	approved, err := d.query("SELECT approved FROM graphs WHERE id="+quote(g.ID), 1)
-	if err != nil {
-		return result, err
-	}
-	result.Approved = len(approved) == 1 && approved[0][0] == "1"
-	result.SHA256, err = d.graphFingerprint(g.ID)
-	return result, err
-}
-
-// snapshotRun re-verifies every recorded RAW of a run; a RAW that fails
-// verification is exported as a failure entry, never dropped or shown as valid.
-func (d db) snapshotRun(graph, run string) (SnapshotRun, error) {
-	rows, err := d.query("SELECT t.graph,r.environment FROM runs r JOIN tasks t ON t.id=r.task WHERE r.id="+quote(run), 2)
-	if err != nil {
-		return SnapshotRun{}, err
-	}
-	if len(rows) != 1 {
-		return SnapshotRun{}, fmt.Errorf("run %s not found", run)
-	}
-	if rows[0][0] != graph {
-		return SnapshotRun{}, fmt.Errorf("run %s belongs to graph %s", run, rows[0][0])
-	}
-	trace, err := d.trace(run)
-	if err != nil {
-		return SnapshotRun{}, err
-	}
-	result := SnapshotRun{Trace: trace, Evidence: []SnapshotEvidence{}, Facts: []UnifiedStepFact{}, EvidenceStatus: "LEGACY", EvidenceErrors: []string{}, Environment: rows[0][1]}
-	verified, factsErr := d.verifiedRunFacts(run)
-	if factsErr != nil {
-		result.EvidenceStatus = "BLOCKED"
-		result.EvidenceErrors = append(result.EvidenceErrors, factsErr.Error())
-	} else {
-		result.Facts = verified.Facts
-		result.EvidenceStatus = verified.EvidenceStatus
-		if result.EvidenceStatus != "PASS" && result.EvidenceStatus != "LEGACY" {
-			result.EvidenceStatus = "BLOCKED"
-		}
-		// A run can contain several branches. Only publish a run-level identity
-		// when the validated frozen facts agree; the UI uses step identities otherwise.
-		branches, flows := map[string]bool{}, map[string]bool{}
-		for _, fact := range result.Facts {
-			for _, item := range fact.BusinessExpectations {
-				if frozen := item.Decision.Frozen; frozen != nil {
-					if frozen.Branch != "" {
-						branches[frozen.Branch] = true
-					}
-					if frozen.Flow != "" {
-						flows[frozen.Flow] = true
-					}
-				}
-			}
-		}
-		if len(branches) == 1 {
-			for branch := range branches {
-				result.BranchID = branch
-			}
-		}
-		if len(flows) == 1 {
-			for flow := range flows {
-				result.FlowID = flow
-			}
-		}
-	}
-	add := func(phase string, step int) {
-		entry := SnapshotEvidence{Run: run, Phase: phase, Step: step}
-		raw, hash, err := d.workbenchEvidence(run, phase, step)
-		if err != nil {
-			entry.Error = err.Error()
-			result.EvidenceStatus = "BLOCKED"
-			result.EvidenceErrors = append(result.EvidenceErrors, fmt.Sprintf("%s step %d: %s", phase, step, err.Error()))
-		} else {
-			entry.Data, entry.SHA256 = &raw, hash
-		}
-		result.Evidence = append(result.Evidence, entry)
-	}
-	if trace.Round != "" {
-		add("setup", 0)
-	}
-	for _, step := range trace.Steps {
-		index, err := strconv.Atoi(step.Index)
-		if err != nil {
-			return SnapshotRun{}, fmt.Errorf("run %s has a non-numeric step %q", run, step.Index)
-		}
-		add("action", index)
-	}
-	if trace.Round != "" {
-		add("fixture", 0)
-	}
-	if trace.Round != "" && result.EvidenceStatus == "PASS" {
-		record, err := d.modelRun(run)
-		if err != nil {
-			result.EvidenceStatus = "BLOCKED"
-			result.EvidenceErrors = append(result.EvidenceErrors, err.Error())
-		} else {
-			result.RunnerID, result.RunnerSHA256 = record.Runner, record.RunnerSHA256
-		}
-	}
-	return result, nil
-}
-
-func catalogForGraph(catalog WorkbenchCatalog, g Graph) WorkbenchCatalog {
-	result := catalog
-	result.Models, result.Rounds, result.Runners, result.Runs = []ModelCatalogEntry{}, []RoundCatalogEntry{}, []RunnerCatalogEntry{}, []RunCatalogEntry{}
-	for _, model := range catalog.Models {
-		if model.ID == g.ID || model.ID == g.Previous {
-			result.Models = append(result.Models, model)
-		}
-	}
-	for _, round := range catalog.Rounds {
-		if round.Graph == g.ID {
-			result.Rounds = append(result.Rounds, round)
-		}
-	}
-	for _, runner := range catalog.Runners {
-		if runner.Graph == g.ID {
-			result.Runners = append(result.Runners, runner)
-		}
-	}
-	for _, run := range catalog.Runs {
-		if run.Graph == g.ID {
-			result.Runs = append(result.Runs, run)
-		}
-	}
-	return result
-}
-
-func snapshotSizeError(snapshot Snapshot, total, limit int) error {
-	type part struct {
-		name string
-		size int
-	}
-	measure := func(value any) int {
-		body, err := json.Marshal(value)
-		if err != nil {
-			return 0
-		}
-		return len(body)
-	}
-	parts := []part{{"meta", measure(snapshot.Meta)}, {"catalog", measure(snapshot.Catalog)}, {"model", measure(snapshot.Model)}, {"views", measure(snapshot.Views)}, {"impact", measure(snapshot.Impact)}, {"business_lineage", measure(snapshot.BusinessLineage)}}
-	for _, run := range snapshot.Runs {
-		parts = append(parts, part{"run " + run.Trace.Run, measure(run)})
-	}
-	sort.Slice(parts, func(i, j int) bool { return parts[i].size > parts[j].size })
-	listed := []string{}
-	for _, item := range parts {
-		listed = append(listed, fmt.Sprintf("%s=%d", item.name, item.size))
-	}
-	return fmt.Errorf("snapshot JSON is %d bytes, over the %d byte limit; parts by size: %s", total, limit, strings.Join(listed, ", "))
-}
-
-// snapshotPage embeds the JSON (json.Marshal escapes <, > and &) and the CSP
-// right after the opening <head> so they apply before any script loads.
-func snapshotPage(assets string, body []byte) ([]byte, error) {
-	_, index, err := loadEvidence(filepath.Join(assets, "index.html"))
-	if err != nil {
-		return nil, fmt.Errorf("workbench build index.html: %w", err)
-	}
-	page := string(index)
-	open := strings.Index(page, "<head")
-	end := -1
-	if open >= 0 {
-		end = strings.Index(page[open:], ">")
-	}
-	if end < 0 {
-		return nil, errors.New("workbench build index.html has no <head> element")
-	}
-	at := open + end + 1
-	inject := snapshotCSP + `<script type="application/json" id="arc-snapshot">` + string(body) + `</script>`
-	return []byte(page[:at] + inject + page[at:]), nil
-}
-
-// copySnapshotAssets copies the built workbench except index.html; links and
-// builds that still call the removed local API are refused.
-func copySnapshotAssets(assets, target string) error {
-	root, err := filepath.Abs(assets)
+	completion, err := computeCompletion(ledger, s, nil)
 	if err != nil {
 		return err
 	}
-	return filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		relative, err := filepath.Rel(root, path)
-		if err != nil {
-			return err
-		}
-		if relative == "." || relative == "index.html" {
-			return nil
-		}
-		destination := filepath.Join(target, relative)
-		if entry.IsDir() {
-			return os.MkdirAll(destination, 0o700)
-		}
-		if !entry.Type().IsRegular() {
-			return fmt.Errorf("workbench build entry %s is not a regular file", relative)
-		}
-		body, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		if strings.Contains(string(body), "/api/") {
-			return fmt.Errorf("workbench build file %s still references the removed local API; rebuild the static workbench", relative)
-		}
-		return os.WriteFile(destination, body, 0o600)
-	})
+
+	payload := map[string]any{
+		"schema_version": 3,
+		"kind":           "arc_storyline_snapshot",
+		"storyline":      s,
+		"checkpoints":    checkpoints,
+		"route_results":  results,
+		"completion":     completion,
+		"exported_at":    nowUTC(),
+	}
+	body, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(outDir, "snapshot.json"), append(body, '\n'), 0o644); err != nil {
+		return err
+	}
+
+	page := renderSnapshotHTML(s, completion, body)
+	return os.WriteFile(filepath.Join(outDir, "index.html"), []byte(page), 0o644)
 }
 
-func cliVersion() string {
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return "unknown"
-	}
-	version := info.Main.Version
-	for _, setting := range info.Settings {
-		switch {
-		case setting.Key == "vcs.revision":
-			version += "+" + setting.Value
-		case setting.Key == "vcs.modified" && setting.Value == "true":
-			version += "-dirty"
-		}
-	}
-	return version
-}
+func renderSnapshotHTML(s *Storyline, c *CompletionReport, snapshotJSON []byte) string {
+	// Ensure <meta charset="UTF-8"> is inside the first 1024 bytes before any embedded JSON.
+	safeJSON := strings.ReplaceAll(string(snapshotJSON), "</script>", `<\/script>`)
+	var b strings.Builder
+	b.WriteString("<!doctype html>\n<html lang=\"zh-CN\">\n<head>\n")
+	b.WriteString("<meta charset=\"UTF-8\">\n")
+	b.WriteString("<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n")
+	b.WriteString(snapshotCSP + "\n")
+	fmt.Fprintf(&b, "<title>Arc Storyline Workbench — %s</title>\n", html.EscapeString(s.StoryID))
+	b.WriteString(`<style>
+body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;margin:0;background:#0f172a;color:#e2e8f0}
+header{padding:16px 24px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center}
+.badge{padding:4px 10px;border-radius:999px;font-weight:700;font-size:12px}
+.PASS{background:#14532d;color:#86efac}.FAIL{background:#7f1d1d;color:#fca5a5}.BLOCKED,.NOT_RUN{background:#78350f;color:#fde68a}
+main{display:grid;grid-template-columns:280px 1fr 320px;gap:16px;padding:16px}
+section{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px}
+h2{margin:0 0 10px;font-size:14px;color:#93c5fd;text-transform:uppercase;letter-spacing:.04em}
+.card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px}
+code{color:#f8fafc;background:#334155;padding:1px 5px;border-radius:4px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.metric{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;text-align:center}
+.metric b{font-size:18px;display:block;color:#38bdf8}
+@media(max-width:960px){main{grid-template-columns:1fr}}
+</style>`)
+	b.WriteString("\n</head>\n<body>\n")
+	fmt.Fprintf(&b, "<header><div><strong>%s</strong> · focal <code>%s</code></div><span class=\"badge %s\">%s</span></header>\n",
+		html.EscapeString(s.StoryID), html.EscapeString(s.FocalEntity), html.EscapeString(c.Verdict), html.EscapeString(c.Verdict))
+	b.WriteString("<main>\n")
 
-func (d db) workbenchCatalog(config string) (WorkbenchCatalog, error) {
-	result := WorkbenchCatalog{Models: []ModelCatalogEntry{}, Rounds: []RoundCatalogEntry{}, Runners: []RunnerCatalogEntry{}, Fixtures: []AccountCatalogEntry{}, Runs: []RunCatalogEntry{}, Environments: []EnvironmentCatalogEntry{}}
-	configured, _, configErr := readEnvironmentConfiguration(config)
-	if configErr != nil {
-		result.EnvironmentError = configErr.Error()
-	} else {
-		for name, environment := range configured.Environments {
-			entry := EnvironmentCatalogEntry{Name: name, Approved: environment.Approved}
-			target, _, err := readApprovedEnvironment(config, name)
-			if err != nil {
-				entry.Reason = err.Error()
-			} else {
-				entry.Target = target
-			}
-			result.Environments = append(result.Environments, entry)
+	// Left: World Flags & Checkpoints
+	b.WriteString("<section><h2>World Flags</h2>\n")
+	for _, k := range sortedKeys(s.WorldFlags) {
+		fmt.Fprintf(&b, "<div class=\"card\"><code>%s</code><br><small>%s</small></div>\n",
+			html.EscapeString(k), html.EscapeString(s.WorldFlags[k]))
+	}
+	b.WriteString("<h2>Checkpoints</h2>\n")
+	for _, cp := range s.Checkpoints {
+		fmt.Fprintf(&b, "<div class=\"card\"><strong>%s</strong> <small>← %s</small></div>\n",
+			html.EscapeString(cp.SaveID), html.EscapeString(cp.Parent))
+	}
+	b.WriteString("</section>\n")
+
+	// Center: Metrics & Branching Routes
+	b.WriteString("<section><h2>Completion &amp; Branching Routes</h2>\n")
+	fmt.Fprintf(&b, `<div class="metrics">
+<div class="metric"><b>%.0f%%</b>World Flags</div>
+<div class="metric"><b>%.0f%%</b>Routes</div>
+<div class="metric"><b>%.0f%%</b>Probes</div>
+<div class="metric"><b>%.0f%%</b>Endings</div>
+</div>`, c.WorldFlagBindingPct, c.RouteCoveragePct, c.ButterflyProbeHitPct, c.EndingUnlockPct)
+	for _, r := range s.Routes {
+		st := c.RouteStatuses[r.RouteID]
+		if st == "" {
+			st = "NOT_RUN"
 		}
-		sort.Slice(result.Environments, func(i, j int) bool { return result.Environments[i].Name < result.Environments[j].Name })
+		fmt.Fprintf(&b, "<div class=\"card\"><div style=\"display:flex;justify-content:space-between\"><strong>%s</strong><span class=\"badge %s\">%s</span></div>",
+			html.EscapeString(r.RouteID), html.EscapeString(st), html.EscapeString(st))
+		fmt.Fprintf(&b, "<div><small>save: <code>%s</code> · ns: <code>%s</code> → <code>%s</code></small></div></div>\n",
+			html.EscapeString(r.LoadSave), html.EscapeString(r.RuntimeNS), html.EscapeString(r.UnlocksEnding))
 	}
-	models, err := d.query("SELECT g.id,g.scope,g.approved,COALESCE(b.schema_version,1),COALESCE(b.body,'') FROM graphs g LEFT JOIN business_models b ON b.graph=g.id ORDER BY g.rowid DESC LIMIT 513", 5)
-	if err != nil {
-		return result, err
+	b.WriteString("</section>\n")
+
+	// Right: Ending Gallery & History
+	b.WriteString("<section><h2>Ending Gallery</h2>\n")
+	unlocked := map[string]bool{}
+	for _, e := range c.UnlockedEndings {
+		unlocked[e] = true
 	}
-	if len(models) > 512 {
-		result.Truncated = true
-		models = models[:512]
-	}
-	for _, row := range models {
-		version, err := strconv.Atoi(row[3])
-		if err != nil {
-			return result, err
+	for _, req := range s.RequiredEndings {
+		cls := "NOT_RUN"
+		label := "LOCKED"
+		if unlocked[req] {
+			cls = "PASS"
+			label = "UNLOCKED"
 		}
-		system := ""
-		if version == 2 {
-			var graph Graph
-			if err := decodeStrictJSON([]byte(row[4]), &graph); err != nil {
-				return result, err
-			}
-			system = graph.System
-		}
-		result.Models = append(result.Models, ModelCatalogEntry{ID: row[0], Scope: row[1], Approved: row[2] == "1", SchemaVersion: version, System: system})
+		fmt.Fprintf(&b, "<div class=\"card\" style=\"display:flex;justify-content:space-between\"><code>%s</code><span class=\"badge %s\">%s</span></div>\n",
+			html.EscapeString(req), cls, label)
 	}
-	rounds, err := d.query("SELECT id FROM verification_rounds ORDER BY rowid DESC LIMIT 257", 1)
-	if err != nil {
-		return result, err
-	}
-	if len(rounds) > 256 {
-		result.Truncated = true
-		rounds = rounds[:256]
-	}
-	for _, row := range rounds {
-		round, err := d.verificationRound(row[0])
-		if err != nil {
-			return result, err
-		}
-		validity := "CURRENT"
-		if d.validateRound(round) != nil {
-			validity = "STALE"
-		}
-		result.Rounds = append(result.Rounds, RoundCatalogEntry{ID: round.ID, Graph: round.Context.Graph, Environment: round.Context.Environment, Created: round.Created, Validity: validity})
-	}
-	runners, err := d.query("SELECT id,graph,test,sha256 FROM registered_runners ORDER BY id LIMIT 1025", 4)
-	if err != nil {
-		return result, err
-	}
-	if len(runners) > 1024 {
-		result.Truncated = true
-		runners = runners[:1024]
-	}
-	for _, row := range runners {
-		validity := "CURRENT"
-		runner, err := d.registeredRunner(row[0])
-		if err != nil {
-			validity = "STALE"
-		}
-		result.Runners = append(result.Runners, RunnerCatalogEntry{ID: row[0], Graph: row[1], Test: row[2], SHA256: row[3], Validity: validity, Scope: runner.Manifest.IsolationScope})
-	}
-	fixtures, err := d.query("SELECT id FROM fixtures ORDER BY id LIMIT 1025", 1)
-	if err != nil {
-		return result, err
-	}
-	if len(fixtures) > 1024 {
-		result.Truncated = true
-		fixtures = fixtures[:1024]
-	}
-	for _, row := range fixtures {
-		fixture, _, err := d.bindingFixture(row[0])
-		if err != nil {
-			return result, err
-		}
-		result.Fixtures = append(result.Fixtures, AccountCatalogEntry{ID: fixture.ID, Kind: fixture.Kind, Environment: fixture.Refs["environment"], Role: fixture.Refs["role"], Scope: fixture.Refs["scope"]})
-	}
-	runs, err := d.query("SELECT r.id,t.graph,r.task,r.environment,COALESCE(m.round,''),r.status,r.created FROM runs r JOIN tasks t ON t.id=r.task LEFT JOIN model_runs m ON m.run=r.id ORDER BY r.rowid DESC LIMIT 257", 7)
-	if err != nil {
-		return result, err
-	}
-	if len(runs) > 256 {
-		result.Truncated = true
-		runs = runs[:256]
-	}
-	for _, row := range runs {
-		result.Runs = append(result.Runs, RunCatalogEntry{ID: row[0], Graph: row[1], Task: row[2], Environment: row[3], Round: row[4], Status: row[5], Created: row[6]})
-	}
-	sort.Slice(result.Models, func(i, j int) bool { return result.Models[i].ID < result.Models[j].ID })
-	return result, nil
+	fmt.Fprintf(&b, "<div class=\"card\">Softlocks: <strong>%d</strong> · Historical FAILs preserved: <strong>%d</strong></div>\n",
+		c.SoftlockCount, c.HistoricalFailCount)
+	b.WriteString("</section>\n</main>\n")
+	b.WriteString(`<script type="application/json" id="arc-snapshot">` + safeJSON + "</script>\n")
+	b.WriteString("</body>\n</html>\n")
+	return b.String()
 }

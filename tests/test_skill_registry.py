@@ -18,15 +18,15 @@ def test_build_registry_includes_structured_skill_fields() -> None:
     registry = build_registry(ROOT)
     assert registry["schema_version"] == "1.0.0"
     assert registry["skill_count"] >= 1
-    code_entry = next(item for item in registry["skills"] if item["name"] == "arc:code")
-    assert code_entry["source_path"] == "Arc/arc:code/SKILL.md"
+    code_entry = next(item for item in registry["skills"] if item["name"] == "arc-code")
+    assert code_entry["source_path"] == "Arc/arc-code/SKILL.md"
     assert code_entry["version"]
     assert code_entry["line_count"] <= 300
     assert code_entry["intent_router"]
     assert len(code_entry["intent_router"]) >= 2
 
 
-ARC_SKILLS = {"arc:explore", "arc:plan", "arc:code", "arc:verify", "arc:audit", "arc:vet"}
+ARC_SKILLS = {"arc-explore", "arc-plan", "arc-code", "arc-verify", "arc-audit", "arc-vet"}
 
 
 def test_validate_registry_accepts_generated_registry() -> None:

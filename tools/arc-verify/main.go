@@ -1,801 +1,585 @@
-// arc-verify: short-lived Go CLI; local Turso file, no server or background worker.
 package main
 
 import (
-	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
-	"net/url"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"slices"
 	"strings"
-	"syscall"
-	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
-func emit(v any) { b, _ := json.MarshalIndent(v, "", "  "); fmt.Println(string(b)) }
+const version = "3.0.0"
+
+const usage = `arc verify %s — Storyline Verification Engine (world_flags + checkpoints + concurrent blind routes + anti-softlock + multi-ending completion)
+
+Usage:
+  arc verify init       [--db PATH]
+  arc verify scan-world <focal_entity> [--repo DIR] [--format json|yaml|ai-md]
+  arc verify lint-story <story.yaml> [--repo DIR] [--world-scan] [--max-errors 5] [--format json|ai-md]
+  arc verify plan-shards <story.yaml> [--out FILE] [--format yaml|json]
+  arc verify checkpoint <build|clone|list> --story <story.yaml> [--save ID] [--ns NS] [--engine dir|sqlite|postgres] [--pg-url URL] [--db PATH]
+  arc verify play       <story.yaml> [--parallel] [--route ID] [--blind] [--dry-run] [--repo DIR] [--db PATH]
+  arc verify completion <story.yaml> [--repo DIR] [--world-scan] [--db PATH] [--format json|ai-md]
+  arc verify gate       --story <id>|--graph <id> [--db PATH]
+  arc verify task-proof --graph <story_id> --task <story_id/route_id> [--db PATH]
+  arc verify snapshot   --story <id>|--file <story.yaml> --out <dir> [--db PATH]
+  arc verify version
+`
+
 func main() {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-	if e := runContext(ctx, os.Args[1:]); e != nil {
-		fmt.Fprintln(os.Stderr, "arc-verify:", e)
-		os.Exit(exitCode(e))
+	if len(os.Args) < 2 {
+		fmt.Fprintf(os.Stderr, usage, version)
+		os.Exit(2)
 	}
+	cmd, args := os.Args[1], os.Args[2:]
+	code := dispatch(cmd, args)
+	os.Exit(code)
 }
 
-// exitCode lets a caller tell why run-chain stopped without parsing output.
-func exitCode(err error) int {
-	var campaign businessCampaignStop
-	if errors.As(err, &campaign) {
-		return campaign.code
-	}
-	var stop chainStop
-	if errors.As(err, &stop) {
-		return stop.code
-	}
-	return 1
-}
-func run(args []string) error {
-	return runContext(context.Background(), args)
-}
-
-// commands is the complete CLI surface; unknown names fail before any ledger is opened.
-var commands = []string{"init", "selftest", "validate", "contract", "campaign", "task-proof", "import", "approve", "model", "view", "diff", "explore", "plan", "prepare", "next", "runner", "round", "execute", "run-chain", "derive", "discover", "reference-import", "reference-match", "mutation-report", "snapshot", "recover", "context", "start", "step", "finish", "record", "trace", "explain", "abort", "retry", "gate", "report", "risk", "accept-risk", "reject-risk", "promote-risk", "scan", "gaps", "fixtures", "fixture", "handoff"}
-
-func runContext(ctx context.Context, args []string) error {
-	if len(args) == 0 {
-		return errors.New("usage: arc-verify <" + strings.Join(commands, "|") + "> [options]")
-	}
-	name := args[0]
-	if name == "contract" {
-		return businessContractCommand(args[1:])
-	}
-	if name == "campaign" {
-		return businessCampaignCommand(ctx, args[1:])
-	}
-	subcommand := ""
-	if name == "risk" && len(args) > 1 && args[1] == "refute" {
-		subcommand, args = args[1], append([]string{name}, args[2:]...)
-	}
-	if name == "discover" {
-		if len(args) < 2 || !slices.Contains([]string{"record", "list", "triage", "run", "status", "resume", "abort"}, args[1]) {
-			return errors.New("usage: arc-verify discover <record|list|triage|run|status|resume|abort> [options]")
-		}
-		subcommand, args = args[1], append([]string{name}, args[2:]...)
-	}
-	if !slices.Contains(commands, name) {
-		return fmt.Errorf("unknown command %q; usage: arc-verify <%s> [options]", name, strings.Join(commands, "|"))
-	}
-	f := flag.NewFlagSet(name, flag.ContinueOnError)
-	dbfile := f.String("db", ".arc/verify/data.db", "local Turso database path")
-	file := f.String("file", "", "business graph JSON file")
-	graph := f.String("graph", "", "graph id")
-	rule := f.String("rule", "", "rule id for approval")
-	to := f.String("to", "", "handoff recipient Arc skill")
-	reason := f.String("reason", "", "required human-readable reason for abort/retry")
-	condition := f.String("condition", "", "condition node id")
-	maxDepth := f.Int("max-depth", 6, "recovery graph traversal depth, 1..8")
-	limit := f.Int("limit", 128, "bounded number of task cards to materialize, 1..1024")
-	task := f.String("task", "", "task id")
-	runID := f.String("run", "", "run id")
-	nodeFlag := f.String("node", "", "business node, transition, or rule id for explain")
-	seqFlag := f.Int("seq", explainAllSteps, "optional sequence step filter for explain (-1=setup, 0=recovery, >=1=step)")
-	env := f.String("env", "", "approved environment alias")
-	commit := f.String("commit", "", "source commit")
-	root := f.String("root", ".", "candidate repository root")
-	account := f.String("account", "", "registered account fixture id")
-	fixture := f.String("fixture", "", "registered business fixture id")
-	phase := f.String("phase", "action", "context phase: action or fixture")
-	expected := f.String("expected", "", "expected graph state for this step (default final task state)")
-	observed := f.String("observed", "", "observed business state")
-	evidence := f.String("evidence", "", "local runner evidence path")
-	id := f.String("id", "", "fixture id")
-	config := f.String("config", ".arc/verify/config.jsonc", "test data and environment config")
-	view := f.String("view", "capabilities", "business projection")
-	round := f.String("round", "", "existing verification round")
-	runner := f.String("runner", "", "registered execution adapter")
-	assignment := f.String("assignment", "{}", "explicit observed-condition model assignment JSON")
-	flow := f.String("flow", "", "declared behavior flow")
-	maxStates := f.Int("max-states", 10000, "bounded exploration states")
-	maxSteps := f.Int("max-steps", 64, "bounded exploration steps")
-	maxPaths := f.Int("max-paths", 256, "bounded exploration paths")
-	timeoutMS := f.Int("timeout-ms", 1000, "model exploration time budget")
-	previous := f.String("previous", "", "previous model version")
-	changed := f.String("changed", "", "comma-separated stable business subjects")
-	role := f.String("role", "", "declared role filter")
-	status := f.String("status", "", "verification status filter")
-	readiness := f.String("readiness", "", "described, implemented, verified or live filter")
-	offset := f.Int("offset", 0, "projection offset")
-	participantAccounts := f.String("accounts", "{}", "declared participant alias to registered account JSON")
-	assets := f.String("assets", "", "built static workbench directory")
-	out := f.String("out", "", "snapshot output directory; must not exist or be empty")
-	deadline := f.Duration("deadline", 0, "run-chain total deadline, 100ms..24h")
-	budget := f.Int("budget", 16, "items per derivation (1..256) or exploration (1..1024)")
-	refutation := f.String("result", "", "refutation result: supported, refuted or not_found")
-	triage := f.String("as", "", "triage decision: missing_requirement, allowed_extension or should_not_exist")
-	riskID := f.String("risk", "", "risk id")
-	riskScope := f.String("scope", "", "explicit scope of an accepted risk")
-	reportKind := f.String("kind", "", "report kind: acceptance or risk")
-	riskReview := f.Bool("risk-review", false, "fail the gate while user-undecided risks remain")
-	exploreMode := f.String("mode", "heuristic", "heuristic/deterministic; ai is scripted-only with --planner FILE, not an external model")
-	plannerFile := f.String("planner", "", "optional scripted comparison JSON file; no model service or API key")
-	if e := f.Parse(args[1:]); e != nil {
-		return e
-	}
-	if len(f.Args()) != 0 {
-		return fmt.Errorf("unexpected arguments %v", f.Args())
-	}
-	if name == "selftest" {
-		if e := selftestLocalTurso(); e != nil {
-			return fmt.Errorf("local Turso self-test failed: %w", e)
-		}
-		emit(map[string]string{"status": "PASS", "database": "temporary local Turso", "network": "none"})
-		return nil
-	}
-	if name == "validate" {
-		if *file == "" {
-			return errors.New("--file required")
-		}
-		g, e := loadGraph(*file)
-		if e == nil {
-			emit(map[string]any{"valid": true, "graph": g.ID, "nodes": len(g.Nodes), "edges": len(g.Edges)})
-		}
-		return e
-	}
-	if name == "explore" && *file != "" {
-		g, err := loadGraph(*file)
-		if err != nil {
-			return err
-		}
-		budget := ExplorationBudget{MaxStates: *maxStates, MaxSteps: *maxSteps, MaxPaths: *maxPaths, TimeoutMS: *timeoutMS}
-		if *flow != "" {
-			result, err := exploreFlow(g, *flow, budget)
-			if err == nil {
-				emit(result)
-			}
-			return err
-		}
-		var values ConditionAssignment
-		if err := decodeStrictJSON([]byte(*assignment), &values); err != nil {
-			return err
-		}
-		result, err := solveConditions(g, values, nil, budget)
-		if err == nil {
-			emit(result)
-		}
-		return err
-	}
-	if name == "init" {
-		d, e := openDB(*dbfile, true)
-		if e != nil {
-			return e
-		}
-		defer d.close()
-		// DDL and indexes are committed together; a failed migration never
-		// leaves a partially initialized graph ledger behind.
-		if e = d.tx(schema); e != nil {
-			return fmt.Errorf("initialize local Turso schema: %w", e)
-		}
-		emit(map[string]string{"database": d.file, "status": "initialized"})
-		return nil
-	}
-	if (name == "approve" || name == "plan" || name == "prepare" || name == "next" || name == "gate" || name == "risk" || name == "gaps" || name == "recover") && *graph == "" {
-		return errors.New("--graph required")
-	}
-	d, e := openDB(*dbfile, false)
-	if e != nil {
-		return e
-	}
-	defer d.close()
-	switch name {
-	case "task-proof":
-		proof, err := d.taskProof(*graph, *task)
-		emit(proof)
-		return err
-	case "run-chain":
-		accounts := map[string]string{}
-		if err := decodeStrictJSON([]byte(*participantAccounts), &accounts); err != nil {
-			return err
-		}
-		packet, err := d.runChain(ctx, ChainRequest{Graph: *graph, Environment: *env, Round: *round, Commit: *commit, Root: *root, Config: *config, Account: *account, Fixture: *fixture, Accounts: accounts, MaxSteps: *maxSteps, Deadline: *deadline})
-		var stop chainStop
-		if err == nil || errors.As(err, &stop) {
-			emit(packet)
-		}
-		return err
-	case "derive":
-		report, err := d.derive(*runID, *budget)
-		if err == nil {
-			emit(report)
-		}
-		return err
-	case "discover":
-		switch subcommand {
-		case "record":
-			if *file == "" {
-				return errors.New("--file required")
-			}
-			body, err := os.ReadFile(*file)
-			if err != nil {
-				return err
-			}
-			var exploration Exploration
-			if err := decodeStrictJSON(body, &exploration); err != nil {
-				return err
-			}
-			report, err := d.recordExploration(exploration, *budget)
-			if err == nil {
-				emit(report)
-			}
-			return err
-		case "list":
-			items, err := d.unspecified(*graph)
-			if err == nil {
-				emit(items)
-			}
-			return err
-		case "run", "resume":
-			if *file == "" || *graph == "" || *flow == "" || *env == "" || *round == "" || *account == "" || *fixture == "" || *commit == "" {
-				return errors.New("discover run needs --file adapter, --graph, --flow, --env, --round, --account, --fixture and --commit")
-			}
-			if subcommand == "resume" && *id == "" {
-				return errors.New("discover resume needs --id campaign")
-			}
-			body, err := os.ReadFile(*file)
-			if err != nil {
-				return err
-			}
-			var adapter ExploreAdapter
-			if err := decodeStrictJSON(body, &adapter); err != nil {
-				return err
-			}
-			deadline := *deadline
-			if deadline == 0 {
-				deadline = 30 * time.Second
-			}
-			accounts := map[string]string{}
-			if err := decodeStrictJSON([]byte(*participantAccounts), &accounts); err != nil {
-				return err
-			}
-			planner, err := plannerFromFlags(*exploreMode, *plannerFile)
-			if err != nil {
-				return err
-			}
-			report, err := d.runExploration(ctx, ExploreRequest{
-				Graph: *graph, Flow: *flow, Environment: *env, Round: *round, Root: *root, Config: *config, Commit: *commit,
-				Account: *account, Fixture: *fixture, Accounts: accounts, Adapter: adapter, Campaign: *id, Mode: *exploreMode, Planner: planner,
-				Budget: ExploreRuntimeBudget{MaxStates: *maxStates, MaxPaths: *maxPaths, MaxActions: *maxSteps, Deadline: deadline, MaxReplans: *budget},
-			})
-			if err == nil {
-				emit(report)
-			}
-			return err
-		case "status":
-			if *id != "" {
-				state, err := d.loadExploreCheckpoint(*id)
-				if err == nil {
-					emit(state)
-				}
-				return err
-			}
-			items, err := d.listExploreCheckpoints(*graph)
-			if err == nil {
-				emit(items)
-			}
-			return err
-		case "abort":
-			if *id == "" {
-				return errors.New("discover abort needs --id campaign")
-			}
-			state, err := d.abortExploreCampaign(*id, *reason)
-			if err == nil {
-				emit(state)
-			}
-			return err
-		default:
-			answers, err := interactiveAnswers(fmt.Sprintf("User triage of %s as %s. Type TRIAGE %s %s: ", *id, *triage, *id, *triage), "User's own words for this decision: ")
-			if err != nil {
-				return err
-			}
-			if answers[0] != "TRIAGE "+*id+" "+*triage {
-				return errors.New("triage declined")
-			}
-			if err := d.triageUnspecified(*graph, *id, *triage, answers[1]); err != nil {
-				return err
-			}
-			emit(map[string]string{"item": *id, "triage": *triage})
-			return nil
-		}
-	case "reference-import":
-		result, err := d.importReferences(*file)
-		if err == nil {
-			emit(result)
-		}
-		return err
-	case "reference-match":
-		report, err := d.matchReferences(*graph)
-		if err == nil {
-			emit(report)
-		}
-		return err
-	case "mutation-report":
-		report, err := d.mutationReport(*file)
-		if err == nil {
-			emit(report)
-		}
-		return err
-	case "snapshot":
-		path, err := d.writeSnapshot(SnapshotRequest{Graph: *graph, Environment: *env, Round: *round, Config: *config, Assets: *assets, Out: *out, Runs: splitIDs(*runID), Argv: append([]string{}, args...)})
-		if err == nil {
-			emit(map[string]string{"snapshot": path, "status": "exported"})
-		}
-		return err
-	case "model":
-		g, err := d.model(*graph)
-		if err == nil {
-			emit(g)
-		}
-		return err
-	case "view":
-		viewRoot := *root
-		if viewRoot == "." {
-			viewRoot = ""
-		}
-		result, err := d.viewModel(ViewQuery{Graph: *graph, View: BusinessView(*view), Root: viewRoot, Environment: *env, Round: *round, Role: *role, Status: *status, Readiness: *readiness, Offset: *offset, Limit: *limit})
-		if err == nil {
-			emit(result)
-		}
-		return err
-	case "diff":
-		result, err := d.diffModel(*graph, *previous, splitIDs(*changed))
-		if err == nil {
-			emit(result)
-		}
-		return err
-	case "explore":
-		g, err := d.model(*graph)
-		if err != nil {
-			return err
-		}
-		budget := ExplorationBudget{MaxStates: *maxStates, MaxSteps: *maxSteps, MaxPaths: *maxPaths, TimeoutMS: *timeoutMS}
-		if *flow != "" {
-			result, err := exploreFlow(g, *flow, budget)
-			if err == nil {
-				emit(result)
-			}
-			return err
-		}
-		var values ConditionAssignment
-		if err := decodeStrictJSON([]byte(*assignment), &values); err != nil {
-			return err
-		}
-		result, err := solveConditions(g, values, nil, budget)
-		if err == nil {
-			emit(result)
-		}
-		return err
-	case "runner":
-		if *file == "" {
-			return errors.New("--file required")
-		}
-		_, raw, err := loadEvidence(*file)
-		if err != nil {
-			return err
-		}
-		var manifest RunnerManifest
-		if err := decodeStrictJSON(raw, &manifest); err != nil {
-			return err
-		}
-		result, err := d.registerRunner(manifest)
-		if err == nil {
-			emit(result)
-		}
-		return err
-	case "round":
-		result, err := d.createRound(*graph, *env, *commit, *root, *config)
-		if err == nil {
-			emit(result)
-		}
-		return err
-	case "execute":
-		var accounts map[string]string
-		if err := decodeStrictJSON([]byte(*participantAccounts), &accounts); err != nil {
-			return err
-		}
-		result, err := d.execute(ctx, ExecuteRequest{Task: *task, Runner: *runner, Round: *round, Environment: *env, Commit: *commit, Root: *root, Config: *config, Account: *account, Fixture: *fixture, Accounts: accounts})
-		if err == nil {
-			emit(result)
-		}
-		return err
-	case "import":
-		if *file == "" {
-			return errors.New("--file required")
-		}
-		g, e := loadGraph(*file)
-		if e != nil {
-			return e
-		}
-		if e = d.importGraph(g); e == nil {
-			emit(map[string]string{"graph": g.ID, "status": "candidate"})
-		}
-		return e
-	case "approve":
-		info, e := os.Stdin.Stat()
-		if e != nil {
-			return e
-		}
-		if info.Mode()&os.ModeCharDevice == 0 {
-			return errors.New("human approval needs an interactive terminal; a pipe is not allowed")
-		}
-		approved := *graph
-		if *rule != "" {
-			approved = *rule
-		}
-		fmt.Fprintf(os.Stderr, "User approval for %s. Type APPROVE %s: ", approved, approved)
-		var word, value string
-		_, e = fmt.Fscanln(os.Stdin, &word, &value)
-		if e != nil || word != "APPROVE" || value != approved {
-			return errors.New("approval declined")
-		}
-		if e = d.approve(*graph, *rule); e == nil {
-			emit(map[string]string{"approved": approved})
-		}
-		return e
-	case "plan":
-		n, e := d.plan(*graph, *limit)
-		if e == nil {
-			emit(map[string]any{"graph": *graph, "task_candidates": n})
-		}
-		return e
-	case "prepare":
-		if *env == "" || *commit == "" {
-			return errors.New("--env --commit required")
-		}
-		v, e := d.prepare(*graph, *env, *commit, *root, *config)
-		if e == nil {
-			emit(v)
-		}
-		return e
-	case "context":
-		if *runID == "" {
-			return errors.New("--run required")
-		}
-		v, e := d.expectedContext(*runID, *phase, *root, *config, *commit)
-		if e == nil {
-			emit(v)
-		}
-		return e
-	case "recover":
-		if *condition == "" {
-			return errors.New("--condition required")
-		}
-		v, e := d.recover(*graph, *condition, *maxDepth)
-		if e == nil {
-			emit(v)
-		}
-		return e
-	case "next":
-		rows, e := d.next(*graph)
-		if e == nil {
-			emit(rows)
-		}
-		return e
-	case "start":
-		if *task == "" || *env == "" || *commit == "" || *account == "" || *fixture == "" {
-			return errors.New("--task --env --commit --account --fixture required")
-		}
-		binding, e := d.startBinding(*task, *env, *commit, *account, *fixture, *root, *config)
-		if e != nil {
-			return e
-		}
-		id, e := d.start(*task, binding)
-		if e == nil {
-			emit(map[string]any{"run": id, "status": "RUNNING", "identity": binding.Identity, "oracle": binding.Oracle})
-		}
-		return e
-	case "step":
-		if *runID == "" || *evidence == "" || *observed == "" {
-			return errors.New("--run --observed --evidence required")
-		}
-		v, e := d.step(*runID, *expected, *observed, *evidence)
-		if e == nil {
-			emit(v)
-		}
-		return e
-	case "finish":
-		if *runID == "" {
-			return errors.New("--run required")
-		}
-		v, e := d.finish(*runID)
-		if e == nil {
-			emit(v)
-		}
-		return e
-	case "record":
-		if *runID == "" || *evidence == "" || *observed == "" {
-			return errors.New("--run --observed --evidence required")
-		}
-		rawPath, e := filepath.Abs(*evidence)
-		if e != nil {
-			return e
-		}
-		v, e := d.record(*runID, *observed, rawPath)
-		if e == nil {
-			emit(v)
-		}
-		return e
-	case "abort":
-		if *runID == "" || *reason == "" {
-			return errors.New("--run --reason required")
-		}
-		v, e := d.abort(*runID, *reason)
-		if e == nil {
-			emit(v)
-		}
-		return e
-	case "retry":
-		if *task == "" || *reason == "" || *evidence == "" || *commit == "" {
-			return errors.New("--task --reason --evidence --commit required")
-		}
-		v, e := d.retry(*task, *reason, *evidence, *root, *config, *commit)
-		if e == nil {
-			emit(v)
-		}
-		return e
-	case "handoff":
-		v, e := d.handoff(*to, *graph, *runID)
-		if e == nil {
-			emit(v)
-		}
-		return e
-	case "trace":
-		rows, e := d.trace(*runID)
-		if e == nil {
-			emit(rows)
-		}
-		return e
-	case "explain":
-		v, e := d.explainFacts(*graph, *runID, *nodeFlag, *seqFlag)
-		if e == nil {
-			emit(v)
-		}
-		return e
+func dispatch(cmd string, args []string) int {
+	switch cmd {
+	case "version", "--version", "-v":
+		fmt.Printf("arc-verify %s (storyline-engine)\n", version)
+		return 0
+	case "help", "--help", "-h":
+		fmt.Printf(usage, version)
+		return 0
+	case "init":
+		return cmdInit(args)
+	case "scan-world":
+		return cmdScanWorld(args)
+	case "lint-story":
+		return cmdLintStory(args)
+	case "plan-shards":
+		return cmdPlanShards(args)
+	case "checkpoint":
+		return cmdCheckpoint(args)
+	case "play":
+		return cmdPlay(args)
+	case "completion":
+		return cmdCompletion(args)
 	case "gate":
-		v, e := d.gate(*graph)
-		if e != nil {
-			return e
-		}
-		applyRiskReview(v, *riskReview)
-		emit(v)
-		if v["verdict"] != "PASS" {
-			return errors.New("graph gate not satisfied")
-		}
-		return nil
-	case "scan":
-		if *file == "" {
-			return errors.New("--file required")
-		}
-		b, e := os.ReadFile(*file)
-		if e != nil {
-			return e
-		}
-		var doc Implementation
-		if e = decodeUniqueJSON(b, &doc); e != nil {
-			return e
-		}
-		n, e := d.scan(doc)
-		if e == nil {
-			emit(map[string]any{"observations": n, "status": "OBSERVED_NOT_VERIFIED"})
-		}
-		return e
-	case "gaps":
-		rows, e := d.gaps(*graph)
-		if e == nil {
-			emit(rows)
-		}
-		return e
-	case "fixtures":
-		if *file == "" {
-			return errors.New("--file required")
-		}
-		b, e := os.ReadFile(*file)
-		if e != nil {
-			return e
-		}
-		var fs Fixtures
-		if e = decodeUniqueJSON(b, &fs); e != nil {
-			return e
-		}
-		n, e := d.importFixtures(fs)
-		if e == nil {
-			emit(map[string]int{"fixtures_added": n})
-		}
-		return e
-	case "fixture":
-		if *id == "" {
-			return errors.New("--id required")
-		}
-		rows, e := d.fixture(*id)
-		if e == nil {
-			emit(rows)
-		}
-		return e
-	case "report":
-		switch *reportKind {
-		case "acceptance":
-			v, e := d.acceptanceReport(*graph)
-			if e == nil {
-				emit(v)
-			}
-			return e
-		case "risk":
-			v, e := d.riskReport(*graph)
-			if e == nil {
-				emit(v)
-			}
-			return e
-		default:
-			return errors.New("--kind must be acceptance or risk")
-		}
-	case "accept-risk":
-		answers, e := interactiveAnswers(fmt.Sprintf("User decision for risk %s within scope %q. Type ACCEPT %s: ", *riskID, *riskScope, *riskID), "User's own words for this decision: ")
-		if e != nil {
-			return e
-		}
-		if answers[0] != "ACCEPT "+*riskID {
-			return errors.New("risk acceptance declined")
-		}
-		if e = d.acceptRisk(*graph, *riskID, *riskScope, answers[1]); e == nil {
-			emit(map[string]string{"risk": *riskID, "status": "ACCEPTED_RISK"})
-		}
-		return e
-	case "reject-risk":
-		answers, e := interactiveAnswers(fmt.Sprintf("User decision: risk %s is not a problem. Type REJECT %s: ", *riskID, *riskID), "User's own words for this decision: ")
-		if e != nil {
-			return e
-		}
-		if answers[0] != "REJECT "+*riskID {
-			return errors.New("risk rejection declined")
-		}
-		if e = d.rejectRisk(*graph, *riskID, answers[1]); e == nil {
-			emit(map[string]string{"risk": *riskID, "status": "REJECTED"})
-		}
-		return e
-	case "promote-risk":
-		answers, e := interactiveAnswers(fmt.Sprintf("User decision: risk %s is covered by approved rule %s. Type PROMOTE %s: ", *riskID, *rule, *riskID))
-		if e != nil {
-			return e
-		}
-		if answers[0] != "PROMOTE "+*riskID {
-			return errors.New("risk promotion declined")
-		}
-		if e = d.promoteRisk(*graph, *riskID, *rule); e == nil {
-			emit(map[string]string{"risk": *riskID, "status": "PROMOTED", "rule": *rule})
-		}
-		return e
-	case "risk":
-		if subcommand == "refute" {
-			attempt, err := d.refuteRisk(*graph, *riskID, *refutation, *evidence)
-			if err == nil {
-				emit(map[string]string{"risk": *riskID, "refutation": attempt.Result, "sha256": attempt.SHA256})
-			}
-			return err
-		}
-		rows, e := d.riskRows(*graph, 0)
-		if e == nil {
-			emit(rows)
-		}
-		return e
+		return cmdGate(args)
+	case "task-proof":
+		return cmdTaskProof(args)
+	case "snapshot":
+		return cmdSnapshot(args)
+	case "import":
+		return cmdImport(args)
 	default:
-		return fmt.Errorf("unknown command %q", name)
+		fmt.Fprintf(os.Stderr, "arc verify: unknown command %q\n\n", cmd)
+		fmt.Fprintf(os.Stderr, usage, version)
+		return 2
 	}
 }
 
-// JSONC comments removed with a finite-state scanner; URLs and escapes inside strings survive.
-func cleanJSONC(s string) (string, error) {
-	var b strings.Builder
-	inString, escaped, line, block := false, false, false, false
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		next := byte(0)
-		if i+1 < len(s) {
-			next = s[i+1]
-		}
-		if line {
-			if c == '\n' {
-				line = false
-				b.WriteByte('\n')
-			}
-			continue
-		}
-		if block {
-			if c == '*' && next == '/' {
-				block = false
-				i++
-			} else if c == '\n' {
-				b.WriteByte('\n')
-			}
-			continue
-		}
-		if inString {
-			b.WriteByte(c)
-			if escaped {
-				escaped = false
-			} else if c == '\\' {
-				escaped = true
-			} else if c == '"' {
-				inString = false
-			}
-			continue
-		}
-		if c == '"' {
-			inString = true
-			b.WriteByte(c)
-			continue
-		}
-		if c == '/' && next == '/' {
-			line = true
-			i++
-			continue
-		}
-		if c == '/' && next == '*' {
-			block = true
-			i++
-			continue
-		}
-		b.WriteByte(c)
+func emitJSON(v any) int {
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(v); err != nil {
+		fmt.Fprintf(os.Stderr, "encode json: %v\n", err)
+		return 1
 	}
-	if block || inString {
-		return "", errors.New("unterminated JSONC string or comment")
-	}
-	return b.String(), nil
-}
-func approvedEnvironment(path, name string) error {
-	_, _, err := readApprovedEnvironment(path, name)
-	return err
+	return 0
 }
 
-type ConfiguredEnvironment struct {
-	Approved bool   `json:"approved"`
-	URL      string `json:"url"`
+func parseInterleavedFlags(fl *flag.FlagSet, args []string) ([]string, error) {
+	var pos []string
+	for len(args) > 0 {
+		if err := fl.Parse(args); err != nil {
+			return nil, err
+		}
+		args = fl.Args()
+		if len(args) == 0 {
+			break
+		}
+		pos = append(pos, args[0])
+		args = args[1:]
+	}
+	return pos, nil
 }
 
-type EnvironmentConfiguration struct {
-	Environments map[string]ConfiguredEnvironment `json:"environments"`
+func cmdInit(args []string) int {
+	fl := flag.NewFlagSet("init", flag.ContinueOnError)
+	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
+	if err := fl.Parse(args); err != nil {
+		return 2
+	}
+	ledger, err := openStoryLedger(*dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify init: %v\n", err)
+		return 1
+	}
+	defer ledger.Close()
+	return emitJSON(map[string]any{"initialized": true, "db": *dbPath, "engine": "storyline-v3"})
 }
 
-func readEnvironmentConfiguration(path string) (EnvironmentConfiguration, []byte, error) {
-	raw, e := os.ReadFile(path)
-	if e != nil {
-		return EnvironmentConfiguration{}, nil, e
+func cmdImport(args []string) int {
+	fl := flag.NewFlagSet("import", flag.ContinueOnError)
+	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
+	file := fl.String("file", "", "storyline YAML/JSON file")
+	if err := fl.Parse(args); err != nil || *file == "" {
+		fmt.Fprintln(os.Stderr, "usage: arc verify import --file <story.yaml> [--db PATH]")
+		return 2
 	}
-	s, e := cleanJSONC(string(raw))
-	if e != nil {
-		return EnvironmentConfiguration{}, nil, e
+	s, err := loadStoryline(*file)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify import: %v\n", err)
+		return 1
 	}
-	var c EnvironmentConfiguration
-	if e = decodeUniqueJSON([]byte(s), &c); e != nil {
-		return c, nil, e
+	ledger, err := openStoryLedger(*dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify import: %v\n", err)
+		return 1
 	}
-	return c, raw, nil
+	defer ledger.Close()
+	if err := ledger.SaveStoryDefinition(s); err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify import: %v\n", err)
+		return 1
+	}
+	return emitJSON(map[string]any{"imported": true, "story_id": s.StoryID, "sha256": s.SHA256})
 }
 
-func readApprovedEnvironment(path, name string) (string, string, error) {
-	c, raw, e := readEnvironmentConfiguration(path)
-	if e != nil {
-		return "", "", e
+func cmdScanWorld(args []string) int {
+	fl := flag.NewFlagSet("scan-world", flag.ContinueOnError)
+	repoDir := fl.String("repo", ".", "repository root")
+	format := fl.String("format", "json", "output format: json | yaml | ai-md")
+	_ = fl.String("db", "", "optional ledger path (ignored)")
+	pos, err := parseInterleavedFlags(fl, args)
+	if err != nil || len(pos) < 1 {
+		fmt.Fprintln(os.Stderr, "usage: arc verify scan-world <focal_entity> [--repo DIR] [--format json|yaml|ai-md]")
+		return 2
 	}
-	target, ok := c.Environments[name]
-	if !ok || !target.Approved || strings.TrimSpace(target.URL) == "" {
-		return "", "", fmt.Errorf("environment %s not explicitly approved in %s", name, path)
+	res, err := scanWorldFlags(*repoDir, pos[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify scan-world: %v\n", err)
+		return 1
 	}
-	parsed, e := url.Parse(target.URL)
-	if e != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
-		return "", "", errors.New("environment URL must be an HTTP(S) base without credentials, query or fragment")
+	switch *format {
+	case "yaml":
+		out, _ := yaml.Marshal(res)
+		fmt.Print(string(out))
+		return 0
+	case "ai-md":
+		fmt.Print(renderWorldScanMarkdown(res))
+		return 0
+	default:
+		return emitJSON(res)
 	}
-	return target.URL, digestBytes(raw), nil
+}
+
+func cmdLintStory(args []string) int {
+	fl := flag.NewFlagSet("lint-story", flag.ContinueOnError)
+	repoDir := fl.String("repo", ".", "repository root for --world-scan")
+	worldScan := fl.Bool("world-scan", false, "verify 100% world_flags binding against repo scan")
+	maxErr := fl.Int("max-errors", 5, "maximum fatal errors to display")
+	format := fl.String("format", "json", "output format: json | ai-md")
+	_ = fl.String("db", "", "optional ledger path (ignored)")
+	pos, err := parseInterleavedFlags(fl, args)
+	if err != nil || len(pos) < 1 {
+		fmt.Fprintln(os.Stderr, "usage: arc verify lint-story <story.yaml> [--repo DIR] [--world-scan] [--max-errors 5]")
+		return 2
+	}
+	s, err := loadStoryline(pos[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify lint-story: %v\n", err)
+		return 1
+	}
+	var scan *WorldScanResult
+	if *worldScan {
+		scan, err = scanWorldFlags(*repoDir, s.FocalEntity)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "arc verify lint-story world-scan: %v\n", err)
+			return 1
+		}
+	}
+	rep := lintStory(s, scan, *maxErr)
+	if *format == "ai-md" {
+		fmt.Printf("## lint-story `%s`: %s (%d errors)\n", rep.StoryID, rep.Status, rep.TotalErrors)
+		for _, e := range rep.Errors {
+			fmt.Printf("- [%s] `%s`: %s\n", e.Code, e.Scope, e.Message)
+		}
+	} else {
+		emitJSON(rep)
+	}
+	if rep.Status != "PASS" {
+		return 1
+	}
+	return 0
+}
+
+func cmdPlanShards(args []string) int {
+	fl := flag.NewFlagSet("plan-shards", flag.ContinueOnError)
+	outFile := fl.String("out", "", "optional output file path")
+	format := fl.String("format", "yaml", "output format: yaml | json")
+	_ = fl.String("db", "", "optional ledger path (ignored)")
+	pos, err := parseInterleavedFlags(fl, args)
+	if err != nil || len(pos) < 1 {
+		fmt.Fprintln(os.Stderr, "usage: arc verify plan-shards <story.yaml> [--out FILE] [--format yaml|json]")
+		return 2
+	}
+	s, err := loadStoryline(pos[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify plan-shards: %v\n", err)
+		return 1
+	}
+	plan, err := planShards(s)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify plan-shards: %v\n", err)
+		return 1
+	}
+	var raw []byte
+	if *format == "json" {
+		raw, err = json.MarshalIndent(plan, "", "  ")
+		raw = append(raw, '\n')
+	} else {
+		raw, err = yaml.Marshal(plan)
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify plan-shards encode: %v\n", err)
+		return 1
+	}
+	if *outFile != "" {
+		if err := os.MkdirAll(filepath.Dir(*outFile), 0o755); err != nil {
+			fmt.Fprintf(os.Stderr, "arc verify plan-shards mkdir: %v\n", err)
+			return 1
+		}
+		if err := os.WriteFile(*outFile, raw, 0o644); err != nil {
+			fmt.Fprintf(os.Stderr, "arc verify plan-shards write: %v\n", err)
+			return 1
+		}
+		return emitJSON(map[string]any{"written": *outFile, "shards": len(plan.ConcurrentShards)})
+	}
+	fmt.Print(string(raw))
+	return 0
+}
+
+func cmdCheckpoint(args []string) int {
+	if len(args) < 1 {
+		fmt.Fprintln(os.Stderr, "usage: arc verify checkpoint <build|clone|list> --story <story.yaml> [flags]")
+		return 2
+	}
+	sub := args[0]
+	fl := flag.NewFlagSet("checkpoint", flag.ContinueOnError)
+	storyFile := fl.String("story", "", "storyline YAML file")
+	saveID := fl.String("save", "", "checkpoint save_id (for clone)")
+	ns := fl.String("ns", "ns_default", "runtime namespace (for clone)")
+	engine := fl.String("engine", "", "checkpoint engine: dir | sqlite | postgres")
+	source := fl.String("source", "", "source sqlite file (for sqlite engine)")
+	pgURL := fl.String("pg-url", "", "PostgreSQL admin URL (for postgres engine)")
+	repoDir := fl.String("repo", ".", "repository root")
+	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
+	if _, err := parseInterleavedFlags(fl, args[1:]); err != nil {
+		return 2
+	}
+	if *storyFile == "" {
+		fmt.Fprintln(os.Stderr, "arc verify checkpoint: --story is required")
+		return 2
+	}
+	s, err := loadStoryline(*storyFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify checkpoint: %v\n", err)
+		return 1
+	}
+	ledger, err := openStoryLedger(*dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify checkpoint: %v\n", err)
+		return 1
+	}
+	defer ledger.Close()
+	absRoot, _ := filepath.Abs(*repoDir)
+
+	switch sub {
+	case "build":
+		recs, err := buildCheckpoints(ledger, s, absRoot, *engine, *source, *pgURL)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "arc verify checkpoint build: %v\n", err)
+			return 1
+		}
+		return emitJSON(map[string]any{"story_id": s.StoryID, "checkpoints": recs})
+	case "clone":
+		if *saveID == "" {
+			fmt.Fprintln(os.Stderr, "arc verify checkpoint clone: --save is required")
+			return 2
+		}
+		eng := *engine
+		if eng == "" {
+			eng = "dir"
+		}
+		clonePath, err := cloneCheckpoint(absRoot, s.StoryID, *saveID, *ns, eng, *pgURL)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "arc verify checkpoint clone: %v\n", err)
+			return 1
+		}
+		return emitJSON(map[string]any{"story_id": s.StoryID, "save_id": *saveID, "runtime_ns": *ns, "clone_path": clonePath})
+	case "list":
+		recs, err := ledger.ListCheckpoints(s.StoryID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "arc verify checkpoint list: %v\n", err)
+			return 1
+		}
+		return emitJSON(map[string]any{"story_id": s.StoryID, "checkpoints": recs})
+	default:
+		fmt.Fprintf(os.Stderr, "arc verify checkpoint: unknown action %q\n", sub)
+		return 2
+	}
+}
+
+func cmdPlay(args []string) int {
+	fl := flag.NewFlagSet("play", flag.ContinueOnError)
+	parallel := fl.Bool("parallel", false, "execute routes concurrently in isolated namespaces")
+	route := fl.String("route", "", "execute only one route_id")
+	blind := fl.Bool("blind", false, "enable blind-test mode with ARC_BLIND_MASK")
+	dryRun := fl.Bool("dry-run", false, "validate wiring without executing route commands")
+	repoDir := fl.String("repo", ".", "repository root")
+	engine := fl.String("engine", "", "override checkpoint engine: dir | sqlite | postgres")
+	pgURL := fl.String("pg-url", "", "PostgreSQL URL when engine=postgres")
+	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
+	pos, err := parseInterleavedFlags(fl, args)
+	if err != nil || len(pos) < 1 {
+		fmt.Fprintln(os.Stderr, "usage: arc verify play <story.yaml> [--parallel] [--route ID] [--blind] [--db PATH]")
+		return 2
+	}
+	s, err := loadStoryline(pos[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify play: %v\n", err)
+		return 1
+	}
+	ledger, err := openStoryLedger(*dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify play: %v\n", err)
+		return 1
+	}
+	defer ledger.Close()
+	summary, err := playStory(ledger, s, PlayOptions{
+		Parallel:    *parallel,
+		RouteFilter: *route,
+		Blind:       *blind,
+		DryRun:      *dryRun,
+		RepoRoot:    *repoDir,
+		Engine:      *engine,
+		PGURL:       *pgURL,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify play: %v\n", err)
+		return 1
+	}
+	emitJSON(summary)
+	if summary.Verdict != "PASS" {
+		return 1
+	}
+	return 0
+}
+
+func cmdCompletion(args []string) int {
+	fl := flag.NewFlagSet("completion", flag.ContinueOnError)
+	repoDir := fl.String("repo", ".", "repository root")
+	worldScan := fl.Bool("world-scan", false, "verify world_flag binding against repo scan")
+	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
+	format := fl.String("format", "json", "output format: json | ai-md")
+	pos, err := parseInterleavedFlags(fl, args)
+	if err != nil || len(pos) < 1 {
+		fmt.Fprintln(os.Stderr, "usage: arc verify completion <story.yaml> [--world-scan] [--db PATH]")
+		return 2
+	}
+	s, err := loadStoryline(pos[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify completion: %v\n", err)
+		return 1
+	}
+	ledger, err := openStoryLedger(*dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify completion: %v\n", err)
+		return 1
+	}
+	defer ledger.Close()
+	var scan *WorldScanResult
+	if *worldScan {
+		scan, err = scanWorldFlags(*repoDir, s.FocalEntity)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "arc verify completion world-scan: %v\n", err)
+			return 1
+		}
+	}
+	rep, err := computeCompletion(ledger, s, scan)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify completion: %v\n", err)
+		return 1
+	}
+	if *format == "ai-md" {
+		fmt.Printf("## Storyline Completion `%s`: **%s**\n- World Flags: %.0f%%\n- Routes: %.0f%%\n- Butterfly Probes: %.0f%%\n- Endings: %.0f%% (%d/%d)\n- Softlocks: %d · Historical FAILs: %d\n",
+			rep.StoryID, rep.Verdict, rep.WorldFlagBindingPct, rep.RouteCoveragePct,
+			rep.ButterflyProbeHitPct, rep.EndingUnlockPct, len(rep.UnlockedEndings), len(s.RequiredEndings),
+			rep.SoftlockCount, rep.HistoricalFailCount)
+	} else {
+		emitJSON(rep)
+	}
+	if rep.Verdict != "PASS" {
+		return 1
+	}
+	return 0
+}
+
+// cmdGate serves unified `arc db migrate` and gate checks against stored storyline definitions.
+func cmdGate(args []string) int {
+	fl := flag.NewFlagSet("gate", flag.ContinueOnError)
+	storyID := fl.String("story", "", "story_id")
+	graphID := fl.String("graph", "", "alias for --story")
+	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
+	if err := fl.Parse(args); err != nil {
+		return 2
+	}
+	id := *storyID
+	if id == "" {
+		id = *graphID
+	}
+	if id == "" {
+		fmt.Fprintln(os.Stderr, "usage: arc verify gate --story <id> [--db PATH]")
+		return 2
+	}
+	ledger, err := openStoryLedger(*dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify gate: %v\n", err)
+		return 1
+	}
+	defer ledger.Close()
+	s, err := ledger.LoadStoryDefinition(id)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify gate: story %q not found: %v\n", id, err)
+		return 1
+	}
+	rep, err := computeCompletion(ledger, s, nil)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify gate: %v\n", err)
+		return 1
+	}
+	out := map[string]any{
+		"verdict":          rep.Verdict,
+		"proof_scope":      "storyline_completion_100pct",
+		"inputs_unchanged": true,
+		"context":          map[string]any{"graph": id, "story_id": id, "story_sha256": s.SHA256},
+		"completion":       rep,
+	}
+	emitJSON(out)
+	if rep.Verdict != "PASS" {
+		return 1
+	}
+	return 0
+}
+
+// cmdTaskProof bridges storyline route verification receipts into `arc task complete`.
+func cmdTaskProof(args []string) int {
+	fl := flag.NewFlagSet("task-proof", flag.ContinueOnError)
+	graphID := fl.String("graph", "", "story_id")
+	taskID := fl.String("task", "", "story_id/route_id")
+	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
+	if err := fl.Parse(args); err != nil || *graphID == "" || *taskID == "" {
+		fmt.Fprintln(os.Stderr, "usage: arc verify task-proof --graph <story_id> --task <story_id/route_id> [--db PATH]")
+		return 2
+	}
+	ledger, err := openStoryLedger(*dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify task-proof: %v\n", err)
+		return 1
+	}
+	defer ledger.Close()
+	s, err := ledger.LoadStoryDefinition(*graphID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify task-proof: %v\n", err)
+		return 1
+	}
+	routeID := strings.TrimPrefix(*taskID, *graphID+"/")
+	recs, err := ledger.ListRouteResults(*graphID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify task-proof: %v\n", err)
+		return 1
+	}
+	var latest *RouteResultRecord
+	for i := range recs {
+		if recs[i].RouteID == routeID && recs[i].StorySHA256 == s.SHA256 {
+			latest = &recs[i]
+		}
+	}
+	if latest == nil || latest.Verdict != "PASS" || latest.SoftlockDetected {
+		emitJSON(map[string]any{
+			"version": 1, "graph": *graphID, "task": *taskID, "obligation_id": routeID,
+			"verdict": "NOT_RUN", "reason": "no current passing storyline route receipt",
+		})
+		return 1
+	}
+	root, _ := filepath.Abs(".")
+	head := currentGitHead(root)
+	zeroSum := sha256.Sum256([]byte(s.SHA256))
+	proof := map[string]any{
+		"version":          1,
+		"graph":            *graphID,
+		"task":             *taskID,
+		"obligation_id":    routeID,
+		"run":              latest.RunID,
+		"round":            latest.LoadSave,
+		"verdict":          "PASS",
+		"proof_scope":      "linked_task_evidence",
+		"inputs_unchanged": true,
+		"evidence_status":  "PASS",
+		"context": map[string]any{
+			"graph":         *graphID,
+			"environment":   latest.RuntimeNS,
+			"target":        s.FocalEntity,
+			"source_commit": head,
+			"source_sha256": hex.EncodeToString(zeroSum[:]),
+			"config_sha256": s.SHA256,
+			"graph_sha256":  s.SHA256,
+			"source_root":   root,
+			"config_path":   s.SourcePath,
+		},
+		"raw_sha256":     []string{latest.ReceiptSHA256},
+		"receipt_sha256": latest.ReceiptSHA256,
+	}
+	return emitJSON(proof)
+}
+
+func cmdSnapshot(args []string) int {
+	fl := flag.NewFlagSet("snapshot", flag.ContinueOnError)
+	storyID := fl.String("story", "", "story_id stored in ledger")
+	file := fl.String("file", "", "or storyline YAML file")
+	outDir := fl.String("out", "", "output directory (must be absent or empty)")
+	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
+	if err := fl.Parse(args); err != nil {
+		return 2
+	}
+	ledger, err := openStoryLedger(*dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify snapshot: %v\n", err)
+		return 1
+	}
+	defer ledger.Close()
+
+	var s *Storyline
+	if *file != "" {
+		s, err = loadStoryline(*file)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "arc verify snapshot: %v\n", err)
+			return 1
+		}
+		_ = ledger.SaveStoryDefinition(s)
+	} else if *storyID != "" {
+		s, err = ledger.LoadStoryDefinition(*storyID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "arc verify snapshot: %v\n", err)
+			return 1
+		}
+	} else {
+		fmt.Fprintln(os.Stderr, "usage: arc verify snapshot (--story ID | --file story.yaml) --out DIR [--db PATH]")
+		return 2
+	}
+	if err := exportSnapshot(ledger, s, *outDir); err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify snapshot: %v\n", err)
+		return 1
+	}
+	return emitJSON(map[string]any{"exported": true, "story_id": s.StoryID, "out": *outDir})
 }

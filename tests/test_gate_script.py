@@ -1,4 +1,4 @@
-"""Behavior tests for Arc/arc:code/scripts/gate.sh against throwaway git repositories."""
+"""Behavior tests for Arc/arc-code/scripts/gate.sh against throwaway git repositories."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-GATE = ROOT / "Arc" / "arc:code" / "scripts" / "gate.sh"
+GATE = ROOT / "Arc" / "arc-code" / "scripts" / "gate.sh"
 BASH = "/bin/bash" if Path("/bin/bash").exists() else (shutil.which("bash") or "bash")
 
 # Marker and suppression literals are assembled at runtime so the gate does not flag this file

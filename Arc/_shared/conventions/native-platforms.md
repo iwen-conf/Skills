@@ -47,6 +47,6 @@ evidence; identical UI across platforms is not a goal.
 
 Planning records the target SDK and required platform capabilities; implementation follows the
 target stack; audit checks new work against this direction without calling existing legacy code a
-new regression. Verification uses [platform tools](../../arc:verify/references/stacks.md) and the
+new regression. Verification uses [platform tools](../../arc-verify/references/stacks.md) and the
 real target environment. Missing SDK/device access is `NOT_RUN`/`BLOCKED`, never a reason to switch
 to a cross-platform implementation or to claim a web simulation as native proof.

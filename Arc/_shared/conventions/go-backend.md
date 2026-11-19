@@ -1,6 +1,6 @@
 # Go Backend Conventions
 
-Applied by arc:code for Go backend changes; checked by arc:audit; arc:explore maps layers with it.
+Applied by arc-code for Go backend changes; checked by arc-audit; arc-explore maps layers with it.
 
 Also read [go-type-safety.md](go-type-safety.md) (typing, response DTOs) and
 [coding-discipline.md](../coding-discipline.md) §4 (paper-overs). §2, §5, §6, §8, §10, §12 and §14

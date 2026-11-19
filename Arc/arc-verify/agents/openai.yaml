@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arc Verify"
+  short_description: "Business-flow-first tests, test-first, E2E, fuzz, reliability and release evidence"
+  default_prompt: "Use $arc-verify to scan world flags, build branching storyline checkpoints, execute blind concurrent shards and verify 100% ending completion."

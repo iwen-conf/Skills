@@ -78,7 +78,7 @@ def validate_text(
     if "name" in fm and not re.fullmatch(r"[a-z0-9:-]+", str(fm["name"])):
         errors.append(f"{path_label}: name contains unsupported characters")
     if "name" in fm and fm["name"] and not is_supported_skill(str(fm["name"])):
-        errors.append(f"{path_label}: skill name must use arc:xxx namespace")
+        errors.append(f"{path_label}: skill name must use arc-xxx namespace")
 
     banned_keys = sorted(key for key in fm.keys() if key in BANNED_FRONTMATTER_KEYS)
     if banned_keys:

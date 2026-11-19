@@ -4,31 +4,31 @@ scenarios:
   - id: verify-whole-system-first-graph
     category: multi-intent
     utterance: 完整测试这个系统的所有业务，目前没有业务图
-    expected_runtime: arc:verify graph mode inspects the current project, independently drafts expected and implementation inventories, generates a candidate v2 model itself, initializes and imports it into the target-local DB and exports a review snapshot without requiring environment or runner setup; it obtains unresolved business decisions and then continues the already authorized test request through bounded tasks, real execution and independent evidence
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify graph mode inspects the current project, independently drafts expected and implementation inventories, generates a candidate v2 model itself, initializes and imports it into the target-local DB and exports a review snapshot without requiring environment or runner setup; it obtains unresolved business decisions and then continues the already authorized test request through bounded tasks, real execution and independent evidence
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 用户不手填JSON；先展示候选，不自动批准RULE，不把建图或计划当完整验收。
 
   - id: verify-graph-only-no-target-execution
     category: scope
     utterance: 只建立DB业务树图给我核对，先别运行测试
-    expected_runtime: arc:verify creates or reuses a candidate local graph and exports an unapproved snapshot, preserves unknown semantics as candidates or risks and stops before target execution, approval, task runs or fixtures; graph presence is not PASS
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify creates or reuses a candidate local graph and exports an unapproved snapshot, preserves unknown semantics as candidates or risks and stops before target execution, approval, task runs or fixtures; graph presence is not PASS
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 本地候选建模不依赖业务环境、账号或runner；只建图不等于只出Mermaid。
 
   - id: verify-local-tests-do-not-create-graph
     category: scope
     utterance: 只跑这个包现有的单元写测试回归，不建立业务图
-    expected_runtime: arc:verify uses the existing local test runner without init, import, approve, graph planning or target operations; negated graph wording does not select graph mode
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify uses the existing local test runner without init, import, approve, graph planning or target operations; negated graph wording does not select graph mode
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 词表只选择技能，实际模式和范围必须理解否定，普通单测和SQL lint保持轻量。
 
   - id: verify-read-only-graph-keeps-ledger
     category: scope
     utterance: 只读查看现有业务树图，不修改DB或环境
-    expected_runtime: arc:verify reads the existing graph and evidence, may export a snapshot only within the allowed artifact scope and never initializes, imports, approves, plans or mutates the canonical ledger or target
+    expected_runtime: arc-verify reads the existing graph and evidence, may export a snapshot only within the allowed artifact scope and never initializes, imports, approves, plans or mutates the canonical ledger or target
     static_keyword_winner: null
     static_keyword_is_authoritative: false
     notes: 只读与业务树词静态打平，不能替代真实意图判断；没有图就报告缺口，更严格的不写文件限制仍优先。
@@ -36,71 +36,71 @@ scenarios:
   - id: verify-plan-only-without-persistent-graph
     category: scope
     utterance: 只写完整业务测试方案，先不要建DB和执行
-    expected_runtime: arc:verify produces the requested plan without initializing or importing a graph and reports runtime claims NOT_RUN; whole-system vocabulary cannot override the explicit plan-only scope
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify produces the requested plan without initializing or importing a graph and reports runtime claims NOT_RUN; whole-system vocabulary cannot override the explicit plan-only scope
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 完整测试语义与本轮动作权限分别判断，不因命中graph词强制写库。
 
   - id: verify-candidate-before-authorized-execution
     category: authorization
     utterance: 测试整个系统，业务规则和测试环境还没有确认
-    expected_runtime: arc:verify can inspect source and persist a candidate graph for review, asks only unresolved normative and authorization decisions and blocks dependent execution; it never invents rules, accounts, target addresses or approval and continues independent modeling work
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify can inspect source and persist a candidate graph for review, asks only unresolved normative and authorization decisions and blocks dependent execution; it never invents rules, accounts, target addresses or approval and continues independent modeling work
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 缺少执行授权不妨碍候选图核对；接受RISK不等于确认RULE。
 
   - id: native-clients-new-project
     category: scope
     utterance: 先写PRD，Android和iOS新客户端都做原生，后端接口共用
-    expected_runtime: arc:plan uses Kotlin and Jetpack Compose for Android and Swift with SwiftUI or UIKit for iOS, shares the backend contract and business semantics, and keeps separate platform acceptance without proposing a shared UI runtime for code reuse
-    static_keyword_winner: arc:plan
+    expected_runtime: arc-plan uses Kotlin and Jetpack Compose for Android and Swift with SwiftUI or UIKit for iOS, shares the backend contract and business semantics, and keeps separate platform acceptance without proposing a shared UI runtime for code reuse
+    static_keyword_winner: arc-plan
     static_keyword_is_authoritative: false
     notes: 用户原生方向已确定；多端不等于跨平台UI，也不新增未要求的平台。
 
   - id: native-policy-does-not-rewrite-legacy
     category: scope
     utterance: 修复现有Expo页面的渲染报错，只改这个问题
-    expected_runtime: arc:code repairs the confirmed defect within the existing Expo app and does not infer authorization for a native rewrite, while retaining native defaults for future independent targets
-    static_keyword_winner: arc:code
+    expected_runtime: arc-code repairs the confirmed defect within the existing Expo app and does not infer authorization for a native rewrite, while retaining native defaults for future independent targets
+    static_keyword_winner: arc-code
     static_keyword_is_authoritative: false
     notes: 新选型方向不能扩大旧项目局部维护的范围。
 
   - id: native-ui-evidence-is-platform-specific
     category: scope
     utterance: 给原生macOS客户端写测试，浏览器截图能否代替窗口和权限验证
-    expected_runtime: arc:verify chooses the actual macOS app target and native UI evidence, rejects browser-only proof for windows or permissions and marks missing device or tool evidence NOT_RUN rather than switching to a web shell
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify chooses the actual macOS app target and native UI evidence, rejects browser-only proof for windows or permissions and marks missing device or tool evidence NOT_RUN rather than switching to a web shell
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 原生行为必须由目标平台的证据证明；构建与浏览器预览都不自动构成原生UI验收。
 
   - id: api-design-doc-only
     category: scope
     utterance: 只读评估这份 HTTP API 草案的上传约束和 JSON字段限制，目前没有服务器
-    expected_runtime: arc:audit api-design reads the supplied draft and relevant primary standards, distinguishes confirmed design contradictions from specification and enforcement gaps, and reports section evidence without starting a server or editing the draft
-    static_keyword_winner: arc:audit
+    expected_runtime: arc-audit api-design reads the supplied draft and relevant primary standards, distinguishes confirmed design contradictions from specification and enforcement gaps, and reports section evidence without starting a server or editing the draft
+    static_keyword_winner: arc-audit
     static_keyword_is_authoritative: false
     notes: 缺少实现不阻止设计评审，但不能把文档问题声称为运行时漏洞。
 
   - id: api-design-no-invented-caps
     category: scope
     utterance: 核对 HTTP API 上传约束，文档没有定文件大小或字符数，不要凭习惯填数字
-    expected_runtime: arc:audit api-design records unknown budgets with their decision owner, investigates inherited or provider enforcement, cites standard versus project authority and never invents a universal upload or field limit
-    static_keyword_winner: arc:audit
+    expected_runtime: arc-audit api-design records unknown budgets with their decision owner, investigates inherited or provider enforcement, cites standard versus project authority and never invents a universal upload or field limit
+    static_keyword_winner: arc-audit
     static_keyword_is_authoritative: false
     notes: 项目限额缺失是规格缺口；既不能编造 RFC 上限，也不能据此证明所有部署路径无限制。
 
   - id: api-design-does-not-authorize-upload
     category: authorization
     utterance: 检查生产 HTTP API 的上传约束，只读，不发请求
-    expected_runtime: arc:audit api-design inspects contracts and existing evidence only; it does not upload test files, probe the target, fuzz or load test and marks runtime claims unverified
-    static_keyword_winner: arc:audit
+    expected_runtime: arc-audit api-design inspects contracts and existing evidence only; it does not upload test files, probe the target, fuzz or load test and marks runtime claims unverified
+    static_keyword_winner: arc-audit
     static_keyword_is_authoritative: false
     notes: 网上查规范不等于获得业务目标的测试或数据写入权限。
 
   - id: api-design-authorized-remediation-handoff
     category: multi-intent
     utterance: 先评估 HTTP API 设计缺陷，再按已确认的合同修复并验证
-    expected_runtime: arc:audit api-design records sourced findings, arc:code performs the already authorized accepted repairs, and arc:verify binds the same rule and finding IDs to actual enforcement evidence; only unresolved business choices need clarification
+    expected_runtime: arc-audit api-design records sourced findings, arc-code performs the already authorized accepted repairs, and arc-verify binds the same rule and finding IDs to actual enforcement evidence; only unresolved business choices need clarification
     static_keyword_winner: null
     static_keyword_is_authoritative: false
     notes: HTTP API 与修复词静态并列，无唯一赢家；真实阶段切换保留用户授权和范围，schema 通过不代替实际入口证据。
@@ -108,207 +108,207 @@ scenarios:
   - id: closure-model-before-implementation
     category: multi-intent
     utterance: 设计订单业务闭环和状态机，通过后继续实现接口
-    expected_runtime: arc:plan model mode models the authorized business change, records assumptions and model gate evidence, then hands the same spec and accepted scope to arc:code; existing implementation authorization is reused
-    static_keyword_winner: arc:plan
+    expected_runtime: arc-plan model mode models the authorized business change, records assumptions and model gate evidence, then hands the same spec and accepted scope to arc-code; existing implementation authorization is reused
+    static_keyword_winner: arc-plan
     static_keyword_is_authoritative: false
     notes: 模型闸门只证明已建模的业务自洽；不能替代实际代码验证，也不重复索取已经给出的实现授权。
 
   - id: closure-read-only-existing-business
     category: scope
     utterance: 只读核对现有业务闭环和事件联动，不要改文档或代码
-    expected_runtime: arc:plan model mode audits the existing model and arc:explore evidence within the read-only scope; it reports findings without initializing docs, changing the spec or installing project rules
-    static_keyword_winner: arc:plan
+    expected_runtime: arc-plan model mode audits the existing model and arc-explore evidence within the read-only scope; it reports findings without initializing docs, changing the spec or installing project rules
+    static_keyword_winner: arc-plan
     static_keyword_is_authoritative: false
     notes: 只读范围覆盖业务审查；初始化工具能写文档不表示已经获得写入授权。
 
   - id: closure-plan-handoff-keeps-task-authority
     category: multi-intent
     utterance: 为业务闭环的状态机和事件联动拆任务，并登记进度
-    expected_runtime: arc:plan model mode supplies requirement, entity, transition and scenario IDs plus current gate evidence; arc:plan references them in task acceptance criteria and keeps the execution progress table authoritative
-    static_keyword_winner: arc:plan
+    expected_runtime: arc-plan model mode supplies requirement, entity, transition and scenario IDs plus current gate evidence; arc-plan references them in task acceptance criteria and keeps the execution progress table authoritative
+    static_keyword_winner: arc-plan
     static_keyword_is_authoritative: false
     notes: docs/01-系统设计/业务闭环（旧项目 docs/arc）是业务模型及报告落点，不另建一套与进度跟踪表冲突的执行状态。
 
   - id: closure-gate-is-not-implementation-permission
     category: authorization
     utterance: 只做业务闭环，闭环闸门通过也先不要实现
-    expected_runtime: arc:plan model mode completes and reports the model phase only; passing the model gate does not override the explicit prohibition on implementation
-    static_keyword_winner: arc:plan
+    expected_runtime: arc-plan model mode completes and reports the model phase only; passing the model gate does not override the explicit prohibition on implementation
+    static_keyword_winner: arc-plan
     static_keyword_is_authoritative: false
     notes: 模型证据、人工待确认事项和源码修改授权分别记录。
 
   - id: closure-stale-spec-rejects-gate
     category: scope
     utterance: 事件联动改过了，旧闭环检查报告还是绿的，核对闭环闸门
-    expected_runtime: arc:plan model mode rejects gate evidence for the old spec, rechecks the current model and preserves unresolved assumptions or waivers instead of treating stale success as PASS
-    static_keyword_winner: arc:plan
+    expected_runtime: arc-plan model mode rejects gate evidence for the old spec, rechecks the current model and preserves unresolved assumptions or waivers instead of treating stale success as PASS
+    static_keyword_winner: arc-plan
     static_keyword_is_authoritative: false
     notes: 必须绑定当前 spec；旧报告与运行进程退出零都不能自动打开新模型的闸门。
 
   - id: closure-model-is-not-release-evidence
     category: negation
     utterance: 业务闭环和状态机已经检查通过，不代表发布证据也通过
-    expected_runtime: arc:verify consumes the closure scenarios and invariant IDs, binds independent real-system observations and failure cases, and reports runtime claims separately from arc:plan model mode model consistency
-    static_keyword_winner: arc:plan
+    expected_runtime: arc-verify consumes the closure scenarios and invariant IDs, binds independent real-system observations and failure cases, and reports runtime claims separately from arc-plan model mode model consistency
+    static_keyword_winner: arc-plan
     static_keyword_is_authoritative: false
     notes: 模型通过不证明消息乱序、多实例、数据库并发或生产环境行为；缺少必需证据保留 BLOCKED 或 NOT_RUN。
 
   - id: closure-audit-feedback-to-model
     category: multi-intent
     utterance: 业务闭环审查发现事件联动缺口，先登记证据，再调整状态机
-    expected_runtime: arc:audit or arc:plan model mode preserves finding evidence and affected IDs; arc:plan model mode updates the authorized model and reruns its gate before arc:plan or arc:code consumes the changed contract
-    static_keyword_winner: arc:plan
+    expected_runtime: arc-audit or arc-plan model mode preserves finding evidence and affected IDs; arc-plan model mode updates the authorized model and reruns its gate before arc-plan or arc-code consumes the changed contract
+    static_keyword_winner: arc-plan
     static_keyword_is_authoritative: false
     notes: 发现、模型修订、实现与验证保持可追溯；静态词频不决定由哪个阶段开始。
 
   - id: negation-do-not-write-code
     category: negation
     utterance: 不要写代码
-    expected_runtime: refuse implementation; do not activate arc:code
-    static_keyword_winner: arc:code
+    expected_runtime: refuse implementation; do not activate arc-code
+    static_keyword_winner: arc-code
     static_keyword_is_authoritative: false
     notes: 静态词表会命中「写代码」。真实执行应遵守否定，而不是按关键词开写。
 
   - id: multi-intent-clarify-then-code
     category: multi-intent
     utterance: 先澄清验收标准，再按方案写代码
-    expected_runtime: arc:plan (brief) then arc:code
-    static_keyword_winner: arc:plan
+    expected_runtime: arc-plan (brief) then arc-code
+    static_keyword_winner: arc-plan
     static_keyword_is_authoritative: false
     notes: 静态检查最多选出一个技能。真实执行要按顺序先澄清再实现，两个阶段各有一个主技能。
 
   - id: scope-frontend-only
     category: scope
     utterance: 只改前端页面，不要动后端接口
-    expected_runtime: arc:code in frontend mode with a scope lock; backend files stay unchanged
-    static_keyword_winner: arc:code
+    expected_runtime: arc-code in frontend mode with a scope lock; backend files stay unchanged
+    static_keyword_winner: arc-code
     static_keyword_is_authoritative: false
     notes: 即使得分命中前端，也不能把范围锁当成路由分数；后端必须保持只读，越界前停止报告。
 
   - id: authorization-no-unauthorized-dast
     category: authorization
     utterance: 不要对未授权的第三方站点跑 DAST
-    expected_runtime: refuse unauthorized DAST; arc:audit scan mode runs DAST only with written authorization and a named target
-    static_keyword_winner: arc:audit
+    expected_runtime: refuse unauthorized DAST; arc-audit scan mode runs DAST only with written authorization and a named target
+    static_keyword_winner: arc-audit
     static_keyword_is_authoritative: false
     notes: 关键词可能命中 DAST。真实执行必须先确认授权，未授权则停止。
 
   - id: repair-requires-fail-then-pass
     category: scope
     utterance: 修复登录接口报错，先给我复现再改
-    expected_runtime: arc:code repair mode records a failing reproducer before editing and reports the same check passing after the fix, with the repair packet
-    static_keyword_winner: arc:code
+    expected_runtime: arc-code repair mode records a failing reproducer before editing and reports the same check passing after the fix, with the repair packet
+    static_keyword_winner: arc-code
     static_keyword_is_authoritative: false
     notes: 没有“失败 → 通过”证据不能声称修复；无法复现时只做调查并报告缺口。
 
   - id: audit-leaves-worktree-unchanged
     category: scope
     utterance: 只读评审这个 PR，发现问题也不要顺手改
-    expected_runtime: arc:audit review mode reports ranked findings with file:line; git status --porcelain is identical before and after
-    static_keyword_winner: arc:audit
+    expected_runtime: arc-audit review mode reports ranked findings with file:line; git status --porcelain is identical before and after
+    static_keyword_winner: arc-audit
     static_keyword_is_authoritative: false
-    notes: 审计只产出报告；修复交给 arc:code，证明交给 arc:verify。
+    notes: 审计只产出报告；修复交给 arc-code，证明交给 arc-verify。
 
   - id: fix-scanner-finding-is-code-work
     category: multi-intent
     utterance: 修复 Semgrep 报的漏洞
-    expected_runtime: arc:code repair mode confirms the finding first, then fixes it; arc:audit only re-scans afterwards
-    static_keyword_winner: arc:audit
+    expected_runtime: arc-code repair mode confirms the finding first, then fixes it; arc-audit only re-scans afterwards
+    static_keyword_winner: arc-audit
     static_keyword_is_authoritative: false
     notes: 静态词表因 Semgrep/漏洞 命中审计；真实意图是改代码，且扫描告警在确认前只是假设。
 
   - id: layering-review-is-audit-work
     category: scope
     utterance: 审查分层和 DIP
-    expected_runtime: arc:audit health or review mode checks code against conventions/go-backend.md without editing
-    static_keyword_winner: arc:code
+    expected_runtime: arc-audit health or review mode checks code against conventions/go-backend.md without editing
+    static_keyword_winner: arc-code
     static_keyword_is_authoritative: false
-    notes: 静态词表因 DIP/分层 命中 arc:code；“审查”表明只读评估。
+    notes: 静态词表因 DIP/分层 命中 arc-code；“审查”表明只读评估。
 
   - id: rename-needs-impact-first
     category: multi-intent
     utterance: 把 OrderStatus 改名为 OrderState，先看影响面
-    expected_runtime: arc:explore impact mode fills all eight impact surfaces, then arc:code performs the rename with the checklist as its edit list
-    static_keyword_winner: arc:explore
+    expected_runtime: arc-explore impact mode fills all eight impact surfaces, then arc-code performs the rename with the checklist as its edit list
+    static_keyword_winner: arc-explore
     static_keyword_is_authoritative: false
     notes: 影响面清单每一项都要有查询和命中数，空项写明所用查询。
 
   - id: db-qualification-without-local-postgres
     category: authorization
     utterance: 给新迁移做 PostgreSQL 发布验收；没有测试库 DSN
-    expected_runtime: arc:verify db mode prepares the manifest and offline checks, marks database-backed gates BLOCKED, and does not start a local PostgreSQL or container
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify db mode prepares the manifest and offline checks, marks database-backed gates BLOCKED, and does not start a local PostgreSQL or container
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 环境缺失不能用本机服务替代；离线可做的检查继续做。
 
   - id: reliability-read-only-evidence-review
     category: scope
     utterance: 只读检查支付可靠性和发布证据，不改代码，不操作环境
-    expected_runtime: arc:verify release mode reviews existing contracts and evidence; no code edits, test-data writes, load or deployment
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify release mode reviews existing contracts and evidence; no code edits, test-data writes, load or deployment
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 可靠性场景不能覆盖只读范围；只评估已有证据，缺失项如实记录。
 
   - id: reliability-real-database-unavailable
     category: authorization
     utterance: 做事务并发可靠性验证；没有远端测试库，本机只允许客户端
-    expected_runtime: arc:verify reliability mode prepares scenarios and bindings, runs independent available checks, and marks real-database evidence BLOCKED; no local PostgreSQL or container runtime
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify reliability mode prepares scenarios and bindings, runs independent available checks, and marks real-database evidence BLOCKED; no local PostgreSQL or container runtime
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 环境缺失不能用本机服务或 mock 结果替代真实事务证据，也不能暂停全部独立工作。
 
   - id: reliability-stale-or-broken-observer
     category: scope
     utterance: 核对发布证据；旧提交测试是绿的，新提交观察器失败，但进程退出零
-    expected_runtime: arc:verify rejects stale evidence and missing business observations; required scenarios do not PASS and block the gate
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify rejects stale evidence and missing business observations; required scenarios do not PASS and block the gate
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 进程成功、旧版本绿灯和测试数量均不能替代本次候选版本的可信 oracle。
 
   - id: reliability-specification-gap
     category: multi-intent
     utterance: 准备取消与回调的可靠性验证；合同没有定义竞速结果，先整理可执行场景
-    expected_runtime: arc:verify records SPECIFICATION GAP, asks arc:plan only for the missing business decision, and continues independent binding and environment work
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify records SPECIFICATION GAP, asks arc-plan only for the missing business decision, and continues independent binding and environment work
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 不发明谁先赢或退款规则；未知判定不能标成 PASS。
 
   - id: reliability-incident-control-handoff
     category: multi-intent
     utterance: 按根因修好重复回调后，补可靠性和业务不变量的防复发证据
-    expected_runtime: arc:code owns the confirmed repair; arc:verify then specifies and runs regression and detection controls on existing native bindings
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-code owns the confirmed repair; arc-verify then specifies and runs regression and detection controls on existing native bindings
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 修复与验证分属两个阶段；已有执行绑定不反复重新规划。
 
   - id: reliability-no-deployment-from-review
     category: negation
     utterance: 只要发布证据结论，不要部署，也不要把风险豁免写成测试通过
-    expected_runtime: arc:verify reports the evidence gate without deploying; accepted risks retain original failing or missing evidence statuses
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify reports the evidence gate without deploying; accepted risks retain original failing or missing evidence statuses
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 发布判断不是发布权限；豁免和测试状态分开记录。
 
   - id: testing-coverage-does-not-define-scope
     category: scope
     utterance: 覆盖率已经很高，帮我设计测试范围；支付通知这次改了去重，不要为了涨覆盖率堆测试
-    expected_runtime: arc:verify derives required cases from the changed contract and real failure consequences, checks assertion strength and relevant real boundaries, and states exclusions without fixed coverage or E2E ratios
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify derives required cases from the changed contract and real failure consequences, checks assertion strength and relevant real boundaries, and states exclusions without fixed coverage or E2E ratios
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 覆盖率不能决定业务风险已被覆盖；不变量与证据约束在同一技能内完成，不重建平台。
 
   - id: testing-correlated-generator-oracle
     category: scope
     utterance: 审查用例设计；查询 fuzz 每次都通过，但生成数据总让两个索引的匹配项连续，断言只检查条数
-    expected_runtime: arc:verify examines reachable states and generator correlations, introduces independent representative inputs and exact-result oracles, and uses a bounded counterexample check when justified
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify examines reachable states and generator correlations, introduces independent representative inputs and exact-result oracles, and uses a bounded counterexample check when justified
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 不以增加随机次数或沿用同一查询算法计算期望来替代真实缺陷敏感性。
 
   - id: reliability-configuration-capacity-scope
     category: multi-intent
     utterance: 为规则配置变更做可靠性验证方案；正常请求测试都过了，没有改二进制，只读分析
-    expected_runtime: arc:verify assesses actual configuration, relevant CPU/load and rollout/recovery risks alongside functional claims, without running load or deploying during a read-only analysis
+    expected_runtime: arc-verify assesses actual configuration, relevant CPU/load and rollout/recovery risks alongside functional claims, without running load or deploying during a read-only analysis
     static_keyword_winner: null
     static_keyword_is_authoritative: false
     notes: 静态“只读”与“可靠性”命中并列，无唯一赢家。实际任务中配置不是免测面，容量验证按后果排序，且保持只读。
@@ -316,7 +316,7 @@ scenarios:
   - id: reliability-mixed-version-and-rollback-floor
     category: scope
     utterance: 核对发布证据；旧版只读 XML，新版开始写 JSON，两个单版本套件均通过，计划任意回滚
-    expected_runtime: arc:verify checks coexisting versions, reader/writer preparation, old and new persisted data, background work and the supported rollback floor; separate single-version passes do not prove transition safety
+    expected_runtime: arc-verify checks coexisting versions, reader/writer preparation, old and new persisted data, background work and the supported rollback floor; separate single-version passes do not prove transition safety
     static_keyword_winner: null
     static_keyword_is_authoritative: false
     notes: 静态“只读”与“发布证据”命中并列，此处只读描述版本能力。实际必须验证过渡，不能把分阶段可回退误写成可回到所有历史版本。
@@ -324,47 +324,47 @@ scenarios:
   - id: reliability-quarantined-required-claim
     category: negation
     utterance: 看发布证据；防重复履约的必需测试失败后重跑通过，已经自动隔离，不能把它从风险里删掉
-    expected_runtime: arc:verify preserves attempts, checks candidate and observer identity, retains the unsatisfied required claim and uses comparative diagnosis without treating quarantine or retry success as PASS
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify preserves attempts, checks candidate and observer identity, retains the unsatisfied required claim and uses comparative diagnosis without treating quarantine or retry success as PASS
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 隔离改变调度而非业务事实；需要修复或可信替代证据，授权风险决定与测试结果分开。
 
   - id: flow-first-not-endpoint-list
     category: negation
     utterance: 不要按接口列表批量生成用例，先梳理下单业务流再写测试
-    expected_runtime: arc:verify flow mode traces the real entry points into a flow inventory, Mermaid charts and a branch ledger, checks it with flow_ledger.py, and only then writes branch-mapped cases; no case is generated from the endpoint list
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify flow mode traces the real entry points into a flow inventory, Mermaid charts and a branch ledger, checks it with flow_ledger.py, and only then writes branch-mapped cases; no case is generated from the endpoint list
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 业务流优先于单接口；未实现的补偿画成缺口终点，不写成已具备的能力。
 
   - id: closure-review-then-flow-tests
     category: multi-intent
     utterance: 先只读检查订单的业务闭环，再按端到端业务流补测试
-    expected_runtime: arc:plan model review reports lifecycle gaps read-only, then arc:verify flow mode maps the same transitions and invariants to flow branches and writes tests; flows cite closure-spec IDs and never edit the spec
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-plan model review reports lifecycle gaps read-only, then arc-verify flow mode maps the same transitions and invariants to flow branches and writes tests; flows cite closure-spec IDs and never edit the spec
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 静态词表只命中 verify，会漏掉 plan 阶段；闭环模型归 plan，业务流测试归 verify，模型 PASS 不等于运行时已验证。
 
   - id: model-divergence-is-not-a-model-edit
     category: negation
     utterance: 按 closure spec 做模型一致性测试，代码和模型对不上就直接改模型让测试通过
-    expected_runtime: arc:verify runs generated operation sequences through the real entry points against a model read from the spec, keeps a transition hit ledger, and reports each shrunk divergence as FAIL with a repair packet for arc:code or as a SPECIFICATION GAP for arc:plan model review; it never edits the spec or bends the model to the code
-    static_keyword_winner: arc:verify
+    expected_runtime: arc-verify runs generated operation sequences through the real entry points against a model read from the spec, keeps a transition hit ledger, and reports each shrunk divergence as FAIL with a repair packet for arc-code or as a SPECIFICATION GAP for arc-plan model review; it never edits the spec or bends the model to the code
+    static_keyword_winner: arc-verify
     static_keyword_is_authoritative: false
     notes: 模型归 plan、实现归 code，一致性测试只出证据；模型检查 PASS 与代码一致性 PASS 是两个独立结论。
 
   - id: vet-offline-no-invented-facts
     category: scope
     utterance: 引入依赖前先做开源选型，但这台机器访问不了 GitHub
-    expected_runtime: arc:vet checks the standard library, manifests and lockfiles locally, marks every external maintenance, release, license and advisory fact 未核实, recommends no unverified library for production and lists the queries to re-run instead of inventing activity or versions
-    static_keyword_winner: arc:vet
+    expected_runtime: arc-vet checks the standard library, manifests and lockfiles locally, marks every external maintenance, release, license and advisory fact 未核实, recommends no unverified library for production and lists the queries to re-run instead of inventing activity or versions
+    static_keyword_winner: arc-vet
     static_keyword_is_authoritative: false
     notes: 无网络时只能做本地复用判断；不得把未核实候选当作生产依赖推荐。
 
   - id: vet-then-implement
     category: multi-intent
     utterance: 先做技术选型挑一个限流库，然后把限流中间件写完
-    expected_runtime: arc:vet writes the decision record with dated candidate evidence and vetoes, then switches to arc:code in the same turn using the record's pin and proof test; the record does not replace the requested implementation
-    static_keyword_winner: arc:vet
+    expected_runtime: arc-vet writes the decision record with dated candidate evidence and vetoes, then switches to arc-code in the same turn using the record's pin and proof test; the record does not replace the requested implementation
+    static_keyword_winner: arc-vet
     static_keyword_is_authoritative: false
     notes: 选型是第一阶段；用户已授权实现，交接后继续，不以调研报告收尾。

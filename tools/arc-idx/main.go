@@ -13,18 +13,20 @@ import (
 	"os"
 )
 
-const version = "1.0.0"
+const version = "2.0.0"
 
 // identity is the single-line fingerprint agents compare against before
 // trusting this binary as the mandated local context engine.
-const identity = "arc index engine %s — internal to arc (zoekt + ctags + ast-grep); run `arc`"
+const identity = "arc index engine %s — internal to arc (zoekt + ctags + ast-grep + skeleton + impact); run `arc`"
 
 const usage = identity + `
 
 Usage:
-  arc idx index    [--repo DIR]                        rebuild zoekt shards + ctags symbols
-  arc idx search   <query> [--profile P] [--max N] [--context N] [--format json|ai-md]
+  arc idx index    [--repo DIR] [--force]              incremental/full zoekt + ctags index
+  arc idx search   <query> [--profile P] [--prod-only] [--max N] [--context N] [--format json|ai-md]
   arc idx symbol   <name>  [--kind K] [--lang L] [--exact] [--format json|ai-md]
+  arc idx skeleton <path...> [--all] [--format json|ai-md]         signatures & line ranges only
+  arc idx impact   <entity> [--prod-only] [--format json|ai-md]    cross-layer SQL/ORM/route/topic scan
   arc idx ast      --lang L <pattern> [paths...] [--format json|ai-md]
   arc idx files    [pattern] [--profile P] [--format plain|json]   list candidate files
   arc idx stats    [--profile P] [--format json|ai-md]             language/LOC inventory
@@ -32,10 +34,6 @@ Usage:
   arc idx watch    [--ttl MIN] [--mem MB]              foreground incremental indexer
   arc idx daemon   start|stop|status|restart           background indexer lifecycle
   arc version
-
-Query syntax for search follows zoekt: 'foo bar', 'f:\.go$ handler', 'sym:UserService', 'lang:go case:yes Foo'.
-All commands run from anywhere inside the repository; the repo root and
-.ai-code-index/config.json are discovered automatically.
 `
 
 func main() {
@@ -64,6 +62,10 @@ func main() {
 		err = cmdSearch(args)
 	case "symbol", "symbols":
 		err = cmdSymbol(args)
+	case "skeleton":
+		err = cmdSkeleton(args)
+	case "impact":
+		err = cmdImpact(args)
 	case "ast", "struct":
 		err = cmdAst(args)
 	case "files":

@@ -1,6 +1,6 @@
 # Go Strict Type Safety
 
-Applied by arc:code when it writes or changes Go code; checked by arc:audit. Layering and naming:
+Applied by arc-code when it writes or changes Go code; checked by arc-audit. Layering and naming:
 [go-backend.md](go-backend.md).
 
 ## 1. Contracts and diagnostics

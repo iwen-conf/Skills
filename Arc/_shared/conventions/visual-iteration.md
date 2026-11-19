@@ -16,7 +16,7 @@ Before editing, name:
 Only ask when unresolved alternatives materially change the deliverable. Existing authorization
 covers a concrete in-scope correction; silence is never authorization for a redesign.
 Locate owning components/tokens with `arc`, then inspect sibling consumers. A deterministic
-rendering, data, font or timing regression uses arc:code repair with this visual evidence.
+rendering, data, font or timing regression uses arc-code repair with this visual evidence.
 
 ## 2. Fix the shared cause
 

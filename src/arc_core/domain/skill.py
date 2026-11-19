@@ -25,22 +25,22 @@ ARC_SHARED_DIR = "_shared"
 # as the pre-2.0 skill mesh; these ceilings make that regression fail validation.
 ARC_LOAD_SCENARIOS: dict[str, tuple[int, tuple[str, ...]]] = {
     "go-repair": (
-        15500,
+        14000,
         (
-            "Arc/arc:code/SKILL.md",
+            "Arc/arc-code/SKILL.md",
             "Arc/_shared/contract.md",
             "Arc/_shared/code-intel.md",
             "Arc/_shared/coding-discipline.md",
             "docs/execution-truth.md",
-            "Arc/arc:code/references/repair.md",
+            "Arc/arc-code/references/repair.md",
             "Arc/_shared/conventions/go-backend.md",
             "Arc/_shared/conventions/go-type-safety.md",
         ),
     ),
     "go-feature": (
-        12000,
+        10500,
         (
-            "Arc/arc:code/SKILL.md",
+            "Arc/arc-code/SKILL.md",
             "Arc/_shared/contract.md",
             "Arc/_shared/code-intel.md",
             "Arc/_shared/coding-discipline.md",
@@ -49,9 +49,9 @@ ARC_LOAD_SCENARIOS: dict[str, tuple[int, tuple[str, ...]]] = {
         ),
     ),
     "fullstack-api": (
-        18000,
+        14500,
         (
-            "Arc/arc:code/SKILL.md",
+            "Arc/arc-code/SKILL.md",
             "Arc/_shared/contract.md",
             "Arc/_shared/code-intel.md",
             "Arc/_shared/coding-discipline.md",
@@ -59,121 +59,100 @@ ARC_LOAD_SCENARIOS: dict[str, tuple[int, tuple[str, ...]]] = {
             "Arc/_shared/conventions/go-type-safety.md",
             "Arc/_shared/conventions/frontend.md",
             "Arc/_shared/api-contract.md",
-            "Arc/_shared/http-api-design.md",
         ),
     ),
     "pr-review": (
-        9500,
+        8000,
         (
-            "Arc/arc:audit/SKILL.md",
+            "Arc/arc-audit/SKILL.md",
             "Arc/_shared/contract.md",
             "Arc/_shared/code-intel.md",
-            "Arc/arc:audit/references/diff-review.md",
+            "Arc/arc-audit/references/diff-review.md",
         ),
     ),
     "pr-re-review": (
-        10500,
+        9000,
         (
-            "Arc/arc:audit/SKILL.md",
+            "Arc/arc-audit/SKILL.md",
             "Arc/_shared/contract.md",
             "Arc/_shared/code-intel.md",
-            "Arc/arc:audit/references/diff-review.md",
-            "Arc/arc:audit/references/review-loop.md",
+            "Arc/arc-audit/references/diff-review.md",
+            "Arc/arc-audit/references/review-loop.md",
         ),
     ),
     "appsec-campaign": (
-        19000,
+        17000,
         (
-            "Arc/arc:audit/SKILL.md",
+            "Arc/arc-audit/SKILL.md",
             "Arc/_shared/contract.md",
             "Arc/_shared/code-intel.md",
-            "Arc/arc:audit/references/appsec.md",
-            "Arc/arc:audit/references/attack-classes.md",
-            "Arc/arc:audit/references/scanners.md",
+            "Arc/arc-audit/references/appsec.md",
+            "Arc/arc-audit/references/attack-classes.md",
+            "Arc/arc-audit/references/scanners.md",
             "Arc/_shared/finding-campaign.md",
         ),
     ),
     "pg-reliability": (
-        15500,
-        (
-            "Arc/arc:verify/SKILL.md",
-            "Arc/_shared/contract.md",
-            "Arc/_shared/code-intel.md",
-            "Arc/arc:verify/references/txn-faults.md",
-            "Arc/arc:verify/references/case-design.md",
-            "Arc/arc:verify/references/db.md",
-        ),
-    ),
-    "verify-flow": (
         14000,
         (
-            "Arc/arc:verify/SKILL.md",
+            "Arc/arc-verify/SKILL.md",
             "Arc/_shared/contract.md",
             "Arc/_shared/code-intel.md",
-            "Arc/arc:verify/references/flow-model.md",
-            "Arc/arc:verify/references/flow-matrix.md",
-            "Arc/arc:verify/references/case-design.md",
+            "Arc/arc-verify/references/txn-faults.md",
+            "Arc/arc-verify/references/case-design.md",
+            "Arc/arc-verify/references/db.md",
         ),
     ),
-    "verify-graph": (
-        14000,
+    "verify-storyline": (
+        10000,
         (
-            "Arc/arc:verify/SKILL.md",
+            "Arc/arc-verify/SKILL.md",
             "Arc/_shared/contract.md",
             "Arc/_shared/code-intel.md",
-            "Arc/_shared/workflow.md",
-            "Arc/arc:verify/references/business-graph.md",
-            "Arc/arc:verify/references/business-graph-v2.md",
+            "Arc/_shared/business-verification.md",
+            "Arc/arc-verify/references/storyline-verification.md",
         ),
     ),
-    "verify-graph-start": (
-        14000,
+    "plan-dag": (
+        10500,
         (
-            "Arc/arc:verify/SKILL.md",
+            "Arc/arc-plan/SKILL.md",
             "Arc/_shared/contract.md",
             "Arc/_shared/code-intel.md",
-            "Arc/_shared/workflow.md",
-            "Arc/arc:verify/references/business-graph.md",
-            "Arc/arc:verify/references/business-graph-start.md",
-        ),
-    ),
-    "verify-diagram": (
-        11000,
-        (
-            "Arc/arc:verify/SKILL.md",
-            "Arc/arc:verify/references/business-diagram.md",
+            "docs/execution-truth.md",
+            "Arc/arc-plan/references/plan-dag.md",
         ),
     ),
     "plan-model": (
-        13000,
+        11500,
         (
-            "Arc/arc:plan/SKILL.md",
+            "Arc/arc-plan/SKILL.md",
             "Arc/_shared/contract.md",
             "Arc/_shared/code-intel.md",
             "docs/execution-truth.md",
-            "Arc/arc:plan/references/closure-design.md",
-            "Arc/arc:plan/references/closure-spec-format.md",
+            "Arc/arc-plan/references/closure-design.md",
+            "Arc/arc-plan/references/closure-spec-format.md",
         ),
     ),
     "plan-tasks": (
-        15500,
+        14000,
         (
-            "Arc/arc:plan/SKILL.md",
+            "Arc/arc-plan/SKILL.md",
             "Arc/_shared/contract.md",
             "Arc/_shared/code-intel.md",
             "docs/execution-truth.md",
-            "Arc/arc:plan/references/task-docs.md",
-            "Arc/arc:plan/references/task-templates.md",
+            "Arc/arc-plan/references/task-docs.md",
+            "Arc/arc-plan/references/task-templates.md",
         ),
     ),
     "vet-select": (
-        9000,
+        8000,
         (
-            "Arc/arc:vet/SKILL.md",
+            "Arc/arc-vet/SKILL.md",
             "Arc/_shared/contract.md",
             "Arc/_shared/code-intel.md",
-            "Arc/arc:vet/references/search-playbook.md",
-            "Arc/arc:vet/references/decision-template.md",
+            "Arc/arc-vet/references/search-playbook.md",
+            "Arc/arc-vet/references/decision-template.md",
         ),
     ),
 }
@@ -185,6 +164,9 @@ ROOT_CAUSE_GATED_SKILLS = frozenset(
     {
         "android-intent-security",
         "cnb",
+        "arc-audit",
+        "arc-code",
+        "arc-verify",
         "arc:audit",
         "arc:code",
         "arc:verify",
@@ -260,7 +242,7 @@ FIRST_PERSON_RE = re.compile(
     r"|(?:^|\n)\s*(我可以|你可以|我会)"
 )
 
-SUPPORTED_SKILL_PREFIXES = ("arc:", "lark-", "wxskills:")
+SUPPORTED_SKILL_PREFIXES = ("arc-", "arc:", "lark-", "wxskills:")
 SKILL_NAMESPACE_DIRS = {
     "arc": "Arc",
 }
@@ -309,17 +291,17 @@ INPUT_ARGUMENT_HEADER_MAP = {
 }
 
 LIFECYCLE_PHASES = {
-    "arc:explore": "understand",
-    "arc:plan": "plan",
-    "arc:code": "change",
-    "arc:verify": "prove",
-    "arc:audit": "evaluate",
-    "arc:vet": "select",
+    "arc-explore": "understand",
+    "arc-plan": "plan",
+    "arc-code": "change",
+    "arc-verify": "prove",
+    "arc-audit": "evaluate",
+    "arc-vet": "select",
 }
 
 
 def is_arc_skill(name: str) -> bool:
-    return name.startswith("arc:")
+    return name.startswith("arc-") or name.startswith("arc:")
 
 
 def estimate_tokens(text: str) -> int:
@@ -332,6 +314,8 @@ def is_supported_skill(name: str) -> bool:
 
 
 def get_namespace_dir(name: str) -> str | None:
+    if name.startswith("arc-") or name.startswith("arc:"):
+        return SKILL_NAMESPACE_DIRS.get("arc")
     namespace, _, _ = name.partition(":")
     return SKILL_NAMESPACE_DIRS.get(namespace)
 

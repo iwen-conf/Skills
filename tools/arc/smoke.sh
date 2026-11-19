@@ -52,7 +52,11 @@ echo "baseline" > README.txt
 git add README.txt
 git commit -qm baseline
 "$bin_dir/arc" verify init >/dev/null
-"$bin_dir/arc" verify import --file "$skills_root/tools/arc-verify/examples/academic-v1.json" >/dev/null
+"$bin_dir/arc" verify import --file "$skills_root/tools/arc-verify/examples/ecommerce-cancel.story.yaml" >/dev/null
+"$bin_dir/arc" verify lint-story "$skills_root/tools/arc-verify/examples/ecommerce-cancel.story.yaml" >/dev/null
+"$bin_dir/arc" verify play "$skills_root/tools/arc-verify/examples/ecommerce-cancel.story.yaml" --parallel --blind >/dev/null
+"$bin_dir/arc" verify completion "$skills_root/tools/arc-verify/examples/ecommerce-cancel.story.yaml" > .arc/completion.json
+python3 -c 'import json; c=json.load(open(".arc/completion.json")); assert c["verdict"]=="PASS" and c["ending_unlock_pct"]==100'
 "$bin_dir/arc" db migrate --confirm-offline > .arc/migrated.json
 python3 -c 'import json; x=json.load(open(".arc/migrated.json")); assert x["active"] and x["migrated_graphs"]==1'
 "$bin_dir/arc" db status > .arc/status.json

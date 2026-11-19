@@ -23,6 +23,7 @@ func cmdIndex(args []string) error {
 	fl := flag.NewFlagSet("index", flag.ExitOnError)
 	repoDir := fl.String("repo", ".", "repository root or any directory inside it")
 	quiet := fl.Bool("quiet", false, "suppress progress output")
+	force := fl.Bool("force", false, "force full rebuild ignoring content-hash manifest")
 	requireComplete := fl.Bool("require-complete", false, "fail rather than acknowledging a file-count-limited index")
 	if err := fl.Parse(args); err != nil {
 		return err
@@ -38,7 +39,21 @@ func cmdIndex(args []string) error {
 		return err
 	}
 	if *requireComplete && len(files) >= repo.Cfg.MaxFiles {
-		return fmt.Errorf("index reached max_files=%d; incomplete results cannot be acknowledged (raise the limit or narrow scope)",repo.Cfg.MaxFiles)
+		return fmt.Errorf("index reached max_files=%d; incomplete results cannot be acknowledged (raise the limit or narrow scope)", repo.Cfg.MaxFiles)
+	}
+
+	currHashes := collectRepoHashes(repo, files)
+	if !*force && hasShards(repo) {
+		if prev := loadManifest(repo); prev != nil {
+			changed, removed := diffManifest(prev.Files, currHashes)
+			if len(changed) == 0 && len(removed) == 0 {
+				if !*quiet {
+					fmt.Printf("index up-to-date (%d files, 0 changed) in %s\n",
+						len(files), time.Since(start).Round(time.Millisecond))
+				}
+				return nil
+			}
+		}
 	}
 
 	var wg sync.WaitGroup
@@ -57,6 +72,7 @@ func cmdIndex(args []string) error {
 	if zoektErr != nil {
 		return fmt.Errorf("zoekt build: %w", zoektErr)
 	}
+	_ = saveManifest(repo, currHashes)
 	if tagsErr != nil && !*quiet {
 		fmt.Fprintf(os.Stderr, "warning: ctags build failed: %v\n", tagsErr)
 	}
@@ -70,6 +86,11 @@ func cmdIndex(args []string) error {
 // walkRepo returns repo-relative paths of every indexable file.
 func walkRepo(repo *Repo, requireComplete ...bool) ([]string, error) {
 	strict := len(requireComplete) > 0 && requireComplete[0]
+	if !strict {
+		if fastFiles, ok, err := walkRepoGitFast(repo, false); ok && err == nil {
+			return fastFiles, nil
+		}
+	}
 	ignore := repo.ignoreSet()
 	var files []string
 	err := filepath.WalkDir(repo.Root, func(path string, d fs.DirEntry, err error) error {

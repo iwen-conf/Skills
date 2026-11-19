@@ -220,7 +220,7 @@ def test_nondefault_cnb_base_and_unrelated_changes(tmp_path):
 
 def test_trace_helper_emits_entire_json_line(tmp_path):
     if not shutil.which('go'): pytest.skip('Go toolchain unavailable')
-    text = (ROOT / 'Arc/arc:code/references/perf-probes.md').read_text()
+    text = (ROOT / 'Arc/arc-code/references/perf-probes.md').read_text()
     helper = re.findall(r'```go\n(.*?)```', text, re.S)[0]
     (tmp_path / 'trace.go').write_text(helper)
     (tmp_path / 'go.mod').write_text('module example.invalid/audit\n\ngo 1.21\n')

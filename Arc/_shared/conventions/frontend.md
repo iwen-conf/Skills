@@ -1,6 +1,6 @@
 # Frontend Conventions
 
-Applied by arc:code for frontend and UI changes; checked by arc:audit. Native selection:
+Applied by arc-code for frontend and UI changes; checked by arc-audit. Native selection:
 [native-platforms.md](native-platforms.md). Web theme values: [frontend-tokens.md](frontend-tokens.md).
 API docs: [api-contract.md](../api-contract.md). UI bug repair
 follows [execution-truth.md](../../../docs/execution-truth.md) §6.
@@ -80,7 +80,7 @@ observation; keep the same ownership separation without installing JavaScript eq
 6. End, transfer and delete confirm in a modal dialog stating the consequence in one sentence.
    One feedback per action: no toast when the screen already shows the result.
 7. A visible failure says what failed and why; unreachable environments add copyable detail
-   ([repair.md](../../arc:code/references/repair.md) §1).
+   ([repair.md](../../arc-code/references/repair.md) §1).
 
 ## 6. API client
 
@@ -164,9 +164,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 Check: `pnpm dev` shows background, card and primary button in the palette; `<html class="dark">` switches
 to `.dark` when dual-theme; `pnpm build` passes.
 
-## 9. Acceptance items (proved by arc:verify)
+## 9. Acceptance items (proved by arc-verify)
 
-Commands and tools per platform: [stacks.md](../../arc:verify/references/stacks.md) "UI checks".
+Commands and tools per platform: [stacks.md](../../arc-verify/references/stacks.md) "UI checks".
 
 1. Interaction closed loop: each journey completes and the UI returns to a consistent state.
 2. Visibility: key elements are present and visible, not hidden by system bars, overlap or overflow.

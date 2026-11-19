@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp/syntax"
+	"sort"
 	"strings"
 	"time"
 
@@ -28,6 +29,7 @@ type searchResult struct {
 
 type fileResult struct {
 	Path     string      `json:"path"`
+	Layer    string      `json:"layer,omitempty"`
 	Language string      `json:"language,omitempty"`
 	Score    float64     `json:"score,omitempty"`
 	Matches  []lineMatch `json:"matches"`
@@ -48,12 +50,13 @@ func cmdSearch(args []string) error {
 	maxDocs := fl.Int("max", 50, "maximum files to return")
 	contextLines := fl.Int("context", 0, "context lines around each match")
 	noIndex := fl.Bool("no-index", false, "skip zoekt and use ripgrep directly")
+	prodOnly := fl.Bool("prod-only", false, "exclude tests and markdown docs")
 	positional, err := parseInterleaved(fl, args)
 	if err != nil {
 		return err
 	}
 	if len(positional) < 1 {
-		return fmt.Errorf("usage: arc idx search <zoekt-query> [--profile P] [--format json|ai-md]")
+		return fmt.Errorf("usage: arc idx search <zoekt-query> [--profile P] [--prod-only] [--format json|ai-md]")
 	}
 	qstr := strings.Join(positional, " ")
 	repo, err := findRepo(*repoDir)
@@ -75,10 +78,41 @@ func cmdSearch(args []string) error {
 	if err != nil {
 		return err
 	}
+	rankAndFilterSearch(res, *prodOnly, *maxDocs)
 	res.Query = qstr
 	res.Profile = *profile
 	res.Duration = time.Since(start).Round(time.Millisecond).String()
 	return emitSearch(res, *format)
+}
+
+func rankAndFilterSearch(res *searchResult, prodOnly bool, maxDocs int) {
+	filtered := make([]fileResult, 0, len(res.Files))
+	matchCount := 0
+	for _, f := range res.Files {
+		layer := pathLayer(f.Path)
+		if prodOnly && (layer == "test" || layer == "doc") {
+			continue
+		}
+		f.Layer = layer
+		base := f.Score
+		if base <= 0 {
+			base = 1.0
+		}
+		f.Score = base * layerWeight(layer)
+		filtered = append(filtered, f)
+	}
+	sort.SliceStable(filtered, func(i, j int) bool {
+		return filtered[i].Score > filtered[j].Score
+	})
+	if len(filtered) > maxDocs {
+		filtered = filtered[:maxDocs]
+	}
+	for _, f := range filtered {
+		matchCount += len(f.Matches)
+	}
+	res.Files = filtered
+	res.FileCount = len(filtered)
+	res.MatchCount = matchCount
 }
 
 func zoektSearch(repo *Repo, qstr string, m *profileMatcher, maxDocs, contextLines int) (*searchResult, error) {

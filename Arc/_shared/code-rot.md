@@ -14,9 +14,9 @@ syntax). Diagnosing a suspected defect found here follows the root-cause gate in
 
 | Skill | Role | Items |
 |---|---|---|
-| `arc:code` | Prevents at write time: applies every Gate to the lines it writes. Families **D and E are its data-layer write gate** for any SQL, migration, repository method or state transition. Runs `arc:code/scripts/gate.sh check` for F. | all |
-| `arc:audit` | Detects: full catalog in health mode; changed lines only in review mode; family C in appsec mode; family G in health and review. | all |
-| `arc:verify` | Proves: tests or checks that fail on the rot and pass after the fix (C authz/brute-force/amount, D bounds and filters, E transitions and races, F34). | C, D, E, F34 |
+| `arc-code` | Prevents at write time: applies every Gate to the lines it writes. Families **D and E are its data-layer write gate** for any SQL, migration, repository method or state transition. Runs `arc-code/scripts/gate.sh check` for F. | all |
+| `arc-audit` | Detects: full catalog in health mode; changed lines only in review mode; family C in appsec mode; family G in health and review. | all |
+| `arc-verify` | Proves: tests or checks that fail on the rot and pass after the fix (C authz/brute-force/amount, D bounds and filters, E transitions and races, F34). | C, D, E, F34 |
 
 ## A. Convention drift: one meaning → one name, type, shape and key style
 
@@ -76,7 +76,7 @@ syntax). Diagnosing a suspected defect found here follows the root-cause gate in
 | 7 | Unstable state machine | Full state set and legal transitions declared once; transitions explicit. | State string literals across files; `UPDATE … SET status` without a from-state predicate. |
 | 8 | Empty state reported as error | No-data is success for list, search, dashboard and first-use flows; errors only for failed requests, invalid responses, denied permissions or single-resource not-found. | `sql.ErrNoRows` / `ErrNotFound` returned from list or search; error UI on an empty array. |
 | 13 | Swallowed exceptions | Never catch and discard: handle, wrap with context, or rethrow; log with cause. | `ast --lang go 'if err != nil { }'`; `_ = $F($$$)` on fallible calls; `catch {}`, `catch (e) {}`, `except: pass`. |
-| 27 | Race conditions | Concurrent writes use transactions, optimistic locking or state-encoded `WHERE` (`… WHERE status='pending'`) and check affected rows; isolation and locks per engine: [txn-design](../arc:verify/references/txn-design.md) §3–§4. | Read-modify-write of balance/counter/status without lock; unchecked `RowsAffected`. |
+| 27 | Race conditions | Concurrent writes use transactions, optimistic locking or state-encoded `WHERE` (`… WHERE status='pending'`) and check affected rows; isolation and locks per engine: [txn-design](../arc-verify/references/txn-design.md) §3–§4. | Read-modify-write of balance/counter/status without lock; unchecked `RowsAffected`. |
 
 ## G. Over-engineering: the cheapest correct code is the code not written
 
@@ -101,7 +101,7 @@ finding: `file:line: <tag> <what>. <replacement>.` with tag `yagni`, `stdlib`, `
 | 35 | Half-finished refactor reported as done | Done means no placeholders, no half-migrated call sites, verification green; residual work reported. |
 | 36 | Bulk replace broke everything | No unreviewed tree-wide `sed -i` / `find -exec sed` / `perl -i`; checkpoint first, edit directory by directory, verify between steps. |
 
-### F coverage by `arc:code/scripts/gate.sh check`
+### F coverage by `arc-code/scripts/gate.sh check`
 
 | Item | Covered by check lines | Still manual |
 |---|---|---|

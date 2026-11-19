@@ -9,7 +9,7 @@ from typing import Callable
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "Arc" / "arc:verify" / "scripts" / "flow_ledger.py"
+SCRIPT = ROOT / "Arc" / "arc-verify" / "scripts" / "flow_ledger.py"
 CATALOG = ROOT / "docs" / "07-测试质量" / "业务流"
 
 README = """# 业务流清单

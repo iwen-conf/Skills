@@ -36,8 +36,10 @@ Temporary Items
 
 # End of https://www.toptal.com/developers/gitignore/api/macos
 .ace-tool/
+.magi/
 .ai-code-index/tags
 .ai-code-index/tags.json
+.ai-code-index/manifest.json
 .ai-code-index/daemon.log
 .ai-code-index/daemon.pid
 

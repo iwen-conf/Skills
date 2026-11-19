@@ -23,7 +23,7 @@ import (
 const arcSchemaVersion = 1
 const arcDBName = ".arc/arc.db"
 const arcManifestName = ".arc/arc.json"
-const legacyVerifyDB = ".arc/verify/data.db"
+const legacyVerifyDB = ".arc/verify/story.db"
 
 type arcManifest struct {
 	Version       int    `json:"schema_version"`
@@ -228,7 +228,9 @@ func validateGateProof(body []byte, exitCode int, graph string) error {
 	case "PASS":
 		if exitCode != 0 { return fmt.Errorf("graph %q returned PASS with exit %d",graph,exitCode) }
 		scope, valid := proof["proof_scope"].(string)
-		if !valid || (scope!="planned_rule_tasks" && scope!="complete_business_model_obligations" && scope!="legacy_business_model_obligations" && scope!="declared_finite_contract_scope_and_verified_branch_execution") { return fmt.Errorf("graph %q PASS lacks proof scope",graph) }
+		if !valid || (scope != "storyline_completion_100pct" && scope != "planned_rule_tasks" && scope != "complete_business_model_obligations" && scope != "legacy_business_model_obligations" && scope != "declared_finite_contract_scope_and_verified_branch_execution") {
+			return fmt.Errorf("graph %q PASS lacks proof scope", graph)
+		}
 		if scope=="declared_finite_contract_scope_and_verified_branch_execution" {
 			partition, ok := proof["contract_proof"].(map[string]any)
 			if !ok || partition["status"]!="PROVEN_IN_SCOPE" || partition["complete_in_scope"]!=true { return fmt.Errorf("graph %q strong PASS lacks finite contract partition proof",graph) }

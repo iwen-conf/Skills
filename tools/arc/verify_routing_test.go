@@ -7,12 +7,11 @@ import (
 
 func TestUnifiedLedgerPreservesVerifierSubcommandPosition(t *testing.T) {
 	for _, test := range []struct{ in, want []string }{
-		{[]string{"contract", "match", "--action", "refund"}, []string{"contract", "match", "--db", "/project/.arc/arc.db", "--action", "refund"}},
-		{[]string{"discover", "status", "--id", "E-1"}, []string{"discover", "status", "--db", "/project/.arc/arc.db", "--id", "E-1"}},
-		{[]string{"campaign", "run", "--file", "variants.json"}, []string{"campaign", "run", "--db", "/project/.arc/arc.db", "--file", "variants.json"}},
-		{[]string{"campaign", "resume", "--id", "BC-1"}, []string{"campaign", "resume", "--db", "/project/.arc/arc.db", "--id", "BC-1"}},
-		{[]string{"risk", "refute", "--risk", "R-1"}, []string{"risk", "refute", "--db", "/project/.arc/arc.db", "--risk", "R-1"}},
-		{[]string{"snapshot", "--graph", "payment"}, []string{"snapshot", "--db", "/project/.arc/arc.db", "--graph", "payment"}},
+		{[]string{"checkpoint", "build", "--story", "cancel.story.yaml"}, []string{"checkpoint", "build", "--db", "/project/.arc/arc.db", "--story", "cancel.story.yaml"}},
+		{[]string{"checkpoint", "clone", "--story", "cancel.story.yaml", "--save", "save_1"}, []string{"checkpoint", "clone", "--db", "/project/.arc/arc.db", "--story", "cancel.story.yaml", "--save", "save_1"}},
+		{[]string{"play", "cancel.story.yaml", "--parallel"}, []string{"play", "--db", "/project/.arc/arc.db", "cancel.story.yaml", "--parallel"}},
+		{[]string{"completion", "cancel.story.yaml"}, []string{"completion", "--db", "/project/.arc/arc.db", "cancel.story.yaml"}},
+		{[]string{"snapshot", "--story", "ecommerce_account_cancellation", "--out", "out"}, []string{"snapshot", "--db", "/project/.arc/arc.db", "--story", "ecommerce_account_cancellation", "--out", "out"}},
 	} {
 		original := append([]string{}, test.in...)
 		if actual := withVerifyDatabase(test.in, "/project/.arc/arc.db"); !reflect.DeepEqual(actual, test.want) {

@@ -16,7 +16,7 @@
 `<repo>/.arc/arc.db`. The public CLI is **`arc`**; its code-index and verify
 engines are private transitional executables, never called by name. The end-state is one
 CLI, one versioned project-local database and separate internal engines for code
-indexing, workflow state and business verification. Keep `arc:explore` read-only;
+indexing, workflow state and business verification. Keep `arc-explore` read-only;
 mutations belong to the authorized work owner and plugin runtime.
 
 - **Git/worktree is authoritative for source bytes and committed revisions.**

@@ -1,44 +1,39 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-11-17T01:48:29.373594Z",
+  "generated_at": "2026-11-19T02:39:59.816609Z",
   "skill_count": 6,
   "skills": [
     {
-      "name": "arc:audit",
-      "description": "Read-only evaluation (只读) that produces ranked, evidence-backed code findings and never edits code: review any diff, PR or branch (代码评审, 能不能合), project health, code rot, over-engineering and tech debt (体检, 技术债, 过度设计, 可删代码), HTTP API design review (接口设计, 上传约束, JSON字段限制), AppSec audit, threat model and source-first pen test (威胁建模, 渗透测试) across web, identity, client, cloud, CI, RPC, mobile and LLM-agent surfaces, secret, dependency and SAST scans (安全扫描, Semgrep, 漏洞), and authorized DAST. Business lifecycle gaps (状态机漏洞, 闭环检查) go to arc:plan model mode. Not for fixes (use arc:code), tests (use arc:verify), or posting comments on CNB pull requests (use cnb).",
-      "version": "2.8.0",
-      "source_path": "Arc/arc:audit/SKILL.md",
-      "line_count": 150,
+      "name": "arc-audit",
+      "description": "Read-only evaluation (只读) producing ranked, evidence-backed code findings without editing code: diff/PR review (代码评审, 能不能合), project health, code rot and tech debt (体检, 技术债, 过度设计), HTTP API design review (HTTP API, 接口设计, 上传约束, JSON字段限制), AppSec threat model and pen test (AppSec, 威胁建模, 渗透测试), security/secret/dependency SAST scans (安全扫描, Semgrep, 漏洞) and authorized DAST. Not for fixes (use arc-code), tests (use arc-verify), or CNB PR comments (use cnb).",
+      "version": "3.0.0",
+      "source_path": "Arc/arc-audit/SKILL.md",
+      "line_count": 79,
       "intent_router": [
         {
-          "Condition": "HTTP API design, upload or JSON contract",
+          "Condition": "HTTP API, upload caps or JSON field bounds (HTTP API, 接口设计, 上传约束, JSON字段限制)",
           "Mode": "api-design",
-          "Read": "[api-design-review.md](references/api-design-review.md); also review if a diff is supplied"
+          "Read": "[api-design-review.md](references/api-design-review.md), [api-contract.md](../_shared/api-contract.md)"
         },
         {
-          "Condition": "Diff, PR, branch, commit range or patch file",
+          "Condition": "Diff, PR, branch or patch review (代码评审)",
           "Mode": "review",
-          "Read": "[references/diff-review.md](references/diff-review.md); prior findings or `deep`: [review-loop.md](references/review-loop.md)"
+          "Read": "[diff-review.md](references/diff-review.md); re-review: [review-loop.md](references/review-loop.md)"
         },
         {
-          "Condition": "Health, code rot, over-engineering (过度设计), tech debt, maintainability, architecture or release readiness; \"审计/audit\" with no security word",
+          "Condition": "Health, code rot, over-engineering or tech debt (体检, 技术债)",
           "Mode": "health",
-          "Read": "[../_shared/code-rot.md](../_shared/code-rot.md)"
+          "Read": "[code-rot.md](../_shared/code-rot.md)"
         },
         {
-          "Condition": "Security, vulnerability, AppSec, threat model, pen test, data exposure, AuthZ",
+          "Condition": "Security, AppSec, AuthZ, threat model or race/ledger invariants (AppSec, 漏洞)",
           "Mode": "appsec",
-          "Read": "[references/appsec.md](references/appsec.md), [attack-classes.md](references/attack-classes.md)"
+          "Read": "[appsec.md](references/appsec.md), [attack-classes.md](references/attack-classes.md)"
         },
         {
-          "Condition": "Scanner name, secrets/dependency/SAST scan, DAST, re-scan",
+          "Condition": "Scanner run: Semgrep/Trivy/secrets/DAST (安全扫描, Semgrep, DAST)",
           "Mode": "scan",
-          "Read": "[references/scanners.md](references/scanners.md)"
-        },
-        {
-          "Condition": "AppSec audit plus tool scans",
-          "Mode": "appsec, then scan",
-          "Read": "[references/appsec.md](references/appsec.md), [references/scanners.md](references/scanners.md)"
+          "Read": "[scanners.md](references/scanners.md); `scripts/security-scan.py`"
         }
       ],
       "quick_contract": null,
@@ -46,66 +41,41 @@
       "outputs_section": null
     },
     {
-      "name": "arc:code",
-      "description": "Every task that changes source code: write code to implement (写代码, 实现, 开发功能, 落地改动) a feature, endpoint or page (前端, 落地页, 要好看, shadcn, 小程序) on the project's stack; fix (修复) a bug, error (报错), incident or failing test by evidence-first root-cause repair (根因); refactor (重构) or migrate; change an API or schema; apply Go backend layering (DIP, usecase, 分层); write comments (注释); add timing probes to a Gin SSR path (计时, 探针, 埋点); or build classifiers and routers (分类器, 意图识别). Implements an existing DESIGN.md. Ends with the gate.sh completion check. Not for read-only review (use arc:audit), tests as the deliverable or release evidence (use arc:verify), PRDs, task docs or closure models (use arc:plan), visual direction without code (use ui-design), or commit, push and PR delivery (use check).",
-      "version": "2.8.0",
-      "source_path": "Arc/arc:code/SKILL.md",
-      "line_count": 158,
+      "name": "arc-code",
+      "description": "Every task that changes source code: implement features or endpoints (写代码, 实现, 开发功能, 落地改动), build frontend/UI pages (前端, shadcn, 小程序), fix bugs/errors/incidents by evidence-first root-cause repair (修复, 报错, 根因, incident), refactor (重构), apply Go DIP/usecase layering (DIP, usecase, 分层), write comments (注释), or add Gin SSR timing probes (Gin SSR, 计时, 探针, 埋点). Enforces write_scope isolation and atomic gate.sh checks. Not for review (use arc-audit), verification suites (use arc-verify), or planning (use arc-plan).",
+      "version": "3.0.0",
+      "source_path": "Arc/arc-code/SKILL.md",
+      "line_count": 87,
       "intent_router": [
         {
-          "Condition": "New feature, endpoint, job or behavior from a known requirement",
+          "Condition": "New feature, endpoint, job or behavior",
           "Mode": "implement",
-          "Read": "the \"adds to mode\" rows below"
+          "Read": "Stack row below + [api-contract.md](../_shared/api-contract.md) when API changes"
         },
         {
-          "Condition": "Bug, error, crash, failing test, regression, incident, failure-justified optimization",
+          "Condition": "Bug, crash, failing test or incident (修复, 报错, 根因)",
           "Mode": "repair",
           "Read": "[repair.md](references/repair.md) + evidence-first root-cause repair in [execution-truth.md](../../docs/execution-truth.md) §6"
         },
         {
-          "Condition": "Refactor, rename, move, migrate; shape change of an API, DTO, schema, event or config key",
+          "Condition": "Refactor, rename, move or schema migration (重构)",
           "Mode": "refactor",
           "Read": "[refactor.md](references/refactor.md)"
         },
         {
-          "Condition": "Web, mobile, desktop or mini-program page, component, state or theme",
+          "Condition": "Web/mobile/mini-program UI (前端, shadcn, 小程序)",
           "Mode": "frontend",
-          "Read": "[frontend.md](../_shared/conventions/frontend.md); theme: [frontend-tokens.md](../_shared/conventions/frontend-tokens.md); a project `DESIGN.md` sets visual rules only"
+          "Read": "[frontend.md](../_shared/conventions/frontend.md), [frontend-tokens.md](../_shared/conventions/frontend-tokens.md)"
         },
         {
-          "Condition": "Add or correct code comments only",
-          "Mode": "comment",
-          "Read": "[comments.md](../_shared/conventions/comments.md)"
+          "Condition": "Comments only (注释) / Gin SSR timing probes (计时, 探针)",
+          "Mode": "`comment` / `probe`",
+          "Read": "[comments.md](../_shared/conventions/comments.md) / [perf-probes.md](references/perf-probes.md)"
         },
         {
-          "Condition": "Timing probes on a slow request path",
-          "Mode": "probe",
-          "Read": "[perf-probes.md](references/perf-probes.md)"
-        },
-        {
-          "Condition": "Any mode editing Go backend code",
+          "Condition": "Go backend code (DIP, usecase, 分层)",
           "Mode": "adds to mode",
-          "Read": "[go-backend.md](../_shared/conventions/go-backend.md) + [go-type-safety.md](../_shared/conventions/go-type-safety.md)"
-        },
-        {
-          "Condition": "New Go module, composition root or wiring, mappers, constructor naming",
-          "Mode": "adds to mode",
-          "Read": "[go-backend-structure.md](../_shared/conventions/go-backend-structure.md)"
-        },
-        {
-          "Condition": "Add/change an API",
-          "Mode": "adds to mode",
-          "Read": "[api-contract.md](../_shared/api-contract.md) with its HTTP/JSON/upload rules"
-        },
-        {
-          "Condition": "Any mode writing SQL, transactions, migrations or state transitions",
-          "Mode": "adds to mode",
-          "Read": "[code-rot.md](../_shared/code-rot.md) families D and E; record how each applicable item is met before writing"
-        },
-        {
-          "Condition": "Change touches behavior modeled in a closure spec",
-          "Mode": "adds to mode",
-          "Read": "[workflow.md](../_shared/workflow.md) §4: run the plan model gate first"
+          "Read": "[go-backend.md](../_shared/conventions/go-backend.md), [go-type-safety.md](../_shared/conventions/go-type-safety.md)"
         }
       ],
       "quick_contract": null,
@@ -113,41 +83,36 @@
       "outputs_section": null
     },
     {
-      "name": "arc:explore",
-      "description": "Read-only code intelligence for a local repository: find where code lives (代码在哪, 搜代码), locate definitions, list callers (谁调用), trace a call chain (调用链) or data flow, list everything a planned change would touch (影响面 / impact analysis), and draw a module or architecture map (架构地图). Also maintains the arc Zoekt index (索引维护: arc idx doctor, index, daemon; old name arc-idx means arc idx). Not for edits (use arc:code), read-only risk review (use arc:audit), or tests (use arc:verify).",
-      "version": "2.4.0",
-      "source_path": "Arc/arc:explore/SKILL.md",
-      "line_count": 185,
+      "name": "arc-explore",
+      "description": "Read-only code intelligence for a local repository: locate definitions (代码在哪, 搜代码), extract symbol skeletons, list callers (谁调用), trace call chains (调用链), scan cross-layer SQL/ORM/route/topic impact (影响面), and map architecture (架构地图). Maintains the arc Zoekt index (arc-idx: arc idx doctor, index, daemon). Not for edits (use arc-code), review (use arc-audit), or tests (use arc-verify).",
+      "version": "3.0.0",
+      "source_path": "Arc/arc-explore/SKILL.md",
+      "line_count": 82,
       "intent_router": [
         {
-          "Condition": "Question contains 改, 换, 删, 重命名, rename, remove, replace, or asks what a change touches (影响面)",
+          "Condition": "Change verbs (改/删/重命名/rename/remove) or 影响面 / entity coupling",
           "Mode": "impact",
-          "Read": "[code-intel §4](../_shared/code-intel.md#4-impact-checklist)"
+          "Read / Run": "[code-intel.md](../_shared/code-intel.md) §4; `arc idx impact <entity> --prod-only`"
         },
         {
-          "Condition": "Who calls X, call chain, data flow (谁调用, 调用链)",
+          "Condition": "Callers, call chain or data flow (谁调用, 调用链)",
           "Mode": "trace",
-          "Read": "[code-intel §4 rows 1–4](../_shared/code-intel.md#4-impact-checklist)"
+          "Read / Run": "`arc idx symbol` → `arc idx search --prod-only` → `arc idx ast`"
         },
         {
-          "Condition": "Where a file, definition or string lives (代码在哪, 搜代码, 找符号)",
+          "Condition": "Locate files, types, signatures or literals (代码在哪, 搜代码)",
           "Mode": "locate",
-          "Read": "[code-intel §3](../_shared/code-intel.md#3-query-ladder-stop-at-the-first-rung-that-answers-the-question)"
+          "Read / Run": "`arc idx skeleton <dir>` → `arc idx symbol` → `arc idx search --prod-only`"
         },
         {
-          "Condition": "Module or system structure, entry points, layers (架构地图, 模块梳理)",
+          "Condition": "Module layers or architecture map (架构地图)",
           "Mode": "map",
-          "Read": "[references/architecture-map.md](references/architecture-map.md)"
+          "Read / Run": "[architecture-map.md](references/architecture-map.md)"
         },
         {
-          "Condition": "doctor, index, daemon, stale or suspicious results, index config",
+          "Condition": "Index health, stale shards, daemon or `.arc/arc.db` read",
           "Mode": "index-ops",
-          "Read": "[code-intel §1](../_shared/code-intel.md#1-preflight-once-per-repository-per-session)"
-        },
-        {
-          "Condition": "arc.db resource/state, file or change lookup questions",
-          "Mode": "index-ops",
-          "Read": "[arc.db](../_shared/arc-db.md); use `arc db status` / `arc task show` / `arc change show` only after activation"
+          "Read / Run": "`arc idx doctor --format json`; [arc-db.md](../_shared/arc-db.md)"
         }
       ],
       "quick_contract": null,
@@ -155,51 +120,46 @@
       "outputs_section": null
     },
     {
-      "name": "arc:plan",
-      "description": "Turns intent into written specs and checkable models without touching source code: PRD or blueprint (写PRD, 立项, 需求文档), clarify a vague request into a brief with acceptance criteria (需求澄清, 验收标准), business closure models — design a lifecycle or check an existing flow for dead ends, missing compensation or illegal transitions (业务闭环, 状态机, 状态流转漏洞, 事件联动, 异常恢复, 闭环检查) with the closure checker and gate (闭环闸门), Markdown API contracts (接口契约, 接口文档), tasks (拆任务, 任务文档, 进度跟踪), and audit findings into task batches. Not for implementation (use arc:code), code review (use arc:audit), or Lark workspace sync (use lark).",
-      "version": "2.7.0",
-      "source_path": "Arc/arc:plan/SKILL.md",
-      "line_count": 200,
+      "name": "arc-plan",
+      "description": "Turns intent into frozen contracts, write-set isolated concurrent DAGs (plan-dag.yaml) and checkable closure models without editing code: PRD or blueprint (写PRD, 立项, 需求文档), clarify vague requests with acceptance criteria (需求澄清, 验收标准), business closure models and gate (业务闭环, 状态机, 事件联动, 闭环检查, 闭环闸门), API contracts, and tasks (拆任务, 任务文档, 进度跟踪). Not for code edits (use arc-code), review (use arc-audit), or tests (use arc-verify).",
+      "version": "3.0.0",
+      "source_path": "Arc/arc-plan/SKILL.md",
+      "line_count": 83,
       "intent_router": [
         {
-          "Condition": "Idea or product needs a PRD, or an existing PRD must be refreshed",
-          "Mode": "prd",
-          "Read": "[prd.md](references/prd.md)"
+          "Condition": "Multi-module or multi-agent implementation (拆任务, 并发开发)",
+          "Mode": "dag",
+          "Read / Run": "[plan-dag.md](references/plan-dag.md); `dag_check.py` + `dag_dispatch.py`"
         },
         {
-          "Condition": "Request lacks goal, scope, constraints or acceptance; T2 work needs a brief",
-          "Mode": "brief",
-          "Read": "[brief.md](references/brief.md)"
-        },
-        {
-          "Condition": "Design or change a business lifecycle: states, events, invariants, recovery (业务闭环, 状态机)",
+          "Condition": "Lifecycle states, events, compensation or race checks (业务闭环, 状态机)",
           "Mode": "model",
-          "Read": "[closure-design.md](references/closure-design.md), [closure-spec-format.md](references/closure-spec-format.md)"
+          "Read / Run": "[closure-design.md](references/closure-design.md), [closure-spec-format.md](references/closure-spec-format.md)"
         },
         {
-          "Condition": "Check an existing flow for lifecycle gaps, read-only (状态流转漏洞, 闭环检查)",
+          "Condition": "Read-only lifecycle gap review (闭环检查)",
           "Mode": "`model` (review)",
-          "Read": "[closure-review.md](references/closure-review.md), [closure-loopholes.md](references/closure-loopholes.md)"
+          "Read / Run": "[closure-review.md](references/closure-review.md), [closure-loopholes.md](references/closure-loopholes.md)"
         },
         {
-          "Condition": "Modeled behavior is about to be implemented",
-          "Mode": "`model` (gate)",
-          "Read": "[closure-design.md](references/closure-design.md) §3–§4, [workflow.md](../_shared/workflow.md) §4"
+          "Condition": "Vague request needing goal, constraints & acceptance (需求澄清)",
+          "Mode": "brief",
+          "Read / Run": "[brief.md](references/brief.md)"
         },
         {
-          "Condition": "Break work into tasks; create, resume or update task documents, statuses or the tracker",
-          "Mode": "tasks",
-          "Read": "[task-docs.md](references/task-docs.md); [task-templates.md](references/task-templates.md) when writing files; [docs-layout.md](references/docs-layout.md) when creating a task directory"
+          "Condition": "Product PRD or blueprint (写PRD, 立项)",
+          "Mode": "prd",
+          "Read / Run": "[prd.md](references/prd.md)"
         },
         {
-          "Condition": "Create or repair `docs/00–11`, numbering or README indexes",
-          "Mode": "layout",
-          "Read": "[docs-layout.md](references/docs-layout.md)"
+          "Condition": "Persistent Markdown task cards or docs layout (任务文档, 进度跟踪)",
+          "Mode": "`tasks` / `layout`",
+          "Read / Run": "[task-docs.md](references/task-docs.md), [docs-layout.md](references/docs-layout.md)"
         },
         {
-          "Condition": "Audit or security findings become tasks",
+          "Condition": "Audit findings to remediation batches",
           "Mode": "campaign",
-          "Read": "[finding-campaign.md](../_shared/finding-campaign.md), then the `tasks` row"
+          "Read / Run": "[finding-campaign.md](../_shared/finding-campaign.md)"
         }
       ],
       "quick_contract": null,
@@ -207,106 +167,46 @@
       "outputs_section": null
     },
     {
-      "name": "arc:verify",
-      "description": "Independent business verification: deterministic state/guard/actor/action branches, preparation, dependency genealogy, E2E, TDD, unit/integration/property/fuzz, web/mobile, tester-army/e2e, PostgreSQL G0-G31, SQL, reliability, concurrency, async, recovery, load, flaky and release evidence. Triggers: 完整测试, 完整业务测试, 测试整个系统, 所有交互, 业务图, 业务树图, 写测试, 测试方案, 用例设计, 测试范围, 覆盖率, 可靠性, 业务不变量, 事务并发, 幂等, 压测, 发布验收, 发布证据, 测试先行, 测试价值, 网页实测, 模糊测试, SQL 语法检查, 事务设计, 业务流, 端到端业务流, 分支覆盖, 属性测试, 模型一致性, 业务能力, 业务边界. Not for product repair (use arc:code) or static review (use arc:audit).",
-      "version": "4.0.0",
-      "source_path": "Arc/arc:verify/SKILL.md",
-      "line_count": 174,
+      "name": "arc-verify",
+      "description": "Full-stack verification via Branching Storyline Engine (world_flags, checkpoints, blind concurrent routes, anti_softlock, 100% multi-ending completion): 完整测试, 完整业务测试, 测试整个系统, 所有交互, 业务图, 业务树图, 写测试, 测试方案, 用例设计, 测试范围, 覆盖率, 可靠性, 业务不变量, 事务并发, 幂等, PostgreSQL, 压测, 发布验收, 发布证据, 测试先行, 测试价值, 网页实测, fuzz, 模糊测试, SQL 语法检查, 事务设计, 业务流, 端到端业务流, 分支覆盖, 属性测试, 模型一致性, flaky. Not for code repair (use arc-code) or read-only review (use arc-audit).",
+      "version": "5.0.0",
+      "source_path": "Arc/arc-verify/SKILL.md",
+      "line_count": 86,
       "intent_router": [
         {
-          "Condition": "Complete system/business-chain/interaction testing, or a DB business tree/graph, including no existing DB/model",
-          "Mode": "graph",
-          "Read": "[business-graph](references/business-graph.md); first model/update: [graph-start](references/business-graph-start.md)"
+          "Condition": "Full system/business/interaction testing, business tree/graph or storyline (完整测试, 业务图, 业务流)",
+          "Mode": "storyline",
+          "Read / Run": "[storyline-verification.md](references/storyline-verification.md); `arc verify scan-world → lint-story → plan-shards → play → completion`"
         },
         {
-          "Condition": "Local flow inventory/charts/branch cases; no DB graph requested",
-          "Mode": "flow",
-          "Read": "[flow-model](references/flow-model.md), [flow-matrix](references/flow-matrix.md)"
-        },
-        {
-          "Condition": "Test plan, case list or scope only; nothing to execute",
-          "Mode": "design",
-          "Read": "[case-design](references/case-design.md), [scope-cadence](references/scope-cadence.md)"
-        },
-        {
-          "Condition": "Judge the value of existing tests (测试价值)",
-          "Mode": "design",
-          "Read": "[test-value](references/test-value.md)"
-        },
-        {
-          "Condition": "Acceptance tests before the code exists (测试先行, TDD)",
+          "Condition": "Test-first red acceptance tests (测试先行, TDD)",
           "Mode": "red",
-          "Read": "[test-first](../_shared/test-first.md), [case-design](references/case-design.md)"
+          "Read / Run": "[test-first.md](../_shared/test-first.md), [case-design.md](references/case-design.md)"
         },
         {
-          "Condition": "Intermittent test/CI failure",
-          "Mode": "flaky",
-          "Read": "[release-ops](references/release-ops.md) §2, [stacks](references/stacks.md)"
-        },
-        {
-          "Condition": "PostgreSQL release: DDL, migration, plan, locks, replication, backup, upgrade, roles/RLS",
-          "Mode": "db",
-          "Read": "[db](references/db.md), then applicable gate files"
-        },
-        {
-          "Condition": "Release go/no-go, canary, rollback readiness, incident follow-up controls",
-          "Mode": "release",
-          "Read": "[release-ops](references/release-ops.md), [ops-learning](references/ops-learning.md)"
-        },
-        {
-          "Condition": "Invariant, transaction, concurrency, idempotency, retry, async, fault or recovery claim",
-          "Mode": "reliability",
-          "Read": "[txn-faults](references/txn-faults.md), [case-design](references/case-design.md)"
-        },
-        {
-          "Condition": "Execute SQL parse/lint (SQL 语法检查)",
-          "Mode": "write",
-          "Read": "[sql-static](references/sql-static.md)"
-        },
-        {
-          "Condition": "Transaction design per engine (事务设计), no execution",
+          "Condition": "Test plan, scope or test value audit only (测试方案, 测试价值)",
           "Mode": "design",
-          "Read": "[txn-design](references/txn-design.md)"
+          "Read / Run": "[case-design.md](references/case-design.md), [test-value.md](references/test-value.md), [scope-cadence.md](references/scope-cadence.md)"
         },
         {
-          "Condition": "Web load/interaction speed, Core Web Vitals, Lighthouse (网页性能)",
-          "Mode": "write",
-          "Read": "[web-perf](references/web-perf.md)"
+          "Condition": "Concurrency, idempotency, transaction faults, money/inventory (事务并发, 幂等, 业务不变量)",
+          "Mode": "reliability",
+          "Read / Run": "[txn-faults.md](references/txn-faults.md), [txn-design.md](references/txn-design.md)"
         },
         {
-          "Condition": "tester-army/e2e tests",
-          "Mode": "write",
-          "Read": "[e2e](references/tester-army-e2e.md)"
+          "Condition": "PostgreSQL gates G0–G31 or SQL static lint (PostgreSQL, SQL 语法检查)",
+          "Mode": "db",
+          "Read / Run": "[db.md](references/db.md) / [sql-static.md](references/sql-static.md)"
         },
         {
-          "Condition": "Browser journey on a running or startable app (网页实测)",
-          "Mode": "write",
-          "Read": "[web-e2e](references/web-e2e.md)"
+          "Condition": "Web E2E / tester-army E2E / web perf (网页实测)",
+          "Mode": "e2e",
+          "Read / Run": "[web-e2e.md](references/web-e2e.md) / [tester-army-e2e.md](references/tester-army-e2e.md) / [web-perf.md](references/web-perf.md)"
         },
         {
-          "Condition": "Untrusted input into parsers, decoders, uploads or protocols (模糊测试)",
-          "Mode": "write",
-          "Read": "[fuzz-campaign](references/fuzz-campaign.md)"
-        },
-        {
-          "Condition": "Property/model tests; code-to-model conformance",
-          "Mode": "write",
-          "Read": "[model-conformance](references/model-conformance.md)"
-        },
-        {
-          "Condition": "Other unit, integration, contract, E2E, UI, load or benchmark tests",
-          "Mode": "write",
-          "Read": "[stacks](references/stacks.md), [case-design](references/case-design.md), [test-value](references/test-value.md) §1–§2"
-        },
-        {
-          "Condition": "Claims come from a closure model or another phase's handoff",
-          "Mode": "any",
-          "Read": "[workflow.md](../_shared/workflow.md) §2, §4"
-        },
-        {
-          "Condition": "One end-to-end claim → case → evidence example",
-          "Mode": "any",
-          "Read": "[worked-example](references/worked-example.md)"
+          "Condition": "Fuzzing, property/model conformance, flaky or release go/no-go (模糊测试, 属性测试, flaky, 发布验收)",
+          "Mode": "specialized",
+          "Read / Run": "[fuzz-campaign.md](references/fuzz-campaign.md) / [model-conformance.md](references/model-conformance.md) / [release-ops.md](references/release-ops.md)"
         }
       ],
       "quick_contract": null,
@@ -314,24 +214,24 @@
       "outputs_section": null
     },
     {
-      "name": "arc:vet",
-      "description": "Open-source due diligence before a new dependency or a non-trivial generic component (开源选型, 技术选型, 引入依赖, 不要重复造轮子, build vs buy): checks existing code and the standard library first, compares at least three GitHub candidates, verifies substantive maintenance, stable releases, license compatibility (许可证), advisories, transitive dependencies and integration cost with dated source links, rejects archived or 36-month-stale libraries (停更) unless an evidenced exception is recorded, and writes a decision record (选型记录): reuse, adopt, borrow the design, or build. Also re-vets a named dependency or finds a successor. Not for implementing the chosen option (use arc:code), dependency vulnerability scans (use arc:audit), or research articles (use research-write).",
-      "version": "1.2.0",
-      "source_path": "Arc/arc:vet/SKILL.md",
-      "line_count": 173,
+      "name": "arc-vet",
+      "description": "Open-source due diligence before adding a dependency or generic component (开源选型, 技术选型, 引入依赖, 不要重复造轮子, build vs buy): checks local code and standard library first, compares ≥3 GitHub candidates on substantive maintenance, stable releases, license compatibility (许可证), advisories and integration cost with dated source URLs, rejects archived or ≥36-month-stale repos (停更), and writes a decision record (选型记录). Not for implementation (use arc-code), CVE scans (use arc-audit), or research articles (use research-write).",
+      "version": "2.0.0",
+      "source_path": "Arc/arc-vet/SKILL.md",
+      "line_count": 79,
       "intent_router": [
         {
-          "Condition": "A named dependency in use is stale, archived, relicensed or vulnerable; find a successor (停更, 换库)",
+          "Condition": "Existing dependency is stale, archived, relicensed or vulnerable (停更, 换库)",
           "Mode": "replace",
           "Read": "[search-playbook.md](references/search-playbook.md) §4"
         },
         {
-          "Condition": "User names one or more repositories or packages to judge (这个库能不能用)",
+          "Condition": "Judge named repositories/packages (这个库能不能用)",
           "Mode": "check",
           "Read": "[search-playbook.md](references/search-playbook.md) §2–§3"
         },
         {
-          "Condition": "A need without chosen candidates: new dependency, build vs buy, 有没有现成方案",
+          "Condition": "New capability / build vs buy without preselected repos (开源选型, 技术选型)",
           "Mode": "select",
           "Read": "[search-playbook.md](references/search-playbook.md)"
         }

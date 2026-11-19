@@ -13,22 +13,28 @@ import (
 	"strings"
 )
 
-const version = "0.5.0"
+const version = "0.6.0"
 
 const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"Usage:\n" +
-	"  arc idx index [flags]           Rebuild the source code index\n" +
-	"  arc idx search <query> [flags]  Search indexed source\n" +
+	"  arc idx index [flags]           Incremental/full source code index\n" +
+	"  arc idx search <query> [flags]  Authority-ranked source search (--prod-only)\n" +
 	"  arc idx symbol <name> [flags]   Find symbols\n" +
+	"  arc idx skeleton <path...>      Extract public signatures & line ranges\n" +
+	"  arc idx impact <entity>         Cross-layer SQL/ORM/route/topic impact scan\n" +
 	"  arc idx ast <pattern> [flags]   Structural code search\n" +
 	"  arc idx files [pattern] [flags] Enumerate candidate files\n" +
 	"  arc idx stats [flags]           Indexed-source statistics\n" +
 	"  arc idx doctor [flags]          Diagnose index health\n" +
 	"  arc idx daemon <action> [flags] Manage code indexer\n" +
 	"  arc index flush [--repo DIR]    Acknowledge outbox only after healthy index\n" +
-	"  arc verify <action> [flags]     Business model, execution and evidence\n" +
-	"  arc verify contract <check|match|compare|prepare>  Deterministic branch contracts\n" +
-	"  arc verify campaign <run|resume|status|list|abort>  Bounded observed-state exploration\n" +
+	"  arc verify scan-world <entity>  Extract coupled world_flags from SQL/ORM/topics\n" +
+	"  arc verify lint-story <file>    Validate storyline DAG, anti-softlock & write_scope\n" +
+	"  arc verify plan-shards <file>   Compile concurrent blind test shards\n" +
+	"  arc verify checkpoint <build|clone|list>  Manage checkpoint snapshots\n" +
+	"  arc verify play <file>          Execute branching storyline routes (--parallel --blind)\n" +
+	"  arc verify completion <file>    Verify 100%% world/route/probe/ending completion\n" +
+	"  arc verify snapshot [flags]     Export static HTML+JSON Storyline Workbench\n" +
 	"  arc db <status|init|migrate>     Explicit local database lifecycle\n" +
 	"  arc task <create|ensure|show|transition|complete> [flags]  Versioned task state\n" +
 	"  arc task <link-verify|verify-status> [flags]  Link and inspect verification obligations\n" +
@@ -45,8 +51,9 @@ const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 
 var indexCommands = map[string]bool{
 	"index": true, "reindex": true, "search": true, "symbol": true,
-	"symbols": true, "ast": true, "struct": true, "files": true,
-	"stats": true, "doctor": true, "watch": true, "daemon": true,
+	"symbols": true, "skeleton": true, "impact": true, "ast": true,
+	"struct": true, "files": true, "stats": true, "doctor": true,
+	"watch": true, "daemon": true,
 }
 var proposedCommands = map[string]bool{
 	"sync": true, "project": true, "repo": true, "workspace": true,
@@ -220,7 +227,7 @@ func run(args []string) int {
 // name breaks nested verifier commands in an activated unified ledger.
 func withVerifyDatabase(args []string, database string) []string {
 	at := 1
-	if len(args) > 1 && (args[0] == "contract" || args[0] == "campaign" || args[0] == "discover" || args[0] == "risk" && args[1] == "refute") {
+	if len(args) > 1 && (args[0] == "checkpoint" || args[0] == "contract" || args[0] == "campaign" || args[0] == "discover" || args[0] == "risk" && args[1] == "refute") {
 		at = 2
 	}
 	result := append([]string{}, args[:at]...)

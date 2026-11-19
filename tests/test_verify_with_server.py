@@ -1,4 +1,4 @@
-"""Behavior tests for Arc/arc:verify/scripts/with_server.py against real local processes."""
+"""Behavior tests for Arc/arc-verify/scripts/with_server.py against real local processes."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-HELPER = ROOT / "Arc" / "arc:verify" / "scripts" / "with_server.py"
+HELPER = ROOT / "Arc" / "arc-verify" / "scripts" / "with_server.py"
 PY = sys.executable
 
 

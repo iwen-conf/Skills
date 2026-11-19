@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE = ROOT / "Arc" / "arc:verify" / "scripts" / "dbqual"
+PACKAGE = ROOT / "Arc" / "arc-verify" / "scripts" / "dbqual"
 
 
 def test_dbqual_package_unit_suite_passes() -> None:
