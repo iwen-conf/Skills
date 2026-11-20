@@ -1,4 +1,0 @@
-interface:
-  display_name: "Arc Explore"
-  short_description: "Locate code, trace call chains, impact analysis and architecture maps"
-  default_prompt: "Use $arc-explore to answer where this code lives, trace skeletons/callers and scan cross-layer impact with arc idx evidence."

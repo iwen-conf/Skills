@@ -1,3 +1,0 @@
-# Source: https://developer.lazycat.cloud/api/javascript.md
-
-正在补充中...

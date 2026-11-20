@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arc Audit"
+  short_description: "Read-only diff review, code-rot/UI-slop audit, AppSec scan, and host health check."
+  default_prompt: "Use $arc-audit following AGENTS.md and ../_shared/contract.md."

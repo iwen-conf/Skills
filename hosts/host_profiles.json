@@ -1,0 +1,38 @@
+{
+  "source_root": "~/.agents/skills",
+  "skills": [
+    "arc-plan",
+    "arc-code",
+    "arc-verify",
+    "arc-audit",
+    "check",
+    "lazycat"
+  ],
+  "external_targets": {
+    "lanhu-design": "~/Documents/Code/Go/lanhu-cli/skills/lanhu-design"
+  },
+  "allowed_external": [
+    "agent-browser",
+    "lanhu-design"
+  ],
+  "hosts": {
+    "claude": {
+      "root": "~/.claude/skills",
+      "mode": "symlink",
+      "ignore": ["synced"],
+      "adapter": "hosts/CLAUDE.md"
+    },
+    "codex": {
+      "root": "~/.codex/skills",
+      "mode": "symlink",
+      "ignore": [],
+      "adapter": "hosts/CODEX.md"
+    },
+    "grok": {
+      "root": "~/.grok/skills",
+      "mode": "inline_bundle",
+      "ignore": [],
+      "adapter": "hosts/GROK.md"
+    }
+  }
+}

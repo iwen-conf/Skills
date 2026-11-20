@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arc Code"
+  short_description: "Implement features, root-cause fixes, and Web/Android/HarmonyOS/Apple UI gated by gate.sh."
+  default_prompt: "Use $arc-code following AGENTS.md and ../_shared/contract.md."
