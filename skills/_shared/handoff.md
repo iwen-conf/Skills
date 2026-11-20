@@ -1,6 +1,6 @@
 # State Ledger, Wave Compiler & Handoff Protocol
 
-Connects `arc` (`0.5.x`), `arc idx`, and `arc-wave` so **Claude Code**, **Codex**, and **Grok Build** collaborate without static YAML ceremony.
+Connects `arc` (`0.6.0`), `arc idx`, and `arc-wave` so **Claude Code**, **Codex**, and **Grok Build** collaborate without static YAML ceremony.
 
 ## 1. Code Intelligence Preflight
 

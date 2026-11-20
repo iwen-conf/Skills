@@ -1,5 +1,6 @@
 ---
 name: arc-verify
+version: 6.0.0
 description: Independent runtime verification through real entry points: acceptance/E2E tests, API/SQL invariants, mobile device gates (`redroid`/`avdslim`), concurrency proofs, and `.arc/arc.db` receipts. Triggers on 写测试, 验证, 端到端测试, 业务流验证, 幂等并发, 发布验收.
 ---
 

@@ -42,6 +42,8 @@ for sf in skill_files:
     m = re.search(r"^name:\s*([a-z0-9-]+)\s*$", text, re.M)
     if not m or m.group(1) != sf.parent.name:
         errors.append(f"{sf.relative_to(root)}: name mismatch for '{sf.parent.name}'")
+    if not re.search(r"^version:\s*\d+\.\d+\.\d+\s*$", text, re.M):
+        errors.append(f"{sf.relative_to(root)}: missing semver version")
     if not (sf.parent / "agents" / "openai.yaml").is_file():
         errors.append(f"{sf.relative_to(root)}: missing agents/openai.yaml")
     for rel_ref in set(link_re.findall(text)):

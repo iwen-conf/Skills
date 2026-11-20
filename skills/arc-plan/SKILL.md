@@ -1,5 +1,6 @@
 ---
 name: arc-plan
+version: 4.0.0
 description: Explore code & impact (`arc idx`), vet dependencies (`github_health.py`), freeze API/SQL contracts, check state machines (`check_closure.py`), and plan execution waves (`arc-wave`). Triggers on 代码在哪, 搜代码, 谁调用, 调用链, 影响面, 架构地图, 开源选型, 技术选型, 引入依赖, 写PRD, 需求澄清, 接口契约, 拆任务, 业务闭环, 状态机检查.
 ---
 

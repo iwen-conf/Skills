@@ -1,5 +1,6 @@
 ---
 name: check
+version: 2.0.0
 description: Execute gate-verified Git, PR, package, release, and CNB (`cnb.cool` / `.cnb.yml` / TAPD) delivery actions. Triggers on 提交, 推送, 开PR, 发版, 合并分支, 打包出包, CNB, cnb.cool, .cnb.yml, CNB流水线, TAPD关联.
 ---
 

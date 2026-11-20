@@ -1,5 +1,6 @@
 ---
 name: arc-audit
+version: 4.0.0
 description: Read-only diff/PR review, AppSec & vulnerability scan (`security-scan.py`), code-rot audit, Linear/HIG UI anti-slop critique, and agent host health check. Triggers on 代码评审, 能不能合, 安全扫描, 技术债, 过度设计, 页面太乱, 环境体检.
 ---
 

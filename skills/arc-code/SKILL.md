@@ -1,5 +1,6 @@
 ---
 name: arc-code
+version: 4.0.0
 description: Implement features, evidence-first bug repairs, refactors, APIs, and clean Web or native mobile/desktop UI (Android, HarmonyOS, iOS/macOS, Web) inside `write_scope`, gated by `gate.sh`. Triggers on 写代码, 实现功能, 修复报错, 根因修复, 重构, 前端页面, UI设计, 界面重构, 去AI味, Android开发, 安卓, 鸿蒙开发, HarmonyOS, ArkTS, SwiftUI, iOS开发.
 ---
 
