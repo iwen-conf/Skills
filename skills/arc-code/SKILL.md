@@ -20,6 +20,7 @@ Ship the smallest complete diff wired to the real entry point.
 2. **Reuse Lookup Before Writing (`禁止重复造轮子`)**: Query stdlib (`slices`, `maps`, `cmp`, `strings`, `time`) and `arc idx search` / `arc idx symbol` before adding helpers. Extract generic non-business functions into topic-named shared packages (`pkg/<topic>` or `internal/pkg/<topic>`) with unit tests rather than duplicating private helpers across business packages.
 3. **Baseline & Root-Cause Repair**: Run `bash scripts/gate.sh start --task <slug>`. Prove bug root cause at `file:line` with a failing test (`gate.sh red`) before editing source; fix sibling consumers sharing the broken invariant.
 4. **Structure, Comments & Scope Discipline**: Edit strictly inside `write_scope`; enforce stack file-size limits (`.go <= 1200` lines) and comment rules (`struct` fields documented on the `struct` itself, concise `请求体`/`响应体` parameter lines without repeating struct fields, internal `// 1. xxx` step comments, and `只补缺失，不动已有` on existing code); request explicit contract update if cross-boundary types change.
+5. **Real Data & Zero Fabricated Fallbacks (`真实数据与零伪造兜底`)**: Bind every production API response, aggregation, chart, and UI view to real queries or real computations with verifiable provenance; strictly ban hardcoded fake data, static mock lists, fabricated placeholder metrics, or silent fallback to synthetic values when upstream data is missing (return explicit errors or honest empty states instead).
 
 ## Hard Gate
 
