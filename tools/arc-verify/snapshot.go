@@ -32,6 +32,11 @@ func exportSnapshot(ledger *StoryLedger, s *Storyline, outDir string) error {
 	if err != nil {
 		return err
 	}
+	latestRun, _ := ledger.LatestRunID(s.StoryID)
+	stepTraces, err := ledger.ListStepTraces(s.StoryID, latestRun, "")
+	if err != nil {
+		return err
+	}
 	completion, err := computeCompletion(ledger, s, nil)
 	if err != nil {
 		return err
@@ -41,8 +46,10 @@ func exportSnapshot(ledger *StoryLedger, s *Storyline, outDir string) error {
 		"schema_version": 3,
 		"kind":           "arc_storyline_snapshot",
 		"storyline":      s,
+		"latest_run_id":  latestRun,
 		"checkpoints":    checkpoints,
 		"route_results":  results,
+		"step_traces":    stepTraces,
 		"completion":     completion,
 		"exported_at":    nowUTC(),
 	}
@@ -54,13 +61,18 @@ func exportSnapshot(ledger *StoryLedger, s *Storyline, outDir string) error {
 		return err
 	}
 
-	page := renderSnapshotHTML(s, completion, body)
+	page := renderSnapshotHTML(s, completion, stepTraces, body)
 	return os.WriteFile(filepath.Join(outDir, "index.html"), []byte(page), 0o644)
 }
 
-func renderSnapshotHTML(s *Storyline, c *CompletionReport, snapshotJSON []byte) string {
+func renderSnapshotHTML(s *Storyline, c *CompletionReport, traces []StepTraceRecord, snapshotJSON []byte) string {
 	// Ensure <meta charset="UTF-8"> is inside the first 1024 bytes before any embedded JSON.
 	safeJSON := strings.ReplaceAll(string(snapshotJSON), "</script>", `<\/script>`)
+	traceByRoute := map[string][]StepTraceRecord{}
+	for _, tr := range traces {
+		traceByRoute[tr.RouteID] = append(traceByRoute[tr.RouteID], tr)
+	}
+
 	var b strings.Builder
 	b.WriteString("<!doctype html>\n<html lang=\"zh-CN\">\n<head>\n")
 	b.WriteString("<meta charset=\"UTF-8\">\n")
@@ -76,6 +88,7 @@ main{display:grid;grid-template-columns:280px 1fr 320px;gap:16px;padding:16px}
 section{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px}
 h2{margin:0 0 10px;font-size:14px;color:#93c5fd;text-transform:uppercase;letter-spacing:.04em}
 .card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px}
+.step{border-top:1px dashed #334155;margin-top:8px;padding-top:6px;font-size:12px;color:#cbd5e1}
 code{color:#f8fafc;background:#334155;padding:1px 5px;border-radius:4px}
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
 .metric{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;text-align:center}
@@ -100,8 +113,8 @@ code{color:#f8fafc;background:#334155;padding:1px 5px;border-radius:4px}
 	}
 	b.WriteString("</section>\n")
 
-	// Center: Metrics & Branching Routes
-	b.WriteString("<section><h2>Completion &amp; Branching Routes</h2>\n")
+	// Center: Metrics & Branching Routes with 6-Dimension Step Traces
+	b.WriteString("<section><h2>Completion &amp; 6-Dimension Route Traces</h2>\n")
 	fmt.Fprintf(&b, `<div class="metrics">
 <div class="metric"><b>%.0f%%</b>World Flags</div>
 <div class="metric"><b>%.0f%%</b>Routes</div>
@@ -115,8 +128,19 @@ code{color:#f8fafc;background:#334155;padding:1px 5px;border-radius:4px}
 		}
 		fmt.Fprintf(&b, "<div class=\"card\"><div style=\"display:flex;justify-content:space-between\"><strong>%s</strong><span class=\"badge %s\">%s</span></div>",
 			html.EscapeString(r.RouteID), html.EscapeString(st), html.EscapeString(st))
-		fmt.Fprintf(&b, "<div><small>save: <code>%s</code> · ns: <code>%s</code> → <code>%s</code></small></div></div>\n",
+		fmt.Fprintf(&b, "<div><small>save: <code>%s</code> · ns: <code>%s</code> → <code>%s</code></small></div>",
 			html.EscapeString(r.LoadSave), html.EscapeString(r.RuntimeNS), html.EscapeString(r.UnlocksEnding))
+		for _, tr := range traceByRoute[r.RouteID] {
+			fmt.Fprintf(&b, "<div class=\"step\"><strong>#%d %s</strong> [%s] · behavior <code>%s</code> · status <code>%s → %s</code>",
+				tr.StepNum, html.EscapeString(tr.Choice), html.EscapeString(tr.Verdict),
+				html.EscapeString(nonEmpty(tr.ExpectedBehavior, "DEFAULT")),
+				html.EscapeString(tr.ExpectStatus), html.EscapeString(nonEmpty(tr.ActualStatus, "?")))
+			if tr.DiffReason != "" {
+				fmt.Fprintf(&b, "<br><small>%s</small>", html.EscapeString(tr.DiffReason))
+			}
+			b.WriteString("</div>")
+		}
+		b.WriteString("</div>\n")
 	}
 	b.WriteString("</section>\n")
 

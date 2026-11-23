@@ -11,6 +11,8 @@ func TestUnifiedLedgerPreservesVerifierSubcommandPosition(t *testing.T) {
 		{[]string{"checkpoint", "clone", "--story", "cancel.story.yaml", "--save", "save_1"}, []string{"checkpoint", "clone", "--db", "/project/.arc/arc.db", "--story", "cancel.story.yaml", "--save", "save_1"}},
 		{[]string{"play", "cancel.story.yaml", "--parallel"}, []string{"play", "--db", "/project/.arc/arc.db", "cancel.story.yaml", "--parallel"}},
 		{[]string{"completion", "cancel.story.yaml"}, []string{"completion", "--db", "/project/.arc/arc.db", "cancel.story.yaml"}},
+		{[]string{"explain", "--story", "ecommerce_account_cancellation", "--format", "ai-md"}, []string{"explain", "--db", "/project/.arc/arc.db", "--story", "ecommerce_account_cancellation", "--format", "ai-md"}},
+		{[]string{"scan-surface", "--repo", "."}, []string{"scan-surface", "--db", "/project/.arc/arc.db", "--repo", "."}},
 		{[]string{"snapshot", "--story", "ecommerce_account_cancellation", "--out", "out"}, []string{"snapshot", "--db", "/project/.arc/arc.db", "--story", "ecommerce_account_cancellation", "--out", "out"}},
 	} {
 		original := append([]string{}, test.in...)

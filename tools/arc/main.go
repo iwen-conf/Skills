@@ -28,12 +28,14 @@ const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"  arc idx doctor [flags]          Diagnose index health\n" +
 	"  arc idx daemon <action> [flags] Manage code indexer\n" +
 	"  arc index flush [--repo DIR]    Acknowledge outbox only after healthy index\n" +
+	"  arc verify scan-surface [flags] Inventory all HTTP/RPC/CLI/UI/MQ/SQL surfaces\n" +
 	"  arc verify scan-world <entity>  Extract coupled world_flags from SQL/ORM/topics\n" +
 	"  arc verify lint-story <file>    Validate storyline DAG, anti-softlock & write_scope\n" +
 	"  arc verify plan-shards <file>   Compile concurrent blind test shards\n" +
 	"  arc verify checkpoint <build|clone|list>  Manage checkpoint snapshots\n" +
 	"  arc verify play <file>          Execute branching storyline routes (--parallel --blind)\n" +
 	"  arc verify completion <file>    Verify 100%% world/route/probe/ending completion\n" +
+	"  arc verify explain [flags]      Render 6-dimension Expected-vs-Actual audit ledger\n" +
 	"  arc verify snapshot [flags]     Export static HTML+JSON Storyline Workbench\n" +
 	"  arc db <status|init|migrate>     Explicit local database lifecycle\n" +
 	"  arc task <create|ensure|show|transition|complete> [flags]  Versioned task state\n" +

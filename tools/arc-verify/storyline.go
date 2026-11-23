@@ -13,7 +13,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Storyline is the canonical Detroit-style branching verification contract.
+// Storyline is the canonical Detroit-style branching verification contract
+// with 6-dimension step anatomy (preconditions, expected/actual input,
+// before/after state, execution trace, expected behavior, expected/actual outcome).
 type Storyline struct {
 	StoryID         string            `yaml:"story_id" json:"story_id"`
 	FocalEntity     string            `yaml:"focal_entity" json:"focal_entity"`
@@ -30,12 +32,13 @@ type Storyline struct {
 }
 
 type Checkpoint struct {
-	SaveID      string          `yaml:"save_id" json:"save_id"`
-	Parent      string          `yaml:"parent" json:"parent"`
-	Engine      string          `yaml:"engine,omitempty" json:"engine,omitempty"` // dir | sqlite | postgres
-	SetupSteps  []SetupStep     `yaml:"setup_steps" json:"setup_steps"`
-	AssertFlags map[string]any  `yaml:"assert_flags,omitempty" json:"assert_flags,omitempty"`
-	SeedCmd     string          `yaml:"seed_cmd,omitempty" json:"seed_cmd,omitempty"`
+	SaveID      string         `yaml:"save_id" json:"save_id"`
+	Parent      string         `yaml:"parent" json:"parent"`
+	Engine      string         `yaml:"engine,omitempty" json:"engine,omitempty"` // dir | sqlite | postgres
+	SetupSteps  []SetupStep    `yaml:"setup_steps" json:"setup_steps"`
+	AssertFlags map[string]any `yaml:"assert_flags,omitempty" json:"assert_flags,omitempty"`
+	SeedCmd     string         `yaml:"seed_cmd,omitempty" json:"seed_cmd,omitempty"`
+	AssertCmd   string         `yaml:"assert_cmd,omitempty" json:"assert_cmd,omitempty"`
 }
 
 type SetupStep struct {
@@ -57,14 +60,45 @@ type Route struct {
 }
 
 type RouteStep struct {
-	Step            int            `yaml:"step" json:"step"`
-	Choice          string         `yaml:"choice" json:"choice"`
-	With            map[string]any `yaml:"with,omitempty" json:"with,omitempty"`
-	Cmd             string         `yaml:"cmd,omitempty" json:"cmd,omitempty"`
-	ExpectStatus    string         `yaml:"expect_status" json:"expect_status"`
-	ButterflyProbes map[string]any `yaml:"butterfly_probes,omitempty" json:"butterfly_probes,omitempty"`
-	ProbeCmd        string         `yaml:"probe_cmd,omitempty" json:"probe_cmd,omitempty"`
-	AntiSoftlock    string         `yaml:"anti_softlock,omitempty" json:"anti_softlock,omitempty"`
+	Step             int            `yaml:"step" json:"step"`
+	Choice           string         `yaml:"choice" json:"choice"`
+	ExpectedBehavior string         `yaml:"expected_behavior,omitempty" json:"expected_behavior,omitempty"`
+	Preconditions    map[string]any `yaml:"preconditions,omitempty" json:"preconditions,omitempty"`
+	PrecheckCmd      string         `yaml:"precheck_cmd,omitempty" json:"precheck_cmd,omitempty"`
+	ExpectedInput    map[string]any `yaml:"expected_input,omitempty" json:"expected_input,omitempty"`
+	With             map[string]any `yaml:"with,omitempty" json:"with,omitempty"`
+	BeforeState      map[string]any `yaml:"before_state,omitempty" json:"before_state,omitempty"`
+	Cmd              string         `yaml:"cmd,omitempty" json:"cmd,omitempty"`
+	ExpectStatus     string         `yaml:"expect_status" json:"expect_status"`
+	ExpectResult     map[string]any `yaml:"expect_result,omitempty" json:"expect_result,omitempty"`
+	ButterflyProbes  map[string]any `yaml:"butterfly_probes,omitempty" json:"butterfly_probes,omitempty"`
+	ForbiddenEffects []string       `yaml:"forbidden_effects,omitempty" json:"forbidden_effects,omitempty"`
+	ProbeCmd         string         `yaml:"probe_cmd,omitempty" json:"probe_cmd,omitempty"`
+	AntiSoftlock     string         `yaml:"anti_softlock,omitempty" json:"anti_softlock,omitempty"`
+}
+
+func (st RouteStep) effectiveExpectedInput() map[string]any {
+	if len(st.ExpectedInput) > 0 {
+		return st.ExpectedInput
+	}
+	return st.With
+}
+
+// StepEvidencePayload is the optional structured JSON line (`[ARC_STEP_EVIDENCE]{...}`)
+// emitted by a test runner so the Go kernel verifies Expected vs Actual directly.
+type StepEvidencePayload struct {
+	Step                int            `json:"step,omitempty"`
+	PreconditionsActual map[string]any `json:"preconditions_actual,omitempty"`
+	ActualInput         map[string]any `json:"actual_input,omitempty"`
+	BeforeState         map[string]any `json:"before_state,omitempty"`
+	AfterState          map[string]any `json:"after_state,omitempty"`
+	ActualBehavior      string         `json:"actual_behavior,omitempty"`
+	ActualStatus        string         `json:"actual_status,omitempty"`
+	ActualResult        map[string]any `json:"actual_result,omitempty"`
+	ActualProbes        map[string]any `json:"actual_probes,omitempty"`
+	ObservedEffects     []string       `json:"observed_effects,omitempty"`
+	ExtractedVars       map[string]any `json:"extracted_vars,omitempty"`
+	Softlock            bool           `json:"softlock,omitempty"`
 }
 
 // ShardPlan is the concurrent multi-agent dispatch manifest compiled from a Storyline.

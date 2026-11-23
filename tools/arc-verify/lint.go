@@ -25,8 +25,19 @@ var intermediateSoftlockTokens = []string{
 	"COOLING", "SUSPENSE", "PENDING", "FROZEN", "LOCKED", "HOLD", "WAITING", "PAUSED", "SUSPENDED",
 }
 
+var validExpectedBehaviors = map[string]bool{
+	"ALLOW_TRANSITION":      true,
+	"REJECT_INVALID_INPUT":  true,
+	"HARD_BLOCK":            true,
+	"ASYNC_HOLD_ESCAPE":     true,
+	"IDEMPOTENT_REPLAY":     true,
+	"CONCURRENT_CONTENTION": true,
+	"FORCE_CASCADE":         true,
+}
+
 // lintStory validates storyline structure, checkpoint DAG, world_flag coverage,
-// anti-softlock invariants, ending reachability, and concurrent write_scope isolation.
+// 6-dimension expected_behavior taxonomy, anti-softlock invariants, ending reachability,
+// and concurrent write_scope isolation.
 func lintStory(s *Storyline, worldScan *WorldScanResult, maxErrors int) *LintReport {
 	if maxErrors <= 0 {
 		maxErrors = 5
@@ -61,7 +72,6 @@ func lintStory(s *Storyline, worldScan *WorldScanResult, maxErrors int) *LintRep
 		for k, v := range s.WorldFlags {
 			boundSources[strings.ToLower(strings.TrimSpace(k))] = true
 			boundSources[strings.ToLower(strings.TrimSpace(v))] = true
-			// Also allow matching table prefix (e.g. wallet_accounts.available_cents matches wallet_accounts).
 			if dot := strings.IndexByte(v, '.'); dot > 0 {
 				boundSources[strings.ToLower(strings.TrimSpace(v[:dot]))] = true
 			}
@@ -98,7 +108,7 @@ func lintStory(s *Storyline, worldScan *WorldScanResult, maxErrors int) *LintRep
 		addErr("CHECKPOINT_DAG_INVALID", "checkpoints", cycleErr.Error())
 	}
 
-	// 3. Route validation: load_save, sequence, anti-softlock, endings, runtime_ns, write_scope.
+	// 3. Route validation: load_save, sequence, expected_behavior, anti-softlock, endings, runtime_ns, write_scope.
 	requiredSet := map[string]bool{}
 	for _, e := range s.RequiredEndings {
 		requiredSet[e] = true
@@ -156,11 +166,14 @@ func lintStory(s *Storyline, worldScan *WorldScanResult, maxErrors int) *LintRep
 			scopeOwners[clean] = r.RouteID
 		}
 
-		// Anti-softlock static check: any intermediate suspended/cooling/frozen status
-		// MUST have either a subsequent escape step with a non-suspended status OR an explicit anti_softlock invariant.
+		// Step checks: choice, expected_behavior enum, and anti-softlock guard.
 		for idx, st := range r.Sequence {
 			if strings.TrimSpace(st.Choice) == "" {
 				addErr("MISSING_STEP_CHOICE", r.RouteID, fmt.Sprintf("step %d missing choice", st.Step))
+			}
+			if beh := strings.TrimSpace(st.ExpectedBehavior); beh != "" && !validExpectedBehaviors[beh] {
+				addErr("INVALID_EXPECTED_BEHAVIOR", r.RouteID,
+					fmt.Sprintf("step %d has unknown expected_behavior %q (allowed: ALLOW_TRANSITION, REJECT_INVALID_INPUT, HARD_BLOCK, ASYNC_HOLD_ESCAPE, IDEMPOTENT_REPLAY, CONCURRENT_CONTENTION, FORCE_CASCADE)", st.Step, beh))
 			}
 			if isIntermediateSuspendedStatus(st.ExpectStatus) {
 				hasEscapeStep := false
@@ -280,7 +293,6 @@ func scopesOverlap(a, b string) bool {
 		return true
 	}
 	if strings.HasPrefix(pa, pb+"/") || strings.HasPrefix(pb, pa+"/") || pa == pb {
-		// Check if both are concrete files in the same directory with different names.
 		if !hasGlobMeta(a) && !hasGlobMeta(b) && a != b {
 			return false
 		}

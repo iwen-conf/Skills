@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -63,6 +64,41 @@ var storySchema = []string{
 		created_at TEXT NOT NULL
 	)`,
 	`CREATE INDEX IF NOT EXISTS idx_story_route_lookup ON story_route_results(story_id, route_id, id)`,
+	// Immutable 6-dimension step trace ledger: records preconditions, expected vs actual input,
+	// before -> after state, execution command & duration, expected behavior, and expected vs actual results/probes.
+	`CREATE TABLE IF NOT EXISTS story_step_traces (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id TEXT NOT NULL,
+		story_id TEXT NOT NULL,
+		story_sha256 TEXT NOT NULL,
+		route_id TEXT NOT NULL,
+		step_num INTEGER NOT NULL,
+		choice TEXT NOT NULL,
+		expected_behavior TEXT NOT NULL DEFAULT '',
+		preconditions_json TEXT NOT NULL DEFAULT '{}',
+		preconditions_actual_json TEXT NOT NULL DEFAULT '{}',
+		expected_input_json TEXT NOT NULL DEFAULT '{}',
+		actual_input_json TEXT NOT NULL DEFAULT '{}',
+		before_state_json TEXT NOT NULL DEFAULT '{}',
+		after_state_json TEXT NOT NULL DEFAULT '{}',
+		executed_cmd TEXT NOT NULL DEFAULT '',
+		duration_ms INTEGER NOT NULL DEFAULT 0,
+		expect_status TEXT NOT NULL DEFAULT '',
+		actual_status TEXT NOT NULL DEFAULT '',
+		expect_result_json TEXT NOT NULL DEFAULT '{}',
+		actual_result_json TEXT NOT NULL DEFAULT '{}',
+		expected_probes_json TEXT NOT NULL DEFAULT '{}',
+		actual_probes_json TEXT NOT NULL DEFAULT '{}',
+		forbidden_effects_json TEXT NOT NULL DEFAULT '[]',
+		observed_effects_json TEXT NOT NULL DEFAULT '[]',
+		anti_softlock TEXT NOT NULL DEFAULT '',
+		verdict TEXT NOT NULL,
+		diff_reason TEXT NOT NULL DEFAULT '',
+		raw_output TEXT NOT NULL DEFAULT '',
+		trace_sha256 TEXT NOT NULL,
+		created_at TEXT NOT NULL
+	)`,
+	`CREATE INDEX IF NOT EXISTS idx_story_step_lookup ON story_step_traces(story_id, run_id, route_id, step_num, id)`,
 	// Compatibility table so `arc db migrate` and legacy status checks work cleanly.
 	`CREATE TABLE IF NOT EXISTS graphs (
 		id TEXT PRIMARY KEY,
@@ -239,6 +275,85 @@ type RouteResultRecord struct {
 	CreatedAt        string `json:"created_at"`
 }
 
+type StepTraceRecord struct {
+	ID                  int64          `json:"id"`
+	RunID               string         `json:"run_id"`
+	StoryID             string         `json:"story_id"`
+	StorySHA256         string         `json:"story_sha256"`
+	RouteID             string         `json:"route_id"`
+	StepNum             int            `json:"step_num"`
+	Choice              string         `json:"choice"`
+	ExpectedBehavior    string         `json:"expected_behavior,omitempty"`
+	Preconditions       map[string]any `json:"preconditions,omitempty"`
+	PreconditionsActual map[string]any `json:"preconditions_actual,omitempty"`
+	ExpectedInput       map[string]any `json:"expected_input,omitempty"`
+	ActualInput         map[string]any `json:"actual_input,omitempty"`
+	BeforeState         map[string]any `json:"before_state,omitempty"`
+	AfterState          map[string]any `json:"after_state,omitempty"`
+	ExecutedCmd         string         `json:"executed_cmd,omitempty"`
+	DurationMS          int64          `json:"duration_ms"`
+	ExpectStatus        string         `json:"expect_status,omitempty"`
+	ActualStatus        string         `json:"actual_status,omitempty"`
+	ExpectResult        map[string]any `json:"expect_result,omitempty"`
+	ActualResult        map[string]any `json:"actual_result,omitempty"`
+	ExpectedProbes      map[string]any `json:"expected_probes,omitempty"`
+	ActualProbes        map[string]any `json:"actual_probes,omitempty"`
+	ForbiddenEffects    []string       `json:"forbidden_effects,omitempty"`
+	ObservedEffects     []string       `json:"observed_effects,omitempty"`
+	AntiSoftlock        string         `json:"anti_softlock,omitempty"`
+	Verdict             string         `json:"verdict"` // PASS | FAIL | BLOCKED
+	DiffReason          string         `json:"diff_reason,omitempty"`
+	RawOutput           string         `json:"raw_output,omitempty"`
+	TraceSHA256         string         `json:"trace_sha256"`
+	CreatedAt           string         `json:"created_at"`
+}
+
+func marshalMapJSON(m map[string]any) string {
+	if len(m) == 0 {
+		return "{}"
+	}
+	b, err := json.Marshal(m)
+	if err != nil {
+		return "{}"
+	}
+	return string(b)
+}
+
+func unmarshalMapJSON(raw string) map[string]any {
+	if raw == "" || raw == "{}" {
+		return nil
+	}
+	var m map[string]any
+	dec := json.NewDecoder(strings.NewReader(raw))
+	dec.UseNumber()
+	if err := dec.Decode(&m); err != nil || len(m) == 0 {
+		return nil
+	}
+	return m
+}
+
+func marshalSliceJSON(s []string) string {
+	if len(s) == 0 {
+		return "[]"
+	}
+	b, err := json.Marshal(s)
+	if err != nil {
+		return "[]"
+	}
+	return string(b)
+}
+
+func unmarshalSliceJSON(raw string) []string {
+	if raw == "" || raw == "[]" {
+		return nil
+	}
+	var s []string
+	if err := json.Unmarshal([]byte(raw), &s); err != nil || len(s) == 0 {
+		return nil
+	}
+	return s
+}
+
 func (l *StoryLedger) RecordRun(runID, storyID, storySHA, commit string, blind bool, verdict, startedAt string) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -252,6 +367,20 @@ func (l *StoryLedger) RecordRun(runID, storyID, storySHA, commit string, blind b
 		runID, storyID, storySHA, commit, blindInt, verdict, startedAt, nowUTC(),
 	)
 	return err
+}
+
+func (l *StoryLedger) LatestRunID(storyID string) (string, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	var runID string
+	err := l.db.QueryRow(
+		`SELECT run_id FROM story_runs WHERE story_id=? ORDER BY finished_at DESC, rowid DESC LIMIT 1`,
+		storyID,
+	).Scan(&runID)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return runID, err
 }
 
 func (l *StoryLedger) AppendRouteResult(rec RouteResultRecord) error {
@@ -275,6 +404,90 @@ func (l *StoryLedger) AppendRouteResult(rec RouteResultRecord) error {
 		rec.RawOutput, rec.ReceiptSHA256, rec.CreatedAt,
 	)
 	return err
+}
+
+func (l *StoryLedger) AppendStepTrace(tr StepTraceRecord) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if tr.CreatedAt == "" {
+		tr.CreatedAt = nowUTC()
+	}
+	_, err := l.db.Exec(
+		`INSERT INTO story_step_traces(
+			run_id, story_id, story_sha256, route_id, step_num, choice, expected_behavior,
+			preconditions_json, preconditions_actual_json, expected_input_json, actual_input_json,
+			before_state_json, after_state_json, executed_cmd, duration_ms,
+			expect_status, actual_status, expect_result_json, actual_result_json,
+			expected_probes_json, actual_probes_json, forbidden_effects_json, observed_effects_json,
+			anti_softlock, verdict, diff_reason, raw_output, trace_sha256, created_at
+		) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		tr.RunID, tr.StoryID, tr.StorySHA256, tr.RouteID, tr.StepNum, tr.Choice, tr.ExpectedBehavior,
+		marshalMapJSON(tr.Preconditions), marshalMapJSON(tr.PreconditionsActual),
+		marshalMapJSON(tr.ExpectedInput), marshalMapJSON(tr.ActualInput),
+		marshalMapJSON(tr.BeforeState), marshalMapJSON(tr.AfterState),
+		tr.ExecutedCmd, tr.DurationMS,
+		tr.ExpectStatus, tr.ActualStatus,
+		marshalMapJSON(tr.ExpectResult), marshalMapJSON(tr.ActualResult),
+		marshalMapJSON(tr.ExpectedProbes), marshalMapJSON(tr.ActualProbes),
+		marshalSliceJSON(tr.ForbiddenEffects), marshalSliceJSON(tr.ObservedEffects),
+		tr.AntiSoftlock, tr.Verdict, tr.DiffReason, tr.RawOutput, tr.TraceSHA256, tr.CreatedAt,
+	)
+	return err
+}
+
+func (l *StoryLedger) ListStepTraces(storyID, runID, routeID string) ([]StepTraceRecord, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	query := `SELECT id, run_id, story_id, story_sha256, route_id, step_num, choice, expected_behavior,
+		preconditions_json, preconditions_actual_json, expected_input_json, actual_input_json,
+		before_state_json, after_state_json, executed_cmd, duration_ms,
+		expect_status, actual_status, expect_result_json, actual_result_json,
+		expected_probes_json, actual_probes_json, forbidden_effects_json, observed_effects_json,
+		anti_softlock, verdict, diff_reason, raw_output, trace_sha256, created_at
+	 FROM story_step_traces WHERE story_id=?`
+	args := []any{storyID}
+	if runID != "" {
+		query += ` AND run_id=?`
+		args = append(args, runID)
+	}
+	if routeID != "" {
+		query += ` AND route_id=?`
+		args = append(args, routeID)
+	}
+	query += ` ORDER BY id ASC`
+
+	rows, err := l.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []StepTraceRecord
+	for rows.Next() {
+		var tr StepTraceRecord
+		var preJ, preActJ, expInJ, actInJ, befJ, aftJ, expResJ, actResJ, expPrJ, actPrJ, forbJ, obsJ string
+		if err := rows.Scan(
+			&tr.ID, &tr.RunID, &tr.StoryID, &tr.StorySHA256, &tr.RouteID, &tr.StepNum, &tr.Choice, &tr.ExpectedBehavior,
+			&preJ, &preActJ, &expInJ, &actInJ, &befJ, &aftJ, &tr.ExecutedCmd, &tr.DurationMS,
+			&tr.ExpectStatus, &tr.ActualStatus, &expResJ, &actResJ, &expPrJ, &actPrJ, &forbJ, &obsJ,
+			&tr.AntiSoftlock, &tr.Verdict, &tr.DiffReason, &tr.RawOutput, &tr.TraceSHA256, &tr.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		tr.Preconditions = unmarshalMapJSON(preJ)
+		tr.PreconditionsActual = unmarshalMapJSON(preActJ)
+		tr.ExpectedInput = unmarshalMapJSON(expInJ)
+		tr.ActualInput = unmarshalMapJSON(actInJ)
+		tr.BeforeState = unmarshalMapJSON(befJ)
+		tr.AfterState = unmarshalMapJSON(aftJ)
+		tr.ExpectResult = unmarshalMapJSON(expResJ)
+		tr.ActualResult = unmarshalMapJSON(actResJ)
+		tr.ExpectedProbes = unmarshalMapJSON(expPrJ)
+		tr.ActualProbes = unmarshalMapJSON(actPrJ)
+		tr.ForbiddenEffects = unmarshalSliceJSON(forbJ)
+		tr.ObservedEffects = unmarshalSliceJSON(obsJ)
+		out = append(out, tr)
+	}
+	return out, rows.Err()
 }
 
 func (l *StoryLedger) ListRouteResults(storyID string) ([]RouteResultRecord, error) {

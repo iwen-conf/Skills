@@ -46,9 +46,15 @@ routes:
     sequence:
       - step: 1
         choice: account.apply_cancel
+        expected_behavior: ALLOW_TRANSITION
+        preconditions: { wallet_available: 0, wallet_in_transit: 0, unreceived_goods: 0 }
+        expected_input: { user_id: "U-1001", confirm_token: "CONFIRM_CANCEL" }
+        before_state: { account_status: ACTIVE, merchant_snapshots: VISIBLE }
+        cmd: "printf '[ARC_STEP_EVIDENCE]{\"step\":1,\"preconditions_actual\":{\"wallet_available\":0,\"wallet_in_transit\":0,\"unreceived_goods\":0},\"actual_input\":{\"user_id\":\"U-1001\",\"confirm_token\":\"<REDACTED>\"},\"before_state\":{\"account_status\":\"ACTIVE\",\"merchant_snapshots\":\"VISIBLE\"},\"after_state\":{\"account_status\":\"CANCELLED\",\"merchant_snapshots\":\"ANONYMIZED_KEEP_RECORD\"},\"actual_behavior\":\"ALLOW_TRANSITION\",\"actual_status\":\"CANCELLED\",\"actual_probes\":{\"merchant_snapshots\":\"ANONYMIZED_KEEP_RECORD\"},\"observed_effects\":[]}\\n'"
         expect_status: CANCELLED
         butterfly_probes:
           merchant_snapshots: ANONYMIZED_KEEP_RECORD
+        forbidden_effects: [PURGE_MERCHANT_ORDER_ROW]
     unlocks_ending: END_01_CLEAN_EXIT
 
   - route_id: route_hard_blocked
@@ -60,9 +66,15 @@ routes:
     sequence:
       - step: 1
         choice: account.apply_cancel_with_balance
+        expected_behavior: HARD_BLOCK
+        preconditions: { wallet_available: 500 }
+        expected_input: { user_id: "U-1002" }
+        before_state: { account_status: ACTIVE, wallet_available: 500 }
+        cmd: "printf '[ARC_STEP_EVIDENCE]{\"step\":1,\"preconditions_actual\":{\"wallet_available\":500},\"actual_input\":{\"user_id\":\"U-1002\"},\"before_state\":{\"account_status\":\"ACTIVE\",\"wallet_available\":500},\"after_state\":{\"account_status\":\"ACTIVE\",\"wallet_available\":500},\"actual_behavior\":\"HARD_BLOCK\",\"actual_status\":\"BLOCKED_BY_BALANCE\",\"actual_probes\":{\"wallet_available\":\"UNCHANGED\"},\"observed_effects\":[]}\\n'"
         expect_status: BLOCKED_BY_BALANCE
         butterfly_probes:
           wallet_available: UNCHANGED
+        forbidden_effects: [ACCOUNT_STATUS_MUTATED, BALANCE_ZEROED]
     unlocks_ending: END_02_HARD_BLOCKED
 
   - route_id: route_in_transit_softlock_guard
@@ -74,10 +86,18 @@ routes:
     sequence:
       - step: 1
         choice: account.apply_cancel
+        expected_behavior: ASYNC_HOLD_ESCAPE
+        preconditions: { wallet_in_transit: 3200 }
+        expected_input: { user_id: "U-1003" }
+        before_state: { account_status: ACTIVE, wallet_in_transit: 3200 }
+        cmd: "printf '[ARC_STEP_EVIDENCE]{\"step\":1,\"preconditions_actual\":{\"wallet_in_transit\":3200},\"actual_input\":{\"user_id\":\"U-1003\"},\"before_state\":{\"account_status\":\"ACTIVE\",\"wallet_in_transit\":3200},\"after_state\":{\"account_status\":\"COOLING_SUSPENSE\",\"wallet_in_transit\":3200},\"actual_status\":\"COOLING_SUSPENSE\",\"extracted_vars\":{\"settlement_tx\":\"STX-88\"}}\\n'"
         expect_status: COOLING_SUSPENSE
       - step: 2
         choice: payment.webhook_settle_arrived
-        with: { settled_cents: 3200 }
+        expected_behavior: ASYNC_HOLD_ESCAPE
+        expected_input: { settled_cents: 3200 }
+        before_state: { account_status: COOLING_SUSPENSE, wallet_in_transit: 3200 }
+        cmd: "printf '[ARC_STEP_EVIDENCE]{\"step\":2,\"actual_input\":{\"settled_cents\":3200,\"settlement_tx\":\"'\"$ARC_VAR_SETTLEMENT_TX\"'\"},\"before_state\":{\"account_status\":\"COOLING_SUSPENSE\",\"wallet_in_transit\":3200},\"after_state\":{\"account_status\":\"ACTIVE\",\"wallet_available\":3200,\"wallet_in_transit\":0},\"actual_status\":\"CANCEL_ABORTED_WITHDRAW_UNLOCKED\",\"actual_probes\":{\"wallet_available\":3200,\"wallet_in_transit\":0}}\\n'"
         expect_status: CANCEL_ABORTED_WITHDRAW_UNLOCKED
         anti_softlock: "account.can_withdraw == true || account.status == CANCELLED"
         butterfly_probes:
@@ -94,11 +114,16 @@ routes:
     sequence:
       - step: 1
         choice: admin.force_purge_account
-        with: { reason: compliance_violation }
+        expected_behavior: FORCE_CASCADE
+        preconditions: { actor_role: COMPLIANCE_ADMIN, wallet_in_transit: 3200 }
+        expected_input: { user_id: "U-1004", reason: compliance_violation }
+        before_state: { account_status: ACTIVE, wallet_in_transit: 3200 }
+        cmd: "printf '[ARC_STEP_EVIDENCE]{\"step\":1,\"preconditions_actual\":{\"actor_role\":\"COMPLIANCE_ADMIN\",\"wallet_in_transit\":3200},\"actual_input\":{\"user_id\":\"U-1004\",\"reason\":\"compliance_violation\"},\"before_state\":{\"account_status\":\"ACTIVE\",\"wallet_in_transit\":3200},\"after_state\":{\"account_status\":\"PURGED\",\"suspense_ledger\":3200},\"actual_status\":\"PURGED\",\"actual_probes\":{\"merchant_snapshots\":\"ANONYMIZED_NO_NULL_FK\",\"suspense_ledger\":\"CREDITED_3200_BALANCED\"},\"observed_effects\":[]}\\n'"
         expect_status: PURGED
         butterfly_probes:
           merchant_snapshots: ANONYMIZED_NO_NULL_FK
           suspense_ledger: CREDITED_3200_BALANCED
+        forbidden_effects: [NULL_FK_PANIC, UNBALANCED_LEDGER]
     unlocks_ending: END_04_FORCE_CASCADE
 
 required_endings:

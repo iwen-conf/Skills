@@ -13,21 +13,23 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const version = "3.0.0"
+const version = "3.1.0"
 
-const usage = `arc verify %s — Storyline Verification Engine (world_flags + checkpoints + concurrent blind routes + anti-softlock + multi-ending completion)
+const usage = `arc verify %s — 6-Dimension Storyline & Full-Business E2E Verification Engine
 
 Usage:
-  arc verify init       [--db PATH]
-  arc verify scan-world <focal_entity> [--repo DIR] [--format json|yaml|ai-md]
-  arc verify lint-story <story.yaml> [--repo DIR] [--world-scan] [--max-errors 5] [--format json|ai-md]
-  arc verify plan-shards <story.yaml> [--out FILE] [--format yaml|json]
-  arc verify checkpoint <build|clone|list> --story <story.yaml> [--save ID] [--ns NS] [--engine dir|sqlite|postgres] [--pg-url URL] [--db PATH]
-  arc verify play       <story.yaml> [--parallel] [--route ID] [--blind] [--dry-run] [--repo DIR] [--db PATH]
-  arc verify completion <story.yaml> [--repo DIR] [--world-scan] [--db PATH] [--format json|ai-md]
-  arc verify gate       --story <id>|--graph <id> [--db PATH]
-  arc verify task-proof --graph <story_id> --task <story_id/route_id> [--db PATH]
-  arc verify snapshot   --story <id>|--file <story.yaml> --out <dir> [--db PATH]
+  arc verify init         [--db PATH]
+  arc verify scan-surface [--repo DIR] [--format json|yaml|ai-md]
+  arc verify scan-world   <focal_entity> [--repo DIR] [--format json|yaml|ai-md]
+  arc verify lint-story   <story.yaml> [--repo DIR] [--world-scan] [--max-errors 5] [--format json|ai-md]
+  arc verify plan-shards  <story.yaml> [--out FILE] [--format yaml|json]
+  arc verify checkpoint   <build|clone|list> --story <story.yaml> [--save ID] [--ns NS] [--engine dir|sqlite|postgres] [--pg-url URL] [--db PATH]
+  arc verify play         <story.yaml> [--parallel] [--route ID] [--blind] [--dry-run] [--repo DIR] [--db PATH]
+  arc verify completion   <story.yaml> [--repo DIR] [--world-scan] [--db PATH] [--format json|ai-md]
+  arc verify explain      --story <id>|--graph <id> [--run ID] [--route ID] [--db PATH] [--format json|ai-md]
+  arc verify gate         --story <id>|--graph <id> [--db PATH]
+  arc verify task-proof   --graph <story_id> --task <story_id/route_id> [--db PATH]
+  arc verify snapshot     --story <id>|--file <story.yaml> --out <dir> [--db PATH]
   arc verify version
 `
 
@@ -44,13 +46,15 @@ func main() {
 func dispatch(cmd string, args []string) int {
 	switch cmd {
 	case "version", "--version", "-v":
-		fmt.Printf("arc-verify %s (storyline-engine)\n", version)
+		fmt.Printf("arc-verify %s (storyline-6d-engine)\n", version)
 		return 0
 	case "help", "--help", "-h":
 		fmt.Printf(usage, version)
 		return 0
 	case "init":
 		return cmdInit(args)
+	case "scan-surface":
+		return cmdScanSurface(args)
 	case "scan-world":
 		return cmdScanWorld(args)
 	case "lint-story":
@@ -63,6 +67,8 @@ func dispatch(cmd string, args []string) int {
 		return cmdPlay(args)
 	case "completion":
 		return cmdCompletion(args)
+	case "explain":
+		return cmdExplain(args)
 	case "gate":
 		return cmdGate(args)
 	case "task-proof":
@@ -107,7 +113,7 @@ func parseInterleavedFlags(fl *flag.FlagSet, args []string) ([]string, error) {
 func cmdInit(args []string) int {
 	fl := flag.NewFlagSet("init", flag.ContinueOnError)
 	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
-	if err := fl.Parse(args); err != nil {
+	if _, err := parseInterleavedFlags(fl, args); err != nil {
 		return 2
 	}
 	ledger, err := openStoryLedger(*dbPath)
@@ -116,14 +122,18 @@ func cmdInit(args []string) int {
 		return 1
 	}
 	defer ledger.Close()
-	return emitJSON(map[string]any{"initialized": true, "db": *dbPath, "engine": "storyline-v3"})
+	return emitJSON(map[string]any{"initialized": true, "db": *dbPath, "engine": "storyline-v3.1-6d"})
 }
 
 func cmdImport(args []string) int {
 	fl := flag.NewFlagSet("import", flag.ContinueOnError)
 	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
 	file := fl.String("file", "", "storyline YAML/JSON file")
-	if err := fl.Parse(args); err != nil || *file == "" {
+	pos, err := parseInterleavedFlags(fl, args)
+	if err == nil && *file == "" && len(pos) > 0 {
+		*file = pos[0]
+	}
+	if err != nil || *file == "" {
 		fmt.Fprintln(os.Stderr, "usage: arc verify import --file <story.yaml> [--db PATH]")
 		return 2
 	}
@@ -143,6 +153,33 @@ func cmdImport(args []string) int {
 		return 1
 	}
 	return emitJSON(map[string]any{"imported": true, "story_id": s.StoryID, "sha256": s.SHA256})
+}
+
+func cmdScanSurface(args []string) int {
+	fl := flag.NewFlagSet("scan-surface", flag.ContinueOnError)
+	repoDir := fl.String("repo", ".", "repository root")
+	format := fl.String("format", "json", "output format: json | yaml | ai-md")
+	_ = fl.String("db", "", "optional ledger path (ignored)")
+	if _, err := parseInterleavedFlags(fl, args); err != nil {
+		fmt.Fprintln(os.Stderr, "usage: arc verify scan-surface [--repo DIR] [--format json|yaml|ai-md]")
+		return 2
+	}
+	res, err := scanProjectSurface(*repoDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify scan-surface: %v\n", err)
+		return 1
+	}
+	switch *format {
+	case "yaml":
+		out, _ := yaml.Marshal(res)
+		fmt.Print(string(out))
+		return 0
+	case "ai-md":
+		fmt.Print(renderSurfaceScanMarkdown(res))
+		return 0
+	default:
+		return emitJSON(res)
+	}
 }
 
 func cmdScanWorld(args []string) int {
@@ -425,13 +462,50 @@ func cmdCompletion(args []string) int {
 	return 0
 }
 
+func cmdExplain(args []string) int {
+	fl := flag.NewFlagSet("explain", flag.ContinueOnError)
+	storyID := fl.String("story", "", "story_id")
+	graphID := fl.String("graph", "", "alias for --story")
+	runID := fl.String("run", "", "optional run_id (defaults to latest run)")
+	routeID := fl.String("route", "", "optional route_id filter")
+	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
+	format := fl.String("format", "json", "output format: json | ai-md")
+	if _, err := parseInterleavedFlags(fl, args); err != nil {
+		return 2
+	}
+	id := *storyID
+	if id == "" {
+		id = *graphID
+	}
+	if id == "" {
+		fmt.Fprintln(os.Stderr, "usage: arc verify explain --story <id> [--run ID] [--route ID] [--db PATH] [--format json|ai-md]")
+		return 2
+	}
+	ledger, err := openStoryLedger(*dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify explain: %v\n", err)
+		return 1
+	}
+	defer ledger.Close()
+	rep, err := explainStory(ledger, id, *runID, *routeID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "arc verify explain: %v\n", err)
+		return 1
+	}
+	if *format == "ai-md" {
+		fmt.Print(renderExplainMarkdown(rep))
+		return 0
+	}
+	return emitJSON(rep)
+}
+
 // cmdGate serves unified `arc db migrate` and gate checks against stored storyline definitions.
 func cmdGate(args []string) int {
 	fl := flag.NewFlagSet("gate", flag.ContinueOnError)
 	storyID := fl.String("story", "", "story_id")
 	graphID := fl.String("graph", "", "alias for --story")
 	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
-	if err := fl.Parse(args); err != nil {
+	if _, err := parseInterleavedFlags(fl, args); err != nil {
 		return 2
 	}
 	id := *storyID
@@ -472,13 +546,13 @@ func cmdGate(args []string) int {
 	return 0
 }
 
-// cmdTaskProof bridges storyline route verification receipts into `arc task complete`.
+// cmdTaskProof bridges storyline route verification receipts + 6D step trace digests into `arc task complete`.
 func cmdTaskProof(args []string) int {
 	fl := flag.NewFlagSet("task-proof", flag.ContinueOnError)
 	graphID := fl.String("graph", "", "story_id")
 	taskID := fl.String("task", "", "story_id/route_id")
 	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
-	if err := fl.Parse(args); err != nil || *graphID == "" || *taskID == "" {
+	if _, err := parseInterleavedFlags(fl, args); err != nil || *graphID == "" || *taskID == "" {
 		fmt.Fprintln(os.Stderr, "usage: arc verify task-proof --graph <story_id> --task <story_id/route_id> [--db PATH]")
 		return 2
 	}
@@ -512,7 +586,21 @@ func cmdTaskProof(args []string) int {
 		})
 		return 1
 	}
+	rawDigests := []string{latest.ReceiptSHA256}
+	seenDigest := map[string]bool{latest.ReceiptSHA256: true}
+	if traces, tErr := ledger.ListStepTraces(*graphID, latest.RunID, routeID); tErr == nil {
+		for _, tr := range traces {
+			if len(tr.TraceSHA256) == 64 && !seenDigest[tr.TraceSHA256] {
+				seenDigest[tr.TraceSHA256] = true
+				rawDigests = append(rawDigests, tr.TraceSHA256)
+			}
+		}
+	}
+
 	root, _ := filepath.Abs(".")
+	if resolved, rErr := filepath.EvalSymlinks(root); rErr == nil {
+		root = resolved
+	}
 	head := currentGitHead(root)
 	zeroSum := sha256.Sum256([]byte(s.SHA256))
 	proof := map[string]any{
@@ -537,7 +625,7 @@ func cmdTaskProof(args []string) int {
 			"source_root":   root,
 			"config_path":   s.SourcePath,
 		},
-		"raw_sha256":     []string{latest.ReceiptSHA256},
+		"raw_sha256":     rawDigests,
 		"receipt_sha256": latest.ReceiptSHA256,
 	}
 	return emitJSON(proof)
@@ -549,7 +637,7 @@ func cmdSnapshot(args []string) int {
 	file := fl.String("file", "", "or storyline YAML file")
 	outDir := fl.String("out", "", "output directory (must be absent or empty)")
 	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
-	if err := fl.Parse(args); err != nil {
+	if _, err := parseInterleavedFlags(fl, args); err != nil {
 		return 2
 	}
 	ledger, err := openStoryLedger(*dbPath)

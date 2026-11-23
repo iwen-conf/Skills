@@ -20,8 +20,8 @@ func cloneBaseDir(repoRoot, storyID string) string {
 	return filepath.Join(repoRoot, ".arc", "verify", "clones", sanitizeNS(storyID))
 }
 
-// buildCheckpoints builds every checkpoint in topological order, persisting snapshots
-// and recording their SHA-256 digests in the StoryLedger.
+// buildCheckpoints builds every checkpoint in topological order, persisting snapshots,
+// verifying optional assert_cmd preconditions, and recording SHA-256 digests in StoryLedger.
 func buildCheckpoints(ledger *StoryLedger, s *Storyline, repoRoot, engineOverride, sourceFile, pgURL string) ([]CheckpointRecord, error) {
 	lint := lintStory(s, nil, 10)
 	if lint.Status != "PASS" {
@@ -103,12 +103,13 @@ func materializeCheckpoint(s *Storyline, cp Checkpoint, repoRoot, engine, source
 		snapshotPath = "postgres://" + dbName
 	}
 
-	// Execute optional seed command(s) with checkpoint env variables.
+	assertFlagsJSON, _ := json.Marshal(cp.AssertFlags)
 	env := append(os.Environ(),
 		"ARC_STORY_ID="+s.StoryID,
 		"ARC_SAVE_ID="+cp.SaveID,
 		"ARC_CHECKPOINT_DIR="+saveDir,
 		"ARC_CHECKPOINT_PATH="+snapshotPath,
+		"ARC_ASSERT_FLAGS_JSON="+string(assertFlagsJSON),
 	)
 	if strings.TrimSpace(cp.SeedCmd) != "" {
 		if err := runShellInDir(repoRoot, cp.SeedCmd, env); err != nil {
@@ -117,19 +118,26 @@ func materializeCheckpoint(s *Storyline, cp Checkpoint, repoRoot, engine, source
 	}
 	for _, st := range cp.SetupSteps {
 		if strings.TrimSpace(st.Cmd) != "" {
-			if err := runShellInDir(repoRoot, st.Cmd, env); err != nil {
+			stepInputJSON, _ := json.Marshal(st.With)
+			stepEnv := append(append([]string{}, env...), "ARC_SETUP_WITH_JSON="+string(stepInputJSON))
+			if err := runShellInDir(repoRoot, st.Cmd, stepEnv); err != nil {
 				return CheckpointRecord{}, fmt.Errorf("setup step %s failed: %w", st.Call, err)
 			}
 		}
 	}
+	if strings.TrimSpace(cp.AssertCmd) != "" {
+		if err := runShellInDir(repoRoot, cp.AssertCmd, env); err != nil {
+			return CheckpointRecord{}, fmt.Errorf("checkpoint precondition assert_cmd failed: %w", err)
+		}
+	}
 
-	// Persist deterministic checkpoint manifest JSON.
 	meta := map[string]any{
 		"story_id":     s.StoryID,
 		"save_id":      cp.SaveID,
 		"parent":       cp.Parent,
 		"engine":       engine,
 		"assert_flags": cp.AssertFlags,
+		"assert_cmd":   cp.AssertCmd,
 		"setup_steps":  cp.SetupSteps,
 	}
 	metaBytes, _ := json.MarshalIndent(meta, "", "  ")
@@ -148,13 +156,14 @@ func materializeCheckpoint(s *Storyline, cp Checkpoint, repoRoot, engine, source
 	}, nil
 }
 
-// cloneCheckpoint creates an isolated millisecond clone for a route's runtime_ns.
-func cloneCheckpoint(repoRoot, storyID, saveID, runtimeNS, engine, pgURL string) (string, error) {
+// cloneCheckpoint creates an isolated millisecond clone for a route's runtime_ns,
+// returning both the logical snapshot path and the local working directory for shard state.
+func cloneCheckpointWithDir(repoRoot, storyID, saveID, runtimeNS, engine, pgURL string) (clonePath, workDir string, err error) {
 	srcDir := filepath.Join(checkpointBaseDir(repoRoot, storyID), sanitizeNS(saveID))
 	dstDir := filepath.Join(cloneBaseDir(repoRoot, storyID), sanitizeNS(saveID)+"_"+sanitizeNS(runtimeNS))
 	_ = os.RemoveAll(dstDir)
 	if err := os.MkdirAll(dstDir, 0o755); err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	switch engine {
@@ -164,32 +173,37 @@ func cloneCheckpoint(repoRoot, storyID, saveID, runtimeNS, engine, pgURL string)
 		if pgURL != "" {
 			psqlBin, err := exec.LookPath("psql")
 			if err != nil {
-				return "", fmt.Errorf("psql not found on PATH")
+				return "", "", fmt.Errorf("psql not found on PATH")
 			}
 			sqlStmt := fmt.Sprintf("DROP DATABASE IF EXISTS %s; CREATE DATABASE %s TEMPLATE %s;", cloneDB, cloneDB, tplDB)
 			cmd := exec.Command(psqlBin, pgURL, "-v", "ON_ERROR_STOP=1", "-c", sqlStmt)
 			if out, err := cmd.CombinedOutput(); err != nil {
-				return "", fmt.Errorf("psql clone %s from %s: %v (%s)", cloneDB, tplDB, err, strings.TrimSpace(string(out)))
+				return "", "", fmt.Errorf("psql clone %s from %s: %v (%s)", cloneDB, tplDB, err, strings.TrimSpace(string(out)))
 			}
 		}
-		return "postgres://" + cloneDB, nil
+		return "postgres://" + cloneDB, dstDir, nil
 	case "sqlite":
 		srcDB := filepath.Join(srcDir, "checkpoint.db")
 		dstDB := filepath.Join(dstDir, "shard.db")
 		if _, err := os.Stat(srcDB); err == nil {
 			if err := copyFileBytes(srcDB, dstDB); err != nil {
-				return "", err
+				return "", "", err
 			}
 		}
-		return dstDB, nil
+		return dstDB, dstDir, nil
 	default:
 		if _, err := os.Stat(srcDir); err == nil {
 			if err := copyTree(srcDir, dstDir); err != nil {
-				return "", err
+				return "", "", err
 			}
 		}
-		return dstDir, nil
+		return dstDir, dstDir, nil
 	}
+}
+
+func cloneCheckpoint(repoRoot, storyID, saveID, runtimeNS, engine, pgURL string) (string, error) {
+	clonePath, _, err := cloneCheckpointWithDir(repoRoot, storyID, saveID, runtimeNS, engine, pgURL)
+	return clonePath, err
 }
 
 func runShellInDir(dir, command string, env []string) error {
