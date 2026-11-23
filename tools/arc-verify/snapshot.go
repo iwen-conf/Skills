@@ -42,16 +42,16 @@ func exportSnapshot(ledger *StoryLedger, s *Storyline, outDir string) error {
 		return err
 	}
 
-	payload := map[string]any{
-		"schema_version": 3,
-		"kind":           "arc_storyline_snapshot",
-		"storyline":      s,
-		"latest_run_id":  latestRun,
-		"checkpoints":    checkpoints,
-		"route_results":  results,
-		"step_traces":    stepTraces,
-		"completion":     completion,
-		"exported_at":    nowUTC(),
+	payload := snapshotDocument{
+		SchemaVersion: 3,
+		Kind:          "arc_storyline_snapshot",
+		Storyline:     s,
+		LatestRunID:   latestRun,
+		Checkpoints:   checkpoints,
+		RouteResults:  results,
+		StepTraces:    stepTraces,
+		Completion:    completion,
+		ExportedAt:    nowUTC(),
 	}
 	body, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
@@ -102,7 +102,7 @@ code{color:#f8fafc;background:#334155;padding:1px 5px;border-radius:4px}
 
 	// Left: World Flags & Checkpoints
 	b.WriteString("<section><h2>World Flags</h2>\n")
-	for _, k := range sortedKeys(s.WorldFlags) {
+	for _, k := range sortedStringKeys(s.WorldFlags) {
 		fmt.Fprintf(&b, "<div class=\"card\"><code>%s</code><br><small>%s</small></div>\n",
 			html.EscapeString(k), html.EscapeString(s.WorldFlags[k]))
 	}

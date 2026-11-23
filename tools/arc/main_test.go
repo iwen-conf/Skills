@@ -42,11 +42,15 @@ func TestCommandRouting(t *testing.T) {
 
 func TestCapabilitiesAdvertiseImplementedResourcesNotUnmigratedDB(t *testing.T) {
 	got := capabilities()
-	if got["arc_db_resources"] != true { t.Fatal("resource engine should be reported implemented") }
-	if got["arc_db_schema_version"] != arcSchemaVersion { t.Fatal("schema version not reported") }
+	if !got.ArcDBResources {
+		t.Fatal("resource engine should be reported implemented")
+	}
+	if got.ArcDBSchemaVersion != arcSchemaVersion {
+		t.Fatal("schema version not reported")
+	}
 	// Unified state is advertised only when the current repository has a
 	// validated migration marker, not when a second database merely exists.
-	if got["arc_db_active"] == false && got["unified_database"] != false {
+	if !got.ArcDBActive && got.UnifiedDatabase {
 		t.Fatal("must not advertise inactive DB as unified")
 	}
 }

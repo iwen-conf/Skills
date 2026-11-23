@@ -120,31 +120,54 @@ func resolveBackendFrom(binDir, name string) (string, error) {
 	return exec.LookPath(strings.TrimSuffix(name, ".exe"))
 }
 
-func capabilities() map[string]any {
+// capabilities 构建统一CLI能力与子引擎状态的强类型响应结构
+// 请求体
+// 无
+// 响应体
+// resp 包含协议版本、资源命令列表与子引擎状态的强类型响应结构
+func capabilities() capabilitiesResponse {
+	// 1. 检查当前仓库是否已激活统一状态库 arc.db
 	active := false
 	if root, err := repositoryRoot("."); err == nil {
-		if manifest, e := readManifest(root); e == nil && manifest != nil { active = true }
+		if manifest, e := readManifest(root); e == nil && manifest != nil {
+			active = true
+		}
 	}
-	engines := make(map[string]any, 2)
+	// 2. 探测下属子引擎二进制可用性与真实路径
+	engines := make(map[string]engineStatusResponse, 2)
 	supported := make(map[string]bool, 2)
 	for _, tool := range []string{"arc-idx", "arc-verify"} {
 		p, err := resolveBackend(tool)
 		supported[tool] = err == nil
-		engines[tool] = map[string]any{"available": err == nil, "path": p}
+		engines[tool] = engineStatusResponse{Available: err == nil, Path: p}
 	}
-	return map[string]any{
-		"name": "arc", "protocol_version": 1, "version": version,
-		"mode": "local_state_and_legacy_backends",
-		"code_index": supported["arc-idx"], "business_verify": supported["arc-verify"],
-		"business_contract_version": 1, "business_contract_proof_scope": "explicit-finite-domains",
-		"business_campaign_version": 1, "business_campaign_scope": "registered-input-variants",
-		"verification_views": []string{"capabilities", "dependencies", "states", "run"},
-		"arc_db_resources": true, "unified_database": active,
-		"arc_db_active": active, "arc_db_schema_version": arcSchemaVersion,
-		"resource_commands": []string{"db", "file update", "file show", "task create", "task ensure", "task show", "task transition", "task complete", "task link-verify", "task verify-status", "change collect", "change show", "update", "sync reconcile", "event list", "index flush", "policy state get", "policy state put", "policy state status", "policy state migrate"},
-		"outbox_consumer": "arc-idx-full-rebuild", "completion_proof": "arc-verify-linked-current-evidence",
-		"policy_storage": "arc policy state (opt-in migration)",
-		"engines": engines,
+	// 3. 组装具名能力声明响应结构返回
+	return capabilitiesResponse{
+		Name:                       "arc",
+		ProtocolVersion:            1,
+		Version:                    version,
+		Mode:                       "local_state_and_legacy_backends",
+		CodeIndex:                  supported["arc-idx"],
+		BusinessVerify:             supported["arc-verify"],
+		BusinessContractVersion:    1,
+		BusinessContractProofScope: "explicit-finite-domains",
+		BusinessCampaignVersion:    1,
+		BusinessCampaignScope:      "registered-input-variants",
+		VerificationViews:          []string{"capabilities", "dependencies", "states", "run"},
+		ArcDBResources:             true,
+		UnifiedDatabase:            active,
+		ArcDBActive:                active,
+		ArcDBSchemaVersion:         arcSchemaVersion,
+		ResourceCommands: []string{
+			"db", "file update", "file show", "task create", "task ensure", "task show",
+			"task transition", "task complete", "task link-verify", "task verify-status",
+			"change collect", "change show", "update", "sync reconcile", "event list",
+			"index flush", "policy state get", "policy state put", "policy state status", "policy state migrate",
+		},
+		OutboxConsumer:  "arc-idx-full-rebuild",
+		CompletionProof: "arc-verify-linked-current-evidence",
+		PolicyStorage:   "arc policy state (opt-in migration)",
+		Engines:         engines,
 	}
 }
 
@@ -162,7 +185,7 @@ func run(args []string) int {
 			fmt.Fprintln(os.Stderr, "arc capabilities: only --json is supported")
 			return 2
 		}
-		_ = json.NewEncoder(os.Stdout).Encode(capabilities())
+		_ = emitRawJSON(json.Marshal(capabilities()))
 		return 0
 	}
 	switch args[0] {

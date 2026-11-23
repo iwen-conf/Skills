@@ -7,6 +7,7 @@ import (
 	"testing"
 )
 
+// TestWorldScanFindsEcommerceCouplings 验证全仓扫描识别电商用户跨表与事件耦合状态
 func TestWorldScanFindsEcommerceCouplings(t *testing.T) {
 	repo := t.TempDir()
 	mustWrite := func(rel, content string) {
@@ -35,7 +36,9 @@ type SettlementOrder struct {
 	UserID int64
 	PendingCents int64
 }
-func Emit(bus Bus, userID int64) { bus.Publish("users.refund.settled", userID) }
+func Emit(bus Bus, userID int64) {
+	bus.Publish("users.refund.settled", userID)
+}
 `)
 	res, err := scanWorldFlags(repo, "users.id")
 	if err != nil {
@@ -46,6 +49,7 @@ func Emit(bus Bus, userID int64) { bus.Publish("users.refund.settled", userID) }
 	}
 }
 
+// TestSurfaceScanInventoriesFullProjectEntryPoints 验证全项目业务测试面清单扫描覆盖HTTP/RPC/表/页面/队列
 func TestSurfaceScanInventoriesFullProjectEntryPoints(t *testing.T) {
 	repo := t.TempDir()
 	mustWrite := func(rel, content string) {
@@ -71,7 +75,9 @@ service PaymentService {
 	mustWrite("db/001_init.sql", `CREATE TABLE orders (id BIGINT PRIMARY KEY, status TEXT NOT NULL);`)
 	mustWrite("app/checkout/page.tsx", `export default function CheckoutPage() { return null; }`)
 	mustWrite("internal/worker/consumer.go", `package worker
-func Start(q Queue) { q.Subscribe("orders.paid", handlePaid) }
+func Start(q Queue) {
+	q.Subscribe("orders.paid", handlePaid)
+}
 `)
 	mustWrite("tests/e2e/checkout.spec.ts", `// e2e spec`)
 	mustWrite("stories/orders.story.yaml", `story_id: orders`)
@@ -90,6 +96,7 @@ func Start(q Queue) { q.Subscribe("orders.paid", handlePaid) }
 	}
 }
 
+// TestLintStoryDetectsSoftlockInvalidBehaviorMissingFlagsOverlapAndUnreachableEnding 验证静态规则审查拦截软锁风险与冲突写范围
 func TestLintStoryDetectsSoftlockInvalidBehaviorMissingFlagsOverlapAndUnreachableEnding(t *testing.T) {
 	s := &Storyline{
 		StoryID:        "bad_story",
@@ -153,6 +160,7 @@ func TestLintStoryDetectsSoftlockInvalidBehaviorMissingFlagsOverlapAndUnreachabl
 	}
 }
 
+// TestPlayParallelPreservesHistoricalFailVerifies6DTracesAndExplain 验证并发推演永久保留历史FAIL并传递跨步骤强类型变量
 func TestPlayParallelPreservesHistoricalFailVerifies6DTracesAndExplain(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, ".arc", "verify", "story.db")
@@ -215,7 +223,7 @@ func TestPlayParallelPreservesHistoricalFailVerifies6DTracesAndExplain(t *testin
 		t.Fatalf("expected 1 route with 2 steps in explain, got %+v", explainRep.Routes)
 	}
 	step2 := explainRep.Routes[0].Steps[1]
-	if gotTx := step2.ActualInput["settlement_tx"]; gotTx != "STX-88" {
+	if gotTx := step2.ActualInput["settlement_tx"]; !gotTx.Equal(FactString("STX-88")) {
 		t.Fatalf("expected cross-step extracted settlement_tx=STX-88 in step 2 actual_input, got %v", gotTx)
 	}
 	md := renderExplainMarkdown(explainRep)
@@ -238,6 +246,7 @@ func TestPlayParallelPreservesHistoricalFailVerifies6DTracesAndExplain(t *testin
 	}
 }
 
+// TestSixDimensionSensitivityCatchesProbeMismatchForbiddenEffectAndPreconditionBlock 验证六维证据判等拦截探针偏差与禁止副作用
 func TestSixDimensionSensitivityCatchesProbeMismatchForbiddenEffectAndPreconditionBlock(t *testing.T) {
 	dir := t.TempDir()
 	ledger, err := openStoryLedger(filepath.Join(dir, "story.db"))
@@ -269,7 +278,7 @@ func TestSixDimensionSensitivityCatchesProbeMismatchForbiddenEffectAndPreconditi
 		Choice:           "pay_order",
 		ExpectedBehavior: "ALLOW_TRANSITION",
 		ExpectStatus:     "PAID",
-		ButterflyProbes:  map[string]any{"wallet_balance": 6800},
+		ButterflyProbes:  FactMap{"wallet_balance": FactInt(6800)},
 		Cmd:              `printf '[ARC_STEP_EVIDENCE]{"step":1,"actual_status":"PAID","actual_probes":{"wallet_balance":9999}}\n'`,
 	})
 	sum1, err := playStory(ledger, sProbeMismatch, PlayOptions{RepoRoot: dir})
@@ -302,7 +311,7 @@ func TestSixDimensionSensitivityCatchesProbeMismatchForbiddenEffectAndPreconditi
 		Step:             1,
 		Choice:           "pay_order",
 		ExpectedBehavior: "ALLOW_TRANSITION",
-		Preconditions:    map[string]any{"gateway_up": true},
+		Preconditions:    FactMap{"gateway_up": FactBool(true)},
 		PrecheckCmd:      "exit 1",
 		Cmd:              "echo should_not_run",
 		ExpectStatus:     "PAID",
@@ -356,6 +365,7 @@ func TestSixDimensionSensitivityCatchesProbeMismatchForbiddenEffectAndPreconditi
 	}
 }
 
+// TestRouteWithoutExecutableCommandIsBlockedNotPass 验证无真实执行命令的路由归类为BLOCKED而非虚假PASS
 func TestRouteWithoutExecutableCommandIsBlockedNotPass(t *testing.T) {
 	dir := t.TempDir()
 	ledger, err := openStoryLedger(filepath.Join(dir, "story.db"))

@@ -197,6 +197,7 @@ for host, hspec in profiles["hosts"].items():
                 chunks.append((root / "skills" / "_shared" / "contract.md").read_text(encoding="utf-8").rstrip())
             if name in {"arc-code", "arc-audit"}:
                 chunks.append((root / "skills" / "_shared" / "ui-system.md").read_text(encoding="utf-8").rstrip())
+                chunks.append((root / "skills" / "_shared" / "go-conventions.md").read_text(encoding="utf-8").rstrip())
             if name == "check":
                 chunks.append((root / "skills" / "_shared" / "cnb.md").read_text(encoding="utf-8").rstrip())
             cheat = src_dir / "references" / "cheatsheet.md"

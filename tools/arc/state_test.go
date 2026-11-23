@@ -319,3 +319,41 @@ func TestTaskLinkVerifyAndStatus(t *testing.T) {
 	if err := showTaskVerifyStatus(db, arcTaskID); err != nil { t.Fatal(err) }
 	if err := linkTaskVerify(db, "TASK-MISSING", "pay-chain-v3", "T-1", ""); err == nil { t.Fatal("linking missing arc task succeeded") }
 }
+
+// TestTaskVerifyStatusSupportsStorylineTables 验证 verify-status 兼容 story_* 六维账本表且保持 NOT_REVALIDATED 语义
+func TestTaskVerifyStatusSupportsStorylineTables(t *testing.T) {
+	_, db := testArcState(t)
+	if err := executeTask(db, "create", "", "Storyline cancel flow", "", 0); err != nil {
+		t.Fatal(err)
+	}
+	var arcTaskID string
+	if err := db.QueryRow("SELECT id FROM arc_tasks LIMIT 1").Scan(&arcTaskID); err != nil {
+		t.Fatal(err)
+	}
+	for _, ddl := range []string{
+		`CREATE TABLE story_definitions (story_id TEXT PRIMARY KEY, focal_entity TEXT NOT NULL, story_sha256 TEXT NOT NULL, source_path TEXT NOT NULL, raw_json TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+		`CREATE TABLE story_route_results (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL, story_id TEXT NOT NULL, story_sha256 TEXT NOT NULL, route_id TEXT NOT NULL, load_save TEXT NOT NULL, runtime_ns TEXT NOT NULL, verdict TEXT NOT NULL, softlock_detected INTEGER NOT NULL DEFAULT 0, probes_total INTEGER NOT NULL DEFAULT 0, probes_passed INTEGER NOT NULL DEFAULT 0, unlocked_ending TEXT NOT NULL DEFAULT '', raw_output TEXT NOT NULL DEFAULT '', receipt_sha256 TEXT NOT NULL, created_at TEXT NOT NULL)`,
+		`CREATE TABLE story_step_traces (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL, story_id TEXT NOT NULL, story_sha256 TEXT NOT NULL, route_id TEXT NOT NULL, step_num INTEGER NOT NULL, choice TEXT NOT NULL, actual_status TEXT NOT NULL DEFAULT '', verdict TEXT NOT NULL, diff_reason TEXT NOT NULL DEFAULT '', trace_sha256 TEXT NOT NULL, created_at TEXT NOT NULL)`,
+	} {
+		if _, err := db.Exec(ddl); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rawStory := `{"story_id":"cancel_story","routes":[{"route_id":"r_softlock","unlocks_ending":"END_COOLING"}]}`
+	if _, err := db.Exec(`INSERT INTO story_definitions VALUES('cancel_story','users.id','sha_v1','cancel.story.yaml',?,'2026-11-22T00:00:00Z')`, rawStory); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO story_route_results(run_id,story_id,story_sha256,route_id,load_save,runtime_ns,verdict,receipt_sha256,created_at) VALUES('SR-01','cancel_story','sha_v1','r_softlock','save_1','ns_1','FAIL','rsha','2026-11-22T00:00:01Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO story_step_traces(run_id,story_id,story_sha256,route_id,step_num,choice,actual_status,verdict,diff_reason,trace_sha256,created_at) VALUES('SR-01','cancel_story','sha_v1','r_softlock',2,'webhook_settle','COOLING_SUSPENSE','FAIL','status mismatch','tsha','2026-11-22T00:00:01Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if err := linkTaskVerify(db, arcTaskID, "cancel_story", "r_softlock", ""); err != nil {
+		t.Fatal(err)
+	}
+	st, summary, err := lookupStorylineObligation(t.Context(), db, "cancel_story", "r_softlock")
+	if err != nil || st != "FAIL" || summary == nil || summary.LatestRun != "SR-01" {
+		t.Fatalf("unexpected storyline obligation lookup: st=%s summary=%+v err=%v", st, summary, err)
+	}
+}

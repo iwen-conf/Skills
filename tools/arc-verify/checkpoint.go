@@ -1,11 +1,9 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -81,7 +79,7 @@ func materializeCheckpoint(s *Storyline, cp Checkpoint, repoRoot, engine, source
 			if err := copyFileBytes(sourceFile, dst); err != nil {
 				return CheckpointRecord{}, fmt.Errorf("copy sqlite source: %w", err)
 			}
-		} else if _, err := os.Stat(dst); os.IsNotExist(err) {
+		} else if _, err := os.Stat(dst); errors.Is(err, os.ErrNotExist) {
 			if err := os.WriteFile(dst, nil, 0o644); err != nil {
 				return CheckpointRecord{}, err
 			}
@@ -131,14 +129,14 @@ func materializeCheckpoint(s *Storyline, cp Checkpoint, repoRoot, engine, source
 		}
 	}
 
-	meta := map[string]any{
-		"story_id":     s.StoryID,
-		"save_id":      cp.SaveID,
-		"parent":       cp.Parent,
-		"engine":       engine,
-		"assert_flags": cp.AssertFlags,
-		"assert_cmd":   cp.AssertCmd,
-		"setup_steps":  cp.SetupSteps,
+	meta := checkpointFileMetadata{
+		storyRefBase: storyRefBase{StoryID: s.StoryID},
+		SaveID:       cp.SaveID,
+		Parent:       cp.Parent,
+		Engine:       engine,
+		AssertFlags:  cp.AssertFlags,
+		AssertCmd:    cp.AssertCmd,
+		SetupSteps:   cp.SetupSteps,
 	}
 	metaBytes, _ := json.MarshalIndent(meta, "", "  ")
 	if err := os.WriteFile(filepath.Join(saveDir, "checkpoint.json"), metaBytes, 0o644); err != nil {
@@ -217,55 +215,4 @@ func runShellInDir(dir, command string, env []string) error {
 	return nil
 }
 
-func copyFileBytes(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-		return err
-	}
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	if _, err := io.Copy(out, in); err != nil {
-		return err
-	}
-	return out.Sync()
-}
 
-func copyTree(src, dst string) error {
-	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		rel, err := filepath.Rel(src, path)
-		if err != nil {
-			return err
-		}
-		target := filepath.Join(dst, rel)
-		if info.IsDir() {
-			return os.MkdirAll(target, 0o755)
-		}
-		return copyFileBytes(path, target)
-	})
-}
-
-func hashPath(root string) string {
-	h := sha256.New()
-	_ = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
-			return nil
-		}
-		rel, _ := filepath.Rel(root, path)
-		h.Write([]byte(filepath.ToSlash(rel)))
-		if data, rerr := os.ReadFile(path); rerr == nil {
-			h.Write(data)
-		}
-		return nil
-	})
-	return hex.EncodeToString(h.Sum(nil))
-}

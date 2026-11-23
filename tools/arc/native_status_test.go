@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// TestVerifyStatusIsStoredSummaryAndUsesInsertionOrder 验证任务验证摘要按插入顺序取最新运行记录且不泄露未重验状态
 func TestVerifyStatusIsStoredSummaryAndUsesInsertionOrder(t *testing.T) {
 	_, db := testArcState(t)
 	defer db.Close()
@@ -46,25 +47,35 @@ func TestVerifyStatusIsStoredSummaryAndUsesInsertionOrder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var result map[string]any
+	var rawFields map[string]json.RawMessage
+	if err := json.Unmarshal(body, &rawFields); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := rawFields["counts"]; ok {
+		t.Fatal("unqualified PASS counts leaked from stored task labels")
+	}
+	var result taskVerifyStatusResponse
 	if err := json.Unmarshal(body, &result); err != nil {
 		t.Fatal(err)
 	}
-	if result["evidence_status"] != "NOT_REVALIDATED" || result["proof_scope"] != "none" {
+	if result.EvidenceStatus != "NOT_REVALIDATED" || result.ProofScope != "none" {
 		t.Fatalf("summary looked verified: %s", body)
 	}
-	if _, ok := result["counts"]; ok {
-		t.Fatal("unqualified PASS counts leaked from stored task labels")
-	}
-	counts := result["stored_status_counts"].(map[string]any)
-	if counts["PASS"] != float64(1) {
+	if result.StoredStatusCounts["PASS"] != 1 {
 		t.Fatalf("stored status was rewritten: %s", body)
 	}
-	link := result["obligations"].([]any)[0].(map[string]any)
-	if link["latest_run"] != "A-actually-latest" || link["latest_run_stored_status"] != "FAIL" || link["stored_status"] != "PASS" || link["evidence_status"] != "NOT_REVALIDATED" {
+	if len(result.Obligations) != 1 {
+		t.Fatalf("expected 1 obligation, got %d", len(result.Obligations))
+	}
+	link := result.Obligations[0]
+	if link.LatestRun != "A-actually-latest" || link.LatestRunStoredStatus != "FAIL" || link.StoredStatus != "PASS" || link.EvidenceStatus != "NOT_REVALIDATED" {
 		t.Fatalf("wrong latest stored summary: %s", body)
 	}
-	if _, ok := link["status"]; ok {
+	var rawObligations []map[string]json.RawMessage
+	if err := json.Unmarshal(rawFields["obligations"], &rawObligations); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := rawObligations[0]["status"]; ok {
 		t.Fatal("ambiguous proof status in stored summary")
 	}
 }

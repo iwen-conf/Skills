@@ -3,22 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 )
-
-// emitJSON prints v as indented JSON to stdout.
-func emitJSON(v any) error {
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", "  ")
-	return enc.Encode(v)
-}
 
 // emitSearch renders a search result as json or ai-md.
 func emitSearch(res *searchResult, format string) error {
 	if format == "json" {
-		return emitJSON(res)
+		return emitRawJSON(json.MarshalIndent(res, "", "  "))
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "## search %q", res.Query)

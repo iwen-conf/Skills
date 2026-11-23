@@ -245,7 +245,8 @@ func flushIndexOutboxWith(root string, build func(context.Context,string) error)
 		return err
 	}
 	if batch.Count == 0 {
-		return emitJSON(map[string]any{"indexed_events": 0, "pending": 0, "index": "no_pending_work"})
+		zero := 0
+		return emitRawJSON(json.Marshal(indexFlushResponse{IndexedEvents: 0, Pending: &zero, Index: "no_pending_work"}))
 	}
 
 	if err := recordedFilesCurrent(root); err != nil { return err }
@@ -310,6 +311,13 @@ func flushIndexOutboxWith(root string, build func(context.Context,string) error)
 			return err
 		})
 	})
-	if err != nil { return err }
-	return emitJSON(map[string]any{"indexed_events": processed, "index": "healthy", "backend": "arc-idx-full-rebuild", "worktree_snapshot": before})
+	if err != nil {
+		return err
+	}
+	return emitRawJSON(json.Marshal(indexFlushResponse{
+		IndexedEvents:    processed,
+		Index:            "healthy",
+		Backend:          "arc-idx-full-rebuild",
+		WorktreeSnapshot: before,
+	}))
 }

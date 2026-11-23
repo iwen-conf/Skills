@@ -1,322 +1,354 @@
 package main
 
 import (
+	"bytes"
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
 
-// The Policy Runtime is implemented in Python, but after cutover this
-// Turso-backed state is the only authoritative task/history/receipt store.
-// All Policy callers must obey policy task.lock -> arc.lock order.
 var policyStoreSchema = []string{
 	`CREATE TABLE IF NOT EXISTS arc_policy_state (id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL CHECK(version>=1), body TEXT NOT NULL, updated_at TEXT NOT NULL)`,
 	`CREATE TABLE IF NOT EXISTS arc_policy_receipts (sha256 TEXT PRIMARY KEY, task_id TEXT NOT NULL, verdict TEXT NOT NULL, body TEXT NOT NULL, captured_at TEXT NOT NULL)`,
 	`CREATE INDEX IF NOT EXISTS arc_policy_receipts_task ON arc_policy_receipts(task_id, captured_at)`,
 }
 
+// policyDocument 描述策略状态存储模式、版本号与原始JSON文档
 type policyDocument struct {
-	Mode    string          `json:"mode"`
-	Version int64           `json:"version"`
-	State   json.RawMessage `json:"state"`
+	// Mode 存储引擎模式（legacy或arc.db）
+	Mode string `json:"mode"`
+	// Version 乐观锁版本号
+	Version int64 `json:"version"`
+	// State 策略状态JSON原文
+	State json.RawMessage `json:"state"`
 }
 
+// policyReceipt 描述归档到 arc_policy_receipts 表的强类型收据记录
+type policyReceipt struct {
+	// Hash 收据规范化JSON的SHA256摘要
+	Hash string
+	// TaskID 所属任务唯一ID
+	TaskID string
+	// Verdict 收据判定结果（PASS或AUTHORIZED）
+	Verdict string
+	// Body 规范化收据JSON字符串
+	Body string
+}
+
+// policyActiveTaskFields 用于强类型校验活跃策略任务必填标识字段
+type policyActiveTaskFields struct {
+	// ID 任务唯一ID
+	ID string `json:"id"`
+	// Slug 任务短标识
+	Slug string `json:"slug"`
+	// Skill 归属技能名称
+	Skill string `json:"skill"`
+	// Receipt 可选嵌套收据JSON
+	Receipt json.RawMessage `json:"receipt"`
+}
+
+// policyReceiptHeader 用于强类型校验归档收据的身份与判定头字段
+type policyReceiptHeader struct {
+	// TaskID 收据内声明的任务ID
+	TaskID string `json:"task_id"`
+	// Verdict 收据判定标签
+	Verdict string `json:"verdict"`
+}
+
+// loadPolicyDocument 读取当前激活的策略文档（未建表时安全回退 legacy 模式）
+// 请求体
+// db 数据库连接句柄
+// 响应体
+// doc 策略状态文档
+// err 元数据查询或状态格式损坏错误
 func loadPolicyDocument(db *sql.DB) (policyDocument, error) {
-	// Arc 0.3 ledgers predate policy tables. An absent table means legacy
-	// state is still authoritative until explicit policy migration.
-	var table string
-	tableErr:=db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name='arc_policy_state'").Scan(&table)
-	if errors.Is(tableErr,sql.ErrNoRows) {
-		return policyDocument{Mode:"legacy", Version:0, State:json.RawMessage("{}")},nil
+	// 1. 检测 arc_policy_state 表是否存在
+	hasTable, tableErr := arcTableExists(context.Background(), db, "arc_policy_state")
+	if tableErr != nil {
+		return policyDocument{}, tableErr
 	}
-	if tableErr!=nil{return policyDocument{},tableErr}
+	if !hasTable {
+		return policyDocument{Mode: "legacy", Version: 0, State: json.RawMessage("{}")}, nil
+	}
+	// 2. 读取主行数据并校验结构合法性
 	var body string
 	var version int64
 	err := db.QueryRow("SELECT version, body FROM arc_policy_state WHERE id=1").Scan(&version, &body)
 	if errors.Is(err, sql.ErrNoRows) {
-		return policyDocument{Mode:"legacy", Version:0, State:json.RawMessage("{}")}, nil
+		return policyDocument{Mode: "legacy", Version: 0, State: json.RawMessage("{}")}, nil
 	}
-	if err != nil { return policyDocument{}, err }
-	if _, err := decodePolicyState([]byte(body)); err != nil { return policyDocument{}, err }
-	return policyDocument{Mode:"arc.db", Version:version, State:json.RawMessage(body)}, nil
+	if err != nil {
+		return policyDocument{}, err
+	}
+	if _, err := decodePolicyState([]byte(body)); err != nil {
+		return policyDocument{}, err
+	}
+	return policyDocument{Mode: "arc.db", Version: version, State: json.RawMessage(body)}, nil
 }
 
-func decodePolicyState(raw []byte) (map[string]any, error) {
-	if len(raw) == 0 || len(raw)>16<<20 { return nil, errors.New("policy state size must be 1..16 MiB") }
-	var value map[string]any
-	if err := json.Unmarshal(raw,&value);err!=nil{return nil,fmt.Errorf("invalid policy JSON: %w",err)}
-	if value==nil {return nil,errors.New("policy state must be a JSON object")}
-	if v,ok:=value["history"];ok {
-		if _,valid:=v.([]any);!valid {return nil,errors.New("policy state history must be an array")}
+// decodePolicyState 使用强类型结构体与 json.RawMessage 校验策略JSON顶层结构且保留扩展字段
+// 请求体
+// raw 待解析的策略状态JSON字节
+// 响应体
+// fields 顶层键值到规范化json.RawMessage的强类型映射
+// err 超出16MiB上限、非JSON对象或必填字段缺失错误
+func decodePolicyState(raw []byte) (map[string]json.RawMessage, error) {
+	// 1. 校验体积上限与顶层必须为非null的JSON对象
+	if len(raw) == 0 || len(raw) > 16<<20 {
+		return nil, errors.New("policy state size must be 1..16 MiB")
 	}
-	if v,ok:=value["active"];ok && v!=nil {
-		item,valid:=v.(map[string]any)
-		if !valid {return nil,errors.New("policy active task must be an object or null")}
-		for _,k:=range []string{"id","slug","skill"}{
-			x,yes:=item[k].(string)
-			if !yes || strings.TrimSpace(x)=="" {return nil,fmt.Errorf("policy active task missing %s",k)}
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || trimmed[0] != '{' {
+		return nil, errors.New("policy state must be a JSON object")
+	}
+	var value map[string]json.RawMessage
+	if err := json.Unmarshal(trimmed, &value); err != nil {
+		return nil, fmt.Errorf("invalid policy JSON: %w", err)
+	}
+	if value == nil {
+		return nil, errors.New("policy state must be a JSON object")
+	}
+	// 2. 强类型校验可选 history 必须为JSON数组且 active 必须包含 id/slug/skill
+	if histRaw, ok := value["history"]; ok {
+		ht := bytes.TrimSpace(histRaw)
+		if len(ht) == 0 || ht[0] != '[' {
+			return nil, errors.New("policy state history must be an array")
+		}
+		var arr []json.RawMessage
+		if err := json.Unmarshal(ht, &arr); err != nil {
+			return nil, errors.New("policy state history must be an array")
 		}
 	}
-	return value,nil
-}
-
-type policyReceipt struct {
-	Hash string
-	TaskID string
-	Verdict string
-	Body string
-}
-
-func collectPolicyReceipts(state map[string]any) ([]policyReceipt,error) {
-	values:=[]any{}
-	if active,ok:=state["active"].(map[string]any);ok {values=append(values,active)}
-	if history,ok:=state["history"].([]any);ok {values=append(values,history...)}
-	unique:=map[string]policyReceipt{}
-	for _,v:=range values {
-		task,ok:=v.(map[string]any)
-		if !ok{return nil,errors.New("policy history entry must be an object")}
-		raw,exists:=task["receipt"]
-		if !exists || raw==nil {continue}
-		receipt,ok:=raw.(map[string]any)
-		if !ok{return nil,errors.New("policy receipt must be an object")}
-		taskID,ok:=task["id"].(string)
-		if !ok||taskID==""{return nil,errors.New("policy receipt task lacks ID")}
-		if receiptID,_:=receipt["task_id"].(string);receiptID!=""&&receiptID!=taskID {
-			return nil,errors.New("policy receipt and owner task IDs disagree")
+	if actRaw, ok := value["active"]; ok {
+		at := bytes.TrimSpace(actRaw)
+		if len(at) > 0 && string(at) != "null" {
+			if at[0] != '{' {
+				return nil, errors.New("policy active task must be an object or null")
+			}
+			var item policyActiveTaskFields
+			if err := json.Unmarshal(at, &item); err != nil {
+				return nil, errors.New("policy active task must be an object or null")
+			}
+			if strings.TrimSpace(item.ID) == "" {
+				return nil, errors.New("policy active task missing id")
+			}
+			if strings.TrimSpace(item.Slug) == "" {
+				return nil, errors.New("policy active task missing slug")
+			}
+			if strings.TrimSpace(item.Skill) == "" {
+				return nil, errors.New("policy active task missing skill")
+			}
 		}
-		verdict,_:=receipt["verdict"].(string)
-		if verdict!="PASS"&&verdict!="AUTHORIZED" {
-			return nil,fmt.Errorf("invalid archived policy receipt verdict %q",verdict)
-		}
-		canonical,err:=json.Marshal(receipt)
-		if err!=nil{return nil,err}
-		hash:=sha256.Sum256(canonical)
-		id:=hex.EncodeToString(hash[:])
-		unique[id]=policyReceipt{Hash:id,TaskID:taskID,Verdict:verdict,Body:string(canonical)}
 	}
-	out:=make([]policyReceipt,0,len(unique))
-	for _,v:=range unique{out=append(out,v)}
-	return out,nil
+	return value, nil
 }
 
-func persistPolicyReceipts(ctx context.Context,tx *sql.Tx,items []policyReceipt)error {
-	for _,receipt:=range items {
-		if _,err:=tx.ExecContext(ctx,
+// collectPolicyReceipts 从活跃任务与历史任务列表中提取去重后的强类型归档收据
+// 请求体
+// state 顶层策略状态RawMessage映射
+// 响应体
+// out 去重后的策略收据切片
+// err 历史条目非对象、任务ID冲突或非法verdict错误
+func collectPolicyReceipts(state map[string]json.RawMessage) ([]policyReceipt, error) {
+	// 1. 收集 active 与 history 中的全部任务JSON条目
+	var entries []json.RawMessage
+	if actRaw, ok := state["active"]; ok {
+		at := bytes.TrimSpace(actRaw)
+		if len(at) > 0 && at[0] == '{' {
+			entries = append(entries, at)
+		}
+	}
+	if histRaw, ok := state["history"]; ok {
+		var hist []json.RawMessage
+		if err := json.Unmarshal(histRaw, &hist); err == nil {
+			entries = append(entries, hist...)
+		}
+	}
+	// 2. 逐条使用强类型结构体校验任务归属与收据合法性并做确定性哈希去重
+	unique := map[string]policyReceipt{}
+	for _, rawTask := range entries {
+		tt := bytes.TrimSpace(rawTask)
+		if len(tt) == 0 || tt[0] != '{' {
+			return nil, errors.New("policy history entry must be an object")
+		}
+		var task policyActiveTaskFields
+		if err := json.Unmarshal(tt, &task); err != nil {
+			return nil, errors.New("policy history entry must be an object")
+		}
+		rt := bytes.TrimSpace(task.Receipt)
+		if len(rt) == 0 || string(rt) == "null" {
+			continue
+		}
+		if rt[0] != '{' {
+			return nil, errors.New("policy receipt must be an object")
+		}
+		if task.ID == "" {
+			return nil, errors.New("policy receipt task lacks ID")
+		}
+		var hdr policyReceiptHeader
+		if err := json.Unmarshal(rt, &hdr); err != nil {
+			return nil, errors.New("policy receipt must be an object")
+		}
+		if hdr.TaskID != "" && hdr.TaskID != task.ID {
+			return nil, errors.New("policy receipt and owner task IDs disagree")
+		}
+		if hdr.Verdict != string(VerdictPass) && hdr.Verdict != "AUTHORIZED" {
+			return nil, fmt.Errorf("invalid archived policy receipt verdict %q", hdr.Verdict)
+		}
+		canonical, err := canonicalizeJSONBytes(rt)
+		if err != nil {
+			return nil, err
+		}
+		id := shaBytes(canonical)
+		unique[id] = policyReceipt{Hash: id, TaskID: task.ID, Verdict: hdr.Verdict, Body: string(canonical)}
+	}
+	out := make([]policyReceipt, 0, len(unique))
+	for _, v := range unique {
+		out = append(out, v)
+	}
+	return out, nil
+}
+
+// persistPolicyReceipts 在事务内幂等批量写入策略收据归档记录
+// 请求体
+// ctx 请求上下文
+// tx 当前数据库事务句柄
+// items 待持久化的策略收据列表
+// 响应体
+// err SQL写入错误
+func persistPolicyReceipts(ctx context.Context, tx *sql.Tx, items []policyReceipt) error {
+	// 1. 逐条执行 INSERT OR IGNORE 写入不可变收据归档表
+	for _, receipt := range items {
+		if _, err := tx.ExecContext(ctx,
 			"INSERT OR IGNORE INTO arc_policy_receipts(sha256,task_id,verdict,body,captured_at) VALUES(?,?,?,?,?)",
-			receipt.Hash,receipt.TaskID,receipt.Verdict,receipt.Body,nowUTC());err!=nil{return err}
+			receipt.Hash, receipt.TaskID, receipt.Verdict, receipt.Body, nowUTC()); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func policyStateCommand(args []string)error{
-	if len(args)==0{return errors.New("usage: arc policy state <get|put|status|migrate> [--repo DIR] [--expected-version N] [--confirm-offline]")}
-	action:=args[0]
-	fs:=flag.NewFlagSet("arc policy state "+action,flag.ContinueOnError)
-	repoFlag:=fs.String("repo",".","repository root")
-	expected:=fs.Int64("expected-version",0,"CAS expected store version")
-	confirm:=fs.Bool("confirm-offline",false,"explicit offline migration of legacy policy JSON")
-	if err:=fs.Parse(args[1:]);err!=nil{return err}
-	if len(fs.Args())!=0{return fmt.Errorf("unexpected positional arguments: %v",fs.Args())}
-	root,err:=repositoryRoot(*repoFlag)
-	if err!=nil{return err}
-	if _,err:=readManifest(root);err!=nil{return err}
-	switch action{
-	case "get","status":
-		return withArcLock(root,func()error{
-			db,err:=openActiveArcDB(root);if err!=nil{return err};defer db.Close()
-			doc,err:=loadPolicyDocument(db);if err!=nil{return err}
-			if action=="status"{return emitJSON(map[string]any{"mode":doc.Mode,"version":doc.Version})}
-			return emitJSON(doc)
+// policyStateCommand 执行 arc policy state get/put/status/migrate 命令
+// 请求体
+// args 子命令参数切片
+// 响应体
+// err 参数错误、CAS版本冲突或迁移失败错误
+func policyStateCommand(args []string) error {
+	// 1. 解析动作名称与命令行标志并确认当前仓库已激活 arc.db
+	if len(args) == 0 {
+		return errors.New("usage: arc policy state <get|put|status|migrate> [--repo DIR] [--expected-version N] [--confirm-offline]")
+	}
+	action := args[0]
+	fs := flag.NewFlagSet("arc policy state "+action, flag.ContinueOnError)
+	repoFlag := fs.String("repo", ".", "repository root")
+	expected := fs.Int64("expected-version", 0, "CAS expected store version")
+	confirm := fs.Bool("confirm-offline", false, "explicit offline migration of legacy policy JSON")
+	if err := fs.Parse(args[1:]); err != nil {
+		return err
+	}
+	if len(fs.Args()) != 0 {
+		return fmt.Errorf("unexpected positional arguments: %v", fs.Args())
+	}
+	root, err := repositoryRoot(*repoFlag)
+	if err != nil {
+		return err
+	}
+	if _, err := readManifest(root); err != nil {
+		return err
+	}
+	// 2. 按 get/status/put/migrate 执行对应状态读写或离线迁移
+	switch action {
+	case "get", "status":
+		return withArcLock(root, func() error {
+			db, oErr := openActiveArcDB(root)
+			if oErr != nil {
+				return oErr
+			}
+			defer db.Close()
+			doc, lErr := loadPolicyDocument(db)
+			if lErr != nil {
+				return lErr
+			}
+			if action == "status" {
+				return emitRawJSON(json.Marshal(policyVersionResponse{Mode: doc.Mode, Version: doc.Version}))
+			}
+			return emitRawJSON(json.Marshal(doc))
 		})
 	case "put":
-		if *expected<1 {return errors.New("policy state put requires --expected-version >=1")}
-		raw,err:=io.ReadAll(io.LimitReader(os.Stdin,(16<<20)+1));if err!=nil{return err}
-		state,err:=decodePolicyState(raw);if err!=nil{return err}
-		receipts,err:=collectPolicyReceipts(state);if err!=nil{return err}
-		// Canonical JSON ensures stable hashes across Python/Go serializers.
-		body,err:=json.Marshal(state);if err!=nil{return err}
-		return withArcLock(root,func()error{
-			db,err:=openActiveArcDB(root);if err!=nil{return err};defer db.Close()
-			ctx,cancel:=context.WithTimeout(context.Background(),25*time.Second);defer cancel()
+		if *expected < 1 {
+			return errors.New("policy state put requires --expected-version >=1")
+		}
+		raw, rErr := io.ReadAll(io.LimitReader(os.Stdin, (16<<20)+1))
+		if rErr != nil {
+			return rErr
+		}
+		state, dErr := decodePolicyState(raw)
+		if dErr != nil {
+			return dErr
+		}
+		receipts, cErr := collectPolicyReceipts(state)
+		if cErr != nil {
+			return cErr
+		}
+		body, nErr := canonicalizeJSONBytes(raw)
+		if nErr != nil {
+			return nErr
+		}
+		return withArcLock(root, func() error {
+			db, oErr := openActiveArcDB(root)
+			if oErr != nil {
+				return oErr
+			}
+			defer db.Close()
+			ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+			defer cancel()
 			var next int64
-			err=dbTransaction(ctx,db,func(tx *sql.Tx)error{
-				res,err:=tx.ExecContext(ctx,
+			txErr := dbTransaction(ctx, db, func(tx *sql.Tx) error {
+				res, execErr := tx.ExecContext(ctx,
 					"UPDATE arc_policy_state SET body=?,version=version+1,updated_at=? WHERE id=1 AND version=?",
-					string(body),nowUTC(),*expected)
-				if err!=nil{return err}
-				n,err:=res.RowsAffected();if err!=nil{return err}
-				if n!=1{return fmt.Errorf("policy state version conflict (expected %d); reload before writing",*expected)}
-				if err:=persistPolicyReceipts(ctx,tx,receipts);err!=nil{return err}
-				sum:=sha256.Sum256(body)
-				if err:=addEvent(ctx,tx,"policy","state","policy.state.updated",map[string]any{"version":*expected+1,"sha256":hex.EncodeToString(sum[:])});err!=nil{return err}
-				next=*expected+1
+					string(body), nowUTC(), *expected)
+				if execErr != nil {
+					return execErr
+				}
+				n, aErr := res.RowsAffected()
+				if aErr != nil {
+					return aErr
+				}
+				if n != 1 {
+					return fmt.Errorf("policy state version conflict (expected %d); reload before writing", *expected)
+				}
+				if pErr := persistPolicyReceipts(ctx, tx, receipts); pErr != nil {
+					return pErr
+				}
+				rawEv, mErr := json.Marshal(policyUpdatedEventPayload{Version: *expected + 1, SHA256: shaBytes(body)})
+				if evErr := addEventPayload(ctx, tx, "policy", "state", "policy.state.updated", rawEv, mErr); evErr != nil {
+					return evErr
+				}
+				next = *expected + 1
 				return nil
 			})
-			if err!=nil{return err}
-			return emitJSON(map[string]any{"mode":"arc.db","version":next})
+			if txErr != nil {
+				return txErr
+			}
+			return emitRawJSON(json.Marshal(policyVersionResponse{Mode: "arc.db", Version: next}))
 		})
 	case "migrate":
-		if !*confirm{return errors.New("policy migration requires --confirm-offline and no concurrent legacy policy writers")}
-		return withPolicyTaskLock(root,func()error{
-			return withArcLock(root,func()error{return migratePolicyState(root)})
+		if !*confirm {
+			return errors.New("policy migration requires --confirm-offline and no concurrent legacy policy writers")
+		}
+		return withPolicyTaskLock(root, func() error {
+			return withArcLock(root, func() error {
+				return migratePolicyState(root)
+			})
 		})
 	default:
-		return fmt.Errorf("unknown arc policy state action %q",action)
+		return fmt.Errorf("unknown arc policy state action %q", action)
 	}
-}
-
-// retireLegacyPolicyFiles leaves a directory tombstone at state.json so
-// older plugin builds cannot silently recreate an authoritative JSON file.
-// The original bytes remain in a content-addressed backup. Re-running is safe
-// after a crash between committing the DB row and retiring the files.
-func retireLegacyPolicyFiles(root, expectedHash string)error{
-	if len(expectedHash)!=64{return errors.New("missing original policy backup fingerprint")}
-	base:=filepath.Join(root,".arc")
-	backup:=filepath.Join(base,"backups","policy-state-"+expectedHash+".json")
-	if err:=checkRegular(backup);err!=nil{return fmt.Errorf("policy backup unavailable: %w",err)}
-	checksum,err:=shaFile(backup);if err!=nil||checksum!=expectedHash{return errors.New("policy backup checksum mismatch")}
-	policyDir:=filepath.Join(base,"policy")
-	legacy:=filepath.Join(policyDir,"state.json")
-	st,err:=os.Lstat(legacy)
-	if errors.Is(err,os.ErrNotExist){
-		if err:=os.Mkdir(legacy,0700);err!=nil{return err}
-	}else if err!=nil{return err}else if st.IsDir(){
-		entries,err:=os.ReadDir(legacy);if err!=nil{return err}
-		if len(entries)!=0{return errors.New("legacy state tombstone contains unexpected files")}
-	}else if st.Mode().IsRegular(){
-		liveHash,err:=shaFile(legacy);if err!=nil{return err}
-		if liveHash!=expectedHash{return errors.New("legacy state changed after migration; manual recovery required")}
-		// The backup is verified; only now may the duplicate live path be removed.
-		if err:=os.Remove(legacy);err!=nil{return err}
-		if err:=os.Mkdir(legacy,0700);err!=nil{return fmt.Errorf("cannot install old-runtime tombstone: %w",err)}
-	}else{return errors.New("unsafe legacy policy state path")}
-	receipts:=filepath.Join(policyDir,"receipts")
-	if st,err:=os.Lstat(receipts);err==nil{
-		if !st.IsDir()||st.Mode()&os.ModeSymlink!=0{return errors.New("unsafe legacy receipts path")}
-		dest:=filepath.Join(base,"backups","policy-receipts-"+expectedHash[:16])
-		if _,err:=os.Lstat(dest);err==nil{
-			return errors.New("legacy receipt archive already exists; inspect before retrying")
-		}else if !errors.Is(err,os.ErrNotExist){return err}
-		if err:=os.Rename(receipts,dest);err!=nil{return err}
-	}else if !errors.Is(err,os.ErrNotExist){return err}
-	return nil
-}
-
-func policyMigrationFingerprint(db *sql.DB)(string,error){
-	var payload string
-	err:=db.QueryRow("SELECT payload FROM arc_events WHERE aggregate='policy' AND kind='policy.state.migrated' ORDER BY created DESC,id DESC LIMIT 1").Scan(&payload)
-	if err!=nil{return "",err}
-	var v struct{ SHA string `json:"state_sha256"` }
-	if err:=json.Unmarshal([]byte(payload),&v);err!=nil{return "",err}
-	if len(v.SHA)!=64{return "",errors.New("migration event has no policy backup fingerprint")}
-	return v.SHA,nil
-}
-
-func migratePolicyState(root string)error{
-	if err:=ensureArcPrivateFiles(root);err!=nil{return err}
-	db,err:=openActiveArcDB(root);if err!=nil{return err};defer db.Close()
-	for _,stmt:=range policyStoreSchema{
-		if _,err:=db.Exec(stmt);err!=nil{return fmt.Errorf("policy schema: %w",err)}
-	}
-	doc,err:=loadPolicyDocument(db);if err!=nil{return err}
-	if doc.Mode=="arc.db"{
-		hash,err:=policyMigrationFingerprint(db);if err!=nil{return err}
-		var verified string
-		if err:=db.QueryRow("SELECT value FROM arc_meta WHERE key='policy_migration_verified'").Scan(&verified);err!=nil{
-			return fmt.Errorf("Policy migration requires manual recovery: receipt readback was not marked complete: %w",err)
-		}
-		if verified!=hash{return errors.New("Policy migration verification fingerprint mismatch; refusing legacy archival")}
-		if err:=retireLegacyPolicyFiles(root,hash);err!=nil{return err}
-		return emitJSON(map[string]any{"storage":"arc.db","already_migrated":true,"legacy_guard":"directory","active":true})
-	}
-	legacy:=filepath.Join(root,".arc","policy","state.json")
-	body:=[]byte("{}")
-	if st,err:=os.Lstat(legacy);err==nil {
-		if !st.Mode().IsRegular(){return errors.New("unsafe legacy policy state path")}
-		body,err=os.ReadFile(legacy);if err!=nil{return err}
-	} else if !errors.Is(err,os.ErrNotExist){return err}
-	state,err:=decodePolicyState(body);if err!=nil{return err}
-	receipts,err:=collectPolicyReceipts(state);if err!=nil{return err}
-	receiptsDir:=filepath.Join(root,".arc","policy","receipts")
-	if info,err:=os.Lstat(receiptsDir);err==nil{
-		if !info.IsDir()||info.Mode()&os.ModeSymlink!=0 {return errors.New("unsafe legacy policy receipts directory")}
-		list,err:=filepath.Glob(filepath.Join(receiptsDir,"*.json"));if err!=nil{return err}
-		if len(list)>10000{return errors.New("legacy receipt import exceeds 10000 files")}
-		var totalBytes int64
-		for _,file:=range list {
-			if err:=checkRegular(file);err!=nil{return err}
-			info,err:=os.Stat(file);if err!=nil{return err}
-			if info.Size()>16<<20{return fmt.Errorf("legacy receipt %s exceeds 16 MiB",file)}
-			totalBytes+=info.Size()
-			if totalBytes>64<<20{return errors.New("legacy receipts exceed 64 MiB import budget")}
-			raw,err:=os.ReadFile(file);if err!=nil{return err}
-			var receipt map[string]any
-			if err:=json.Unmarshal(raw,&receipt);err!=nil{return fmt.Errorf("legacy receipt %s: %w",file,err)}
-			if receipt==nil{return fmt.Errorf("legacy receipt %s is null",file)}
-			taskID,_:=receipt["task_id"].(string)
-			if taskID==""{return fmt.Errorf("legacy receipt %s has no task ID",file)}
-			verdict,_:=receipt["verdict"].(string)
-			if verdict!="PASS"&&verdict!="AUTHORIZED"{return fmt.Errorf("legacy receipt %s has invalid verdict",file)}
-			canonical,err:=json.Marshal(receipt);if err!=nil{return err}
-			hash:=sha256.Sum256(canonical)
-			receipts=append(receipts,policyReceipt{Hash:hex.EncodeToString(hash[:]),TaskID:taskID,Verdict:verdict,Body:string(canonical)})
-		}
-	}else if !errors.Is(err,os.ErrNotExist){return err}
-	// Keep an untouched file backup; after cutover the runtime never reads
-	// or writes this legacy JSON. User can inspect or restore it offline.
-	rawHash:=sha256.Sum256(body)
-	backups:=filepath.Join(root,".arc","backups")
-	if err:=os.MkdirAll(backups,0700);err!=nil{return err}
-	if st,err:=os.Lstat(backups);err!=nil||!st.IsDir()||st.Mode()&os.ModeSymlink!=0{
-		return errors.New("unsafe policy backup directory")
-	}
-	backup:=filepath.Join(backups,"policy-state-"+hex.EncodeToString(rawHash[:])+".json")
-	if _,err:=os.Lstat(backup);errors.Is(err,os.ErrNotExist){
-		out,err:=os.OpenFile(backup,os.O_WRONLY|os.O_CREATE|os.O_EXCL,0600);if err!=nil{return err}
-		if _,err=out.Write(body);err==nil{err=out.Sync()}
-		if e:=out.Close();err==nil{err=e};if err!=nil{return err}
-	}else if err!=nil{return err}
-	backupBody,err:=os.ReadFile(backup);if err!=nil{return err}
-	if sha256.Sum256(backupBody)!=rawHash{return errors.New("policy backup checksum mismatch")}
-	canonical,err:=json.Marshal(state);if err!=nil{return err}
-	ctx,cancel:=context.WithTimeout(context.Background(),35*time.Second);defer cancel()
-	err=dbTransaction(ctx,db,func(tx *sql.Tx)error{
-		if _,err:=tx.ExecContext(ctx,
-			"INSERT INTO arc_policy_state(id,version,body,updated_at) VALUES(1,1,?,?)",
-			string(canonical),nowUTC());err!=nil{return err}
-		if err:=persistPolicyReceipts(ctx,tx,receipts);err!=nil{return err}
-		return addEvent(ctx,tx,"policy","state","policy.state.migrated",map[string]any{
-			"state_sha256":hex.EncodeToString(rawHash[:]),"receipts":len(receipts),"version":1})
-	})
-	if err!=nil{return err}
-	// Check that every receipt (including standalone archived JSON files)
-	// really exists in the committed DB before retiring its old location.
-	for _,record:=range receipts {
-		var taskID,verdict,body string
-		if err:=db.QueryRow("SELECT task_id,verdict,body FROM arc_policy_receipts WHERE sha256=?",record.Hash).Scan(&taskID,&verdict,&body);err!=nil{return fmt.Errorf("receipt import parity failure: %w",err)}
-		if taskID!=record.TaskID||verdict!=record.Verdict||body!=record.Body{return errors.New("receipt import differs from original; refusing legacy archive")}
-	}
-	live,err:=loadPolicyDocument(db)
-	if err!=nil||live.Mode!="arc.db"{return errors.New("policy migration did not commit a readable state")}
-	var restored map[string]any
-	if err:=json.Unmarshal(live.State,&restored);err!=nil{return err}
-	reencoded,err:=json.Marshal(restored);if err!=nil{return err}
-	if string(reencoded)!=string(canonical){return errors.New("migrated policy state differs from original; fail closed")}
-	// Persist proof that all archived receipts and canonical state have been
-	// checked. An interrupted migration cannot skip this gate on retry.
-	if _,err:=db.Exec("INSERT OR REPLACE INTO arc_meta(key,value) VALUES('policy_migration_verified',?)",hex.EncodeToString(rawHash[:]));err!=nil{return err}
-	if err:=retireLegacyPolicyFiles(root,hex.EncodeToString(rawHash[:]));err!=nil{
-		return fmt.Errorf("policy DB migrated, but legacy guard setup failed; rerun migrate offline to finalize: %w",err)
-	}
-	return emitJSON(map[string]any{"storage":"arc.db","version":1,"backup":backup,"imported_receipts":len(receipts),"legacy_guard":"directory","active":true})
 }

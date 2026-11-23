@@ -21,7 +21,7 @@ Every storyline step (`*.story.yaml` + `[ARC_STEP_EVIDENCE]` JSON, see `referenc
 
 ## 2. Full-Business E2E Closed-Loop Protocol
 
-Load `../_shared/contract.md` first, plus stack guides only when touched (`../_shared/api-contract.md`, `../_shared/android.md`, `../_shared/harmonyos.md`, `../_shared/apple-native.md`, `../_shared/ui-system.md`):
+Load `../_shared/contract.md` first, plus stack guides only when touched (`../_shared/go-conventions.md`, `../_shared/api-contract.md`, `../_shared/android.md`, `../_shared/harmonyos.md`, `../_shared/apple-native.md`, `../_shared/ui-system.md`):
 
 1. **Full-Surface Recon**: Run `arc verify scan-surface --repo . --format ai-md` and `arc idx` to inventory all HTTP/RPC/CLI/UI/Job/MQ entry points, core tables, and role matrix (`references/full-e2e-playbook.md`). If a closure spec exists, gate with `../arc-plan/scripts/check_closure.py gate`.
 2. **Reverse Coupling Scan**: Run `arc verify scan-world <focal_entity> --format yaml` per core entity; bind 100% of coupled tables, status/amount columns, and async topics into `world_flags`.

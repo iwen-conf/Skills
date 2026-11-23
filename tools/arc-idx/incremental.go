@@ -2,9 +2,8 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -162,14 +161,6 @@ func gitBlobHashes(root string) (map[string]string, map[string]bool, bool) {
 	return blobs, dirty, true
 }
 
-func fileContentHash(absPath string) string {
-	data, err := os.ReadFile(absPath)
-	if err != nil {
-		return ""
-	}
-	sum := sha256.Sum256(data)
-	return "sha256:" + hex.EncodeToString(sum[:16])
-}
 
 // diffManifest returns sorted paths added, modified, or removed since prev.
 func diffManifest(prev, curr map[string]string) (changed []string, removed []string) {
@@ -220,7 +211,7 @@ func walkRepoGitFast(repo *Repo, strict bool) ([]string, bool, error) {
 		}
 		info, statErr := os.Stat(filepath.Join(repo.Root, rel))
 		if statErr != nil || !info.Mode().IsRegular() {
-			if strict && statErr != nil && !os.IsNotExist(statErr) {
+			if strict && statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
 				return nil, true, statErr
 			}
 			continue

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -203,24 +202,6 @@ func (r *Repo) indexableExt(relPath string) bool {
 		}
 	}
 	return false
-}
-
-// parseInterleaved parses flags that may appear before, between, or after
-// positional arguments (Go's flag package stops at the first positional).
-func parseInterleaved(fl *flag.FlagSet, args []string) ([]string, error) {
-	var positional []string
-	for len(args) > 0 {
-		if err := fl.Parse(args); err != nil {
-			return nil, err
-		}
-		args = fl.Args()
-		if len(args) == 0 {
-			break
-		}
-		positional = append(positional, args[0])
-		args = args[1:]
-	}
-	return positional, nil
 }
 
 // profileMatcher compiles a profile's globs; a nil matcher accepts all paths.

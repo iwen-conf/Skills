@@ -1,37 +1,52 @@
 package main
 
 import (
-	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"go/ast"
-	"go/format"
 	"go/parser"
 	"go/token"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 )
 
+// skeletonSymbol 描述单个源码符号的类别、脱敏签名与行号区间
 type skeletonSymbol struct {
-	Kind      string `json:"kind"`
-	Name      string `json:"name"`
+	// Kind 符号类别（func/method/struct/interface/table等）
+	Kind string `json:"kind"`
+	// Name 符号名称
+	Name string `json:"name"`
+	// Signature 不含函数体的声明签名文本
 	Signature string `json:"signature"`
-	StartLine int    `json:"start_line"`
-	EndLine   int    `json:"end_line"`
-	Exported  bool   `json:"exported"`
+	// StartLine 起始行号（1-based）
+	StartLine int `json:"start_line"`
+	// EndLine 结束行号（1-based）
+	EndLine int `json:"end_line"`
+	// Exported 是否为导出公开符号
+	Exported bool `json:"exported"`
 }
 
+// skeletonFile 描述单个文件的层级分类与提取出的符号骨架列表
 type skeletonFile struct {
-	Path    string           `json:"path"`
-	Layer   string           `json:"layer"`
+	// Path 仓库相对文件路径
+	Path string `json:"path"`
+	// Layer 权威层级分类（prod/contract/test/doc）
+	Layer string `json:"layer"`
+	// Symbols 提取出的符号列表
 	Symbols []skeletonSymbol `json:"symbols"`
 }
 
+// cmdSkeleton 提取目标文件或目录的公开符号签名骨架并按JSON或Markdown输出
+// 请求体
+// args 命令行参数切片
+// 响应体
+// err 路径不存在或输出编码错误
 func cmdSkeleton(args []string) error {
+	// 1. 解析仓库目录、是否包含私有符号与输出格式标志
 	fl := flag.NewFlagSet("skeleton", flag.ExitOnError)
 	repoDir := fl.String("repo", ".", "repository root or any directory inside it")
 	includeAll := fl.Bool("all", false, "include unexported/private symbols")
@@ -47,7 +62,7 @@ func cmdSkeleton(args []string) error {
 	if err != nil {
 		return err
 	}
-
+	// 2. 展开目标文件与目录树收集去重后的候选相对路径
 	var targets []string
 	seen := map[string]bool{}
 	ignore := repo.ignoreSet()
@@ -56,13 +71,13 @@ func cmdSkeleton(args []string) error {
 		if !filepath.IsAbs(abs) {
 			abs = filepath.Join(repo.Root, p)
 		}
-		info, err := os.Stat(abs)
-		if err != nil {
-			return fmt.Errorf("stat %s: %w", p, err)
+		info, statErr := os.Stat(abs)
+		if statErr != nil {
+			return fmt.Errorf("stat %s: %w", p, statErr)
 		}
 		if !info.IsDir() {
-			rel, err := filepath.Rel(repo.Root, abs)
-			if err != nil {
+			rel, rErr := filepath.Rel(repo.Root, abs)
+			if rErr != nil {
 				rel = p
 			}
 			rel = filepath.ToSlash(rel)
@@ -98,12 +113,12 @@ func cmdSkeleton(args []string) error {
 		})
 	}
 	sort.Strings(targets)
-
+	// 3. 逐文件提取符号骨架并输出具名结构体JSON或紧凑Markdown
 	var out []skeletonFile
 	totalSymbols := 0
 	for _, rel := range targets {
-		syms, err := extractSkeleton(filepath.Join(repo.Root, rel), *includeAll)
-		if err != nil || len(syms) == 0 {
+		syms, exErr := extractSkeleton(filepath.Join(repo.Root, rel), *includeAll)
+		if exErr != nil || len(syms) == 0 {
 			continue
 		}
 		out = append(out, skeletonFile{
@@ -113,14 +128,13 @@ func cmdSkeleton(args []string) error {
 		})
 		totalSymbols += len(syms)
 	}
-
 	if *formatMode == "json" {
-		return emitJSON(map[string]any{
-			"targets":      positional,
-			"file_count":   len(out),
-			"symbol_count": totalSymbols,
-			"files":        out,
-		})
+		return emitRawJSON(json.MarshalIndent(skeletonQueryResponse{
+			Targets:     positional,
+			FileCount:   len(out),
+			SymbolCount: totalSymbols,
+			Files:       out,
+		}, "", "  "))
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "## skeleton (%d files, %d symbols)\n\n", len(out), totalSymbols)
@@ -135,16 +149,15 @@ func cmdSkeleton(args []string) error {
 	return nil
 }
 
-func isSkeletonExt(rel string) bool {
-	switch strings.ToLower(filepath.Ext(rel)) {
-	case ".go", ".ts", ".tsx", ".js", ".jsx", ".py", ".java", ".kt", ".rs", ".sql", ".proto":
-		return true
-	default:
-		return false
-	}
-}
-
+// extractSkeleton 根据文件扩展名分派至对应语言的符号骨架解析器
+// 请求体
+// absPath 目标文件绝对路径
+// includeAll 是否包含非导出私有符号
+// 响应体
+// syms 符号骨架切片
+// err 文件解析错误
 func extractSkeleton(absPath string, includeAll bool) ([]skeletonSymbol, error) {
+	// 1. 按扩展名路由到Go原生AST或SQL/Python/Proto/通用花括号解析器
 	ext := strings.ToLower(filepath.Ext(absPath))
 	switch ext {
 	case ".go":
@@ -160,12 +173,21 @@ func extractSkeleton(absPath string, includeAll bool) ([]skeletonSymbol, error) 
 	}
 }
 
+// extractGoSkeleton 使用 go/parser 原生AST提取Go源码的类型与函数签名（剥离函数体）
+// 请求体
+// absPath Go源码文件绝对路径
+// includeAll 是否包含未导出符号
+// 响应体
+// syms Go符号骨架切片
+// err Go语法解析错误
 func extractGoSkeleton(absPath string, includeAll bool) ([]skeletonSymbol, error) {
+	// 1. 解析Go源码AST语法树
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, absPath, nil, 0)
 	if err != nil {
 		return nil, err
 	}
+	// 2. 遍历顶层函数、方法与类型声明，剥离Body与Doc后生成纯签名
 	var syms []skeletonSymbol
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
@@ -235,175 +257,4 @@ func extractGoSkeleton(absPath string, includeAll bool) ([]skeletonSymbol, error
 		}
 	}
 	return syms, nil
-}
-
-func formatNode(fset *token.FileSet, node any) string {
-	var buf bytes.Buffer
-	if err := format.Node(&buf, fset, node); err != nil {
-		return ""
-	}
-	return buf.String()
-}
-
-var (
-	reSQLTable = regexp.MustCompile(`(?i)^\s*CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?([a-zA-Z0-9_."` + "`" + `]+)`)
-	rePyDecl   = regexp.MustCompile(`^(\s*)(async\s+def|def|class)\s+([a-zA-Z_][a-zA-Z0-9_]*)([^:#]*)`)
-	reProto    = regexp.MustCompile(`^\s*(service|message|enum|rpc)\s+([a-zA-Z_][a-zA-Z0-9_]*)`)
-	reBrace    = regexp.MustCompile(`^\s*(export\s+)?(public\s+|private\s+|protected\s+)?(default\s+)?(abstract\s+)?(async\s+)?(class|interface|type|enum|struct|trait|fn|function)\s+([a-zA-Z_][a-zA-Z0-9_]*)`)
-)
-
-func extractSQLSkeleton(absPath string) ([]skeletonSymbol, error) {
-	data, err := os.ReadFile(absPath)
-	if err != nil {
-		return nil, err
-	}
-	lines := strings.Split(string(data), "\n")
-	var syms []skeletonSymbol
-	for i := 0; i < len(lines); i++ {
-		m := reSQLTable.FindStringSubmatch(lines[i])
-		if m == nil {
-			continue
-		}
-		name := strings.Trim(m[1], "\"`")
-		end := i
-		for j := i; j < len(lines); j++ {
-			end = j
-			if strings.Contains(lines[j], ";") {
-				break
-			}
-		}
-		syms = append(syms, skeletonSymbol{
-			Kind:      "table",
-			Name:      name,
-			Signature: "CREATE TABLE " + name,
-			StartLine: i + 1,
-			EndLine:   end + 1,
-			Exported:  true,
-		})
-		i = end
-	}
-	return syms, nil
-}
-
-func extractPythonSkeleton(absPath string, includeAll bool) ([]skeletonSymbol, error) {
-	data, err := os.ReadFile(absPath)
-	if err != nil {
-		return nil, err
-	}
-	lines := strings.Split(string(data), "\n")
-	var syms []skeletonSymbol
-	for i, line := range lines {
-		m := rePyDecl.FindStringSubmatch(line)
-		if m == nil {
-			continue
-		}
-		indent := len(m[1])
-		kind := strings.TrimSpace(m[2])
-		name := m[3]
-		exported := !strings.HasPrefix(name, "_")
-		if !includeAll && !exported {
-			continue
-		}
-		end := i
-		for j := i + 1; j < len(lines); j++ {
-			trimmed := strings.TrimSpace(lines[j])
-			if trimmed == "" || strings.HasPrefix(trimmed, "#") {
-				continue
-			}
-			curIndent := len(lines[j]) - len(strings.TrimLeft(lines[j], " \t"))
-			if curIndent <= indent {
-				break
-			}
-			end = j
-		}
-		syms = append(syms, skeletonSymbol{
-			Kind:      kind,
-			Name:      name,
-			Signature: strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(line), ":")),
-			StartLine: i + 1,
-			EndLine:   end + 1,
-			Exported:  exported,
-		})
-	}
-	return syms, nil
-}
-
-func extractProtoSkeleton(absPath string) ([]skeletonSymbol, error) {
-	data, err := os.ReadFile(absPath)
-	if err != nil {
-		return nil, err
-	}
-	lines := strings.Split(string(data), "\n")
-	var syms []skeletonSymbol
-	for i, line := range lines {
-		m := reProto.FindStringSubmatch(line)
-		if m == nil {
-			continue
-		}
-		end := findBraceEnd(lines, i)
-		syms = append(syms, skeletonSymbol{
-			Kind:      m[1],
-			Name:      m[2],
-			Signature: strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(line), "{")),
-			StartLine: i + 1,
-			EndLine:   end + 1,
-			Exported:  true,
-		})
-	}
-	return syms, nil
-}
-
-func extractBraceLangSkeleton(absPath string, includeAll bool) ([]skeletonSymbol, error) {
-	data, err := os.ReadFile(absPath)
-	if err != nil {
-		return nil, err
-	}
-	lines := strings.Split(string(data), "\n")
-	var syms []skeletonSymbol
-	for i, line := range lines {
-		m := reBrace.FindStringSubmatch(line)
-		if m == nil {
-			continue
-		}
-		kind := m[6]
-		name := m[7]
-		exported := strings.TrimSpace(m[1]) != "" || strings.TrimSpace(m[2]) == "public" ||
-			(strings.HasPrefix(strings.TrimSpace(line), "pub "))
-		if !includeAll && !exported {
-			continue
-		}
-		end := findBraceEnd(lines, i)
-		sig := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(line), "{"))
-		syms = append(syms, skeletonSymbol{
-			Kind:      kind,
-			Name:      name,
-			Signature: sig,
-			StartLine: i + 1,
-			EndLine:   end + 1,
-			Exported:  exported,
-		})
-	}
-	return syms, nil
-}
-
-func findBraceEnd(lines []string, start int) int {
-	depth := 0
-	opened := false
-	for i := start; i < len(lines); i++ {
-		for _, ch := range lines[i] {
-			if ch == '{' {
-				depth++
-				opened = true
-			} else if ch == '}' {
-				depth--
-			}
-		}
-		if opened && depth <= 0 {
-			return i
-		}
-		if !opened && strings.Contains(lines[i], ";") {
-			return i
-		}
-	}
-	return start
 }

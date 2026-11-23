@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -94,7 +95,7 @@ func cmdDoctor(args []string) error {
 	}
 
 	if *format == "json" {
-		return emitJSON(rep)
+		return emitRawJSON(json.MarshalIndent(rep, "", "  "))
 	}
 	var b strings.Builder
 	status := "healthy"

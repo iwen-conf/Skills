@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -91,7 +92,7 @@ func cmdSymbol(args []string) error {
 		}
 	}
 	if *format == "json" {
-		return emitJSON(map[string]any{"query": needle, "count": len(out), "symbols": out})
+		return emitRawJSON(json.MarshalIndent(symbolQueryResponse{Query: needle, Count: len(out), Symbols: out}, "", "  "))
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "## symbols %q — %d hits\n\n", needle, len(out))
@@ -156,18 +157,14 @@ func cmdAst(args []string) error {
 	cmd.Dir = repo.Root
 	out, err := cmd.Output()
 	if err != nil && len(out) == 0 {
-		if ee, ok := err.(*exec.ExitError); ok {
+		var ee *exec.ExitError
+		if errors.As(err, &ee) {
 			return fmt.Errorf("ast-grep: %s", strings.TrimSpace(string(ee.Stderr)))
 		}
 		return err
 	}
 
-	type astMatch struct {
-		File  string `json:"file"`
-		Line  int    `json:"line"`
-		Lines string `json:"text"`
-	}
-	var matches []astMatch
+	var matches []astMatchItem
 	for _, line := range strings.Split(string(out), "\n") {
 		if line == "" {
 			continue
@@ -184,14 +181,14 @@ func cmdAst(args []string) error {
 		if json.Unmarshal([]byte(line), &ev) != nil {
 			continue
 		}
-		matches = append(matches, astMatch{
+		matches = append(matches, astMatchItem{
 			File:  ev.File,
 			Line:  ev.Range.Start.Line + 1, // ast-grep lines are 0-based
 			Lines: ev.Lines,
 		})
 	}
 	if *format == "json" {
-		return emitJSON(map[string]any{"pattern": pattern, "lang": *lang, "count": len(matches), "matches": matches})
+		return emitRawJSON(json.MarshalIndent(astQueryResponse{Pattern: pattern, Lang: *lang, Count: len(matches), Matches: matches}, "", "  "))
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "## ast %s %q — %d matches\n\n", *lang, pattern, len(matches))
@@ -244,7 +241,7 @@ func cmdFiles(args []string) error {
 	}
 	sort.Strings(out)
 	if *format == "json" {
-		return emitJSON(map[string]any{"profile": *profile, "count": len(out), "files": out})
+		return emitRawJSON(json.MarshalIndent(filesListResponse{Profile: *profile, Count: len(out), Files: out}, "", "  "))
 	}
 	for _, f := range out {
 		fmt.Println(f)
@@ -274,12 +271,8 @@ func cmdStats(args []string) error {
 	if err != nil {
 		return err
 	}
-	type langStat struct {
-		Files int `json:"files"`
-		Lines int `json:"lines"`
-	}
-	stats := map[string]*langStat{}
-	total := langStat{}
+	stats := map[string]*langStatItem{}
+	total := langStatItem{}
 	for _, rel := range files {
 		if !m.match(rel) {
 			continue
@@ -295,7 +288,7 @@ func cmdStats(args []string) error {
 		lines := strings.Count(string(content), "\n") + 1
 		s, ok := stats[ext]
 		if !ok {
-			s = &langStat{}
+			s = &langStatItem{}
 			stats[ext] = s
 		}
 		s.Files++
@@ -304,7 +297,7 @@ func cmdStats(args []string) error {
 		total.Lines += lines
 	}
 	if *format == "json" {
-		return emitJSON(map[string]any{"profile": *profile, "total": total, "by_extension": stats})
+		return emitRawJSON(json.MarshalIndent(statsQueryResponse{Profile: *profile, Total: total, ByExtension: stats}, "", "  "))
 	}
 	keys := make([]string, 0, len(stats))
 	for k := range stats {
@@ -319,11 +312,4 @@ func cmdStats(args []string) error {
 	fmt.Fprintf(&b, "| **total** | **%d** | **%d** |\n", total.Files, total.Lines)
 	fmt.Print(b.String())
 	return nil
-}
-
-func orDefault(s, d string) string {
-	if s == "" {
-		return d
-	}
-	return s
 }

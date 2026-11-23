@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -34,11 +32,6 @@ func syncCommand(args []string) error {
 	})
 }
 
-func gitHead(root string)(string,error){
-	cmd:=exec.Command("git","-C",root,"rev-parse","HEAD")
-	out,err:=cmd.Output();if err!=nil{return "",fmt.Errorf("git HEAD: %w",err)}
-	return strings.TrimSpace(string(out)),nil
-}
 
 func reconcileGit(db *sql.DB,root,task string)error{
 	head,err:=gitHead(root);if err!=nil{return err}
@@ -61,64 +54,85 @@ func reconcileGit(db *sql.DB,root,task string)error{
 	}
 	if len(paths)>1000{return fmt.Errorf("reconcile exceeded 1000 changed paths: %d",len(paths))}
 	keys:=make([]string,0,len(paths));for p:=range paths{keys=append(keys,p)};sort.Strings(keys)
-	type observed struct{Path,Operation,SHA string}
-	changed:=make([]observed,0,len(keys))
-	for _,path:=range keys{
-		sha,_,op,err:=observedFile(root,path);if err!=nil{return err}
-		if op=="deleted"{paths[path]="deleted"}
-		changed=append(changed,observed{path,paths[path],sha})
+	changed := make([]observedFileEntry, 0, len(keys))
+	for _, path := range keys {
+		sha, _, op, obsErr := observedFile(root, path)
+		if obsErr != nil {
+			return obsErr
+		}
+		if op == "deleted" {
+			paths[path] = "deleted"
+		}
+		changed = append(changed, observedFileEntry{Path: path, Operation: paths[path], SHA: sha})
 	}
 	var changeID string
 	var duplicate bool
-	err=dbTransaction(ctx,db,func(tx *sql.Tx)error{
-		if task!=""{
+	err = dbTransaction(ctx, db, func(tx *sql.Tx) error {
+		if task != "" {
 			var present int
-			if err:=tx.QueryRowContext(ctx,"SELECT 1 FROM arc_tasks WHERE id=?",task).Scan(&present);err!=nil{return fmt.Errorf("task %q: %w",task,err)}
-		}
-		if len(changed)>0{
-			body,_:=json.Marshal(map[string]any{"task":task,"root":root,"revision":head,"files":changed})
-			hash:=sha256.Sum256(body);fingerprint:=hex.EncodeToString(hash[:])
-			err:=tx.QueryRowContext(ctx,"SELECT id FROM arc_changes WHERE fingerprint=?",fingerprint).Scan(&changeID)
-			if err==nil{duplicate=true}else if !errors.Is(err,sql.ErrNoRows){return err}else{
-				id,err:=newID("CH-");if err!=nil{return err}
-				for _,f:=range changed{
-					// Capture the current file in the same worktree, but do
-					// not treat a successful hash as verification evidence.
-					if _,err:=storeFile(ctx,tx,root,f.Path);err!=nil{return err}
-					if task!="" {
-						if _,err:=tx.ExecContext(ctx,
-							"INSERT OR REPLACE INTO arc_task_files(task_id,path,updated) VALUES(?,?,?)",
-							task,filepath.ToSlash(f.Path),nowUTC());err!=nil{return err}
-					}
-				}
-				if _,err:=tx.ExecContext(ctx,
-					"INSERT INTO arc_changes(id,task,fingerprint,status,worktree,revision,created) VALUES(?,?,?,'collected',?,?,?)",
-					id,task,fingerprint,root,head,nowUTC());err!=nil{return err}
-				for _,f:=range changed{
-					if _,err:=tx.ExecContext(ctx,
-						"INSERT INTO arc_change_files(change_id,path,sha256,operation) VALUES(?,?,?,?)",
-						id,filepath.ToSlash(f.Path),f.SHA,f.Operation);err!=nil{return err}
-				}
-				if err:=addEvent(ctx,tx,"change",id,"change.collected",map[string]any{"task":task,"revision":head,"files":len(changed),"reconciled":true});err!=nil{return err}
-				changeID=id
+			if qErr := tx.QueryRowContext(ctx, "SELECT 1 FROM arc_tasks WHERE id=?", task).Scan(&present); qErr != nil {
+				return fmt.Errorf("task %q: %w", task, qErr)
 			}
 		}
-		_,err:=tx.ExecContext(ctx,"INSERT OR REPLACE INTO arc_meta(key,value) VALUES('sync_head',?)",head)
+		if len(changed) > 0 {
+			body, _ := json.Marshal(changeFingerprintInput{Task: task, Root: root, Revision: head, Files: changed})
+			fingerprint := shaBytes(body)
+			qErr := tx.QueryRowContext(ctx, "SELECT id FROM arc_changes WHERE fingerprint=?", fingerprint).Scan(&changeID)
+			if qErr == nil {
+				duplicate = true
+			} else if !errors.Is(qErr, sql.ErrNoRows) {
+				return qErr
+			} else {
+				id, idErr := newID("CH-")
+				if idErr != nil {
+					return idErr
+				}
+				for _, f := range changed {
+					if _, sErr := storeFile(ctx, tx, root, f.Path); sErr != nil {
+						return sErr
+					}
+					if task != "" {
+						if _, sErr := tx.ExecContext(ctx,
+							"INSERT OR REPLACE INTO arc_task_files(task_id,path,updated) VALUES(?,?,?)",
+							task, filepath.ToSlash(f.Path), nowUTC()); sErr != nil {
+							return sErr
+						}
+					}
+				}
+				if _, execErr := tx.ExecContext(ctx,
+					"INSERT INTO arc_changes(id,task,fingerprint,status,worktree,revision,created) VALUES(?,?,?,'collected',?,?,?)",
+					id, task, fingerprint, root, head, nowUTC()); execErr != nil {
+					return execErr
+				}
+				for _, f := range changed {
+					if _, execErr := tx.ExecContext(ctx,
+						"INSERT INTO arc_change_files(change_id,path,sha256,operation) VALUES(?,?,?,?)",
+						id, filepath.ToSlash(f.Path), f.SHA, f.Operation); execErr != nil {
+						return execErr
+					}
+				}
+				rawEv, mErr := json.Marshal(changeCollectedEventPayload{Task: task, Revision: head, Files: len(changed), Reconciled: true})
+				if evErr := addEventPayload(ctx, tx, "change", id, "change.collected", rawEv, mErr); evErr != nil {
+					return evErr
+				}
+				changeID = id
+			}
+		}
+		_, execErr := tx.ExecContext(ctx, "INSERT OR REPLACE INTO arc_meta(key,value) VALUES('sync_head',?)", head)
+		return execErr
+	})
+	if err != nil {
 		return err
-	})
-	if err!=nil{return err}
-	return emitJSON(map[string]any{
-		"source":"git","previous_head":previous,"current_head":head,
-		"commits_reconciled":previous!=""&&previous!=head,
-		"changed_files":len(changed),"change_id":changeID,
-		"duplicate":duplicate,"index":"pending",
-	})
-}
-
-func dbTransaction(ctx context.Context,db *sql.DB,fn func(*sql.Tx)error)error{
-	tx,err:=db.BeginTx(ctx,nil);if err!=nil{return err}
-	defer tx.Rollback()
-	if err:=fn(tx);err!=nil{return err}
-	return tx.Commit()
+	}
+	return emitRawJSON(json.Marshal(reconcileResponse{
+		Source:            "git",
+		PreviousHead:      previous,
+		CurrentHead:       head,
+		CommitsReconciled: previous != "" && previous != head,
+		ChangedFiles:      len(changed),
+		ChangeID:          changeID,
+		Duplicate:         duplicate,
+		Index:             "pending",
+	}))
 }
 

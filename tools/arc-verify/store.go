@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -45,7 +45,6 @@ var storySchema = []string{
 		started_at TEXT NOT NULL,
 		finished_at TEXT NOT NULL
 	)`,
-	// Immutable append-only route results: a later PASS NEVER deletes or overwrites a historical FAIL.
 	`CREATE TABLE IF NOT EXISTS story_route_results (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		run_id TEXT NOT NULL,
@@ -64,8 +63,6 @@ var storySchema = []string{
 		created_at TEXT NOT NULL
 	)`,
 	`CREATE INDEX IF NOT EXISTS idx_story_route_lookup ON story_route_results(story_id, route_id, id)`,
-	// Immutable 6-dimension step trace ledger: records preconditions, expected vs actual input,
-	// before -> after state, execution command & duration, expected behavior, and expected vs actual results/probes.
 	`CREATE TABLE IF NOT EXISTS story_step_traces (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		run_id TEXT NOT NULL,
@@ -99,7 +96,6 @@ var storySchema = []string{
 		created_at TEXT NOT NULL
 	)`,
 	`CREATE INDEX IF NOT EXISTS idx_story_step_lookup ON story_step_traces(story_id, run_id, route_id, step_num, id)`,
-	// Compatibility table so `arc db migrate` and legacy status checks work cleanly.
 	`CREATE TABLE IF NOT EXISTS graphs (
 		id TEXT PRIMARY KEY,
 		raw_json TEXT NOT NULL DEFAULT '{}',
@@ -107,19 +103,49 @@ var storySchema = []string{
 	)`,
 }
 
+// StoryLedger 通过具名私有互斥锁与数据库句柄管理六维验证账本（禁止暴露内部锁或DB）
 type StoryLedger struct {
-	mu   sync.Mutex
-	db   *sql.DB
+	// mu 保护并发写入顺序性的内部互斥锁
+	mu sync.Mutex
+	// db 单连接SQLite数据库句柄
+	db *sql.DB
+	// path 账本文件路径
 	path string
 }
 
+// CheckpointRecord 描述持久化在账本中的检查点快照记录
+type CheckpointRecord struct {
+	// StoryID 故事线唯一标识
+	StoryID string `json:"story_id"`
+	// SaveID 检查点存档标识
+	SaveID string `json:"save_id"`
+	// ParentID 父级检查点标识
+	ParentID string `json:"parent_id"`
+	// Engine 存储引擎类型
+	Engine string `json:"engine"`
+	// SnapshotPath 快照存储路径或连接串
+	SnapshotPath string `json:"snapshot_path"`
+	// DigestSHA256 快照内容SHA256摘要
+	DigestSHA256 string `json:"digest_sha256"`
+	// CreatedAt 创建UTC时间戳
+	CreatedAt string `json:"created_at"`
+}
+
+// openStoryLedger 打开单连接Storyline验证账本并幂等初始化表结构
+// 请求体
+// dbPath 账本数据库路径（为空时回退默认路径）
+// 响应体
+// ledger 初始化完成的账本实例指针
+// err 目录创建、连接探测或建表失败错误
 func openStoryLedger(dbPath string) (*StoryLedger, error) {
+	// 1. 解析默认账本路径并创建父目录
 	if dbPath == "" {
 		dbPath = defaultVerifyDB
 	}
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
 		return nil, err
 	}
+	// 2. 打开单连接Turso数据库并配置busy_timeout
 	db, err := sql.Open("turso", dbPath)
 	if err != nil {
 		return nil, err
@@ -129,38 +155,49 @@ func openStoryLedger(dbPath string) (*StoryLedger, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := db.PingContext(ctx); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 	_, _ = db.ExecContext(ctx, "PRAGMA busy_timeout=5000")
+	// 3. 依次执行六维验证账本与兼容图表的DDL语句
 	for _, stmt := range storySchema {
 		if _, err := db.ExecContext(ctx, stmt); err != nil {
-			db.Close()
+			_ = db.Close()
 			return nil, fmt.Errorf("init story schema: %w", err)
 		}
 	}
 	return &StoryLedger{db: db, path: dbPath}, nil
 }
 
+// Close 刷盘截断WAL日志并关闭验证账本数据库连接
+// 请求体
+// 无
+// 响应体
+// err 关闭底层数据库错误
 func (l *StoryLedger) Close() error {
+	// 1. 空实例安全返回
 	if l == nil || l.db == nil {
 		return nil
 	}
+	// 2. 执行WAL检查点截断并关闭句柄
 	_, _ = l.db.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
 	return l.db.Close()
 }
 
-func nowUTC() string {
-	return time.Now().UTC().Format(time.RFC3339Nano)
-}
-
+// SaveStoryDefinition 幂等保存或更新故事线定义及兼容graphs表记录
+// 请求体
+// s 解析完成的故事线对象指针
+// 响应体
+// err JSON序列化或SQL写入错误
 func (l *StoryLedger) SaveStoryDefinition(s *Storyline) error {
+	// 1. 加锁序列化故事线定义为JSON文本
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	raw, err := json.Marshal(s)
 	if err != nil {
 		return err
 	}
+	// 2. 写入或更新 story_definitions 主表及兼容 graphs 表
 	now := nowUTC()
 	_, err = l.db.Exec(
 		`INSERT INTO story_definitions(story_id, focal_entity, story_sha256, source_path, raw_json, updated_at)
@@ -184,11 +221,17 @@ func (l *StoryLedger) SaveStoryDefinition(s *Storyline) error {
 	return nil
 }
 
+// LoadStoryDefinition 从验证账本加载指定ID的故事线定义与指纹元数据
+// 请求体
+// storyID 故事线唯一标识
+// 响应体
+// s 反序列化后的故事线对象指针
+// err 未找到记录或JSON解析失败错误
 func (l *StoryLedger) LoadStoryDefinition(storyID string) (*Storyline, error) {
+	// 1. 加锁查询存储的JSON文本、SHA256与源文件路径
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	var raw string
-	var sha, src string
+	var raw, sha, src string
 	err := l.db.QueryRow(
 		`SELECT raw_json, story_sha256, source_path FROM story_definitions WHERE story_id=?`,
 		storyID,
@@ -196,6 +239,7 @@ func (l *StoryLedger) LoadStoryDefinition(storyID string) (*Storyline, error) {
 	if err != nil {
 		return nil, err
 	}
+	// 2. 反序列化结构体并回填版本指纹与源路径
 	var s Storyline
 	if err := json.Unmarshal([]byte(raw), &s); err != nil {
 		return nil, err
@@ -205,17 +249,13 @@ func (l *StoryLedger) LoadStoryDefinition(storyID string) (*Storyline, error) {
 	return &s, nil
 }
 
-type CheckpointRecord struct {
-	StoryID      string `json:"story_id"`
-	SaveID       string `json:"save_id"`
-	ParentID     string `json:"parent_id"`
-	Engine       string `json:"engine"`
-	SnapshotPath string `json:"snapshot_path"`
-	DigestSHA256 string `json:"digest_sha256"`
-	CreatedAt    string `json:"created_at"`
-}
-
+// RecordCheckpoint 记录或更新单个检查点快照元数据
+// 请求体
+// rec 检查点快照记录
+// 响应体
+// err SQL写入错误
 func (l *StoryLedger) RecordCheckpoint(rec CheckpointRecord) error {
+	// 1. 加锁补全创建时间并执行Upsert写入
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if rec.CreatedAt == "" {
@@ -235,7 +275,14 @@ func (l *StoryLedger) RecordCheckpoint(rec CheckpointRecord) error {
 	return err
 }
 
+// ListCheckpoints 按存档ID升序读取指定故事线的全部检查点记录
+// 请求体
+// storyID 故事线唯一标识
+// 响应体
+// out 检查点记录切片
+// err SQL查询错误
 func (l *StoryLedger) ListCheckpoints(storyID string) ([]CheckpointRecord, error) {
+	// 1. 加锁查询检查点表并逐行扫描返回
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	rows, err := l.db.Query(
@@ -257,104 +304,19 @@ func (l *StoryLedger) ListCheckpoints(storyID string) ([]CheckpointRecord, error
 	return out, rows.Err()
 }
 
-type RouteResultRecord struct {
-	ID               int64  `json:"id"`
-	RunID            string `json:"run_id"`
-	StoryID          string `json:"story_id"`
-	StorySHA256      string `json:"story_sha256"`
-	RouteID          string `json:"route_id"`
-	LoadSave         string `json:"load_save"`
-	RuntimeNS        string `json:"runtime_ns"`
-	Verdict          string `json:"verdict"` // PASS | FAIL | BLOCKED
-	SoftlockDetected bool   `json:"softlock_detected"`
-	ProbesTotal      int    `json:"probes_total"`
-	ProbesPassed     int    `json:"probes_passed"`
-	UnlockedEnding   string `json:"unlocked_ending"`
-	RawOutput        string `json:"raw_output"`
-	ReceiptSHA256    string `json:"receipt_sha256"`
-	CreatedAt        string `json:"created_at"`
-}
-
-type StepTraceRecord struct {
-	ID                  int64          `json:"id"`
-	RunID               string         `json:"run_id"`
-	StoryID             string         `json:"story_id"`
-	StorySHA256         string         `json:"story_sha256"`
-	RouteID             string         `json:"route_id"`
-	StepNum             int            `json:"step_num"`
-	Choice              string         `json:"choice"`
-	ExpectedBehavior    string         `json:"expected_behavior,omitempty"`
-	Preconditions       map[string]any `json:"preconditions,omitempty"`
-	PreconditionsActual map[string]any `json:"preconditions_actual,omitempty"`
-	ExpectedInput       map[string]any `json:"expected_input,omitempty"`
-	ActualInput         map[string]any `json:"actual_input,omitempty"`
-	BeforeState         map[string]any `json:"before_state,omitempty"`
-	AfterState          map[string]any `json:"after_state,omitempty"`
-	ExecutedCmd         string         `json:"executed_cmd,omitempty"`
-	DurationMS          int64          `json:"duration_ms"`
-	ExpectStatus        string         `json:"expect_status,omitempty"`
-	ActualStatus        string         `json:"actual_status,omitempty"`
-	ExpectResult        map[string]any `json:"expect_result,omitempty"`
-	ActualResult        map[string]any `json:"actual_result,omitempty"`
-	ExpectedProbes      map[string]any `json:"expected_probes,omitempty"`
-	ActualProbes        map[string]any `json:"actual_probes,omitempty"`
-	ForbiddenEffects    []string       `json:"forbidden_effects,omitempty"`
-	ObservedEffects     []string       `json:"observed_effects,omitempty"`
-	AntiSoftlock        string         `json:"anti_softlock,omitempty"`
-	Verdict             string         `json:"verdict"` // PASS | FAIL | BLOCKED
-	DiffReason          string         `json:"diff_reason,omitempty"`
-	RawOutput           string         `json:"raw_output,omitempty"`
-	TraceSHA256         string         `json:"trace_sha256"`
-	CreatedAt           string         `json:"created_at"`
-}
-
-func marshalMapJSON(m map[string]any) string {
-	if len(m) == 0 {
-		return "{}"
-	}
-	b, err := json.Marshal(m)
-	if err != nil {
-		return "{}"
-	}
-	return string(b)
-}
-
-func unmarshalMapJSON(raw string) map[string]any {
-	if raw == "" || raw == "{}" {
-		return nil
-	}
-	var m map[string]any
-	dec := json.NewDecoder(strings.NewReader(raw))
-	dec.UseNumber()
-	if err := dec.Decode(&m); err != nil || len(m) == 0 {
-		return nil
-	}
-	return m
-}
-
-func marshalSliceJSON(s []string) string {
-	if len(s) == 0 {
-		return "[]"
-	}
-	b, err := json.Marshal(s)
-	if err != nil {
-		return "[]"
-	}
-	return string(b)
-}
-
-func unmarshalSliceJSON(raw string) []string {
-	if raw == "" || raw == "[]" {
-		return nil
-	}
-	var s []string
-	if err := json.Unmarshal([]byte(raw), &s); err != nil || len(s) == 0 {
-		return nil
-	}
-	return s
-}
-
+// RecordRun 记录单次Storyline完整运行批次元数据与总判定结果
+// 请求体
+// runID 运行批次ID
+// storyID 故事线唯一标识
+// storySHA 故事线版本SHA256摘要
+// commit 当前源码Git提交哈希
+// blind 是否开启盲测模式
+// verdict 批次总判定结果
+// startedAt 批次启动UTC时间戳
+// 响应体
+// err SQL插入失败错误
 func (l *StoryLedger) RecordRun(runID, storyID, storySHA, commit string, blind bool, verdict, startedAt string) error {
+	// 1. 加锁转换布尔标记并插入 story_runs 记录
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	blindInt := 0
@@ -369,7 +331,14 @@ func (l *StoryLedger) RecordRun(runID, storyID, storySHA, commit string, blind b
 	return err
 }
 
+// LatestRunID 查询指定故事线最近一次完成的运行批次ID
+// 请求体
+// storyID 故事线唯一标识
+// 响应体
+// runID 最新运行批次ID（无记录时返回空字符串）
+// err 数据库查询错误
 func (l *StoryLedger) LatestRunID(storyID string) (string, error) {
+	// 1. 加锁按完成时间与rowid倒序读取首条批次ID并用errors.Is识别空结果
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	var runID string
@@ -377,145 +346,8 @@ func (l *StoryLedger) LatestRunID(storyID string) (string, error) {
 		`SELECT run_id FROM story_runs WHERE story_id=? ORDER BY finished_at DESC, rowid DESC LIMIT 1`,
 		storyID,
 	).Scan(&runID)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
 	}
 	return runID, err
-}
-
-func (l *StoryLedger) AppendRouteResult(rec RouteResultRecord) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if rec.CreatedAt == "" {
-		rec.CreatedAt = nowUTC()
-	}
-	softInt := 0
-	if rec.SoftlockDetected {
-		softInt = 1
-	}
-	_, err := l.db.Exec(
-		`INSERT INTO story_route_results(
-			run_id, story_id, story_sha256, route_id, load_save, runtime_ns,
-			verdict, softlock_detected, probes_total, probes_passed, unlocked_ending,
-			raw_output, receipt_sha256, created_at
-		) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		rec.RunID, rec.StoryID, rec.StorySHA256, rec.RouteID, rec.LoadSave, rec.RuntimeNS,
-		rec.Verdict, softInt, rec.ProbesTotal, rec.ProbesPassed, rec.UnlockedEnding,
-		rec.RawOutput, rec.ReceiptSHA256, rec.CreatedAt,
-	)
-	return err
-}
-
-func (l *StoryLedger) AppendStepTrace(tr StepTraceRecord) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	if tr.CreatedAt == "" {
-		tr.CreatedAt = nowUTC()
-	}
-	_, err := l.db.Exec(
-		`INSERT INTO story_step_traces(
-			run_id, story_id, story_sha256, route_id, step_num, choice, expected_behavior,
-			preconditions_json, preconditions_actual_json, expected_input_json, actual_input_json,
-			before_state_json, after_state_json, executed_cmd, duration_ms,
-			expect_status, actual_status, expect_result_json, actual_result_json,
-			expected_probes_json, actual_probes_json, forbidden_effects_json, observed_effects_json,
-			anti_softlock, verdict, diff_reason, raw_output, trace_sha256, created_at
-		) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		tr.RunID, tr.StoryID, tr.StorySHA256, tr.RouteID, tr.StepNum, tr.Choice, tr.ExpectedBehavior,
-		marshalMapJSON(tr.Preconditions), marshalMapJSON(tr.PreconditionsActual),
-		marshalMapJSON(tr.ExpectedInput), marshalMapJSON(tr.ActualInput),
-		marshalMapJSON(tr.BeforeState), marshalMapJSON(tr.AfterState),
-		tr.ExecutedCmd, tr.DurationMS,
-		tr.ExpectStatus, tr.ActualStatus,
-		marshalMapJSON(tr.ExpectResult), marshalMapJSON(tr.ActualResult),
-		marshalMapJSON(tr.ExpectedProbes), marshalMapJSON(tr.ActualProbes),
-		marshalSliceJSON(tr.ForbiddenEffects), marshalSliceJSON(tr.ObservedEffects),
-		tr.AntiSoftlock, tr.Verdict, tr.DiffReason, tr.RawOutput, tr.TraceSHA256, tr.CreatedAt,
-	)
-	return err
-}
-
-func (l *StoryLedger) ListStepTraces(storyID, runID, routeID string) ([]StepTraceRecord, error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	query := `SELECT id, run_id, story_id, story_sha256, route_id, step_num, choice, expected_behavior,
-		preconditions_json, preconditions_actual_json, expected_input_json, actual_input_json,
-		before_state_json, after_state_json, executed_cmd, duration_ms,
-		expect_status, actual_status, expect_result_json, actual_result_json,
-		expected_probes_json, actual_probes_json, forbidden_effects_json, observed_effects_json,
-		anti_softlock, verdict, diff_reason, raw_output, trace_sha256, created_at
-	 FROM story_step_traces WHERE story_id=?`
-	args := []any{storyID}
-	if runID != "" {
-		query += ` AND run_id=?`
-		args = append(args, runID)
-	}
-	if routeID != "" {
-		query += ` AND route_id=?`
-		args = append(args, routeID)
-	}
-	query += ` ORDER BY id ASC`
-
-	rows, err := l.db.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var out []StepTraceRecord
-	for rows.Next() {
-		var tr StepTraceRecord
-		var preJ, preActJ, expInJ, actInJ, befJ, aftJ, expResJ, actResJ, expPrJ, actPrJ, forbJ, obsJ string
-		if err := rows.Scan(
-			&tr.ID, &tr.RunID, &tr.StoryID, &tr.StorySHA256, &tr.RouteID, &tr.StepNum, &tr.Choice, &tr.ExpectedBehavior,
-			&preJ, &preActJ, &expInJ, &actInJ, &befJ, &aftJ, &tr.ExecutedCmd, &tr.DurationMS,
-			&tr.ExpectStatus, &tr.ActualStatus, &expResJ, &actResJ, &expPrJ, &actPrJ, &forbJ, &obsJ,
-			&tr.AntiSoftlock, &tr.Verdict, &tr.DiffReason, &tr.RawOutput, &tr.TraceSHA256, &tr.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		tr.Preconditions = unmarshalMapJSON(preJ)
-		tr.PreconditionsActual = unmarshalMapJSON(preActJ)
-		tr.ExpectedInput = unmarshalMapJSON(expInJ)
-		tr.ActualInput = unmarshalMapJSON(actInJ)
-		tr.BeforeState = unmarshalMapJSON(befJ)
-		tr.AfterState = unmarshalMapJSON(aftJ)
-		tr.ExpectResult = unmarshalMapJSON(expResJ)
-		tr.ActualResult = unmarshalMapJSON(actResJ)
-		tr.ExpectedProbes = unmarshalMapJSON(expPrJ)
-		tr.ActualProbes = unmarshalMapJSON(actPrJ)
-		tr.ForbiddenEffects = unmarshalSliceJSON(forbJ)
-		tr.ObservedEffects = unmarshalSliceJSON(obsJ)
-		out = append(out, tr)
-	}
-	return out, rows.Err()
-}
-
-func (l *StoryLedger) ListRouteResults(storyID string) ([]RouteResultRecord, error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	rows, err := l.db.Query(
-		`SELECT id, run_id, story_id, story_sha256, route_id, load_save, runtime_ns,
-		        verdict, softlock_detected, probes_total, probes_passed, unlocked_ending,
-		        raw_output, receipt_sha256, created_at
-		 FROM story_route_results WHERE story_id=? ORDER BY id ASC`, storyID,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var out []RouteResultRecord
-	for rows.Next() {
-		var r RouteResultRecord
-		var soft int
-		if err := rows.Scan(
-			&r.ID, &r.RunID, &r.StoryID, &r.StorySHA256, &r.RouteID, &r.LoadSave, &r.RuntimeNS,
-			&r.Verdict, &soft, &r.ProbesTotal, &r.ProbesPassed, &r.UnlockedEnding,
-			&r.RawOutput, &r.ReceiptSHA256, &r.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		r.SoftlockDetected = soft != 0
-		out = append(out, r)
-	}
-	return out, rows.Err()
 }

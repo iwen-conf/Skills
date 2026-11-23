@@ -29,10 +29,10 @@ red     Run a test command that must fail before the production code exists and 
         holds passive evidence, not owning tests. Inline commands and Go overlays cannot
         establish an owning test source. Log/report output paths may use the artifact tree.
 check   Check the change set since the baseline: placeholders, suppressions, go-file-lines
-        (<=1200 lines per authored .go file), format, lint/typecheck (changed .sql files: sqlfluff
-        under the project's config, squawk when .squawk.toml exists), affected tests, red records,
-        scope. Prints one line per check and writes the full report to
-        .arc/artifacts/<slug>/reports/gate-<timestamp>.txt.
+        (<=1200 lines per authored .go file), go-comments (diff-added Go func/test comment headers),
+        format, lint/typecheck (changed .sql files: sqlfluff under the project's config, squawk when
+        .squawk.toml exists), affected tests, red records, scope. Prints one line per check and writes
+        the full report to .arc/artifacts/<slug>/reports/gate-<timestamp>.txt.
 
 --task <slug>    artifact slug (default: current branch name, else "default")
 --max-files N    scope WARN threshold (default 20)
@@ -87,6 +87,8 @@ NO_TESTS = re.compile(r"\bno tests ran\b|\bno test files\b|\bNo tests? (?:files 
 STUB_LINES = 20
 MAX_GO_LINES = 1200
 GENERATED_GO = re.compile(rb"^// Code generated .* DO NOT EDIT\.\r?$", re.M)
+GO_FUNC_DECL = re.compile(r"^func\s+(?:\([^)]*\)\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*(?:\[[^\]]*\])?\s*\(")
+GO_TEST_FUNC = re.compile(r"^(?:Test|Benchmark|Fuzz|Example)(?:[A-Z0-9_]|$)")
 PLACEHOLDER = [(None, re.compile(p)) for p in (
     r"\bTODO\b",
     r"\bFIXME\b",
@@ -110,8 +112,92 @@ SUPPRESSION = [(None, re.compile(p)) for p in (
 )] + [
     (TS, re.compile(r":\s*any\b")),
     (TS, re.compile(r"\bas\s+any\b")),
-    ((".go",), re.compile(r"\binterface\s*\{\s*\}")),
 ]
+GO_WEAK_TYPE = [
+    re.compile(r"\bany\b"),
+    re.compile(r"\binterface\s*\{\s*\}"),
+]
+GO_NAMED_IFACE = re.compile(r"^\s*type\s+[A-Za-z_][A-Za-z0-9_]*\s+interface\b")
+GO_INLINE_IFACE = re.compile(r"\binterface\s*\{")
+
+
+def strip_go_comments_and_strings(all_lines):
+    src = "\n".join(all_lines)
+    out = []
+    i, n = 0, len(src)
+    state = "code"
+    while i < n:
+        ch = src[i]
+        nxt = src[i + 1] if i + 1 < n else ""
+        if state == "code":
+            if ch == "/" and nxt == "/":
+                out.extend((" ", " "))
+                i += 2
+                state = "line_comment"
+                continue
+            if ch == "/" and nxt == "*":
+                out.extend((" ", " "))
+                i += 2
+                state = "block_comment"
+                continue
+            if ch == '"':
+                out.append(" ")
+                i += 1
+                state = "dq"
+                continue
+            if ch == "'":
+                out.append(" ")
+                i += 1
+                state = "sq"
+                continue
+            if ch == "`":
+                out.append(" ")
+                i += 1
+                state = "raw_str"
+                continue
+            out.append(ch)
+            i += 1
+        elif state == "line_comment":
+            if ch == "\n":
+                out.append("\n")
+                state = "code"
+            else:
+                out.append(" ")
+            i += 1
+        elif state == "block_comment":
+            if ch == "*" and nxt == "/":
+                out.extend((" ", " "))
+                i += 2
+                state = "code"
+            else:
+                out.append("\n" if ch == "\n" else " ")
+                i += 1
+        elif state in ("dq", "sq"):
+            quote = '"' if state == "dq" else "'"
+            if ch == "\\" and i + 1 < n:
+                out.append(" ")
+                out.append("\n" if nxt == "\n" else " ")
+                i += 2
+            elif ch == quote:
+                out.append(" ")
+                i += 1
+                state = "code"
+            elif ch == "\n":
+                out.append("\n")
+                i += 1
+                state = "code"
+            else:
+                out.append(" ")
+                i += 1
+        elif state == "raw_str":
+            if ch == "`":
+                out.append(" ")
+                i += 1
+                state = "code"
+            else:
+                out.append("\n" if ch == "\n" else " ")
+                i += 1
+    return "".join(out).split("\n")
 
 
 def git(root, args, ok=(0,)):
@@ -261,13 +347,63 @@ def path_added_lines(root, base, files, blobdir, untracked, path):
     return added_lines(git(root, ["diff"] + DIFF_OPTS + [base, "--", path]))
 
 
+def check_go_added_comments(path, label, all_lines, added_nums):
+    hits = []
+    norm = "/" + path.replace("\\", "/").lower()
+    is_test = norm.endswith("_test.go")
+    is_controller = ("/controllers/" in norm) or ("/controller/" in norm) or norm.endswith("_controller.go")
+    total = len(all_lines)
+    for lineno in sorted(added_nums):
+        idx = lineno - 1
+        if idx < 0 or idx >= total:
+            continue
+        m = GO_FUNC_DECL.match(all_lines[idx])
+        if not m:
+            continue
+        fn_name = m.group(1)
+        if fn_name in ("main", "init"):
+            continue
+        brace_idx = -1
+        for j in range(idx, min(total, idx + 15)):
+            if "{" in all_lines[j]:
+                brace_idx = j
+                break
+        if brace_idx < 0:
+            continue
+        sig_text = " ".join(all_lines[idx:brace_idx + 1]).split("{", 1)[0]
+        is_non_ctrl_gin = (not is_controller) and (("gin.Context" in sig_text) or ("gin.HandlerFunc" in sig_text))
+        comments = []
+        k = idx - 1
+        while k >= 0 and all_lines[k].strip().startswith("//"):
+            comments.append(all_lines[k].strip())
+            k -= 1
+        comments.reverse()
+        if is_test:
+            if not GO_TEST_FUNC.match(fn_name):
+                continue
+            has_test_doc = any(re.match(r"^//\s*" + re.escape(fn_name) + r"\s+\S+", c) for c in comments)
+            if not has_test_doc:
+                hits.append("%s:%d: test %s missing '// %s <函数功能>' comment" % (label, lineno, fn_name, fn_name))
+        elif is_non_ctrl_gin:
+            has_mw_doc = any(re.match(r"^//\s*" + re.escape(fn_name) + r"\s+\S+", c) for c in comments)
+            if not has_mw_doc:
+                hits.append("%s:%d: middleware/entry %s missing '// %s <函数功能>' comment" % (label, lineno, fn_name, fn_name))
+        else:
+            has_title = any(re.match(r"^//\s*" + re.escape(fn_name) + r"\s+\S+", c) for c in comments)
+            has_req = any(re.match(r"^//\s*请求体\s*$", c) for c in comments)
+            has_resp = any(re.match(r"^//\s*响应体\s*$", c) for c in comments)
+            if not (has_title and has_req and has_resp):
+                hits.append("%s:%d: func %s missing 3-part comment (// %s <函数功能> + // 请求体 + // 响应体)" % (label, lineno, fn_name, fn_name))
+    return hits
+
+
 def analyze(root, base, baseline, outdir):
     files = load_baseline(baseline).get("files", {})
     blobdir = os.path.dirname(baseline) if baseline else ""
     untracked = set(zsplit(git(root, ["ls-files", "--others", "--exclude-standard", "-z"])))
     changed = changeset(root, base, files, untracked)
     write_list(os.path.join(outdir, "changed"), changed)
-    found = {"placeholders": [], "suppressions": [], "go_file_lines": []}
+    found = {"placeholders": [], "suppressions": [], "go_file_lines": [], "go_comments": []}
     for path in changed:
         full = os.path.join(root, path)
         if os.path.islink(full) or not os.path.isfile(full) or path.lower().endswith(DOCS):
@@ -278,13 +414,18 @@ def analyze(root, base, baseline, outdir):
                 continue
         ext = os.path.splitext(path)[1].lower()
         label = path.replace("\n", "\\n")
+        lines = path_added_lines(root, base, files, blobdir, untracked, path)
+        go_code_lines = None
         if ext == ".go" and "/vendor/" not in ("/" + path) and not GENERATED_GO.search(head_bytes):
             with open(full, "rb") as fh:
                 raw_all = fh.read()
             line_count = raw_all.count(b"\n") + (1 if raw_all and not raw_all.endswith(b"\n") else 0)
             if line_count > MAX_GO_LINES:
                 found["go_file_lines"].append("%s: %d lines (exceeds %d-line Go file limit)" % (label, line_count, MAX_GO_LINES))
-        lines = path_added_lines(root, base, files, blobdir, untracked, path)
+            all_lines = raw_all.decode("utf-8", "replace").splitlines()
+            added_nums = {num for num, _ in lines}
+            found["go_comments"].extend(check_go_added_comments(path, label, all_lines, added_nums))
+            go_code_lines = strip_go_comments_and_strings(all_lines)
         for number, raw in lines:
             text = raw.decode("utf-8", "replace")
             for key, rules in (("placeholders", PLACEHOLDER), ("suppressions", SUPPRESSION)):
@@ -295,6 +436,18 @@ def analyze(root, base, baseline, outdir):
                     if match:
                         found[key].append("%s:%d: %s" % (label, number, match.group(0).strip()[:60]))
                         break
+            if go_code_lines is not None and 1 <= number <= len(go_code_lines):
+                code_line = go_code_lines[number - 1]
+                weak_hit = None
+                for wrule in GO_WEAK_TYPE:
+                    m = wrule.search(code_line)
+                    if m:
+                        weak_hit = m.group(0).strip()
+                        break
+                if weak_hit is None and GO_INLINE_IFACE.search(code_line) and not GO_NAMED_IFACE.match(code_line):
+                    weak_hit = "inline interface{...}"
+                if weak_hit is not None:
+                    found["suppressions"].append("%s:%d: forbidden Go weak/dynamic type (%s)" % (label, number, weak_hit))
     for key in found:
         with open(os.path.join(outdir, key), "wb") as fh:
             for line in found[key]:
@@ -1437,6 +1590,7 @@ cmd_check() {
   check_hits placeholders "$TMP/placeholders"
   check_hits suppressions "$TMP/suppressions"
   check_hits go-file-lines "$TMP/go_file_lines"
+  check_hits go-comments "$TMP/go_comments"
   check_format
   check_lint
   check_tests

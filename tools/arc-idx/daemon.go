@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -175,14 +176,15 @@ func cmdDaemon(args []string) error {
 		return daemonStop(repo)
 	case "status":
 		pid, alive := daemonState(repo)
-		return emitJSON(map[string]any{
-			"pid":         pid,
-			"alive":       alive,
-			"index_dir":   repo.IndexDir,
-			"index_age":   ageOrNone(indexMTime(repo)),
-			"log_file":    filepath.Join(repo.MetaDir, "daemon.log"),
-			"stale_index": !indexMTime(repo).IsZero() && newestSourceMTime(repo).After(indexMTime(repo)),
-		})
+		idxTime := indexMTime(repo)
+		return emitRawJSON(json.MarshalIndent(daemonStatusResponse{
+			PID:        pid,
+			Alive:      alive,
+			IndexDir:   repo.IndexDir,
+			IndexAge:   ageOrNone(idxTime),
+			LogFile:    filepath.Join(repo.MetaDir, "daemon.log"),
+			StaleIndex: !idxTime.IsZero() && newestSourceMTime(repo).After(idxTime),
+		}, "", "  "))
 	case "restart":
 		if err := daemonStop(repo); err != nil {
 			fmt.Fprintf(os.Stderr, "stop: %v\n", err)
