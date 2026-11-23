@@ -28,10 +28,11 @@ red     Run a test command that must fail before the production code exists and 
         Test entrypoints and working directories must be outside .arc/artifacts; that tree
         holds passive evidence, not owning tests. Inline commands and Go overlays cannot
         establish an owning test source. Log/report output paths may use the artifact tree.
-check   Check the change set since the baseline: placeholders, suppressions, format,
-        lint/typecheck (changed .sql files: sqlfluff under the project's config, squawk when
-        .squawk.toml exists), affected tests, red records, scope. Prints one line per check and writes
-        the full report to .arc/artifacts/<slug>/reports/gate-<timestamp>.txt.
+check   Check the change set since the baseline: placeholders, suppressions, go-file-lines
+        (<=1200 lines per authored .go file), format, lint/typecheck (changed .sql files: sqlfluff
+        under the project's config, squawk when .squawk.toml exists), affected tests, red records,
+        scope. Prints one line per check and writes the full report to
+        .arc/artifacts/<slug>/reports/gate-<timestamp>.txt.
 
 --task <slug>    artifact slug (default: current branch name, else "default")
 --max-files N    scope WARN threshold (default 20)
@@ -84,6 +85,8 @@ BUILD_ERROR = re.compile(r"\[build failed\]|\bundefined: |\bcannot find package\
 NO_TESTS = re.compile(r"\bno tests ran\b|\bno test files\b|\bNo tests? (?:files )?found\b"
                       r"|\bno tests to run\b|^Ran 0 tests\b|\b0 passing\b", re.M)
 STUB_LINES = 20
+MAX_GO_LINES = 1200
+GENERATED_GO = re.compile(rb"^// Code generated .* DO NOT EDIT\.\r?$", re.M)
 PLACEHOLDER = [(None, re.compile(p)) for p in (
     r"\bTODO\b",
     r"\bFIXME\b",
@@ -264,17 +267,24 @@ def analyze(root, base, baseline, outdir):
     untracked = set(zsplit(git(root, ["ls-files", "--others", "--exclude-standard", "-z"])))
     changed = changeset(root, base, files, untracked)
     write_list(os.path.join(outdir, "changed"), changed)
-    found = {"placeholders": [], "suppressions": []}
+    found = {"placeholders": [], "suppressions": [], "go_file_lines": []}
     for path in changed:
         full = os.path.join(root, path)
         if os.path.islink(full) or not os.path.isfile(full) or path.lower().endswith(DOCS):
             continue
         with open(full, "rb") as fh:
-            if b"\0" in fh.read(8000):
+            head_bytes = fh.read(8000)
+            if b"\0" in head_bytes:
                 continue
-        lines = path_added_lines(root, base, files, blobdir, untracked, path)
         ext = os.path.splitext(path)[1].lower()
         label = path.replace("\n", "\\n")
+        if ext == ".go" and "/vendor/" not in ("/" + path) and not GENERATED_GO.search(head_bytes):
+            with open(full, "rb") as fh:
+                raw_all = fh.read()
+            line_count = raw_all.count(b"\n") + (1 if raw_all and not raw_all.endswith(b"\n") else 0)
+            if line_count > MAX_GO_LINES:
+                found["go_file_lines"].append("%s: %d lines (exceeds %d-line Go file limit)" % (label, line_count, MAX_GO_LINES))
+        lines = path_added_lines(root, base, files, blobdir, untracked, path)
         for number, raw in lines:
             text = raw.decode("utf-8", "replace")
             for key, rules in (("placeholders", PLACEHOLDER), ("suppressions", SUPPRESSION)):
@@ -1426,6 +1436,7 @@ cmd_check() {
   if [ -z "$note" ]; then emit baseline PASS; else emit baseline NOT_RUN "$note"; fi
   check_hits placeholders "$TMP/placeholders"
   check_hits suppressions "$TMP/suppressions"
+  check_hits go-file-lines "$TMP/go_file_lines"
   check_format
   check_lint
   check_tests

@@ -1,4 +1,4 @@
 interface:
   display_name: "Arc Verify"
-  short_description: "Prove runtime behavior via real entry points, device checks, and immutable receipts."
-  default_prompt: "Use $arc-verify following AGENTS.md and ../_shared/contract.md."
+  short_description: "Veteran-QA full-business E2E verification with 6-dimension expected-vs-actual receipts."
+  default_prompt: "Use $arc-verify following AGENTS.md, ../_shared/contract.md, and references/cheatsheet.md."

@@ -13,12 +13,13 @@ Shared invariants for all 6 skills. Load stack-specific `_shared/*.md` files onl
 | `check` | Git commits, PRs, tags, release builds, authorized CNB actions | Unverified edits or unowned dirty files |
 | `lazycat` | Wrapper manifests (`package.yml`, `lzc-*.yml`), `.lpk` artifacts | Unauthorized upstream business-code edits |
 
-## 2. Simplicity Ladder & Surgical Edits
+## 2. Simplicity Ladder, Reuse & Surgical Edits
 
 Stop at the first rung that solves the verified need:
 1. **YAGNI**: Skip unrequested configurability or speculative abstractions.
-2. **Reuse**: Existing repo helper -> standard library -> platform-native capability -> installed package -> minimal new code.
-3. **Surgical Diff**: Match local style; delete imports/functions orphaned by your diff; never reformat unrelated files. Mark deliberate throughput ceilings with `// debt: <ceiling & upgrade trigger>`.
+2. **Anti-Wheel-Reinvention (`禁止重复造轮子`)**: Search `arc idx` + standard library (`slices`, `maps`, `cmp`, `strings`, `time`, `filepath`) -> existing shared package -> installed dependency -> minimal new code. Extract domain-agnostic, non-business helpers into topic-named shared packages (`pkg/<topic>` or `internal/pkg/<topic>`) instead of duplicating private helpers across business modules; never create catch-all `util`/`common` dumping grounds.
+3. **File Modularity & Comment Discipline**: Keep source files cohesive and strictly within stack hard limits (Go: `<= 1200` lines per `.go` file, enforced by `gate.sh check`). Follow stack comment contracts verbatim (`../_shared/go-conventions.md` external `请求体`/`响应体` headers + internal `// 1. xxx` step-by-step comments).
+4. **Surgical Diff**: Match local style; delete imports/functions orphaned by your diff; never reformat unrelated files. Mark deliberate throughput ceilings with `// debt: <ceiling & upgrade trigger>`.
 
 ## 3. Root-Cause & Anti-Rot Gates
 

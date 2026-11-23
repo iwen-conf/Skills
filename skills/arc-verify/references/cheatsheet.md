@@ -1,0 +1,72 @@
+# Arc Verify 6-Dimension Contract & CLI Cheatsheet
+
+## 1. CLI Command Pipeline (`arc verify`)
+
+```bash
+arc verify scan-surface --repo . --format ai-md              # 1. Inventory all API/RPC/CLI/UI/MQ/SQL surfaces
+arc verify scan-world <entity.col> --repo . --format yaml    # 2. Reverse-scan coupled tables, columns & topics
+arc verify lint-story <story.yaml> --repo . --world-scan     # 3. Validate DAG, 100% world_flags, anti-softlock & scopes
+arc verify plan-shards <story.yaml> --out shards.yaml        # 4. Emit disjoint concurrent blind-test shards
+arc verify checkpoint build --story <story.yaml>             # 5. Materialize & assert savepoint snapshots
+arc verify play <story.yaml> --parallel --blind              # 6. Clone per-route SHARD_NS, run steps & check 6D diffs
+arc verify completion <story.yaml> --repo . --world-scan     # 7. Gate: world=100% routes=100% probes=100% endings=100%
+arc verify explain --story <story_id> --format ai-md         # 8. Render 6-dimension Expected-vs-Actual audit ledger
+arc verify snapshot --story <story_id> --out <empty_dir>     # 9. Export self-contained UTF-8 HTML+JSON Workbench
+```
+
+## 2. Canonical 6-Dimension `*.story.yaml` Schema
+
+```yaml
+story_id: order_payment_refund
+focal_entity: orders.id
+frozen_readonly: [api/openapi.yaml, db/migrations/001_init.sql]
+blind_mask: [internal/payment/service.go]   # Hidden in --blind mode to prevent white-box cheating
+
+world_flags:
+  order_status: orders.status
+  wallet_balance: wallets.available_cents
+  refund_pending: refunds.pending_cents
+  notify_outbox: topic:order.paid
+
+checkpoints:
+  - save_id: save_01_funded_buyer
+    parent: root
+    engine: postgres                        # dir | sqlite | postgres (CREATE DATABASE ... TEMPLATE)
+    seed_cmd: "./scripts/seed_buyer.sh"
+    assert_flags: { wallet_balance: 10000, order_status: NONE }
+    assert_cmd: "./scripts/check_seed.sh"   # Non-zero aborts build so broken setup never runs
+
+routes:
+  - route_id: route_pay_and_refund_happy
+    load_save: save_01_funded_buyer
+    runner_type: fullstack_e2e              # regular_unit | spiderweb_surface | fullstack_e2e
+    write_scope: [tests/e2e/pay_refund.spec.ts]
+    runtime_ns: ns_e2e_pay_refund
+    sequence:
+      - step: 1
+        choice: payment.create_and_confirm
+        expected_behavior: ALLOW_TRANSITION
+        preconditions: { buyer_authenticated: true, wallet_balance: 10000 }
+        precheck_cmd: "./scripts/precheck_buyer.sh"
+        expected_input: { sku_id: "SKU-1", amount_cents: 3200, idempotency_key: "IDEM-01" }
+        before_state: { order_status: NONE, wallet_balance: 10000 }
+        cmd: "npx playwright test tests/e2e/pay_refund.spec.ts -g 'step1'"
+        expect_status: PAID
+        expect_result: { debited_cents: 3200 }
+        butterfly_probes: { wallet_balance: 6800, notify_outbox: EMITTED_ONCE }
+        forbidden_effects: [DOUBLE_DEBIT, NEGATIVE_BALANCE]
+    unlocks_ending: END_01_PAID_CLEAN
+
+required_endings: [END_01_PAID_CLEAN]
+```
+
+## 3. Structured Step Evidence Line (`[ARC_STEP_EVIDENCE]`)
+
+Test runners emit one single-line JSON prefixed with `[ARC_STEP_EVIDENCE]` per step so the Go kernel verifies Expected vs Actual directly and persists `extracted_vars` into `$ARC_VARS_FILE` for subsequent steps:
+
+```text
+[ARC_STEP_EVIDENCE]{"step":1,"preconditions_actual":{"buyer_authenticated":true,"wallet_balance":10000},"actual_input":{"sku_id":"SKU-1","amount_cents":3200,"idempotency_key":"IDEM-01"},"before_state":{"order_status":"NONE","wallet_balance":10000},"after_state":{"order_status":"PAID","wallet_balance":6800},"actual_behavior":"ALLOW_TRANSITION","actual_status":"PAID","actual_result":{"debited_cents":3200},"actual_probes":{"wallet_balance":6800,"notify_outbox":"EMITTED_ONCE"},"observed_effects":[],"extracted_vars":{"order_id":"ORD-9001"}}
+```
+
+- **Allowed `expected_behavior` values**: `ALLOW_TRANSITION`, `REJECT_INVALID_INPUT`, `HARD_BLOCK`, `ASYNC_HOLD_ESCAPE`, `IDEMPOTENT_REPLAY`, `CONCURRENT_CONTENTION`, `FORCE_CASCADE`.
+- **Verdict Separation**: `precheck_cmd` failure or `preconditions` mismatch -> `BLOCKED` (env/fixture issue); `expect_status`, `expect_result`, `butterfly_probes` mismatch or `forbidden_effects` hit -> `FAIL` (product defect).
