@@ -109,7 +109,8 @@ Every Go function and method must carry the exact 3-part header block (`函数�
 // 返回值2 返回值2含义
 ```
 
-- **No Struct Field Duplication**: Under `// 请求体` and `// 响应体`, write **only `<名称> <整体含义>`** (for example `// title 标题`, `// book 书籍`, `// result 创建后的笔记结果`, `// err 错误信息`). When a parameter or return value is a `struct`, **never** list or repeat its internal fields in parentheses on the function comment — field-level comments belong exclusively inside the `struct` definition (Section 4.1).
+- **Concise Function Summary Line**: The first line `// 函数名 函数作用` states only the concise business capability (for example `// CreateNote 创建笔记`, `// GetOrder 查询订单详情`) — **never** stuff internal validation or persistence steps into the header summary (those belong in internal `// 1. xxx` step comments).
+- **No Struct Field Duplication**: Under `// 请求体` and `// 响应体`, write **only `<名称> <整体含义>`** (for example `// title 标题`, `// book 书籍`, `// result 创建笔记结果`, `// err 错误信息`). When a parameter or return value is a `struct`, **never** list or repeat its internal fields in parentheses on the function comment — field-level comments belong exclusively inside the `struct` definition (Section 4.1).
 - **Consistent Request & Response Format**: `// 响应体` uses the exact same `// <名称> <整体含义>` line structure as `// 请求体` in declaration order. If either section has zero items, keep the `// 请求体` or `// 响应体` heading and write `// 无` on the line beneath it.
 
 ### 4.3 Internal Step-by-Step Comment (`// 1.xxx` 一行注释、一行核心代码)
@@ -128,13 +129,13 @@ Inside functions, organize execution linearly using sequential numbered comments
 ### 4.5 Canonical Go Example
 
 ```go
-// CreateNote 校验分类权限并创建持久化笔记记录
+// CreateNote 创建笔记
 // 请求体
 // ctx 请求上下文
 // title 标题
 // book 书籍
 // 响应体
-// result 创建后的笔记结果
+// result 创建笔记结果
 // err 错误信息
 func (s *Service) CreateNote(ctx context.Context, title string, book Book) (result NoteResult, err error) {
 	// 1. 清洗标题首尾空白并校验必填约束
