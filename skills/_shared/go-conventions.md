@@ -75,60 +75,80 @@ cmd/<app> -> internal/wire -> internal/interface/restful -> internal/usecase -> 
    - Stateful cross-usecase technical capabilities -> `internal/infrastructure/support/<capability>`.
    - Single-usecase private decomposition -> `internal/usecase/<business>/<workflow>_helpers.go` (promote on second caller).
 
-## 4. Mandatory Comment Conventions (`函数外部契约注释 + 函数内部逐行编号注释`)
+## 4. Mandatory Comment Conventions (`结构体字段注释 + 函数外部契约注释 + 函数内部逐行编号注释`)
 
-### 4.1 External Function Header Comment (Required on Every Function & Method)
+### 4.1 Struct & Field-Level Comments (`struct` 字段级注释唯一事实来源)
+
+Whenever a parameter, return value, DTO, `Param`, `Result`, domain entity, or persistence `Model` is a `struct`, document its fields **inside the `struct` definition itself** — never inline its fields inside caller/callee function comments:
+
+```go
+// Book 书籍信息
+type Book struct {
+	ISBN   string // 国际标准书号
+	Author string // 作者姓名
+}
+
+// NoteResult 创建笔记响应结果
+type NoteResult struct {
+	ID        int64     // 笔记唯一ID
+	CreatedAt time.Time // 创建时间（UTC）
+}
+```
+
+### 4.2 External Function Header Comment (`请求体` 与 `响应体` 格式严格一致)
 
 Every Go function and method must carry the exact 3-part header block (`函数名 函数作用` / `请求体` / `响应体`) directly above `func`:
 
 ```go
 // 函数名 函数作用
 // 请求体
-// 参数1 参数1意义
-// 参数2 参数2意义
+// 参数1 参数1含义
+// 参数2 参数2含义
 // 响应体
-// 响应体参数1 响应体参数1含义
-// 响应体参数2 响应体参数2含义
+// 返回值1 返回值1含义
+// 返回值2 返回值2含义
 ```
 
-- **Parameter & Return Alignment**: Document every input parameter in declaration order under `// 请求体` and every return value in declaration order under `// 响应体` (use named return identifiers in documentation or signature; when a struct like `param CreateParam` or Gin `c *gin.Context` carries a structured payload, state the struct/context parameter and summarize or list its key business fields).
-- **Empty Inputs or Outputs**: Keep the `// 请求体` and `// 响应体` headings intact and write `// 无` on the line beneath whichever section has zero parameters/returns.
+- **No Struct Field Duplication**: Under `// 请求体` and `// 响应体`, write **only `<名称> <整体含义>`** (for example `// title 标题`, `// book 书籍`, `// result 创建后的笔记结果`, `// err 错误信息`). When a parameter or return value is a `struct`, **never** list or repeat its internal fields in parentheses on the function comment — field-level comments belong exclusively inside the `struct` definition (Section 4.1).
+- **Consistent Request & Response Format**: `// 响应体` uses the exact same `// <名称> <整体含义>` line structure as `// 请求体` in declaration order. If either section has zero items, keep the `// 请求体` or `// 响应体` heading and write `// 无` on the line beneath it.
 
-### 4.2 Internal Step-by-Step Comment (`// 1.xxx` 一行注释、一行核心代码)
+### 4.3 Internal Step-by-Step Comment (`// 1.xxx` 一行注释、一行核心代码)
 
 Inside functions, organize execution linearly using sequential numbered comments (`// 1. xxx`, `// 2. xxx`, `// 3. xxx`) paired directly with each atomic statement:
 
 1. **One Step Comment -> One Atomic Code Statement**: Place `// N. <动作与业务意图>` immediately above each core line/call (keeping its immediate `if err != nil { return ... }` guard attached to that step rather than numbering bare `return err` branches).
-2. **Concrete Intent Over Noise**: State *what invariant is checked or what collaborator is called and why* (e.g., `// 2. 调用 repo.GetByID 校验笔记存在性与租户归属`), never meaningless restatements (`// 定义变量 a`).
+2. **Concrete Intent Over Noise**: State *what invariant is checked or what collaborator is called and why* (e.g., `// 2. 查询目标分类并校验当前操作人写入权限`), never meaningless restatements (`// 定义变量 a`).
 3. **Flat Control Flow & Sequential Renumbering**: Prefer guard clauses / early returns (max nesting depth `<= 3`). Whenever steps are inserted, merged, or removed, renumber `1..N` continuously with zero gaps or out-of-order numbers.
 
-### 4.3 Canonical Go Example (`usecase/<business>/service_create.go`)
+### 4.4 Incremental Maintenance Discipline (`只补缺失，不动已有`)
+
+- **New Code**: All newly written functions, methods, and structs must follow Sections 4.1–4.3 in full.
+- **Existing Code (`只补缺失，不动已有`)**: When editing an existing file, fill in missing comments on touched symbols, update comments whose parameter/step semantics actually changed in your diff, and **leave pre-existing comments on untouched functions and structs intact** — never rewrite unrelated existing comments just for formatting churn.
+
+### 4.5 Canonical Go Example
 
 ```go
 // CreateNote 校验分类权限并创建持久化笔记记录
 // 请求体
-// ctx 请求上下文（承载超时控制与链路追踪信息）
-// param 创建笔记参数（Title 标题、Content 正文、CategoryID 分类ID、OperatorID 操作人ID）
+// ctx 请求上下文
+// title 标题
+// book 书籍
 // 响应体
-// result 创建后的笔记摘要（ID 笔记ID、CreatedAt 创建UTC时间）
-// err 权限不足、分类不存在或持久化失败错误
-func (s *Service) CreateNote(ctx context.Context, param CreateParam) (result NoteResult, err error) {
-	// 1. 清洗标题首尾空白并校验必填长度约束
-	title := strx.TrimCollapseSpace(param.Title)
-	if title == "" {
+// result 创建后的笔记结果
+// err 错误信息
+func (s *Service) CreateNote(ctx context.Context, title string, book Book) (result NoteResult, err error) {
+	// 1. 清洗标题首尾空白并校验必填约束
+	cleanTitle := strx.TrimCollapseSpace(title)
+	if cleanTitle == "" {
 		return NoteResult{}, errs.ErrInvalidNoteTitle
 	}
-	// 2. 查询目标分类并校验当前操作人具备写入权限
-	category, err := s.categoryRepo.GetByID(ctx, param.CategoryID)
-	if err != nil {
-		return NoteResult{}, err
+	// 2. 校验书籍标准书号格式合法性
+	if !s.isbnValidator.Valid(book.ISBN) {
+		return NoteResult{}, errs.ErrInvalidBookISBN
 	}
-	if !category.CanWrite(param.OperatorID) {
-		return NoteResult{}, errs.ErrCategoryForbidden
-	}
-	// 3. 构造纯领域笔记实体并赋予 UTC 创建时间
-	note := entities.NewNote(title, param.Content, category.ID, param.OperatorID, s.clock.NowUTC())
-	// 4. 持久化笔记实体到仓储层
+	// 3. 构造纯领域笔记实体并注入 UTC 创建时间
+	note := entities.NewNote(cleanTitle, book.ISBN, s.clock.NowUTC())
+	// 4. 持久化领域实体到仓储层
 	saved, err := s.noteRepo.Create(ctx, note)
 	if err != nil {
 		return NoteResult{}, err

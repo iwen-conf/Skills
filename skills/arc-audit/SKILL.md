@@ -14,6 +14,6 @@ Read-only evaluation. Mutate zero source files, configs, or `.arc/arc.db` record
    - `iwen-example` Explicit Architecture boundaries (`Contract`/`Params`/`Results`/`Service`/`Repository`/`Model`/`Engine`, zero `Port`/`Adapter` or layer leaks).
    - File length hard cap (`<= 1200` lines per `.go` file) and proactive workflow splitting.
    - Anti-wheel-reinvention (missed stdlib/`arc idx` reuse, duplicated non-business helpers not extracted to `pkg/<topic>` or `internal/pkg/<topic>`, or catch-all `util`/`common` dumps).
-   - External `请求体`/`响应体` function header blocks and internal sequential `// 1. xxx` step-by-step comments.
+   - Comment hygiene: field-level comments inside `struct` definitions, matching `请求体`/`响应体` `// 名称 含义` lines (no duplicated struct fields in function headers), sequential internal `// 1. xxx` step comments, and `只补缺失，不动已有` on legacy files.
 2. **Security Scan**: Run `python3 scripts/security-scan.py . --task-slug <slug>` for secret, SAST, lockfile, and OpenAPI checks.
 3. **Agent Host Health**: Verify `~/.claude/skills`, `~/.codex/skills`, `~/.grok/skills` and `arc capabilities --json` without printing secret values.
