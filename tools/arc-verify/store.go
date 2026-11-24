@@ -39,7 +39,9 @@ var storySchema = []string{
 		run_id TEXT PRIMARY KEY,
 		story_id TEXT NOT NULL,
 		story_sha256 TEXT NOT NULL,
+		repo_root TEXT NOT NULL DEFAULT '',
 		source_commit TEXT NOT NULL,
+		source_tree_sha256 TEXT NOT NULL DEFAULT '',
 		blind_mode INTEGER NOT NULL DEFAULT 0,
 		verdict TEXT NOT NULL,
 		started_at TEXT NOT NULL,
@@ -59,6 +61,9 @@ var storySchema = []string{
 		probes_passed INTEGER NOT NULL DEFAULT 0,
 		unlocked_ending TEXT NOT NULL DEFAULT '',
 		raw_output TEXT NOT NULL DEFAULT '',
+		repo_root TEXT NOT NULL DEFAULT '',
+		source_commit TEXT NOT NULL DEFAULT '',
+		source_tree_sha256 TEXT NOT NULL DEFAULT '',
 		receipt_sha256 TEXT NOT NULL,
 		created_at TEXT NOT NULL
 	)`,
@@ -101,6 +106,59 @@ var storySchema = []string{
 		raw_json TEXT NOT NULL DEFAULT '{}',
 		created_at TEXT NOT NULL DEFAULT ''
 	)`,
+	`CREATE TABLE IF NOT EXISTS code_verify_plans (
+		plan_id TEXT PRIMARY KEY,
+		repo_root TEXT NOT NULL,
+		primary_language TEXT NOT NULL,
+		max_tier TEXT NOT NULL,
+		plan_sha256 TEXT NOT NULL,
+		raw_json TEXT NOT NULL,
+		updated_at TEXT NOT NULL
+	)`,
+	`CREATE TABLE IF NOT EXISTS code_verify_runs (
+		run_id TEXT PRIMARY KEY,
+		plan_id TEXT NOT NULL,
+		plan_sha256 TEXT NOT NULL,
+		repo_root TEXT NOT NULL,
+		source_commit TEXT NOT NULL,
+		source_tree_sha256 TEXT NOT NULL DEFAULT '',
+		max_tier TEXT NOT NULL,
+		verdict TEXT NOT NULL,
+		required_total INTEGER NOT NULL DEFAULT 0,
+		passed_count INTEGER NOT NULL DEFAULT 0,
+		failed_count INTEGER NOT NULL DEFAULT 0,
+		blocked_count INTEGER NOT NULL DEFAULT 0,
+		started_at TEXT NOT NULL,
+		finished_at TEXT NOT NULL
+	)`,
+	`CREATE TABLE IF NOT EXISTS code_verify_results (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id TEXT NOT NULL,
+		plan_id TEXT NOT NULL,
+		plan_sha256 TEXT NOT NULL,
+		technique_id TEXT NOT NULL,
+		priority TEXT NOT NULL,
+		language TEXT NOT NULL,
+		tool_name TEXT NOT NULL,
+		executed_cmd TEXT NOT NULL,
+		verdict TEXT NOT NULL,
+		exit_code INTEGER NOT NULL DEFAULT 0,
+		duration_ms INTEGER NOT NULL DEFAULT 0,
+		metrics_json TEXT NOT NULL DEFAULT '{}',
+		coverage_json TEXT NOT NULL DEFAULT '{}',
+		failure_reason TEXT NOT NULL DEFAULT '',
+		missing_prerequisite TEXT NOT NULL DEFAULT '',
+		artifact_path TEXT NOT NULL DEFAULT '',
+		artifact_sha256 TEXT NOT NULL DEFAULT '',
+		raw_output TEXT NOT NULL DEFAULT '',
+		repo_root TEXT NOT NULL DEFAULT '',
+		source_commit TEXT NOT NULL DEFAULT '',
+		source_tree_sha256 TEXT NOT NULL DEFAULT '',
+		receipt_sha256 TEXT NOT NULL,
+		created_at TEXT NOT NULL
+	)`,
+	`CREATE INDEX IF NOT EXISTS idx_code_verify_results_lookup ON code_verify_results(plan_id, technique_id, id)`,
+	`CREATE INDEX IF NOT EXISTS idx_code_verify_results_run ON code_verify_results(plan_id, run_id, id)`,
 }
 
 // StoryLedger 通过具名私有互斥锁与数据库句柄管理六维验证账本（禁止暴露内部锁或DB）
@@ -159,12 +217,16 @@ func openStoryLedger(dbPath string) (*StoryLedger, error) {
 		return nil, err
 	}
 	_, _ = db.ExecContext(ctx, "PRAGMA busy_timeout=5000")
-	// 3. 依次执行六维验证账本与兼容图表的DDL语句
+	// 3. 依次执行六维验证账本与兼容图表的DDL语句及历史库列迁移
 	for _, stmt := range storySchema {
 		if _, err := db.ExecContext(ctx, stmt); err != nil {
 			_ = db.Close()
 			return nil, fmt.Errorf("init story schema: %w", err)
 		}
+	}
+	if err := ensureLedgerColumns(ctx, db); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("migrate story schema: %w", err)
 	}
 	return &StoryLedger{db: db, path: dbPath}, nil
 }
@@ -309,13 +371,15 @@ func (l *StoryLedger) ListCheckpoints(storyID string) ([]CheckpointRecord, error
 // runID 运行批次ID
 // storyID 故事线唯一标识
 // storySHA 故事线版本SHA256摘要
+// repoRoot 执行时规范化仓库根目录
 // commit 当前源码Git提交哈希
+// treeSHA 工作树实时内容摘要
 // blind 是否开启盲测模式
 // verdict 批次总判定结果
 // startedAt 批次启动UTC时间戳
 // 响应体
 // err SQL插入失败错误
-func (l *StoryLedger) RecordRun(runID, storyID, storySHA, commit string, blind bool, verdict, startedAt string) error {
+func (l *StoryLedger) RecordRun(runID, storyID, storySHA, repoRoot, commit, treeSHA string, blind bool, verdict, startedAt string) error {
 	// 1. 加锁转换布尔标记并插入 story_runs 记录
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -324,9 +388,9 @@ func (l *StoryLedger) RecordRun(runID, storyID, storySHA, commit string, blind b
 		blindInt = 1
 	}
 	_, err := l.db.Exec(
-		`INSERT INTO story_runs(run_id, story_id, story_sha256, source_commit, blind_mode, verdict, started_at, finished_at)
-		 VALUES(?,?,?,?,?,?,?,?)`,
-		runID, storyID, storySHA, commit, blindInt, verdict, startedAt, nowUTC(),
+		`INSERT INTO story_runs(run_id, story_id, story_sha256, repo_root, source_commit, source_tree_sha256, blind_mode, verdict, started_at, finished_at)
+		 VALUES(?,?,?,?,?,?,?,?,?,?)`,
+		runID, storyID, storySHA, repoRoot, commit, treeSHA, blindInt, verdict, startedAt, nowUTC(),
 	)
 	return err
 }

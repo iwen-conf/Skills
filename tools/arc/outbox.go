@@ -71,7 +71,9 @@ func sourceSnapshot(root string) (string, error) {
 	h := sha256.New()
 	_, _ = fmt.Fprintf(h, "head=%s\n", head)
 	for _, item := range changed {
-		if isGeneratedIndexFile(item.Path) { continue }
+		if isGeneratedIndexFile(item.Path) {
+			continue
+		}
 		sha, size, op, err := observedFile(root, item.Path)
 		if err != nil {
 			return "", err
@@ -85,34 +87,57 @@ func sourceSnapshot(root string) (string, error) {
 // acknowledging events, every dirty worktree path and pending file event must
 // match the latest arc_files observation, or reconciliation must run again.
 func recordedFilesCurrent(root string) error {
-	dirty,err:=changedGitPaths(root)
-	if err!=nil{return err}
-	paths:=map[string]bool{}
-	for _,item:=range dirty {paths[item.Path]=true}
-	db,err:=openActiveArcDB(root)
-	if err!=nil{return err}
-	defer db.Close()
-	rows,err:=db.Query(
-		"SELECT DISTINCT e.aggregate_id FROM arc_outbox o JOIN arc_events e ON e.id=o.event_id WHERE o.status='pending' AND e.aggregate='file'")
-	if err!=nil{return err}
-	for rows.Next(){
-		var path string
-		if err:=rows.Scan(&path);err!=nil{rows.Close();return err}
-		paths[path]=true
-		if len(paths)>1000{rows.Close();return errors.New("index candidate set exceeds 1000 files; narrow the task")}
+	dirty, err := changedGitPaths(root)
+	if err != nil {
+		return err
 	}
-	if err:=rows.Err();err!=nil{rows.Close();return err}
-	if err:=rows.Close();err!=nil{return err}
-	for path:=range paths {
-		var recorded string
-		if err:=db.QueryRow("SELECT sha256 FROM arc_files WHERE path=?",filepath.ToSlash(path)).Scan(&recorded);err!=nil{
-			if errors.Is(err,sql.ErrNoRows){return fmt.Errorf("%s has no recorded file observation; run arc sync reconcile",path)}
+	paths := map[string]bool{}
+	for _, item := range dirty {
+		paths[item.Path] = true
+	}
+	db, err := openActiveArcDB(root)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	rows, err := db.Query(
+		"SELECT DISTINCT e.aggregate_id FROM arc_outbox o JOIN arc_events e ON e.id=o.event_id WHERE o.status='pending' AND e.aggregate='file'")
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var path string
+		if err := rows.Scan(&path); err != nil {
+			rows.Close()
 			return err
 		}
-		current,_,_,err:=observedFile(root,path)
-		if err!=nil{return err}
-		if current!=recorded{
-			return fmt.Errorf("%s changed since its recorded file observation; run arc sync reconcile",path)
+		paths[path] = true
+		if len(paths) > 1000 {
+			rows.Close()
+			return errors.New("index candidate set exceeds 1000 files; narrow the task")
+		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return err
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	for path := range paths {
+		var recorded string
+		if err := db.QueryRow("SELECT sha256 FROM arc_files WHERE path=?", filepath.ToSlash(path)).Scan(&recorded); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("%s has no recorded file observation; run arc sync reconcile", path)
+			}
+			return err
+		}
+		current, _, _, err := observedFile(root, path)
+		if err != nil {
+			return err
+		}
+		if current != recorded {
+			return fmt.Errorf("%s changed since its recorded file observation; run arc sync reconcile", path)
 		}
 	}
 	return nil
@@ -204,12 +229,18 @@ func markIndexBatch(root string, batch outboxBatch, indexed bool, reason string)
 }
 
 func flushIndexOutbox(root string) error {
-	return flushIndexOutboxWith(root,rebuildIndex)
+	return flushIndexOutboxWith(root, rebuildIndex)
 }
 
-// Injectable build function permits deterministic failure/race/retry testing
-// without pretending a mock backend proves the production Zoekt/ctags build.
-func flushIndexOutboxWith(root string, build func(context.Context,string) error) error {
+// flushIndexOutboxWith 使用注入的索引重建回调刷新待处理事件并验证工作树未并发漂移
+// (支持无mock欺骗的确定性失败、并发竞争与重试测试)
+// 请求体
+// root 仓库根目录真实路径
+// build 索引构建回调函数
+// 响应体
+// err 索引刷新、快照校验或账本更新错误
+func flushIndexOutboxWith(root string, build func(context.Context, string) error) error {
+	// 1. 读取待处理源码事件批次并在空队列时校验既往快照一致性
 	var batch outboxBatch
 	err := withArcLock(root, func() error {
 		db, err := openActiveArcDB(root)
@@ -218,18 +249,24 @@ func flushIndexOutboxWith(root string, build func(context.Context,string) error)
 		}
 		defer db.Close()
 		batch, err = pendingIndexBatch(db)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		if batch.Count == 0 {
 			var success string
 			err = db.QueryRow("SELECT value FROM arc_meta WHERE key='index_last_success'").Scan(&success)
-			if err != nil && !errors.Is(err,sql.ErrNoRows) { return err }
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
 			if success != "" {
 				var indexedSnapshot string
 				if err := db.QueryRow("SELECT value FROM arc_meta WHERE key='index_last_snapshot'").Scan(&indexedSnapshot); err != nil {
 					return fmt.Errorf("index snapshot metadata missing: %w", err)
 				}
 				current, err := sourceSnapshot(root)
-				if err != nil { return err }
+				if err != nil {
+					return err
+				}
 				if current != indexedSnapshot {
 					return errors.New("source changed without a pending index event; run arc sync reconcile first")
 				}
@@ -249,7 +286,9 @@ func flushIndexOutboxWith(root string, build func(context.Context,string) error)
 		return emitRawJSON(json.Marshal(indexFlushResponse{IndexedEvents: 0, Pending: &zero, Index: "no_pending_work"}))
 	}
 
-	if err := recordedFilesCurrent(root); err != nil { return err }
+	if err := recordedFilesCurrent(root); err != nil {
+		return err
+	}
 	before, err := sourceSnapshot(root)
 	if err != nil {
 		return err
@@ -283,7 +322,9 @@ func flushIndexOutboxWith(root string, build func(context.Context,string) error)
 		if current != before {
 			return errors.New("source changed before index acknowledgement; events remain pending")
 		}
-		if err:=recordedFilesCurrent(root);err!=nil{return err}
+		if err := recordedFilesCurrent(root); err != nil {
+			return err
+		}
 		db, err := openActiveArcDB(root)
 		if err != nil {
 			return err
@@ -295,9 +336,13 @@ func flushIndexOutboxWith(root string, build func(context.Context,string) error)
 			result, err := tx.ExecContext(ctx,
 				"UPDATE arc_outbox SET status='delivered',attempts=attempts+1 WHERE status='pending' AND rowid<=? AND event_id IN (SELECT id FROM arc_events WHERE aggregate IN ('file','change'))",
 				batch.Watermark)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			processed, err = result.RowsAffected()
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			if _, err = tx.ExecContext(ctx,
 				"INSERT OR REPLACE INTO arc_meta(key,value) VALUES('index_last_success',?)", nowUTC()); err != nil {
 				return err

@@ -239,7 +239,7 @@ func runNativeTaskProof(ctx context.Context, root string, link nativeTaskLink) (
 	if err != nil {
 		return nil, fmt.Errorf("native verification engine unavailable: %w", err)
 	}
-	cmd := exec.CommandContext(ctx, bin, "task-proof", "--db", statePath(root), "--graph", link.Graph, "--task", link.VerifyTaskID)
+	cmd := exec.CommandContext(ctx, bin, "task-proof", "--db", statePath(root), "--graph", link.Graph, "--task", link.VerifyTaskID, "--obligation", link.ObligationID)
 	cmd.Dir = root
 	body, err := cmd.Output()
 	if err != nil {

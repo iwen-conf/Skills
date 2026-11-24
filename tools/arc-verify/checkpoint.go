@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func checkpointBaseDir(repoRoot, storyID string) string {
@@ -86,17 +88,27 @@ func materializeCheckpoint(s *Storyline, cp Checkpoint, repoRoot, engine, source
 		}
 		snapshotPath = dst
 	case "postgres":
-		dbName := fmt.Sprintf("arc_save_%s_%s", sanitizeNS(s.StoryID), sanitizeNS(cp.SaveID))
-		if pgURL != "" {
-			psqlBin, err := exec.LookPath("psql")
-			if err != nil {
-				return CheckpointRecord{}, fmt.Errorf("postgres engine requested with --pg-url, but psql not found on PATH")
+		if strings.TrimSpace(pgURL) == "" {
+			return CheckpointRecord{}, fmt.Errorf("postgres engine requires --pg-url")
+		}
+		dbName := boundedPGName("arc_save", s.StoryID, cp.SaveID)
+		psqlBin, err := exec.LookPath("psql")
+		if err != nil {
+			return CheckpointRecord{}, fmt.Errorf("postgres engine requested with --pg-url, but psql not found on PATH")
+		}
+		sqlStmt := fmt.Sprintf("DROP DATABASE IF EXISTS %s; CREATE DATABASE %s;", dbName, dbName)
+		if cp.Parent != "" && cp.Parent != "root" {
+			parentDB := boundedPGName("arc_save", s.StoryID, cp.Parent)
+			sqlStmt = fmt.Sprintf("DROP DATABASE IF EXISTS %s; CREATE DATABASE %s TEMPLATE %s;", dbName, dbName, parentDB)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, psqlBin, pgURL, "-v", "ON_ERROR_STOP=1", "-c", sqlStmt)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			if ctx.Err() == context.DeadlineExceeded {
+				return CheckpointRecord{}, fmt.Errorf("psql create checkpoint db %s timed out after 300s", dbName)
 			}
-			sqlStmt := fmt.Sprintf("DROP DATABASE IF EXISTS %s; CREATE DATABASE %s;", dbName, dbName)
-			cmd := exec.Command(psqlBin, pgURL, "-v", "ON_ERROR_STOP=1", "-c", sqlStmt)
-			if out, err := cmd.CombinedOutput(); err != nil {
-				return CheckpointRecord{}, fmt.Errorf("psql create checkpoint db %s: %v (%s)", dbName, err, strings.TrimSpace(string(out)))
-			}
+			return CheckpointRecord{}, fmt.Errorf("psql create checkpoint db %s: %v (%s)", dbName, err, strings.TrimSpace(string(out)))
 		}
 		snapshotPath = "postgres://" + dbName
 	}
@@ -166,18 +178,24 @@ func cloneCheckpointWithDir(repoRoot, storyID, saveID, runtimeNS, engine, pgURL 
 
 	switch engine {
 	case "postgres":
-		tplDB := fmt.Sprintf("arc_save_%s_%s", sanitizeNS(storyID), sanitizeNS(saveID))
-		cloneDB := fmt.Sprintf("arc_run_%s_%s", sanitizeNS(saveID), sanitizeNS(runtimeNS))
-		if pgURL != "" {
-			psqlBin, err := exec.LookPath("psql")
-			if err != nil {
-				return "", "", fmt.Errorf("psql not found on PATH")
+		if strings.TrimSpace(pgURL) == "" {
+			return "", "", fmt.Errorf("postgres engine requires --pg-url")
+		}
+		tplDB := boundedPGName("arc_save", storyID, saveID)
+		cloneDB := boundedPGName("arc_run", storyID, saveID, runtimeNS)
+		psqlBin, err := exec.LookPath("psql")
+		if err != nil {
+			return "", "", fmt.Errorf("psql not found on PATH")
+		}
+		sqlStmt := fmt.Sprintf("DROP DATABASE IF EXISTS %s; CREATE DATABASE %s TEMPLATE %s;", cloneDB, cloneDB, tplDB)
+		ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, psqlBin, pgURL, "-v", "ON_ERROR_STOP=1", "-c", sqlStmt)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			if ctx.Err() == context.DeadlineExceeded {
+				return "", "", fmt.Errorf("psql clone %s from %s timed out after 300s", cloneDB, tplDB)
 			}
-			sqlStmt := fmt.Sprintf("DROP DATABASE IF EXISTS %s; CREATE DATABASE %s TEMPLATE %s;", cloneDB, cloneDB, tplDB)
-			cmd := exec.Command(psqlBin, pgURL, "-v", "ON_ERROR_STOP=1", "-c", sqlStmt)
-			if out, err := cmd.CombinedOutput(); err != nil {
-				return "", "", fmt.Errorf("psql clone %s from %s: %v (%s)", cloneDB, tplDB, err, strings.TrimSpace(string(out)))
-			}
+			return "", "", fmt.Errorf("psql clone %s from %s: %v (%s)", cloneDB, tplDB, err, strings.TrimSpace(string(out)))
 		}
 		return "postgres://" + cloneDB, dstDir, nil
 	case "sqlite":
@@ -205,14 +223,39 @@ func cloneCheckpoint(repoRoot, storyID, saveID, runtimeNS, engine, pgURL string)
 }
 
 func runShellInDir(dir, command string, env []string) error {
-	cmd := exec.Command("sh", "-c", command)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "sh", "-c", command)
 	cmd.Dir = dir
 	cmd.Env = env
 	out, err := cmd.CombinedOutput()
+	if ctx.Err() == context.DeadlineExceeded {
+		return fmt.Errorf("command timed out after 300s: %s", strings.TrimSpace(string(out)))
+	}
 	if err != nil {
 		return fmt.Errorf("%v: %s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }
 
-
+// boundedPGName 生成满足PostgreSQL 63字节上限且防碰撞的检查点或分片库名
+// 请求体
+// prefix 库名前缀
+// parts 参与拼接的原始标识切片
+// 响应体
+// name 长度不超过63字符的小写下划线库名
+func boundedPGName(prefix string, parts ...string) string {
+	// 1. 清洗各段标识并按安全长度直接返回或截断附加SHA256短摘要
+	sanitized := make([]string, 0, len(parts)+1)
+	sanitized = append(sanitized, sanitizeNS(prefix))
+	for _, p := range parts {
+		sanitized = append(sanitized, sanitizeNS(p))
+	}
+	full := strings.Join(sanitized, "_")
+	if len(full) <= 63 {
+		return full
+	}
+	sum := sha256Hex([]byte(strings.Join(parts, "\x00")))[:12]
+	head := strings.TrimRight(full[:50], "_")
+	return head + "_" + sum
+}

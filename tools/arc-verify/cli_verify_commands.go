@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -195,6 +194,18 @@ func cmdGate(args []string) int {
 	defer ledger.Close()
 	s, err := ledger.LoadStoryDefinition(id)
 	if err != nil {
+		if plan, pErr := ledger.LoadCodePlan(id); pErr == nil && plan != nil {
+			rep, cErr := computeCodeGate(ledger, plan.PlanID, "", plan.MaxTier, false)
+			if cErr != nil {
+				fmt.Fprintf(os.Stderr, "arc verify gate: %v\n", cErr)
+				return 1
+			}
+			_ = emitRawJSON(json.MarshalIndent(rep, "", "  "))
+			if Verdict(rep.Verdict) != VerdictPass {
+				return 1
+			}
+			return 0
+		}
 		fmt.Fprintf(os.Stderr, "arc verify gate: story %q not found: %v\n", id, err)
 		return 1
 	}
@@ -227,16 +238,17 @@ func cmdGate(args []string) int {
 // 响应体
 // code 进程退出状态码
 func cmdTaskProof(args []string) int {
-	// 1. 解析图ID、任务ID与验证账本路径
+	// 1. 解析图ID、任务ID、验证义务与账本路径
 	fl := flag.NewFlagSet("task-proof", flag.ContinueOnError)
-	graphID := fl.String("graph", "", "story_id")
-	taskID := fl.String("task", "", "story_id/route_id")
+	graphID := fl.String("graph", "", "story_id or plan_id")
+	taskID := fl.String("task", "", "story_id/route_id or plan_id/technique_id")
+	obligation := fl.String("obligation", "", "optional route_id, technique_id, or all")
 	dbPath := fl.String("db", defaultVerifyDB, "ledger database path")
 	if _, err := parseInterleavedFlags(fl, args); err != nil || *graphID == "" || *taskID == "" {
-		fmt.Fprintln(os.Stderr, "usage: arc verify task-proof --graph <story_id> --task <story_id/route_id> [--db PATH]")
+		fmt.Fprintln(os.Stderr, "usage: arc verify task-proof --graph <story_id> --task <story_id/route_id> [--obligation ID] [--db PATH]")
 		return 2
 	}
-	// 2. 查询当前故事线版本下目标路由的最新通过收据
+	// 2. 加载账本并按故事线或代码测试计划分发证明校验
 	ledger, err := openStoryLedger(*dbPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "arc verify task-proof: %v\n", err)
@@ -245,72 +257,17 @@ func cmdTaskProof(args []string) int {
 	defer ledger.Close()
 	s, err := ledger.LoadStoryDefinition(*graphID)
 	if err != nil {
+		if codeExit, handled := tryEmitCodeTaskProofWithObligation(ledger, *graphID, *taskID, *obligation); handled {
+			return codeExit
+		}
 		fmt.Fprintf(os.Stderr, "arc verify task-proof: %v\n", err)
 		return 1
 	}
-	routeID := strings.TrimPrefix(*taskID, *graphID+"/")
-	recs, err := ledger.ListRouteResults(*graphID)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "arc verify task-proof: %v\n", err)
-		return 1
+	routeID := strings.TrimSpace(*obligation)
+	if routeID == "" {
+		routeID = strings.TrimPrefix(*taskID, *graphID+"/")
 	}
-	var latest *RouteResultRecord
-	for i := range recs {
-		if recs[i].RouteID == routeID && recs[i].StorySHA256 == s.SHA256 {
-			latest = &recs[i]
-		}
-	}
-	if latest == nil || Verdict(latest.Verdict) != VerdictPass || latest.SoftlockDetected {
-		_ = emitRawJSON(json.MarshalIndent(taskProofResponse{
-			Version:      1,
-			Graph:        *graphID,
-			Task:         *taskID,
-			ObligationID: routeID,
-			Verdict:      string(VerdictNotRun),
-			Reason:       "no current passing storyline route receipt",
-		}, "", "  "))
-		return 1
-	}
-	// 3. 收集路由收据及去重后的六维步骤轨迹指纹组装具名 taskProofResponse
-	rawDigests := []string{latest.ReceiptSHA256}
-	seenDigest := map[string]bool{latest.ReceiptSHA256: true}
-	if traces, tErr := ledger.ListStepTraces(*graphID, latest.RunID, routeID); tErr == nil {
-		for _, tr := range traces {
-			if len(tr.TraceSHA256) == 64 && !seenDigest[tr.TraceSHA256] {
-				seenDigest[tr.TraceSHA256] = true
-				rawDigests = append(rawDigests, tr.TraceSHA256)
-			}
-		}
-	}
-	root, _ := filepath.Abs(".")
-	if resolved, rErr := filepath.EvalSymlinks(root); rErr == nil {
-		root = resolved
-	}
-	return emitRawJSON(json.MarshalIndent(taskProofResponse{
-		Version:         1,
-		Graph:           *graphID,
-		Task:            *taskID,
-		ObligationID:    routeID,
-		Run:             latest.RunID,
-		Round:           latest.LoadSave,
-		Verdict:         string(VerdictPass),
-		ProofScope:      "linked_task_evidence",
-		InputsUnchanged: true,
-		EvidenceStatus:  string(VerdictPass),
-		Context: &taskProofContextInfo{
-			Graph:        *graphID,
-			Environment:  latest.RuntimeNS,
-			Target:       s.FocalEntity,
-			SourceCommit: currentGitHead(root),
-			SourceSHA256: sha256Hex([]byte(s.SHA256)),
-			ConfigSHA256: s.SHA256,
-			GraphSHA256:  s.SHA256,
-			SourceRoot:   root,
-			ConfigPath:   s.SourcePath,
-		},
-		RAWSHA256:     rawDigests,
-		ReceiptSHA256: latest.ReceiptSHA256,
-	}, "", "  "))
+	return emitStoryTaskProof(ledger, s, *graphID, *taskID, routeID)
 }
 
 // cmdSnapshot 导出只读静态HTML与JSON六维流程图工作台
@@ -334,7 +291,7 @@ func cmdSnapshot(args []string) int {
 		return 1
 	}
 	defer ledger.Close()
-	// 2. 从YAML文件或账本加载故事线定义
+	// 2. 只读加载YAML文件或账本内故事线定义（绝不隐式写回账本）
 	var s *Storyline
 	if *file != "" {
 		s, err = loadStoryline(*file)
@@ -342,7 +299,6 @@ func cmdSnapshot(args []string) int {
 			fmt.Fprintf(os.Stderr, "arc verify snapshot: %v\n", err)
 			return 1
 		}
-		_ = ledger.SaveStoryDefinition(s)
 	} else if *storyID != "" {
 		s, err = ledger.LoadStoryDefinition(*storyID)
 		if err != nil {
@@ -363,4 +319,17 @@ func cmdSnapshot(args []string) int {
 		Exported:     true,
 		Out:          *outDir,
 	}, "", "  "))
+}
+
+// tryEmitCodeTaskProof 尝试为代码级验证计划及测试技术义务导出原生任务完成证明
+// 请求体
+// ledger 验证账本实例指针
+// graphID 计划ID
+// taskID 完整验证任务ID
+// 响应体
+// exitCode 进程退出状态码
+// handled 是否匹配并处理了代码验证计划
+func tryEmitCodeTaskProof(ledger *StoryLedger, graphID, taskID string) (exitCode int, handled bool) {
+	// 1. 委托含修订绑定与跨提交校验的通用证明导出函数
+	return tryEmitCodeTaskProofWithObligation(ledger, graphID, taskID, "")
 }

@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -17,19 +18,50 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+// parseWatchTTL 解析 --ttl 参数，同时兼容纯分钟数与Go时长表达式
+// 请求体
+// raw 原始命令行参数字符串
+// 响应体
+// d 解析后的超时时长
+// err 格式非法错误
+func parseWatchTTL(raw string) (time.Duration, error) {
+	// 1. 优先尝试按整数分钟解析，兼容 --ttl 15
+	trimmed := strings.TrimSpace(raw)
+	if mins, err := strconv.Atoi(trimmed); err == nil {
+		if mins <= 0 {
+			return 0, fmt.Errorf("ttl minutes must be positive, got %d", mins)
+		}
+		return time.Duration(mins) * time.Minute, nil
+	}
+	// 2. 回退标准 time.ParseDuration 解析（如 15m、1h）
+	d, err := time.ParseDuration(trimmed)
+	if err != nil {
+		return 0, err
+	}
+	if d <= 0 {
+		return 0, fmt.Errorf("ttl duration must be positive, got %s", d)
+	}
+	return d, nil
+}
+
 // cmdWatch runs the foreground incremental indexer required by arc:explore:
 // fsnotify-driven rebuilds with debounce, an idle TTL so RAM is released
 // when nobody is working, a hard memory limit, and orphan self-termination.
 func cmdWatch(args []string) error {
 	fl := flag.NewFlagSet("watch", flag.ExitOnError)
 	repoDir := fl.String("repo", ".", "repository root or any directory inside it")
-	ttl := fl.Duration("ttl", 30*time.Minute, "exit after this long without file events")
+	ttlStr := fl.String("ttl", "30m", "exit after this long without file events (minutes or duration, e.g. 15 or 30m)")
 	memMB := fl.Int64("mem", 512, "soft memory limit in MiB (Go GC target)")
 	debounce := fl.Duration("debounce", 800*time.Millisecond, "quiet period before reindexing")
 	pidFile := fl.Bool("pidfile", false, "write .ai-code-index/daemon.pid (used by daemon start)")
 	if err := fl.Parse(args); err != nil {
 		return err
 	}
+	ttlVal, err := parseWatchTTL(*ttlStr)
+	if err != nil {
+		return fmt.Errorf("invalid --ttl %q: %w", *ttlStr, err)
+	}
+	ttl := &ttlVal
 	repo, err := findRepo(*repoDir)
 	if err != nil {
 		return err
@@ -147,6 +179,7 @@ func reindexQuiet(repo *Repo) error {
 	if err := buildZoekt(repo, files); err != nil {
 		return err
 	}
+	_ = saveManifest(repo, collectRepoHashes(repo, files))
 	if err := buildTags(repo, files); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: ctags rebuild failed: %v\n", err)
 	}
@@ -155,15 +188,16 @@ func reindexQuiet(repo *Repo) error {
 
 // cmdDaemon manages a detached background watcher with a pid file.
 func cmdDaemon(args []string) error {
-	if len(args) < 1 {
-		return fmt.Errorf("usage: arc idx daemon start|stop|status|restart")
-	}
-	sub, rest := args[0], args[1:]
 	fl := flag.NewFlagSet("daemon", flag.ExitOnError)
 	repoDir := fl.String("repo", ".", "repository root or any directory inside it")
-	if err := fl.Parse(rest); err != nil {
+	positional, err := parseInterleaved(fl, args)
+	if err != nil {
 		return err
 	}
+	if len(positional) < 1 {
+		return fmt.Errorf("usage: arc idx daemon start|stop|status|restart [--repo DIR]")
+	}
+	sub := positional[0]
 	repo, err := findRepo(*repoDir)
 	if err != nil {
 		return err

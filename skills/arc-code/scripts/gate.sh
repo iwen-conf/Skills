@@ -66,8 +66,10 @@ import tempfile
 import time
 
 ART = ".arc/artifacts/"
+ARC_DIR = ".arc/"
 DOCS = (".md", ".mdx", ".markdown", ".rst", ".adoc")
 TS = (".ts", ".tsx", ".mts", ".cts")
+JS_LIKE = TS + (".js", ".jsx", ".mjs", ".cjs")
 BLOB_LIMIT = 4 << 20
 HUNK = re.compile(rb"^@@ -[0-9,]+ \+([0-9]+)")
 DIFF_OPTS = ["-U0", "--no-color", "--no-ext-diff", "--no-textconv"]
@@ -77,8 +79,8 @@ TEST_FILE = re.compile(r"(?:^test_.*\.py|_test\.(?:go|py)|\.(?:test|spec)\.[cm]?
                        r"|Tests?\.(?:java|kt|kts|swift|cs)|\.test\.ets|^conftest\.py)$")
 # A red run must fail inside a test; these mean the test never compiled, imported or ran.
 BUILD_ERROR = re.compile(r"\[build failed\]|\bundefined: |\bcannot find package\b|\bcould not compile\b"
-                         r"|\berror\[E\d{4}\]|\bTS\d{4}:|Cannot find module|\bModuleNotFoundError\b"
-                         r"|\bImportError\b|\bSyntaxError\b|\bERROR collecting\b|\berrors? during collection\b"
+                         r"|\berror\[E\d{4}\]|\bTS\d{4}:|Cannot find module|\bModuleNotFoundError:"
+                         r"|\bImportError:|\bSyntaxError:|\bERROR collecting\b|\berrors? during collection\b"
                          r"|\bcannot find symbol\b|\bUnresolved reference\b|error: cannot find '[^']+' in scope"
                          r"|(?m:^FAIL[ \t]+[^\r\n]+\[setup failed\]$)"
                          r"|(?m:^go: [^\r\n]*no space left on device$)")
@@ -92,7 +94,7 @@ GO_TEST_FUNC = re.compile(r"^(?:Test|Benchmark|Fuzz|Example)(?:[A-Z0-9_]|$)")
 PLACEHOLDER = [(None, re.compile(p)) for p in (
     r"\bTODO\b",
     r"\bFIXME\b",
-    r"\bXXX\b",
+    r"(?<!\.)\bXXX\b",
     r"\bTBD\b",
     r"\bpanic\(\s*\"(?i:not implemented|todo)\"\s*\)",
     r"\bthrow\s+new\s+Error\(\s*[\"'`](?i:not implemented|todo)[\"'`]\s*\)",
@@ -105,20 +107,147 @@ PLACEHOLDER = [(None, re.compile(p)) for p in (
 SUPPRESSION = [(None, re.compile(p)) for p in (
     r"//\s*nolint\b",
     r"\beslint-disable",
+    r"\boxlint-disable",
     r"@ts-(?:ignore|expect-error|nocheck)\b",
     r"#\s*type:\s*ignore\b",
     r"#\s*noqa\b",
     r"#\s*pyright:\s*ignore\b",
-)] + [
-    (TS, re.compile(r":\s*any\b")),
-    (TS, re.compile(r"\bas\s+any\b")),
-]
-GO_WEAK_TYPE = [
-    re.compile(r"\bany\b"),
-    re.compile(r"\binterface\s*\{\s*\}"),
-]
-GO_NAMED_IFACE = re.compile(r"^\s*type\s+[A-Za-z_][A-Za-z0-9_]*\s+interface\b")
+)]
+TS_ANY_RULES = (
+    re.compile(r":\s*any\b(?!\s+[A-Za-z_$])"),
+    re.compile(r"\bas\s+any\b(?!\s+[A-Za-z_$])"),
+)
+JSX_UI_EXTS = (".tsx", ".jsx", ".astro")
+GENERATED_WEB_PATH = re.compile(r"(?:^|/)(?:generated|__generated__)/|\.gen\.[cm]?[jt]sx?$")
+STATIC_CLICK_TAGS = {
+    "div", "span", "p", "section", "article", "header", "footer",
+    "main", "aside", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "img", "svg",
+}
+ROLE_FAKE_TAGS = {"div", "span", "p", "section", "article", "li"}
+ROLE_FAKE_RE = re.compile(
+    r"""\brole\s*=\s*(?:["'](?:button|link|checkbox|radio|textbox)["']|\{\s*["'](?:button|link|checkbox|radio|textbox)["']\s*\})"""
+)
+BAD_HREF_RE = re.compile(
+    r"""\bhref\s*=\s*(?:["'](?:#|javascript:[^"']*)["']|\{\s*["'](?:#|javascript:[^"']*)["']\s*\})"""
+)
+STOP_PROP_ONLY_RE = re.compile(
+    r"""^\{\s*(?:\(\s*[A-Za-z_$][\w$]*(?:\s*:\s*[^)]+)?\s*\)|[A-Za-z_$][\w$]*)\s*=>\s*(?:\{\s*)?[A-Za-z_$][\w$]*\.stopPropagation\(\s*\)\s*;?\s*(?:\}\s*)?\}$"""
+)
+FRAMER_MOTION_RE = re.compile(r"""(?:from|import)\s+["']framer-motion["']""")
+CSS_STYLE_EXTS = (".css", ".scss", ".less")
+ZOOM_CHECK_EXTS = (".html", ".astro", ".tsx", ".jsx")
+TRANSITION_ALL_CLASS_RE = re.compile(r"(?<![A-Za-z0-9_-])transition-all(?![A-Za-z0-9_-])")
+TRANSITION_ALL_CSS_RE = re.compile(r"\btransition\s*:\s*all\b", re.I)
+OUTLINE_NONE_RE = re.compile(r"(?<![A-Za-z0-9_-])outline-(?:none|0)(?![A-Za-z0-9_-])|\boutline\s*:\s*(?:none|0)\b")
+FOCUS_REPLACEMENT_RE = re.compile(r"focus-visible:(?!outline-(?:none|0)\b)|focus:ring|focus:outline-(?!none\b|0\b)|ring-offset|focusRing")
+POS_TABINDEX_RE = re.compile(r"""\btabIndex\s*=\s*(?:\{\s*[1-9]\d*\s*\}|["'][1-9]\d*["'])""", re.I)
+ZOOM_DISABLE_RE = re.compile(r"\b(?:user-scalable\s*=\s*no|maximum-scale\s*=\s*1(?:\.0+)?(?![0-9.]))", re.I)
+GO_NAMED_IFACE = re.compile(r"^\s*type\s+[A-Za-z_][A-Za-z0-9_]*(?:\s*\[[^\]]+\])?\s+interface\s*\{")
+GO_GROUP_NAMED_IFACE = re.compile(r"^\s*[A-Za-z_][A-Za-z0-9_]*(?:\s*\[[^\]]+\])?\s+interface\s*\{")
 GO_INLINE_IFACE = re.compile(r"\binterface\s*\{")
+GO_EMPTY_IFACE = re.compile(r"\binterface\s*\{\s*\}")
+GO_TYPE_GROUP_OPEN = re.compile(r"^\s*type\s*\(")
+GO_VAR_ANY_DECL = re.compile(r"\bvar\s+any\b")
+GO_FUNC_ANY_DECL = re.compile(r"\bfunc\s+any\s*(?:\[|\()")
+
+
+def strip_js_comments_and_strings(all_lines):
+    src = "\n".join(all_lines)
+    out = []
+    i, n = 0, len(src)
+    state = "code"
+    while i < n:
+        ch = src[i]
+        nxt = src[i + 1] if i + 1 < n else ""
+        if state == "code":
+            if ch == "/" and nxt == "/":
+                out.extend((" ", " "))
+                i += 2
+                state = "line_comment"
+            elif ch == "/" and nxt == "*":
+                out.extend((" ", " "))
+                i += 2
+                state = "block_comment"
+            elif ch in ('"', "'", "`"):
+                out.append(" ")
+                i += 1
+                state = ch
+            else:
+                out.append(ch)
+                i += 1
+        elif state == "line_comment":
+            if ch == "\n":
+                out.append("\n")
+                state = "code"
+            else:
+                out.append(" ")
+            i += 1
+        elif state == "block_comment":
+            if ch == "*" and nxt == "/":
+                out.extend((" ", " "))
+                i += 2
+                state = "code"
+            else:
+                out.append("\n" if ch == "\n" else " ")
+                i += 1
+        else:
+            if ch == "\\" and i + 1 < n:
+                out.append(" ")
+                out.append("\n" if nxt == "\n" else " ")
+                i += 2
+            elif ch == state:
+                out.append(" ")
+                i += 1
+                state = "code"
+            elif ch == "\n" and state != "`":
+                out.append("\n")
+                i += 1
+                state = "code"
+            else:
+                out.append("\n" if ch == "\n" else " ")
+                i += 1
+    return "".join(out).split("\n")
+
+
+def go_type_block_lines(code_lines):
+    in_block = [False] * len(code_lines)
+    depth = 0
+    for idx, line in enumerate(code_lines):
+        if depth == 0 and GO_TYPE_GROUP_OPEN.match(line):
+            depth = line.count("(") - line.count(")")
+            in_block[idx] = True
+            if depth < 0:
+                depth = 0
+            continue
+        if depth > 0:
+            in_block[idx] = True
+            depth += line.count("(") - line.count(")")
+            if depth < 0:
+                depth = 0
+    return in_block
+
+
+def find_go_weak_type(code_line, in_type_block):
+    if GO_EMPTY_IFACE.search(code_line):
+        return "interface{}"
+    for m in re.finditer(r"\bany\b", code_line):
+        start, end = m.start(), m.end()
+        before = code_line[:start]
+        after = code_line[end:]
+        if before.endswith("."):
+            continue
+        if re.match(r"^\s*:?=(?!=)", after) and not re.search(r"^\s*type\b.*=\s*$", before):
+            continue
+        if GO_VAR_ANY_DECL.search(code_line[max(0, start - 16):end]):
+            continue
+        if GO_FUNC_ANY_DECL.search(code_line[max(0, start - 16):min(len(code_line), end + 8)]):
+            continue
+        return "any"
+    if GO_INLINE_IFACE.search(code_line):
+        if GO_NAMED_IFACE.match(code_line) or (in_type_block and GO_GROUP_NAMED_IFACE.match(code_line)):
+            return None
+        return "inline interface{...}"
+    return None
 
 
 def strip_go_comments_and_strings(all_lines):
@@ -269,12 +398,12 @@ def snapshot(root, artdir, head, branch, task, out):
         if "R" in entry["xy"] or "C" in entry["xy"]:
             entry["orig"] = os.fsdecode(fields[i])
             i += 1
-        if not entry["path"].startswith(ART):
+        if not (entry["path"] == ".arc" or entry["path"].startswith(ARC_DIR)):
             entries.append(entry)
     files = {}
     for entry in entries:
         for path in (entry["path"], entry.get("orig")):
-            if not path or path in files or path.startswith(ART):
+            if not path or path in files or path == ".arc" or path.startswith(ARC_DIR):
                 continue
             state, data = file_state(os.path.join(root, path))
             blob = None
@@ -313,7 +442,7 @@ def changeset(root, base, files, untracked):
     paths.update(files)
     keep = []
     for path in sorted(paths):
-        if path.startswith(ART):
+        if path == ".arc" or path.startswith(ARC_DIR):
             continue
         if path in files and file_state(os.path.join(root, path))[0] == files[path].get("hash"):
             continue
@@ -364,7 +493,7 @@ def check_go_added_comments(path, label, all_lines, added_nums):
         if fn_name in ("main", "init"):
             continue
         brace_idx = -1
-        for j in range(idx, min(total, idx + 15)):
+        for j in range(idx, min(total, idx + 40)):
             if "{" in all_lines[j]:
                 brace_idx = j
                 break
@@ -397,13 +526,190 @@ def check_go_added_comments(path, label, all_lines, added_nums):
     return hits
 
 
+def _extract_attr_expr(attr_text, attr_name):
+    m = re.search(r"\b" + re.escape(attr_name) + r"\s*=\s*", attr_text)
+    if not m:
+        return ""
+    pos = m.end()
+    if pos >= len(attr_text):
+        return ""
+    if attr_text[pos] != "{":
+        if attr_text[pos] in ('"', "'"):
+            q = attr_text[pos]
+            end = pos + 1
+            while end < len(attr_text):
+                if attr_text[end] == "\\" and end + 1 < len(attr_text):
+                    end += 2
+                elif attr_text[end] == q:
+                    return attr_text[pos:end + 1]
+                else:
+                    end += 1
+        return attr_text[pos:pos + 40]
+    depth = 0
+    quote = None
+    i = pos
+    while i < len(attr_text):
+        ch = attr_text[i]
+        if quote is not None:
+            if ch == "\\" and i + 1 < len(attr_text):
+                i += 2
+                continue
+            if ch == quote:
+                quote = None
+        else:
+            if ch in ('"', "'", "`"):
+                quote = ch
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return attr_text[pos:i + 1]
+        i += 1
+    return attr_text[pos:]
+
+
+def extract_jsx_opening_tags(all_lines):
+    src = "\n".join(all_lines)
+    n = len(src)
+    i = 0
+    line = 1
+    tags = []
+    while i < n:
+        ch = src[i]
+        nxt = src[i + 1] if i + 1 < n else ""
+        if ch == "\n":
+            line += 1
+            i += 1
+            continue
+        if ch == "/" and nxt == "/":
+            nl = src.find("\n", i)
+            if nl < 0:
+                break
+            line += 1
+            i = nl + 1
+            continue
+        if ch == "/" and nxt == "*":
+            end = src.find("*/", i + 2)
+            if end < 0:
+                break
+            line += src[i:end + 2].count("\n")
+            i = end + 2
+            continue
+        if src[i:i + 4] == "<!--":
+            end = src.find("-->", i + 4)
+            if end < 0:
+                break
+            line += src[i:end + 3].count("\n")
+            i = end + 3
+            continue
+        if ch == "<" and (i == 0 or not (src[i - 1].isalnum() or src[i - 1] in ("_", "$"))):
+            m = re.match(r"([A-Za-z][A-Za-z0-9_.-]*)(?=[\s/>])", src[i + 1:i + 40])
+            if m:
+                tag = m.group(1)
+                start_line = line
+                j = i + 1 + len(tag)
+                cur_line = line
+                depth = 0
+                quote = None
+                limit = min(n, j + 4000)
+                closed = False
+                aborted = False
+                while j < limit:
+                    c = src[j]
+                    if c == "\n":
+                        cur_line += 1
+                        j += 1
+                        continue
+                    if quote is not None:
+                        if c == "\\" and j + 1 < limit:
+                            if src[j + 1] == "\n":
+                                cur_line += 1
+                            j += 2
+                            continue
+                        if c == quote:
+                            quote = None
+                        j += 1
+                        continue
+                    if c == "/" and j + 1 < limit and src[j + 1] == "/":
+                        nl = src.find("\n", j)
+                        if nl < 0 or nl >= limit:
+                            aborted = True
+                            break
+                        cur_line += 1
+                        j = nl + 1
+                        continue
+                    if c == "/" and j + 1 < limit and src[j + 1] == "*":
+                        end_c = src.find("*/", j + 2)
+                        if end_c < 0 or end_c >= limit:
+                            aborted = True
+                            break
+                        cur_line += src[j:end_c + 2].count("\n")
+                        j = end_c + 2
+                        continue
+                    if c in ('"', "'", "`"):
+                        quote = c
+                    elif c == "{":
+                        depth += 1
+                    elif c == "}":
+                        if depth > 0:
+                            depth -= 1
+                    elif depth == 0 and c in (";", "<"):
+                        aborted = True
+                        break
+                    elif c == ">" and depth == 0:
+                        attrs = src[i + 1 + len(tag):j]
+                        if attrs.endswith("/"):
+                            attrs = attrs[:-1]
+                        tags.append((tag, start_line, cur_line, attrs))
+                        line = cur_line
+                        i = j + 1
+                        closed = True
+                        break
+                    j += 1
+                if closed:
+                    continue
+                if aborted and j < limit and src[j] == "<":
+                    line = cur_line
+                    i = j
+                    continue
+        i += 1
+    return tags
+
+
+def check_web_ui_added(path, label, all_lines, added_nums):
+    if GENERATED_WEB_PATH.search(path) or is_test_path(path):
+        return []
+    hits = []
+    for tag, sline, eline, attrs in extract_jsx_opening_tags(all_lines):
+        if not any(ln in added_nums for ln in range(sline, eline + 1)):
+            continue
+        if tag in STATIC_CLICK_TAGS and re.search(r"\bonClick\s*=", attrs):
+            expr = _extract_attr_expr(attrs, "onClick")
+            if not STOP_PROP_ONLY_RE.match(expr):
+                hits.append("%s:%d: static <%s> with onClick (use <button>, <a>/<Link>, or shadcn/ui primitive)" % (label, sline, tag))
+        if tag in ROLE_FAKE_TAGS and ROLE_FAKE_RE.search(attrs):
+            hits.append("%s:%d: role-faked <%s role=...> (use native semantic HTML tag instead)" % (label, sline, tag))
+        if tag == "a" and BAD_HREF_RE.search(attrs):
+            hits.append("%s:%d: placeholder <a href> (use <button> for actions or a real route)" % (label, sline))
+        if TRANSITION_ALL_CLASS_RE.search(attrs) or TRANSITION_ALL_CSS_RE.search(attrs):
+            hits.append("%s:%d: forbidden transition-all on <%s> (list explicit transform/opacity properties)" % (label, sline, tag))
+        if OUTLINE_NONE_RE.search(attrs) and not FOCUS_REPLACEMENT_RE.search(attrs):
+            hits.append("%s:%d: outline-none without focus-visible replacement on <%s>" % (label, sline, tag))
+        if POS_TABINDEX_RE.search(attrs):
+            hits.append("%s:%d: positive tabIndex on <%s> (use 0 or -1 only)" % (label, sline, tag))
+        if re.search(r"\bonPaste\s*=", attrs) and "preventDefault" in _extract_attr_expr(attrs, "onPaste"):
+            hits.append("%s:%d: onPaste blocks user paste on <%s>" % (label, sline, tag))
+    return hits
+
+
 def analyze(root, base, baseline, outdir):
     files = load_baseline(baseline).get("files", {})
     blobdir = os.path.dirname(baseline) if baseline else ""
     untracked = set(zsplit(git(root, ["ls-files", "--others", "--exclude-standard", "-z"])))
     changed = changeset(root, base, files, untracked)
     write_list(os.path.join(outdir, "changed"), changed)
-    found = {"placeholders": [], "suppressions": [], "go_file_lines": [], "go_comments": []}
+    found = {"placeholders": [], "suppressions": [], "go_file_lines": [], "go_comments": [], "web_ui_a11y": []}
     for path in changed:
         full = os.path.join(root, path)
         if os.path.islink(full) or not os.path.isfile(full) or path.lower().endswith(DOCS):
@@ -415,7 +721,12 @@ def analyze(root, base, baseline, outdir):
         ext = os.path.splitext(path)[1].lower()
         label = path.replace("\n", "\\n")
         lines = path_added_lines(root, base, files, blobdir, untracked, path)
+        added_nums = {num for num, _ in lines}
         go_code_lines = None
+        go_type_blocks = None
+        ts_code_lines = None
+        web_ui_lines = None
+        css_code_lines = None
         if ext == ".go" and "/vendor/" not in ("/" + path) and not GENERATED_GO.search(head_bytes):
             with open(full, "rb") as fh:
                 raw_all = fh.read()
@@ -423,9 +734,21 @@ def analyze(root, base, baseline, outdir):
             if line_count > MAX_GO_LINES:
                 found["go_file_lines"].append("%s: %d lines (exceeds %d-line Go file limit)" % (label, line_count, MAX_GO_LINES))
             all_lines = raw_all.decode("utf-8", "replace").splitlines()
-            added_nums = {num for num, _ in lines}
             found["go_comments"].extend(check_go_added_comments(path, label, all_lines, added_nums))
             go_code_lines = strip_go_comments_and_strings(all_lines)
+            go_type_blocks = go_type_block_lines(go_code_lines)
+        elif ext in TS or ext in JSX_UI_EXTS or ext in CSS_STYLE_EXTS:
+            with open(full, "rb") as fh:
+                raw_lines = fh.read().decode("utf-8", "replace").splitlines()
+            if ext in TS:
+                ts_code_lines = strip_js_comments_and_strings(raw_lines)
+            if ext in JSX_UI_EXTS:
+                web_ui_lines = raw_lines
+                found["web_ui_a11y"].extend(check_web_ui_added(path, label, web_ui_lines, added_nums))
+            if ext in CSS_STYLE_EXTS and not GENERATED_WEB_PATH.search(path) and not is_test_path(path):
+                css_code_lines = strip_js_comments_and_strings(raw_lines)
+        is_web_script = ext in (JS_LIKE + (".astro",)) and not GENERATED_WEB_PATH.search(path)
+        is_zoom_surface = ext in ZOOM_CHECK_EXTS and not GENERATED_WEB_PATH.search(path) and not is_test_path(path)
         for number, raw in lines:
             text = raw.decode("utf-8", "replace")
             for key, rules in (("placeholders", PLACEHOLDER), ("suppressions", SUPPRESSION)):
@@ -436,16 +759,25 @@ def analyze(root, base, baseline, outdir):
                     if match:
                         found[key].append("%s:%d: %s" % (label, number, match.group(0).strip()[:60]))
                         break
-            if go_code_lines is not None and 1 <= number <= len(go_code_lines):
-                code_line = go_code_lines[number - 1]
-                weak_hit = None
-                for wrule in GO_WEAK_TYPE:
-                    m = wrule.search(code_line)
-                    if m:
-                        weak_hit = m.group(0).strip()
+            if is_web_script and not text.lstrip().startswith(("//", "/*", "*", "<!--")):
+                fm = FRAMER_MOTION_RE.search(text)
+                if fm and "//" not in text[:fm.start()]:
+                    found["web_ui_a11y"].append("%s:%d: legacy framer-motion import (import from 'motion/react')" % (label, number))
+            if is_zoom_surface and not text.lstrip().startswith(("//", "/*", "*", "<!--")):
+                if ZOOM_DISABLE_RE.search(text):
+                    found["web_ui_a11y"].append("%s:%d: zoom-disabling viewport meta (user-scalable=no / maximum-scale=1)" % (label, number))
+            if css_code_lines is not None and 1 <= number <= len(css_code_lines):
+                if TRANSITION_ALL_CSS_RE.search(css_code_lines[number - 1]):
+                    found["web_ui_a11y"].append("%s:%d: forbidden transition: all (list explicit transform/opacity properties)" % (label, number))
+            if ts_code_lines is not None and 1 <= number <= len(ts_code_lines):
+                ts_line = ts_code_lines[number - 1]
+                for ts_rule in TS_ANY_RULES:
+                    match = ts_rule.search(ts_line)
+                    if match:
+                        found["suppressions"].append("%s:%d: %s" % (label, number, match.group(0).strip()[:60]))
                         break
-                if weak_hit is None and GO_INLINE_IFACE.search(code_line) and not GO_NAMED_IFACE.match(code_line):
-                    weak_hit = "inline interface{...}"
+            if go_code_lines is not None and 1 <= number <= len(go_code_lines):
+                weak_hit = find_go_weak_type(go_code_lines[number - 1], go_type_blocks[number - 1])
                 if weak_hit is not None:
                     found["suppressions"].append("%s:%d: forbidden Go weak/dynamic type (%s)" % (label, number, weak_hit))
     for key in found:
@@ -586,7 +918,11 @@ def red_inputs(root, cwd, argv):
 def red_kind(text):
     if NO_TESTS.search(text):
         return "none"
-    return "build" if BUILD_ERROR.search(text) else "assertion"
+    filtered = "\n".join(
+        line for line in text.splitlines()
+        if not line.lstrip().startswith(("=== RUN", "--- FAIL:", "--- PASS:"))
+    )
+    return "build" if BUILD_ERROR.search(filtered) else "assertion"
 
 
 def red_evidence(artdir, root, record):
@@ -806,8 +1142,8 @@ empty_tree() { git hash-object -t tree /dev/null; }
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
-# Rust is never compiled on the developer Mac; clippy and tests run on the remote build host.
-rust_compiles_here() { [ "$(uname -s)" != Darwin ]; }
+# Rust runs wherever cargo is installed (including macOS).
+rust_compiles_here() { have cargo; }
 
 run_tool() {
   local dir=$1
@@ -848,16 +1184,16 @@ is_kind() {
   case $1 in
     go) case $2 in *.go) return 0 ;; esac ;;
     gomod) case $2 in *.go | go.mod | */go.mod | go.sum | */go.sum) return 0 ;; esac ;;
-    js) case $2 in *.js | *.jsx | *.mjs | *.cjs | *.ts | *.tsx | *.mts | *.cts | *.vue | *.svelte) return 0 ;; esac ;;
+    js) case $2 in *.js | *.jsx | *.mjs | *.cjs | *.ts | *.tsx | *.mts | *.cts | *.vue | *.svelte | *.astro) return 0 ;; esac ;;
     tsproj)
       case $2 in
-        *.js | *.jsx | *.mjs | *.cjs | *.ts | *.tsx | *.mts | *.cts | *.vue | *.svelte) return 0 ;;
+        *.js | *.jsx | *.mjs | *.cjs | *.ts | *.tsx | *.mts | *.cts | *.vue | *.svelte | *.astro) return 0 ;;
         tsconfig*.json | */tsconfig*.json | package.json | */package.json) return 0 ;;
       esac
       ;;
     web)
       case $2 in
-        *.js | *.jsx | *.mjs | *.cjs | *.ts | *.tsx | *.mts | *.cts | *.vue | *.svelte) return 0 ;;
+        *.js | *.jsx | *.mjs | *.cjs | *.ts | *.tsx | *.mts | *.cts | *.vue | *.svelte | *.astro) return 0 ;;
         *.css | *.scss | *.less | *.html) return 0 ;;
       esac
       ;;
@@ -1116,7 +1452,7 @@ check_sql() {
   local f
   SQL_FILES=()
   for f in ${CHANGED[@]+"${CHANGED[@]}"}; do
-    case $f in *.sql) if [ -f "$ROOT/$f" ]; then SQL_FILES+=("$f"); fi ;; esac
+    case $f in *.sql) if [ -f "$ROOT/$f" ]; then SQL_FILES+=("./$f"); fi ;; esac
   done
   [ ${#SQL_FILES[@]} -gt 0 ] || return 1
   # The dialect is a project decision: lint only under the project's sqlfluff config.
@@ -1370,7 +1706,7 @@ check_red() {
       while IFS= read -r -d '' arg; do RED_ARGV+=("$arg"); done <"$TMP/redargv.$i"
       cwd=$(cat "$TMP/redcwd.$i")
       run_tool "$ROOT/$cwd" "${RED_ARGV[@]}"
-      if [ "$RC" -ne 0 ] || [ "$(py replay-kind "$TMP/out")" != assertion ]; then
+      if [ "$RC" -ne 0 ] || [ "$(py replay-kind "$TMP/out")" = none ]; then
         failed=$((failed + 1))
         cp "$TMP/out" "$TMP/redfail"
       fi
@@ -1395,6 +1731,7 @@ load_scope() {
   SCOPE_GLOBS=()
   while IFS= read -r line || [ -n "$line" ]; do
     line=${line%$'\r'}
+    case $line in *' #'*) line=${line%%' #'*} ;; esac
     line=${line#"${line%%[![:space:]]*}"}
     line=${line%"${line##*[![:space:]]}"}
     case $line in '' | '#'*) continue ;; esac
@@ -1403,12 +1740,19 @@ load_scope() {
 }
 
 in_scope() {
-  local g
+  local g g_root
   for g in ${SCOPE_GLOBS[@]+"${SCOPE_GLOBS[@]}"}; do
     case $g in */) g=$g* ;; esac
     # Scope globs must stay unquoted so they match as patterns.
     # shellcheck disable=SC2254
     case $1 in $g | $g/*) return 0 ;; esac
+    case $g in
+      \*\*/?*)
+        g_root=${g#\*\*/}
+        # shellcheck disable=SC2254
+        case $1 in $g_root) return 0 ;; esac
+        ;;
+    esac
   done
   return 1
 }
@@ -1591,6 +1935,7 @@ cmd_check() {
   check_hits suppressions "$TMP/suppressions"
   check_hits go-file-lines "$TMP/go_file_lines"
   check_hits go-comments "$TMP/go_comments"
+  check_hits web-ui-a11y "$TMP/web_ui_a11y"
   check_format
   check_lint
   check_tests
@@ -1610,25 +1955,9 @@ main() {
   fi
   CMD=$1
   shift
-  GATES_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/gates" && pwd)"
   case $CMD in
     -h | --help | help)
       usage
-      exit 0
-      ;;
-    scope)
-      exec bash "$GATES_DIR/scope.sh" "$@"
-      ;;
-    hygiene)
-      exec bash "$GATES_DIR/hygiene.sh" "$@"
-      ;;
-    test)
-      exec bash "$GATES_DIR/test.sh" "$@"
-      ;;
-    all)
-      bash "$GATES_DIR/scope.sh" "$@"
-      bash "$GATES_DIR/hygiene.sh" "$@"
-      bash "$GATES_DIR/test.sh" "$@"
       exit 0
       ;;
     start | check | red) ;;

@@ -5,11 +5,12 @@ import (
 	"os"
 )
 
-const version = "3.1.0"
+const version = "4.0.0"
 
-const usage = `arc verify %s — 6-Dimension Storyline & Full-Business E2E Verification Engine
+const usage = `arc verify %s — Dual Code-Level (26 Techniques) & Storyline 6D Verification Engine
 
 Usage:
+  arc verify code         <catalog|plan|run|explain|gate|snapshot> [flags]
   arc verify init         [--db PATH]
   arc verify scan-surface [--repo DIR] [--format json|yaml|ai-md]
   arc verify scan-world   <focal_entity> [--repo DIR] [--format json|yaml|ai-md]
@@ -44,11 +45,13 @@ func dispatch(cmd string, args []string) int {
 	// 1. 按闭合子命令集合分发至对应命令入口
 	switch cmd {
 	case "version", "--version", "-v":
-		fmt.Printf("arc-verify %s (storyline-6d-engine)\n", version)
+		fmt.Printf("arc-verify %s (code-26-and-storyline-6d-engine)\n", version)
 		return 0
 	case "help", "--help", "-h":
 		fmt.Printf(usage, version)
 		return 0
+	case "code":
+		return cmdCode(args)
 	case "init":
 		return cmdInit(args)
 	case "scan-surface":

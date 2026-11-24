@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -396,5 +397,133 @@ func TestRouteWithoutExecutableCommandIsBlockedNotPass(t *testing.T) {
 	}
 	if sum.Verdict != "BLOCKED" || sum.Completion.Verdict != "BLOCKED" {
 		t.Fatalf("route with no executable cmd must be BLOCKED, got run=%s comp=%s", sum.Verdict, sum.Completion.Verdict)
+	}
+}
+
+// TestOmittedSixDimEvidenceIsBlockedWithoutFabricatedActualStatus 验证声明六维探针却缺失结构化证据时判BLOCKED且不伪造ActualStatus
+func TestOmittedSixDimEvidenceIsBlockedWithoutFabricatedActualStatus(t *testing.T) {
+	dir := t.TempDir()
+	ledger, err := openStoryLedger(filepath.Join(dir, "story.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ledger.Close()
+
+	s := &Storyline{
+		StoryID:         "omitted_evidence_story",
+		FocalEntity:     "orders.id",
+		WorldFlags:      map[string]string{"wallet_balance": "wallets.balance"},
+		Checkpoints:     []Checkpoint{{SaveID: "save_1", Parent: "root"}},
+		RequiredEndings: []string{"END_1"},
+		Routes: []Route{
+			{
+				RouteID:       "r1",
+				LoadSave:      "save_1",
+				RuntimeNS:     "ns_r1",
+				UnlocksEnding: "END_1",
+				Sequence: []RouteStep{
+					{
+						Step:             1,
+						Choice:           "pay_order",
+						ExpectedBehavior: "ALLOW_TRANSITION",
+						ExpectStatus:     "PAID",
+						ButterflyProbes:  FactMap{"wallet_balance": FactInt(500)},
+						Cmd:              `echo "plain exit 0 without structured evidence"`,
+					},
+				},
+			},
+		},
+	}
+	sum, err := playStory(ledger, s, PlayOptions{RepoRoot: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sum.Verdict != "BLOCKED" || len(sum.StepTraces) != 1 || sum.StepTraces[0].Verdict != "BLOCKED" {
+		t.Fatalf("expected BLOCKED when 6D probes lack [ARC_STEP_EVIDENCE], got run=%s traces=%+v", sum.Verdict, sum.StepTraces)
+	}
+	if sum.StepTraces[0].ActualStatus != "" {
+		t.Fatalf("expected empty ActualStatus instead of fabricated ExpectStatus, got %q", sum.StepTraces[0].ActualStatus)
+	}
+}
+
+// TestScopesOverlapAndStoryTaskProofRevisionDrift 验证裸目录范围重叠判定及源码变更后Storyline任务证明拒绝复用
+func TestScopesOverlapAndStoryTaskProofRevisionDrift(t *testing.T) {
+	if !scopesOverlap("internal/payment", "internal/payment/service.go") {
+		t.Fatal("expected bare directory scope to overlap nested file path")
+	}
+	if scopesOverlap("internal/payment", "internal/payment_v2/service.go") {
+		t.Fatal("did not expect sibling directory prefix to overlap")
+	}
+
+	dir := t.TempDir()
+	srcFile := filepath.Join(dir, "service.go")
+	if err := os.WriteFile(srcFile, []byte("package svc\n// v1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ledger, err := openStoryLedger(filepath.Join(dir, ".arc", "verify", "story.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ledger.Close()
+
+	s := &Storyline{
+		StoryID:         "rev_story",
+		FocalEntity:     "orders.id",
+		WorldFlags:      map[string]string{"status": "orders.status"},
+		Checkpoints:     []Checkpoint{{SaveID: "save_1", Parent: "root"}},
+		RequiredEndings: []string{"END_1"},
+		Routes: []Route{
+			{
+				RouteID:       "r1",
+				LoadSave:      "save_1",
+				RuntimeNS:     "ns_r1",
+				UnlocksEnding: "END_1",
+				Sequence: []RouteStep{
+					{
+						Step:             1,
+						Choice:           "confirm",
+						ExpectedBehavior: "ALLOW_TRANSITION",
+						ExpectStatus:     "CONFIRMED",
+						ButterflyProbes:  FactMap{"status": FactString("CONFIRMED")},
+						Cmd:              `printf '[ARC_STEP_EVIDENCE]{"step":1,"actual_status":"CONFIRMED","actual_probes":{"status":"CONFIRMED"}}\n'`,
+					},
+				},
+			},
+		},
+	}
+	if sum, err := playStory(ledger, s, PlayOptions{RepoRoot: dir}); err != nil || sum.Verdict != "PASS" {
+		t.Fatalf("expected initial storyline PASS, got sum=%+v err=%v", sum, err)
+	}
+
+	captureStoryProof := func(obligation string) (int, taskProofResponse) {
+		oldOut := os.Stdout
+		rPipe, wPipe, pErr := os.Pipe()
+		if pErr != nil {
+			t.Fatal(pErr)
+		}
+		os.Stdout = wPipe
+		code := emitStoryTaskProof(ledger, s, "rev_story", "rev_story/"+obligation, obligation)
+		_ = wPipe.Close()
+		os.Stdout = oldOut
+		var buf [16384]byte
+		n, _ := rPipe.Read(buf[:])
+		_ = rPipe.Close()
+		var resp taskProofResponse
+		if uErr := json.Unmarshal(buf[:n], &resp); uErr != nil {
+			t.Fatalf("unmarshal story proof: %v (%s)", uErr, string(buf[:n]))
+		}
+		return code, resp
+	}
+
+	if code, proof := captureStoryProof("all"); code != 0 || proof.Verdict != "PASS" || !proof.InputsUnchanged {
+		t.Fatalf("expected valid storyline 'all' proof on clean source, got code=%d proof=%+v", code, proof)
+	}
+
+	// Mutate source file after passing run: task-proof MUST reject as NOT_RUN / STALE!
+	if err := os.WriteFile(srcFile, []byte("package svc\n// v2\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code, proof := captureStoryProof("r1"); code != 1 || proof.Verdict != "NOT_RUN" || proof.InputsUnchanged || proof.EvidenceStatus != "STALE" {
+		t.Fatalf("expected STALE/NOT_RUN after source edit, got code=%d proof=%+v", code, proof)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestSkeletonExtractsGoAndSQLWithoutBodies(t *testing.T) {
@@ -176,5 +177,46 @@ func TestDiffManifestDetectsChangesAndRemovals(t *testing.T) {
 	}
 	if len(removed) != 1 || removed[0] != "c.go" {
 		t.Fatalf("unexpected removed: %v", removed)
+	}
+}
+
+// TestFindRepoWorktreeFileIsolatedCacheAndWatchTTL 验证worktree .git文件识别、哈希隔离缓存目录与纯分钟TTL解析
+func TestFindRepoWorktreeFileIsolatedCacheAndWatchTTL(t *testing.T) {
+	base := t.TempDir()
+	wtA := filepath.Join(base, "a", "service")
+	wtB := filepath.Join(base, "b", "service")
+	subA := filepath.Join(wtA, "internal", "pkg")
+	if err := os.MkdirAll(subA, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(wtB, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Simulate git worktree .git regular files.
+	if err := os.WriteFile(filepath.Join(wtA, ".git"), []byte("gitdir: /tmp/main/.git/worktrees/a\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(wtB, ".git"), []byte("gitdir: /tmp/main/.git/worktrees/b\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	repoA, err := findRepo(subA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	repoB, err := findRepo(wtB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasSuffix(repoA.Root, filepath.Join("a", "service")) {
+		t.Fatalf("expected worktree root a/service from subdirectory, got %s", repoA.Root)
+	}
+	if repoA.IndexDir == repoB.IndexDir {
+		t.Fatalf("repos with same basename must have distinct IndexDir, got %s", repoA.IndexDir)
+	}
+	if d, err := parseWatchTTL("15"); err != nil || d != 15*time.Minute {
+		t.Fatalf("parseWatchTTL('15') failed: d=%v err=%v", d, err)
+	}
+	if d, err := parseWatchTTL("45s"); err != nil || d != 45*time.Second {
+		t.Fatalf("parseWatchTTL('45s') failed: d=%v err=%v", d, err)
 	}
 }

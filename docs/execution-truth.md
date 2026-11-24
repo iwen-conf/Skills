@@ -36,7 +36,7 @@ Honor explicit user scope tokens. If present, do not expand:
 | 明确不做 / out of scope / P4 / Hold | Record as non-goal | Implement "while we are here" |
 | 先别改包名/地址 | Temporary test edits only if user allows, then restore | Permanent package/id/url changes |
 
-If scope is missing on risky work, stop and write a brief (`arc:plan`) rather than guessing.
+If scope is missing on risky work, stop and write a brief (`arc-plan`) rather than guessing.
 
 ## 4. Domain identity keys
 
@@ -46,7 +46,7 @@ If scope is missing on risky work, stop and write a brief (`arc:plan`) rather th
 
 ## 5. Architecture paper-overs
 
-Moved to [coding-discipline.md](../Arc/_shared/coding-discipline.md) §4 (Arc code edits and reviews).
+See [contract.md](../skills/_shared/contract.md) and [go-conventions.md](../skills/_shared/go-conventions.md) for code edits and reviews.
 
 ## 6. Evidence-first root-cause repair
 
@@ -88,20 +88,20 @@ Complete fix boundary → Verification → Residual risk`.
 
 ## 7. Downstream task authoring
 
-Tasks written for another executor follow `Arc/arc:plan/references/task-docs.md`: bounded scope,
+Tasks written for another executor follow `arc-wave plan` and [arc-plan SKILL.md](../skills/arc-plan/SKILL.md): bounded scope,
 one verifiable outcome per subtask, current paths, and explicit "do not" items.
 
 ## 8. Think before coding
 
-Moved to [coding-discipline.md](../Arc/_shared/coding-discipline.md) §1.
+See [contract.md](../skills/_shared/contract.md) §2.
 
 ## 9. Simplicity ladder
 
-Moved to [coding-discipline.md](../Arc/_shared/coding-discipline.md) §2.
+See [contract.md](../skills/_shared/contract.md) §2.
 
 ## 10. Surgical edits
 
-Moved to [coding-discipline.md](../Arc/_shared/coding-discipline.md) §3.
+See [contract.md](../skills/_shared/contract.md) §2.
 
 ## 11. Self-improvement loop
 
@@ -111,5 +111,4 @@ Moved to [coding-discipline.md](../Arc/_shared/coding-discipline.md) §3.
 2. At session start in a repository that has `tasks/lessons.md`, review the lessons relevant to
    the task.
 3. Skills in this repository are the source of truth: when a lesson invalidates a skill rule,
-   update the skill under `Arc/` (or the vertical directory) here first, not only the installed
-   copy.
+   update the skill under `skills/` here first, not only the installed copy.

@@ -218,18 +218,16 @@ func repositoryRoot(arg string) (string, error) {
 	if err != nil || !st.IsDir() {
 		return "", fmt.Errorf("not a repository directory: %s", abs)
 	}
-	// 3. 当传入点号时沿父目录向上查找 .git 标记
-	if arg == "." {
-		for dir := abs; ; dir = filepath.Dir(dir) {
-			if _, statErr := os.Lstat(filepath.Join(dir, ".git")); statErr == nil {
-				return dir, nil
-			}
-			if filepath.Dir(dir) == dir {
-				break
-			}
+	// 3. 沿父目录向上查找 .git 标记（兼容主仓库目录与 git worktree .git 文件）
+	for dir := abs; ; dir = filepath.Dir(dir) {
+		if _, statErr := os.Lstat(filepath.Join(dir, ".git")); statErr == nil {
+			return dir, nil
+		}
+		if filepath.Dir(dir) == dir {
+			break
 		}
 	}
-	// 4. 返回最终锁定的目录绝对路径
+	// 4. 非Git目录时返回锁定目录绝对路径
 	return abs, nil
 }
 

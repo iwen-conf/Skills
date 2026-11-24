@@ -161,7 +161,6 @@ func gitBlobHashes(root string) (map[string]string, map[string]bool, bool) {
 	return blobs, dirty, true
 }
 
-
 // diffManifest returns sorted paths added, modified, or removed since prev.
 func diffManifest(prev, curr map[string]string) (changed []string, removed []string) {
 	for path, hash := range curr {

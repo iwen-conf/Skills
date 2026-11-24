@@ -22,7 +22,7 @@ const identity = "arc index engine %s — internal to arc (zoekt + ctags + ast-g
 const usage = identity + `
 
 Usage:
-  arc idx index    [--repo DIR] [--force]              incremental/full zoekt + ctags index
+  arc idx index    [--repo DIR] [--quiet] [--force] [--require-complete]  incremental/full zoekt + ctags index
   arc idx search   <query> [--profile P] [--prod-only] [--max N] [--context N] [--format json|ai-md]
   arc idx symbol   <name>  [--kind K] [--lang L] [--exact] [--format json|ai-md]
   arc idx skeleton <path...> [--all] [--format json|ai-md]         signatures & line ranges only

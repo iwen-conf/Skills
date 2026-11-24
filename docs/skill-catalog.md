@@ -1,3 +1,5 @@
+> **Current Architecture Note (v2.0)**: This repository now ships the lean 6-skill architecture (`arc-plan`, `arc-code`, `arc-verify`, `arc-audit`, `check`, `lazycat`) under [`skills/`](../skills/), synced to Claude Code, Codex, Grok Build, and Gemini CLI via [`hosts/host_profiles.json`](../hosts/host_profiles.json) and [`scripts/sync.sh`](../scripts/sync.sh). See [README.md](../README.md). The section below is retained as historical v1 archive reference.
+
 # 技能目录与分发边界
 
 2026-10-08 全量收敛后（[02 全量已安装技能架构评审](01-系统设计/02-全量技能架构评审.md)，任务 T08）：本机唯一技能入口 22 个，其中本仓 17 个可发现入口、仓外 5 个。原 162 个唯一目录、204 份磁盘副本中，其余内容要么作为路由的库条目随包安装（宿主不可发现），要么移入 `~/.skills-backup/2026-10-08-T08/`。2026-11-01 撤出未安装的仓外入口 `typesafe-ai`。

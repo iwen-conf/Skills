@@ -15,7 +15,7 @@ Before writing any test case, build a complete surface map so zero modules or ro
    - Every mutating business flow must test **cross-tenant / horizontal IDOR rejection** and **disabled/unprivileged role rejection** alongside the authorized actor.
 3. **Coupling & Closure Audit**:
    - Run `arc verify scan-world <entity.pk>` on every stateful core table so coupled foreign-key tables, balances, quotas, and topics are 100% bound into `world_flags`.
-   - When a state-machine spec exists, run `python3 ../arc-plan/scripts/check_closure.py check <spec>` to expose dead-end states, missing timeout/exception exits, unhandled duplicate/late events, and race points before runtime E2E begins.
+   - When a state-machine spec exists, run `python3 ~/.agents/skills/arc-plan/scripts/check_closure.py check <spec>` to expose dead-end states, missing timeout/exception exits, unhandled duplicate/late events, and race points before runtime E2E begins.
 
 ## 2. Phase 2: Designing Cases Across the 5 QA Behavior Tracks
 
@@ -41,6 +41,8 @@ For every business capability, design routes covering all applicable tracks rath
    - Redact raw passwords, tokens, and keys (`<REDACTED>`) in `actual_input` logs while keeping exact structural keys and digests.
 4. **Bounded Async Waiting (Zero `sleep`)**:
    - Poll the independent DB/API oracle with an explicit deadline and poll interval derived from the business SLA; fail immediately if an illegal intermediate state appears.
+5. **Web UI Semantic, A11y & Layout Gate**:
+   - Locate interactive controls exclusively with `getByRole`/`getByLabel` (never `data-testid` or CSS class selectors for clickable controls), run `@axe-core/playwright` (`new AxeBuilder({ page }).analyze()`) asserting zero WCAG A/AA violations alongside keyboard `Tab`/`Enter`/`Space` checks (verifying sticky headers/overlays never occlude focused elements), verify `320 / 375 / 768 / 1280` viewports (`document.documentElement.scrollWidth <= window.innerWidth`, pairwise `boundingBox()` non-overlap on sibling cards/controls, `>= 44x44` hit targets, and screenshot evidence), and run `break-ui` worst-case data stress checks (long unbroken email/URL, CJK/ZWJ emoji, `0`/`1`/`1000+` items, 404 avatar).
 
 ## 4. Phase 4: Audit Ledger & Scoped Repair Handoff
 

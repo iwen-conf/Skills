@@ -1,4 +1,4 @@
 interface:
   display_name: "Lazycat Microserver"
-  short_description: "Lazycat intake, non-invasive porting, copy-image, <=12MB LPK build & store gates."
+  short_description: "Lazycat intake, porting, copy-image, and LPK release gates."
   default_prompt: "Use $lazycat following AGENTS.md and references/cheatsheet.md."

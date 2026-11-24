@@ -3,16 +3,20 @@
 set -euo pipefail
 bin_dir="${1:?usage: smoke.sh BIN_DIR SKILLS_ROOT}"
 skills_root="${2:?usage: smoke.sh BIN_DIR SKILLS_ROOT}"
-tmp="$(mktemp -d)"
-trap 'rm -rf -- "$tmp"' EXIT
+bin_dir="$(cd -- "$bin_dir" && pwd)"
+skills_root="$(cd -- "$skills_root" && pwd)"
+work_root="$(mktemp -d)"
+trap 'rm -rf -- "$work_root"' EXIT
+mkdir -p "$work_root/repo" "$work_root/old" "$work_root/zoekt-cache"
+export ARC_IDX_CACHE_DIR="$work_root/zoekt-cache"
 
-cd "$tmp"
+cd "$work_root/repo"
 git init -q
 git config user.name "Arc CI"
 git config user.email "arc@example.invalid"
 echo "baseline" > README.txt
 git add README.txt
-git commit -qm baseline
+git -c commit.gpgsign=false commit -qm baseline
 mkdir -p .arc
 
 "$bin_dir/arc" db init --repo . > .arc/init.json
@@ -43,14 +47,13 @@ python3 -c 'import json; a=json.load(open(".arc/events.json")); assert a["count"
 python3 -c 'import json; a=json.load(open(".arc/status.json")); assert a["active"] and a["pending_events"]==0'
 
 # Independent verification: a separate repository holding a legacy graph.
-mkdir "$tmp/old"
-cd "$tmp/old"
+cd "$work_root/old"
 git init -q
 git config user.name "Arc CI"
 git config user.email "arc@example.invalid"
 echo "baseline" > README.txt
 git add README.txt
-git commit -qm baseline
+git -c commit.gpgsign=false commit -qm baseline
 "$bin_dir/arc" verify init >/dev/null
 "$bin_dir/arc" verify import --file "$skills_root/tools/arc-verify/examples/ecommerce-cancel.story.yaml" >/dev/null
 "$bin_dir/arc" verify lint-story "$skills_root/tools/arc-verify/examples/ecommerce-cancel.story.yaml" >/dev/null

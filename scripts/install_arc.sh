@@ -8,11 +8,20 @@ root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 dest="${1:-${HOME}/.local/bin}"
 mkdir -p -- "$dest"
 dest="$(cd -- "$dest" && pwd)"
-private="$(dirname -- "$dest")/libexec/arc"
+dest_parent="$(dirname -- "$dest")"
+if [ "$(basename -- "$dest")" = "bin" ] && [ "$dest_parent" != "/tmp" ] && [ "$dest_parent" != "/private/tmp" ] && [ "$dest_parent" != "${HOME}" ]; then
+  private="$dest_parent/libexec/arc"
+else
+  private="$dest/libexec/arc"
+fi
 
 if ! command -v go >/dev/null 2>&1; then
   printf 'arc installer: Go compiler not found on PATH\n' >&2
   exit 127
+fi
+if ! go help build 2>&1 | grep -q -- '-C' && ! go -C "$root" version >/dev/null 2>&1; then
+  printf 'arc installer: Go >= 1.20 is required for go -C\n' >&2
+  exit 1
 fi
 
 stage="$(mktemp -d "${TMPDIR:-/tmp}/arc-cli.XXXXXXXX")"
@@ -29,6 +38,7 @@ for engine in arc-idx arc-verify; do
   mv -f -- "$stage/$engine" "$private/$engine"
 done
 mv -f -- "$stage/arc" "$dest/arc"
+ln -sfn -- "$root/scripts/arc-wave.py" "$dest/arc-wave"
 
 # Earlier installers published the engines beside arc; that copy would stay callable.
 for engine in arc-idx arc-verify; do

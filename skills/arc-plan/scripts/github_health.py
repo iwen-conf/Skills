@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Maintenance and license precheck for GitHub repositories (arc-vet).
+"""Maintenance and license precheck for GitHub repositories (arc-plan).
 
 Reads the public GitHub REST API and prints JSON signals with warning codes. It is a
 precheck: it cannot judge whether commits are substantive, license obligations, or
@@ -13,8 +13,10 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import http.client
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -26,14 +28,19 @@ COMMIT_SAMPLE = 50
 RELEASE_SAMPLE = 20
 DAYS_PER_MONTH = 365.2425 / 12
 BOT_MARKERS = ("[bot]", "dependabot", "renovate", "github-actions", "pre-commit-ci")
-DEPRECATION_WORDS = ("deprecated", "unmaintained", "no longer maintained", "archived", "superseded", "moved to", "maintained at")
+DEPRECATION_RE = re.compile(
+    r"(?:^|[\s\[(])(?:is|now|was|marked|has been)\s+(?:deprecated|unmaintained|no longer maintained|archived|superseded)\b"
+    r"|^\s*(?:deprecated|unmaintained|archived|obsolete)\b[:\-!\]]*"
+    r"|\b(?:no longer maintained|moved to|maintained at|superseded by|in favor of)\b",
+    re.IGNORECASE,
+)
 UNKNOWN_LICENSES = {"", "NOASSERTION", "OTHER"}
 
 
 def fetch_json(path: str) -> Any:
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "arc-vet-github-health/1.0",
+        "User-Agent": "arc-plan-github-health/1.0",
         "X-GitHub-Api-Version": "2022-11-28",
     }
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
@@ -41,7 +48,9 @@ def fetch_json(path: str) -> Any:
         headers["Authorization"] = f"Bearer {token}"
     url = API + path
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=20) as response:
+        with urllib.request.urlopen(
+            urllib.request.Request(url, headers=headers), timeout=20
+        ) as response:
             return json.load(response)
     except urllib.error.HTTPError as exc:
         detail = f"HTTP {exc.code} for {url}"
@@ -68,10 +77,11 @@ def is_bot(commit: dict[str, Any]) -> bool:
         return True
     names = (
         author.get("login"),
-        (commit.get("committer") or {}).get("login"),
         ((commit.get("commit") or {}).get("author") or {}).get("name"),
     )
-    return any(marker in (name or "").lower() for name in names for marker in BOT_MARKERS)
+    return any(
+        marker in (name or "").lower() for name in names for marker in BOT_MARKERS
+    )
 
 
 def maintenance_tier(months: float | None) -> str:
@@ -96,7 +106,11 @@ def assess(
     """Turn raw API documents into signals. Pure: no network, no clock."""
     human = []
     for commit in commits:
-        date = parse_time(((commit.get("commit") or {}).get("committer") or {}).get("date"))
+        commit_obj = commit.get("commit") or {}
+        date = parse_time(
+            (commit_obj.get("author") or {}).get("date")
+            or (commit_obj.get("committer") or {}).get("date")
+        )
         if date and not is_bot(commit):
             human.append((date, (commit.get("sha") or "")[:8]))
     human.sort(reverse=True)
@@ -106,7 +120,9 @@ def assess(
     stable = [
         (parse_time(item["published_at"]), item.get("tag_name"))
         for item in releases
-        if item.get("published_at") and not item.get("draft") and not item.get("prerelease")
+        if item.get("published_at")
+        and not item.get("draft")
+        and not item.get("prerelease")
     ]
     stable.sort(reverse=True)
     latest = stable[0] if stable else None
@@ -116,12 +132,18 @@ def assess(
     tier = maintenance_tier(human_months)
     warnings = []
     if repo.get("archived") or repo.get("disabled"):
-        warnings.append("ARCHIVED_OR_DISABLED: reject as a new direct dependency; look for a successor")
-    description = (repo.get("description") or "").lower()
-    if any(word in description for word in DEPRECATION_WORDS):
-        warnings.append("DEPRECATION_HINT: description suggests deprecation; confirm and find the successor")
+        warnings.append(
+            "ARCHIVED_OR_DISABLED: reject as a new direct dependency; look for a successor"
+        )
+    description = repo.get("description") or ""
+    if DEPRECATION_RE.search(description):
+        warnings.append(
+            "DEPRECATION_HINT: description suggests deprecation; confirm and find the successor"
+        )
     if license_id in UNKNOWN_LICENSES:
-        warnings.append("LICENSE_UNKNOWN: no adoption or code copying until the license is confirmed")
+        warnings.append(
+            "LICENSE_UNKNOWN: no adoption or code copying until the license is confirmed"
+        )
     tier_warnings = {
         "unverified": f"HUMAN_ACTIVITY_NOT_VERIFIED: no non-bot commit in the last {len(commits)} commits",
         "reject-36m": "STALE_36M: default reject unless an evidenced exception is recorded",
@@ -131,10 +153,14 @@ def assess(
     if tier in tier_warnings:
         warnings.append(tier_warnings[tier])
     if release_months is None:
-        warnings.append("NO_STABLE_RELEASE: check tags and the registry's published versions")
+        warnings.append(
+            "NO_STABLE_RELEASE: check tags and the registry's published versions"
+        )
     elif release_months > 24:
         warnings.append("RELEASE_OLDER_THAN_24M: confirm the project still ships")
-    warnings.append("MANUAL_CHECK_REQUIRED: core-path diffs, issues, advisories, license compatibility, transitive deps")
+    warnings.append(
+        "MANUAL_CHECK_REQUIRED: core-path diffs, issues, advisories, license compatibility, transitive deps"
+    )
 
     def stamp(value: dt.datetime) -> str:
         return value.astimezone(dt.timezone.utc).isoformat(timespec="seconds")
@@ -146,27 +172,59 @@ def assess(
         "archived": bool(repo.get("archived")),
         "license_spdx_github_metadata": license_id or "UNKNOWN",
         "pushed_at": repo.get("pushed_at"),
-        "last_nonbot_commit": {"sha": last_human[1], "date": stamp(last_human[0])} if last_human else None,
-        "months_since_nonbot_commit": round(human_months, 1) if human_months is not None else None,
+        "last_nonbot_commit": {"sha": last_human[1], "date": stamp(last_human[0])}
+        if last_human
+        else None,
+        "months_since_nonbot_commit": round(human_months, 1)
+        if human_months is not None
+        else None,
         "commit_sample_size": len(commits),
         "maintenance_tier": tier,
-        "last_stable_release": {"tag": latest[1], "date": stamp(latest[0])} if latest else None,
-        "months_since_stable_release": round(release_months, 1) if release_months is not None else None,
+        "last_stable_release": {"tag": latest[1], "date": stamp(latest[0])}
+        if latest
+        else None,
+        "months_since_stable_release": round(release_months, 1)
+        if release_months is not None
+        else None,
         "warnings": warnings,
     }
 
 
-def check(name: str, now: dt.datetime) -> dict[str, Any]:
-    owner, sep, repo_name = name.partition("/")
-    if not sep or not owner or not repo_name or "/" in repo_name:
+def parse_repo_slug(name: str) -> tuple[str, str]:
+    cleaned = name.strip()
+    if cleaned.startswith(("https://github.com/", "http://github.com/")):
+        parsed = urllib.parse.urlparse(cleaned)
+        cleaned = parsed.path
+    cleaned = cleaned.strip("/")
+    if cleaned.endswith(".git"):
+        cleaned = cleaned[:-4]
+    parts = [part for part in cleaned.split("/") if part]
+    if len(parts) < 2:
+        raise ValueError(f"expected OWNER/REPO or GitHub URL, got {name!r}")
+    if len(parts) > 2 and not name.strip().startswith(("http://", "https://")):
         raise ValueError(f"expected OWNER/REPO, got {name!r}")
+    return parts[0], parts[1]
+
+
+def check(name: str, now: dt.datetime) -> dict[str, Any]:
+    owner, repo_name = parse_repo_slug(name)
     path = f"repos/{urllib.parse.quote(owner, safe='')}/{urllib.parse.quote(repo_name, safe='')}"
     repo = fetch_json(path)
-    commits = fetch_json(f"{path}/commits?per_page={COMMIT_SAMPLE}")
+    try:
+        commits = fetch_json(f"{path}/commits?per_page={COMMIT_SAMPLE}")
+    except RuntimeError as exc:
+        if "HTTP 409 " in str(exc):
+            commits = []
+        else:
+            raise
     releases = fetch_json(f"{path}/releases?per_page={RELEASE_SAMPLE}")
-    if not isinstance(repo, dict) or not isinstance(commits, list) or not isinstance(releases, list):
-        raise RuntimeError(f"unexpected API response shape for {name}")
-    return assess(name, repo, commits, releases, now)
+    if (
+        not isinstance(repo, dict)
+        or not isinstance(commits, list)
+        or not isinstance(releases, list)
+    ):
+        raise RuntimeError(f"unexpected API response shape for {owner}/{repo_name}")
+    return assess(f"{owner}/{repo_name}", repo, commits, releases, now)
 
 
 def as_of_time(value: str | None) -> dt.datetime:
@@ -177,9 +235,15 @@ def as_of_time(value: str | None) -> dt.datetime:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("repositories", nargs="+", metavar="OWNER/REPO")
-    parser.add_argument("--as-of", metavar="YYYY-MM-DD", help="check date for the month counts (default: now, UTC)")
+    parser.add_argument(
+        "--as-of",
+        metavar="YYYY-MM-DD",
+        help="check date for the month counts (default: now, UTC)",
+    )
     args = parser.parse_args(argv)
     try:
         now = as_of_time(args.as_of)
@@ -190,9 +254,15 @@ def main(argv: list[str] | None = None) -> int:
     for name in args.repositories:
         try:
             results.append(check(name, now))
-        except (ValueError, RuntimeError) as exc:
+        except (ValueError, RuntimeError, OSError, http.client.HTTPException) as exc:
             failed = True
-            results.append({"repository": name, "as_of": now.isoformat(timespec="seconds"), "error": str(exc)})
+            results.append(
+                {
+                    "repository": name,
+                    "as_of": now.isoformat(timespec="seconds"),
+                    "error": str(exc),
+                }
+            )
     print(json.dumps(results, indent=2, ensure_ascii=False))
     return 1 if failed else 0
 

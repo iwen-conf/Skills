@@ -54,20 +54,42 @@ func ensureLocalArcExclude(root string) error {
 		return err
 	}
 	marker := "# arc.db generated local state (managed by arc)\n"
-	if strings.Contains(string(old), marker) {
+	wanted := []string{
+		"/.arc/arc.db",
+		"/.arc/arc.db-*",
+		"/.arc/arc.db.*",
+		"/.arc/arc.json",
+		"/.arc/arc.json.tmp",
+		"/.arc/arc.lock",
+		"/.arc/arc.lock.exclusive",
+		"/.arc/backups/",
+		"/.arc/artifacts/",
+		"/.arc/handoff/",
+		"/.arc/verify/code/",
+	}
+	var missing []string
+	existingText := string(old)
+	hasMarker := strings.Contains(existingText, marker)
+	for _, entry := range wanted {
+		if !strings.Contains(existingText, entry+"\n") && !strings.HasSuffix(existingText, entry) {
+			missing = append(missing, entry)
+		}
+	}
+	if hasMarker && len(missing) == 0 {
 		return nil
 	}
-	// 3. 追加受管忽略规则块并刷盘保存
-	ignore := marker +
-		"/.arc/arc.db\n" +
-		"/.arc/arc.db-*\n" +
-		"/.arc/arc.db.*\n" +
-		"/.arc/arc.json\n" +
-		"/.arc/arc.json.tmp\n" +
-		"/.arc/arc.lock\n" +
-		"/.arc/arc.lock.exclusive\n" +
-		"/.arc/backups/\n" +
-		"# end arc.db generated local state\n"
+	// 3. 追加受管忽略规则块或缺失条目并刷盘保存
+	var b strings.Builder
+	if !hasMarker {
+		b.WriteString(marker)
+	}
+	for _, entry := range missing {
+		b.WriteString(entry + "\n")
+	}
+	if !hasMarker {
+		b.WriteString("# end arc.db generated local state\n")
+	}
+	ignore := b.String()
 	f, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
 	if err != nil {
 		return err
@@ -111,19 +133,42 @@ func ensureArcPrivateFiles(root string) error {
 	if st, e := os.Lstat(ignore); e == nil && !st.Mode().IsRegular() {
 		return errors.New("unsafe .arc/.gitignore")
 	}
-	if strings.Contains(string(raw), "# arc local state (generated)") && strings.Contains(string(raw), "\npolicy/\n") {
+	text := string(raw)
+	hasHeader := strings.Contains(text, "# arc local state (generated)")
+	wanted := []string{
+		"arc.db",
+		"arc.db-*",
+		"arc.json",
+		"arc.lock",
+		"backups/",
+		"policy/",
+		"artifacts/",
+		"handoff/",
+		"verify/*.db",
+		"verify/*.db-*",
+		"verify/code/",
+	}
+	var missing []string
+	for _, entry := range wanted {
+		if !strings.Contains(text, entry+"\n") && !strings.HasSuffix(text, entry) {
+			missing = append(missing, entry)
+		}
+	}
+	if hasHeader && len(missing) == 0 {
 		return nil
 	}
 	// 3. 通过临时文件原子更新 .arc/.gitignore
-	block := "policy/\n"
-	if !strings.Contains(string(raw), "# arc local state (generated)") {
-		block = "# arc local state (generated)\narc.db\narc.db-*\narc.json\narc.lock\nbackups/\npolicy/\nverify/*.db\nverify/*.db-*\n"
+	var b strings.Builder
+	if !hasHeader {
+		b.WriteString("# arc local state (generated)\n")
 	}
-	text := string(raw)
+	for _, entry := range missing {
+		b.WriteString(entry + "\n")
+	}
 	if text != "" && !strings.HasSuffix(text, "\n") {
 		text += "\n"
 	}
-	text += block
+	text += b.String()
 	tmp := ignore + ".tmp"
 	file, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -310,11 +311,9 @@ func buildWorldFlagHints(r *ImpactReport) []WorldFlagHint {
 // 响应体
 // out 去重追加后的字符串切片
 func appendUnique(slice []string, item string) []string {
-	// 1. 线性检查是否已存在该元素，不存在则追加
-	for _, s := range slice {
-		if s == item {
-			return slice
-		}
+	// 1. 使用标准库 slices.Contains 检查是否已存在该元素，不存在则追加
+	if slices.Contains(slice, item) {
+		return slice
 	}
 	return append(slice, item)
 }

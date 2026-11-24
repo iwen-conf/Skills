@@ -1,3 +1,5 @@
+> **Current Architecture Note (v2.0)**: Current active workflow & handoff rules live in [`AGENTS.md`](../AGENTS.md) and [`skills/_shared/handoff.md`](../skills/_shared/handoff.md) for the 6 active skills (`arc-plan`, `arc-code`, `arc-verify`, `arc-audit`, `check`, `lazycat`). Historical note preserved below.
+
 # Fusion Guide
 
 Arc 只保留 5 个软件工程技能（`arc:explore`、`arc:plan`、`arc:code`、`arc:verify`、`arc:audit`）。组合原则：

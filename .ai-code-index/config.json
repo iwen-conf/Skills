@@ -2,16 +2,16 @@
   "size_max": 1048576,
   "profiles": {
     "skills": {
-      "include": ["Arc/**"]
+      "include": ["skills/**"]
     },
     "docs": {
-      "include": ["docs/**", "README.md", "*.md"]
+      "include": ["docs/**", "README.md", "AGENTS.md", "CHANGELOG.md"]
     },
     "code": {
-      "include": ["src/**", "scripts/**", "tools/**", "tests/**", "schemas/**"]
+      "include": ["scripts/**", "tools/**", "skills/*/scripts/**"]
     },
     "meta": {
-      "include": ["*.md", "*.toml", "*.json", ".ai-code-index/**", "Arc/scripts/**", "Arc/templates/**"]
+      "include": ["AGENTS.md", "README.md", "CHANGELOG.md", "hosts/**", ".ai-code-index/**", ".claude-plugin/**", ".grok-plugin/**", ".agents/**"]
     }
   }
 }

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -101,7 +103,7 @@ func findRepo(start string) (*Repo, error) {
 			root = probe
 			break
 		}
-		if st, err := os.Stat(filepath.Join(probe, ".git")); err == nil && st.IsDir() {
+		if _, err := os.Lstat(filepath.Join(probe, ".git")); err == nil {
 			root = probe
 			break
 		}
@@ -114,6 +116,9 @@ func findRepo(start string) (*Repo, error) {
 	if root == "" {
 		// No marker found: treat the starting directory itself as the repo.
 		root = dir
+	}
+	if resolved, err := filepath.EvalSymlinks(root); err == nil {
+		root = resolved
 	}
 	r := &Repo{Root: root, Name: filepath.Base(root)}
 	r.MetaDir = filepath.Join(root, ".ai-code-index")
@@ -141,13 +146,17 @@ func findRepo(start string) (*Repo, error) {
 	if r.Cfg.MaxFiles == 0 {
 		r.Cfg.MaxFiles = 50_000
 	}
+	sum := sha256.Sum256([]byte(root))
+	repoSlug := fmt.Sprintf("%s-%s", r.Name, hex.EncodeToString(sum[:4]))
 	if r.Cfg.IndexDir != "" {
 		r.IndexDir = expandHome(r.Cfg.IndexDir)
+	} else if env := os.Getenv("ARC_IDX_CACHE_DIR"); env != "" {
+		r.IndexDir = filepath.Join(expandHome(env), repoSlug)
 	} else if env := os.Getenv("AI_CODE_INDEX_DIR"); env != "" {
-		r.IndexDir = filepath.Join(expandHome(env), r.Name)
+		r.IndexDir = filepath.Join(expandHome(env), repoSlug)
 	} else {
 		home, _ := os.UserHomeDir()
-		r.IndexDir = filepath.Join(home, ".cache", "ai-code-index", "zoekt", r.Name)
+		r.IndexDir = filepath.Join(home, ".cache", "ai-code-index", "zoekt", repoSlug)
 	}
 	return r, nil
 }

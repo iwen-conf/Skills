@@ -29,11 +29,11 @@ type SurfaceScanSummary struct {
 }
 
 type SurfaceScanResult struct {
-	RepoRoot     string             `json:"repo_root" yaml:"repo_root"`
-	Summary      SurfaceScanSummary `json:"summary" yaml:"summary"`
-	Entries      []SurfaceEntry     `json:"entries" yaml:"entries"`
-	StoryFiles   []string           `json:"story_files,omitempty" yaml:"story_files,omitempty"`
-	TestFileSample []string         `json:"test_file_sample,omitempty" yaml:"test_file_sample,omitempty"`
+	RepoRoot       string             `json:"repo_root" yaml:"repo_root"`
+	Summary        SurfaceScanSummary `json:"summary" yaml:"summary"`
+	Entries        []SurfaceEntry     `json:"entries" yaml:"entries"`
+	StoryFiles     []string           `json:"story_files,omitempty" yaml:"story_files,omitempty"`
+	TestFileSample []string           `json:"test_file_sample,omitempty" yaml:"test_file_sample,omitempty"`
 }
 
 var (

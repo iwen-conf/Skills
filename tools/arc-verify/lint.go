@@ -292,17 +292,7 @@ func scopesOverlap(a, b string) bool {
 	if pa == "" || pb == "" {
 		return true
 	}
-	if strings.HasPrefix(pa, pb+"/") || strings.HasPrefix(pb, pa+"/") || pa == pb {
-		if !hasGlobMeta(a) && !hasGlobMeta(b) && a != b {
-			return false
-		}
-		return true
-	}
-	return false
-}
-
-func hasGlobMeta(p string) bool {
-	return strings.ContainsAny(p, "*?[")
+	return pa == pb || strings.HasPrefix(pa, pb+"/") || strings.HasPrefix(pb, pa+"/")
 }
 
 func globPrefix(p string) string {

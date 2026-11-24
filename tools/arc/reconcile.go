@@ -18,42 +18,84 @@ import (
 // without running the plugin. The head cursor commits in the same SQL
 // transaction as its change set; an interrupted reconciliation is replayable.
 func syncCommand(args []string) error {
-	if len(args)==0 || args[0]!="reconcile" { return errors.New("usage: arc sync reconcile [--repo DIR] [--task TASK_ID]") }
-	fs:=flag.NewFlagSet("arc sync reconcile",flag.ContinueOnError)
-	repo:=fs.String("repo",".","repository/worktree root")
-	task:=fs.String("task","","optional owning task")
-	if err:=fs.Parse(args[1:]);err!=nil{return err}
-	if len(fs.Args())!=0{return fmt.Errorf("unexpected arguments: %v",fs.Args())}
-	root,err:=repositoryRoot(*repo);if err!=nil{return err}
-	return withArcLock(root,func()error {
-		db,err:=openActiveArcDB(root);if err!=nil{return err}
+	if len(args) == 0 || args[0] != "reconcile" {
+		return errors.New("usage: arc sync reconcile [--repo DIR] [--task TASK_ID]")
+	}
+	fs := flag.NewFlagSet("arc sync reconcile", flag.ContinueOnError)
+	repo := fs.String("repo", ".", "repository/worktree root")
+	task := fs.String("task", "", "optional owning task")
+	if err := fs.Parse(args[1:]); err != nil {
+		return err
+	}
+	if len(fs.Args()) != 0 {
+		return fmt.Errorf("unexpected arguments: %v", fs.Args())
+	}
+	root, err := repositoryRoot(*repo)
+	if err != nil {
+		return err
+	}
+	return withArcLock(root, func() error {
+		db, err := openActiveArcDB(root)
+		if err != nil {
+			return err
+		}
 		defer db.Close()
-		return reconcileGit(db,root,*task)
+		return reconcileGit(db, root, *task)
 	})
 }
 
-
-func reconcileGit(db *sql.DB,root,task string)error{
-	head,err:=gitHead(root);if err!=nil{return err}
-	ctx,cancel:=context.WithTimeout(context.Background(),60*time.Second);defer cancel()
+// reconcileGit 回放错过的Git提交与工作树脏文件变更并推进同步游标
+// 请求体
+// db 已打开的arc验证账本句柄
+// root 仓库根目录真实路径
+// task 可选绑定修改权的任务ID
+// 响应体
+// err Git状态读取或事务更新失败错误
+func reconcileGit(db *sql.DB, root, task string) error {
+	// 1. 读取当前HEAD、历史sync_head游标与脏文件及提交间隔diff路径
+	head, err := gitHead(root)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
 	var previous string
-	err=db.QueryRowContext(ctx,"SELECT value FROM arc_meta WHERE key='sync_head'").Scan(&previous)
-	if err!=nil&&!errors.Is(err,sql.ErrNoRows){return err}
-	dirty,err:=changedGitPaths(root);if err!=nil{return err}
-	paths:=map[string]string{}
-	for _,change:=range dirty{paths[change.Path]=change.Operation}
-	if previous!=""&&previous!=head{
+	err = db.QueryRowContext(ctx, "SELECT value FROM arc_meta WHERE key='sync_head'").Scan(&previous)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	dirty, err := changedGitPaths(root)
+	if err != nil {
+		return err
+	}
+	paths := map[string]string{}
+	for _, change := range dirty {
+		paths[change.Path] = change.Operation
+	}
+	if previous != "" && previous != head {
 		// --no-renames reports both sides of renames. NUL-delimited paths avoid
 		// ambiguity with spaces, tabs and newlines in filenames.
-		output,err:=exec.Command("git","-C",root,"diff","--name-only","--no-renames","-z",previous,head).Output()
-		if err!=nil{return fmt.Errorf("cannot replay changed commits from %s to %s: %w",previous,head,err)}
-		for _,path:=range strings.Split(string(output),"\x00"){
-			if path==""||path==".arc"||strings.HasPrefix(path,".arc/") {continue}
-			if _,ok:=paths[path];!ok{paths[path]="modified"}
+		output, err := exec.Command("git", "-C", root, "diff", "--name-only", "--no-renames", "-z", previous, head).Output()
+		if err != nil {
+			return fmt.Errorf("cannot replay changed commits from %s to %s: %w", previous, head, err)
+		}
+		for _, path := range strings.Split(string(output), "\x00") {
+			if path == "" || path == ".arc" || strings.HasPrefix(path, ".arc/") {
+				continue
+			}
+			if _, ok := paths[path]; !ok {
+				paths[path] = "modified"
+			}
 		}
 	}
-	if len(paths)>1000{return fmt.Errorf("reconcile exceeded 1000 changed paths: %d",len(paths))}
-	keys:=make([]string,0,len(paths));for p:=range paths{keys=append(keys,p)};sort.Strings(keys)
+	if len(paths) > 1000 {
+		return fmt.Errorf("reconcile exceeded 1000 changed paths: %d", len(paths))
+	}
+	keys := make([]string, 0, len(paths))
+	for p := range paths {
+		keys = append(keys, p)
+	}
+	sort.Strings(keys)
 	changed := make([]observedFileEntry, 0, len(keys))
 	for _, path := range keys {
 		sha, _, op, obsErr := observedFile(root, path)
@@ -80,6 +122,18 @@ func reconcileGit(db *sql.DB,root,task string)error{
 			qErr := tx.QueryRowContext(ctx, "SELECT id FROM arc_changes WHERE fingerprint=?", fingerprint).Scan(&changeID)
 			if qErr == nil {
 				duplicate = true
+				for _, f := range changed {
+					if _, sErr := storeFile(ctx, tx, root, f.Path); sErr != nil {
+						return sErr
+					}
+					if task != "" {
+						if _, sErr := tx.ExecContext(ctx,
+							"INSERT OR REPLACE INTO arc_task_files(task_id,path,updated) VALUES(?,?,?)",
+							task, filepath.ToSlash(f.Path), nowUTC()); sErr != nil {
+							return sErr
+						}
+					}
+				}
 			} else if !errors.Is(qErr, sql.ErrNoRows) {
 				return qErr
 			} else {
@@ -135,4 +189,3 @@ func reconcileGit(db *sql.DB,root,task string)error{
 		Index:             "pending",
 	}))
 }
-

@@ -137,20 +137,51 @@ def local_url_for_docker(target_url: str) -> str:
     return urlunparse(parsed._replace(netloc=netloc))
 
 
+def find_manifest_dirs(root: Path, filename: str) -> list[Path]:
+    skip_dirs = {
+        ".git",
+        ".arc",
+        ".venv",
+        "node_modules",
+        "vendor",
+        "dist",
+        "build",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+    }
+    found: list[Path] = []
+    for current, dirs, files in os.walk(root):
+        dirs[:] = sorted(
+            d for d in dirs if d not in skip_dirs and not d.startswith(".")
+        )
+        if filename in files:
+            found.append(Path(current))
+    return found
+
+
+def decode_timeout_stream(data: str | bytes | None) -> str:
+    if data is None:
+        return ""
+    if isinstance(data, bytes):
+        return data.decode("utf-8", errors="replace")
+    return data
+
+
 def docker_ready() -> bool:
     if not which("docker"):
         return False
     try:
-        subprocess.run(
+        proc = subprocess.run(
             ["docker", "info"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=False,
             timeout=10,
         )
+        return proc.returncode == 0
     except Exception:
         return False
-    return True
 
 
 def run_check(check: Check, output_dir: Path) -> dict[str, object]:
@@ -197,8 +228,8 @@ def run_check(check: Check, output_dir: Path) -> dict[str, object]:
             "raw": f"raw/{check.raw_file}" if check.raw_file else None,
         }
     except subprocess.TimeoutExpired as exc:
-        stdout_path.write_text(exc.stdout or "", encoding="utf-8")
-        stderr_path.write_text(exc.stderr or "", encoding="utf-8")
+        stdout_path.write_text(decode_timeout_stream(exc.stdout), encoding="utf-8")
+        stderr_path.write_text(decode_timeout_stream(exc.stderr), encoding="utf-8")
         return {
             "name": check.name,
             "status": "timeout",
@@ -227,7 +258,7 @@ def run_check(check: Check, output_dir: Path) -> dict[str, object]:
 def summarize_gitleaks(path: Path) -> dict[str, object]:
     data = load_json(path)
     count = len(data) if isinstance(data, list) else 0
-    counts = {"unknown": count} if count else {}
+    counts = {"high": count} if count else {}
     return {"finding_count": count, "severity_counts": counts}
 
 
@@ -241,13 +272,21 @@ def summarize_trivy(path: Path) -> dict[str, object]:
                 continue
             for vuln in result.get("Vulnerabilities", []) or []:
                 total += 1
-                add_severity(counts, vuln.get("Severity") if isinstance(vuln, dict) else None)
+                add_severity(
+                    counts, vuln.get("Severity") if isinstance(vuln, dict) else None
+                )
             for misconfig in result.get("Misconfigurations", []) or []:
                 total += 1
-                add_severity(counts, misconfig.get("Severity") if isinstance(misconfig, dict) else None)
+                add_severity(
+                    counts,
+                    misconfig.get("Severity") if isinstance(misconfig, dict) else None,
+                )
             for secret in result.get("Secrets", []) or []:
                 total += 1
-                add_severity(counts, secret.get("Severity") if isinstance(secret, dict) else "high")
+                add_severity(
+                    counts,
+                    secret.get("Severity") if isinstance(secret, dict) else "high",
+                )
     return {"finding_count": total, "severity_counts": counts}
 
 
@@ -284,7 +323,9 @@ def summarize_npm_audit(path: Path) -> dict[str, object]:
     total = 0
     if isinstance(data, dict):
         metadata = data.get("metadata")
-        if isinstance(metadata, dict) and isinstance(metadata.get("vulnerabilities"), dict):
+        if isinstance(metadata, dict) and isinstance(
+            metadata.get("vulnerabilities"), dict
+        ):
             for severity, amount in metadata["vulnerabilities"].items():
                 if severity == "total":
                     continue
@@ -305,7 +346,10 @@ def summarize_govulncheck(path: Path) -> dict[str, object]:
     for row in rows:
         if isinstance(row, dict) and ("finding" in row or "osv" in row):
             total += 1
-    return {"finding_count": total, "severity_counts": {"unknown": total} if total else {}}
+    return {
+        "finding_count": total,
+        "severity_counts": {"unknown": total} if total else {},
+    }
 
 
 def summarize_nuclei(path: Path) -> dict[str, object]:
@@ -344,7 +388,10 @@ def summarize_plain_status(path: Path) -> dict[str, object]:
     text = path.read_text(encoding="utf-8", errors="replace") if path.exists() else ""
     failed_markers = ["FAILED", "ERROR", "Falsifying example", "Traceback"]
     count = sum(text.count(marker) for marker in failed_markers)
-    return {"finding_count": count, "severity_counts": {"unknown": count} if count else {}}
+    return {
+        "finding_count": count,
+        "severity_counts": {"unknown": count} if count else {},
+    }
 
 
 SUMMARY_BY_TOOL = {
@@ -382,7 +429,9 @@ def summarize_result(result: dict[str, object], output_dir: Path) -> dict[str, o
     return result
 
 
-def detect_checks(args: argparse.Namespace, root: Path, output_dir: Path) -> tuple[list[Check], list[dict[str, str]]]:
+def detect_checks(
+    args: argparse.Namespace, root: Path, output_dir: Path
+) -> tuple[list[Check], list[dict[str, str]]]:
     raw_dir = output_dir / "raw"
     checks: list[Check] = []
     skipped: list[dict[str, str]] = []
@@ -394,66 +443,222 @@ def detect_checks(args: argparse.Namespace, root: Path, output_dir: Path) -> tup
 
     if "gitleaks" not in skip:
         if which("gitleaks"):
-            checks.append(Check("gitleaks", ["gitleaks", "git", str(root), "--report-format", "json", "--report-path", str(raw_dir / "gitleaks.json"), "--redact", "--no-banner", "--exit-code", "0"], root, raw_file="gitleaks.json", env=env_common))
+            gitleaks_mode = "git" if (root / ".git").exists() else "dir"
+            checks.append(
+                Check(
+                    "gitleaks",
+                    [
+                        "gitleaks",
+                        gitleaks_mode,
+                        str(root),
+                        "--report-format",
+                        "json",
+                        "--report-path",
+                        str(raw_dir / "gitleaks.json"),
+                        "--redact",
+                        "--no-banner",
+                        "--exit-code",
+                        "0",
+                    ],
+                    root,
+                    raw_file="gitleaks.json",
+                    env=env_common,
+                )
+            )
         else:
             missing("gitleaks", "CLI not installed")
 
     if "trivy" not in skip:
         if which("trivy"):
-            checks.append(Check("trivy", ["trivy", "fs", "--format", "json", "--output", str(raw_dir / "trivy.json"), "--scanners", "vuln,secret,misconfig", str(root)], root, raw_file="trivy.json", env=env_common))
+            checks.append(
+                Check(
+                    "trivy",
+                    [
+                        "trivy",
+                        "fs",
+                        "--format",
+                        "json",
+                        "--output",
+                        str(raw_dir / "trivy.json"),
+                        "--scanners",
+                        "vuln,secret,misconfig",
+                        str(root),
+                    ],
+                    root,
+                    raw_file="trivy.json",
+                    env=env_common,
+                )
+            )
         else:
             missing("trivy", "CLI not installed")
 
     if "semgrep" not in skip:
         if which("semgrep"):
             # --config auto is rejected when metrics are off; p/default works with metrics off.
-            checks.append(Check("semgrep", ["semgrep", "scan", "--config", "p/default", "--json", "--output", str(raw_dir / "semgrep.json"), "--metrics", "off", str(root)], root, raw_file="semgrep.json", env=env_common))
+            checks.append(
+                Check(
+                    "semgrep",
+                    [
+                        "semgrep",
+                        "scan",
+                        "--config",
+                        "p/default",
+                        "--json",
+                        "--output",
+                        str(raw_dir / "semgrep.json"),
+                        "--metrics",
+                        "off",
+                        str(root),
+                    ],
+                    root,
+                    raw_file="semgrep.json",
+                    env=env_common,
+                )
+            )
         else:
             missing("semgrep", "CLI not installed")
 
-    has_go = file_exists(root, ["go.mod"])
-    if has_go and "govulncheck" not in skip:
+    go_dirs = find_manifest_dirs(root, "go.mod")
+    if go_dirs and "govulncheck" not in skip:
         if which("govulncheck"):
-            checks.append(Check("govulncheck", ["govulncheck", "-json", "./..."], root, raw_file="govulncheck.jsonl", stdout_file="govulncheck.jsonl", env=env_common))
+            for idx, go_dir in enumerate(go_dirs):
+                suffix = f"-{idx}" if len(go_dirs) > 1 else ""
+                raw_name = f"govulncheck{suffix}.jsonl"
+                checks.append(
+                    Check(
+                        "govulncheck",
+                        ["govulncheck", "-json", "./..."],
+                        go_dir,
+                        raw_file=raw_name,
+                        stdout_file=raw_name,
+                        env=env_common,
+                    )
+                )
         else:
             missing("govulncheck", "CLI not installed")
-    elif not has_go:
+    elif not go_dirs:
         missing("govulncheck", "go.mod not found")
 
-    if has_go and "gosec" not in skip:
+    if go_dirs and "gosec" not in skip:
         if which("gosec"):
-            checks.append(Check("gosec", ["gosec", "-fmt=json", "-out", str(raw_dir / "gosec.json"), "./..."], root, raw_file="gosec.json", env=env_common))
+            for idx, go_dir in enumerate(go_dirs):
+                suffix = f"-{idx}" if len(go_dirs) > 1 else ""
+                raw_name = f"gosec{suffix}.json"
+                checks.append(
+                    Check(
+                        "gosec",
+                        [
+                            "gosec",
+                            "-fmt=json",
+                            "-out",
+                            str(raw_dir / raw_name),
+                            "./...",
+                        ],
+                        go_dir,
+                        raw_file=raw_name,
+                        env=env_common,
+                    )
+                )
         else:
             missing("gosec", "CLI not installed")
-    elif not has_go:
+    elif not go_dirs:
         missing("gosec", "go.mod not found")
 
-    has_package_json = file_exists(root, ["package.json"])
-    if has_package_json:
-        if "pnpm-audit" not in skip and file_exists(root, ["pnpm-lock.yaml"]) and which("pnpm"):
-            checks.append(Check("pnpm-audit", ["pnpm", "audit", "--json"], root, raw_file="pnpm-audit.json", stdout_file="pnpm-audit.json", env=env_common))
-        elif "npm-audit" not in skip and which("npm"):
-            checks.append(Check("npm-audit", ["npm", "audit", "--json"], root, raw_file="npm-audit.json", stdout_file="npm-audit.json", env=env_common))
-        else:
-            missing("npm-audit", "no supported package manager CLI found")
+    pkg_dirs = find_manifest_dirs(root, "package.json")
+    if pkg_dirs:
+        for idx, pkg_dir in enumerate(pkg_dirs):
+            suffix = f"-{idx}" if len(pkg_dirs) > 1 else ""
+            if (
+                "pnpm-audit" not in skip
+                and (pkg_dir / "pnpm-lock.yaml").exists()
+                and which("pnpm")
+            ):
+                raw_name = f"pnpm-audit{suffix}.json"
+                checks.append(
+                    Check(
+                        "pnpm-audit",
+                        ["pnpm", "audit", "--json"],
+                        pkg_dir,
+                        raw_file=raw_name,
+                        stdout_file=raw_name,
+                        env=env_common,
+                    )
+                )
+            elif "npm-audit" not in skip and which("npm"):
+                raw_name = f"npm-audit{suffix}.json"
+                checks.append(
+                    Check(
+                        "npm-audit",
+                        ["npm", "audit", "--json"],
+                        pkg_dir,
+                        raw_file=raw_name,
+                        stdout_file=raw_name,
+                        env=env_common,
+                    )
+                )
+            else:
+                missing(
+                    "npm-audit",
+                    f"no supported package manager CLI found ({rel(pkg_dir, root)})",
+                )
     else:
         missing("npm-audit", "package.json not found")
 
     openapi = resolve_openapi_arg(args.openapi, root)
     if args.mode == "full" and openapi and "schemathesis" not in skip:
         if which("schemathesis"):
-            command = ["schemathesis", "run", openapi, "--max-examples", str(args.max_examples), "--checks", "all"]
+            command = [
+                "schemathesis",
+                "run",
+                openapi,
+                "--max-examples",
+                str(args.max_examples),
+                "--checks",
+                "all",
+            ]
             if args.target_url:
                 command.extend(["--url", args.target_url])
-            checks.append(Check("schemathesis", command, root, raw_file="schemathesis.txt", stdout_file="schemathesis.txt", timeout=args.timeout, env=env_common))
+            checks.append(
+                Check(
+                    "schemathesis",
+                    command,
+                    root,
+                    raw_file="schemathesis.txt",
+                    stdout_file="schemathesis.txt",
+                    timeout=args.timeout,
+                    env=env_common,
+                )
+            )
         else:
             missing("schemathesis", "CLI not installed")
+    elif args.mode != "full" and openapi and "schemathesis" not in skip:
+        missing(
+            "schemathesis",
+            "skipped in --mode quick (pass --mode full to run OpenAPI DAST)",
+        )
     elif args.mode == "full" and not openapi:
         missing("schemathesis", "OpenAPI spec not provided or discovered")
 
     if args.mode == "full" and args.target_url and "nuclei" not in skip:
         if which("nuclei"):
-            checks.append(Check("nuclei", ["nuclei", "-u", args.target_url, "-jsonl", "-o", str(raw_dir / "nuclei.jsonl"), "-silent"], root, raw_file="nuclei.jsonl", timeout=args.timeout, env=env_common))
+            checks.append(
+                Check(
+                    "nuclei",
+                    [
+                        "nuclei",
+                        "-u",
+                        args.target_url,
+                        "-jsonl",
+                        "-o",
+                        str(raw_dir / "nuclei.jsonl"),
+                        "-silent",
+                    ],
+                    root,
+                    raw_file="nuclei.jsonl",
+                    timeout=args.timeout,
+                    env=env_common,
+                )
+            )
         else:
             missing("nuclei", "CLI not installed")
     elif args.mode == "full" and not args.target_url:
@@ -476,7 +681,7 @@ def detect_checks(args: argparse.Namespace, root: Path, output_dir: Path) -> tup
                         "-t",
                         zap_target,
                         "-J",
-                        "zap-report.json",
+                        "raw/zap-report.json",
                         "-w",
                         "zap-report.md",
                         "-r",
@@ -501,6 +706,16 @@ def detect_checks(args: argparse.Namespace, root: Path, output_dir: Path) -> tup
 
 def install_missing(script_dir: Path, mode: str, include_zap: bool) -> int:
     script = script_dir / "install-security-tools.sh"
+    if not script.is_file():
+        print(
+            "install-security-tools.sh is not bundled; install core scanners manually:\n"
+            "  brew install gitleaks semgrep trivy osv-scanner\n"
+            "  go install golang.org/x/vuln/cmd/govulncheck@latest",
+            file=sys.stderr,
+        )
+        if mode == "full" and include_zap:
+            print("  docker pull ghcr.io/zaproxy/zaproxy:stable", file=sys.stderr)
+        return 1
     command = [str(script), "--core"]
     if mode == "full" and include_zap:
         command.append("--with-zap")
@@ -522,12 +737,17 @@ def aggregate(results: list[dict[str, object]]) -> dict[str, object]:
                     severity_counts[normalize_severity(key)] += amount
     return {
         "finding_count": total,
-        "severity_counts": {key: value for key, value in severity_counts.items() if value},
+        "severity_counts": {
+            key: value for key, value in severity_counts.items() if value
+        },
     }
 
 
 def markdown_table(headers: list[str], rows: list[list[object]]) -> str:
-    lines = ["| " + " | ".join(headers) + " |", "| " + " | ".join(["---"] * len(headers)) + " |"]
+    lines = [
+        "| " + " | ".join(headers) + " |",
+        "| " + " | ".join(["---"] * len(headers)) + " |",
+    ]
     for row in rows:
         lines.append("| " + " | ".join(str(item) for item in row) + " |")
     return "\n".join(lines)
@@ -541,14 +761,16 @@ def render_markdown(summary: dict[str, object], output_dir: Path) -> str:
     for item in results:
         raw = item.get("raw") or ""
         raw_link = f"[{raw}]({raw})" if raw else ""
-        rows.append([
-            item["name"],
-            item["status"],
-            item.get("exit_code", ""),
-            item.get("finding_count", 0),
-            json.dumps(item.get("severity_counts", {}), ensure_ascii=False),
-            raw_link,
-        ])
+        rows.append(
+            [
+                item["name"],
+                item["status"],
+                item.get("exit_code", ""),
+                item.get("finding_count", 0),
+                json.dumps(item.get("severity_counts", {}), ensure_ascii=False),
+                raw_link,
+            ]
+        )
     skipped_rows = [[item["tool"], item["reason"]] for item in skipped]
 
     report = [
@@ -564,7 +786,9 @@ def render_markdown(summary: dict[str, object], output_dir: Path) -> str:
         "",
         "## Tool Results",
         "",
-        markdown_table(["Tool", "Status", "Exit", "Signals", "Severity Counts", "Raw"], rows),
+        markdown_table(
+            ["Tool", "Status", "Exit", "Signals", "Severity Counts", "Raw"], rows
+        ),
         "",
         "## Skipped Checks",
         "",
@@ -581,12 +805,11 @@ def render_markdown(summary: dict[str, object], output_dir: Path) -> str:
         "",
         "## Recommended Arc Handoff",
         "",
-        "- Triage every signal in `arc-audit` (scan mode) before any fix; scanner output is a hypothesis.",
-        "- Use `arc-audit` (appsec mode) for manual AuthZ/business-logic review.",
+        "- Triage every signal in `arc-audit` before any fix; scanner output is a hypothesis.",
+        "- Audit authorization, business-logic flaws, and `../_shared/` invariants manually in `arc-audit`.",
         "- Use `arc-code` for confirmed vulnerabilities with concrete exploit paths and for missing security controls.",
-        "- Use `arc-verify` to prove a fix or add regression checks.",
-        "- Use `arc-plan` to turn multiple confirmed findings into task batches.",
-        "- Use `lark` (project-docs) only when `.lark.json` is active or the user explicitly requests Lark publication.",
+        "- Use `arc-verify` (`arc verify code` / `arc verify play`) to prove a fix or add regression checks.",
+        "- Use `arc-plan` to turn multiple confirmed findings into task waves.",
         "",
         "## Raw Artifacts",
         "",
@@ -606,10 +829,13 @@ def render_html(summary: dict[str, object]) -> str:
     skipped = summary["skipped"]
     aggregate_data = summary["aggregate"]
     severity = aggregate_data["severity_counts"]
-    cards = "".join(
-        f"<div class='card'><span>{html.escape(key.title())}</span><strong>{value}</strong></div>"
-        for key, value in severity.items()
-    ) or "<div class='card'><span>Findings</span><strong>0</strong></div>"
+    cards = (
+        "".join(
+            f"<div class='card'><span>{html.escape(key.title())}</span><strong>{value}</strong></div>"
+            for key, value in severity.items()
+        )
+        or "<div class='card'><span>Findings</span><strong>0</strong></div>"
+    )
     result_rows = "".join(
         "<tr>"
         f"<td>{html.escape(str(item['name']))}</td>"
@@ -617,14 +843,17 @@ def render_html(summary: dict[str, object]) -> str:
         f"<td>{html.escape(str(item.get('exit_code', '')))}</td>"
         f"<td>{html.escape(str(item.get('finding_count', 0)))}</td>"
         f"<td><code>{html.escape(json.dumps(item.get('severity_counts', {}), ensure_ascii=False))}</code></td>"
-        f"<td>{('<a href=' + html.escape(str(item.get('raw'))) + '>raw</a>') if item.get('raw') else ''}</td>"
+        f"<td>{('<a href="' + html.escape(str(item.get('raw')), quote=True) + '">raw</a>') if item.get('raw') else ''}</td>"
         "</tr>"
         for item in results
     )
-    skipped_rows = "".join(
-        f"<tr><td>{html.escape(item['tool'])}</td><td>{html.escape(item['reason'])}</td></tr>"
-        for item in skipped
-    ) or "<tr><td colspan='2'>None</td></tr>"
+    skipped_rows = (
+        "".join(
+            f"<tr><td>{html.escape(item['tool'])}</td><td>{html.escape(item['reason'])}</td></tr>"
+            for item in skipped
+        )
+        or "<tr><td colspan='2'>None</td></tr>"
+    )
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -655,11 +884,11 @@ a {{ color: #0b66c3; }}
 <header>
 <h1>Security Report</h1>
 <div class="meta">
-Project: {html.escape(str(summary['project_path']))}<br>
-Generated: {html.escape(str(summary['generated_at']))}<br>
-Mode: {html.escape(str(summary['mode']))}<br>
-Target: {html.escape(str(summary.get('target_url') or 'not provided'))}<br>
-OpenAPI: {html.escape(str(summary.get('openapi') or 'not provided'))}
+Project: {html.escape(str(summary["project_path"]))}<br>
+Generated: {html.escape(str(summary["generated_at"]))}<br>
+Mode: {html.escape(str(summary["mode"]))}<br>
+Target: {html.escape(str(summary.get("target_url") or "not provided"))}<br>
+OpenAPI: {html.escape(str(summary.get("openapi") or "not provided"))}
 </div>
 </header>
 <main>
@@ -694,7 +923,9 @@ OpenAPI: {html.escape(str(summary.get('openapi') or 'not provided'))}
 
 def write_reports(summary: dict[str, object], output_dir: Path) -> None:
     summary_path = output_dir / "security-summary.json"
-    summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    summary_path.write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     md = render_markdown(summary, output_dir)
     (output_dir / "security-report.md").write_text(md, encoding="utf-8")
     html_report = render_html(summary)
@@ -702,18 +933,43 @@ def write_reports(summary: dict[str, object], output_dir: Path) -> None:
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run local-first security scans and generate readable reports.")
-    parser.add_argument("project_path", nargs="?", default=".", help="Target project root")
-    parser.add_argument("--output-dir", help="Report output directory; overrides --task-slug")
-    parser.add_argument("--task-slug", help="Task slug for the default output directory .arc/artifacts/<task-slug>/security/ (default: security-scan-<timestamp>)")
+    parser = argparse.ArgumentParser(
+        description="Run local-first security scans and generate readable reports."
+    )
+    parser.add_argument(
+        "project_path", nargs="?", default=".", help="Target project root"
+    )
+    parser.add_argument(
+        "--output-dir", help="Report output directory; overrides --task-slug"
+    )
+    parser.add_argument(
+        "--task-slug",
+        help="Task slug for the default output directory .arc/artifacts/<task-slug>/security/ (default: security-scan-<timestamp>)",
+    )
     parser.add_argument("--target-url", help="Authorized running app URL for DAST")
     parser.add_argument("--openapi", help="OpenAPI file or URL for Schemathesis")
-    parser.add_argument("--mode", choices=["quick", "full"], default="quick", help="Scan depth")
-    parser.add_argument("--install-missing", action="store_true", help="Install missing local CLI tools before scanning")
-    parser.add_argument("--pull-zap", action="store_true", help="Pull ZAP Docker image when installing missing tools")
-    parser.add_argument("--skip", action="append", default=[], help="Tool name to skip; repeatable")
-    parser.add_argument("--timeout", type=int, default=900, help="Per-tool timeout in seconds")
-    parser.add_argument("--max-examples", type=int, default=30, help="Schemathesis max examples")
+    parser.add_argument(
+        "--mode", choices=["quick", "full"], default="quick", help="Scan depth"
+    )
+    parser.add_argument(
+        "--install-missing",
+        action="store_true",
+        help="Install missing local CLI tools before scanning",
+    )
+    parser.add_argument(
+        "--pull-zap",
+        action="store_true",
+        help="Pull ZAP Docker image when installing missing tools",
+    )
+    parser.add_argument(
+        "--skip", action="append", default=[], help="Tool name to skip; repeatable"
+    )
+    parser.add_argument(
+        "--timeout", type=int, default=900, help="Per-tool timeout in seconds"
+    )
+    parser.add_argument(
+        "--max-examples", type=int, default=30, help="Schemathesis max examples"
+    )
     return parser.parse_args(argv)
 
 
@@ -729,9 +985,16 @@ def main(argv: list[str]) -> int:
 
     task_slug = args.task_slug or f"security-scan-{now_stamp()}"
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", task_slug):
-        print(f"Invalid task slug (letters, digits, '.', '_', '-' only): {task_slug}", file=sys.stderr)
+        print(
+            f"Invalid task slug (letters, digits, '.', '_', '-' only): {task_slug}",
+            file=sys.stderr,
+        )
         return 2
-    output_dir = Path(args.output_dir).expanduser().resolve() if args.output_dir else root / ".arc" / "artifacts" / task_slug / "security"
+    output_dir = (
+        Path(args.output_dir).expanduser().resolve()
+        if args.output_dir
+        else root / ".arc" / "artifacts" / task_slug / "security"
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "raw").mkdir(exist_ok=True)
     (output_dir / "logs").mkdir(exist_ok=True)
@@ -740,7 +1003,10 @@ def main(argv: list[str]) -> int:
     if args.install_missing:
         code = install_missing(script_dir, args.mode, args.pull_zap)
         if code != 0:
-            print(f"Tool installation exited with {code}; continuing with available tools.", file=sys.stderr)
+            print(
+                f"Tool installation exited with {code}; continuing with available tools.",
+                file=sys.stderr,
+            )
 
     checks, skipped = detect_checks(args, root, output_dir)
     results: list[dict[str, object]] = []

@@ -1,3 +1,5 @@
+> **Current Architecture Note (v2.0)**: Current active skills (`<= 80`-line `SKILL.md` + `openai.yaml` + `_shared/`) are validated by [`scripts/sync.sh --check`](../scripts/sync.sh) and [`hosts/host_profiles.json`](../hosts/host_profiles.json). See [README.md](../README.md) and [`skills/_shared/contract.md`](../skills/_shared/contract.md). Legacy `Arc/` / `.venv` references below describe the historical v1 layout.
+
 # Skill Engineering Contract
 
 Arc skills follow progressive disclosure: `SKILL.md` carries the whole decision procedure for one
@@ -86,7 +88,6 @@ scenarios (negation, multi-intent, scope lock, authorization) live in
 
 ## Lifecycle coverage
 
-The six Arc skills map to understand (`arc:explore`), select dependencies (`arc:vet`), plan and
-model (`arc:plan`), change (`arc:code`), prove (`arc:verify`) and evaluate (`arc:audit`). One phase has one owner;
-[the shared handoff](../Arc/_shared/workflow.md) preserves scope, authorization, requirement/model
+The six core skills map to `arc-plan`, `arc-code`, `arc-verify`, `arc-audit`, `check`, and `lazycat`. One phase has one owner;
+[the shared handoff](../skills/_shared/handoff.md) preserves scope, authorization, requirement/model
 IDs and evidence when activating the next phase. Model and runtime verdicts remain separate.

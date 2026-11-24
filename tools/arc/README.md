@@ -1,7 +1,7 @@
 # arc — one CLI, project-local state and verification
 
-`arc` 0.4.x is the public entrypoint for source intelligence, project resource state,
-and business graph verification. It delegates code indexing and business graph execution to private engines in
+`arc` 0.6.0 is the public entrypoint for source intelligence, project resource state,
+and dual-engine business/code verification. It delegates code indexing and verification execution to private engines in
 `libexec/arc`, while **resource state uses
 the same local Turso database after activation**.
 
@@ -26,13 +26,14 @@ uses the existing official `tursogo` driver; no Turso Cloud connection is requir
 
 | Command | Behavior |
 |---|---|
-| `arc idx search`, `symbol`, `ast`, `files`, `stats` | Existing code intelligence |
+| `arc idx search`, `symbol`, `ast`, `files`, `stats`, `skeleton`, `impact` | Existing code intelligence |
 | `arc idx index`, `doctor`, `daemon` | Code index maintenance |
-| `arc verify <action>` | Business graph model, tests, trace, gate and handoff |
+| `arc verify <action>` | 6D Storyline business model, play, explain, gate & snapshot |
+| `arc verify code <catalog\|plan\|run\|explain\|gate\|snapshot>` | 26-technique code-level testing, 8-metric coverage & immutable receipts |
 | `arc db status` | JSON status for active `.arc/arc.db` |
 | `arc db init` | Initialize a new Turso ledger when no old graph DB exists |
 | `arc db migrate --confirm-offline` | Offline copy, backup and gate-parity cutover |
-| `arc task create`, `ensure`, `show`, `transition`, `complete` | Versioned tasks; `complete` checks an existing current Arc Policy PASS and index state |
+| `arc task create`, `ensure`, `show`, `transition`, `link-verify`, `verify-status`, `complete` | Versioned tasks & revision-bound `task-proof` verification obligations |
 | `arc file update`, `show --path <path>` | Record or inspect versioned content hashes and change events |
 | `arc change collect`, `show` | Snapshot a bounded Git change set |
 | `arc update --changed-only` | Idempotent post-edit Git reconciliation |

@@ -1,4 +1,6 @@
 {
   "name": "skills",
+  "version": "2.0.0",
+  "description": "Six-skill cross-agent engineering repository (arc-plan, arc-code, arc-verify, arc-audit, check, lazycat) synced via scripts/sync.sh.",
   "plugins": []
 }

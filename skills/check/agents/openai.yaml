@@ -1,4 +1,4 @@
 interface:
   display_name: "Check Delivery"
-  short_description: "Gate-verified Git, PR, package, release, and CNB (.cnb.yml / TAPD) follow-through."
+  short_description: "Gate-verified Git, PR, release, and CNB delivery actions."
   default_prompt: "Use $check following AGENTS.md and ../_shared/contract.md."

@@ -69,11 +69,12 @@ func cmdSearch(args []string) error {
 	}
 
 	start := time.Now()
+	candidateMax := max(*maxDocs*8, 400)
 	var res *searchResult
 	if !*noIndex && hasShards(repo) {
-		res, err = zoektSearch(repo, qstr, m, *maxDocs, *contextLines)
+		res, err = zoektSearch(repo, qstr, m, candidateMax, *contextLines)
 	} else {
-		res, err = rgSearch(repo, qstr, m, *maxDocs, *contextLines)
+		res, err = rgSearch(repo, qstr, m, candidateMax, *contextLines)
 	}
 	if err != nil {
 		return err
@@ -124,12 +125,12 @@ func zoektSearch(repo *Repo, qstr string, m *profileMatcher, maxDocs, contextLin
 
 	searcher, err := zsearch.NewDirectorySearcher(repo.IndexDir)
 	if err != nil {
-		return nil, fmt.Errorf("open index %s: %w (run `arc index`)", repo.IndexDir, err)
+		return nil, fmt.Errorf("open index %s: %w (run `arc idx index`)", repo.IndexDir, err)
 	}
 	defer searcher.Close()
 
 	opts := &zoekt.SearchOptions{
-		MaxDocDisplayCount: maxDocs * 4, // headroom for post-hoc profile filtering
+		MaxDocDisplayCount: maxDocs * 2, // headroom for post-hoc profile and prod-only ranking
 		NumContextLines:    contextLines,
 		ShardMaxMatchCount: 100_000,
 		TotalMaxMatchCount: 200_000,
@@ -204,7 +205,7 @@ func truncateLine(s string) string {
 func rgSearch(repo *Repo, qstr string, m *profileMatcher, maxDocs, contextLines int) (*searchResult, error) {
 	rgBin, err := exec.LookPath("rg")
 	if err != nil {
-		return nil, fmt.Errorf("no zoekt index and rg not installed; run `arc index`")
+		return nil, fmt.Errorf("no zoekt index and rg not installed; run `arc idx index`")
 	}
 	pattern, rgArgs := translateQueryToRg(qstr)
 	rgArgs = append(rgArgs, "--json", "--max-count", "20")

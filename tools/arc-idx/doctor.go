@@ -49,6 +49,15 @@ func cmdDoctor(args []string) error {
 	}
 	for _, tool := range []string{"ctags", "ast-grep", "rg", "fd"} {
 		if p, err := exec.LookPath(tool); err == nil {
+			if tool == "ctags" {
+				out, vErr := exec.Command(p, "--version").CombinedOutput()
+				if vErr != nil || !strings.Contains(string(out), "Universal Ctags") {
+					rep.Tools[tool] = p + " (NOT Universal Ctags)"
+					rep.Healthy = false
+					rep.Advice = append(rep.Advice, "brew install universal-ctags (detected non-Universal ctags)")
+					continue
+				}
+			}
 			rep.Tools[tool] = p
 		} else {
 			rep.Tools[tool] = "MISSING"
@@ -73,24 +82,24 @@ func cmdDoctor(args []string) error {
 	if idxTime.IsZero() {
 		rep.Healthy = false
 		rep.IndexStale = true
-		rep.Advice = append(rep.Advice, "no zoekt shards: run `arc index`")
+		rep.Advice = append(rep.Advice, "no zoekt shards: run `arc idx index`")
 	} else {
 		rep.IndexAge = time.Since(idxTime).Round(time.Second).String()
 		if newest := newestSourceMTime(repo); newest.After(idxTime) {
 			rep.IndexStale = true
-			rep.Advice = append(rep.Advice, "index older than sources: run `arc index` or `arc daemon start`")
+			rep.Advice = append(rep.Advice, "index older than sources: run `arc idx index` or `arc idx daemon start`")
 		}
 	}
 	if _, err := os.Stat(repo.TagsFile); err == nil {
 		rep.TagsPresent = true
 	} else {
-		rep.Advice = append(rep.Advice, "no symbol table: run `arc index`")
+		rep.Advice = append(rep.Advice, "no symbol table: run `arc idx index`")
 	}
 	if pid, alive := daemonState(repo); pid > 0 {
 		rep.DaemonPid = pid
 		rep.DaemonAlive = alive
 		if !alive {
-			rep.Advice = append(rep.Advice, "stale daemon.pid: run `arc daemon restart` or delete the pid file")
+			rep.Advice = append(rep.Advice, "stale daemon.pid: run `arc idx daemon restart` or delete the pid file")
 		}
 	}
 

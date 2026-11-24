@@ -1,7 +1,7 @@
 ---
 name: lazycat
 version: 2.0.0
-description: Lazycat Microserver (懒猫微服) app intake, non-invasive migration, original app baseline, `copy-image`, LPK build (`<=12MB`), store release, and LPK Inspector updates. Triggers on 懒猫微服, Lazycat, LPK打包, lzc-manifest, copy-image, 上架发布.
+description: Lazycat Microserver (懒猫微服) app intake, non-invasive migration, original app baseline, `copy-image`, LPK build (12MB max), store release, and LPK Inspector updates. Triggers on 懒猫微服, Lazycat, LPK打包, lzc-manifest, copy-image, 上架发布.
 ---
 
 # lazycat

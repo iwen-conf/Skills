@@ -144,6 +144,17 @@ func collectChanges(db *sql.DB, root, task, worktree string) error {
 		var existing string
 		qErr := tx.QueryRowContext(ctx, "SELECT id FROM arc_changes WHERE fingerprint=?", fingerprint).Scan(&existing)
 		if qErr == nil {
+			for _, f := range observed {
+				if _, sErr := storeFile(ctx, tx, root, f.Path); sErr != nil {
+					return sErr
+				}
+				if task != "" {
+					if _, sErr := tx.ExecContext(ctx, "INSERT OR REPLACE INTO arc_task_files(task_id,path,updated) VALUES(?,?,?)",
+						task, filepath.ToSlash(f.Path), nowUTC()); sErr != nil {
+						return sErr
+					}
+				}
+			}
 			dup := true
 			resp = changeCollectResponse{ChangeID: &existing, ChangedFiles: len(files), Duplicate: &dup, Index: "pending"}
 			return nil

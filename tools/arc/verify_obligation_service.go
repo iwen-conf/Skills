@@ -77,6 +77,15 @@ func linkTaskVerify(db *sql.DB, taskID, graph, obligation, verifyTask string) er
 			verifyTaskStatus = stStatus
 		}
 	}
+	if verifyTaskStatus == string(VerdictUnplanned) {
+		codeStatus, _, cErr := lookupCodeVerifyObligation(ctx, db, graph, obligation)
+		if cErr != nil {
+			return cErr
+		}
+		if codeStatus != "" {
+			verifyTaskStatus = codeStatus
+		}
+	}
 	// 3. 在事务内幂等写入关联记录并追加强类型领域事件
 	err = dbTransaction(ctx, db, func(tx *sql.Tx) error {
 		if _, execErr := tx.ExecContext(ctx,
@@ -99,7 +108,7 @@ func linkTaskVerify(db *sql.DB, taskID, graph, obligation, verifyTask string) er
 		ArcTaskID:        taskID,
 		ArcTaskStatus:    currentStatus,
 		Graph:            graph,
-		ObligationID:      obligation,
+		ObligationID:     obligation,
 		VerifyTaskID:     verifyTask,
 		VerifyTaskStatus: verifyTaskStatus,
 	}))
@@ -237,6 +246,21 @@ func showTaskVerifyStatus(db *sql.DB, taskID string) error {
 				item.Fact = stSummary.Fact
 			}
 		}
+		if status == string(VerdictUnplanned) {
+			cStatus, cSummary, cErr := lookupCodeVerifyObligation(ctx, db, link.graph, link.obligation)
+			if cErr != nil {
+				return cErr
+			}
+			if cStatus != "" && cSummary != nil {
+				status = cStatus
+				item.Kind = cSummary.Kind
+				item.Expected = cSummary.Expected
+				item.LatestRun = cSummary.LatestRun
+				item.LatestRunStoredStatus = cSummary.LatestRunStoredStatus
+				item.Environment = cSummary.Environment
+				item.Fact = cSummary.Fact
+			}
+		}
 		item.StoredStatus = status
 		switch Verdict(status) {
 		case VerdictPass, VerdictFail, VerdictBlocked, VerdictUnplanned:
@@ -288,7 +312,7 @@ func lookupStorylineObligation(ctx context.Context, db *sql.DB, storyID, routeID
 	if err != nil {
 		return "", nil, err
 	}
-	// 3. 解析故事线路由声明确认目标 routeID 是否已定义
+	// 3. 解析故事线路由声明确认目标 routeID（或 all 全量路由）是否已定义
 	var parsed struct {
 		Routes []struct {
 			RouteID       string `json:"route_id"`
@@ -297,6 +321,55 @@ func lookupStorylineObligation(ctx context.Context, db *sql.DB, storyID, routeID
 	}
 	if json.Unmarshal([]byte(rawJSON), &parsed) != nil {
 		return "", nil, nil
+	}
+	if routeID == "all" {
+		if len(parsed.Routes) == 0 {
+			return "", nil, nil
+		}
+		summary = &storylineObligationSummary{Kind: "STORYLINE_ALL", Expected: "all routes"}
+		status = string(VerdictNotRun)
+		hasRouteRes, rErr := arcTableExists(ctx, db, "story_route_results")
+		if rErr != nil || !hasRouteRes {
+			return status, summary, rErr
+		}
+		allPass, anyFail, anyBlocked := true, false, false
+		var latestRun, latestNS string
+		for _, r := range parsed.Routes {
+			var rID, rVerdict, rNS string
+			qErr := db.QueryRowContext(ctx,
+				"SELECT run_id, verdict, runtime_ns FROM story_route_results WHERE story_id=? AND route_id=? AND story_sha256=? ORDER BY id DESC LIMIT 1",
+				storyID, r.RouteID, storySHA,
+			).Scan(&rID, &rVerdict, &rNS)
+			if errors.Is(qErr, sql.ErrNoRows) {
+				allPass = false
+				continue
+			}
+			if qErr != nil {
+				return "", nil, qErr
+			}
+			latestRun, latestNS = rID, rNS
+			switch Verdict(rVerdict) {
+			case VerdictPass:
+			case VerdictFail:
+				anyFail, allPass = true, false
+			default:
+				anyBlocked, allPass = true, false
+			}
+		}
+		switch {
+		case anyFail:
+			status = string(VerdictFail)
+		case anyBlocked:
+			status = string(VerdictBlocked)
+		case allPass:
+			status = string(VerdictPass)
+		default:
+			status = string(VerdictNotRun)
+		}
+		summary.LatestRun = latestRun
+		summary.LatestRunStoredStatus = status
+		summary.Environment = latestNS
+		return status, summary, nil
 	}
 	foundRoute := false
 	expectedEnding := ""
@@ -357,5 +430,158 @@ func lookupStorylineObligation(ctx context.Context, db *sql.DB, storyID, routeID
 		}
 	}
 	// 6. 返回未重验的强类型存储层状态摘要
+	return status, summary, nil
+}
+
+// lookupCodeVerifyObligation 查询代码级测试账本中的计划门禁或单项技术验证状态摘要
+// 请求体
+// ctx 请求上下文
+// db 数据库连接句柄
+// planID 代码测试计划ID
+// obligationID 测试技术ID或all
+// 响应体
+// status 存储判定状态字符串
+// summary 强类型义务摘要指针
+// err 数据库查询错误
+func lookupCodeVerifyObligation(ctx context.Context, db *sql.DB, planID, obligationID string) (status string, summary *storylineObligationSummary, err error) {
+	// 1. 检查 code_verify_plans 表是否存在并读取计划版本信息
+	hasPlans, err := arcTableExists(ctx, db, "code_verify_plans")
+	if err != nil || !hasPlans {
+		return "", nil, err
+	}
+	var rawJSON, planSHA, primaryLang, maxTier string
+	err = db.QueryRowContext(ctx, "SELECT raw_json, plan_sha256, primary_language, max_tier FROM code_verify_plans WHERE plan_id=?", planID).Scan(&rawJSON, &planSHA, &primaryLang, &maxTier)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil, nil
+	}
+	if err != nil {
+		return "", nil, err
+	}
+	// 2. 解析计划技术列表核验目标义务是否合法
+	var parsed struct {
+		Techniques []struct {
+			TechniqueID       string `json:"technique_id"`
+			ToolName          string `json:"tool_name"`
+			Status            string `json:"status"`
+			Priority          string `json:"priority"`
+			EffectivePriority string `json:"effective_priority"`
+		} `json:"techniques"`
+	}
+	if json.Unmarshal([]byte(rawJSON), &parsed) != nil {
+		return "", nil, nil
+	}
+	if obligationID == "all" {
+		summary = &storylineObligationSummary{Kind: "CODE_VERIFY_PLAN", Expected: maxTier, Environment: primaryLang}
+		status = string(VerdictNotRun)
+		hasRuns, rErr := arcTableExists(ctx, db, "code_verify_runs")
+		if rErr != nil || !hasRuns {
+			return status, summary, rErr
+		}
+		var runID, verdict string
+		qErr := db.QueryRowContext(ctx, "SELECT run_id, verdict FROM code_verify_runs WHERE plan_id=? AND plan_sha256=? ORDER BY rowid DESC LIMIT 1", planID, planSHA).Scan(&runID, &verdict)
+		if errors.Is(qErr, sql.ErrNoRows) {
+			return status, summary, nil
+		}
+		if qErr != nil {
+			return "", nil, qErr
+		}
+		summary.LatestRun = runID
+		summary.LatestRunStoredStatus = verdict
+		hasRes, resErr := arcTableExists(ctx, db, "code_verify_results")
+		if resErr != nil || !hasRes {
+			return verdict, summary, resErr
+		}
+		hasExplicitStatus := false
+		for _, t := range parsed.Techniques {
+			if t.Status != "" {
+				hasExplicitStatus = true
+				break
+			}
+		}
+		allPass, anyFail, anyBlocked := true, false, false
+		for _, t := range parsed.Techniques {
+			if hasExplicitStatus && t.Status != "REQUIRED" {
+				continue
+			}
+			var resVerdict string
+			tErr := db.QueryRowContext(ctx,
+				"SELECT verdict FROM code_verify_results WHERE plan_id=? AND technique_id=? AND plan_sha256=? ORDER BY id DESC LIMIT 1",
+				planID, t.TechniqueID, planSHA,
+			).Scan(&resVerdict)
+			if errors.Is(tErr, sql.ErrNoRows) {
+				allPass = false
+				continue
+			}
+			if tErr != nil {
+				return "", nil, tErr
+			}
+			switch Verdict(resVerdict) {
+			case VerdictPass:
+			case VerdictFail:
+				anyFail, allPass = true, false
+			default:
+				anyBlocked, allPass = true, false
+			}
+		}
+		switch {
+		case anyFail:
+			status = string(VerdictFail)
+		case anyBlocked:
+			status = string(VerdictBlocked)
+		case !allPass:
+			status = string(VerdictBlocked)
+		default:
+			status = string(VerdictPass)
+		}
+		summary.LatestRunStoredStatus = status
+		return status, summary, nil
+	}
+	foundTech := false
+	toolName := ""
+	for _, t := range parsed.Techniques {
+		if t.TechniqueID == obligationID {
+			foundTech = true
+			toolName = t.ToolName
+			break
+		}
+	}
+	if !foundTech {
+		return "", nil, nil
+	}
+	summary = &storylineObligationSummary{Kind: "CODE_VERIFY_TECHNIQUE", Expected: toolName, Environment: primaryLang}
+	status = string(VerdictNotRun)
+	// 3. 查询 code_verify_results 中当前计划版本最新一条单项收据
+	hasRes, rErr := arcTableExists(ctx, db, "code_verify_results")
+	if rErr != nil || !hasRes {
+		return status, summary, rErr
+	}
+	var runID, verdict, failReason, missingPrereq, receiptSHA string
+	qErr := db.QueryRowContext(ctx,
+		"SELECT run_id, verdict, failure_reason, missing_prerequisite, receipt_sha256 FROM code_verify_results WHERE plan_id=? AND technique_id=? AND plan_sha256=? ORDER BY id DESC LIMIT 1",
+		planID, obligationID, planSHA,
+	).Scan(&runID, &verdict, &failReason, &missingPrereq, &receiptSHA)
+	if errors.Is(qErr, sql.ErrNoRows) {
+		return status, summary, nil
+	}
+	if qErr != nil {
+		return "", nil, qErr
+	}
+	status = verdict
+	summary.LatestRun = runID
+	summary.LatestRunStoredStatus = verdict
+	reason := failReason
+	if reason == "" {
+		reason = missingPrereq
+	}
+	summary.Fact = &verifyFactSummary{
+		Seq:             1,
+		Node:            obligationID,
+		ObservedState:   verdict,
+		StoredVerdict:   verdict,
+		Reason:          reason,
+		EvidenceStatus:  "NOT_REVALIDATED",
+		FirstDivergence: verdict != string(VerdictPass),
+		EvidenceSHA256:  receiptSHA,
+	}
 	return status, summary, nil
 }

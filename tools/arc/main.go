@@ -28,6 +28,7 @@ const usage = "arc %s — unified Arc CLI with local state database\n\n" +
 	"  arc idx doctor [flags]          Diagnose index health\n" +
 	"  arc idx daemon <action> [flags] Manage code indexer\n" +
 	"  arc index flush [--repo DIR]    Acknowledge outbox only after healthy index\n" +
+	"  arc verify code <catalog|plan|run|explain|gate|snapshot> [flags]  26-technique code-level verification\n" +
 	"  arc verify scan-surface [flags] Inventory all HTTP/RPC/CLI/UI/MQ/SQL surfaces\n" +
 	"  arc verify scan-world <entity>  Extract coupled world_flags from SQL/ORM/topics\n" +
 	"  arc verify lint-story <file>    Validate storyline DAG, anti-softlock & write_scope\n" +
@@ -71,15 +72,20 @@ var engineRole = map[string]string{"arc-idx": "code-index", "arc-verify": "verif
 
 type route struct {
 	executable string
-	argv []string
+	argv       []string
 }
 
 func selectCommand(args []string) (route, error) {
-	if len(args) == 0 { return route{}, errors.New("missing subcommand") }
+	if len(args) == 0 {
+		return route{}, errors.New("missing subcommand")
+	}
 	name := args[0]
 	if name == "idx" {
+		if len(args) >= 2 && (args[1] == "help" || args[1] == "--help" || args[1] == "-h") {
+			return route{executable: "arc-idx", argv: []string{"help"}}, nil
+		}
 		if len(args) < 2 || !indexCommands[args[1]] {
-			return route{}, errors.New("usage: arc idx <search|symbol|files|ast|stats|doctor|index|daemon|watch> [flags]")
+			return route{}, errors.New("usage: arc idx <search|symbol|skeleton|impact|files|ast|stats|doctor|index|daemon|watch> [flags]")
 		}
 		return route{executable: "arc-idx", argv: args[1:]}, nil
 	}
@@ -87,6 +93,9 @@ func selectCommand(args []string) (route, error) {
 		return route{executable: "arc-idx", argv: args}, nil
 	}
 	if name == "verify" {
+		if len(args) >= 2 && (args[1] == "help" || args[1] == "--help" || args[1] == "-h") {
+			return route{executable: "arc-verify", argv: []string{"help"}}, nil
+		}
 		if len(args) < 2 || strings.HasPrefix(args[1], "-") {
 			return route{}, errors.New("usage: arc verify <arc-verify command> [flags]")
 		}
@@ -103,17 +112,27 @@ func selectCommand(args []string) (route, error) {
 // sibling of arc (pre-0.4.1 layout) and PATH remain migration fallbacks.
 func resolveBackend(name string) (string, error) {
 	self, err := os.Executable()
-	if err != nil { return exec.LookPath(name) }
-	if resolved, e := filepath.EvalSymlinks(self); e == nil { self = resolved }
+	if err != nil {
+		return exec.LookPath(name)
+	}
+	if resolved, e := filepath.EvalSymlinks(self); e == nil {
+		self = resolved
+	}
 	return resolveBackendFrom(filepath.Dir(self), name)
 }
 
 func resolveBackendFrom(binDir, name string) (string, error) {
-	if runtime.GOOS == "windows" { name += ".exe" }
-	for _, dir := range []string{filepath.Join(filepath.Dir(binDir), "libexec", "arc"), binDir} {
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	for _, dir := range []string{
+		filepath.Join(filepath.Dir(binDir), "libexec", "arc"),
+		filepath.Join(binDir, "libexec", "arc"),
+		binDir,
+	} {
 		candidate := filepath.Join(dir, name)
 		if st, statErr := os.Stat(candidate); statErr == nil && st.Mode().IsRegular() &&
-			(runtime.GOOS == "windows" || st.Mode().Perm() & 0111 != 0) {
+			(runtime.GOOS == "windows" || st.Mode().Perm()&0111 != 0) {
 			return candidate, nil
 		}
 	}
@@ -191,20 +210,34 @@ func run(args []string) int {
 	switch args[0] {
 	case "index":
 		if len(args) > 1 && args[1] == "flush" {
-			if err := indexCommand(args[1:]); err != nil { fmt.Fprintln(os.Stderr, "arc index:", err); return 2 }
+			if err := indexCommand(args[1:]); err != nil {
+				fmt.Fprintln(os.Stderr, "arc index:", err)
+				return 2
+			}
 			return 0
 		}
 	case "db", "task", "file", "change", "update", "sync", "event", "policy":
 		var err error
 		switch args[0] {
-		case "db": err = dbCommand(args[1:])
-		case "sync": err = syncCommand(args[1:])
-		case "event": err = eventCommand(args[1:])
+		case "db":
+			err = dbCommand(args[1:])
+		case "sync":
+			err = syncCommand(args[1:])
+		case "event":
+			err = eventCommand(args[1:])
 		case "policy":
-			if len(args)<2 || args[1]!="state" { err = errors.New("usage: arc policy state <get|put|status|migrate>") } else { err = policyStateCommand(args[2:]) }
-		default: err = resourceCommand(args[0],args[1:])
+			if len(args) < 2 || args[1] != "state" {
+				err = errors.New("usage: arc policy state <get|put|status|migrate>")
+			} else {
+				err = policyStateCommand(args[2:])
+			}
+		default:
+			err = resourceCommand(args[0], args[1:])
 		}
-		if err != nil { fmt.Fprintf(os.Stderr, "arc %s: %v\n", args[0], err); return 2 }
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "arc %s: %v\n", args[0], err)
+			return 2
+		}
 		return 0
 	}
 	selected, err := selectCommand(args)
@@ -223,24 +256,34 @@ func run(args []string) int {
 		cmd.Env = os.Environ()
 		if err := cmd.Run(); err != nil {
 			var exited *exec.ExitError
-			if errors.As(err, &exited) { return exited.ExitCode() }
+			if errors.As(err, &exited) {
+				return exited.ExitCode()
+			}
 			fmt.Fprintf(os.Stderr, "arc: backend %s failed: %v\n", selected.executable, err)
 			return 1
 		}
 		return 0
 	}
 	if args[0] == "verify" {
-		root, err := repositoryRoot(".")
-		if err != nil { fmt.Fprintln(os.Stderr, "arc verify:", err); return 2 }
+		repoArg := extractVerifyRepoArg(selected.argv)
+		root, err := repositoryRoot(repoArg)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "arc verify:", err)
+			return 2
+		}
 		m, err := readManifest(root)
-		if err != nil { fmt.Fprintln(os.Stderr, "arc verify:", err); return 2 }
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "arc verify:", err)
+			return 2
+		}
 		if m != nil && !isArcDBArgument(selected.argv) {
 			selected.argv = withVerifyDatabase(selected.argv, statePath(root))
 		}
-		if m != nil {
+		if m != nil && shouldLockVerifyCommand(selected.argv) {
 			code := 2
-			if err := withArcLock(root,func() error{ code=forward(); return nil }); err != nil {
-				fmt.Fprintln(os.Stderr,"arc verify:",err); return 2
+			if err := withArcLock(root, func() error { code = forward(); return nil }); err != nil {
+				fmt.Fprintln(os.Stderr, "arc verify:", err)
+				return 2
 			}
 			return code
 		}
@@ -248,11 +291,77 @@ func run(args []string) int {
 	return forward()
 }
 
+// extractVerifyRepoArg 从透传给验证引擎的参数中解析显式 --repo 路径（缺省回退当前目录）
+// 请求体
+// args 验证子引擎参数切片
+// 响应体
+// repo 解析到的仓库路径或默认值 "."
+func extractVerifyRepoArg(args []string) string {
+	// 1. 顺序扫描 --repo=DIR 或 --repo DIR 标志
+	for i := 0; i < len(args); i++ {
+		if strings.HasPrefix(args[i], "--repo=") {
+			val := strings.TrimSpace(strings.TrimPrefix(args[i], "--repo="))
+			if val != "" {
+				return val
+			}
+		} else if args[i] == "--repo" && i+1 < len(args) {
+			val := strings.TrimSpace(args[i+1])
+			if val != "" {
+				return val
+			}
+		}
+	}
+	// 2. 未指定时默认使用当前工作目录
+	return "."
+}
+
+// shouldLockVerifyCommand 判断验证命令是否需外层文件锁（长耗时执行命令依赖SQLite busy_timeout避免嵌套自死锁）
+// 请求体
+// args 验证子引擎参数切片
+// 响应体
+// needLock 是否需要外层排他锁
+func shouldLockVerifyCommand(args []string) bool {
+	// 1. 帮助、版本及长耗时测试执行命令不持有外层阻塞锁
+	if len(args) == 0 {
+		return false
+	}
+	switch args[0] {
+	case "help", "--help", "-h", "version", "play":
+		return false
+	case "code":
+		if len(args) >= 2 && args[1] == "run" {
+			return false
+		}
+	}
+	return true
+}
+
 // Subcommands consume their name before flags. Inserting --db before that
 // name breaks nested verifier commands in an activated unified ledger.
 func withVerifyDatabase(args []string, database string) []string {
+	if len(args) == 0 {
+		return args
+	}
+	switch args[0] {
+	case "help", "--help", "-h", "version", "scan-surface", "scan-world", "lint-story", "plan-shards":
+		if args[0] == "help" || args[0] == "--help" || args[0] == "-h" || args[0] == "version" {
+			return args
+		}
+	}
+	for _, a := range args {
+		if a == "--help" || a == "-h" {
+			return args
+		}
+	}
+	isNested := args[0] == "code" || args[0] == "checkpoint" || args[0] == "contract" || args[0] == "campaign" || args[0] == "discover"
+	if isNested && (len(args) == 1 || strings.HasPrefix(args[1], "-")) {
+		return args
+	}
 	at := 1
-	if len(args) > 1 && (args[0] == "checkpoint" || args[0] == "contract" || args[0] == "campaign" || args[0] == "discover" || args[0] == "risk" && args[1] == "refute") {
+	if len(args) > 1 && (isNested || (args[0] == "risk" && args[1] == "refute")) {
+		if args[0] == "code" && args[1] == "catalog" {
+			return args
+		}
 		at = 2
 	}
 	result := append([]string{}, args[:at]...)
@@ -260,4 +369,6 @@ func withVerifyDatabase(args []string, database string) []string {
 	return append(result, args[at:]...)
 }
 
-func main() { os.Exit(run(os.Args[1:])) }
+func main() {
+	os.Exit(run(os.Args[1:]))
+}

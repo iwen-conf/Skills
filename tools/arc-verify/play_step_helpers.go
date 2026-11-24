@@ -105,7 +105,16 @@ func executeDeclaredSteps(
 			}
 		}
 
-		// 5. 合并单步结构化证据、回写提取变量并执行内核级 Expected-vs-Actual 判等
+		// 5. 拦截无任何可执行命令的空壳步骤并合并单步结构化证据
+		if len(cmdsRun) == 0 && strings.TrimSpace(r.VerifyCmd) == "" {
+			dur := time.Since(t0).Milliseconds()
+			reason := "step has no executable command"
+			*traces = append(*traces, finalizeStepTrace(s, r, st, runID, "", dur, nil, string(VerdictBlocked), reason, ""))
+			return routeExecutionOutcome{
+				route:  finalizeRouteRecord(s, r, runID, string(VerdictBlocked), softlock, probesTotal, probesPassed, "", logBuf.String()),
+				traces: *traces,
+			}, probesPassed, softlock, true
+		}
 		dur := time.Since(t0).Milliseconds()
 		rawStepOut := strings.TrimSpace(stepOut.String())
 		mergedEv := mergeAllStepEvidence(parseStepEvidence(rawStepOut))
@@ -130,7 +139,9 @@ func executeDeclaredSteps(
 				traces: *traces,
 			}, probesPassed, softlock, true
 		}
-		probesPassed += len(st.ButterflyProbes)
+		if len(st.ButterflyProbes) > 0 && mergedEv != nil && len(mergedEv.ActualProbes) > 0 {
+			probesPassed += len(st.ButterflyProbes)
+		}
 	}
 	return routeExecutionOutcome{}, probesPassed, softlock, false
 }
@@ -240,7 +251,9 @@ func executeRouteVerifyCommand(
 					traces: *traces,
 				}, probesPassed, softlock, true
 			}
-			probesPassed += len(st.ButterflyProbes)
+			if len(st.ButterflyProbes) > 0 && ev != nil && len(ev.ActualProbes) > 0 {
+				probesPassed += len(st.ButterflyProbes)
+			}
 		}
 	}
 	return routeExecutionOutcome{}, probesPassed, softlock, false

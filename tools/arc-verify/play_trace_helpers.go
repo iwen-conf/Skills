@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // buildStepEnv 组装注入单步执行子进程的六维预期与动态变量环境列表
@@ -76,20 +78,25 @@ func saveVarsToFile(path string, vars FactMap) {
 	}
 }
 
-// runCommandCapture 在指定目录与环境变量下执行Shell命令并捕获合并输出
+// runCommandCapture 在指定目录与环境变量下以300秒超时限制执行Shell命令并捕获合并输出
 // 请求体
 // dir 命令工作目录
 // command Shell命令字符串
 // env 环境变量切片
 // 响应体
 // output 去除首尾空白的标准输出与错误合并文本
-// err 命令非零退出错误
+// err 命令非零退出或超时错误
 func runCommandCapture(dir, command string, env []string) (string, error) {
-	// 1. 启动 sh -c 执行命令并捕获合并输出流
-	cmd := exec.Command("sh", "-c", command)
+	// 1. 绑定300秒硬超时启动 sh -c 执行命令并捕获合并输出流
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "sh", "-c", command)
 	cmd.Dir = dir
 	cmd.Env = env
 	out, err := cmd.CombinedOutput()
+	if ctx.Err() == context.DeadlineExceeded {
+		return strings.TrimSpace(string(out)), fmt.Errorf("command timed out after 300s")
+	}
 	return strings.TrimSpace(string(out)), err
 }
 
@@ -157,9 +164,6 @@ func finalizeStepTrace(
 		tr.ActualProbes = ev.ActualProbes
 		tr.ObservedEffects = ev.ObservedEffects
 	}
-	if tr.ActualStatus == "" && Verdict(verdict) == VerdictPass && st.ExpectStatus != "" {
-		tr.ActualStatus = st.ExpectStatus
-	}
 	tr.TraceSHA256 = computeStepTraceSHA256(tr)
 	return tr
 }
@@ -213,7 +217,19 @@ func finalizeRouteRecord(
 		RawOutput:        rawOutput,
 		CreatedAt:        nowUTC(),
 	}
-	payload, _ := json.Marshal(rec)
-	rec.ReceiptSHA256 = sha256Hex(payload)
+	rec.ReceiptSHA256 = computeRouteReceiptSHA256(rec)
 	return rec
+}
+
+// computeRouteReceiptSHA256 清空收据自身摘要与自增ID后计算确定性SHA256指纹
+// 请求体
+// rec 路由执行结果结构体副本
+// 响应体
+// digest 64位十六进制SHA256收据签名
+func computeRouteReceiptSHA256(rec RouteResultRecord) string {
+	// 1. 归零ID与ReceiptSHA256并序列化计算哈希
+	rec.ID = 0
+	rec.ReceiptSHA256 = ""
+	payload, _ := json.Marshal(rec)
+	return sha256Hex(payload)
 }

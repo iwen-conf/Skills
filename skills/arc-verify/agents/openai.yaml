@@ -1,4 +1,4 @@
 interface:
   display_name: "Arc Verify"
-  short_description: "Veteran-QA full-business E2E verification with 6-dimension expected-vs-actual receipts."
+  short_description: "Run 26 code-level tests and 6D Storyline E2E verification."
   default_prompt: "Use $arc-verify following AGENTS.md, ../_shared/contract.md, and references/cheatsheet.md."

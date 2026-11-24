@@ -1,6 +1,6 @@
 # Cross-Agent Collaboration Protocol
 
-Applies identically to **Claude Code**, **Codex**, and **Grok Build**. Switching agents mid-feature must require zero chat copy-paste.
+Applies identically to **Claude Code**, **Codex**, **Grok Build**, and **Gemini CLI**. Switching agents mid-feature must require zero chat copy-paste.
 
 ## 1. Single Source of Truth
 

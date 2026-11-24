@@ -1,4 +1,4 @@
-module github.com/iluwen/skills/tools/arc-idx
+module github.com/iwen-conf/Skills/tools/arc-idx
 
 go 1.26.5
 

@@ -157,15 +157,22 @@ func mergeFactMaps(a, b FactMap) FactMap {
 // verdict 闭合步骤判定结果
 // diffReason 差异明细拼接描述
 func evaluateStepEvidence(st RouteStep, ev *StepEvidencePayload) (verdict string, diffReason string) {
-	// 1. 无结构化证据时保持退出码驱动通过，显式软锁直接判FAIL
+	// 1. 当步骤声明了六维约束或探针但缺失结构化证据时直接判 BLOCKED，杜绝退化为仅凭退出码放行
+	requiresSixDim := len(st.Preconditions) > 0 || len(st.ExpectResult) > 0 || len(st.ButterflyProbes) > 0 || len(st.ForbiddenEffects) > 0
 	if ev == nil {
+		if requiresSixDim {
+			return string(VerdictBlocked), "structured [ARC_STEP_EVIDENCE] required when preconditions, expect_result, butterfly_probes, or forbidden_effects are declared"
+		}
 		return string(VerdictPass), ""
 	}
 	if ev.Softlock {
 		return string(VerdictFail), "softlock reported in step evidence"
 	}
-	// 2. 核对前置条件，不满足归类为环境夹具 BLOCKED
-	if len(st.Preconditions) > 0 && len(ev.PreconditionsActual) > 0 {
+	// 2. 强制核对前置条件，缺失或值不匹配均归类为环境夹具 BLOCKED
+	if len(st.Preconditions) > 0 {
+		if len(ev.PreconditionsActual) == 0 {
+			return string(VerdictBlocked), "missing preconditions_actual in [ARC_STEP_EVIDENCE]"
+		}
 		for _, k := range sortedFactKeys(st.Preconditions) {
 			expVal := st.Preconditions[k]
 			actVal, ok := ev.PreconditionsActual[k]
@@ -174,28 +181,43 @@ func evaluateStepEvidence(st RouteStep, ev *StepEvidencePayload) (verdict string
 			}
 		}
 	}
-	// 3. 逐项核对业务状态、预期输出、蝴蝶探针与零容忍禁止副作用
+	// 3. 逐项核对行为标签、业务状态、预期输出、蝴蝶探针与零容忍禁止副作用（禁止静默跳过声明项）
 	var diffs []string
-	if strings.TrimSpace(st.ExpectStatus) != "" && strings.TrimSpace(ev.ActualStatus) != "" {
-		if strings.TrimSpace(st.ExpectStatus) != strings.TrimSpace(ev.ActualStatus) {
+	if strings.TrimSpace(st.ExpectedBehavior) != "" && strings.TrimSpace(ev.ActualBehavior) != "" {
+		if strings.TrimSpace(st.ExpectedBehavior) != strings.TrimSpace(ev.ActualBehavior) {
+			diffs = append(diffs, fmt.Sprintf("behavior mismatch: expected %q, actual %q", st.ExpectedBehavior, ev.ActualBehavior))
+		}
+	}
+	if strings.TrimSpace(st.ExpectStatus) != "" {
+		if strings.TrimSpace(ev.ActualStatus) == "" {
+			diffs = append(diffs, fmt.Sprintf("missing actual_status for expect_status %q", st.ExpectStatus))
+		} else if strings.TrimSpace(st.ExpectStatus) != strings.TrimSpace(ev.ActualStatus) {
 			diffs = append(diffs, fmt.Sprintf("status mismatch: expected %q, actual %q", st.ExpectStatus, ev.ActualStatus))
 		}
 	}
-	if len(st.ExpectResult) > 0 && ev.ActualResult != nil {
-		for _, k := range sortedFactKeys(st.ExpectResult) {
-			expVal := st.ExpectResult[k]
-			actVal, ok := ev.ActualResult[k]
-			if !ok || !expVal.Equal(actVal) {
-				diffs = append(diffs, fmt.Sprintf("result[%s] mismatch: expected %s, actual %s", k, expVal.FormatText(), actVal.FormatText()))
+	if len(st.ExpectResult) > 0 {
+		if len(ev.ActualResult) == 0 {
+			diffs = append(diffs, "missing actual_result for declared expect_result")
+		} else {
+			for _, k := range sortedFactKeys(st.ExpectResult) {
+				expVal := st.ExpectResult[k]
+				actVal, ok := ev.ActualResult[k]
+				if !ok || !expVal.Equal(actVal) {
+					diffs = append(diffs, fmt.Sprintf("result[%s] mismatch: expected %s, actual %s", k, expVal.FormatText(), actVal.FormatText()))
+				}
 			}
 		}
 	}
-	if len(st.ButterflyProbes) > 0 && ev.ActualProbes != nil {
-		for _, k := range sortedFactKeys(st.ButterflyProbes) {
-			expVal := st.ButterflyProbes[k]
-			actVal, ok := ev.ActualProbes[k]
-			if !ok || !expVal.Equal(actVal) {
-				diffs = append(diffs, fmt.Sprintf("butterfly_probe[%s] mismatch: expected %s, actual %s", k, expVal.FormatText(), actVal.FormatText()))
+	if len(st.ButterflyProbes) > 0 {
+		if len(ev.ActualProbes) == 0 {
+			diffs = append(diffs, "missing actual_probes for declared butterfly_probes")
+		} else {
+			for _, k := range sortedFactKeys(st.ButterflyProbes) {
+				expVal := st.ButterflyProbes[k]
+				actVal, ok := ev.ActualProbes[k]
+				if !ok || !expVal.Equal(actVal) {
+					diffs = append(diffs, fmt.Sprintf("butterfly_probe[%s] mismatch: expected %s, actual %s", k, expVal.FormatText(), actVal.FormatText()))
+				}
 			}
 		}
 	}

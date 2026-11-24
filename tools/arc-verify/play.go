@@ -77,13 +77,9 @@ func playStory(ledger *StoryLedger, s *Storyline, opts PlayOptions) (*PlaySummar
 	if Verdict(lint.Status) != VerdictPass {
 		return nil, fmt.Errorf("storyline lint failed (%d errors): %s", lint.TotalErrors, lint.Errors[0].Message)
 	}
-	if opts.RepoRoot == "" {
-		opts.RepoRoot = "."
-	}
-	absRoot, err := filepath.Abs(opts.RepoRoot)
-	if err != nil {
-		return nil, err
-	}
+	absRoot := canonicalRepoRoot(opts.RepoRoot)
+	sourceCommit := currentGitHead(absRoot)
+	sourceTreeSHA := sourceWorktreeDigestExcluding(absRoot, ledger.path)
 	if err := ledger.SaveStoryDefinition(s); err != nil {
 		return nil, err
 	}
@@ -133,6 +129,10 @@ func playStory(ledger *StoryLedger, s *Storyline, opts PlayOptions) (*PlaySummar
 	results := make([]RouteResultRecord, 0, len(outcomes))
 	var allTraces []StepTraceRecord
 	for _, out := range outcomes {
+		out.route.RepoRoot = absRoot
+		out.route.SourceCommit = sourceCommit
+		out.route.SourceTreeSHA256 = sourceTreeSHA
+		out.route.ReceiptSHA256 = computeRouteReceiptSHA256(out.route)
 		if err := ledger.AppendRouteResult(out.route); err != nil {
 			return nil, err
 		}
@@ -149,7 +149,7 @@ func playStory(ledger *StoryLedger, s *Storyline, opts PlayOptions) (*PlaySummar
 			runVerdict = out.route.Verdict
 		}
 	}
-	if err := ledger.RecordRun(runID, s.StoryID, s.SHA256, currentGitHead(absRoot), opts.Blind, runVerdict, startedAt); err != nil {
+	if err := ledger.RecordRun(runID, s.StoryID, s.SHA256, absRoot, sourceCommit, sourceTreeSHA, opts.Blind, runVerdict, startedAt); err != nil {
 		return nil, err
 	}
 	// 5. 计算全故事线四维完成度并返回汇总报告

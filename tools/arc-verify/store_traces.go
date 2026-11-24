@@ -33,6 +33,12 @@ type RouteResultRecord struct {
 	UnlockedEnding string `json:"unlocked_ending"`
 	// RawOutput 路由执行原始日志文本
 	RawOutput string `json:"raw_output"`
+	// RepoRoot 执行时规范化仓库根目录
+	RepoRoot string `json:"repo_root,omitempty"`
+	// SourceCommit 执行时源码Git提交哈希
+	SourceCommit string `json:"source_commit,omitempty"`
+	// SourceTreeSHA256 执行时源码工作树摘要
+	SourceTreeSHA256 string `json:"source_tree_sha256,omitempty"`
 	// ReceiptSHA256 路由收据不可变SHA256摘要
 	ReceiptSHA256 string `json:"receipt_sha256"`
 	// CreatedAt 记录创建UTC时间
@@ -195,11 +201,11 @@ func (l *StoryLedger) AppendRouteResult(rec RouteResultRecord) error {
 		`INSERT INTO story_route_results(
 			run_id, story_id, story_sha256, route_id, load_save, runtime_ns,
 			verdict, softlock_detected, probes_total, probes_passed, unlocked_ending,
-			raw_output, receipt_sha256, created_at
-		) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+			raw_output, repo_root, source_commit, source_tree_sha256, receipt_sha256, created_at
+		) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		rec.RunID, rec.StoryID, rec.StorySHA256, rec.RouteID, rec.LoadSave, rec.RuntimeNS,
 		rec.Verdict, softInt, rec.ProbesTotal, rec.ProbesPassed, rec.UnlockedEnding,
-		rec.RawOutput, rec.ReceiptSHA256, rec.CreatedAt,
+		rec.RawOutput, rec.RepoRoot, rec.SourceCommit, rec.SourceTreeSHA256, rec.ReceiptSHA256, rec.CreatedAt,
 	)
 	return err
 }
@@ -217,7 +223,7 @@ func (l *StoryLedger) ListRouteResults(storyID string) ([]RouteResultRecord, err
 	rows, err := l.db.Query(
 		`SELECT id, run_id, story_id, story_sha256, route_id, load_save, runtime_ns,
 		        verdict, softlock_detected, probes_total, probes_passed, unlocked_ending,
-		        raw_output, receipt_sha256, created_at
+		        raw_output, repo_root, source_commit, source_tree_sha256, receipt_sha256, created_at
 		 FROM story_route_results WHERE story_id=? ORDER BY id ASC`, storyID,
 	)
 	if err != nil {
@@ -231,7 +237,7 @@ func (l *StoryLedger) ListRouteResults(storyID string) ([]RouteResultRecord, err
 		if err := rows.Scan(
 			&r.ID, &r.RunID, &r.StoryID, &r.StorySHA256, &r.RouteID, &r.LoadSave, &r.RuntimeNS,
 			&r.Verdict, &soft, &r.ProbesTotal, &r.ProbesPassed, &r.UnlockedEnding,
-			&r.RawOutput, &r.ReceiptSHA256, &r.CreatedAt,
+			&r.RawOutput, &r.RepoRoot, &r.SourceCommit, &r.SourceTreeSHA256, &r.ReceiptSHA256, &r.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

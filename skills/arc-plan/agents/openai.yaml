@@ -1,4 +1,4 @@
 interface:
   display_name: "Arc Plan"
-  short_description: "Explore code (arc idx), vet dependencies, freeze contracts, and plan execution waves."
+  short_description: "Explore code, vet deps, freeze contracts, and plan waves."
   default_prompt: "Use $arc-plan following AGENTS.md and ../_shared/contract.md."

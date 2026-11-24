@@ -14,310 +14,574 @@ import (
 func testRepoRoot(t *testing.T) string {
 	t.Helper()
 	root, err := filepath.EvalSymlinks(t.TempDir())
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	return root
 }
 
 func testArcState(t *testing.T) (string, *sql.DB) {
 	t.Helper()
 	root := testRepoRoot(t)
-	if err := os.MkdirAll(filepath.Join(root, ".arc"), 0700); err != nil { t.Fatal(err) }
-	db, err := openArcDB(statePath(root))
-	if err != nil { t.Fatal(err) }
-	if err := createArcSchema(db); err != nil { db.Close(); t.Fatal(err) }
-	if err := writeManifest(root, arcManifest{Version:arcSchemaVersion, Active:true, DB:arcDBName}); err != nil {
-		db.Close(); t.Fatal(err)
+	if err := os.MkdirAll(filepath.Join(root, ".arc"), 0700); err != nil {
+		t.Fatal(err)
 	}
-	t.Cleanup(func(){ db.Close() })
+	db, err := openArcDB(statePath(root))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := createArcSchema(db); err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	if err := writeManifest(root, arcManifest{Version: arcSchemaVersion, Active: true, DB: arcDBName}); err != nil {
+		db.Close()
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close() })
 	return root, db
 }
 
 func TestTaskStateAndEventAtomicity(t *testing.T) {
 	_, db := testArcState(t)
-	if err := executeTask(db,"create","","Payment recovery","",0);err!=nil{t.Fatal(err)}
+	if err := executeTask(db, "create", "", "Payment recovery", "", 0); err != nil {
+		t.Fatal(err)
+	}
 	var id string
-	if err:=db.QueryRow("SELECT id FROM arc_tasks LIMIT 1").Scan(&id);err!=nil{t.Fatal(err)}
-	if err:=executeTask(db,"transition",id,"","ready",1);err!=nil{t.Fatal(err)}
-	if err:=executeTask(db,"transition",id,"","running",1);err==nil{t.Fatal("stale version was accepted")}
-	if err:=executeTask(db,"transition",id,"","running",2);err!=nil{t.Fatal(err)}
-	if err:=executeTask(db,"transition",id,"","verifying",3);err!=nil{t.Fatal(err)}
-	if err:=executeTask(db,"transition",id,"","done",4);err==nil{t.Fatal("done without independently bound proof was accepted")}
+	if err := db.QueryRow("SELECT id FROM arc_tasks LIMIT 1").Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	if err := executeTask(db, "transition", id, "", "ready", 1); err != nil {
+		t.Fatal(err)
+	}
+	if err := executeTask(db, "transition", id, "", "running", 1); err == nil {
+		t.Fatal("stale version was accepted")
+	}
+	if err := executeTask(db, "transition", id, "", "running", 2); err != nil {
+		t.Fatal(err)
+	}
+	if err := executeTask(db, "transition", id, "", "verifying", 3); err != nil {
+		t.Fatal(err)
+	}
+	if err := executeTask(db, "transition", id, "", "done", 4); err == nil {
+		t.Fatal("done without independently bound proof was accepted")
+	}
 	var current string
 	var version int
-	if err:=db.QueryRow("SELECT status,version FROM arc_tasks WHERE id=?",id).Scan(&current,&version);err!=nil{t.Fatal(err)}
-	if current!="verifying" || version!=4 {t.Fatalf("unexpected task state %s version %d",current,version)}
+	if err := db.QueryRow("SELECT status,version FROM arc_tasks WHERE id=?", id).Scan(&current, &version); err != nil {
+		t.Fatal(err)
+	}
+	if current != "verifying" || version != 4 {
+		t.Fatalf("unexpected task state %s version %d", current, version)
+	}
 	var n, pending int
-	if err:=db.QueryRow("SELECT count(*) FROM arc_events WHERE aggregate='task'").Scan(&n);err!=nil{t.Fatal(err)}
-	if err:=db.QueryRow("SELECT count(*) FROM arc_outbox WHERE status='pending'").Scan(&pending);err!=nil{t.Fatal(err)}
-	if n!=4 || pending!=0 {t.Fatalf("events=%d outbox=%d; task events must not trigger a source reindex",n,pending)}
+	if err := db.QueryRow("SELECT count(*) FROM arc_events WHERE aggregate='task'").Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT count(*) FROM arc_outbox WHERE status='pending'").Scan(&pending); err != nil {
+		t.Fatal(err)
+	}
+	if n != 4 || pending != 0 {
+		t.Fatalf("events=%d outbox=%d; task events must not trigger a source reindex", n, pending)
+	}
 }
 
 func TestPolicyTaskEnsureBindsWithoutPromoting(t *testing.T) {
 	_, db := testArcState(t)
 	const taskID = "f42a18d5b4c979efc844b4425cb3ee41"
 	const taskTitle = "payment-repair (arc-code)"
-	if err := executeTask(db,"ensure",taskID,taskTitle,"",0);err!=nil{t.Fatal(err)}
-	if err := executeTask(db,"ensure",taskID,taskTitle,"",0);err!=nil{t.Fatal(err)}
+	if err := executeTask(db, "ensure", taskID, taskTitle, "", 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := executeTask(db, "ensure", taskID, taskTitle, "", 0); err != nil {
+		t.Fatal(err)
+	}
 	var count, events int
 	var status string
-	if err:=db.QueryRow("SELECT count(*),MAX(status) FROM arc_tasks WHERE id=?",taskID).Scan(&count,&status);err!=nil{t.Fatal(err)}
-	if count!=1||status!="draft"{t.Fatalf("task binding unexpectedly mutated status: count=%d status=%s",count,status)}
-	if err:=db.QueryRow("SELECT count(*) FROM arc_events WHERE aggregate='task' AND aggregate_id=?",taskID).Scan(&events);err!=nil{t.Fatal(err)}
-	if events!=1{t.Fatalf("task import must be idempotent, events=%d",events)}
-	if err:=executeTask(db,"ensure",taskID,"different-title","",0);err==nil{t.Fatal("conflicting task identity was silently overwritten")}
-	if err:=executeTask(db,"ensure","../../../escape",taskTitle,"",0);err==nil{t.Fatal("unsafe policy task ID was accepted")}
+	if err := db.QueryRow("SELECT count(*),MAX(status) FROM arc_tasks WHERE id=?", taskID).Scan(&count, &status); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 || status != "draft" {
+		t.Fatalf("task binding unexpectedly mutated status: count=%d status=%s", count, status)
+	}
+	if err := db.QueryRow("SELECT count(*) FROM arc_events WHERE aggregate='task' AND aggregate_id=?", taskID).Scan(&events); err != nil {
+		t.Fatal(err)
+	}
+	if events != 1 {
+		t.Fatalf("task import must be idempotent, events=%d", events)
+	}
+	if err := executeTask(db, "ensure", taskID, "different-title", "", 0); err == nil {
+		t.Fatal("conflicting task identity was silently overwritten")
+	}
+	if err := executeTask(db, "ensure", "../../../escape", taskTitle, "", 0); err == nil {
+		t.Fatal("unsafe policy task ID was accepted")
+	}
 }
 
 func TestFileHashReconciliationAndSymlinkBoundary(t *testing.T) {
-	root,db:=testArcState(t)
-	if err:=os.WriteFile(filepath.Join(root,"code.go"),[]byte("package test\n"),0600);err!=nil{t.Fatal(err)}
-	if err:=executeTask(db,"create","","Owns a file","",0);err!=nil{t.Fatal(err)}
+	root, db := testArcState(t)
+	if err := os.WriteFile(filepath.Join(root, "code.go"), []byte("package test\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := executeTask(db, "create", "", "Owns a file", "", 0); err != nil {
+		t.Fatal(err)
+	}
 	var taskID string
-	if err:=db.QueryRow("SELECT id FROM arc_tasks LIMIT 1").Scan(&taskID);err!=nil{t.Fatal(err)}
-	if err:=executeFile(db,root,"code.go",taskID);err!=nil{t.Fatal(err)}
-	if err:=executeFile(db,root,"code.go",taskID);err!=nil{t.Fatal(err)}
+	if err := db.QueryRow("SELECT id FROM arc_tasks LIMIT 1").Scan(&taskID); err != nil {
+		t.Fatal(err)
+	}
+	if err := executeFile(db, root, "code.go", taskID); err != nil {
+		t.Fatal(err)
+	}
+	if err := executeFile(db, root, "code.go", taskID); err != nil {
+		t.Fatal(err)
+	}
 	var relCount int
-	if err:=db.QueryRow("SELECT count(*) FROM arc_task_files WHERE task_id=? AND path='code.go'",taskID).Scan(&relCount);err!=nil{t.Fatal(err)}
-	if relCount!=1{t.Fatalf("expected one task-file link, got %d",relCount)}
+	if err := db.QueryRow("SELECT count(*) FROM arc_task_files WHERE task_id=? AND path='code.go'", taskID).Scan(&relCount); err != nil {
+		t.Fatal(err)
+	}
+	if relCount != 1 {
+		t.Fatalf("expected one task-file link, got %d", relCount)
+	}
 	var version int
-	if err:=db.QueryRow("SELECT version FROM arc_files WHERE path='code.go'").Scan(&version);err!=nil{t.Fatal(err)}
-	if version!=1{t.Fatalf("unchanged file has version %d",version)}
-	if err:=os.WriteFile(filepath.Join(root,"code.go"),[]byte("package changed\n"),0600);err!=nil{t.Fatal(err)}
-	if err:=executeFile(db,root,"code.go","");err!=nil{t.Fatal(err)}
-	if err:=db.QueryRow("SELECT version FROM arc_files WHERE path='code.go'").Scan(&version);err!=nil{t.Fatal(err)}
-	if version!=2{t.Fatalf("changed file version=%d",version)}
-	if _,_,_,err:=observedFile(root,".arc/arc.db");err==nil{t.Fatal("internal arc files must not be indexed")}
-	if runtime.GOOS!="windows" {
-		if err:=os.Symlink(t.TempDir(),filepath.Join(root,"out"));err!=nil{t.Fatal(err)}
-		if _,_,_,err:=observedFile(root,"out/absent.txt");err==nil{t.Fatal("path through external symlink accepted")}
+	if err := db.QueryRow("SELECT version FROM arc_files WHERE path='code.go'").Scan(&version); err != nil {
+		t.Fatal(err)
+	}
+	if version != 1 {
+		t.Fatalf("unchanged file has version %d", version)
+	}
+	if err := os.WriteFile(filepath.Join(root, "code.go"), []byte("package changed\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := executeFile(db, root, "code.go", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow("SELECT version FROM arc_files WHERE path='code.go'").Scan(&version); err != nil {
+		t.Fatal(err)
+	}
+	if version != 2 {
+		t.Fatalf("changed file version=%d", version)
+	}
+	if _, _, _, err := observedFile(root, ".arc/arc.db"); err == nil {
+		t.Fatal("internal arc files must not be indexed")
+	}
+	if runtime.GOOS != "windows" {
+		if err := os.Symlink(t.TempDir(), filepath.Join(root, "out")); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, _, err := observedFile(root, "out/absent.txt"); err == nil {
+			t.Fatal("path through external symlink accepted")
+		}
 	}
 }
 
 func TestFileShowAndBoundedEventInspection(t *testing.T) {
-	root,db:=testArcState(t)
-	if err:=os.WriteFile(filepath.Join(root,"example.go"),[]byte("package example\n"),0600);err!=nil{t.Fatal(err)}
-	if err:=executeFile(db,root,"example.go","");err!=nil{t.Fatal(err)}
-	if err:=showFile(db,"example.go");err!=nil{t.Fatal(err)}
-	if err:=showFile(db,".arc/arc.db");err==nil{t.Fatal("internal path was exposed")}
-	if err:=showFile(db,"../escape");err==nil{t.Fatal("path traversal was accepted")}
-	if err:=executeTask(db,"ensure","policyabcd1234","example (arc-code)","",0);err!=nil{t.Fatal(err)}
-	if err:=db.Close();err!=nil{t.Fatal(err)}
-	if err:=eventCommand([]string{"list","--repo",root,"--resource","task","--id","policyabcd1234","--limit","1"});err!=nil{t.Fatal(err)}
-	for _,args:=range [][]string{
-		{"list","--repo",root,"--limit","0"},
-		{"list","--repo",root,"--limit","201"},
-		{"list","--repo",root,"--id","policyabcd1234"},
-	}{
-		if err:=eventCommand(args);err==nil{t.Fatalf("invalid event query accepted: %v",args)}
+	root, db := testArcState(t)
+	if err := os.WriteFile(filepath.Join(root, "example.go"), []byte("package example\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := executeFile(db, root, "example.go", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := showFile(db, "example.go"); err != nil {
+		t.Fatal(err)
+	}
+	if err := showFile(db, ".arc/arc.db"); err == nil {
+		t.Fatal("internal path was exposed")
+	}
+	if err := showFile(db, "../escape"); err == nil {
+		t.Fatal("path traversal was accepted")
+	}
+	if err := executeTask(db, "ensure", "policyabcd1234", "example (arc-code)", "", 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := eventCommand([]string{"list", "--repo", root, "--resource", "task", "--id", "policyabcd1234", "--limit", "1"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{
+		{"list", "--repo", root, "--limit", "0"},
+		{"list", "--repo", root, "--limit", "201"},
+		{"list", "--repo", root, "--id", "policyabcd1234"},
+	} {
+		if err := eventCommand(args); err == nil {
+			t.Fatalf("invalid event query accepted: %v", args)
+		}
 	}
 }
 
 func TestGitWorktreeChangeIsIdempotent(t *testing.T) {
-	root,db:=testArcState(t)
-	runGit:=func(args ...string){t.Helper();cmd:=exec.Command("git",append([]string{"-C",root},args...)...);if out,err:=cmd.CombinedOutput();err!=nil{t.Fatalf("git %v: %v %s",args,err,out)}}
+	root, db := testArcState(t)
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v %s", args, err, out)
+		}
+	}
 	runGit("init")
-	runGit("config","user.email","arc-test@example.invalid")
-	runGit("config","user.name","Arc Test")
-	if err:=os.WriteFile(filepath.Join(root,"tracked.txt"),[]byte("baseline"),0600);err!=nil{t.Fatal(err)}
-	runGit("add","tracked.txt");runGit("commit","-m","baseline")
-	if err:=os.WriteFile(filepath.Join(root,"tracked.txt"),[]byte("updated"),0600);err!=nil{t.Fatal(err)}
-	if err:=collectChanges(db,root,"",".");err!=nil{t.Fatal(err)}
-	if err:=collectChanges(db,root,"",".");err!=nil{t.Fatal(err)}
+	runGit("config", "user.email", "arc-test@example.invalid")
+	runGit("config", "user.name", "Arc Test")
+	if err := os.WriteFile(filepath.Join(root, "tracked.txt"), []byte("baseline"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	runGit("add", "tracked.txt")
+	runGit("commit", "-m", "baseline")
+	if err := os.WriteFile(filepath.Join(root, "tracked.txt"), []byte("updated"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := collectChanges(db, root, "", "."); err != nil {
+		t.Fatal(err)
+	}
+	if err := collectChanges(db, root, "", "."); err != nil {
+		t.Fatal(err)
+	}
 	var changeCount int
-	if err:=db.QueryRow("SELECT count(*) FROM arc_changes").Scan(&changeCount);err!=nil{t.Fatal(err)}
-	if changeCount!=1{t.Fatalf("duplicate ChangeSet created, count=%d",changeCount)}
+	if err := db.QueryRow("SELECT count(*) FROM arc_changes").Scan(&changeCount); err != nil {
+		t.Fatal(err)
+	}
+	if changeCount != 1 {
+		t.Fatalf("duplicate ChangeSet created, count=%d", changeCount)
+	}
 	var op string
-	if err:=db.QueryRow("SELECT operation FROM arc_change_files").Scan(&op);err!=nil{t.Fatal(err)}
-	if op!="modified"{t.Fatalf("incorrect change operation %q",op)}
+	if err := db.QueryRow("SELECT operation FROM arc_change_files").Scan(&op); err != nil {
+		t.Fatal(err)
+	}
+	if op != "modified" {
+		t.Fatalf("incorrect change operation %q", op)
+	}
 }
 
 func TestCutoverManifestRejectsWrongVersion(t *testing.T) {
 	root, db := testArcState(t)
-	if _,err:=readManifest(root);err!=nil{t.Fatal(err)}
+	if _, err := readManifest(root); err != nil {
+		t.Fatal(err)
+	}
 	db.Close()
-	if err:=os.WriteFile(manifestPath(root),[]byte(`{"schema_version":999,"active":true,"db":".arc/arc.db"}`),0600);err!=nil{t.Fatal(err)}
-	if _,err:=readManifest(root);err==nil{t.Fatal("invalid migration manifest accepted")}
+	if err := os.WriteFile(manifestPath(root), []byte(`{"schema_version":999,"active":true,"db":".arc/arc.db"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readManifest(root); err == nil {
+		t.Fatal("invalid migration manifest accepted")
+	}
 }
 
 func TestMigrationBlocksLiveWal(t *testing.T) {
-	root:=t.TempDir()
-	source:=filepath.Join(root,legacyVerifyDB)
-	if err:=os.MkdirAll(filepath.Dir(source),0700);err!=nil{t.Fatal(err)}
-	if err:=os.WriteFile(source,[]byte("legacy"),0600);err!=nil{t.Fatal(err)}
-	if err:=os.WriteFile(source+"-wal",[]byte("pending"),0600);err!=nil{t.Fatal(err)}
-	if err:=noLiveSidecars(source);err==nil{t.Fatal("unsafe live WAL was accepted")}
-	if err:=dbCommand([]string{"migrate","--repo",root,"--confirm-offline"});err==nil{t.Fatal("migration with WAL was accepted")}
+	root := t.TempDir()
+	source := filepath.Join(root, legacyVerifyDB)
+	if err := os.MkdirAll(filepath.Dir(source), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(source, []byte("legacy"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(source+"-wal", []byte("pending"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := noLiveSidecars(source); err == nil {
+		t.Fatal("unsafe live WAL was accepted")
+	}
+	if err := dbCommand([]string{"migrate", "--repo", root, "--confirm-offline"}); err == nil {
+		t.Fatal("migration with WAL was accepted")
+	}
 }
 
 func TestVerifyBackendDBFlagRecognition(t *testing.T) {
-	if !isArcDBArgument([]string{"gate","--db",".arc/arc.db"}){t.Fatal("separate db flag not detected")}
-	if !isArcDBArgument([]string{"gate","--db=.arc/arc.db"}){t.Fatal("equals db flag not detected")}
-	if isArcDBArgument([]string{"gate","--graph","g"}){t.Fatal("false positive for explicit DB")}
+	if !isArcDBArgument([]string{"gate", "--db", ".arc/arc.db"}) {
+		t.Fatal("separate db flag not detected")
+	}
+	if !isArcDBArgument([]string{"gate", "--db=.arc/arc.db"}) {
+		t.Fatal("equals db flag not detected")
+	}
+	if isArcDBArgument([]string{"gate", "--graph", "g"}) {
+		t.Fatal("false positive for explicit DB")
+	}
 }
 
 func TestMigrationCopiesGraphAndRequiresParity(t *testing.T) {
-	if runtime.GOOS=="windows"{t.Skip("shell fake verifier is Unix-only")}
-	root:=t.TempDir()
-	source:=filepath.Join(root,legacyVerifyDB)
-	if err:=os.MkdirAll(filepath.Dir(source),0700);err!=nil{t.Fatal(err)}
-	d,err:=openArcDB(source);if err!=nil{t.Fatal(err)}
-	if _,err:=d.Exec("CREATE TABLE graphs (id TEXT PRIMARY KEY, scope TEXT NOT NULL, approved INTEGER NOT NULL DEFAULT 0)");err!=nil{t.Fatal(err)}
-	if _,err:=d.Exec("INSERT INTO graphs(id,scope,approved) VALUES('graph-v1','unit',1)");err!=nil{t.Fatal(err)}
+	if runtime.GOOS == "windows" {
+		t.Skip("shell fake verifier is Unix-only")
+	}
+	root := t.TempDir()
+	source := filepath.Join(root, legacyVerifyDB)
+	if err := os.MkdirAll(filepath.Dir(source), 0700); err != nil {
+		t.Fatal(err)
+	}
+	d, err := openArcDB(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Exec("CREATE TABLE graphs (id TEXT PRIMARY KEY, scope TEXT NOT NULL, approved INTEGER NOT NULL DEFAULT 0)"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Exec("INSERT INTO graphs(id,scope,approved) VALUES('graph-v1','unit',1)"); err != nil {
+		t.Fatal(err)
+	}
 	// A checkpoint ensures the test follows the offline-migration precondition.
-	if _,err:=d.Exec("PRAGMA wal_checkpoint(TRUNCATE)");err!=nil{t.Skipf("driver checkpoint unavailable: %v",err)}
-	if err:=d.Close();err!=nil{t.Fatal(err)}
-	if err:=noLiveSidecars(source);err!=nil{t.Skipf("database still has WAL sidecars: %v",err)}
-	bin:=t.TempDir()
-	sh:=filepath.Join(bin,"arc-verify")
-	if err:=os.WriteFile(sh,[]byte(`#!/bin/sh
+	if _, err := d.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+		t.Skipf("driver checkpoint unavailable: %v", err)
+	}
+	if err := d.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := noLiveSidecars(source); err != nil {
+		t.Skipf("database still has WAL sidecars: %v", err)
+	}
+	bin := t.TempDir()
+	sh := filepath.Join(bin, "arc-verify")
+	if err := os.WriteFile(sh, []byte(`#!/bin/sh
 printf '%s\n' '{"verdict":"BLOCKED"}'
 exit 1
-`),0700);err!=nil{t.Fatal(err)}
-	t.Setenv("PATH",bin+string(os.PathListSeparator)+os.Getenv("PATH"))
-	if err:=dbCommand([]string{"migrate","--repo",root,"--confirm-offline"});err!=nil{t.Fatal(err)}
-	m,err:=readManifest(root);if err!=nil{t.Fatal(err)}
-	if m==nil || m.ParityGraphs!=1 || len(m.LegacySHA256)!=64{t.Fatal("migration was not activated after gate parity")}
-	if _,err:=os.Stat(filepath.Join(root,".arc","backups","verify-"+m.LegacySHA256[:16]+".db"));err!=nil{t.Fatal(err)}
-	if err:=dbCommand([]string{"migrate","--repo",root,"--confirm-offline"});err==nil{t.Fatal("second migration was accepted")}
+`), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	if err := dbCommand([]string{"migrate", "--repo", root, "--confirm-offline"}); err != nil {
+		t.Fatal(err)
+	}
+	m, err := readManifest(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m == nil || m.ParityGraphs != 1 || len(m.LegacySHA256) != 64 {
+		t.Fatal("migration was not activated after gate parity")
+	}
+	if _, err := os.Stat(filepath.Join(root, ".arc", "backups", "verify-"+m.LegacySHA256[:16]+".db")); err != nil {
+		t.Fatal(err)
+	}
+	if err := dbCommand([]string{"migrate", "--repo", root, "--confirm-offline"}); err == nil {
+		t.Fatal("second migration was accepted")
+	}
 }
-
 
 func TestGitRenameAndNestedUntrackedFiles(t *testing.T) {
-	root:=t.TempDir()
-	git:=func(args ...string) {
+	root := t.TempDir()
+	git := func(args ...string) {
 		t.Helper()
-		cmd:=exec.Command("git",append([]string{"-C",root},args...)...)
-		if out,err:=cmd.CombinedOutput();err!=nil{t.Fatalf("git %v: %v %s",args,err,out)}
+		cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v %s", args, err, out)
+		}
 	}
-	git("init","-q")
-	git("config","user.email","arc-test@example.invalid")
-	git("config","user.name","Arc Test")
-	if err:=os.MkdirAll(filepath.Join(root,"nested"),0700);err!=nil{t.Fatal(err)}
-	oldPath:=filepath.Join(root,"nested","old.go")
-	if err:=os.WriteFile(oldPath,[]byte("package old\n"),0600);err!=nil{t.Fatal(err)}
-	git("add",".")
-	git("commit","-qm","baseline")
-	if err:=os.Rename(oldPath,filepath.Join(root,"nested","new.go"));err!=nil{t.Fatal(err)}
-	git("add","-A")
-	if err:=os.MkdirAll(filepath.Join(root,"fresh"),0700);err!=nil{t.Fatal(err)}
-	if err:=os.WriteFile(filepath.Join(root,"fresh","inside.go"),[]byte("package fresh\n"),0600);err!=nil{t.Fatal(err)}
-	changes,err:=changedGitPaths(root);if err!=nil{t.Fatal(err)}
-	got:=map[string]string{}
-	for _,change:=range changes {got[change.Path]=change.Operation}
-	for path,want:=range map[string]string{
-		"nested/old.go":"deleted",
-		"nested/new.go":"renamed",
-		"fresh/inside.go":"untracked",
+	git("init", "-q")
+	git("config", "user.email", "arc-test@example.invalid")
+	git("config", "user.name", "Arc Test")
+	if err := os.MkdirAll(filepath.Join(root, "nested"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	oldPath := filepath.Join(root, "nested", "old.go")
+	if err := os.WriteFile(oldPath, []byte("package old\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	git("add", ".")
+	git("commit", "-qm", "baseline")
+	if err := os.Rename(oldPath, filepath.Join(root, "nested", "new.go")); err != nil {
+		t.Fatal(err)
+	}
+	git("add", "-A")
+	if err := os.MkdirAll(filepath.Join(root, "fresh"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "fresh", "inside.go"), []byte("package fresh\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	changes, err := changedGitPaths(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, change := range changes {
+		got[change.Path] = change.Operation
+	}
+	for path, want := range map[string]string{
+		"nested/old.go":   "deleted",
+		"nested/new.go":   "renamed",
+		"fresh/inside.go": "untracked",
 	} {
-		if got[path]!=want{t.Fatalf("path %q: got %q, want %q; full changes=%v",path,got[path],want,got)}
+		if got[path] != want {
+			t.Fatalf("path %q: got %q, want %q; full changes=%v", path, got[path], want, got)
+		}
 	}
 }
 
-
 func TestMigrationGateProofMustBeStructured(t *testing.T) {
-	testCases:=[]struct{
-		name string
-		output string
+	testCases := []struct {
+		name     string
+		output   string
 		exitCode int
-		allowed bool
+		allowed  bool
 	}{
-		{"empty","",0,false},
-		{"garbage","not json",1,false},
-		{"false PASS",`{"verdict":"PASS"}`,0,false},
-		{"contradiction",`{"verdict":"BLOCKED"}`,0,false},
-		{"blocked",`{"verdict":"BLOCKED"}`,1,true},
-		{"valid PASS",`{"verdict":"PASS","proof_scope":"planned_rule_tasks","inputs_unchanged":true,"context":{"graph":"graph-v1"}}`,0,true},
-		{"legacy limited PASS",`{"verdict":"PASS","proof_scope":"legacy_business_model_obligations","inputs_unchanged":true,"context":{"graph":"graph-v1"}}`,0,true},
-		{"strong PASS missing branch evidence",`{"verdict":"PASS","proof_scope":"declared_finite_contract_scope_and_verified_branch_execution","inputs_unchanged":true,"context":{"graph":"graph-v1"}}`,0,false},
-		{"strong PASS",`{"verdict":"PASS","proof_scope":"declared_finite_contract_scope_and_verified_branch_execution","contract_proof":{"status":"PROVEN_IN_SCOPE","complete_in_scope":true},"contract_execution":{"status":"PASS"},"inputs_unchanged":true,"context":{"graph":"graph-v1"}}`,0,true},
-		{"task scope is not graph proof",`{"verdict":"PASS","proof_scope":"linked_task_evidence","inputs_unchanged":true,"context":{"graph":"graph-v1"}}`,0,false},
-		{"wrong graph",`{"verdict":"PASS","proof_scope":"planned_rule_tasks","inputs_unchanged":true,"context":{"graph":"other"}}`,0,false},
+		{"empty", "", 0, false},
+		{"garbage", "not json", 1, false},
+		{"false PASS", `{"verdict":"PASS"}`, 0, false},
+		{"contradiction", `{"verdict":"BLOCKED"}`, 0, false},
+		{"blocked", `{"verdict":"BLOCKED"}`, 1, true},
+		{"valid PASS", `{"verdict":"PASS","proof_scope":"planned_rule_tasks","inputs_unchanged":true,"context":{"graph":"graph-v1"}}`, 0, true},
+		{"legacy limited PASS", `{"verdict":"PASS","proof_scope":"legacy_business_model_obligations","inputs_unchanged":true,"context":{"graph":"graph-v1"}}`, 0, true},
+		{"strong PASS missing branch evidence", `{"verdict":"PASS","proof_scope":"declared_finite_contract_scope_and_verified_branch_execution","inputs_unchanged":true,"context":{"graph":"graph-v1"}}`, 0, false},
+		{"strong PASS", `{"verdict":"PASS","proof_scope":"declared_finite_contract_scope_and_verified_branch_execution","contract_proof":{"status":"PROVEN_IN_SCOPE","complete_in_scope":true},"contract_execution":{"status":"PASS"},"inputs_unchanged":true,"context":{"graph":"graph-v1"}}`, 0, true},
+		{"task scope is not graph proof", `{"verdict":"PASS","proof_scope":"linked_task_evidence","inputs_unchanged":true,"context":{"graph":"graph-v1"}}`, 0, false},
+		{"wrong graph", `{"verdict":"PASS","proof_scope":"planned_rule_tasks","inputs_unchanged":true,"context":{"graph":"other"}}`, 0, false},
 	}
-	for _,tc:=range testCases{
-		t.Run(tc.name,func(t *testing.T){
-			err:=validateGateProof([]byte(tc.output),tc.exitCode,"graph-v1")
-			if (err==nil)!=tc.allowed {t.Fatalf("valid=%v, want=%v (err=%v)",err==nil,tc.allowed,err)}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateGateProof([]byte(tc.output), tc.exitCode, "graph-v1")
+			if (err == nil) != tc.allowed {
+				t.Fatalf("valid=%v, want=%v (err=%v)", err == nil, tc.allowed, err)
+			}
 		})
 	}
 }
 
-
 func TestSyncReconcileReplaysCommittedChanges(t *testing.T) {
-	root,db:=testArcState(t)
-	git:=func(args ...string){
+	root, db := testArcState(t)
+	git := func(args ...string) {
 		t.Helper()
-		cmd:=exec.Command("git",append([]string{"-C",root},args...)...)
-		if output,err:=cmd.CombinedOutput();err!=nil{t.Fatalf("git %v: %v: %s",args,err,output)}
+		cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, output)
+		}
 	}
-	git("init","-q")
-	git("config","user.name","Arc Test")
-	git("config","user.email","arc@example.invalid")
-	file:=filepath.Join(root,"sample.go")
-	if err:=os.WriteFile(file,[]byte("package a\n"),0600);err!=nil{t.Fatal(err)}
-	git("add","sample.go");git("commit","-qm","baseline")
-	if err:=reconcileGit(db,root,"");err!=nil{t.Fatal(err)}
-	if err:=os.WriteFile(file,[]byte("package b\n"),0600);err!=nil{t.Fatal(err)}
-	git("add","sample.go");git("commit","-qm","changed without PostToolUse")
-	if err:=reconcileGit(db,root,"");err!=nil{t.Fatal(err)}
-	if err:=reconcileGit(db,root,"");err!=nil{t.Fatal(err)}
+	git("init", "-q")
+	git("config", "user.name", "Arc Test")
+	git("config", "user.email", "arc@example.invalid")
+	file := filepath.Join(root, "sample.go")
+	if err := os.WriteFile(file, []byte("package a\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	git("add", "sample.go")
+	git("commit", "-qm", "baseline")
+	if err := reconcileGit(db, root, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, []byte("package b\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	git("add", "sample.go")
+	git("commit", "-qm", "changed without PostToolUse")
+	if err := reconcileGit(db, root, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := reconcileGit(db, root, ""); err != nil {
+		t.Fatal(err)
+	}
 	var count int
-	if err:=db.QueryRow("SELECT count(*) FROM arc_changes").Scan(&count);err!=nil{t.Fatal(err)}
-	if count!=1{t.Fatalf("wanted one recovered change, got %d",count)}
+	if err := db.QueryRow("SELECT count(*) FROM arc_changes").Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("wanted one recovered change, got %d", count)
+	}
 	var cursor string
-	if err:=db.QueryRow("SELECT value FROM arc_meta WHERE key='sync_head'").Scan(&cursor);err!=nil{t.Fatal(err)}
-	head,err:=gitHead(root);if err!=nil{t.Fatal(err)}
-	if cursor!=head{t.Fatalf("cursor=%s, head=%s",cursor,head)}
+	if err := db.QueryRow("SELECT value FROM arc_meta WHERE key='sync_head'").Scan(&cursor); err != nil {
+		t.Fatal(err)
+	}
+	head, err := gitHead(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cursor != head {
+		t.Fatalf("cursor=%s, head=%s", cursor, head)
+	}
 	var version int
-	if err:=db.QueryRow("SELECT version FROM arc_files WHERE path='sample.go'").Scan(&version);err!=nil{t.Fatal(err)}
-	if version!=1{t.Fatalf("file version=%d after replay",version)}
+	if err := db.QueryRow("SELECT version FROM arc_files WHERE path='sample.go'").Scan(&version); err != nil {
+		t.Fatal(err)
+	}
+	if version != 1 {
+		t.Fatalf("file version=%d after replay", version)
+	}
 }
-
 
 func TestArcPrivateFilesAreIgnoredAndSymlinksRejected(t *testing.T) {
-	root:=t.TempDir()
-	if err:=ensureArcPrivateFiles(root);err!=nil{t.Fatal(err)}
-	path:=filepath.Join(root,".arc",".gitignore")
-	first,err:=os.ReadFile(path);if err!=nil{t.Fatal(err)}
-	for _,item:=range []string{"arc.db","arc.db-*","arc.json","arc.lock","backups/","verify/*.db"}{
-		if !strings.Contains(string(first),item){t.Fatalf("missing ignore pattern: %s",item)}
+	root := t.TempDir()
+	if err := ensureArcPrivateFiles(root); err != nil {
+		t.Fatal(err)
 	}
-	if err:=ensureArcPrivateFiles(root);err!=nil{t.Fatal(err)}
-	second,err:=os.ReadFile(path);if err!=nil{t.Fatal(err)}
-	if string(first)!=string(second){t.Fatal("ignore initialization was not idempotent")}
-	if runtime.GOOS!="windows"{
-		outside:=t.TempDir()
-		symlinkRoot:=t.TempDir()
-		if err:=os.Symlink(outside,filepath.Join(symlinkRoot,".arc"));err!=nil{t.Fatal(err)}
-		if err:=ensureArcPrivateFiles(symlinkRoot);err==nil{t.Fatal("symlinked .arc directory was accepted")}
+	path := filepath.Join(root, ".arc", ".gitignore")
+	first, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range []string{"arc.db", "arc.db-*", "arc.json", "arc.lock", "backups/", "verify/*.db"} {
+		if !strings.Contains(string(first), item) {
+			t.Fatalf("missing ignore pattern: %s", item)
+		}
+	}
+	if err := ensureArcPrivateFiles(root); err != nil {
+		t.Fatal(err)
+	}
+	second, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(first) != string(second) {
+		t.Fatal("ignore initialization was not idempotent")
+	}
+	if runtime.GOOS != "windows" {
+		outside := t.TempDir()
+		symlinkRoot := t.TempDir()
+		if err := os.Symlink(outside, filepath.Join(symlinkRoot, ".arc")); err != nil {
+			t.Fatal(err)
+		}
+		if err := ensureArcPrivateFiles(symlinkRoot); err == nil {
+			t.Fatal("symlinked .arc directory was accepted")
+		}
 	}
 }
-
 
 func TestTaskLinkVerifyAndStatus(t *testing.T) {
 	_, db := testArcState(t)
-	if err := executeTask(db, "create", "", "Implement refund business chain", "", 0); err != nil { t.Fatal(err) }
+	if err := executeTask(db, "create", "", "Implement refund business chain", "", 0); err != nil {
+		t.Fatal(err)
+	}
 	var arcTaskID string
-	if err := db.QueryRow("SELECT id FROM arc_tasks LIMIT 1").Scan(&arcTaskID); err != nil { t.Fatal(err) }
+	if err := db.QueryRow("SELECT id FROM arc_tasks LIMIT 1").Scan(&arcTaskID); err != nil {
+		t.Fatal(err)
+	}
 	// Linking before verify tables exist must succeed cleanly (UNPLANNED status).
-	if err := linkTaskVerify(db, arcTaskID, "pay-chain-v3", "T-FLOW-PAY-REFUND", ""); err != nil { t.Fatal(err) }
-	if err := showTaskVerifyStatus(db, arcTaskID); err != nil { t.Fatal(err) }
+	if err := linkTaskVerify(db, arcTaskID, "pay-chain-v3", "T-FLOW-PAY-REFUND", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := showTaskVerifyStatus(db, arcTaskID); err != nil {
+		t.Fatal(err)
+	}
 	// Seed verify tables + step_facts in the shared DB and verify joined output.
 	for _, ddl := range []string{
 		`CREATE TABLE tasks (id TEXT PRIMARY KEY, graph TEXT NOT NULL, rule TEXT NOT NULL, kind TEXT NOT NULL, condition TEXT NOT NULL, expected TEXT NOT NULL, status TEXT NOT NULL)`,
 		`CREATE TABLE runs (id TEXT PRIMARY KEY, task TEXT NOT NULL, environment TEXT NOT NULL, commit_sha TEXT NOT NULL, status TEXT NOT NULL)`,
 		`CREATE TABLE step_facts (source_kind TEXT NOT NULL, run TEXT NOT NULL, seq INTEGER NOT NULL, graph TEXT NOT NULL, task TEXT NOT NULL DEFAULT '', node TEXT NOT NULL DEFAULT '', transition TEXT NOT NULL DEFAULT '', rule_id TEXT NOT NULL DEFAULT '', actor TEXT NOT NULL DEFAULT '', account TEXT NOT NULL DEFAULT '', principal TEXT NOT NULL DEFAULT '', expected_state TEXT NOT NULL DEFAULT '', observed_state TEXT NOT NULL DEFAULT '', verdict TEXT NOT NULL, decision TEXT NOT NULL DEFAULT '', reason TEXT NOT NULL DEFAULT '', first_divergence INTEGER NOT NULL DEFAULT 0, related_run TEXT NOT NULL DEFAULT '', evidence_path TEXT NOT NULL DEFAULT '', evidence_sha256 TEXT NOT NULL DEFAULT '', raw_json TEXT NOT NULL DEFAULT '{}', facts_json TEXT NOT NULL DEFAULT '{}', PRIMARY KEY(source_kind,run,seq))`,
 	} {
-		if _, err := db.Exec(ddl); err != nil { t.Fatal(err) }
+		if _, err := db.Exec(ddl); err != nil {
+			t.Fatal(err)
+		}
 	}
-	if _, err := db.Exec(`INSERT INTO tasks VALUES('pay-chain-v3/T-FLOW-PAY-REFUND','pay-chain-v3','R-REFUND','SEQUENCE','','S-REFUNDED','FAIL')`); err != nil { t.Fatal(err) }
-	if _, err := db.Exec(`INSERT INTO runs VALUES('R-001','pay-chain-v3/T-FLOW-PAY-REFUND','independent','abc123','FAIL')`); err != nil { t.Fatal(err) }
-	if _, err := db.Exec(`INSERT INTO step_facts(source_kind,run,seq,graph,task,node,verdict,observed_state,reason,first_divergence,evidence_sha256) VALUES('sequence','R-001',3,'pay-chain-v3','pay-chain-v3/T-FLOW-PAY-REFUND','A-NOTIFY-DISPATCH','FAIL','S-DEAD-LETTER','illegal intermediate state',1,'deadbeef')`); err != nil { t.Fatal(err) }
-	if err := linkTaskVerify(db, arcTaskID, "pay-chain-v3", "T-FLOW-PAY-REFUND", ""); err != nil { t.Fatal(err) }
+	if _, err := db.Exec(`INSERT INTO tasks VALUES('pay-chain-v3/T-FLOW-PAY-REFUND','pay-chain-v3','R-REFUND','SEQUENCE','','S-REFUNDED','FAIL')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO runs VALUES('R-001','pay-chain-v3/T-FLOW-PAY-REFUND','independent','abc123','FAIL')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO step_facts(source_kind,run,seq,graph,task,node,verdict,observed_state,reason,first_divergence,evidence_sha256) VALUES('sequence','R-001',3,'pay-chain-v3','pay-chain-v3/T-FLOW-PAY-REFUND','A-NOTIFY-DISPATCH','FAIL','S-DEAD-LETTER','illegal intermediate state',1,'deadbeef')`); err != nil {
+		t.Fatal(err)
+	}
+	if err := linkTaskVerify(db, arcTaskID, "pay-chain-v3", "T-FLOW-PAY-REFUND", ""); err != nil {
+		t.Fatal(err)
+	}
 	var linkedCount int
-	if err := db.QueryRow("SELECT count(*) FROM arc_task_obligations WHERE arc_task_id=?", arcTaskID).Scan(&linkedCount); err != nil { t.Fatal(err) }
-	if linkedCount != 1 { t.Fatalf("expected idempotent 1 obligation link, got %d", linkedCount) }
-	if err := showTaskVerifyStatus(db, arcTaskID); err != nil { t.Fatal(err) }
-	if err := linkTaskVerify(db, "TASK-MISSING", "pay-chain-v3", "T-1", ""); err == nil { t.Fatal("linking missing arc task succeeded") }
+	if err := db.QueryRow("SELECT count(*) FROM arc_task_obligations WHERE arc_task_id=?", arcTaskID).Scan(&linkedCount); err != nil {
+		t.Fatal(err)
+	}
+	if linkedCount != 1 {
+		t.Fatalf("expected idempotent 1 obligation link, got %d", linkedCount)
+	}
+	if err := showTaskVerifyStatus(db, arcTaskID); err != nil {
+		t.Fatal(err)
+	}
+	if err := linkTaskVerify(db, "TASK-MISSING", "pay-chain-v3", "T-1", ""); err == nil {
+		t.Fatal("linking missing arc task succeeded")
+	}
 }
 
 // TestTaskVerifyStatusSupportsStorylineTables 验证 verify-status 兼容 story_* 六维账本表且保持 NOT_REVALIDATED 语义
@@ -355,5 +619,95 @@ func TestTaskVerifyStatusSupportsStorylineTables(t *testing.T) {
 	st, summary, err := lookupStorylineObligation(t.Context(), db, "cancel_story", "r_softlock")
 	if err != nil || st != "FAIL" || summary == nil || summary.LatestRun != "SR-01" {
 		t.Fatalf("unexpected storyline obligation lookup: st=%s summary=%+v err=%v", st, summary, err)
+	}
+}
+
+// TestTaskVerifyStatusSupportsCodeVerifyTables 验证任务义务查询兼容代码级测试账本表
+func TestTaskVerifyStatusSupportsCodeVerifyTables(t *testing.T) {
+	_, db := testArcState(t)
+	if err := executeTask(db, "create", "", "Verify Rust crate code tests", "", 0); err != nil {
+		t.Fatal(err)
+	}
+	var arcTaskID string
+	if err := db.QueryRow("SELECT id FROM arc_tasks LIMIT 1").Scan(&arcTaskID); err != nil {
+		t.Fatal(err)
+	}
+	for _, ddl := range []string{
+		`CREATE TABLE code_verify_plans (plan_id TEXT PRIMARY KEY, repo_root TEXT NOT NULL, primary_language TEXT NOT NULL, max_tier TEXT NOT NULL, plan_sha256 TEXT NOT NULL, raw_json TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+		`CREATE TABLE code_verify_runs (run_id TEXT PRIMARY KEY, plan_id TEXT NOT NULL, plan_sha256 TEXT NOT NULL, repo_root TEXT NOT NULL, source_commit TEXT NOT NULL, max_tier TEXT NOT NULL, verdict TEXT NOT NULL, required_total INTEGER NOT NULL DEFAULT 0, passed_count INTEGER NOT NULL DEFAULT 0, failed_count INTEGER NOT NULL DEFAULT 0, blocked_count INTEGER NOT NULL DEFAULT 0, started_at TEXT NOT NULL, finished_at TEXT NOT NULL)`,
+		`CREATE TABLE code_verify_results (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL, plan_id TEXT NOT NULL, plan_sha256 TEXT NOT NULL, technique_id TEXT NOT NULL, priority TEXT NOT NULL, language TEXT NOT NULL, tool_name TEXT NOT NULL, executed_cmd TEXT NOT NULL, verdict TEXT NOT NULL, exit_code INTEGER NOT NULL DEFAULT 0, duration_ms INTEGER NOT NULL DEFAULT 0, metrics_json TEXT NOT NULL DEFAULT '{}', coverage_json TEXT NOT NULL DEFAULT '{}', failure_reason TEXT NOT NULL DEFAULT '', missing_prerequisite TEXT NOT NULL DEFAULT '', artifact_path TEXT NOT NULL DEFAULT '', artifact_sha256 TEXT NOT NULL DEFAULT '', raw_output TEXT NOT NULL DEFAULT '', receipt_sha256 TEXT NOT NULL, created_at TEXT NOT NULL)`,
+	} {
+		if _, err := db.Exec(ddl); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rawPlan := `{"plan_id":"rust_core_code_verify","techniques":[{"technique_id":"mutation","tool_name":"cargo-mutants"}]}`
+	if _, err := db.Exec(`INSERT INTO code_verify_plans VALUES('rust_core_code_verify','/repo','rust','P1','csha_v1',?,'2026-11-23T00:00:00Z')`, rawPlan); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO code_verify_runs VALUES('CV-01','rust_core_code_verify','csha_v1','/repo','abc123','P1','FAIL',1,0,1,0,'2026-11-23T00:00:00Z','2026-11-23T00:00:02Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO code_verify_results(run_id,plan_id,plan_sha256,technique_id,priority,language,tool_name,executed_cmd,verdict,failure_reason,receipt_sha256,created_at) VALUES('CV-01','rust_core_code_verify','csha_v1','mutation','P1','rust','cargo-mutants','cargo mutants','FAIL','mutation_score=65.0% below min=80.0%','msha','2026-11-23T00:00:02Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if err := linkTaskVerify(db, arcTaskID, "rust_core_code_verify", "mutation", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := showTaskVerifyStatus(db, arcTaskID); err != nil {
+		t.Fatal(err)
+	}
+	st, summary, err := lookupCodeVerifyObligation(t.Context(), db, "rust_core_code_verify", "mutation")
+	if err != nil || st != "FAIL" || summary == nil || summary.LatestRun != "CV-01" {
+		t.Fatalf("unexpected code verify obligation lookup: st=%s summary=%+v err=%v", st, summary, err)
+	}
+	stAll, sumAll, errAll := lookupCodeVerifyObligation(t.Context(), db, "rust_core_code_verify", "all")
+	if errAll != nil || stAll != "FAIL" || sumAll == nil || sumAll.Kind != "CODE_VERIFY_PLAN" {
+		t.Fatalf("unexpected code verify plan lookup: st=%s summary=%+v err=%v", stAll, sumAll, errAll)
+	}
+}
+
+// TestCollectChangesAndReconcileHandleFileRevertWithoutWedge 验证脏文件回退到历史指纹时仍刷新文件观测而不卡死索引队列
+func TestCollectChangesAndReconcileHandleFileRevertWithoutWedge(t *testing.T) {
+	root, db := testArcState(t)
+	initClosureRepo(t, root)
+	target := filepath.Join(root, "a.go")
+	if err := os.WriteFile(target, []byte("package main\nvar v = 1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := collectChanges(db, root, "", "."); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(target, []byte("package main\nvar v = 2\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := collectChanges(db, root, "", "."); err != nil {
+		t.Fatal(err)
+	}
+	// Revert back to state v1 (matching first ChangeSet fingerprint) and verify arc_files + outbox refresh.
+	if err := os.WriteFile(target, []byte("package main\nvar v = 1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := collectChanges(db, root, "", "."); err != nil {
+		t.Fatal(err)
+	}
+	if err := recordedFilesCurrent(root); err != nil {
+		t.Fatalf("recordedFilesCurrent wedged after revert in collectChanges: %v", err)
+	}
+	// Verify reconcileGit also recovers after an untracked edit -> S2 -> S1 revert.
+	if err := os.WriteFile(target, []byte("package main\nvar v = 2\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := reconcileGit(db, root, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(target, []byte("package main\nvar v = 1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := reconcileGit(db, root, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := recordedFilesCurrent(root); err != nil {
+		t.Fatalf("recordedFilesCurrent wedged after revert in reconcileGit: %v", err)
 	}
 }

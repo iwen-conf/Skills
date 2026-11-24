@@ -73,8 +73,13 @@ func cmdIndex(args []string) error {
 		return fmt.Errorf("zoekt build: %w", zoektErr)
 	}
 	_ = saveManifest(repo, currHashes)
-	if tagsErr != nil && !*quiet {
-		fmt.Fprintf(os.Stderr, "warning: ctags build failed: %v\n", tagsErr)
+	if tagsErr != nil {
+		if *requireComplete {
+			return fmt.Errorf("ctags build failed: %w", tagsErr)
+		}
+		if !*quiet {
+			fmt.Fprintf(os.Stderr, "warning: ctags build failed: %v\n", tagsErr)
+		}
 	}
 	if !*quiet {
 		fmt.Printf("indexed %d files from %s into %s in %s\n",
@@ -95,7 +100,9 @@ func walkRepo(repo *Repo, requireComplete ...bool) ([]string, error) {
 	var files []string
 	err := filepath.WalkDir(repo.Root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			if strict { return err }
+			if strict {
+				return err
+			}
 			return nil // legacy best-effort queries may skip unreadable trees
 		}
 		name := d.Name()
@@ -113,14 +120,18 @@ func walkRepo(repo *Repo, requireComplete ...bool) ([]string, error) {
 		}
 		info, err := d.Info()
 		if err != nil {
-			if strict { return err }
+			if strict {
+				return err
+			}
 			return nil
 		}
 		if info.Size() > int64(repo.Cfg.SizeMax) || info.Size() == 0 {
 			return nil
 		}
 		rel, err := filepath.Rel(repo.Root, path)
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		rel = filepath.ToSlash(rel)
 		if repo.ignoredFile(rel) || !repo.indexableExt(rel) {
 			return nil
@@ -160,7 +171,7 @@ func buildZoekt(repo *Repo, files []string) error {
 	for _, rel := range files {
 		content, err := os.ReadFile(filepath.Join(repo.Root, rel))
 		if err != nil {
-			return fmt.Errorf("cannot read indexed source file %q: %w",rel,err)
+			return fmt.Errorf("cannot read indexed source file %q: %w", rel, err)
 		}
 		if bytes.IndexByte(content, 0) >= 0 {
 			continue // binary

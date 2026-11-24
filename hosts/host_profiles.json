@@ -13,7 +13,9 @@
   },
   "allowed_external": [
     "agent-browser",
-    "lanhu-design"
+    "lanhu-design",
+    "cua-driver",
+    "software-copyright-materials"
   ],
   "hosts": {
     "claude": {
@@ -33,6 +35,32 @@
       "mode": "inline_bundle",
       "ignore": [],
       "adapter": "hosts/GROK.md"
+    },
+    "gemini": {
+      "root": "~/.gemini/config/skills",
+      "mode": "symlink",
+      "ignore": [],
+      "adapter": "hosts/GEMINI.md"
+    },
+    "cursor": {
+      "root": "~/.cursor/skills",
+      "mode": "symlink",
+      "ignore": [],
+      "adapter": "AGENTS.md"
+    },
+    "dsh": {
+      "root": "~/.dsh/skills",
+      "mode": "symlink",
+      "optional": true,
+      "ignore": [],
+      "adapter": "AGENTS.md"
+    },
+    "workbuddy-ai": {
+      "root": "~/.workbuddy-ai/skills",
+      "mode": "symlink",
+      "optional": true,
+      "ignore": [],
+      "adapter": "AGENTS.md"
     }
   }
 }

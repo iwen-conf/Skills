@@ -1,6 +1,28 @@
 # Changelog
 
+## 2026-11-24 — Holistic Skill, Script & Go Verification Toolchain Audit Fixes
+
+- **Verification Integrity & Revision Binding (`tools/arc-verify`, `tools/arc`)**:
+  - Bound `arc verify play` and `arc verify code run` receipts to `repo_root`, `source_commit`, and `source_tree_sha256` (with idempotent SQLite `ALTER TABLE` column migrations); updated `arc verify task-proof` (`--obligation` and `all` support) to reject stale worktrees (`STALE` / `NOT_RUN`) and prevent cross-commit partial stitching.
+  - Deleted `ActualStatus = ExpectStatus` fabrication in Storyline traces, enforced structured `[ARC_STEP_EVIDENCE]` when 6D assertions are declared, guarded `probes_passed` and empty steps, added 300s command timeouts, fixed `scopesOverlap` bare-directory prefix checks, and fixed PostgreSQL checkpoint `TEMPLATE` inheritance and 63-byte DB identifier bounds.
+  - Fixed `arc-verify` code catalog (`vitest` coverage output dir, `llvm-cov`, per-package Go fuzz loop, `semgrep --config p/default`, `govulncheck -json`, C/C++ `clang-tidy`/`cbmc`), planner (`python3` + `npx` probe cache, `Cargo.toml` table-section & `members` parsing, all 14 `HarnessKey`s, deterministic `PlanSHA256`), parsers (`govulncheck`/`npm`/`pip-audit`/`ruff`/`tsc`/`clang-tidy`/`pytest`/`vitest`/`ctest`/`kani`, `mutants.out/outcomes.json`/`gremlins`/`mutmut`/`stryker`, `BLOCKED` on unmeasured coverage/mutation criteria), zero-tests-ran `BLOCKED` across test techniques, and cohesive `*_helpers.go` splits.
+  - Fixed `tools/arc` worktree `repositoryRoot` walking, `file_change_service`/`reconcile` file revert handling, `verify_obligation_service` Storyline `all` & Code ledger checks, and `--help`/lock behavior; fixed `tools/arc-idx` worktree `.git` resolution, isolated `<base>-<sha8>` Zoekt cache keys, search candidate headroom, minute/duration watch TTL, and `Universal Ctags` doctor probe.
+- **Scripts, Specs, Sync & Docs**:
+  - Fixed syntax/corruption in `check_closure.py`, `gate.sh` (TS comments/strings, `.XXX` false positive, Go grouped type/generic/any checks, macOS `cargo`, `check_red` & `in_scope` `**/`), `security-scan.py` (ZAP `-J`, `TimeoutExpired` bytes, `docker_ready`, `gitleaks`), `github_health.py` (author bot filter, URL slug, HTTP 409, network catches), `arc-wave.py` (`.git` root priority, read-only DB + active sort, real import parsers, partial-overlap deps), `sync.sh` (`--prune-extra` safe default, PID backup, `inline_bundle` parity + `code-testing-catalog.md`, `openai.yaml` length & `<`/`>` validation), `install_arc.sh`, and `tools/arc/smoke.sh`.
+  - Updated `skills/*/agents/openai.yaml` (`25..64` char `short_description`), `skills/*/SKILL.md` (clean frontmatter & `~/.agents/skills/...` script paths), `hosts/GEMINI.md`, `skills/_shared/handoff.md`, `AGENTS.md`, `README.md`, `.agents/plugins/marketplace.json`, `tools/arc/README.md`, and `docs/*` broken links.
+- **2026 Web Frontend Baseline, Anti-Slop UI Gates, Waza Habits & Full-Host Sync**:
+  - Added `skills/_shared/web-frontend.md` (Vite/Astro + React 19 + TypeScript strict + TanStack Router/Query/Table + Orval + Zod 4 + Tailwind v4 + shadcn/ui + Magic UI + Motion + Vite+ `vp` + `satnaing/shadcn-admin` reference) and `skills/_shared/debugging.md` (root-cause hypothesis/3-stop ladder, safe bisect, Scope Blast sweep, recurring failure patterns, conditional diff audit traps).
+  - Upgraded `skills/_shared/ui-system.md` and `skills/_shared/contract.md` with anti-overlap layout laws, Emil Kowalski motion/physics & `break-ui` stress checks, Vercel Web Interface Guidelines, Taste Skill anti-slop bans, and Waza honesty/authorization/release-layer invariants.
+  - Added deterministic `web-ui-a11y` (static `<div|span onClick>`, role-faked `<div role="button">`, `<a href="#">`, `framer-motion`, `transition-all`/`transition: all`, `outline-none` without `focus-visible`, `tabIndex > 0`, `onPaste preventDefault`, `user-scalable=no`/`maximum-scale=1`), `*.astro` support, and `oxlint-disable` blocking to `skills/arc-code/scripts/gate.sh`.
+  - Upgraded `arc-plan` (v4.2.0), `arc-code` (v4.4.0), `arc-verify` (v8.2.0 + `full-e2e-playbook.md`), `arc-audit` (v4.6.0), and `check` (v2.1.0); added `dsh` and `workbuddy-ai` to `hosts/host_profiles.json` and auto-sync for all linked local agent roots in `scripts/sync.sh`.
+
 ## Unreleased
+
+### arc-audit 3.1.0 — library/SDK independent review
+
+- New `library` mode for utility modules and SDKs (独立审查, 工具库, 黑盒复现, 令牌生命周期). Findings carry an evidence class (`静态确认` / `待验证风险` / `设计建议`); unread source never gets invented line numbers; prior coverage reports are material, not this-session proof.
+- Deliverables stay under `.arc/artifacts/<slug>/`: baseline, lifecycle field table, test-gap matrix, usability walkthrough, two-scheme refactor notes, and black-box exported-API tests in `repro/` (never written into the target package).
+- Default auth entries that require every caller to extra-check token purpose are library defects. Official examples are attack surface.
 
 ### Removed the Arc Policy plugin
 
